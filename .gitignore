@@ -1,0 +1,64 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+web_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment and secrets (CRITICAL)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+*.env
+*.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+certs/
+certificates/
+keys/
+*.p12
+*.pfx
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Storage, Uploads, and Temp files
+storage/*
+!storage/.gitkeep
+uploads/*
+!uploads/.gitkeep
+temp/
+tmp/
+.serverless/
+
+# Agent Internal Files
+.agents/
+skills-lock.json
