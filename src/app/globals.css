@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-display: var(--font-display), var(--font-sans), sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  --background: 210 20% 98%;      /* #f8f9fa */
+  --foreground: 200 10% 11%;      /* #191c1d */
+  --card: 0 0% 100%;              /* #ffffff */
+  --card-foreground: 200 10% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 200 10% 11%;
+  --primary: 210 100% 20%;        /* #003366 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 41 50% 56%;        /* #c5a059 - Metallic Gold */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 8% 90%;            /* #e1e3e4 */
+  --muted-foreground: 200 8% 28%; /* #43474f */
+  --accent: 41 50% 94%;           /* Light Gold Accent */
+  --accent-foreground: 41 50% 20%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 8% 85%;           /* #c3c6d1 */
+  --input: 210 8% 85%;
+  --ring: 210 100% 20%;
+  --radius: 0.25rem;              /* 4px radius - Soft roundedness */
+}
+
+.dark {
+  --background: 222 47% 7%;      /* #070a13 - Dark Obsidian Navy */
+  --foreground: 210 40% 98%;
+  --card: 222 47% 10%;           /* #0e1222 */
+  --card-foreground: 210 40% 98%;
+  --popover: 222 47% 10%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 100% 35%;       /* #005bc4 - Lighter Blue for contrast */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 41 50% 56%;       /* #c5a059 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 222 47% 15%;
+  --muted-foreground: 210 20% 65%;
+  --accent: 222 47% 15%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 222 47% 15%;
+  --input: 222 47% 15%;
+  --ring: 210 100% 35%;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
