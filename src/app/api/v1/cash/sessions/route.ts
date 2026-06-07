@@ -3,6 +3,44 @@ import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { CashService } from '@/services/cashService';
+import { CashRepository } from '@/repositories/cashRepository';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/v1/cash/sessions - List all sessions for the current company (history)
+ */
+export async function GET(req: NextRequest) {
+  const resHeaders = new Headers();
+  const auth = await verifyAuth(req, resHeaders);
+
+  if (!auth) {
+    return NextResponse.json(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } },
+      { status: 401 }
+    );
+  }
+
+  try {
+    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
+
+    const sessions = await CashRepository.listSessions(auth.companyId);
+
+    return NextResponse.json(
+      { success: true, data: sessions },
+      { headers: resHeaders }
+    );
+  } catch (error: any) {
+    console.error('Error in GET /api/v1/cash/sessions:', error);
+    const status = error.status || 500;
+    const code = error.code || 'SERVER_ERROR';
+    return NextResponse.json(
+      { success: false, error: { code, message: error.message } },
+      { status, headers: resHeaders }
+    );
+  }
+}
+
 
 const openSessionSchema = z.object({
   cashRegisterId: z.string().uuid('ID de caja registradora inválido'),

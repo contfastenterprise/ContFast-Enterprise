@@ -221,4 +221,33 @@ export class CashRepository {
       .where(and(eq(cashMovements.cashSessionId, sessionId), eq(cashMovements.companyId, companyId)))
       .orderBy(desc(cashMovements.createdAt));
   }
+
+  /**
+   * Lists all sessions for a company (for history/reporting), ordered by most recent first.
+   */
+  static async listSessions(companyId: string) {
+    const sessions = await db
+      .select({
+        id: cashSessions.id,
+        status: cashSessions.status,
+        initialBalance: cashSessions.initialBalance,
+        expectedBalance: cashSessions.expectedBalance,
+        actualBalance: cashSessions.actualBalance,
+        difference: cashSessions.difference,
+        justification: cashSessions.justification,
+        createdAt: cashSessions.createdAt,
+        closedAt: cashSessions.closedAt,
+        userId: cashSessions.userId,
+        cashRegisterId: cashSessions.cashRegisterId,
+        registerName: cashRegisters.name,
+      })
+      .from(cashSessions)
+      .leftJoin(cashRegisters, eq(cashSessions.cashRegisterId, cashRegisters.id))
+      .where(eq(cashSessions.companyId, companyId))
+      .orderBy(desc(cashSessions.createdAt))
+      .limit(100);
+
+    return sessions;
+  }
 }
+
