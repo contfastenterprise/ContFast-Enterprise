@@ -28,6 +28,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Dashboard**: `/dashboard`
 - **Facturación**: `/invoices` (con soporte de Suspense)
 - **Caja**: `/cash`
+- **Bancos**: `/dashboard/bank`
+- **Contabilidad**: `/dashboard/accounting`
+- **Administración de Seguridad**: `/dashboard/admin`
 
 ---
 **Status**: Verified & Polished
+
