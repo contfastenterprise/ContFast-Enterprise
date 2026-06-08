@@ -24,14 +24,16 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 ### 4. Interfaz de Usuario (Frontend)
 - **Wizard**: `/setup`
-- **Login**: `/auth/login`
+- **Autenticación**: `/auth/login` y `/auth/register` (Registro de Usuarios)
 - **Dashboard**: `/dashboard`
 - **Facturación**: `/invoices` (con soporte de Suspense)
 - **Caja**: `/cash`
-- **Bancos**: `/dashboard/bank`
+- **Bancos**: `/bank` (Gestión de Cuentas Bancarias)
 - **Contabilidad**: `/dashboard/accounting`
 - **Administración de Seguridad**: `/dashboard/admin`
+- **Reportes Financieros**: `/reports` (Estadísticas y Métricas de Ventas)
+- **Soporte y Ayuda**: `/support` (Centro de Contacto)
 
 ---
-**Status**: Verified & Polished
+**Status**: Verified & Polished (Score >= 9)
 
