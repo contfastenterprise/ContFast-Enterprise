@@ -26,6 +26,8 @@ export const companySettings = pgTable('company_settings', {
   certP12Encrypted: text('cert_p12_encrypted'), // Encrypted base64 of .p12 certificate
   certPasswordEncrypted: text('cert_password_encrypted'), // Encrypted certificate password
   logoUrl: text('logo_url'),
+  msellerUrl: text('mseller_url').default('https://api.mseller.app/v1').notNull(),
+  msellerApiKeyEncrypted: text('mseller_api_key_encrypted'),
   printLayout: varchar('print_layout', { length: 50 }).default('carta').notNull(), // carta | 80mm | 58mm
   autoDeliveryNotes: boolean('auto_delivery_notes').default(false).notNull(),
   maxCreditNoteApprovalAmount: decimal('max_credit_note_approval_amount', { precision: 15, scale: 2 }).default('10000.00').notNull(),
@@ -323,6 +325,8 @@ export const invoices = pgTable('invoices', {
   xmlPath: text('xml_path'),
   signedXmlPath: text('signed_xml_path'),
   pdfPath: text('pdf_path'),
+  msellerTrackId: varchar('mseller_track_id', { length: 255 }),
+  dgiiMessage: text('dgii_message'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -463,23 +467,6 @@ export const bankReconciliations = pgTable('bank_reconciliations', {
   accountIdx: index('bank_recon_account_idx').on(table.bankAccountId),
 }));
 
-export const checks = pgTable('checks', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  companyId: uuid('company_id').notNull().references(() => companies.id),
-  bankAccountId: uuid('bank_account_id').notNull().references(() => bankAccounts.id),
-  checkNumber: varchar('check_number', { length: 100 }).notNull(),
-  payee: varchar('payee', { length: 255 }).notNull(),
-  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
-  issueDate: date('issue_date').notNull(),
-  status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | cleared | voided
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  deletedAt: timestamp('deleted_at'),
-}, (table) => ({
-  companyCheckIdx: uniqueIndex('checks_company_num_idx').on(table.companyId, table.checkNumber),
-  statusIdx: index('checks_status_idx').on(table.status),
-}));
-
 // ==========================================
 // 7. GENERAL LEDGER & ACCOUNTING MODULE
 // ==========================================
@@ -548,6 +535,35 @@ export const accountsReceivable = pgTable('accounts_receivable', {
   invoiceIdx: index('ar_invoice_idx').on(table.invoiceId),
 }));
 
+export const customerReceipts = pgTable('customer_receipts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  customerId: uuid('customer_id').notNull().references(() => customers.id),
+  date: date('date').notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | bank | check
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  reference: varchar('reference', { length: 255 }), // transfer number, check number, etc.
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companyIdx: index('cust_receipts_company_idx').on(table.companyId),
+  customerIdx: index('cust_receipts_customer_idx').on(table.customerId),
+  dateIdx: index('cust_receipts_date_idx').on(table.date),
+}));
+
+export const customerReceiptApplied = pgTable('customer_receipt_applied', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  receiptId: uuid('receipt_id').notNull().references(() => customerReceipts.id),
+  arId: uuid('ar_id').notNull().references(() => accountsReceivable.id),
+  amountApplied: decimal('amount_applied', { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  receiptIdx: index('cra_receipt_idx').on(table.receiptId),
+  arIdx: index('cra_ar_idx').on(table.arId),
+}));
+
 export const accountsPayable = pgTable('accounts_payable', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
@@ -563,6 +579,76 @@ export const accountsPayable = pgTable('accounts_payable', {
   companyIdx: index('ap_company_idx').on(table.companyId),
   supplierIdx: index('ap_supplier_idx').on(table.supplierId),
 }));
+
+export const supplierPayments = pgTable('supplier_payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  supplierId: uuid('supplier_id').notNull().references(() => suppliers.id),
+  date: date('date').notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | bank | check
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  reference: varchar('reference', { length: 255 }), // transfer number, check number, etc.
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companyIdx: index('supp_pay_company_idx').on(table.companyId),
+  supplierIdx: index('supp_pay_supplier_idx').on(table.supplierId),
+  dateIdx: index('supp_pay_date_idx').on(table.date),
+}));
+
+export const supplierPaymentApplied = pgTable('supplier_payment_applied', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  paymentId: uuid('payment_id').notNull().references(() => supplierPayments.id),
+  apId: uuid('ap_id').notNull().references(() => accountsPayable.id),
+  amountApplied: decimal('amount_applied', { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  paymentIdx: index('spa_payment_idx').on(table.paymentId),
+  apIdx: index('spa_ap_idx').on(table.apId),
+}));
+
+export const checks = pgTable('checks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  bankAccountId: uuid('bank_account_id').notNull().references(() => bankAccounts.id),
+  checkNumber: varchar('check_number', { length: 100 }).notNull(),
+  payee: varchar('payee', { length: 255 }).notNull(),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  issueDate: date('issue_date').notNull(),
+  dueDate: date('due_date'),
+  isGuarantee: boolean('is_guarantee').default(false).notNull(),
+  apId: uuid('ap_id').references(() => accountsPayable.id),
+  status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | cleared | voided
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companyCheckIdx: uniqueIndex('checks_company_num_idx').on(table.companyId, table.checkNumber),
+  statusIdx: index('checks_status_idx').on(table.status),
+  apIdx: index('checks_ap_idx').on(table.apId),
+}));
+
+export const apPayments = pgTable('ap_payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  apId: uuid('ap_id').notNull().references(() => accountsPayable.id),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | transfer | check
+  checkId: uuid('check_id').references(() => checks.id),
+  debitAccountId: uuid('debit_account_id').notNull().references(() => chartOfAccounts.id),
+  creditAccountId: uuid('credit_account_id').notNull().references(() => chartOfAccounts.id),
+  paymentDate: date('payment_date').notNull(),
+  status: varchar('status', { length: 50 }).default('applied').notNull(), // pending_guarantee | applied | voided
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('ap_payments_company_idx').on(table.companyId),
+  apIdx: index('ap_payments_ap_idx').on(table.apId),
+  statusIdx: index('ap_payments_status_idx').on(table.status),
+}));
+
 
 // ==========================================
 // 8. LOGS, QUEUES & NOTIFICATIONS MODULE

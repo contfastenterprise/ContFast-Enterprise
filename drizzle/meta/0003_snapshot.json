@@ -1,6 +1,6 @@
 {
-  "id": "ea188e2d-0c3a-49db-b4ae-a902eb15fceb",
-  "prevId": "b578cc91-3210-4c2f-9341-6f19c1604690",
+  "id": "b656bed5-1ce7-4bc6-a6e9-affbd38fcd03",
+  "prevId": "ea188e2d-0c3a-49db-b4ae-a902eb15fceb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3159,6 +3159,18 @@
         },
         "pdf_path": {
           "name": "pdf_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mseller_track_id": {
+          "name": "mseller_track_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dgii_message": {
+          "name": "dgii_message",
           "type": "text",
           "primaryKey": false,
           "notNull": false

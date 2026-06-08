@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Building, Key, Printer, Truck, UserCheck, ChevronRight, ChevronLeft, Loader2, Sparkles } from 'lucide-react';
+import { Shield, Building, Printer, Truck, UserCheck, ChevronRight, ChevronLeft, Loader2, Sparkles, CloudCog, Key, Globe, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -11,11 +11,11 @@ export default function SetupWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [showToken, setShowToken] = useState(false);
 
   // Form State
   const [company, setCompany] = useState({ name: '', rnc: '', businessActivity: '' });
-  const [fiscal, setFiscal] = useState({ dgiiEnv: 'test' });
-  const [ecf, setEcf] = useState({ certP12Base64: '', certFileName: '', certPassword: '' });
+  const [fiscal, setFiscal] = useState({ dgiiEnv: 'test', msellerUrl: 'https://api.mseller.app/v1', msellerApiKey: '' });
   const [printing, setPrinting] = useState({ printLayout: 'carta' });
   const [delivery, setDelivery] = useState({ autoDeliveryNotes: false });
   const [user, setUser] = useState({ name: '', email: '', password: '' });
@@ -39,36 +39,8 @@ export default function SetupWizard() {
     checkSetup();
   }, [router]);
 
-  // Certificate file reader (Base64 converter)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith('.p12') && !file.name.endsWith('.pfx')) {
-      toast.error('Formato de archivo inválido', {
-        description: 'Por favor suba un certificado digital con extensión .p12 o .pfx',
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      const base64Data = result.split(',')[1] || result;
-      setEcf((prev) => ({
-        ...prev,
-        certP12Base64: base64Data,
-        certFileName: file.name,
-      }));
-      toast.success('Certificado cargado', {
-        description: `Archivo ${file.name} listo para su cifrado.`,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleNext = () => {
-    // Basic step validation
+    // Step validation
     if (currentStep === 0) {
       if (!company.name || !company.rnc) {
         toast.error('Campos obligatorios', { description: 'El nombre y RNC de la empresa son requeridos.' });
@@ -78,12 +50,12 @@ export default function SetupWizard() {
         toast.error('RNC Inválido', { description: 'El RNC debe contener exactamente 9 u 11 dígitos numéricos.' });
         return;
       }
-    } else if (currentStep === 2) {
-      if (!ecf.certP12Base64 || !ecf.certPassword) {
-        toast.error('Certificado requerido', { description: 'Debe cargar el archivo del certificado y especificar su contraseña.' });
+    } else if (currentStep === 1) {
+      if (!fiscal.msellerApiKey) {
+        toast.error('Token de mSeller requerido', { description: 'El Token de la API de mSeller es requerido para la integración de e-CF.' });
         return;
       }
-    } else if (currentStep === 5) {
+    } else if (currentStep === 4) {
       if (!user.name || !user.email || !user.password) {
         toast.error('Administrador requerido', { description: 'Todos los campos de la cuenta del administrador son requeridos.' });
         return;
@@ -94,7 +66,7 @@ export default function SetupWizard() {
       }
     }
 
-    setCurrentStep((prev) => Math.min(prev + 1, 6));
+    setCurrentStep((prev) => Math.min(prev + 1, 5));
   };
 
   const handleBack = () => {
@@ -110,7 +82,6 @@ export default function SetupWizard() {
         body: JSON.stringify({
           company,
           fiscal,
-          ecf,
           printing,
           delivery,
           user,
@@ -141,16 +112,14 @@ export default function SetupWizard() {
   const stepIcons = [
     <Building key="0" className="h-5 w-5" />,
     <Shield key="1" className="h-5 w-5" />,
-    <Key key="2" className="h-5 w-5" />,
-    <Printer key="3" className="h-5 w-5" />,
-    <Truck key="4" className="h-5 w-5" />,
-    <UserCheck key="5" className="h-5 w-5" />,
+    <Printer key="2" className="h-5 w-5" />,
+    <Truck key="3" className="h-5 w-5" />,
+    <UserCheck key="4" className="h-5 w-5" />,
   ];
 
   const stepNames = [
     'Empresa',
-    'Ambiente',
-    'Certificado e-CF',
+    'Ambiente e-CF',
     'Impresión',
     'Entregas',
     'Administrador',
@@ -161,7 +130,7 @@ export default function SetupWizard() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#C5A059]" />
           <p className="text-slate-400 text-sm">Verificando estado del sistema...</p>
         </div>
       </div>
@@ -169,171 +138,205 @@ export default function SetupWizard() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-950 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden">
       <Toaster position="top-right" richColors />
 
+      {/* Top Environment Bar */}
+      <div className="w-full h-8 bg-[#001e40] flex items-center justify-center relative overflow-hidden shrink-0 border-b border-slate-800">
+        <div className="absolute inset-0 opacity-10 bg-repeat-x" style={{
+          backgroundImage: 'linear-gradient(45deg, #fed488 25%, transparent 25%, transparent 50%, #fed488 50%, #fed488 75%, transparent 75%, transparent)',
+          backgroundSize: '20px 20px'
+        }} />
+        <span className="relative z-10 font-mono text-[11px] font-bold text-white tracking-widest flex items-center gap-2">
+          <Shield className="w-3.5 h-3.5 text-[#C5A059]" />
+          PRODUCTION ENVIRONMENT - SECURE FISCAL PORTAL
+        </span>
+      </div>
+
+      {/* Onboarding Header */}
+      <header className="bg-slate-900/40 border-b border-slate-900 py-6 shrink-0">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <img 
+            alt="Latin Doors Logo" 
+            className="h-10 object-contain brightness-95" 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDl-a6MYr3pCuvDfhdfg2VsbCggo6qEsaqURtdMkvUAQHRlXrFTtg9n3S-s2FkLtbhnaYVQILBbn5A5IyMSOLJez_vEEVSzJ8tVwMfS1jsa33vsuPwKkzwHFjmOuCq8JPZl3rtSisjT9q8MLwRfpnuPh4eLfoSK-Q6OjFOL8YpTW1OyQ9NcJGWccmdF_-tT7396-uR3dke78esJ0PZvnB0QZuHHpGZS14Xg9ueX988uE79O2QsdXZfeVSQ7K9bfJJ6rWoGlEhNmBKs2" 
+          />
+          <div className="text-center sm:text-right">
+            <h1 className="text-xl font-bold tracking-tight text-[#C5A059] font-display">Onboarding Wizard</h1>
+            <p className="text-xs text-slate-400">Fiscal Authorization Process</p>
+          </div>
+        </div>
+      </header>
+
       {/* Background gradients */}
-      <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-900/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 -right-4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl" />
+      <div className="absolute top-32 -left-20 w-[450px] h-[450px] bg-blue-900/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 -right-20 w-[450px] h-[450px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-4xl space-y-8 z-10">
-        {/* Wizard Header */}
-        <div className="text-center">
-          <h2 className="text-3xl font-display font-bold text-white">
-            Asistente de <span className="text-amber-500">Configuración</span>
-          </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Configure los parámetros iniciales y su certificado digital homologado para facturación e-CF.
-          </p>
-        </div>
-
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-10 z-10 flex flex-col justify-center">
+        
         {/* Progress Stepper */}
-        <div className="flex items-center justify-between max-w-xl mx-auto py-4">
-          {stepIcons.map((icon, idx) => (
-            <div key={idx} className="flex items-center flex-1 last:flex-initial">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border transition-all duration-300 ${
-                  idx === currentStep
-                    ? 'border-amber-500 bg-amber-500 text-slate-950'
-                    : idx < currentStep
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-500'
-                    : 'border-slate-800 bg-slate-900 text-slate-500'
-                }`}
-              >
-                {icon}
-              </div>
-              {idx < stepIcons.length - 1 && (
+        <div className="mb-10 max-w-2xl mx-auto w-full">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -translate-y-1/2 z-0" />
+            <div 
+              className="absolute top-1/2 left-0 h-0.5 bg-[#C5A059] -translate-y-1/2 z-0 transition-all duration-500" 
+              style={{ width: `${(currentStep / 5) * 100}%` }}
+            />
+            {stepNames.map((name, idx) => (
+              <div key={idx} className="relative z-10 flex flex-col items-center gap-1.5">
                 <div
-                  className={`h-0.5 flex-1 mx-2 transition-all duration-300 ${
-                    idx < currentStep ? 'bg-emerald-500' : 'bg-slate-800'
+                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-300 ${
+                    idx === currentStep
+                      ? 'border-[#C5A059] bg-[#001e40] text-[#fed488] scale-110 shadow-lg shadow-blue-900/30'
+                      : idx < currentStep
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-slate-800 bg-slate-950 text-slate-500'
                   }`}
-                />
-              )}
-            </div>
-          ))}
+                >
+                  {idx < currentStep ? '✓' : idx + 1}
+                </div>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider hidden sm:block ${
+                  idx === currentStep ? 'text-[#fed488]' : 'text-slate-500'
+                }`}>
+                  {name.split(' ')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Form panel with Glassmorphism */}
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg p-8 shadow-2xl">
-          <h3 className="text-lg font-semibold text-white mb-6 uppercase tracking-wider border-b border-slate-800 pb-3">
-            Paso {currentStep + 1}: {stepNames[currentStep]}
-          </h3>
+        {/* Form panel with Premium design */}
+        <div className="bg-slate-900/55 backdrop-blur-xl border border-slate-800/80 rounded-xl p-8 shadow-2xl transition-all">
+          <div className="mb-6 border-b border-slate-800/60 pb-4">
+            <h2 className="text-lg font-bold text-[#fed488] tracking-wider uppercase font-display">
+              Paso {currentStep + 1}: {stepNames[currentStep]}
+            </h2>
+            <p className="text-slate-400 text-xs mt-1">Configure los parámetros requeridos para inicializar el sistema de facturación.</p>
+          </div>
 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
               className="space-y-6"
             >
               {/* STEP 1: Company Profile */}
               {currentStep === 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Nombre Comercial</label>
+                  <div className="space-y-1 group">
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Nombre Comercial <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="text"
                       value={company.name}
                       onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="Empresa Dominicana SRL"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                      placeholder="e.g. Latin Doors SRL"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">RNC (Registro Nacional de Contribuyentes)</label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">RNC (Tax ID) <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="text"
                       value={company.rnc}
                       onChange={(e) => setCompany({ ...company, rnc: e.target.value.replace(/\D/g, '') })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="101001001"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm font-mono transition-all focus:scale-[1.01]"
+                      placeholder="1-01-XXXXX-X"
                       maxLength={11}
                     />
+                    <p className="text-[10px] text-slate-500 italic mt-0.5">Formato: 9 u 11 dígitos numéricos</p>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Actividad Económica</label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Actividad Económica</label>
                     <input
                       type="text"
                       value={company.businessActivity}
                       onChange={(e) => setCompany({ ...company, businessActivity: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
                       placeholder="Venta al por mayor de insumos comerciales y desarrollo tecnológico"
                     />
                   </div>
                 </div>
               )}
 
-              {/* STEP 2: Fiscal Environment */}
+              {/* STEP 2: Fiscal Environment & MSeller integration */}
               {currentStep === 1 && (
-                <div className="space-y-4">
-                  <p className="text-slate-400 text-sm">
-                    Seleccione el ambiente para las solicitudes enviadas a los servicios web de la Dirección General de Impuestos Internos (DGII).
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div
-                      onClick={() => setFiscal({ dgiiEnv: 'test' })}
-                      className={`cursor-pointer rounded-lg border p-6 flex flex-col justify-between transition-all ${
-                        fiscal.dgiiEnv === 'test'
-                          ? 'border-amber-500 bg-amber-500/5'
-                          : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
-                      }`}
-                    >
-                      <span className="text-white font-semibold text-base">Ambiente de Pruebas (Test / Certificación)</span>
-                      <p className="text-slate-400 text-xs mt-2">Para validaciones técnicas y e-CF de simulación sin valor tributario.</p>
-                    </div>
-                    <div
-                      onClick={() => setFiscal({ dgiiEnv: 'production' })}
-                      className={`cursor-pointer rounded-lg border p-6 flex flex-col justify-between transition-all ${
-                        fiscal.dgiiEnv === 'production'
-                          ? 'border-amber-500 bg-amber-500/5'
-                          : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
-                      }`}
-                    >
-                      <span className="text-white font-semibold text-base">Ambiente de Producción</span>
-                      <p className="text-slate-400 text-xs mt-2">Envío real de facturación electrónica con valor tributario directo a la DGII.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: Digital Certificate */}
-              {currentStep === 2 && (
-                <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Archivo de Firma (.p12 / .pfx)</label>
-                    <div className="flex items-center justify-center w-full">
-                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-800 border-dashed rounded-lg cursor-pointer bg-slate-950 hover:bg-slate-900 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <Key className="w-8 h-8 mb-3 text-slate-500" />
-                          <p className="mb-2 text-sm text-slate-400">
-                            <span className="font-semibold">Haga clic para subir</span> o arrastre el archivo
-                          </p>
-                          <p className="text-xs text-slate-500">Certificado Digital PKCS#12 (.p12 / .pfx)</p>
-                        </div>
-                        <input type="file" className="hidden" accept=".p12,.pfx" onChange={handleFileChange} />
-                      </label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Ambiente Fiscal DGII</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div
+                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'test' })}
+                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition-all ${
+                          fiscal.dgiiEnv === 'test'
+                            ? 'border-[#C5A059] bg-[#001e40]/40'
+                            : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="text-white font-semibold text-sm flex items-center gap-2"><CloudCog className="w-4.5 h-4.5 text-[#fed488]"/> Ambiente de Pruebas</span>
+                        <p className="text-slate-400 text-xs mt-2">Para validaciones técnicas y simulaciones usando la API de mSeller en Sandbox.</p>
+                      </div>
+                      <div
+                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'production' })}
+                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition-all ${
+                          fiscal.dgiiEnv === 'production'
+                            ? 'border-[#C5A059] bg-[#001e40]/40'
+                            : 'border-slate-800 bg-slate-950/40 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="text-white font-semibold text-sm flex items-center gap-2"><Sparkles className="w-4.5 h-4.5 text-[#fed488]"/> Ambiente de Producción</span>
+                        <p className="text-slate-400 text-xs mt-2">Envío real de facturación electrónica con valor tributario directo a través de mSeller.</p>
+                      </div>
                     </div>
-                    {ecf.certFileName && (
-                      <p className="text-emerald-500 text-xs mt-1">✓ Cargado: {ecf.certFileName}</p>
-                    )}
                   </div>
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Contraseña del Certificado</label>
-                    <input
-                      type="password"
-                      value={ecf.certPassword}
-                      onChange={(e) => setEcf({ ...ecf, certPassword: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="••••••••"
-                    />
+
+                  <div className="border-t border-slate-800/60 pt-6 space-y-4">
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#C5A059]" /> Integración con API de mSeller
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="md:col-span-2 space-y-1">
+                        <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">URL de la API (MSeller URL)</label>
+                        <input
+                          type="text"
+                          value={fiscal.msellerUrl}
+                          onChange={(e) => setFiscal({ ...fiscal, msellerUrl: e.target.value })}
+                          className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                          placeholder="https://api.mseller.app/v1"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Token API (MSeller Key) <span className="text-[#C5A059]">*</span></label>
+                        <div className="relative">
+                          <input
+                            type={showToken ? 'text' : 'password'}
+                            value={fiscal.msellerApiKey}
+                            onChange={(e) => setFiscal({ ...fiscal, msellerApiKey: e.target.value })}
+                            className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 pl-4 pr-10 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                            placeholder="mSeller Token"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowToken(!showToken)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                          >
+                            {showToken ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 italic">Este token se almacenará encriptado de forma segura en la base de datos de su empresa.</p>
                   </div>
                 </div>
               )}
 
-              {/* STEP 4: Printing Configuration */}
-              {currentStep === 3 && (
+              {/* STEP 3: Printing Configuration */}
+              {currentStep === 2 && (
                 <div className="space-y-4">
                   <p className="text-slate-400 text-sm">Seleccione el formato de impresión predeterminado para las facturas e-CF generadas en PDF.</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -343,23 +346,23 @@ export default function SetupWizard() {
                         onClick={() => setPrinting({ printLayout: layout })}
                         className={`cursor-pointer rounded-lg border p-6 flex flex-col items-center justify-center transition-all ${
                           printing.printLayout === layout
-                            ? 'border-amber-500 bg-amber-500/5 text-amber-500'
+                            ? 'border-[#C5A059] bg-[#001e40]/30 text-[#fed488]'
                             : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
                         }`}
                       >
                         <Printer className="h-8 w-8 mb-2" />
-                        <span className="font-semibold uppercase text-sm">{layout}</span>
+                        <span className="font-semibold uppercase text-sm tracking-wider">{layout}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* STEP 5: Delivery Configuration */}
-              {currentStep === 4 && (
+              {/* STEP 4: Delivery Configuration */}
+              {currentStep === 3 && (
                 <div className="space-y-4">
                   <div className="flex items-start gap-4 rounded-lg border border-slate-800 p-6 bg-slate-950/40">
-                    <Truck className="h-8 w-8 text-amber-500 flex-shrink-0" />
+                    <Truck className="h-8 w-8 text-[#C5A059] flex-shrink-0" />
                     <div>
                       <h4 className="text-white font-semibold">Generación Automática de Conduces (Remisión)</h4>
                       <p className="text-slate-400 text-sm mt-1">
@@ -370,7 +373,7 @@ export default function SetupWizard() {
                           type="button"
                           onClick={() => setDelivery({ autoDeliveryNotes: !delivery.autoDeliveryNotes })}
                           className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
-                            delivery.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-800'
+                            delivery.autoDeliveryNotes ? 'bg-[#C5A059]' : 'bg-slate-800'
                           }`}
                         >
                           <span
@@ -379,7 +382,7 @@ export default function SetupWizard() {
                             }`}
                           />
                         </button>
-                        <span className="text-slate-300 text-sm">
+                        <span className="text-slate-300 text-sm font-semibold">
                           {delivery.autoDeliveryNotes ? 'Habilitado' : 'Deshabilitado'}
                         </span>
                       </div>
@@ -388,69 +391,70 @@ export default function SetupWizard() {
                 </div>
               )}
 
-              {/* STEP 6: Administrator Credentials */}
-              {currentStep === 5 && (
+              {/* STEP 5: Administrator Credentials */}
+              {currentStep === 4 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Nombre Completo del Administrador</label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Nombre Completo del Administrador <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
                       placeholder="Ing. Juan Pérez"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Correo Electrónico</label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Correo Electrónico <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
                       placeholder="admin@empresa.com"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-slate-300 uppercase">Contraseña Administrativa</label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Contraseña Administrativa <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="password"
                       value={user.password}
                       onChange={(e) => setUser({ ...user, password: e.target.value })}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-3 px-4 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                      className="block w-full rounded border border-slate-800 bg-slate-950/80 py-2.5 px-4 text-white placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
                       placeholder="Mínimo 8 caracteres"
                     />
                   </div>
                 </div>
               )}
 
-              {/* STEP 7: Confirm & Summary */}
-              {currentStep === 6 && (
+              {/* STEP 6: Confirm & Summary */}
+              {currentStep === 5 && (
                 <div className="space-y-6">
                   <p className="text-slate-400 text-sm">Verifique todos los datos ingresados antes de iniciar el sistema.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-slate-800 p-6 bg-slate-950/40 text-sm text-slate-300">
                     <div>
-                      <span className="font-semibold text-white text-xs uppercase block text-slate-500">Empresa</span>
-                      <p className="mt-1 font-medium">{company.name}</p>
-                      <p className="text-xs text-slate-400">RNC: {company.rnc}</p>
+                      <span className="font-semibold text-slate-500 text-xs uppercase block">Empresa</span>
+                      <p className="mt-1 font-semibold text-white">{company.name}</p>
+                      <p className="text-xs text-slate-400 font-mono">RNC: {company.rnc}</p>
                     </div>
                     <div>
-                      <span className="font-semibold text-white text-xs uppercase block text-slate-500">Entorno Fiscal</span>
-                      <p className="mt-1 font-medium uppercase text-amber-500">{fiscal.dgiiEnv}</p>
+                      <span className="font-semibold text-slate-500 text-xs uppercase block">Integración e-CF</span>
+                      <p className="mt-1 font-semibold text-emerald-400">✓ API mSeller vinculada</p>
+                      <p className="text-xs text-slate-400 font-mono truncate">URL: {fiscal.msellerUrl}</p>
                     </div>
                     <div>
-                      <span className="font-semibold text-white text-xs uppercase block text-slate-500">Certificado</span>
-                      <p className="mt-1 font-medium text-emerald-500">✓ {ecf.certFileName || 'Cargado'}</p>
+                      <span className="font-semibold text-slate-500 text-xs uppercase block">Entorno Fiscal</span>
+                      <p className="mt-1 font-semibold uppercase text-[#fed488]">{fiscal.dgiiEnv}</p>
                     </div>
                     <div>
-                      <span className="font-semibold text-white text-xs uppercase block text-slate-500">Impresión & Conduces</span>
-                      <p className="mt-1 font-medium">Layout: <span className="uppercase">{printing.printLayout}</span></p>
+                      <span className="font-semibold text-slate-500 text-xs uppercase block">Impresión & Conduces</span>
+                      <p className="mt-1 font-semibold">Layout: <span className="uppercase text-slate-100">{printing.printLayout}</span></p>
                       <p className="text-xs text-slate-400">Autoconduces: {delivery.autoDeliveryNotes ? 'Sí' : 'No'}</p>
                     </div>
                     <div className="col-span-1 md:col-span-2 border-t border-slate-800 pt-4">
-                      <span className="font-semibold text-white text-xs uppercase block text-slate-500">Administrador de Sistemas</span>
-                      <p className="mt-1 font-medium">{user.name}</p>
-                      <p className="text-xs text-slate-400">{user.email}</p>
+                      <span className="font-semibold text-slate-500 text-xs uppercase block">Administrador de Sistemas</span>
+                      <p className="mt-1 font-semibold text-white">{user.name}</p>
+                      <p className="text-xs text-slate-400 font-mono">{user.email}</p>
                     </div>
                   </div>
                 </div>
@@ -463,16 +467,16 @@ export default function SetupWizard() {
             <button
               onClick={handleBack}
               disabled={currentStep === 0 || loading}
-              className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 rounded border border-slate-800 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-400 hover:bg-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Atrás
             </button>
 
-            {currentStep < 6 ? (
+            {currentStep < 5 ? (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 rounded-md bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 transition-colors"
+                className="flex items-center gap-2 rounded bg-[#C5A059] px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-[#fed488] transition-colors"
               >
                 Siguiente
                 <ChevronRight className="h-4 w-4" />
@@ -481,7 +485,7 @@ export default function SetupWizard() {
               <button
                 onClick={handleConfirmSetup}
                 disabled={loading}
-                className="flex items-center gap-2 rounded-md bg-emerald-500 px-6 py-2.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 rounded bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <>
@@ -498,7 +502,23 @@ export default function SetupWizard() {
             )}
           </div>
         </div>
-      </div>
+
+        <p className="text-center mt-8 text-xs text-slate-500">
+          ¿Necesita ayuda con su registro? <a className="text-[#C5A059] font-semibold hover:underline" href="#">Soporte Técnico</a> o <a className="text-[#C5A059] font-semibold hover:underline" href="#">Guía de Usuario</a>.
+        </p>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 bg-slate-950 border-t border-slate-900 shrink-0">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-[11px]">
+          <span>© 2024 Latin Doors SRL - Proveedor Autorizado de Facturación Electrónica</span>
+          <div className="flex gap-6">
+            <a className="hover:text-slate-300 transition-colors" href="#">Política de Privacidad</a>
+            <a className="hover:text-slate-300 transition-colors" href="#">Términos de Servicio</a>
+            <a className="hover:text-slate-300 transition-colors" href="#">Documentación API</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { ThermalTicketPrint } from '@/components/print/ThermalTicketPrint';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CashView = 'loading' | 'apertura' | 'gestion' | 'arqueo' | 'historico';
@@ -107,6 +108,7 @@ export default function CashPage() {
   const [closeObservations, setCloseObservations] = useState('');
   const [closing, setClosing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [closedSessionId, setClosedSessionId] = useState<string | null>(null);
 
   // History filters
   const [histDateFrom, setHistDateFrom] = useState('');
@@ -267,6 +269,7 @@ export default function CashPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al cerrar sesión.');
+      setClosedSessionId(session.id);
       setShowSuccessModal(true);
     } catch (error: any) {
       toast.error(error.message);
@@ -282,6 +285,7 @@ export default function CashPage() {
     setDenomQty({});
     setCoinsTotal('');
     setCloseObservations('');
+    setClosedSessionId(null);
     await loadCashData();
   };
 
@@ -1272,6 +1276,11 @@ export default function CashPage() {
               <p className="text-slate-500 mb-8">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
+              {closedSessionId && (
+                <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+                  <ThermalTicketPrint sessionId={closedSessionId} autoPrint={true} />
+                </div>
+              )}
               <button
                 onClick={handleSuccessClose}
                 className="w-full bg-[#001e40] text-white py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"

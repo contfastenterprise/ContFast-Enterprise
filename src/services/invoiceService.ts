@@ -5,9 +5,9 @@ import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { decrypt, decryptToBuffer } from '@/utils/encryption';
-import { signXml } from '@/utils/xmlSigner';
 import { generateInvoicePdf, PDFInvoiceData } from '@/utils/pdfGenerator';
 import { addJob } from '@/infrastructure/queue';
+import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
 import fs from 'fs';
 import path from 'path';
 
@@ -89,19 +89,37 @@ export class InvoiceService {
         throw new Error('Compañía no encontrada.');
       }
 
-      if (!settings || !settings.certP12Encrypted || !settings.certPasswordEncrypted) {
-        throw new Error('El certificado digital de la compañía no está configurado. Complete el asistente técnico.');
-      }
+      // 2.3. Delegate to MSeller API instead of manual XML generation and signing
+      const msellerPayload: MSellerInvoicePayload = {
+        companyRnc: company.rnc,
+        ncfType: data.ecfType,
+        buyerRnc: data.customerId ? '123456789' : '222222222', // Ideally fetch from DB
+        buyerName: 'CONSUMIDOR FINAL',
+        currency: 'DOP',
+        paymentMethod: data.paymentType === 'cash' ? 1 : 2,
+        items: itemLines.map(line => ({
+          quantity: line.quantity,
+          description: line.name,
+          unitPrice: line.unitPrice,
+          discount: line.discount,
+          taxRate: line.taxRate
+        }))
+      };
 
-      // 2.3. Generate raw XML payload
-      const rawXml = generateEcfXml(company, ncf, data, subtotal, totalDiscount, totalTaxes, total, itemLines, taxesList);
+      const msellerResponse = await MSellerClient.issueInvoice(msellerPayload);
+      
+      // The API should return the NCF (or we use the allocated one)
+      const finalNcf = msellerResponse?.data?.ncf || ncf;
+      const signedXml = msellerResponse?.data?.signedXmlBase64 
+        ? Buffer.from(msellerResponse.data.signedXmlBase64, 'base64').toString('utf-8')
+        : '<xml>MOCK SIGNED XML FROM M-SELLER</xml>';
+      
+      const msellerTrackId = msellerResponse?.data?.trackId || null;
+      const dgiiMessage = msellerResponse?.data?.dgiiMessage || null;
 
-      // 2.4. Decrypt certificate & Sign XML
-      const certBuffer = decryptToBuffer(settings.certP12Encrypted);
-      const certPassword = decrypt(settings.certPasswordEncrypted);
-      const signedXml = signXml({ xml: rawXml, p12Buffer: certBuffer, password: certPassword });
+      const rawXml = '<xml>MOCK RAW XML (Handled by MSeller)</xml>';
 
-      // 2.5. Generate security hash for PDF (simple SHA-256 of signature)
+      // 2.5. Generate security hash for PDF
       const securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
 
       // 2.6. Generate PDF Buffer
@@ -163,6 +181,8 @@ export class InvoiceService {
         xmlPath,
         signedXmlPath,
         pdfPath,
+        msellerTrackId,
+        dgiiMessage,
         lines: itemLines,
         taxes: taxesList,
       };

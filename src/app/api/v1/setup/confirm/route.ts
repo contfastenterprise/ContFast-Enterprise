@@ -14,10 +14,8 @@ const confirmSchema = z.object({
   }),
   fiscal: z.object({
     dgiiEnv: z.enum(['test', 'production']),
-  }),
-  ecf: z.object({
-    certP12Base64: z.string().min(10),
-    certPassword: z.string().min(1),
+    msellerUrl: z.string().url().optional().or(z.literal('')),
+    msellerApiKey: z.string().min(1, 'El Token de mSeller es requerido'),
   }),
   printing: z.object({
     printLayout: z.enum(['carta', '80mm', '58mm']),
@@ -75,7 +73,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { company, fiscal, ecf, printing, delivery, user } = result.data;
+    const { company, fiscal, printing, delivery, user } = result.data;
 
     // 2. Perform transactional database setup
     const setupResult = await db.transaction(async (tx) => {
@@ -89,17 +87,12 @@ export async function POST(req: NextRequest) {
         })
         .returning({ id: companies.id, name: companies.name });
 
-      // 2.2. Encrypt digital certificate p12 and password
-      const certBuffer = Buffer.from(ecf.certP12Base64, 'base64');
-      const encryptedCert = encryptBuffer(certBuffer);
-      const encryptedPassword = encrypt(ecf.certPassword);
-
       // 2.3. Create company settings
       await tx.insert(companySettings).values({
         companyId: newCompany.id,
         dgiiEnv: fiscal.dgiiEnv,
-        certP12Encrypted: encryptedCert,
-        certPasswordEncrypted: encryptedPassword,
+        msellerUrl: fiscal.msellerUrl || undefined,
+        msellerApiKeyEncrypted: encrypt(fiscal.msellerApiKey),
         printLayout: printing.printLayout,
         autoDeliveryNotes: delivery.autoDeliveryNotes,
       });

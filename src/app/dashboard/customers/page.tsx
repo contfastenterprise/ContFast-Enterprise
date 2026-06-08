@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface Customer {
   id: string;
@@ -26,6 +27,10 @@ export default function CustomersPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  
+  // DGII State
+  const [isSearchingRnc, setIsSearchingRnc] = useState(false);
+  const [rncVerified, setRncVerified] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -60,6 +65,7 @@ export default function CustomersPage() {
   const openNewModal = () => {
     setEditId(null);
     setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', status: 'active' });
+    setRncVerified(false);
     setShowModal(true);
   };
 
@@ -73,7 +79,36 @@ export default function CustomersPage() {
       address: customer.address || '',
       status: customer.status
     });
+    setRncVerified(false);
     setShowModal(true);
+  };
+
+  const handleSearchDGII = async () => {
+    const rnc = formData.rncCedula.replace(/\D/g, '');
+    if (rnc.length !== 9 && rnc.length !== 11) {
+      toast.error('El RNC/Cédula debe tener 9 u 11 dígitos');
+      return;
+    }
+    
+    setIsSearchingRnc(true);
+    setRncVerified(false);
+    
+    try {
+      const res = await fetch(`/api/v1/dgii/rnc/${rnc}`);
+      const data = await res.json();
+      
+      if (data.success && data.name) {
+        setFormData(prev => ({ ...prev, name: data.name }));
+        setRncVerified(true);
+        toast.success('Contribuyente validado por DGII');
+      } else {
+        toast.error(data.message || 'No encontrado en DGII. Puede ingresarlo manual.');
+      }
+    } catch (error) {
+      toast.error('Error de red al consultar DGII');
+    } finally {
+      setIsSearchingRnc(false);
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -233,10 +268,13 @@ export default function CustomersPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditModal(c)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors">
+                          <Link href={`/dashboard/customers/${c.id}`} className="p-2 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors" title="Ver Historial">
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                          <button onClick={() => openEditModal(c)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors" title="Editar">
                             <Edit2 className="h-4 w-4" />
                           </button>
-                          <button onClick={() => handleDelete(c.id, c.name)} className="p-2 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors">
+                          <button onClick={() => handleDelete(c.id, c.name)} className="p-2 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors" title="Eliminar">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -279,15 +317,31 @@ export default function CustomersPage() {
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-300">RNC o Cédula <span className="text-amber-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.rncCedula}
-                      onChange={(e) => setFormData({ ...formData, rncCedula: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-amber-500 outline-none transition-colors"
-                      placeholder="Ej. 130123456"
-                    />
+                    <label className="text-sm font-semibold text-slate-300 flex justify-between">
+                      <span>RNC o Cédula <span className="text-slate-500 font-normal text-xs">(Opcional para Consumidor Final)</span></span>
+                      {rncVerified && <span className="text-emerald-500 text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Validado</span>}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={formData.rncCedula}
+                        onChange={(e) => {
+                          setFormData({ ...formData, rncCedula: e.target.value });
+                          setRncVerified(false);
+                        }}
+                        className={`w-full bg-slate-950 border ${rncVerified ? 'border-emerald-500/50' : 'border-slate-700'} rounded-lg pl-4 pr-24 py-2.5 text-white focus:border-amber-500 outline-none transition-colors`}
+                        placeholder="Ej. 130123456"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSearchDGII}
+                        disabled={isSearchingRnc || !formData.rncCedula}
+                        className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-800 disabled:text-slate-500 text-slate-900 font-bold text-xs rounded-md flex items-center gap-1.5 transition-colors"
+                      >
+                        {isSearchingRnc ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                        DGII
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

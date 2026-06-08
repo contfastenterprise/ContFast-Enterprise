@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, Building, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, User, Users } from 'lucide-react';
+import { Shield, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -13,13 +13,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  // Load user data on mount
   useEffect(() => {
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('cf_user') : null;
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     } else {
-      // Set systems engineer default if we are testing locally
       setUser({
         name: 'Administrador ContFast',
         email: 'admin@contfast.com',
@@ -28,7 +26,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       });
     }
 
-    // Fetch company settings (logo)
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/v1/company/settings');
@@ -64,192 +61,182 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { name: 'Directorio de Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
-    { name: 'Facturación e-CF', href: '/invoices', icon: <FileText className="h-5 w-5" /> },
-    { name: 'Módulo de Caja', href: '/cash', icon: <Wallet className="h-5 w-5" /> },
+    { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
+    { name: 'Catálogo de Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
+    { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
     { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
+    { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
+    { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
+    { name: 'Directorio de Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
+    { name: 'Directorio de Proveedores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
     { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
-    { name: 'Permisos & Admin', href: '/dashboard/admin', icon: <Settings className="h-5 w-5" /> },
+    { name: 'Administración', href: '/dashboard/admin', icon: <Settings className="h-5 w-5" /> },
   ];
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
       <Toaster position="top-right" richColors />
 
-      {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex md:w-64 md:flex-col bg-slate-900 border-r border-slate-800">
-        <div className="flex items-center gap-2 px-6 py-5 border-b border-slate-800 min-h-[73px]">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Company Logo" className="h-8 w-auto max-w-[180px] object-contain" />
-          ) : (
-            <>
-              <Shield className="h-6 w-6 text-amber-500" />
-              <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
-            </>
-          )}
+      {/* Environment Indicator */}
+      <div className="environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]">
+        <span className="font-label-md text-on-secondary-fixed flex items-center gap-2 uppercase tracking-widest font-bold">
+          <Shield className="h-4 w-4" />
+          ENTORNO DE PRUEBAS - SIN VALOR FISCAL
+        </span>
+      </div>
+
+      {/* TopNavBar Shell */}
+      <nav className="bg-primary/95 backdrop-blur-md text-on-primary flex justify-between items-center w-full px-8 h-14 fixed top-10 left-0 z-50 border-b border-white/10">
+        <div className="flex items-center gap-12">
+          <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center gap-2">
+            {logoUrl ? <img src={logoUrl} alt="Logo" className="h-8 w-auto" /> : 'Latin Doors e-CF'}
+          </span>
         </div>
-
-        {/* User Card */}
-        <div className="px-4 py-4 border-b border-slate-800 bg-slate-950/40">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-950 border border-blue-900 flex items-center justify-center text-amber-500 font-bold uppercase text-sm">
-              {user?.name?.substring(0, 2) || 'CF'}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-white truncate">{user?.name || 'Administrador'}</p>
-              <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20 uppercase mt-0.5">
-                {user?.role || 'Sistemas'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
-            const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            return (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md transition-all duration-200 ${
-                  active
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                {item.icon}
-                {item.name}
-              </a>
-            );
-          })}
-        </nav>
-
-        {/* Logout Section */}
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            Cerrar Sesión
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Drawer */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <div className="fixed inset-0 z-40 md:hidden flex">
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSidebarOpen(false)}
-              className="fixed inset-0 bg-black"
-            />
-
-            {/* Sidebar content */}
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative flex w-64 max-w-xs flex-col bg-slate-900 border-r border-slate-800 z-50"
-            >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 min-h-[73px]">
-                <div className="flex items-center gap-2">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Company Logo" className="h-8 w-auto max-w-[140px] object-contain" />
-                  ) : (
-                    <>
-                      <Shield className="h-6 w-6 text-amber-500" />
-                      <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
-                    </>
-                  )}
-                </div>
-                <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-white">
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="px-4 py-4 border-b border-slate-800 bg-slate-950/40">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-950 border border-blue-900 flex items-center justify-center text-amber-500 font-bold uppercase text-sm">
-                    {user?.name?.substring(0, 2) || 'CF'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white truncate">{user?.name || 'Administrador'}</p>
-                    <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20 uppercase mt-0.5">
-                      {user?.role || 'Sistemas'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
-                {navItems.map((item) => {
-                  const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-                  return (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md transition-all duration-200 ${
-                        active
-                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10'
-                          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      {item.icon}
-                      {item.name}
-                    </a>
-                  );
-                })}
-              </nav>
-
-              <div className="p-4 border-t border-slate-800">
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                >
-                  <LogOut className="h-5 w-5" />
-                  Cerrar Sesión
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Mobile Header */}
-        <header className="flex md:hidden items-center justify-between h-16 px-6 bg-slate-900 border-b border-slate-800">
-          <button onClick={() => setSidebarOpen(true)} className="text-slate-400 hover:text-white">
-            <Menu className="h-6 w-6" />
-          </button>
+        <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Company Logo" className="h-6 w-auto max-w-[120px] object-contain" />
-            ) : (
-              <>
-                <Shield className="h-5 w-5 text-amber-500" />
-                <span className="font-display font-bold text-base text-white">ContFast <span className="text-amber-500">ENT</span></span>
-              </>
-            )}
+            <button className="p-2 hover:bg-white/10 rounded-full transition-all md:hidden" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </button>
           </div>
-          <div className="h-8 w-8 rounded-full bg-blue-950 border border-blue-900 flex items-center justify-center text-amber-500 font-bold text-xs uppercase">
+          <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer text-primary font-bold">
             {user?.name?.substring(0, 2) || 'CF'}
           </div>
-        </header>
+        </div>
+      </nav>
 
-        {/* Content Body */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-6 md:p-8">
+      <div className="flex min-h-screen pt-24">
+        {/* SideNavBar Shell (Desktop) */}
+        <aside className="hidden md:flex bg-surface-bright/50 backdrop-blur-xl fixed left-0 top-0 h-full w-72 flex-col pt-28 z-40 border-r border-outline-variant/30">
+          <div className="px-6 mb-8">
+            <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40 backdrop-blur-md">
+              <div className="w-12 h-12 bg-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                <Shield className="text-secondary-fixed h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="font-headline-sm text-base font-bold text-primary leading-tight truncate w-32">{user?.name || 'Latin Doors'}</h2>
+                <p className="font-body-sm text-on-surface-variant/80 truncate w-32">{user?.email || 'RNC: 131-XXXXX-X'}</p>
+              </div>
+            </div>
+            <button onClick={() => router.push('/invoices?new=true')} className="mt-6 w-full bg-primary text-on-primary py-3.5 rounded-xl font-label-md flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-[0.98]">
+              <span className="font-bold text-lg">+</span>
+              Nuevo e-CF
+            </button>
+          </div>
+          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+            {navItems.map((item) => {
+              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${
+                    active
+                      ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                      : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                  }`}
+                >
+                  <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
+                    {item.icon}
+                  </div>
+                  <span className="font-label-md">{item.name}</span>
+                </a>
+              );
+            })}
+          </nav>
+          <div className="p-6 mt-auto border-t border-outline-variant/20 space-y-3">
+            <div className="flex items-center gap-3 text-on-surface-variant/70 px-2 py-1 text-xs font-semibold">
+              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+              Entorno: Producción
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 text-error/80 px-2 py-2 hover:bg-error/5 hover:text-error rounded-xl transition-all text-xs font-bold"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar Sesión
+            </button>
+          </div>
+        </aside>
+
+        {/* Mobile Drawer */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <div className="fixed inset-0 z-[70] md:hidden flex">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSidebarOpen(false)}
+                className="fixed inset-0 bg-black/50"
+              />
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="relative bg-surface-bright/95 backdrop-blur-xl h-full w-72 flex flex-col pt-6 z-[80] border-r border-outline-variant/30 shadow-2xl"
+              >
+                <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 p-2 text-on-surface-variant">
+                  <X className="h-5 w-5" />
+                </button>
+                <div className="px-6 mb-8 mt-4">
+                  <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40">
+                    <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
+                      <Shield className="text-secondary-fixed h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-headline-sm text-sm font-bold text-primary leading-tight truncate w-32">{user?.name || 'Latin Doors'}</h2>
+                    </div>
+                  </div>
+                </div>
+                <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
+                  {navItems.map((item) => {
+                    const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${
+                          active
+                            ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                            : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                        }`}
+                      >
+                        {item.icon}
+                        <span className="font-label-md">{item.name}</span>
+                      </a>
+                    );
+                  })}
+                </nav>
+                <div className="p-6 mt-auto border-t border-outline-variant/20">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 text-error/80 px-2 py-2 hover:bg-error/5 hover:text-error rounded-xl transition-all text-xs font-bold"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </motion.aside>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Main Content Area */}
+        <main className="flex-1 md:ml-72 p-4 md:p-8 w-full">
           {children}
         </main>
       </div>
+
+      {/* Footer Shell */}
+      <footer className="bg-surface-bright/80 backdrop-blur-md border-t border-outline-variant/20 md:ml-72 flex flex-col md:flex-row justify-between items-center px-8 py-6 z-40 gap-4 mt-auto">
+        <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+          <span className="font-headline-sm text-primary tracking-tight font-black">ContFast ERP</span>
+          <span className="hidden md:block w-px h-6 bg-outline-variant/30"></span>
+          <span className="font-body-sm text-on-surface-variant/70">© 2024 ContFast - Proveedor Autorizado DGII</span>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -2,813 +2,521 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { BookOpen, Plus, Search, RefreshCw, X, Calendar, FileText, ArrowRightLeft, Check, AlertTriangle, Layers, CreditCard, ChevronRight, FileSpreadsheet, PlusCircle, Trash2 } from 'lucide-react';
+import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import clsx from 'clsx';
 
-export default function AccountingDashboardPage() {
+// -- Types --
+type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+
+interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  status: string;
+}
+
+interface JournalLine {
+  id: string;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  debit: string;
+  credit: string;
+}
+
+interface JournalEntry {
+  id: string;
+  date: string;
+  reference: string;
+  description: string;
+  status: string;
+  lines: JournalLine[];
+  totalDebit: number;
+  totalCredit: number;
+}
+
+// -- Helpers --
+const typeLabels: Record<AccountType, string> = {
+  asset: 'Activo',
+  liability: 'Pasivo',
+  equity: 'Capital',
+  revenue: 'Ingreso',
+  expense: 'Gasto'
+};
+
+const fmt = (val: number | string) => {
+  const num = typeof val === 'string' ? parseFloat(val) : val;
+  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(num || 0);
+};
+
+export default function AccountingPage() {
+  const [activeTab, setActiveTab] = useState<'catalog' | 'journals'>('catalog');
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chart' | 'entries'>('chart');
-
-  // Core accounting data
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [entries, setEntries] = useState<any[]>([]);
-  const [pagination, setPagination] = useState<any>({ page: 1, total_pages: 1 });
-
-  // Modals state
+  
+  // Data
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
+  
+  // Modals
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showEntryModal, setShowEntryModal] = useState(false);
+  const [showJournalModal, setShowJournalModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [entrySearchQuery, setEntrySearchQuery] = useState('');
-  const [entryPage, setEntryPage] = useState(1);
+  // Forms
+  const [accForm, setAccForm] = useState({ code: '', name: '', type: 'asset' as AccountType });
+  const [journalForm, setJournalForm] = useState({ date: new Date().toISOString().split('T')[0], reference: '', description: '' });
+  const [journalLines, setJournalLines] = useState([{ accountId: '', debit: 0, credit: 0 }, { accountId: '', debit: 0, credit: 0 }]);
 
-  // Create Account Form State
-  const [accountCode, setAccountCode] = useState('');
-  const [accountName, setAccountName] = useState('');
-  const [accountType, setAccountType] = useState<'asset' | 'liability' | 'equity' | 'revenue' | 'expense'>('asset');
-  const [accountParentId, setAccountParentId] = useState('');
+  useEffect(() => {
+    fetchData();
+  }, [activeTab]);
 
-  // Create Journal Entry Form State
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [entryDescription, setEntryDescription] = useState('');
-  const [entryReference, setEntryReference] = useState('');
-  const [entryLines, setEntryLines] = useState<any[]>([
-    { accountId: '', debit: 0, credit: 0 },
-    { accountId: '', debit: 0, credit: 0 },
-  ]);
-
-  // Initial load
-  const loadAccountingData = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      // Fetch Chart of Accounts
-      const chartRes = await fetch('/api/v1/accounting/accounts');
-      const chartData = await chartRes.json();
-      if (chartData.success) {
-        setAccounts(chartData.data || []);
+      if (activeTab === 'catalog') {
+        const res = await fetch('/api/v1/accounting/accounts');
+        const data = await res.json();
+        if (data.success) setAccounts(data.data);
+      } else {
+        const res = await fetch('/api/v1/accounting/journals');
+        const data = await res.json();
+        if (data.success) setJournals(data.data);
       }
-
-      // Fetch Journal Entries
-      await loadEntries(entryPage);
-    } catch (error) {
-      console.error('Failed to load accounting data:', error);
-      toast.error('Error al cargar datos contables');
+    } catch (err) {
+      toast.error('Error cargando datos de contabilidad.');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadEntries = async (page: number) => {
-    try {
-      const entriesRes = await fetch(`/api/v1/accounting/entries?page=${page}&per_page=15`);
-      const entriesData = await entriesRes.json();
-      if (entriesData.success) {
-        setEntries(entriesData.data || []);
-        setPagination(entriesData.meta || { page: 1, total_pages: 1 });
-      }
-    } catch (error) {
-      console.error('Failed to load journal entries:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadAccountingData();
-  }, []);
-
-  useEffect(() => {
-    loadEntries(entryPage);
-  }, [entryPage]);
-
-  // Handle Account Submission
+  // --- Handlers ---
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!accountCode || !accountName) {
-      toast.error('Complete los campos obligatorios');
-      return;
-    }
     setSubmitting(true);
-
     try {
       const res = await fetch('/api/v1/accounting/accounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: accountCode,
-          name: accountName,
-          type: accountType,
-          parentId: accountParentId || undefined,
-        }),
+        body: JSON.stringify(accForm)
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || 'Error al crear la cuenta contable');
+      if (data.success) {
+        toast.success('Cuenta contable creada');
+        setShowAccountModal(false);
+        setAccForm({ code: '', name: '', type: 'asset' });
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al crear cuenta');
       }
-
-      toast.success('Cuenta contable creada correctamente');
-      setShowAccountModal(false);
-      setAccountCode('');
-      setAccountName('');
-      setAccountParentId('');
-      
-      // Refresh Chart
-      const chartRes = await fetch('/api/v1/accounting/accounts');
-      const chartData = await chartRes.json();
-      if (chartData.success) {
-        setAccounts(chartData.data || []);
-      }
-    } catch (error: any) {
-      toast.error('Error de registro', { description: error.message });
+    } catch (error) {
+      toast.error('Error de red');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Journal Entry lines management
-  const handleAddLine = () => {
-    setEntryLines([...entryLines, { accountId: '', debit: 0, credit: 0 }]);
+  const handleAddJournalLine = () => {
+    setJournalLines([...journalLines, { accountId: '', debit: 0, credit: 0 }]);
   };
 
-  const handleRemoveLine = (index: number) => {
-    if (entryLines.length <= 2) {
-      toast.error('Un asiento contable requiere al menos 2 líneas para partida doble');
-      return;
+  const handleJournalLineChange = (index: number, field: string, value: string | number) => {
+    const newLines = [...journalLines];
+    if (field === 'accountId') newLines[index].accountId = value as string;
+    if (field === 'debit') {
+      newLines[index].debit = parseFloat(value as string) || 0;
+      if (newLines[index].debit > 0) newLines[index].credit = 0; // mutually exclusive visually
     }
-    const newLines = [...entryLines];
-    newLines.splice(index, 1);
-    setEntryLines(newLines);
-  };
-
-  const handleLineChange = (index: number, field: string, value: any) => {
-    const newLines = [...entryLines];
-    if (field === 'accountId') {
-      newLines[index].accountId = value;
-    } else if (field === 'debit') {
-      newLines[index].debit = parseFloat(value) || 0;
-    } else if (field === 'credit') {
-      newLines[index].credit = parseFloat(value) || 0;
+    if (field === 'credit') {
+      newLines[index].credit = parseFloat(value as string) || 0;
+      if (newLines[index].credit > 0) newLines[index].debit = 0;
     }
-    setEntryLines(newLines);
+    setJournalLines(newLines);
   };
 
-  // Double entry totals calculation
-  const totalDebits = entryLines.reduce((acc, curr) => acc + curr.debit, 0);
-  const totalCredits = entryLines.reduce((acc, curr) => acc + curr.credit, 0);
-  const difference = Math.abs(totalDebits - totalCredits);
-  const isBalanced = difference < 0.01 && totalDebits > 0;
-
-  // Handle Journal Entry Submission
-  const handleCreateEntry = async (e: React.FormEvent) => {
+  const handleCreateJournal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!entryDescription) {
-      toast.error('Describa el concepto del asiento contable');
+    
+    // Validate
+    const totalDebit = journalLines.reduce((s, l) => s + l.debit, 0);
+    const totalCredit = journalLines.reduce((s, l) => s + l.credit, 0);
+    
+    if (Math.abs(totalDebit - totalCredit) > 0.01) {
+      toast.error('El asiento no cuadra. Débitos y Créditos deben ser iguales.');
       return;
     }
-    if (!isBalanced) {
-      toast.error('El asiento no está balanceado. Débito total debe ser igual al Crédito total.');
+    if (totalDebit === 0) {
+      toast.error('El asiento no puede estar en cero.');
       return;
     }
-    // Verify all lines have accounts
-    if (entryLines.some(l => !l.accountId)) {
-      toast.error('Seleccione una cuenta contable para todas las líneas');
+    if (journalLines.some(l => !l.accountId)) {
+      toast.error('Todas las líneas deben tener una cuenta asignada.');
       return;
     }
 
     setSubmitting(true);
-
     try {
-      const res = await fetch('/api/v1/accounting/entries', {
+      const res = await fetch('/api/v1/accounting/journals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: entryDate,
-          description: entryDescription,
-          reference: entryReference || undefined,
-          lines: entryLines.map(l => ({
-            accountId: l.accountId,
-            debit: l.debit,
-            credit: l.credit,
-          })),
-        }),
+        body: JSON.stringify({ ...journalForm, lines: journalLines })
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || 'Error al guardar el asiento contable');
+      if (data.success) {
+        toast.success('Asiento contable registrado exitosamente');
+        setShowJournalModal(false);
+        setJournalForm({ date: new Date().toISOString().split('T')[0], reference: '', description: '' });
+        setJournalLines([{ accountId: '', debit: 0, credit: 0 }, { accountId: '', debit: 0, credit: 0 }]);
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al registrar asiento');
       }
-
-      toast.success('Asiento contable registrado con éxito');
-      setShowEntryModal(false);
-      setEntryDescription('');
-      setEntryReference('');
-      setEntryLines([
-        { accountId: '', debit: 0, credit: 0 },
-        { accountId: '', debit: 0, credit: 0 },
-      ]);
-      loadEntries(1);
-    } catch (error: any) {
-      toast.error('Error de registro', { description: error.message });
+    } catch (error) {
+      toast.error('Error de red al crear asiento');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Filter accounts
-  const filteredAccounts = accounts.filter(acc => 
-    acc.code.includes(searchQuery) || 
-    acc.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Group accounts by level/parent structure if needed or sort by code order
-  const sortedAccounts = [...filteredAccounts].sort((a, b) => a.code.localeCompare(b.code));
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex h-[60vh] items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <RefreshCw className="h-8 w-8 animate-spin text-amber-500" />
-            <p className="text-slate-400 text-sm">Cargando catálogo contable y diario general...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  const accountTypeMap: Record<string, string> = {
-    asset: 'Activo',
-    liability: 'Pasivo',
-    equity: 'Capital',
-    revenue: 'Ingresos',
-    expense: 'Gastos',
-  };
-
-  const accountTypeColors: Record<string, string> = {
-    asset: 'text-emerald-500 bg-emerald-500/10 ring-emerald-500/20',
-    liability: 'text-rose-500 bg-rose-500/10 ring-rose-500/20',
-    equity: 'text-purple-500 bg-purple-500/10 ring-purple-500/20',
-    revenue: 'text-blue-500 bg-blue-500/10 ring-blue-500/20',
-    expense: 'text-amber-500 bg-amber-500/10 ring-amber-500/20',
-  };
+  const totalDebits = journalLines.reduce((s, l) => s + l.debit, 0);
+  const totalCredits = journalLines.reduce((s, l) => s + l.credit, 0);
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01 && totalDebits > 0;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        
-        {/* Title Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-900 pb-5">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-2">
-              <BookOpen className="h-7 w-7 text-amber-500" />
-              Contabilidad y Catálogo General
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Consulte el Catálogo de Cuentas, administre asientos de doble entrada y controle la sanidad financiera de la empresa.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setShowAccountModal(true)}
-              className="flex items-center gap-2 rounded-md bg-slate-900 border border-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-350 hover:bg-slate-850 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Crear Cuenta Contable
-            </button>
-            <button
-              onClick={() => setShowEntryModal(true)}
-              className="flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/5"
-            >
-              <Plus className="h-4 w-4" />
-              Registrar Asiento Diario
-            </button>
-          </div>
+      <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20">
+        <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
+           <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+             <BookOpen className="h-3 w-3" /> Contabilidad Financiera
+           </span>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-800">
-          <button
-            onClick={() => setActiveTab('chart')}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'chart'
-                ? 'border-amber-500 text-amber-500'
-                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Layers className="h-4 w-4" />
-            Catálogo de Cuentas
-          </button>
-          <button
-            onClick={() => setActiveTab('entries')}
-            className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'entries'
-                ? 'border-amber-500 text-amber-500'
-                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <ArrowRightLeft className="h-4 w-4" />
-            Asientos de Diario
-          </button>
-        </div>
-
-        {/* Tab Contents */}
-        {activeTab === 'chart' ? (
-          <section className="space-y-4">
-            
-            {/* Search Filter */}
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Buscar por código o nombre..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 block w-full rounded-md border-0 bg-slate-900 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-              />
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+          
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
+                Libro Mayor y Asientos
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Gestión del catálogo de cuentas y transacciones de diario general.
+              </p>
             </div>
+            <div className="flex gap-3">
+              {activeTab === 'catalog' ? (
+                <button
+                  onClick={() => setShowAccountModal(true)}
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-[#003366] font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Plus className="h-4 w-4" /> Nueva Cuenta
+                </button>
+              ) : null}
+              <button
+                onClick={() => setShowJournalModal(true)}
+                className="bg-[#C5A059] hover:bg-[#b08c4a] text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+              >
+                <FileText className="h-4 w-4" /> Nuevo Asiento
+              </button>
+            </div>
+          </div>
 
-            {/* Catalog List */}
-            <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-lg">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-350">
-                  <thead className="bg-slate-950/40 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    <tr>
-                      <th className="py-3 px-6">Código Cuenta</th>
-                      <th className="py-3 px-6">Nombre de Cuenta</th>
-                      <th className="py-3 px-6">Tipo</th>
-                      <th className="py-3 px-6">Nivel</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-855">
-                    {sortedAccounts.map((acc) => {
-                      const dots = acc.code.split('.').length - 1;
-                      return (
-                        <tr
-                          key={acc.id}
-                          className="hover:bg-slate-950/20 transition-colors"
-                        >
-                          <td className="py-3 px-6 font-mono text-xs text-amber-500 font-bold">
-                            {acc.code}
-                          </td>
-                          <td className="py-3 px-6">
-                            <span
-                              style={{ paddingLeft: `${dots * 16}px` }}
-                              className={`flex items-center gap-1.5 ${
-                                dots === 0 ? 'font-bold text-white text-sm' : 'text-slate-350 text-xs'
-                              }`}
-                            >
-                              {dots > 0 && <ChevronRight className="h-3 w-3 text-slate-650 inline" />}
-                              {acc.name}
-                            </span>
-                          </td>
-                          <td className="py-3 px-6">
-                            <span
-                              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset uppercase ${
-                                accountTypeColors[acc.type] || 'bg-slate-500/10 text-slate-400'
-                              }`}
-                            >
-                              {accountTypeMap[acc.type] || acc.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-6 text-slate-550 text-xs font-mono">
-                            Nivel {dots + 1}
-                          </td>
+          {/* Tabs */}
+          <div className="flex gap-1 bg-white p-1 rounded-xl border border-gray-200 inline-flex shadow-sm">
+            <button
+              onClick={() => setActiveTab('catalog')}
+              className={clsx(
+                'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
+                activeTab === 'catalog' ? 'bg-[#003366] text-white shadow' : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              Catálogo de Cuentas
+            </button>
+            <button
+              onClick={() => setActiveTab('journals')}
+              className={clsx(
+                'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
+                activeTab === 'journals' ? 'bg-[#003366] text-white shadow' : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              Asientos Contables
+            </button>
+          </div>
+
+          {/* CATALOG TAB */}
+          <AnimatePresence mode="wait">
+            {activeTab === 'catalog' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                          <th className="p-4 w-32">Código</th>
+                          <th className="p-4">Nombre de la Cuenta</th>
+                          <th className="p-4">Tipo</th>
+                          <th className="p-4 text-center">Estado</th>
                         </tr>
-                      );
-                    })}
-                    {sortedAccounts.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-8 text-center text-slate-550">
-                          No se encontraron cuentas contables.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {loading ? (
+                          <tr><td colSpan={4} className="p-8 text-center text-slate-400"><RefreshCw className="h-6 w-6 animate-spin mx-auto" /></td></tr>
+                        ) : accounts.length === 0 ? (
+                          <tr><td colSpan={4} className="p-8 text-center text-slate-500">No hay cuentas registradas en el catálogo.</td></tr>
+                        ) : (
+                          accounts.map((acc) => (
+                            <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-4 font-mono text-sm font-semibold text-[#003366]">{acc.code}</td>
+                              <td className="p-4 text-sm font-medium text-slate-800">{acc.name}</td>
+                              <td className="p-4">
+                                <span className={clsx(
+                                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                                  acc.type === 'asset' && 'bg-blue-100 text-blue-800',
+                                  acc.type === 'liability' && 'bg-rose-100 text-rose-800',
+                                  acc.type === 'equity' && 'bg-purple-100 text-purple-800',
+                                  acc.type === 'revenue' && 'bg-emerald-100 text-emerald-800',
+                                  acc.type === 'expense' && 'bg-amber-100 text-amber-800'
+                                )}>
+                                  {typeLabels[acc.type]}
+                                </span>
+                              </td>
+                              <td className="p-4 text-center">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
-          </section>
-        ) : (
-          <section className="space-y-4">
-            
-            {/* Journal Entries List */}
-            <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden shadow-lg p-6 space-y-6">
-              <h3 className="text-base font-semibold text-white uppercase tracking-wider">Historial del Diario General</h3>
-              
-              <div className="space-y-6">
-                {entries.map((entry) => {
-                  const entryTotalDebit = entry.lines.reduce((s: number, l: any) => s + parseFloat(l.debit || 0), 0);
-                  return (
-                    <div
-                      key={entry.id}
-                      className="p-5 rounded-lg bg-slate-950 border border-slate-850 space-y-4 text-xs hover:border-slate-800 transition-colors"
-                    >
-                      {/* Entry Header */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-900 pb-3">
-                        <div className="space-y-1">
-                          <p className="font-bold text-white text-sm flex items-center gap-1.5">
-                            <FileSpreadsheet className="h-4 w-4 text-amber-500" />
-                            {entry.description}
-                          </p>
-                          {entry.reference && (
-                            <span className="text-[10px] text-slate-500 font-mono">Referencia: {entry.reference}</span>
-                          )}
+            {/* JOURNALS TAB */}
+            {activeTab === 'journals' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                {loading ? (
+                   <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+                ) : journals.length === 0 ? (
+                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+                    <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-[#003366]">Sin Asientos Contables</h3>
+                    <p className="text-slate-500 text-sm mt-2">No se han registrado transacciones en el diario general.</p>
+                  </div>
+                ) : (
+                  journals.map((journal) => (
+                    <div key={journal.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group">
+                      <div className="bg-slate-50 px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-white border border-gray-200 rounded px-3 py-1.5 shadow-sm text-center">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">Fecha</p>
+                            <p className="font-mono text-sm font-semibold text-[#003366]">
+                              {new Date(journal.date).toLocaleDateString('es-DO')}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-800">{journal.description}</h4>
+                            {journal.reference && <p className="text-xs text-slate-500 font-mono mt-0.5">Ref: {journal.reference}</p>}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-450 font-mono text-[11px]">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5 text-slate-550" />
-                            {new Date(entry.date).toLocaleDateString('es-DO')}
-                          </span>
-                          <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20 uppercase">
-                            {entry.status}
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase rounded-full">
+                            Contabilizado
                           </span>
                         </div>
                       </div>
-
-                      {/* Entry Lines Ledger */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-[11px] text-slate-350">
-                          <thead>
-                            <tr className="text-slate-500 uppercase font-semibold border-b border-slate-900">
-                              <th className="py-2">Código Cuenta</th>
-                              <th className="py-2">Cuenta Contable</th>
-                              <th className="py-2 text-right">Débito</th>
-                              <th className="py-2 text-right">Crédito</th>
+                      <div className="p-0">
+                        <table className="w-full text-sm">
+                          <thead className="bg-white border-b border-gray-100">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Cuenta</th>
+                              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase w-32">Débito</th>
+                              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase w-32">Crédito</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-900">
-                            {entry.lines.map((line: any) => (
-                              <tr key={line.id} className="hover:bg-slate-900/40">
-                                <td className="py-2 font-mono text-slate-400">{line.accountCode}</td>
-                                <td className="py-2 font-semibold text-white">{line.accountName}</td>
-                                <td className="py-2 text-right text-emerald-500">
-                                  {parseFloat(line.debit) > 0 ? `RD$ ${parseFloat(line.debit).toLocaleString('es-DO', { minimumFractionDigits: 2 })}` : '-'}
+                          <tbody className="divide-y divide-gray-50">
+                            {journal.lines.map((line) => (
+                              <tr key={line.id} className="hover:bg-slate-50/50">
+                                <td className="px-6 py-3">
+                                  <span className="font-mono font-semibold text-[#003366] mr-2">{line.accountCode}</span>
+                                  <span className="text-slate-600">{line.accountName}</span>
                                 </td>
-                                <td className="py-2 text-right text-white">
-                                  {parseFloat(line.credit) > 0 ? `RD$ ${parseFloat(line.credit).toLocaleString('es-DO', { minimumFractionDigits: 2 })}` : '-'}
+                                <td className="px-6 py-3 text-right font-mono text-slate-700">
+                                  {parseFloat(line.debit) > 0 ? fmt(line.debit) : ''}
+                                </td>
+                                <td className="px-6 py-3 text-right font-mono text-slate-700">
+                                  {parseFloat(line.credit) > 0 ? fmt(line.credit) : ''}
                                 </td>
                               </tr>
                             ))}
-                            <tr className="font-bold text-white border-t border-slate-800 bg-slate-900/25">
-                              <td colSpan={2} className="py-2 text-right uppercase">Balance Total:</td>
-                              <td className="py-2 text-right text-emerald-500">
-                                RD$ {entryTotalDebit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                              </td>
-                              <td className="py-2 text-right">
-                                RD$ {entryTotalDebit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                              </td>
-                            </tr>
                           </tbody>
+                          <tfoot className="bg-slate-50/80 border-t border-gray-200">
+                            <tr>
+                              <td className="px-6 py-3 text-right font-bold text-slate-500 text-xs uppercase tracking-widest">Totales</td>
+                              <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalDebit)}</td>
+                              <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalCredit)}</td>
+                            </tr>
+                          </tfoot>
                         </table>
                       </div>
                     </div>
-                  );
-                })}
-
-                {entries.length === 0 && (
-                  <p className="text-slate-500 text-center py-6">No hay asientos de diario registrados en el sistema.</p>
+                  ))
                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-                {/* Pagination */}
-                {pagination.total_pages > 1 && (
-                  <div className="flex justify-between items-center pt-4 border-t border-slate-900">
-                    <button
-                      onClick={() => setEntryPage(p => Math.max(1, p - 1))}
-                      disabled={entryPage === 1}
-                      className="px-3 py-1.5 rounded bg-slate-950 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-850 text-xs disabled:opacity-50"
-                    >
-                      Anterior
-                    </button>
-                    <span className="text-xs text-slate-550">
-                      Página {entryPage} de {pagination.total_pages}
-                    </span>
-                    <button
-                      onClick={() => setEntryPage(p => Math.min(pagination.total_pages, p + 1))}
-                      disabled={entryPage === pagination.total_pages}
-                      className="px-3 py-1.5 rounded bg-slate-950 hover:bg-slate-850 text-slate-400 hover:text-white border border-slate-850 text-xs disabled:opacity-50"
-                    >
-                      Siguiente
-                    </button>
+        {/* MODAL: NEW ACCOUNT */}
+        <AnimatePresence>
+          {showAccountModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
+                <div className="bg-[#003366] px-6 py-4 flex justify-between items-center">
+                  <h3 className="text-white font-bold flex items-center gap-2"><BookOpen className="w-5 h-5" /> Nueva Cuenta Contable</h3>
+                  <button onClick={() => setShowAccountModal(false)} className="text-white/70 hover:text-white"><X className="w-5 h-5" /></button>
+                </div>
+                <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Código</label>
+                    <input type="text" required value={accForm.code} onChange={e => setAccForm({...accForm, code: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] font-mono text-sm" placeholder="Ej. 1.1.01" />
                   </div>
-                )}
-              </div>
-            </div>
-
-          </section>
-        )}
-
-      </div>
-
-      {/* MODAL: Crear Cuenta Contable */}
-      <AnimatePresence>
-        {showAccountModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAccountModal(false)}
-              className="fixed inset-0 bg-black"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-slate-900 border border-slate-800 rounded-lg p-6 max-w-md w-full shadow-2xl z-10 text-slate-350 space-y-6"
-            >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-semibold text-white uppercase tracking-wider">Añadir Cuenta Contable</h3>
-                <button onClick={() => setShowAccountModal(false)} className="text-slate-400 hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateAccount} className="space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-slate-300 font-semibold uppercase">Código de Cuenta</label>
-                    <input
-                      type="text"
-                      value={accountCode}
-                      onChange={(e) => setAccountCode(e.target.value.replace(/[^0-9.]/g, ''))}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm font-mono"
-                      placeholder="1.1.01"
-                      required
-                    />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Nombre de Cuenta</label>
+                    <input type="text" required value={accForm.name} onChange={e => setAccForm({...accForm, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm" placeholder="Efectivo en Caja y Banco" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="block text-slate-300 font-semibold uppercase">Tipo de Cuenta</label>
-                    <select
-                      value={accountType}
-                      onChange={(e) => setAccountType(e.target.value as any)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                    >
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Tipo de Cuenta</label>
+                    <select required value={accForm.type} onChange={e => setAccForm({...accForm, type: e.target.value as AccountType})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm bg-white">
                       <option value="asset">Activo</option>
                       <option value="liability">Pasivo</option>
                       <option value="equity">Capital</option>
-                      <option value="revenue">Ingresos</option>
-                      <option value="expense">Gastos</option>
+                      <option value="revenue">Ingreso</option>
+                      <option value="expense">Gasto</option>
                     </select>
                   </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="block text-slate-300 font-semibold uppercase">Nombre de Cuenta</label>
-                    <input
-                      type="text"
-                      value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="Caja Chica Administrativa"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1 col-span-2">
-                    <label className="block text-slate-300 font-semibold uppercase">Cuenta Contable Superior (Padre)</label>
-                    <select
-                      value={accountParentId}
-                      onChange={(e) => setAccountParentId(e.target.value)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                    >
-                      <option value="">Ninguna (Cuenta de nivel raíz)</option>
-                      {accounts
-                        .filter((acc) => acc.code.split('.').length < 3) // restrict parent to root levels
-                        .map((acc) => (
-                          <option key={acc.id} value={acc.id}>
-                            {acc.code} - {acc.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 justify-end border-t border-slate-800 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAccountModal(false)}
-                    className="rounded border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-900"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="rounded bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400"
-                  >
-                    Crear Cuenta
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* MODAL: Registrar Asiento Diario */}
-      <AnimatePresence>
-        {showEntryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowEntryModal(false)}
-              className="fixed inset-0 bg-black"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-slate-900 border border-slate-800 rounded-lg p-6 max-w-4xl w-full shadow-2xl z-10 text-slate-300 space-y-6"
-            >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-base font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-                  <ArrowRightLeft className="h-5 w-5 text-amber-500" />
-                  Registrar Asiento Contable
-                </h3>
-                <button onClick={() => setShowEntryModal(false)} className="text-slate-400 hover:text-white">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateEntry} className="space-y-6 text-xs">
-                
-                {/* Meta details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-slate-300 font-semibold uppercase">Fecha Asiento</label>
-                    <input
-                      type="date"
-                      value={entryDate}
-                      onChange={(e) => setEntryDate(e.target.value)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-slate-300 font-semibold uppercase">Referencia Documental</label>
-                    <input
-                      type="text"
-                      value={entryReference}
-                      onChange={(e) => setEntryReference(e.target.value)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="Factura, cheque, etc. (Opcional)"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-slate-300 font-semibold uppercase">Concepto / Glosa</label>
-                    <input
-                      type="text"
-                      value={entryDescription}
-                      onChange={(e) => setEntryDescription(e.target.value)}
-                      className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                      placeholder="Registro cobro factura..."
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Double Entry Ledger Lines */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h4 className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Partida Doble (Líneas de Asiento)</h4>
-                    <button
-                      type="button"
-                      onClick={handleAddLine}
-                      className="flex items-center gap-1 rounded bg-slate-950 border border-slate-800 px-2.5 py-1 text-[10.5px] font-semibold text-slate-350 hover:bg-slate-850"
-                    >
-                      <PlusCircle className="h-3.5 w-3.5 text-amber-500" />
-                      Agregar Línea
+                  <div className="pt-4 flex gap-3">
+                    <button type="button" onClick={() => setShowAccountModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-slate-600 font-semibold text-sm hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" disabled={submitting} className="flex-[2] py-2.5 bg-[#C5A059] hover:bg-[#b08c4a] text-white font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                      {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />} Guardar Cuenta
                     </button>
                   </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-                  <div className="max-h-56 overflow-y-auto space-y-3 pr-1">
-                    {entryLines.map((line, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-3 items-center">
-                        
-                        {/* Selector de cuenta */}
-                        <div className="col-span-6">
-                          <select
-                            value={line.accountId}
-                            onChange={(e) => handleLineChange(idx, 'accountId', e.target.value)}
-                            className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-xs"
-                            required
-                          >
-                            <option value="">-- Seleccionar Cuenta Contable --</option>
-                            {accounts.map((acc) => (
-                              <option key={acc.id} value={acc.id}>
-                                {acc.code} - {acc.name} ({accountTypeMap[acc.type]})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Débito */}
-                        <div className="col-span-2.5">
-                          <input
-                            type="number"
-                            value={line.debit || ''}
-                            onChange={(e) => handleLineChange(idx, 'debit', e.target.value)}
-                            disabled={line.credit > 0}
-                            className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-xs text-right font-mono"
-                            placeholder="Débito 0.00"
-                            min={0}
-                            step="any"
-                          />
-                        </div>
-
-                        {/* Crédito */}
-                        <div className="col-span-2.5">
-                          <input
-                            type="number"
-                            value={line.credit || ''}
-                            onChange={(e) => handleLineChange(idx, 'credit', e.target.value)}
-                            disabled={line.debit > 0}
-                            className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3.5 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-xs text-right font-mono"
-                            placeholder="Crédito 0.00"
-                            min={0}
-                            step="any"
-                          />
-                        </div>
-
-                        {/* Eliminar línea */}
-                        <div className="col-span-1 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveLine(idx)}
-                            className="text-slate-500 hover:text-red-400 p-2"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-
-                      </div>
-                    ))}
-                  </div>
+        {/* MODAL: NEW JOURNAL ENTRY */}
+        <AnimatePresence>
+          {showJournalModal && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden">
+                <div className="bg-[#003366] px-6 py-4 flex justify-between items-center shrink-0">
+                  <h3 className="text-white font-bold text-lg flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#C5A059]" /> Nuevo Asiento Contable</h3>
+                  <button onClick={() => setShowJournalModal(false)} className="text-white/70 hover:text-white"><X className="w-6 h-6" /></button>
                 </div>
-
-                {/* Ledger balances summary */}
-                <div className="bg-slate-950/60 rounded-lg border border-slate-850 p-4 flex flex-col md:flex-row justify-between gap-4">
-                  <div className="flex gap-6 text-[11px] font-mono text-slate-400">
+                
+                <div className="overflow-y-auto p-6 bg-slate-50 flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                     <div>
-                      <span>Total Débitos:</span>
-                      <p className="text-sm font-bold text-emerald-500 mt-0.5">
-                        RD$ {totalDebits.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                      </p>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Fecha</label>
+                      <input type="date" required value={journalForm.date} onChange={e => setJournalForm({...journalForm, date: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm" />
                     </div>
                     <div>
-                      <span>Total Créditos:</span>
-                      <p className="text-sm font-bold text-white mt-0.5">
-                        RD$ {totalCredits.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                      </p>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Referencia</label>
+                      <input type="text" value={journalForm.reference} onChange={e => setJournalForm({...journalForm, reference: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm font-mono" placeholder="Ej. CHK-1024" />
                     </div>
-                    {difference > 0 && (
-                      <div>
-                        <span>Desbalance:</span>
-                        <p className="text-sm font-bold text-red-500 mt-0.5">
-                          RD$ {difference.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                        </p>
+                    <div className="md:col-span-3">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Concepto / Descripción</label>
+                      <input type="text" required value={journalForm.description} onChange={e => setJournalForm({...journalForm, description: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm" placeholder="Registro de..." />
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-100">
+                        <tr>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-600 uppercase">Cuenta Contable</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase w-40">Débito</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase w-40">Crédito</th>
+                          <th className="w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {journalLines.map((line, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="p-2">
+                              <select required value={line.accountId} onChange={e => handleJournalLineChange(idx, 'accountId', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm bg-white focus:ring-2 focus:ring-[#003366] outline-none">
+                                <option value="" disabled>Seleccione cuenta...</option>
+                                {accounts.map(acc => (
+                                  <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="p-2">
+                              <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full border border-slate-200 rounded px-2 py-1.5 text-right font-mono text-sm focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-transparent" placeholder="0.00" />
+                            </td>
+                            <td className="p-2">
+                              <input type="number" min="0" step="0.01" value={line.credit || ''} onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)} disabled={line.debit > 0} className="w-full border border-slate-200 rounded px-2 py-1.5 text-right font-mono text-sm focus:border-blue-500 outline-none disabled:bg-slate-100 disabled:text-transparent" placeholder="0.00" />
+                            </td>
+                            <td className="p-2 text-center">
+                              {journalLines.length > 2 && (
+                                <button type="button" onClick={() => setJournalLines(journalLines.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="p-3 border-t border-slate-100 bg-slate-50">
+                      <button type="button" onClick={handleAddJournalLine} className="text-xs font-bold text-[#003366] hover:underline flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Agregar Línea
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Totals */}
+                <div className="bg-white border-t border-slate-200 p-6 shrink-0 grid grid-cols-1 md:grid-cols-2 items-center gap-4">
+                  <div className="flex gap-6">
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Débitos</p>
+                      <p className="font-mono text-xl font-bold text-slate-800">{fmt(totalDebits)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Créditos</p>
+                      <p className="font-mono text-xl font-bold text-slate-800">{fmt(totalCredits)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 justify-end">
+                    {!isBalanced && totalDebits > 0 && (
+                      <div className="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-200">
+                        <AlertTriangle className="w-4 h-4" /> Asiento Descuadrado
                       </div>
                     )}
-                  </div>
-
-                  <div className="flex items-center">
-                    {isBalanced ? (
-                      <span className="flex items-center gap-1 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/20 text-[10px] uppercase font-bold">
-                        <Check className="h-4 w-4" /> Asiento Balanceado
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded border border-rose-500/20 text-[10px] uppercase font-bold">
-                        <AlertTriangle className="h-4 w-4" /> Asiento Desbalanceado
-                      </span>
-                    )}
+                    <button type="button" onClick={() => setShowJournalModal(false)} className="px-5 py-3 text-slate-600 font-semibold text-sm hover:bg-slate-100 rounded-lg transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
+                      Contabilizar Asiento
+                    </button>
                   </div>
                 </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-                <div className="flex gap-3 justify-end border-t border-slate-800 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowEntryModal(false)}
-                    className="rounded border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-350 hover:bg-slate-900"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting || !isBalanced}
-                    className="rounded bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? 'Guardando asiento...' : 'Registrar Asiento'}
-                  </button>
-                </div>
-
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
+      </div>
     </DashboardLayout>
   );
 }

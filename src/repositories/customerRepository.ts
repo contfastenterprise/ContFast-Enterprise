@@ -1,5 +1,5 @@
-import { db, customers } from '@/db';
-import { eq, and, or, ilike, desc, sql, isNull } from 'drizzle-orm';
+import { db, customers, invoices, accountsReceivable, cashMovements } from '@/db';
+import { eq, and, or, ilike, desc, sql, isNull, inArray } from 'drizzle-orm';
 
 export interface CreateCustomerInput {
   companyId: string;
@@ -171,5 +171,77 @@ export class CustomerRepository {
       .returning();
 
     return !!customer;
+  }
+  /**
+   * Obtiene el historial financiero de un cliente (Métricas + Facturas + Pagos)
+   */
+  static async getCustomerHistory(id: string, companyId: string) {
+    // 1. Obtener datos del cliente
+    const customer = await this.findById(id, companyId);
+    if (!customer) throw new Error('Cliente no encontrado');
+
+    // 2. Obtener sumatorias
+    const [invoiceSum] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${invoices.total}), 0)` })
+      .from(invoices)
+      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)));
+
+    const [arSum] = await db
+      .select({ balance: sql<number>`COALESCE(SUM(${accountsReceivable.balance}), 0)` })
+      .from(accountsReceivable)
+      .where(and(eq(accountsReceivable.customerId, id), eq(accountsReceivable.companyId, companyId), isNull(accountsReceivable.deletedAt)));
+
+    const totalInvoiced = Number(invoiceSum?.total || 0);
+    const currentBalance = Number(arSum?.balance || 0);
+    const totalPaid = totalInvoiced - currentBalance;
+
+    // 3. Obtener facturas recientes
+    const recentInvoices = await db
+      .select({
+        id: invoices.id,
+        ncf: invoices.ncf,
+        date: invoices.createdAt,
+        amount: invoices.total,
+        status: invoices.status,
+      })
+      .from(invoices)
+      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)))
+      .orderBy(desc(invoices.createdAt))
+      .limit(10);
+
+    // 4. Obtener pagos recientes (movimientos de caja asociados a sus facturas)
+    // Primero obtener IDs de facturas del cliente
+    const customerInvoiceIds = recentInvoices.map(i => i.id);
+    let recentPayments: any[] = [];
+    
+    if (customerInvoiceIds.length > 0) {
+      recentPayments = await db
+        .select({
+          id: cashMovements.id,
+          reference: cashMovements.reference,
+          date: cashMovements.createdAt,
+          amount: cashMovements.amount,
+          method: cashMovements.type, // Usamos type como method temporalmente
+        })
+        .from(cashMovements)
+        .where(and(
+          eq(cashMovements.companyId, companyId),
+          inArray(cashMovements.invoiceId, customerInvoiceIds),
+          eq(cashMovements.type, 'sale')
+        ))
+        .orderBy(desc(cashMovements.createdAt))
+        .limit(10);
+    }
+
+    return {
+      customer,
+      metrics: {
+        totalInvoiced,
+        currentBalance,
+        totalPaid
+      },
+      recentInvoices,
+      recentPayments
+    };
   }
 }

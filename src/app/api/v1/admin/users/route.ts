@@ -1,58 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { enforcePermission } from '@/middleware/permissions';
-import { db, users, roles } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
+import { AdminRepository } from '@/repositories/adminRepository';
+import { z } from 'zod';
 
-/**
- * GET /api/v1/admin/users - Get list of users in the company
- */
+const userSchema = z.object({
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+  email: z.string().email('Email inválido'),
+  passwordRaw: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  roleId: z.string().uuid('Rol inválido')
+});
+
 export async function GET(req: NextRequest) {
-  const resHeaders = new Headers();
-  const auth = await verifyAuth(req, resHeaders);
-
-  if (!auth) {
-    return NextResponse.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } },
-      { status: 401 }
-    );
-  }
-
   try {
-    // Enforce "administracion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'read');
+    const session = await verifyAuth(req);
+    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    }
 
-    // Fetch all users for this company
-    const list = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        status: users.status,
-        roleId: users.roleId,
-        roleName: roles.name,
-        createdAt: users.createdAt,
-      })
-      .from(users)
-      .innerJoin(roles, eq(users.roleId, roles.id))
-      .where(
-        and(
-          eq(users.companyId, auth.companyId),
-          isNull(users.deletedAt)
-        )
-      );
+    const users = await AdminRepository.getUsers(session.companyId);
+    return NextResponse.json({ success: true, data: users });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  }
+}
 
-    return NextResponse.json(
-      { success: true, data: list },
-      { headers: resHeaders }
-    );
-  } catch (error: any) {
-    console.error('Error in GET /api/v1/admin/users:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
-    return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
-      { status, headers: resHeaders }
-    );
+export async function POST(req: NextRequest) {
+  try {
+    const session = await verifyAuth(req);
+    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const parsed = userSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
+    }
+
+    const newUser = await AdminRepository.createUser({
+      ...parsed.data,
+      companyId: session.companyId
+    });
+
+    return NextResponse.json({ success: true, data: newUser }, { status: 201 });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await verifyAuth(req);
+    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    }
+
+    const body = await req.json();
+    if (!body.userId) {
+      return NextResponse.json({ success: false, error: { message: 'Falta userId' } }, { status: 400 });
+    }
+
+    // Prevent toggling oneself
+    if (body.userId === session.userId) {
+      return NextResponse.json({ success: false, error: { message: 'No puedes desactivar tu propia cuenta' } }, { status: 400 });
+    }
+
+    const result = await AdminRepository.toggleUserStatus(body.userId, session.companyId);
+    return NextResponse.json({ success: true, data: result });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });
   }
 }

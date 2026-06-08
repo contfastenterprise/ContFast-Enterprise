@@ -22,6 +22,27 @@
       "when": 1780868800000,
       "tag": "0002_add_product_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780934513884,
+      "tag": "0003_high_sphinx",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780936590492,
+      "tag": "0004_perfect_sleeper",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780953227060,
+      "tag": "0005_classy_aqueduct",
+      "breakpoints": true
     }
   ]
 }

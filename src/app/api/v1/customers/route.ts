@@ -5,7 +5,7 @@ import { CustomerRepository } from '@/repositories/customerRepository';
 import { z } from 'zod';
 
 const createCustomerSchema = z.object({
-  rncCedula: z.string().min(9, 'El RNC o Cédula es muy corto').max(15, 'El RNC o Cédula es muy largo'),
+  rncCedula: z.string().min(9, 'El RNC o Cédula es muy corto').max(15, 'El RNC o Cédula es muy largo').optional().or(z.literal('')),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     const newCustomer = await CustomerRepository.create({
       ...parsed.data,
       companyId: session.companyId,
+      rncCedula: parsed.data.rncCedula || '',
     });
 
     return NextResponse.json({ success: true, data: newCustomer }, { status: 201 });

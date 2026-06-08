@@ -17,6 +17,8 @@ export interface CreateInvoiceInput {
   xmlPath?: string;
   signedXmlPath?: string;
   pdfPath?: string;
+  msellerTrackId?: string;
+  dgiiMessage?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -57,6 +59,8 @@ export class InvoiceRepository {
           xmlPath: data.xmlPath,
           signedXmlPath: data.signedXmlPath,
           pdfPath: data.pdfPath,
+          msellerTrackId: data.msellerTrackId,
+          dgiiMessage: data.dgiiMessage,
         })
         .returning();
 
