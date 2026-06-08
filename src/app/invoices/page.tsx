@@ -38,9 +38,39 @@ function InvoicesList() {
   const [customerId, setCustomerId] = useState('');
   const [customerRnc, setCustomerRnc] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [lines, setLines] = useState<any[]>([
-    { productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 },
+    { 
+      productId: 'f56a31c0-0000-0000-0000-000000000000', 
+      productName: 'Servicio de Consultoría Técnica', 
+      quantity: 1, 
+      unitPrice: 5000, 
+      discount: 0, 
+      taxRate: 0.18,
+      unitOfMeasure: 'unidad',
+      barcode: '',
+      priceTier: 'consumidor',
+      imageUrl: ''
+    },
   ]);
+
+  // Load products when form opens
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch('/api/v1/products?per_page=100');
+        const data = await res.json();
+        if (data.success) {
+          setDbProducts(data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching products', error);
+      }
+    }
+    if (showForm) {
+      fetchProducts();
+    }
+  }, [showForm]);
 
   // Load showForm from query parameter
   useEffect(() => {
@@ -116,7 +146,18 @@ function InvoicesList() {
   const handleAddLine = () => {
     setLines([
       ...lines,
-      { productId: 'f56a31c0-0000-0000-0000-000000000000', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18 },
+      { 
+        productId: 'f56a31c0-0000-0000-0000-000000000000', 
+        productName: '', 
+        quantity: 1, 
+        unitPrice: 0, 
+        discount: 0, 
+        taxRate: 0.18,
+        unitOfMeasure: 'unidad',
+        barcode: '',
+        priceTier: 'consumidor',
+        imageUrl: ''
+      },
     ]);
   };
 
@@ -128,6 +169,70 @@ function InvoicesList() {
   const handleLineChange = (idx: number, field: string, value: any) => {
     const updated = [...lines];
     updated[idx][field] = value;
+    setLines(updated);
+  };
+
+  const handleBarcodeSearch = async (idx: number, barcodeValue: string) => {
+    handleLineChange(idx, 'barcode', barcodeValue);
+    if (!barcodeValue) return;
+
+    // Search in loaded dbProducts first
+    const matched = dbProducts.find(p => p.barcode === barcodeValue);
+    if (matched) {
+      applyProductToLine(idx, matched);
+      return;
+    }
+
+    // Call API
+    try {
+      const res = await fetch(`/api/v1/products?barcode=${encodeURIComponent(barcodeValue)}`);
+      const data = await res.json();
+      if (data.success && data.data && data.data.length > 0) {
+        const prod = data.data[0];
+        setDbProducts(prev => {
+          if (!prev.some(p => p.id === prod.id)) return [...prev, prod];
+          return prev;
+        });
+        applyProductToLine(idx, prod);
+      }
+    } catch (e) {
+      console.error('Barcode lookup failed', e);
+    }
+  };
+
+  const applyProductToLine = (idx: number, product: any) => {
+    const updated = [...lines];
+    updated[idx].productId = product.id;
+    updated[idx].productName = product.name;
+    updated[idx].unitOfMeasure = product.unitOfMeasure || 'unidad';
+    updated[idx].barcode = product.barcode || '';
+    updated[idx].imageUrl = product.imageUrl || '';
+
+    const tier = updated[idx].priceTier || 'consumidor';
+    if (tier === 'consumidor') {
+      updated[idx].unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+    } else if (tier === 'proveedor') {
+      updated[idx].unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+    } else if (tier === 'mayorista') {
+      updated[idx].unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+    }
+    setLines(updated);
+  };
+
+  const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
+    const updated = [...lines];
+    updated[idx].priceTier = tier;
+
+    const product = dbProducts.find(p => p.id === updated[idx].productId);
+    if (product) {
+      if (tier === 'consumidor') {
+        updated[idx].unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+      } else if (tier === 'proveedor') {
+        updated[idx].unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+      } else if (tier === 'mayorista') {
+        updated[idx].unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+      }
+    }
     setLines(updated);
   };
 
@@ -308,54 +413,132 @@ function InvoicesList() {
 
                   <div className="space-y-3">
                     {lines.map((line, idx) => (
-                      <div key={idx} className="flex flex-col md:flex-row items-end gap-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                        <div className="flex-1 w-full space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción</label>
-                          <input
-                            type="text"
-                            value={line.productName}
-                            onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-sm transition-all"
-                            placeholder="Nombre del servicio o producto"
-                            required
-                          />
+                      <div key={idx} className="flex flex-col gap-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                        {/* Upper row: Selection, Name, Barcode & Image Preview */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
+                          
+                          {/* Image preview (if exists) */}
+                          <div className="md:col-span-1 flex items-center justify-center bg-slate-900 border border-slate-800 rounded-lg h-[42px] w-[42px] overflow-hidden self-end">
+                            {line.imageUrl ? (
+                              <img src={line.imageUrl} alt="preview" className="h-full w-full object-cover" />
+                            ) : (
+                              <FileText className="h-5 w-5 text-slate-600" />
+                            )}
+                          </div>
+
+                          {/* Product Selection / Custom Name */}
+                          <div className="md:col-span-6 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto o Servicio</label>
+                            <div className="flex gap-2">
+                              <select
+                                onChange={(e) => {
+                                  const prod = dbProducts.find(p => p.id === e.target.value);
+                                  if (prod) applyProductToLine(idx, prod);
+                                }}
+                                value={line.productId || ''}
+                                className="rounded-lg bg-slate-900 border border-slate-700 py-2 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all max-w-[200px]"
+                              >
+                                <option value="">-- Seleccionar producto --</option>
+                                {dbProducts.map(p => (
+                                  <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                              </select>
+                              <input
+                                type="text"
+                                value={line.productName}
+                                onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
+                                className="flex-1 rounded-lg bg-slate-900 border border-slate-700 py-2 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                                placeholder="Nombre manual (si no está registrado)"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Barcode input */}
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código de Barras</label>
+                            <input
+                              type="text"
+                              value={line.barcode || ''}
+                              onChange={(e) => handleBarcodeSearch(idx, e.target.value)}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                              placeholder="Escanear o ingresar"
+                            />
+                          </div>
+
+                          {/* Unit of measure */}
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unidad</label>
+                            <select
+                              value={line.unitOfMeasure || 'unidad'}
+                              onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                            >
+                              <option value="unidad">Unidad</option>
+                              <option value="pie">Pie</option>
+                              <option value="pieza">Pieza</option>
+                              <option value="centimetro">Centímetro</option>
+                              <option value="plancha">Plancha</option>
+                              <option value="otro">Otro</option>
+                            </select>
+                          </div>
                         </div>
-                        <div className="w-full md:w-24 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cant.</label>
-                          <input
-                            type="number"
-                            value={line.quantity}
-                            onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-sm transition-all"
-                            min={0.0001} step="any" required
-                          />
-                        </div>
-                        <div className="w-full md:w-32 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Precio Unit.</label>
-                          <input
-                            type="number"
-                            value={line.unitPrice}
-                            onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-sm transition-all"
-                            min={0} required
-                          />
-                        </div>
-                        <div className="w-full md:w-32 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ITBIS (Tasa)</label>
-                          <select
-                            value={line.taxRate}
-                            onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-sm transition-all"
-                          >
-                            <option value="0.18">18% ITBIS</option>
-                            <option value="0.16">16% ITBIS</option>
-                            <option value="0.00">0% Exento</option>
-                          </select>
-                        </div>
-                        <div className="w-full md:w-auto flex justify-end pb-1 md:pb-2 pl-2">
-                          <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
-                            <Trash2 className="h-5 w-5" />
-                          </button>
+
+                        {/* Lower row: Quantities, Price tier, unitPrice, taxRate & delete button */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cant.</label>
+                            <input
+                              type="number"
+                              value={line.quantity}
+                              onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                              min={0.0001} step="any" required
+                            />
+                          </div>
+
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nivel de Precio</label>
+                            <select
+                              value={line.priceTier || 'consumidor'}
+                              onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                            >
+                              <option value="consumidor">Consumidor (P1)</option>
+                              <option value="proveedor">Proveedor (P2)</option>
+                              <option value="mayorista">Mayorista (P3)</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Precio Unit.</label>
+                            <input
+                              type="number"
+                              value={line.unitPrice}
+                              onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                              min={0} required
+                            />
+                          </div>
+
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ITBIS (Tasa)</label>
+                            <select
+                              value={line.taxRate}
+                              onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
+                              className="w-full rounded-lg bg-slate-900 border border-slate-700 py-2.5 px-3 text-white focus:border-amber-500 outline-none text-xs transition-all"
+                            >
+                              <option value="0.18">18% ITBIS</option>
+                              <option value="0.16">16% ITBIS</option>
+                              <option value="0.00">0% Exento</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-1 flex justify-end">
+                            <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}

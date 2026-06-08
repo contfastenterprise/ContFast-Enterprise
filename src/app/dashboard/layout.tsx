@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, Building, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, User } from 'lucide-react';
+import { Shield, Building, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, User, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -64,6 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { name: 'Directorio de Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
     { name: 'Facturación e-CF', href: '/invoices', icon: <FileText className="h-5 w-5" /> },
     { name: 'Módulo de Caja', href: '/cash', icon: <Wallet className="h-5 w-5" /> },
     { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
