@@ -14,6 +14,7 @@ export interface PDFInvoiceData {
   companyRnc: string;
   companyAddress?: string;
   companyPhone?: string;
+  companyLogoUrl?: string;
   ncf: string;
   ecfType: string;
   buyerName: string;
@@ -59,20 +60,36 @@ export function generateInvoicePdf(
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', (err) => reject(err));
 
-      if (layout === 'carta') {
-        buildLetterLayout(doc, data);
-      } else {
-        buildTicketLayout(doc, data, layout === '80mm' ? 226.7 : 164.4);
-      }
+      // Fetch logo buffer if url is provided
+      const buildWithLogo = async () => {
+        let logoBuffer: Buffer | null = null;
+        if (data.companyLogoUrl) {
+          try {
+            const res = await fetch(data.companyLogoUrl);
+            const arrayBuffer = await res.arrayBuffer();
+            logoBuffer = Buffer.from(arrayBuffer);
+          } catch (e) {
+            console.error('Failed to load logo for PDF', e);
+          }
+        }
 
-      doc.end();
+        if (layout === 'carta') {
+          buildLetterLayout(doc, data, logoBuffer);
+        } else {
+          buildTicketLayout(doc, data, layout === '80mm' ? 226.7 : 164.4, logoBuffer);
+        }
+
+        doc.end();
+      };
+
+      buildWithLogo().catch(reject);
     } catch (error) {
       reject(error);
     }
   });
 }
 
-function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData) {
+function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData, logoBuffer: Buffer | null) {
   const primaryColor = '#003366'; // Institutional Navy
   const secondaryColor = '#C5A059'; // Gold Accent
   const textColor = '#191C1D';
@@ -82,17 +99,26 @@ function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoi
   doc.fillColor(primaryColor).rect(0, 0, 612, 15).fill(); // Top blue accent bar
 
   // Company Information (Left)
-  doc.fillColor(primaryColor)
-    .font('Helvetica-Bold')
-    .fontSize(16)
-    .text(data.companyName.toUpperCase(), 36, 36);
+  let yOffset = 36;
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, 36, 30, { fit: [150, 40], valign: 'center' });
+      yOffset = 80;
+    } catch (e) {
+      doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(16).text(data.companyName.toUpperCase(), 36, yOffset);
+      yOffset += 20;
+    }
+  } else {
+    doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(16).text(data.companyName.toUpperCase(), 36, yOffset);
+    yOffset += 20;
+  }
 
   doc.fillColor(textColor)
     .font('Helvetica')
     .fontSize(9)
-    .text(`RNC: ${data.companyRnc}`, 36, 56)
-    .text(data.companyAddress || '', 36, 68)
-    .text(data.companyPhone || '', 36, 80);
+    .text(`RNC: ${data.companyRnc}`, 36, yOffset)
+    .text(data.companyAddress || '', 36, yOffset + 12)
+    .text(data.companyPhone || '', 36, yOffset + 24);
 
   // Invoice Meta Info (Right)
   doc.rect(380, 30, 196, 75).fillColor(lightGrey).fill();
@@ -220,21 +246,38 @@ function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoi
     .text(formatCurrency(data.total), 500, summaryY, { width: 70, align: 'right' });
 }
 
-function buildTicketLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData, width: number) {
+function buildTicketLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData, width: number, logoBuffer: Buffer | null) {
   const contentWidth = width - 16; // Margin is 8
   const textColor = '#000000';
 
+  let currentY = 8;
+
   // --- COMPANY INFO ---
-  doc.fillColor(textColor)
-    .font('Helvetica-Bold')
-    .fontSize(9)
-    .text(data.companyName.toUpperCase(), 8, 8, { align: 'center', width: contentWidth });
+  if (logoBuffer) {
+    try {
+      doc.image(logoBuffer, (width - 100) / 2, currentY, { fit: [100, 40], align: 'center' });
+      currentY += 45;
+    } catch (e) {
+      doc.fillColor(textColor).font('Helvetica-Bold').fontSize(9).text(data.companyName.toUpperCase(), 8, currentY, { align: 'center', width: contentWidth });
+      currentY += 12;
+    }
+  } else {
+    doc.fillColor(textColor).font('Helvetica-Bold').fontSize(9).text(data.companyName.toUpperCase(), 8, currentY, { align: 'center', width: contentWidth });
+    currentY += 12;
+  }
 
   doc.font('Helvetica')
     .fontSize(8)
-    .text(`RNC: ${data.companyRnc}`, 8, 20, { align: 'center', width: contentWidth })
-    .text(data.companyAddress || '', 8, 30, { align: 'center', width: contentWidth })
-    .text(data.companyPhone || '', 8, 40, { align: 'center', width: contentWidth });
+    .text(`RNC: ${data.companyRnc}`, 8, currentY, { align: 'center', width: contentWidth });
+  currentY += 10;
+  
+  if (data.companyAddress) {
+    doc.text(data.companyAddress, 8, currentY, { align: 'center', width: contentWidth });
+    currentY += 10;
+  }
+  if (data.companyPhone) {
+    doc.text(data.companyPhone, 8, currentY, { align: 'center', width: contentWidth });
+  }
 
   doc.moveDown(0.5);
   doc.text('-------------------------------------------', { align: 'center' });

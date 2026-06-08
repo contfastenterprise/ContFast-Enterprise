@@ -15,6 +15,19 @@ export class CompanyRepository {
   }
 
   /**
+   * Updates the logo URL for a company's settings.
+   */
+  static async updateLogoUrl(companyId: string, logoUrl: string) {
+    const [updated] = await db
+      .update(companySettings)
+      .set({ logoUrl, updatedAt: new Date() })
+      .where(and(eq(companySettings.companyId, companyId), isNull(companySettings.deletedAt)))
+      .returning();
+    return updated;
+  }
+
+
+  /**
    * Gets company profile details.
    */
   static async getProfile(companyId: string) {

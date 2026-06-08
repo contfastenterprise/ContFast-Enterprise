@@ -161,6 +161,12 @@ export const products = pgTable('products', {
   description: text('description'),
   price: decimal('price', { precision: 15, scale: 2 }).default('0.00').notNull(),
   cost: decimal('cost', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  unitOfMeasure: varchar('unit_of_measure', { length: 50 }).default('unidad').notNull(),
+  priceConsumidor: decimal('price_consumidor', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  priceProveedor: decimal('price_proveedor', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  priceMayorista: decimal('price_mayorista', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  imageUrl: text('image_url'),
+  barcode: varchar('barcode', { length: 100 }),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -169,6 +175,7 @@ export const products = pgTable('products', {
   companyIdx: index('products_company_idx').on(table.companyId),
   skuIdx: index('products_sku_idx').on(table.companyId, table.sku),
   statusIdx: index('products_status_idx').on(table.status),
+  barcodeIdx: index('products_barcode_idx').on(table.companyId, table.barcode),
 }));
 
 export const priceLists = pgTable('price_lists', {

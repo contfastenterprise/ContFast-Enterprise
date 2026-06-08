@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, Users, User, ToggleLeft, ToggleRight, Check, AlertTriangle, RefreshCw, X, ShieldAlert, ArrowRight, Save, Lock } from 'lucide-react';
+import { Shield, Users, User, ToggleLeft, ToggleRight, Check, AlertTriangle, RefreshCw, X, ShieldAlert, ArrowRight, Save, Lock, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -14,13 +14,17 @@ export default function AdminPermissionsPage() {
   const [allPermissions, setAllPermissions] = useState<any[]>([]);
 
   // Selection state
-  const [activeTab, setActiveTab] = useState<'roles' | 'users'>('roles');
+  const [activeTab, setActiveTab] = useState<'roles' | 'users' | 'company'>('roles');
   const [selectedRole, setSelectedRole] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   
   // Permissions state mapping: permissionId -> boolean
   const [currentGrants, setCurrentGrants] = useState<Record<string, boolean>>({});
   const [modifiedGrants, setModifiedGrants] = useState<Record<string, boolean>>({});
+
+  // Company settings state
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Search filter
   const [userQuery, setUserQuery] = useState('');
@@ -54,6 +58,13 @@ export default function AdminPermissionsPage() {
       const permData = await permRes.json();
       if (permData.success) {
         setAllPermissions(permData.data || []);
+      }
+
+      // Fetch company settings
+      const settingsRes = await fetch('/api/v1/company/settings');
+      const settingsData = await settingsRes.json();
+      if (settingsData.success && settingsData.data?.logoUrl) {
+        setLogoUrl(settingsData.data.logoUrl);
       }
     } catch (error) {
       console.error('Failed to load admin data:', error);
@@ -187,6 +198,47 @@ export default function AdminPermissionsPage() {
 
   const hasChanges = JSON.stringify(currentGrants) !== JSON.stringify(modifiedGrants);
 
+  // Logo upload handler
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor selecciona un archivo de imagen');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no debe superar los 5MB');
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/v1/company/settings/logo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || 'Error al subir logo');
+      }
+
+      setLogoUrl(data.data.logoUrl);
+      toast.success('Logo actualizado exitosamente', { description: 'Los cambios se reflejarán en toda la aplicación y reportes.' });
+    } catch (error: any) {
+      toast.error('Fallo al subir logo', { description: error.message });
+    } finally {
+      setUploadingLogo(false);
+      // reset file input
+      e.target.value = '';
+    }
+  };
+
   // Filter lists
   const filteredUsers = usersList.filter(u => 
     u.name.toLowerCase().includes(userQuery.toLowerCase()) || 
@@ -232,10 +284,10 @@ export default function AdminPermissionsPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-2">
               <Shield className="h-7 w-7 text-amber-500" />
-              Gestión de Permisos y Roles
+              Gestión y Configuración Administrativa
             </h1>
             <p className="text-slate-400 text-sm mt-1">
-              Configure accesos por roles del sistema o aplique overrides específicos por usuario para mantener la seguridad operacional.
+              Configure accesos por roles, permisos por usuario e identidad de la empresa.
             </p>
           </div>
           {hasChanges && (
@@ -293,12 +345,74 @@ export default function AdminPermissionsPage() {
             <Users className="h-4 w-4" />
             Excepciones por Usuario
           </button>
+          <button
+            onClick={() => setActiveTab('company')}
+            className={`flex items-center gap-2 px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'company'
+                ? 'border-amber-500 text-amber-500'
+                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            <Building className="h-4 w-4" />
+            Identidad Corporativa
+          </button>
         </div>
 
         {/* Main Grid: Selector sidebar & Grid check list */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Selector Sidebar */}
+        {activeTab === 'company' ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 md:p-8 max-w-2xl mx-auto shadow-lg space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">Logotipo de la Empresa</h2>
+              <p className="text-sm text-slate-400 mt-1">
+                Sube el logo oficial de tu empresa. Este se mostrará en el menú lateral y en todos los documentos impresos y PDFs generados por ContFast (e.g., Facturas e-CF, Recibos).
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-8 bg-slate-950/50 border border-slate-800 p-6 rounded-xl">
+              <div className="flex-shrink-0">
+                <div className="h-32 w-32 rounded-xl border-2 border-dashed border-slate-700 bg-slate-900 flex items-center justify-center overflow-hidden relative group">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo actual" className="h-full w-full object-contain p-2" />
+                  ) : (
+                    <Shield className="h-12 w-12 text-slate-600" />
+                  )}
+                  {uploadingLogo && (
+                    <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center backdrop-blur-sm">
+                      <RefreshCw className="h-6 w-6 text-amber-500 animate-spin" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-4 text-center sm:text-left">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">Actualizar Logo</h3>
+                  <p className="text-xs text-slate-400">Recomendado: Imagen PNG transparente, al menos 500x500px. Máximo 5MB.</p>
+                </div>
+                
+                <div className="relative inline-block">
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <button
+                    disabled={uploadingLogo}
+                    className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-sm font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                  >
+                    {uploadingLogo ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Seleccionar Archivo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Selector Sidebar */}
           <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 flex flex-col h-[550px] space-y-4">
             {activeTab === 'roles' ? (
               <>
@@ -474,6 +588,7 @@ export default function AdminPermissionsPage() {
           </div>
 
         </div>
+        )}
 
       </div>
     </DashboardLayout>

@@ -110,6 +110,7 @@ export class InvoiceService {
         companyRnc: company.rnc,
         companyAddress: company.businessActivity ?? undefined, // placeholder
         companyPhone: '809-555-0199', // placeholder
+        companyLogoUrl: settings.logoUrl ?? undefined,
         ncf,
         ecfType: data.ecfType,
         buyerName: 'CONSUMIDOR FINAL', // default

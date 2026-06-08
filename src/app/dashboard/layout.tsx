@@ -11,12 +11,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   // Load user data on mount
   useEffect(() => {
-    // We can extract user details from localstorage or a quick token check endpoint.
-    // For now, let's load a mock profile or decode cookies if we can, or simply query the auth state.
-    // Let's do a fallback and set user data from standard active user session mock or fetch.
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('cf_user') : null;
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -29,6 +27,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         companyId: '123',
       });
     }
+
+    // Fetch company settings (logo)
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/v1/company/settings');
+        const data = await res.json();
+        if (data.success && data.data?.logoUrl) {
+          setLogoUrl(data.data.logoUrl);
+        }
+      } catch (err) {
+        console.error('Error fetching company settings', err);
+      }
+    };
+    fetchSettings();
   }, []);
 
   const handleLogout = async () => {
@@ -65,9 +77,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Sidebar for Desktop */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-slate-900 border-r border-slate-800">
-        <div className="flex items-center gap-2 px-6 py-5 border-b border-slate-800">
-          <Shield className="h-6 w-6 text-amber-500" />
-          <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
+        <div className="flex items-center gap-2 px-6 py-5 border-b border-slate-800 min-h-[73px]">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Company Logo" className="h-8 w-auto max-w-[180px] object-contain" />
+          ) : (
+            <>
+              <Shield className="h-6 w-6 text-amber-500" />
+              <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
+            </>
+          )}
         </div>
 
         {/* User Card */}
@@ -139,10 +157,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="relative flex w-64 max-w-xs flex-col bg-slate-900 border-r border-slate-800 z-50"
             >
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 min-h-[73px]">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-6 w-6 text-amber-500" />
-                  <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Company Logo" className="h-8 w-auto max-w-[140px] object-contain" />
+                  ) : (
+                    <>
+                      <Shield className="h-6 w-6 text-amber-500" />
+                      <span className="font-display font-bold text-lg text-white">ContFast <span className="text-amber-500">ENT</span></span>
+                    </>
+                  )}
                 </div>
                 <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-white">
                   <X className="h-6 w-6" />
@@ -206,8 +230,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-6 w-6" />
           </button>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-amber-500" />
-            <span className="font-display font-bold text-base text-white">ContFast <span className="text-amber-500">ENT</span></span>
+            {logoUrl ? (
+              <img src={logoUrl} alt="Company Logo" className="h-6 w-auto max-w-[120px] object-contain" />
+            ) : (
+              <>
+                <Shield className="h-5 w-5 text-amber-500" />
+                <span className="font-display font-bold text-base text-white">ContFast <span className="text-amber-500">ENT</span></span>
+              </>
+            )}
           </div>
           <div className="h-8 w-8 rounded-full bg-blue-950 border border-blue-900 flex items-center justify-center text-amber-500 font-bold text-xs uppercase">
             {user?.name?.substring(0, 2) || 'CF'}
