@@ -19,6 +19,8 @@ export interface CreateInvoiceInput {
   pdfPath?: string;
   msellerTrackId?: string;
   dgiiMessage?: string;
+  buyerRnc?: string;
+  buyerName?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -61,6 +63,8 @@ export class InvoiceRepository {
           pdfPath: data.pdfPath,
           msellerTrackId: data.msellerTrackId,
           dgiiMessage: data.dgiiMessage,
+          buyerRnc: data.buyerRnc,
+          buyerName: data.buyerName,
         })
         .returning();
 

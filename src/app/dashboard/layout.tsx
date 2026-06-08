@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt } from 'lucide-react';
+import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -62,6 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
+    { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" /> },
     { name: 'Catálogo de Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
     { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
     { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
@@ -70,7 +71,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Directorio de Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
     { name: 'Directorio de Proveedores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
     { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
-    { name: 'Administración', href: '/dashboard/admin', icon: <Settings className="h-5 w-5" /> },
+    { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
+    { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" /> },
+    { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" /> },
   ];
 
   return (
@@ -117,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="font-body-sm text-on-surface-variant/80 truncate w-32">{user?.email || 'RNC: 131-XXXXX-X'}</p>
               </div>
             </div>
-            <button onClick={() => router.push('/invoices?new=true')} className="mt-6 w-full bg-primary text-on-primary py-3.5 rounded-xl font-label-md flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-[0.98]">
+            <button onClick={() => router.push('/dashboard/invoices?new=true')} className="mt-6 w-full bg-primary text-on-primary py-3.5 rounded-xl font-label-md flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-[0.98]">
               <span className="font-bold text-lg">+</span>
               Nuevo e-CF
             </button>
@@ -129,11 +132,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${
-                    active
-                      ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                      : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                  }`}
+                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
+                    ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                    }`}
                 >
                   <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
                     {item.icon}
@@ -197,11 +199,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         key={item.name}
                         href={item.href}
                         onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${
-                          active
-                            ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                            : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                        }`}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
+                          ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                          : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                          }`}
                       >
                         {item.icon}
                         <span className="font-label-md">{item.name}</span>
@@ -224,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </AnimatePresence>
 
         {/* Main Content Area */}
-        <main className="flex-1 md:ml-72 p-4 md:p-8 w-full">
+        <main className="flex-1 md:ml-72 p-4 md:p-8 w-full md:w-[calc(100%-18rem)] min-w-0">
           {children}
         </main>
       </div>
@@ -232,9 +233,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Footer Shell */}
       <footer className="bg-surface-bright/80 backdrop-blur-md border-t border-outline-variant/20 md:ml-72 flex flex-col md:flex-row justify-between items-center px-8 py-6 z-40 gap-4 mt-auto">
         <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
-          <span className="font-headline-sm text-primary tracking-tight font-black">ContFast ERP</span>
+          <span className="font-headline-sm text-primary tracking-tight font-black">ContFast Enterprise</span>
           <span className="hidden md:block w-px h-6 bg-outline-variant/30"></span>
-          <span className="font-body-sm text-on-surface-variant/70">© 2024 ContFast - Proveedor Autorizado DGII</span>
+          <span className="font-body-sm text-on-surface-variant/70">© 2026 ContFast - Proveedor Autorizado DGII</span>
         </div>
       </footer>
     </div>

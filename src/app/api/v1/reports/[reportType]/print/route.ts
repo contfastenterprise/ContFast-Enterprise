@@ -12,6 +12,10 @@ export async function POST(
     const searchParams = request.nextUrl.searchParams;
     const format = (searchParams.get('format') || 'pdf') as 'pdf' | 'xlsx';
     
+    if (!reportQueue) {
+      return NextResponse.json({ error: 'Queue not available' }, { status: 500 });
+    }
+
     // Encolar trabajo en BullMQ
     const job = await reportQueue.add('generate-report', {
       reportType,

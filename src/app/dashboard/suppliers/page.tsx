@@ -157,7 +157,7 @@ export default function SuppliersPage() {
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans">
         {/* Environment Indicator Placeholder (Corporate Modern Style) */}
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
-           <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+           <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
              <FileCheck className="h-3 w-3" /> Entorno Seguro
            </span>
         </div>
@@ -171,13 +171,13 @@ export default function SuppliersPage() {
                 <Truck className="h-7 w-7 text-[#C5A059]" />
                 Directorio de Proveedores
               </h1>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-on-surface-variant/70 text-sm mt-1">
                 Administre sus proveedores para el registro de compras y gastos fiscales.
               </p>
             </div>
             <button
               onClick={openNewModal}
-              className="bg-[#C5A059] hover:bg-[#b08c4a] text-white font-bold py-2 px-5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
+              className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2 px-5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
             >
               <Plus className="h-5 w-5" />
               Nuevo Proveedor
@@ -186,7 +186,7 @@ export default function SuppliersPage() {
 
           {/* SEARCH BAR */}
           <div className="bg-white border border-slate-200 rounded-md p-1.5 flex items-center shadow-sm">
-            <div className="pl-3 pr-2 text-slate-400">
+            <div className="pl-3 pr-2 text-on-surface-variant">
               <Search className="h-5 w-5" />
             </div>
             <input
@@ -194,7 +194,7 @@ export default function SuppliersPage() {
               placeholder="Buscar por nombre, RNC..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent border-none text-slate-800 focus:ring-0 text-sm py-2 px-2 outline-none placeholder:text-slate-400"
+              className="w-full bg-transparent border-none text-slate-800 focus:ring-0 text-sm py-2 px-2 outline-none placeholder:text-on-surface-variant"
             />
             {loading && search && (
               <div className="pr-3 text-[#C5A059]">
@@ -208,7 +208,7 @@ export default function SuppliersPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-on-surface-variant/70 text-xs uppercase tracking-wider font-semibold">
                     <th className="p-4">Proveedor / Empresa</th>
                     <th className="p-4">RNC</th>
                     <th className="p-4 hidden md:table-cell">Contacto</th>
@@ -220,7 +220,7 @@ export default function SuppliersPage() {
                 <tbody className="divide-y divide-slate-100">
                   {suppliers.length === 0 && !loading ? (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                      <td colSpan={6} className="p-8 text-center text-on-surface-variant/70">
                         No se encontraron proveedores.
                       </td>
                     </tr>
@@ -247,15 +247,15 @@ export default function SuppliersPage() {
                             {s.rnc}
                           </span>
                         </td>
-                        <td className="p-4 hidden md:table-cell text-sm text-slate-600">
-                          {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-slate-400" /> {s.email}</div>}
-                          {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3.5 w-3.5 text-slate-400" /> {s.phone}</div>}
-                          {(!s.email && !s.phone) && <span className="text-slate-400">-</span>}
+                        <td className="p-4 hidden md:table-cell text-sm text-on-surface-variant/80">
+                          {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-on-surface-variant" /> {s.email}</div>}
+                          {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3.5 w-3.5 text-on-surface-variant" /> {s.phone}</div>}
+                          {(!s.email && !s.phone) && <span className="text-on-surface-variant">-</span>}
                         </td>
-                        <td className="p-4 hidden lg:table-cell text-sm text-slate-600 max-w-[200px] truncate">
+                        <td className="p-4 hidden lg:table-cell text-sm text-on-surface-variant/80 max-w-[200px] truncate">
                           {s.address ? (
                             <span className="flex items-center gap-1.5" title={s.address}>
-                              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+                              <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-on-surface-variant" />
                               <span className="truncate">{s.address}</span>
                             </span>
                           ) : '-'}
@@ -269,10 +269,10 @@ export default function SuppliersPage() {
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => openEditModal(s)} className="p-1.5 text-slate-400 hover:text-[#003366] rounded transition-colors">
+                            <button onClick={() => openEditModal(s)} className="p-1.5 text-on-surface-variant hover:text-[#003366] rounded transition-colors">
                               <Edit2 className="h-4 w-4" />
                             </button>
-                            <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors">
+                            <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 text-on-surface-variant hover:text-red-600 rounded transition-colors">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -293,7 +293,7 @@ export default function SuppliersPage() {
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => setShowModal(false)}
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm"
               />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.98, y: 10 }}
@@ -306,7 +306,7 @@ export default function SuppliersPage() {
                     <Building2 className="h-5 w-5 text-[#C5A059]" />
                     {editId ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor'}
                   </h2>
-                  <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-on-surface-variant/80 transition-colors">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
@@ -314,7 +314,7 @@ export default function SuppliersPage() {
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">RNC / Cédula <span className="text-[#C5A059]">*</span></label>
+                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC / Cédula <span className="text-[#C5A059]">*</span></label>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -337,7 +337,7 @@ export default function SuppliersPage() {
                     </div>
                     
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Razón Social <span className="text-[#C5A059]">*</span></label>
+                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social <span className="text-[#C5A059]">*</span></label>
                       <input
                         type="text"
                         required
@@ -349,7 +349,7 @@ export default function SuppliersPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Correo Electrónico</label>
+                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Correo Electrónico</label>
                       <input
                         type="email"
                         value={formData.email}
@@ -360,7 +360,7 @@ export default function SuppliersPage() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Teléfono</label>
+                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
                       <input
                         type="text"
                         value={formData.phone}
@@ -371,7 +371,7 @@ export default function SuppliersPage() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Dirección</label>
+                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Dirección</label>
                       <input
                         type="text"
                         value={formData.address}
@@ -383,7 +383,7 @@ export default function SuppliersPage() {
 
                     {editId && (
                       <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Estado</label>
+                        <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Estado</label>
                         <select
                           value={formData.status}
                           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -407,14 +407,14 @@ export default function SuppliersPage() {
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
+                      className="px-4 py-2 text-sm font-semibold text-on-surface-variant/80 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="bg-[#003366] hover:bg-[#002244] text-white font-semibold py-2 px-6 rounded flex items-center gap-2 transition-all shadow-sm disabled:opacity-50 text-sm border-b-2 border-[#001122]"
+                      className="bg-[#003366] hover:bg-[#002244] text-primary font-semibold py-2 px-6 rounded flex items-center gap-2 transition-all shadow-sm disabled:opacity-50 text-sm border-b-2 border-[#001122]"
                     >
                       {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileCheck className="h-4 w-4" />}
                       {editId ? 'Guardar Cambios' : 'Registrar Proveedor'}

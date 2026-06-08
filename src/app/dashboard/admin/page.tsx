@@ -112,7 +112,7 @@ export default function AdminPage() {
     <DashboardLayout>
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20">
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-           <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+           <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
              <Shield className="h-3 w-3" /> Permisos & Administración
            </span>
         </div>
@@ -125,12 +125,12 @@ export default function AdminPage() {
               <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
                 Gestión de Acceso
               </h1>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-on-surface-variant/70 text-sm mt-1">
                 Controla los usuarios y roles que tienen acceso al ERP.
               </p>
             </div>
             {activeTab === 'users' && (
-              <button onClick={() => setShowNewUserModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+              <button onClick={() => setShowNewUserModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Nuevo Usuario
               </button>
             )}
@@ -140,13 +140,13 @@ export default function AdminPage() {
           <div className="flex border-b border-slate-200">
             <button 
               onClick={() => setActiveTab('users')}
-              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'users' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-slate-500 hover:text-slate-800')}
+              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'users' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
             >
               <div className="flex items-center gap-2"><UsersIcon className="w-4 h-4"/> Usuarios</div>
             </button>
             <button 
               onClick={() => setActiveTab('roles')}
-              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'roles' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-slate-500 hover:text-slate-800')}
+              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'roles' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
             >
               <div className="flex items-center gap-2"><KeyRound className="w-4 h-4"/> Roles del Sistema</div>
             </button>
@@ -159,7 +159,7 @@ export default function AdminPage() {
               {activeTab === 'users' ? (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                   <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100 text-[10px] tracking-widest text-slate-400 uppercase font-bold">
+                    <thead className="bg-slate-50 border-b border-slate-100 text-[10px] tracking-widest text-on-surface-variant uppercase font-bold">
                       <tr>
                         <th className="px-6 py-4">Usuario</th>
                         <th className="px-6 py-4">Rol Asignado</th>
@@ -169,7 +169,7 @@ export default function AdminPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {users.length === 0 ? (
-                        <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-500">No hay usuarios registrados.</td></tr>
+                        <tr><td colSpan={4} className="px-6 py-12 text-center text-on-surface-variant/70">No hay usuarios registrados.</td></tr>
                       ) : (
                         users.map(user => (
                           <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
@@ -180,7 +180,7 @@ export default function AdminPage() {
                                 </div>
                                 <div>
                                   <p className="font-bold text-[#003366]">{user.name}</p>
-                                  <p className="text-xs text-slate-500">{user.email}</p>
+                                  <p className="text-xs text-on-surface-variant/70">{user.email}</p>
                                 </div>
                               </div>
                             </td>
@@ -201,7 +201,7 @@ export default function AdminPage() {
                               )}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-slate-500 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
+                              <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
                                 {user.status === 'active' ? 'Suspender' : 'Activar'}
                               </button>
                             </td>
@@ -219,9 +219,9 @@ export default function AdminPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <Lock className="w-5 h-5 text-[#003366]" />
                         <h3 className="font-bold text-lg text-[#003366] capitalize">{role.name}</h3>
-                        {role.isFixed && <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-500 px-2 py-1 rounded">Sistema</span>}
+                        {role.isFixed && <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-on-surface-variant/70 px-2 py-1 rounded">Sistema</span>}
                       </div>
-                      <p className="text-sm text-slate-500 mb-4">{role.description || 'Sin descripción'}</p>
+                      <p className="text-sm text-on-surface-variant/70 mb-4">{role.description || 'Sin descripción'}</p>
                     </div>
                   ))}
                 </div>
@@ -234,27 +234,27 @@ export default function AdminPage() {
         <AnimatePresence>
           {showNewUserModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
                 <div className="bg-[#003366] px-6 py-5 flex justify-between items-center">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#C5A059]" /> Nuevo Usuario</h3>
-                  <button onClick={() => setShowNewUserModal(false)} className="text-white/70 hover:text-white"><X className="w-6 h-6" /></button>
+                  <h3 className="text-primary font-bold text-lg flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#C5A059]" /> Nuevo Usuario</h3>
+                  <button onClick={() => setShowNewUserModal(false)} className="text-primary/70 hover:text-primary"><X className="w-6 h-6" /></button>
                 </div>
                 <form onSubmit={handleCreateUser} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Nombre Completo</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Nombre Completo</label>
                     <input type="text" required value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]" placeholder="Ej. Juan Pérez" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Correo Electrónico</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Correo Electrónico</label>
                     <input type="email" required value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]" placeholder="usuario@empresa.com" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Contraseña Inicial</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Contraseña Inicial</label>
                     <input type="password" required minLength={6} value={userForm.passwordRaw} onChange={e => setUserForm({...userForm, passwordRaw: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]" placeholder="Mínimo 6 caracteres" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Asignar Rol</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Asignar Rol</label>
                     <select required value={userForm.roleId} onChange={e => setUserForm({...userForm, roleId: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] capitalize">
                       <option value="">Seleccione un rol...</option>
                       {roles.map(r => (
@@ -263,7 +263,7 @@ export default function AdminPage() {
                     </select>
                   </div>
                   <div className="pt-4 flex justify-end">
-                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition-all flex items-center gap-2 w-full justify-center">
+                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2.5 px-6 rounded-lg shadow-md transition-all flex items-center gap-2 w-full justify-center">
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Usuario
                     </button>
                   </div>

@@ -299,6 +299,7 @@ export const ecfSequences = pgTable('ecf_sequences', {
   currentSequence: integer('current_sequence').notNull(),
   maxSequence: integer('max_sequence').notNull(),
   expiryDate: date('expiry_date'),
+  sequenceExpiry: varchar('sequence_expiry', { length: 10 }), // formato dd-MM-yyyy para DGII
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -326,6 +327,8 @@ export const invoices = pgTable('invoices', {
   signedXmlPath: text('signed_xml_path'),
   pdfPath: text('pdf_path'),
   msellerTrackId: varchar('mseller_track_id', { length: 255 }),
+  buyerRnc: varchar('buyer_rnc', { length: 15 }),
+  buyerName: varchar('buyer_name', { length: 255 }),
   dgiiMessage: text('dgii_message'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

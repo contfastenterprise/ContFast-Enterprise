@@ -13,7 +13,7 @@ const userSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
     }
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
     }
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
     }
 

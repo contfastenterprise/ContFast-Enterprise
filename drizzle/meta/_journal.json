@@ -43,6 +43,13 @@
       "when": 1780953227060,
       "tag": "0005_classy_aqueduct",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780958570301,
+      "tag": "0006_third_synch",
+      "breakpoints": true
     }
   ]
 }

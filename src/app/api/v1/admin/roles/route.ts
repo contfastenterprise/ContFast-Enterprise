@@ -5,7 +5,7 @@ import { AdminRepository } from '@/repositories/adminRepository';
 export async function GET(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.roleName !== 'sistemas' && session.roleName !== 'administracion') {
+    if (!session || session.role !== 'sistemas' && session.role !== 'administracion') {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
     }
 

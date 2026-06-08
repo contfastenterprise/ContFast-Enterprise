@@ -50,11 +50,11 @@ export default function SupportPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-900 pb-5">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
               <LifeBuoy className="h-7 w-7 text-amber-500" />
               Soporte y Centro de Ayuda
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-on-surface-variant text-sm mt-1">
               Consulte la base de conocimientos o envíe una solicitud de ayuda técnica a nuestro equipo.
             </p>
           </div>
@@ -62,8 +62,8 @@ export default function SupportPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Support Form */}
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 md:col-span-2 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+          <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 md:col-span-2 space-y-4">
+            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
               <MessageSquare className="h-4.5 w-4.5 text-amber-500" />
               Enviar Ticket de Soporte
             </h3>
@@ -71,11 +71,11 @@ export default function SupportPage() {
             <form onSubmit={handleSendTicket} className="space-y-4 pt-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300 uppercase">Categoría del Problema</label>
+                  <label className="block text-xs font-semibold text-on-surface-variant uppercase">Categoría del Problema</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
                   >
                     <option value="billing">Facturación e-CF</option>
                     <option value="cash">Módulo de Caja</option>
@@ -85,27 +85,27 @@ export default function SupportPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-300 uppercase">Asunto</label>
+                  <label className="block text-xs font-semibold text-on-surface-variant uppercase">Asunto</label>
                   <input
                     type="text"
                     required
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Resumen del problema..."
-                    className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-300 uppercase">Descripción del Problema</label>
+                <label className="block text-xs font-semibold text-on-surface-variant uppercase">Descripción del Problema</label>
                 <textarea
                   required
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Detalle los pasos que causaron el inconveniente..."
-                  className="block w-full rounded-md border-0 bg-slate-950 py-2.5 px-3 text-white ring-1 ring-inset ring-slate-800 focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"
+                  className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"
                 />
               </div>
 
@@ -123,21 +123,21 @@ export default function SupportPage() {
           </div>
 
           {/* Help Center Articles */}
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+          <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
               <HelpCircle className="h-4.5 w-4.5 text-amber-500" />
               Preguntas Frecuentes
             </h3>
 
-            <div className="divide-y divide-slate-800 pt-2">
+            <div className="divide-y divide-outline-variant/20 pt-2">
               {articles.map((art, idx) => (
                 <a
                   key={idx}
                   href={art.link}
-                  className="py-3 flex items-center justify-between group text-xs text-slate-300 hover:text-white transition-colors"
+                  className="py-3 flex items-center justify-between group text-xs text-on-surface-variant hover:text-primary transition-colors"
                 >
                   <span className="font-medium pr-2">{art.title}</span>
-                  <ChevronRight className="h-4 w-4 text-slate-500 group-hover:text-amber-500 transition-colors shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-on-surface-variant/70 group-hover:text-amber-500 transition-colors shrink-0" />
                 </a>
               ))}
             </div>

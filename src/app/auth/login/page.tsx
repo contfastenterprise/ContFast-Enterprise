@@ -80,17 +80,17 @@ export default function LoginPage() {
 
   if (checkingStatus) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-          <p className="text-slate-400 text-sm">Verificando estado del sistema...</p>
+          <p className="text-on-surface-variant text-sm">Verificando estado del sistema...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-950 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background py-12 px-4 sm:px-6 lg:px-8">
       <Toaster position="top-right" richColors />
       
       {/* Decorative Glowing Gradients */}
@@ -111,25 +111,25 @@ export default function LoginPage() {
           >
             <Shield className="h-8 w-8" />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-white">
+          <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-primary">
             ContFast <span className="text-amber-500">Enterprise</span>
           </h2>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-on-surface-variant">
             Facturación Electrónica e-CF Homologada DGII
           </p>
         </div>
 
         {/* Form Container with Glassmorphism */}
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-lg p-8 shadow-2xl">
+        <div className="bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-8 shadow-2xl">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             
             {/* Email Field */}
             <div className="space-y-1">
-              <label htmlFor="email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <label htmlFor="email" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                 Correo Electrónico
               </label>
               <div className="relative rounded-md shadow-sm">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
                   <Mail className="h-5 w-5" />
                 </div>
                 <input
@@ -138,7 +138,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   {...register('email')}
-                  className="block w-full rounded-md border-0 bg-slate-950 py-3 pl-10 pr-3 text-white ring-1 ring-inset ring-slate-800 placeholder:text-slate-600 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="admin@empresa.com"
                 />
               </div>
@@ -149,11 +149,11 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-1">
-              <label htmlFor="password" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              <label htmlFor="password" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                 Contraseña
               </label>
               <div className="relative rounded-md shadow-sm">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
                   <Lock className="h-5 w-5" />
                 </div>
                 <input
@@ -162,7 +162,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   {...register('password')}
-                  className="block w-full rounded-md border-0 bg-slate-950 py-3 pl-10 pr-3 text-white ring-1 ring-inset ring-slate-800 placeholder:text-slate-600 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="••••••••"
                 />
               </div>

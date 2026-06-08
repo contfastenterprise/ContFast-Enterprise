@@ -37,17 +37,7 @@ const fmt = (val: number, compact = false) => {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 2 }).format(val);
 };
 
-// ─── Week bar chart data ───────────────────────────────────────────────────────
-const WEEK_BARS = [
-  { day: 'LUN', pct: 40, amount: 12400 },
-  { day: 'MAR', pct: 55, amount: 18200 },
-  { day: 'MIE', pct: 45, amount: 15100 },
-  { day: 'JUE', pct: 70, amount: 24300 },
-  { day: 'VIE', pct: 90, amount: 31800 },
-  { day: 'SAB', pct: 65, amount: 21500 },
-  { day: 'DOM', pct: 100, amount: 38200 },
-];
-
+// ─── Recent activity ───────────────────────────────────────────────────────────
 const RECENT_ACTIVITY = [
   { type: 'success', title: 'Factura E310000000452', subtitle: 'Aceptada por DGII', time: 'Hace 12 mins', dot: 'bg-primary' },
   { type: 'warning', title: 'Nota de Crédito Generada', subtitle: 'Cliente: Distribuidora Nacional', time: 'Hace 1 hora', dot: 'bg-secondary-fixed-dim' },
@@ -85,52 +75,42 @@ export default function DashboardPage() {
   });
   const [chartPeriod, setChartPeriod] = useState<'semana' | 'mes'>('semana');
   const [searchQuery, setSearchQuery] = useState('');
+  const [chartData, setChartData] = useState<{day: string, pct: number, amount: number}[]>([]);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/invoices?page=1&per_page=10');
+      const res = await fetch('/api/v1/dashboard');
       const data = await res.json();
 
       if (data.success && data.data) {
-        const invoices: Invoice[] = data.data;
-        setRecentInvoices(invoices);
-
-        const today = new Date().toDateString();
-        const todayInvoices = invoices.filter(inv => new Date(inv.createdAt).toDateString() === today);
-        const todayAmount = todayInvoices.reduce((s, inv) => s + parseFloat(inv.total), 0);
-        const pending = invoices.filter(inv => inv.status === 'submitted' || inv.status === 'draft').length;
-        const alerts = invoices.filter(inv => inv.status === 'rejected').length;
-        const total = invoices.reduce((s, inv) => s + parseFloat(inv.total), 0);
-
-        setStats({
-          invoicesToday: todayInvoices.length || invoices.length,
-          invoicesTodayAmount: todayAmount || total,
-          pendingDgii: pending,
-          monthlySales: total || 1_420_000,
+        setRecentInvoices(data.data.recent || []);
+        setStats(data.data.stats || {
+          invoicesToday: 0,
+          invoicesTodayAmount: 0,
+          pendingDgii: 0,
+          monthlySales: 0,
           monthlyGoal: 2_000_000,
-          alertCount: alerts,
-          totalInvoices: data.pagination?.total || invoices.length,
+          alertCount: 0,
+          totalInvoices: 0,
         });
+        setChartData(data.data.chart || []);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
       // Demo Data
       setStats({
-        invoicesToday: 142,
-        invoicesTodayAmount: 45230,
-        pendingDgii: 3,
-        monthlySales: 1420000,
-        monthlyGoal: 2000000,
-        alertCount: 2,
-        totalInvoices: 1240,
+        invoicesToday: 0,
+        invoicesTodayAmount: 0,
+        pendingDgii: 0,
+        monthlySales: 0,
+        monthlyGoal: 2_000_000,
+        alertCount: 0,
+        totalInvoices: 0,
       });
-      setRecentInvoices([
-        { id: '1', ncf: 'E310000000452', ecfType: '31', status: 'accepted', total: '12400', createdAt: new Date().toISOString(), buyerName: 'Grupo SID, S.A.', buyerRnc: '101001156' },
-        { id: '2', ncf: 'E310000000451', ecfType: '31', status: 'accepted', total: '4250.50', createdAt: new Date(Date.now() - 3600000).toISOString(), buyerName: 'Ferreteria Americana', buyerRnc: '101015092' },
-        { id: '3', ncf: 'E310000000450', ecfType: '31', status: 'submitted', total: '28100', createdAt: new Date(Date.now() - 7200000).toISOString(), buyerName: 'Induveca, S.A.', buyerRnc: '101004561' },
-      ]);
+      setChartData([]);
+      setRecentInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -183,7 +163,7 @@ export default function DashboardPage() {
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-primary/10 p-3 rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors">
+            <div className="bg-primary/10 p-3 rounded-2xl group-hover:bg-primary group-hover:text-primary transition-colors">
               <FileText className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
             </div>
             <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">+12% vs ayer</span>
@@ -195,8 +175,8 @@ export default function DashboardPage() {
 
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-secondary/10 p-3 rounded-2xl group-hover:bg-secondary group-hover:text-white transition-colors">
-              <RefreshCw className="h-6 w-6 text-secondary group-hover:text-white transition-colors" />
+            <div className="bg-secondary/10 p-3 rounded-2xl group-hover:bg-secondary group-hover:text-primary transition-colors">
+              <RefreshCw className="h-6 w-6 text-secondary group-hover:text-primary transition-colors" />
             </div>
             {stats.pendingDgii > 0 && (
               <span className="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
@@ -210,7 +190,7 @@ export default function DashboardPage() {
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
             <div className="bg-tertiary-container/10 p-3 rounded-2xl group-hover:bg-primary transition-colors">
-              <TrendingUp className="h-6 w-6 text-tertiary group-hover:text-white transition-colors" />
+              <TrendingUp className="h-6 w-6 text-tertiary group-hover:text-primary transition-colors" />
             </div>
           </div>
           <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
@@ -223,8 +203,8 @@ export default function DashboardPage() {
 
         <div className="bg-gradient-to-br from-error/10 to-error/5 border border-error/20 p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-error/10 p-3 rounded-2xl group-hover:bg-error group-hover:text-white transition-colors">
-              <AlertCircle className="h-6 w-6 text-error group-hover:text-white transition-colors" />
+            <div className="bg-error/10 p-3 rounded-2xl group-hover:bg-error group-hover:text-primary transition-colors">
+              <AlertCircle className="h-6 w-6 text-error group-hover:text-primary transition-colors" />
             </div>
             {stats.alertCount > 0 && <span className="flex h-3 w-3 rounded-full bg-error animate-ping"></span>}
           </div>
@@ -255,21 +235,21 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="h-64 flex items-end justify-between gap-4 sm:gap-6 px-2 sm:px-4">
-            {WEEK_BARS.map((bar, idx) => (
+            {chartData.map((bar, idx) => (
               <div
                 key={idx}
                 onMouseEnter={() => setHoveredBar(idx)}
                 onMouseLeave={() => setHoveredBar(null)}
-                className={clsx('flex-1 rounded-2xl relative group cursor-pointer transition-all duration-500 shadow-sm', bar.pct === 100 ? 'bg-gradient-to-t from-primary to-surface-tint shadow-lg shadow-primary/20' : 'bg-primary/10 hover:bg-primary')}
-                style={{ height: `${bar.pct}%` }}
+                className={clsx('flex-1 rounded-2xl relative group cursor-pointer transition-all duration-500 shadow-sm', bar.pct === 100 && bar.amount > 0 ? 'bg-gradient-to-t from-primary to-surface-tint shadow-lg shadow-primary/20' : 'bg-primary/10 hover:bg-primary')}
+                style={{ height: `${Math.max(bar.pct, 5)}%` }}
               >
                 <AnimatePresence>
-                  {(hoveredBar === idx || bar.pct === 100) && (
+                  {(hoveredBar === idx || (bar.pct === 100 && bar.amount > 0)) && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
-                      className="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] sm:text-[11px] px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10"
+                      className="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] sm:text-[11px] px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10"
                     >
                       {fmt(bar.amount, true)}
                     </motion.div>
@@ -279,7 +259,7 @@ export default function DashboardPage() {
             ))}
           </div>
           <div className="flex justify-between mt-6 text-[10px] sm:text-[11px] text-on-surface-variant font-bold tracking-widest px-2 sm:px-4">
-            {WEEK_BARS.map(bar => <span key={bar.day}>{bar.day}</span>)}
+            {chartData.map((bar, i) => <span key={i}>{bar.day}</span>)}
           </div>
         </div>
 
@@ -288,17 +268,20 @@ export default function DashboardPage() {
             <h4 className="font-headline-md text-xl font-bold text-primary">Actividad</h4>
             <History className="h-5 w-5 text-on-surface-variant/40" />
           </div>
-          <div className="space-y-6 flex-1 pr-2">
-            {RECENT_ACTIVITY.map((event, i) => (
-              <div key={i} className="flex gap-4 items-start border-l-2 border-primary/20 pl-6 relative">
-                <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${event.dot}`}></div>
+          <div className="space-y-6 flex-1 pr-2 overflow-y-auto max-h-64 custom-scrollbar">
+            {filteredInvoices.slice(0, 5).map((inv, i) => (
+              <div key={i} className={clsx("flex gap-4 items-start border-l-2 pl-6 relative", inv.status === 'rejected' ? 'border-error/20' : 'border-primary/20')}>
+                <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${inv.status === 'rejected' ? 'bg-error' : 'bg-primary'}`}></div>
                 <div>
-                  <p className={clsx("font-label-md font-bold", event.type === 'error' ? 'text-error' : 'text-primary')}>{event.title}</p>
-                  <p className="font-body-sm text-on-surface-variant/80 mt-0.5">{event.subtitle}</p>
-                  <p className="text-[10px] text-outline font-mono-data mt-1.5 font-bold opacity-70">{event.time}</p>
+                  <p className={clsx("font-label-md font-bold", inv.status === 'rejected' ? 'text-error' : 'text-primary')}>{inv.ncf || `e-${inv.ecfType}`}</p>
+                  <p className="font-body-sm text-on-surface-variant/80 mt-0.5">{inv.buyerName || 'Consumidor Final'}</p>
+                  <p className="text-[10px] text-outline font-mono-data mt-1.5 font-bold opacity-70">Hace {Math.round((Date.now() - new Date(inv.createdAt).getTime()) / 60000)} mins</p>
                 </div>
               </div>
             ))}
+            {filteredInvoices.length === 0 && (
+              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay actividad reciente.</div>
+            )}
           </div>
           <button className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-3 rounded-xl transition-all border border-primary/10 text-sm">
             Ver todo el historial
@@ -360,8 +343,8 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm" title="Ver PDF"><Eye className="h-4 w-4" /></button>
-                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm" title="Reenviar"><Send className="h-4 w-4" /></button>
+                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-primary rounded-xl transition-all shadow-sm" title="Ver PDF"><Eye className="h-4 w-4" /></button>
+                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-primary rounded-xl transition-all shadow-sm" title="Reenviar"><Send className="h-4 w-4" /></button>
                         </div>
                       </td>
                     </tr>

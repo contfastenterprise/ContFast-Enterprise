@@ -1,14 +1,11 @@
 import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { redis } from '@/infrastructure/redis';
 import fs from 'fs/promises';
 import path from 'path';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const PDF_TEMP_DIR = process.env.PDF_TEMP_DIR || './storage/temp-docs';
 
-const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-
-export const reportQueue = new Queue('reports', { connection: connection as any });
+export const reportQueue = redis ? new Queue('reports', { connection: redis as any }) : null;
 
 // Define job types
 export interface ReportJobData {
@@ -20,7 +17,7 @@ export interface ReportJobData {
 }
 
 // Background Worker
-export const reportWorker = new Worker('reports', async (job: Job<ReportJobData>) => {
+export const reportWorker = redis ? new Worker('reports', async (job: Job<ReportJobData>) => {
   console.log(`Processing report job ${job.id} of type ${job.data.reportType}`);
   // Here we would delegate to specific report generation logic based on job.data.reportType
   // For demonstration, simulating a delay and returning a fake DocumentService generated URL
@@ -30,12 +27,12 @@ export const reportWorker = new Worker('reports', async (job: Job<ReportJobData>
   const documentId = 'fake-uuid-' + job.id; // En realidad llamar a DocumentService.saveTemporaryFile
   // Y luego retornar el ID para que el endpoint pueda generar la URL firmada
   return { documentId };
-}, { connection: connection as any });
+}, { connection: redis as any }) : null;
 
 // Recurring Cleanup Job Setup
-export const cleanupQueue = new Queue('cleanup', { connection: connection as any });
+export const cleanupQueue = redis ? new Queue('cleanup', { connection: redis as any }) : null;
 
-export const cleanupWorker = new Worker('cleanup', async () => {
+export const cleanupWorker = redis ? new Worker('cleanup', async () => {
   console.log('Running temporary file cleanup job');
   try {
     const files = await fs.readdir(PDF_TEMP_DIR);
@@ -54,13 +51,18 @@ export const cleanupWorker = new Worker('cleanup', async () => {
   } catch (error) {
     console.error('Error during cleanup job:', error);
   }
-}, { connection: connection as any });
+}, { connection: redis as any }) : null;
 
 // Schedule cleanup job every 5 minutes
 export async function setupRecurringJobs() {
-  await cleanupQueue.add('cleanup-temp-docs', {}, {
-    repeat: {
-      pattern: '*/5 * * * *' // Every 5 minutes
-    }
-  });
+  if (cleanupQueue) {
+    await cleanupQueue.add('cleanup-temp-docs', {}, {
+      repeat: {
+        pattern: '*/5 * * * *' // Every 5 minutes
+      }
+    });
+  } else {
+    console.warn('Redis is offline: Skipping recurring cleanup job setup.');
+  }
 }
+

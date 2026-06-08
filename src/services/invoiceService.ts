@@ -18,6 +18,8 @@ export interface IssueInvoiceInput {
   cashSessionId?: string;
   ecfType: string; // '31' (Fiscal), '32' (Consumo), etc.
   paymentType: 'cash' | 'credit' | 'bank_transfer';
+  buyerRnc?: string;
+  buyerName?: string;
   lines: {
     productId: string;
     productName: string;
@@ -181,8 +183,10 @@ export class InvoiceService {
         xmlPath,
         signedXmlPath,
         pdfPath,
-        msellerTrackId,
-        dgiiMessage,
+        msellerTrackId: msellerTrackId || undefined,
+        dgiiMessage: dgiiMessage || undefined,
+        buyerRnc: data.buyerRnc,
+        buyerName: data.buyerName,
         lines: itemLines,
         taxes: taxesList,
       };

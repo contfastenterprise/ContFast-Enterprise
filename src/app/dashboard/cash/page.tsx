@@ -78,7 +78,7 @@ const movType = (type: string) => ({
   refund:   { label: 'Devolución', colorClass: 'text-amber-700' },
   cash_in:  { label: 'Entrada',  colorClass: 'text-green-700' },
   cash_out: { label: 'Salida',   colorClass: 'text-red-700' },
-}[type] ?? { label: type, colorClass: 'text-slate-600' });
+}[type] ?? { label: type, colorClass: 'text-on-surface-variant/80' });
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function CashPage() {
@@ -335,7 +335,7 @@ export default function CashPage() {
             {/* Modal Header */}
             <div className="bg-[#001e40] px-8 py-6 flex justify-between items-center">
               <div>
-                <h2 className="text-3xl font-bold text-white mb-1 tracking-tight">
+                <h2 className="text-3xl font-bold text-primary mb-1 tracking-tight">
                   Apertura de Turno de Caja
                 </h2>
                 <p className="text-xs text-blue-200">
@@ -352,7 +352,7 @@ export default function CashPage() {
               {/* Terminal + Date row */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                  <label className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest flex items-center gap-1">
                     PUNTO DE VENTA / TERMINAL <span className="text-amber-600">*</span>
                   </label>
                   <select
@@ -370,7 +370,7 @@ export default function CashPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                  <label className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest">
                     FECHA DE APERTURA
                   </label>
                   <input
@@ -385,7 +385,7 @@ export default function CashPage() {
               {/* Time row */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                  <label className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest">
                     HORA DE INICIO
                   </label>
                   <input
@@ -405,7 +405,7 @@ export default function CashPage() {
 
               {/* Opening Balance */}
               <div className="space-y-1 pt-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                <label className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest flex items-center gap-1">
                   MONTO DE APERTURA (FONDO DE CAJA) <span className="text-amber-600">*</span>
                 </label>
                 <div className="relative">
@@ -423,7 +423,7 @@ export default function CashPage() {
                     required
                   />
                 </div>
-                <p className="text-xs text-slate-400 pl-1">
+                <p className="text-xs text-on-surface-variant pl-1">
                   Sugerencia: Monto base operativo (RD$ 5,000.00)
                 </p>
               </div>
@@ -441,7 +441,7 @@ export default function CashPage() {
                   type="submit"
                   disabled={submitting || registers.length === 0}
                   className={clsx(
-                    'flex-[2] py-4 bg-[#001e40] text-white font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.99]',
+                    'flex-[2] py-4 bg-[#001e40] text-primary font-bold text-base rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.99]',
                     submitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#003366]'
                   )}
                 >
@@ -460,7 +460,7 @@ export default function CashPage() {
             {/* Status bar */}
             <div className="bg-gray-50 border-t border-gray-100 px-8 py-3 flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">
                 Esperando autorización de terminal...
               </p>
             </div>
@@ -490,7 +490,7 @@ export default function CashPage() {
                 'flex items-center gap-2 px-5 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all rounded-t-lg',
                 view === tab.id
                   ? 'border-[#775a19] text-[#775a19] bg-amber-50'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-gray-50'
+                  : 'border-transparent text-on-surface-variant/70 hover:text-slate-700 hover:bg-gray-50'
               )}
             >
               {tab.icon}
@@ -513,7 +513,7 @@ export default function CashPage() {
               <div className="flex justify-between items-end">
                 <div>
                   <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Gestión de Caja</h1>
-                  <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
+                  <p className="text-sm text-on-surface-variant/70 flex items-center gap-2 mt-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                     Turno en curso — iniciado{' '}
                     {session ? new Date(session.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' }) : ''}
@@ -536,7 +536,7 @@ export default function CashPage() {
                   </button>
                   <button
                     onClick={() => handleTabChange('arqueo')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] text-white text-xs font-semibold rounded-lg hover:bg-[#003366] transition-all shadow-sm"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] text-primary text-xs font-semibold rounded-lg hover:bg-[#003366] transition-all shadow-sm"
                   >
                     <Scale className="w-4 h-4" />
                     Arqueo y Cierre
@@ -549,18 +549,18 @@ export default function CashPage() {
                 {/* Balance card */}
                 <div className="col-span-12 md:col-span-4 bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Balance Actual</p>
+                    <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest mb-2">Balance Actual</p>
                     <p className="text-4xl font-black text-[#001e40] tracking-tight">
                       {fmt(session?.expectedBalance || '0')}
                     </p>
                   </div>
                   <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">Fondo Inicial</p>
+                      <p className="text-[10px] text-on-surface-variant font-bold uppercase">Fondo Inicial</p>
                       <p className="font-mono text-sm text-slate-700">{fmt(session?.initialBalance || '0')}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">Transacciones</p>
+                      <p className="text-[10px] text-on-surface-variant font-bold uppercase">Transacciones</p>
                       <p className="font-mono text-sm text-slate-700">{movements.length}</p>
                     </div>
                   </div>
@@ -585,7 +585,7 @@ export default function CashPage() {
                       count: 0,
                     },
                     {
-                      icon: <TrendingUp className="w-5 h-5 text-slate-600" />,
+                      icon: <TrendingUp className="w-5 h-5 text-on-surface-variant/80" />,
                       label: 'OTROS',
                       color: 'bg-slate-50',
                       amount: 0,
@@ -595,13 +595,13 @@ export default function CashPage() {
                     <div key={card.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col">
                       <div className="flex items-center justify-between mb-4">
                         <div className={clsx('p-2 rounded-lg', card.color)}>{card.icon}</div>
-                        <span className={clsx('text-[10px] px-2 py-0.5 rounded font-bold', card.color, 'text-slate-600')}>
+                        <span className={clsx('text-[10px] px-2 py-0.5 rounded font-bold', card.color, 'text-on-surface-variant/80')}>
                           {card.label}
                         </span>
                       </div>
                       <div className="mt-auto">
                         <p className="text-lg font-bold text-[#001e40]">{fmt(card.amount)}</p>
-                        <p className="text-xs text-slate-400">{card.count} Transacciones</p>
+                        <p className="text-xs text-on-surface-variant">{card.count} Transacciones</p>
                       </div>
                     </div>
                   ))}
@@ -618,17 +618,17 @@ export default function CashPage() {
                       className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                       title="Actualizar"
                     >
-                      <RefreshCw className="w-4 h-4 text-slate-500" />
+                      <RefreshCw className="w-4 h-4 text-on-surface-variant/70" />
                     </button>
                     <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors" title="Exportar">
-                      <Download className="w-4 h-4 text-slate-500" />
+                      <Download className="w-4 h-4 text-on-surface-variant/70" />
                     </button>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 text-slate-400 text-xs font-semibold uppercase tracking-widest">
+                      <tr className="bg-gray-50 text-on-surface-variant text-xs font-semibold uppercase tracking-widest">
                         <th className="px-6 py-3 border-b border-gray-100">Hora</th>
                         <th className="px-6 py-3 border-b border-gray-100">Tipo</th>
                         <th className="px-6 py-3 border-b border-gray-100">Concepto</th>
@@ -639,7 +639,7 @@ export default function CashPage() {
                     <tbody className="text-sm">
                       {movements.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                          <td colSpan={5} className="px-6 py-12 text-center text-on-surface-variant">
                             No hay movimientos registrados en este turno.
                           </td>
                         </tr>
@@ -649,7 +649,7 @@ export default function CashPage() {
                           const isPositive = mv.type === 'sale' || mv.type === 'cash_in';
                           return (
                             <tr key={mv.id} className="hover:bg-amber-50/30 transition-colors border-b border-gray-50">
-                              <td className="px-6 py-4 font-mono text-xs text-slate-500">
+                              <td className="px-6 py-4 font-mono text-xs text-on-surface-variant/70">
                                 {new Date(mv.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                               </td>
                               <td className={clsx('px-6 py-4 font-bold', colorClass)}>{label}</td>
@@ -670,7 +670,7 @@ export default function CashPage() {
                     {movements.length > 0 && (
                       <tfoot>
                         <tr className="bg-gray-50 font-bold text-[#001e40]">
-                          <td className="px-6 py-4 text-right text-xs uppercase tracking-widest text-slate-400" colSpan={3}>
+                          <td className="px-6 py-4 text-right text-xs uppercase tracking-widest text-on-surface-variant" colSpan={3}>
                             Total Neto en Caja
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-lg">
@@ -710,10 +710,10 @@ export default function CashPage() {
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Arqueo y Cierre de Caja</h1>
-                  <p className="text-sm text-slate-500 mt-1">Realice el conteo físico para finalizar el turno de trabajo.</p>
+                  <p className="text-sm text-on-surface-variant/70 mt-1">Realice el conteo físico para finalizar el turno de trabajo.</p>
                 </div>
                 <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                  <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-tighter">Fecha y Hora</p>
+                  <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-tighter">Fecha y Hora</p>
                   <p className="font-mono text-sm font-bold text-[#001e40]">
                     {new Date().toLocaleString('es-DO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -738,7 +738,7 @@ export default function CashPage() {
                     </div>
 
                     {/* Column headers */}
-                    <div className="grid grid-cols-12 gap-4 items-center bg-gray-50 px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+                    <div className="grid grid-cols-12 gap-4 items-center bg-gray-50 px-4 py-2 rounded-lg text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-2">
                       <div className="col-span-5">Denominación</div>
                       <div className="col-span-3 text-center">Cantidad</div>
                       <div className="col-span-4 text-right">Subtotal</div>
@@ -800,7 +800,7 @@ export default function CashPage() {
 
                     {/* Observations */}
                     <div className="mt-6 border-t border-gray-100 pt-6">
-                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+                      <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-2">
                         Observaciones del Cierre
                       </label>
                       <textarea
@@ -817,7 +817,7 @@ export default function CashPage() {
                 {/* Right: Summary + Actions */}
                 <div className="lg:col-span-5 space-y-4">
                   {/* Audit summary card */}
-                  <div className="bg-[#001e40] text-white rounded-xl p-8 shadow-xl relative overflow-hidden">
+                  <div className="bg-[#001e40] text-primary rounded-xl p-8 shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                       <Wallet className="w-20 h-20" />
                     </div>
@@ -827,12 +827,12 @@ export default function CashPage() {
                     </h2>
                     <div className="space-y-6">
                       <div>
-                        <p className="text-xs text-white/60 uppercase tracking-widest mb-1">Saldo Esperado en Sistema</p>
+                        <p className="text-xs text-primary/60 uppercase tracking-widest mb-1">Saldo Esperado en Sistema</p>
                         <p className="text-4xl font-mono font-black tracking-tight">{fmt(getExpectedBalance())}</p>
                       </div>
                       <div className="h-px bg-white/10" />
                       <div>
-                        <p className="text-xs text-white/60 uppercase tracking-widest mb-1">Saldo Real (Contado)</p>
+                        <p className="text-xs text-primary/60 uppercase tracking-widest mb-1">Saldo Real (Contado)</p>
                         <p className="text-4xl font-mono font-black tracking-tight text-yellow-300">{fmt(getRealBalance())}</p>
                       </div>
                     </div>
@@ -859,7 +859,7 @@ export default function CashPage() {
 
                   {/* Operations breakdown */}
                   <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Detalle de Operaciones</h3>
+                    <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-4">Detalle de Operaciones</h3>
                     <div className="space-y-3">
                       {[
                         { label: 'Fondo Inicial de Caja', value: session?.initialBalance || '0', color: 'text-slate-700' },
@@ -877,7 +877,7 @@ export default function CashPage() {
                         },
                       ].map((row) => (
                         <div key={row.label} className="flex justify-between items-center text-sm">
-                          <span className="text-slate-500">{row.label}</span>
+                          <span className="text-on-surface-variant/70">{row.label}</span>
                           <span className={clsx('font-mono font-semibold', row.color)}>{fmt(row.value)}</span>
                         </div>
                       ))}
@@ -895,7 +895,7 @@ export default function CashPage() {
                       onClick={handleCloseSession}
                       disabled={closing}
                       className={clsx(
-                        'w-full bg-[#775a19] text-white font-bold text-base py-5 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all',
+                        'w-full bg-[#775a19] text-primary font-bold text-base py-5 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all',
                         closing ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-110 active:scale-[0.98]'
                       )}
                     >
@@ -908,7 +908,7 @@ export default function CashPage() {
                       )}
                       {closing ? 'Cerrando turno...' : 'Finalizar Turno e Imprimir Arqueo'}
                     </button>
-                    <p className="text-center text-xs text-slate-400 italic">
+                    <p className="text-center text-xs text-on-surface-variant italic">
                       * Al confirmar, se cerrará la sesión de la terminal y se generará el reporte de cierre.
                     </p>
                   </div>
@@ -929,22 +929,22 @@ export default function CashPage() {
               {/* Header */}
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <nav className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+                  <nav className="flex items-center gap-2 text-xs text-on-surface-variant mb-2">
                     <span>Caja</span>
                     <ChevronRight className="w-3 h-3" />
                     <span className="font-bold text-slate-700">Histórico de Cierres</span>
                   </nav>
                   <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Histórico de Cierres de Caja</h1>
-                  <p className="text-sm text-slate-500 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
+                  <p className="text-sm text-on-surface-variant/70 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="bg-gray-100 text-slate-600 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-200 hover:bg-gray-200 transition-colors">
+                  <button className="bg-gray-100 text-on-surface-variant/80 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-200 hover:bg-gray-200 transition-colors">
                     <Download className="w-4 h-4" />
                     EXPORTAR XLS
                   </button>
                   <button
                     onClick={loadHistory}
-                    className="bg-[#001e40] text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all"
+                    className="bg-[#001e40] text-primary text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all"
                   >
                     <RefreshCw className="w-4 h-4" />
                     ACTUALIZAR
@@ -956,7 +956,7 @@ export default function CashPage() {
               <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Desde Fecha</label>
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Desde Fecha</label>
                     <input
                       type="date"
                       value={histDateFrom}
@@ -965,7 +965,7 @@ export default function CashPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Estado del Cierre</label>
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Estado del Cierre</label>
                     <select
                       value={histStatus}
                       onChange={(e) => setHistStatus(e.target.value)}
@@ -979,7 +979,7 @@ export default function CashPage() {
                   <div className="md:col-start-4 flex items-center gap-2">
                     <button
                       onClick={() => { setHistDateFrom(''); setHistStatus(''); }}
-                      className="flex-1 bg-gray-50 text-slate-600 text-xs font-semibold py-2.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      className="flex-1 bg-gray-50 text-on-surface-variant/80 text-xs font-semibold py-2.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
                     >
                       LIMPIAR
                     </button>
@@ -1001,7 +1001,7 @@ export default function CashPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         {['Apertura', 'Cierre', 'Terminal', 'Esperado (RD$)', 'Real (RD$)', 'Diferencia', 'Acciones'].map(col => (
-                          <th key={col} className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-widest text-left">
+                          <th key={col} className="px-6 py-4 text-xs font-semibold text-on-surface-variant uppercase tracking-widest text-left">
                             {col}
                           </th>
                         ))}
@@ -1010,7 +1010,7 @@ export default function CashPage() {
                     <tbody className="divide-y divide-gray-50 text-sm">
                       {history.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                          <td colSpan={7} className="px-6 py-12 text-center text-on-surface-variant">
                             No hay registros de cierres de caja.
                           </td>
                         </tr>
@@ -1029,7 +1029,7 @@ export default function CashPage() {
                                   <p className="font-mono text-xs text-slate-700">
                                     {new Date(s.createdAt).toLocaleDateString('es-DO')}
                                   </p>
-                                  <p className="text-[11px] text-slate-400">
+                                  <p className="text-[11px] text-on-surface-variant">
                                     {new Date(s.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                   </p>
                                 </td>
@@ -1039,7 +1039,7 @@ export default function CashPage() {
                                       <p className="font-mono text-xs text-slate-700">
                                         {new Date(s.closedAt).toLocaleDateString('es-DO')}
                                       </p>
-                                      <p className="text-[11px] text-slate-400">
+                                      <p className="text-[11px] text-on-surface-variant">
                                         {new Date(s.closedAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                       </p>
                                     </>
@@ -1071,10 +1071,10 @@ export default function CashPage() {
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="flex justify-center gap-1">
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
+                                    <button className="p-2 text-on-surface-variant hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
                                       <Eye className="w-4 h-4" />
                                     </button>
-                                    <button className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded" title="Reimprimir">
+                                    <button className="p-2 text-on-surface-variant hover:text-amber-600 transition-colors rounded" title="Reimprimir">
                                       <Printer className="w-4 h-4" />
                                     </button>
                                   </div>
@@ -1087,7 +1087,7 @@ export default function CashPage() {
                     {history.length > 0 && (
                       <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                         <tr>
-                          <td className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase text-right" colSpan={3}>
+                          <td className="px-6 py-4 text-xs font-semibold text-on-surface-variant uppercase text-right" colSpan={3}>
                             Totales del Periodo
                           </td>
                           <td className="px-6 py-4 font-mono text-right font-bold text-[#001e40]">
@@ -1108,7 +1108,7 @@ export default function CashPage() {
 
                 {/* Pagination placeholder */}
                 <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-on-surface-variant">
                     Mostrando {Math.min(history.length, 100)} de {history.length} registros
                   </span>
                 </div>
@@ -1141,7 +1141,7 @@ export default function CashPage() {
                       {kpi.icon}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-400">{kpi.label}</p>
+                      <p className="text-xs font-semibold text-on-surface-variant">{kpi.label}</p>
                       <p className="text-lg font-bold text-[#001e40]">{kpi.value}</p>
                     </div>
                   </div>
@@ -1172,12 +1172,12 @@ export default function CashPage() {
                 moveType === 'cash_in' ? 'bg-emerald-600' : 'bg-red-600'
               )}>
                 <div className="flex items-center gap-3">
-                  {moveType === 'cash_in' ? <Plus className="w-5 h-5 text-white" /> : <Minus className="w-5 h-5 text-white" />}
-                  <h3 className="text-white font-bold text-lg">
+                  {moveType === 'cash_in' ? <Plus className="w-5 h-5 text-primary" /> : <Minus className="w-5 h-5 text-primary" />}
+                  <h3 className="text-primary font-bold text-lg">
                     {moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                   </h3>
                 </div>
-                <button onClick={() => setShowMoveModal(false)} className="text-white/80 hover:text-white transition-colors">
+                <button onClick={() => setShowMoveModal(false)} className="text-primary/80 hover:text-primary transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1193,7 +1193,7 @@ export default function CashPage() {
                         'flex-1 py-2 rounded-lg text-sm font-semibold border transition-all',
                         moveType === t
                           ? t === 'cash_in' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-red-100 border-red-300 text-red-800'
-                          : 'bg-gray-50 border-gray-200 text-slate-500 hover:bg-gray-100'
+                          : 'bg-gray-50 border-gray-200 text-on-surface-variant/70 hover:bg-gray-100'
                       )}
                     >
                       {t === 'cash_in' ? '↑ Entrada' : '↓ Salida'}
@@ -1202,7 +1202,7 @@ export default function CashPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Monto (RD$)</label>
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Monto (RD$)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#001e40]">RD$</span>
                     <input
@@ -1219,7 +1219,7 @@ export default function CashPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Descripción / Concepto</label>
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Descripción / Concepto</label>
                   <input
                     type="text"
                     value={moveDescription}
@@ -1234,7 +1234,7 @@ export default function CashPage() {
                   <button
                     type="button"
                     onClick={() => setShowMoveModal(false)}
-                    className="flex-1 py-3 border border-gray-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 border border-gray-200 text-on-surface-variant/80 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1242,7 +1242,7 @@ export default function CashPage() {
                     type="submit"
                     disabled={submitting}
                     className={clsx(
-                      'flex-[2] py-3 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all',
+                      'flex-[2] py-3 text-primary font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition-all',
                       moveType === 'cash_in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700',
                       submitting && 'opacity-70 cursor-not-allowed'
                     )}
@@ -1273,7 +1273,7 @@ export default function CashPage() {
             >
               <CheckCircle2 className="w-20 h-20 text-emerald-500 mx-auto mb-4" />
               <h2 className="text-3xl font-bold text-[#001e40] mb-2">Cierre Exitoso</h2>
-              <p className="text-slate-500 mb-8">
+              <p className="text-on-surface-variant/70 mb-8">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
               {closedSessionId && (
@@ -1283,7 +1283,7 @@ export default function CashPage() {
               )}
               <button
                 onClick={handleSuccessClose}
-                className="w-full bg-[#001e40] text-white py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"
+                className="w-full bg-[#001e40] text-primary py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"
               >
                 Volver al Inicio
               </button>

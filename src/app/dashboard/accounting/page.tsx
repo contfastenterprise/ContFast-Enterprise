@@ -189,7 +189,7 @@ export default function AccountingPage() {
     <DashboardLayout>
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20">
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
-           <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+           <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
              <BookOpen className="h-3 w-3" /> Contabilidad Financiera
            </span>
         </div>
@@ -202,7 +202,7 @@ export default function AccountingPage() {
               <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
                 Libro Mayor y Asientos
               </h1>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-on-surface-variant/70 text-sm mt-1">
                 Gestión del catálogo de cuentas y transacciones de diario general.
               </p>
             </div>
@@ -217,7 +217,7 @@ export default function AccountingPage() {
               ) : null}
               <button
                 onClick={() => setShowJournalModal(true)}
-                className="bg-[#C5A059] hover:bg-[#b08c4a] text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-all shadow-sm"
               >
                 <FileText className="h-4 w-4" /> Nuevo Asiento
               </button>
@@ -230,7 +230,7 @@ export default function AccountingPage() {
               onClick={() => setActiveTab('catalog')}
               className={clsx(
                 'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                activeTab === 'catalog' ? 'bg-[#003366] text-white shadow' : 'text-slate-500 hover:text-slate-700'
+                activeTab === 'catalog' ? 'bg-[#003366] text-primary shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
               )}
             >
               Catálogo de Cuentas
@@ -239,7 +239,7 @@ export default function AccountingPage() {
               onClick={() => setActiveTab('journals')}
               className={clsx(
                 'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
-                activeTab === 'journals' ? 'bg-[#003366] text-white shadow' : 'text-slate-500 hover:text-slate-700'
+                activeTab === 'journals' ? 'bg-[#003366] text-primary shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
               )}
             >
               Asientos Contables
@@ -254,7 +254,7 @@ export default function AccountingPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                        <tr className="bg-slate-50 border-b border-slate-200 text-on-surface-variant/70 text-xs uppercase tracking-wider font-semibold">
                           <th className="p-4 w-32">Código</th>
                           <th className="p-4">Nombre de la Cuenta</th>
                           <th className="p-4">Tipo</th>
@@ -263,9 +263,9 @@ export default function AccountingPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {loading ? (
-                          <tr><td colSpan={4} className="p-8 text-center text-slate-400"><RefreshCw className="h-6 w-6 animate-spin mx-auto" /></td></tr>
+                          <tr><td colSpan={4} className="p-8 text-center text-on-surface-variant"><RefreshCw className="h-6 w-6 animate-spin mx-auto" /></td></tr>
                         ) : accounts.length === 0 ? (
-                          <tr><td colSpan={4} className="p-8 text-center text-slate-500">No hay cuentas registradas en el catálogo.</td></tr>
+                          <tr><td colSpan={4} className="p-8 text-center text-on-surface-variant/70">No hay cuentas registradas en el catálogo.</td></tr>
                         ) : (
                           accounts.map((acc) => (
                             <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
@@ -303,9 +303,9 @@ export default function AccountingPage() {
                    <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
                 ) : journals.length === 0 ? (
                   <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
-                    <FileText className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                    <FileText className="h-12 w-12 text-on-surface-variant mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-[#003366]">Sin Asientos Contables</h3>
-                    <p className="text-slate-500 text-sm mt-2">No se han registrado transacciones en el diario general.</p>
+                    <p className="text-on-surface-variant/70 text-sm mt-2">No se han registrado transacciones en el diario general.</p>
                   </div>
                 ) : (
                   journals.map((journal) => (
@@ -313,14 +313,14 @@ export default function AccountingPage() {
                       <div className="bg-slate-50 px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
                           <div className="bg-white border border-gray-200 rounded px-3 py-1.5 shadow-sm text-center">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Fecha</p>
+                            <p className="text-[10px] text-on-surface-variant font-bold uppercase">Fecha</p>
                             <p className="font-mono text-sm font-semibold text-[#003366]">
                               {new Date(journal.date).toLocaleDateString('es-DO')}
                             </p>
                           </div>
                           <div>
                             <h4 className="font-bold text-slate-800">{journal.description}</h4>
-                            {journal.reference && <p className="text-xs text-slate-500 font-mono mt-0.5">Ref: {journal.reference}</p>}
+                            {journal.reference && <p className="text-xs text-on-surface-variant/70 font-mono mt-0.5">Ref: {journal.reference}</p>}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -333,9 +333,9 @@ export default function AccountingPage() {
                         <table className="w-full text-sm">
                           <thead className="bg-white border-b border-gray-100">
                             <tr>
-                              <th className="px-6 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Cuenta</th>
-                              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase w-32">Débito</th>
-                              <th className="px-6 py-3 text-right text-xs font-semibold text-slate-400 uppercase w-32">Crédito</th>
+                              <th className="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase">Cuenta</th>
+                              <th className="px-6 py-3 text-right text-xs font-semibold text-on-surface-variant uppercase w-32">Débito</th>
+                              <th className="px-6 py-3 text-right text-xs font-semibold text-on-surface-variant uppercase w-32">Crédito</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50">
@@ -343,7 +343,7 @@ export default function AccountingPage() {
                               <tr key={line.id} className="hover:bg-slate-50/50">
                                 <td className="px-6 py-3">
                                   <span className="font-mono font-semibold text-[#003366] mr-2">{line.accountCode}</span>
-                                  <span className="text-slate-600">{line.accountName}</span>
+                                  <span className="text-on-surface-variant/80">{line.accountName}</span>
                                 </td>
                                 <td className="px-6 py-3 text-right font-mono text-slate-700">
                                   {parseFloat(line.debit) > 0 ? fmt(line.debit) : ''}
@@ -356,7 +356,7 @@ export default function AccountingPage() {
                           </tbody>
                           <tfoot className="bg-slate-50/80 border-t border-gray-200">
                             <tr>
-                              <td className="px-6 py-3 text-right font-bold text-slate-500 text-xs uppercase tracking-widest">Totales</td>
+                              <td className="px-6 py-3 text-right font-bold text-on-surface-variant/70 text-xs uppercase tracking-widest">Totales</td>
                               <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalDebit)}</td>
                               <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalCredit)}</td>
                             </tr>
@@ -375,23 +375,23 @@ export default function AccountingPage() {
         <AnimatePresence>
           {showAccountModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
                 <div className="bg-[#003366] px-6 py-4 flex justify-between items-center">
-                  <h3 className="text-white font-bold flex items-center gap-2"><BookOpen className="w-5 h-5" /> Nueva Cuenta Contable</h3>
-                  <button onClick={() => setShowAccountModal(false)} className="text-white/70 hover:text-white"><X className="w-5 h-5" /></button>
+                  <h3 className="text-primary font-bold flex items-center gap-2"><BookOpen className="w-5 h-5" /> Nueva Cuenta Contable</h3>
+                  <button onClick={() => setShowAccountModal(false)} className="text-primary/70 hover:text-primary"><X className="w-5 h-5" /></button>
                 </div>
                 <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Código</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/70 uppercase mb-1">Código</label>
                     <input type="text" required value={accForm.code} onChange={e => setAccForm({...accForm, code: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] font-mono text-sm" placeholder="Ej. 1.1.01" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Nombre de Cuenta</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/70 uppercase mb-1">Nombre de Cuenta</label>
                     <input type="text" required value={accForm.name} onChange={e => setAccForm({...accForm, name: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm" placeholder="Efectivo en Caja y Banco" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Tipo de Cuenta</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/70 uppercase mb-1">Tipo de Cuenta</label>
                     <select required value={accForm.type} onChange={e => setAccForm({...accForm, type: e.target.value as AccountType})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm bg-white">
                       <option value="asset">Activo</option>
                       <option value="liability">Pasivo</option>
@@ -401,8 +401,8 @@ export default function AccountingPage() {
                     </select>
                   </div>
                   <div className="pt-4 flex gap-3">
-                    <button type="button" onClick={() => setShowAccountModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-slate-600 font-semibold text-sm hover:bg-gray-50">Cancelar</button>
-                    <button type="submit" disabled={submitting} className="flex-[2] py-2.5 bg-[#C5A059] hover:bg-[#b08c4a] text-white font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => setShowAccountModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-on-surface-variant/80 font-semibold text-sm hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" disabled={submitting} className="flex-[2] py-2.5 bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />} Guardar Cuenta
                     </button>
                   </div>
@@ -416,25 +416,25 @@ export default function AccountingPage() {
         <AnimatePresence>
           {showJournalModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative z-10 overflow-hidden">
                 <div className="bg-[#003366] px-6 py-4 flex justify-between items-center shrink-0">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#C5A059]" /> Nuevo Asiento Contable</h3>
-                  <button onClick={() => setShowJournalModal(false)} className="text-white/70 hover:text-white"><X className="w-6 h-6" /></button>
+                  <h3 className="text-primary font-bold text-lg flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#C5A059]" /> Nuevo Asiento Contable</h3>
+                  <button onClick={() => setShowJournalModal(false)} className="text-primary/70 hover:text-primary"><X className="w-6 h-6" /></button>
                 </div>
                 
                 <div className="overflow-y-auto p-6 bg-slate-50 flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Fecha</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Fecha</label>
                       <input type="date" required value={journalForm.date} onChange={e => setJournalForm({...journalForm, date: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Referencia</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Referencia</label>
                       <input type="text" value={journalForm.reference} onChange={e => setJournalForm({...journalForm, reference: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm font-mono" placeholder="Ej. CHK-1024" />
                     </div>
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Concepto / Descripción</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Concepto / Descripción</label>
                       <input type="text" required value={journalForm.description} onChange={e => setJournalForm({...journalForm, description: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm shadow-sm" placeholder="Registro de..." />
                     </div>
                   </div>
@@ -443,9 +443,9 @@ export default function AccountingPage() {
                     <table className="w-full text-left">
                       <thead className="bg-slate-100">
                         <tr>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-600 uppercase">Cuenta Contable</th>
-                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase w-40">Débito</th>
-                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-600 uppercase w-40">Crédito</th>
+                          <th className="px-4 py-3 text-xs font-bold text-on-surface-variant/80 uppercase">Cuenta Contable</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-on-surface-variant/80 uppercase w-40">Débito</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-on-surface-variant/80 uppercase w-40">Crédito</th>
                           <th className="w-10"></th>
                         </tr>
                       </thead>
@@ -468,7 +468,7 @@ export default function AccountingPage() {
                             </td>
                             <td className="p-2 text-center">
                               {journalLines.length > 2 && (
-                                <button type="button" onClick={() => setJournalLines(journalLines.filter((_, i) => i !== idx))} className="text-slate-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                                <button type="button" onClick={() => setJournalLines(journalLines.filter((_, i) => i !== idx))} className="text-on-surface-variant hover:text-red-500"><X className="w-4 h-4" /></button>
                               )}
                             </td>
                           </tr>
@@ -487,11 +487,11 @@ export default function AccountingPage() {
                 <div className="bg-white border-t border-slate-200 p-6 shrink-0 grid grid-cols-1 md:grid-cols-2 items-center gap-4">
                   <div className="flex gap-6">
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Débitos</p>
+                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Total Débitos</p>
                       <p className="font-mono text-xl font-bold text-slate-800">{fmt(totalDebits)}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Créditos</p>
+                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Total Créditos</p>
                       <p className="font-mono text-xl font-bold text-slate-800">{fmt(totalCredits)}</p>
                     </div>
                   </div>
@@ -502,10 +502,10 @@ export default function AccountingPage() {
                         <AlertTriangle className="w-4 h-4" /> Asiento Descuadrado
                       </div>
                     )}
-                    <button type="button" onClick={() => setShowJournalModal(false)} className="px-5 py-3 text-slate-600 font-semibold text-sm hover:bg-slate-100 rounded-lg transition-colors">
+                    <button type="button" onClick={() => setShowJournalModal(false)} className="px-5 py-3 text-on-surface-variant/80 font-semibold text-sm hover:bg-slate-100 rounded-lg transition-colors">
                       Cancelar
                     </button>
-                    <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="bg-[#003366] hover:bg-[#002244] text-primary font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
                       Contabilizar Asiento
                     </button>

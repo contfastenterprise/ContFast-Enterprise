@@ -199,7 +199,7 @@ export default function BankAccountsPage() {
     <DashboardLayout>
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20">
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-           <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+           <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
              <Landmark className="h-3 w-3" /> Cuentas Bancarias
            </span>
         </div>
@@ -212,7 +212,7 @@ export default function BankAccountsPage() {
               <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
                 Cuentas Bancarias
               </h1>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-on-surface-variant/70 text-sm mt-1">
                 Consulta de saldos y registro de movimientos bancarios.
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function BankAccountsPage() {
               <button onClick={() => setShowNewAccountModal(true)} className="bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Nueva Cuenta
               </button>
-              <button disabled={!selectedAccount} onClick={() => setShowTxModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+              <button disabled={!selectedAccount} onClick={() => setShowTxModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] disabled:opacity-50 text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
                 <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
               </button>
             </div>
@@ -231,9 +231,9 @@ export default function BankAccountsPage() {
             <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
           ) : accounts.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
-              <Landmark className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+              <Landmark className="h-16 w-16 text-on-surface-variant mx-auto mb-4" />
               <h3 className="text-xl font-bold text-[#003366]">Sin Cuentas Bancarias</h3>
-              <p className="text-slate-500 mt-2">No hay cuentas bancarias registradas en la empresa.</p>
+              <p className="text-on-surface-variant/70 mt-2">No hay cuentas bancarias registradas en la empresa.</p>
               <button onClick={() => setShowNewAccountModal(true)} className="mt-6 text-[#C5A059] font-bold hover:underline">Crear mi primera cuenta</button>
             </div>
           ) : (
@@ -243,7 +243,7 @@ export default function BankAccountsPage() {
                   <div 
                     key={acc.id} 
                     onClick={() => setSelectedAccount(acc)}
-                    className={clsx("cursor-pointer rounded-xl border p-5 transition-all", selectedAccount?.id === acc.id ? 'bg-[#003366] border-[#003366] text-white shadow-lg transform scale-[1.02]' : 'bg-white border-slate-200 text-slate-800 hover:border-[#003366]/30 hover:shadow-md')}
+                    className={clsx("cursor-pointer rounded-xl border p-5 transition-all", selectedAccount?.id === acc.id ? 'bg-[#003366] border-[#003366] text-primary shadow-lg transform scale-[1.02]' : 'bg-white border-slate-200 text-slate-800 hover:border-[#003366]/30 hover:shadow-md')}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-3">
@@ -252,12 +252,12 @@ export default function BankAccountsPage() {
                         </div>
                         <div>
                           <h3 className="font-bold">{acc.bankName}</h3>
-                          <p className={clsx("text-xs font-mono tracking-wider", selectedAccount?.id === acc.id ? 'text-blue-200' : 'text-slate-500')}>{maskAccount(acc.accountNumber)}</p>
+                          <p className={clsx("text-xs font-mono tracking-wider", selectedAccount?.id === acc.id ? 'text-blue-200' : 'text-on-surface-variant/70')}>{maskAccount(acc.accountNumber)}</p>
                         </div>
                       </div>
                     </div>
                     <div className="mt-5">
-                      <p className={clsx("text-[10px] uppercase font-bold tracking-widest", selectedAccount?.id === acc.id ? 'text-white/60' : 'text-slate-400')}>Balance Actual</p>
+                      <p className={clsx("text-[10px] uppercase font-bold tracking-widest", selectedAccount?.id === acc.id ? 'text-primary/60' : 'text-on-surface-variant')}>Balance Actual</p>
                       <p className="text-2xl font-mono font-bold mt-1">
                         {fmt(acc.balance, acc.currency)} <span className="text-sm font-sans font-normal opacity-70">{acc.currency}</span>
                       </p>
@@ -271,13 +271,13 @@ export default function BankAccountsPage() {
                 <div className="bg-slate-50 border-b border-slate-200 p-5 flex flex-wrap justify-between items-center">
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">Historial de Transacciones</h3>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{selectedAccount?.bankName} ({selectedAccount?.currency})</p>
+                    <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">{selectedAccount?.bankName} ({selectedAccount?.currency})</p>
                   </div>
-                  {loadingTxs && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
+                  {loadingTxs && <RefreshCw className="h-4 w-4 animate-spin text-on-surface-variant" />}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
-                    <thead className="bg-white border-b border-slate-100 text-[10px] tracking-widest text-slate-400 uppercase font-bold">
+                    <thead className="bg-white border-b border-slate-100 text-[10px] tracking-widest text-on-surface-variant uppercase font-bold">
                       <tr>
                         <th className="px-6 py-4">Fecha</th>
                         <th className="px-6 py-4">Descripción</th>
@@ -289,16 +289,16 @@ export default function BankAccountsPage() {
                     <tbody className="divide-y divide-slate-50">
                       {transactions.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-slate-500">No hay movimientos registrados en esta cuenta.</td>
+                          <td colSpan={5} className="px-6 py-12 text-center text-on-surface-variant/70">No hay movimientos registrados en esta cuenta.</td>
                         </tr>
                       ) : (
                         transactions.map(tx => {
                           const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
                           return (
                             <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-3 text-slate-600 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</td>
+                              <td className="px-6 py-3 text-on-surface-variant/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</td>
                               <td className="px-6 py-3 font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
-                              <td className="px-6 py-3 font-mono text-xs text-slate-500">{tx.reference || '-'}</td>
+                              <td className="px-6 py-3 font-mono text-xs text-on-surface-variant/70">{tx.reference || '-'}</td>
                               <td className="px-6 py-3">
                                 <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
                                   {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
@@ -325,24 +325,24 @@ export default function BankAccountsPage() {
         <AnimatePresence>
           {showNewAccountModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
                 <div className="bg-[#003366] px-6 py-5 flex justify-between items-center">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2"><Landmark className="w-5 h-5 text-[#C5A059]" /> Nueva Cuenta Bancaria</h3>
-                  <button onClick={() => setShowNewAccountModal(false)} className="text-white/70 hover:text-white"><X className="w-6 h-6" /></button>
+                  <h3 className="text-primary font-bold text-lg flex items-center gap-2"><Landmark className="w-5 h-5 text-[#C5A059]" /> Nueva Cuenta Bancaria</h3>
+                  <button onClick={() => setShowNewAccountModal(false)} className="text-primary/70 hover:text-primary"><X className="w-6 h-6" /></button>
                 </div>
                 <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Nombre del Banco</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Nombre del Banco</label>
                     <input type="text" required value={accountForm.bankName} onChange={e => setAccountForm({...accountForm, bankName: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]" placeholder="Ej. Banco Popular" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Número de Cuenta</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Número de Cuenta</label>
                     <input type="text" required value={accountForm.accountNumber} onChange={e => setAccountForm({...accountForm, accountNumber: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] font-mono" placeholder="Ej. 1234567890" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Moneda</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Moneda</label>
                       <select value={accountForm.currency} onChange={e => setAccountForm({...accountForm, currency: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]">
                         <option value="DOP">DOP (Pesos)</option>
                         <option value="USD">USD (Dólares)</option>
@@ -350,7 +350,7 @@ export default function BankAccountsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Tipo</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Tipo</label>
                       <select value={accountForm.type} onChange={e => setAccountForm({...accountForm, type: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366]">
                         <option value="corriente">Corriente</option>
                         <option value="ahorros">Ahorros</option>
@@ -358,14 +358,14 @@ export default function BankAccountsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Balance Inicial</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Balance Inicial</label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold">$</span>
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
                       <input type="number" min="0" step="0.01" required value={accountForm.initialBalance} onChange={e => setAccountForm({...accountForm, initialBalance: e.target.value})} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#003366] font-mono" placeholder="0.00" />
                     </div>
                   </div>
                   <div className="pt-4 flex justify-end">
-                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all flex items-center gap-2">
+                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2 px-6 rounded-lg shadow-md transition-all flex items-center gap-2">
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
                     </button>
                   </div>
@@ -379,11 +379,11 @@ export default function BankAccountsPage() {
         <AnimatePresence>
           {showTxModal && selectedAccount && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden">
                 <div className="bg-[#C5A059] px-6 py-5 flex justify-between items-center">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#003366]" /> Registrar Movimiento</h3>
-                  <button onClick={() => setShowTxModal(false)} className="text-white/70 hover:text-white"><X className="w-6 h-6" /></button>
+                  <h3 className="text-primary font-bold text-lg flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#003366]" /> Registrar Movimiento</h3>
+                  <button onClick={() => setShowTxModal(false)} className="text-primary/70 hover:text-primary"><X className="w-6 h-6" /></button>
                 </div>
                 <form onSubmit={handleRegisterTx} className="p-6 space-y-4">
                   <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex items-center justify-between">
@@ -399,11 +399,11 @@ export default function BankAccountsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Fecha</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Fecha</label>
                       <input type="date" required value={txForm.date} onChange={e => setTxForm({...txForm, date: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Tipo de Movimiento</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Tipo de Movimiento</label>
                       <select value={txForm.type} onChange={e => setTxForm({...txForm, type: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-semibold">
                         <option value="deposit">Ingreso (Depósito)</option>
                         <option value="transfer_in">Ingreso (Transferencia)</option>
@@ -414,14 +414,14 @@ export default function BankAccountsPage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Monto</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Monto</label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold">$</span>
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
                       <input type="number" min="0.01" step="0.01" required value={txForm.amount} onChange={e => setTxForm({...txForm, amount: e.target.value})} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2.5 outline-none focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] font-mono text-xl font-bold text-slate-800" placeholder="0.00" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Cuenta Contable (Contrapartida)</label>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Cuenta Contable (Contrapartida)</label>
                     <select required value={txForm.contraAccountId} onChange={e => setTxForm({...txForm, contraAccountId: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm">
                       <option value="">Seleccione cuenta (Ej. Ingresos / Gastos)</option>
                       {chartOfAccounts.map(c => (
@@ -431,16 +431,16 @@ export default function BankAccountsPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Descripción</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Descripción</label>
                       <input type="text" required value={txForm.description} onChange={e => setTxForm({...txForm, description: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm" placeholder="Ej. Depósito ventas del día" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Referencia (Opcional)</label>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Referencia (Opcional)</label>
                       <input type="text" value={txForm.reference} onChange={e => setTxForm({...txForm, reference: e.target.value})} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono" placeholder="Ej. TX-58493" />
                     </div>
                   </div>
                   <div className="pt-4 flex justify-end">
-                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md transition-all flex items-center gap-2 w-full justify-center">
+                    <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2.5 px-6 rounded-lg shadow-md transition-all flex items-center gap-2 w-full justify-center">
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Procesar Movimiento
                     </button>
                   </div>

@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/app/dashboard/layout';
-import { 
-  Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2, 
-  ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft, 
+import {
+  Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
+  ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,12 +40,12 @@ function InvoicesList() {
   const [customerName, setCustomerName] = useState('');
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [lines, setLines] = useState<any[]>([
-    { 
-      productId: 'f56a31c0-0000-0000-0000-000000000000', 
-      productName: 'Servicio de Consultoría Técnica', 
-      quantity: 1, 
-      unitPrice: 5000, 
-      discount: 0, 
+    {
+      productId: 'f56a31c0-0000-0000-0000-000000000000',
+      productName: 'Servicio de Consultoría Técnica',
+      quantity: 1,
+      unitPrice: 5000,
+      discount: 0,
       taxRate: 0.18,
       unitOfMeasure: 'unidad',
       barcode: '',
@@ -102,7 +102,7 @@ function InvoicesList() {
         // Dummy stats calculation for demo based on current page if full stats not in API
         const totalAmount = (data.data || []).reduce((acc: number, inv: any) => acc + parseFloat(inv.total), 0);
         const pendingCount = (data.data || []).filter((i: any) => ['submitted', 'draft', 'signed'].includes(i.status)).length;
-        
+
         setStats({
           totalMonth: totalAmount || 1200000, // fallback to match design if 0
           pending: pendingCount || 24,
@@ -146,12 +146,12 @@ function InvoicesList() {
   const handleAddLine = () => {
     setLines([
       ...lines,
-      { 
-        productId: 'f56a31c0-0000-0000-0000-000000000000', 
-        productName: '', 
-        quantity: 1, 
-        unitPrice: 0, 
-        discount: 0, 
+      {
+        productId: 'f56a31c0-0000-0000-0000-000000000000',
+        productName: '',
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0,
         taxRate: 0.18,
         unitOfMeasure: 'unidad',
         barcode: '',
@@ -313,8 +313,8 @@ function InvoicesList() {
       case 'signed': return { label: 'FIRMADO', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', dot: 'bg-emerald-500' };
       case 'submitted': return { label: 'ENVIADO', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20', dot: 'bg-blue-500' };
       case 'rejected': return { label: 'RECHAZADO', cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20', dot: 'bg-rose-500', icon: <XCircle className="w-3 h-3 mr-1" /> };
-      case 'draft': return { label: 'BORRADOR', cls: 'bg-slate-500/10 text-slate-600 border-slate-500/20', dot: 'bg-slate-500' };
-      default: return { label: status.toUpperCase(), cls: 'bg-slate-500/10 text-slate-600 border-slate-500/20', dot: 'bg-slate-500' };
+      case 'draft': return { label: 'BORRADOR', cls: 'bg-slate-500/10 text-on-surface-variant/80 border-slate-500/20', dot: 'bg-slate-500' };
+      default: return { label: status.toUpperCase(), cls: 'bg-slate-500/10 text-on-surface-variant/80 border-slate-500/20', dot: 'bg-slate-500' };
     }
   };
 
@@ -330,7 +330,7 @@ function InvoicesList() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      <div className=" pb-12">
         <AnimatePresence mode="wait">
           {showForm ? (
             /* ==============================================================================
@@ -350,7 +350,7 @@ function InvoicesList() {
                     Volver al listado
                   </button>
                   <h2 className="text-2xl font-bold text-[#003366] tracking-tight">Nueva Factura e-CF</h2>
-                  <p className="text-slate-600 text-sm mt-1">Complete los datos para emitir y firmar electrónicamente.</p>
+                  <p className="text-on-surface-variant/80 text-sm mt-1">Complete los datos para emitir y firmar electrónicamente.</p>
                 </div>
               </div>
 
@@ -358,7 +358,7 @@ function InvoicesList() {
                 {/* General Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Tipo de e-CF</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Tipo de e-CF</label>
                     <select
                       value={ecfType}
                       onChange={(e) => setEcfType(e.target.value)}
@@ -369,7 +369,7 @@ function InvoicesList() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Método de Pago</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Método de Pago</label>
                     <select
                       value={paymentType}
                       onChange={(e) => setPaymentType(e.target.value as any)}
@@ -388,26 +388,26 @@ function InvoicesList() {
                     <Building2 className="h-5 w-5 text-[#C5A059]" />
                     <div>
                       <h4 className="text-[#003366] font-semibold text-base">Datos del Cliente</h4>
-                      <p className="text-xs text-slate-600">Requerido para crédito fiscal (e-31)</p>
+                      <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">RNC o Cédula</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
                     <input
                       type="text"
                       value={customerRnc}
                       onChange={(e) => setCustomerRnc(e.target.value.replace(/\D/g, ''))}
-                      className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-slate-600"
+                      className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-on-surface-variant/80"
                       placeholder="Ej: 131002002"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Razón Social</label>
+                    <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social</label>
                     <input
                       type="text"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-slate-600"
+                      className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-on-surface-variant/80"
                       placeholder="Ej: Distribuidora Comercial S.A."
                     />
                   </div>
@@ -432,19 +432,19 @@ function InvoicesList() {
                       <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
                         {/* Upper row: Selection, Name, Barcode & Image Preview */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
-                          
+
                           {/* Image preview (if exists) */}
                           <div className="md:col-span-1 flex items-center justify-center bg-white border border-slate-200 rounded-lg h-[42px] w-[42px] overflow-hidden self-end">
                             {line.imageUrl ? (
                               <img src={line.imageUrl} alt="preview" className="h-full w-full object-cover" />
                             ) : (
-                              <FileText className="h-5 w-5 text-slate-600" />
+                              <FileText className="h-5 w-5 text-on-surface-variant/80" />
                             )}
                           </div>
 
                           {/* Product Selection / Custom Name */}
                           <div className="md:col-span-6 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto o Servicio</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
                             <div className="flex gap-2">
                               <select
                                 onChange={(e) => {
@@ -472,7 +472,7 @@ function InvoicesList() {
 
                           {/* Barcode input */}
                           <div className="md:col-span-3 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código de Barras</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Código de Barras</label>
                             <input
                               type="text"
                               value={line.barcode || ''}
@@ -484,7 +484,7 @@ function InvoicesList() {
 
                           {/* Unit of measure */}
                           <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unidad</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Unidad</label>
                             <select
                               value={line.unitOfMeasure || 'unidad'}
                               onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
@@ -503,7 +503,7 @@ function InvoicesList() {
                         {/* Lower row: Quantities, Price tier, unitPrice, taxRate & delete button */}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
                           <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cant.</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
                             <input
                               type="number"
                               value={line.quantity}
@@ -514,7 +514,7 @@ function InvoicesList() {
                           </div>
 
                           <div className="md:col-span-3 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nivel de Precio</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
                             <select
                               value={line.priceTier || 'consumidor'}
                               onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
@@ -527,7 +527,7 @@ function InvoicesList() {
                           </div>
 
                           <div className="md:col-span-3 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Precio Unit.</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
                             <input
                               type="number"
                               value={line.unitPrice}
@@ -538,7 +538,7 @@ function InvoicesList() {
                           </div>
 
                           <div className="md:col-span-3 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ITBIS (Tasa)</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
                             <select
                               value={line.taxRate}
                               onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
@@ -572,7 +572,7 @@ function InvoicesList() {
                       <span>Descuento:</span>
                       <span className="font-semibold text-[#003366]">RD$ {discount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-on-surface-variant/80">
                       <span>Impuestos (ITBIS):</span>
                       <span className="font-semibold text-[#003366]">RD$ {taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -619,7 +619,7 @@ function InvoicesList() {
               {/* Header & Stats Row */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
                 <div>
-                  <nav className="flex items-center gap-2 text-slate-600 font-medium text-xs mb-2">
+                  <nav className="flex items-center gap-2 text-on-surface-variant/80 font-medium text-xs mb-2">
                     <span>Facturación</span>
                     <ChevronRight className="h-3.5 w-3.5" />
                     <span className="text-[#C5A059] font-bold">Listado e-CF</span>
@@ -629,17 +629,17 @@ function InvoicesList() {
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Powered by MSeller API</span>
                   </div>
-                  <p className="text-slate-600 text-sm mt-1.5">Gestione y rastree sus documentos fiscales electrónicos autorizados.</p>
+                  <p className="text-on-surface-variant/80 text-sm mt-1.5">Gestione y rastree sus documentos fiscales electrónicos autorizados.</p>
                 </div>
-                
+
                 <div className="flex gap-4 w-full md:w-auto">
                   <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Mes</span>
+                    <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
                     <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">RD$ {(stats.totalMonth / 1000000).toFixed(1)}M</span>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pendientes DGII</span>
+                    <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Pendientes DGII</span>
                     <span className="block font-mono text-xl md:text-2xl font-bold text-[#C5A059]">{stats.pending}</span>
                   </div>
                 </div>
@@ -648,21 +648,21 @@ function InvoicesList() {
               {/* Filters Bar */}
               <div className="bg-white border border-slate-200 rounded-xl p-4 md:p-5 flex flex-col md:flex-row flex-wrap items-end gap-4 shadow-lg">
                 <div className="flex-1 min-w-[200px] w-full">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Rango de Fechas</label>
+                  <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Rango de Fechas</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
-                      value="Mes Actual" 
+                    <input
+                      type="text"
+                      value="Mes Actual"
                       disabled
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 opacity-70 cursor-not-allowed" 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 opacity-70 cursor-not-allowed"
                     />
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600" />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/80" />
                   </div>
                 </div>
-                
+
                 <div className="w-full md:w-[180px]">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tipo de e-CF</label>
-                  <select 
+                  <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Tipo de e-CF</label>
+                  <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-[#003366] focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all appearance-none"
@@ -673,10 +673,10 @@ function InvoicesList() {
                     <option value="33">Nota de Crédito (33)</option>
                   </select>
                 </div>
-                
+
                 <div className="w-full md:w-[180px]">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
-                  <select 
+                  <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Estado</label>
+                  <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-[#003366] focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all appearance-none"
@@ -688,22 +688,22 @@ function InvoicesList() {
                     <option value="rejected">Rechazado</option>
                   </select>
                 </div>
-                
+
                 <div className="flex-1 min-w-[240px] w-full">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Buscar Cliente / NCF</label>
+                  <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Buscar Cliente / NCF</label>
                   <div className="relative">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Ej: E3100... o RNC" 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#003366] placeholder:text-slate-600 focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all" 
+                      placeholder="Ej: E3100... o RNC"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#003366] placeholder:text-on-surface-variant/80 focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all"
                     />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/70" />
                   </div>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={loadInvoices}
                   className="w-full md:w-auto bg-slate-100 text-[#003366] px-6 py-2.5 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-[42px] flex items-center justify-center gap-2 border border-slate-300"
                 >
@@ -718,22 +718,22 @@ function InvoicesList() {
                   <table className="w-full text-left">
                     <thead className="bg-slate-50/80 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha</th>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Comprobante / Tipo</th>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cliente</th>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Monto Total</th>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado DGII</th>
-   <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">MSeller Info</th>
-                        <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Comprobante / Tipo</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cliente</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado DGII</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">MSeller Info</th>
+                        <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/80">
+                    <tbody className="divide-y divide-outline-variant/20/80">
                       {loading ? (
                         <tr>
                           <td colSpan={7} className="px-6 py-16 text-center">
                             <div className="flex flex-col items-center justify-center gap-3">
                               <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-                              <span className="text-slate-600 text-sm font-medium">Cargando facturas electrónicas...</span>
+                              <span className="text-on-surface-variant/80 text-sm font-medium">Cargando facturas electrónicas...</span>
                             </div>
                           </td>
                         </tr>
@@ -741,7 +741,7 @@ function InvoicesList() {
                         invoices.map((inv) => {
                           const badge = getStatusBadge(inv.status);
                           return (
-                            <motion.tr 
+                            <motion.tr
                               key={inv.id}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
@@ -757,7 +757,7 @@ function InvoicesList() {
                                   <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors">
                                     {inv.ncf || `e-${inv.ecfType}`}
                                   </span>
-                                  <span className="text-xs text-slate-500">
+                                  <span className="text-xs text-on-surface-variant/70">
                                     {getTypeLabel(inv.ecfType)}
                                   </span>
                                 </div>
@@ -768,7 +768,7 @@ function InvoicesList() {
                                     {inv.buyerName || 'Consumidor Final'}
                                   </span>
                                   {inv.buyerRnc && (
-                                    <span className="text-xs text-slate-500 font-mono">
+                                    <span className="text-xs text-on-surface-variant/70 font-mono">
                                       RNC/Cédula: {inv.buyerRnc}
                                     </span>
                                   )}
@@ -780,38 +780,38 @@ function InvoicesList() {
                                 </span>
                               </td>
                               <td className="px-6 py-4 align-top text-center">
-    <span className={clsx('inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border', badge.cls)}>
-      {badge.icon || <span className={clsx('w-1.5 h-1.5 rounded-full mr-1.5', badge.dot)} />}
-      {badge.label}
-    </span>
-  </td>
-  <td className="px-6 py-4 align-top text-center text-xs">
-    <div className="flex flex-col gap-1 items-center">
-      {inv.msellerTrackId && (
-        <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200" title="Track ID">
-          {inv.msellerTrackId}
-        </span>
-      )}
-      {inv.dgiiMessage && (
-        <span className="text-[10px] text-emerald-600 font-semibold max-w-[120px] truncate" title={inv.dgiiMessage}>
-          {inv.dgiiMessage}
-        </span>
-      )}
-      {(!inv.msellerTrackId && !inv.dgiiMessage) && <span className="text-slate-400">-</span>}
-    </div>
-  </td>
+                                <span className={clsx('inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border', badge.cls)}>
+                                  {badge.icon || <span className={clsx('w-1.5 h-1.5 rounded-full mr-1.5', badge.dot)} />}
+                                  {badge.label}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 align-top text-center text-xs">
+                                <div className="flex flex-col gap-1 items-center">
+                                  {inv.msellerTrackId && (
+                                    <span className="text-[10px] font-mono bg-slate-100 text-on-surface-variant/80 px-1.5 py-0.5 rounded border border-slate-200" title="Track ID">
+                                      {inv.msellerTrackId}
+                                    </span>
+                                  )}
+                                  {inv.dgiiMessage && (
+                                    <span className="text-[10px] text-emerald-600 font-semibold max-w-[120px] truncate" title={inv.dgiiMessage}>
+                                      {inv.dgiiMessage}
+                                    </span>
+                                  )}
+                                  {(!inv.msellerTrackId && !inv.dgiiMessage) && <span className="text-on-surface-variant">-</span>}
+                                </div>
+                              </td>
                               <td className="px-6 py-4 align-top text-right">
                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
+                                  <button
                                     onClick={() => viewInvoiceDetails(inv)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-[#003366]" 
+                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
                                     title="Ver Detalles"
                                   >
                                     <Eye className="h-4 w-4" />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => handleDownloadPdf(inv)}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-[#003366]" 
+                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
                                     title="Descargar PDF"
                                   >
                                     <Printer className="h-4 w-4" />
@@ -830,9 +830,9 @@ function InvoicesList() {
                         <tr>
                           <td colSpan={7} className="px-6 py-16 text-center">
                             <div className="flex flex-col items-center gap-3">
-                              <AlertCircle className="h-8 w-8 text-slate-600" />
-                              <span className="text-slate-600 text-sm">No se encontraron facturas con los filtros actuales.</span>
-                              <button 
+                              <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
+                              <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas con los filtros actuales.</span>
+                              <button
                                 onClick={() => { setSearchTerm(''); setStatusFilter(''); setTypeFilter(''); }}
                                 className="mt-2 text-[#C5A059] hover:text-[#b08c4a] text-xs font-bold"
                               >
@@ -845,28 +845,28 @@ function InvoicesList() {
                     </tbody>
                   </table>
                 </div>
-                
+
                 {/* Pagination Footer */}
                 <div className="bg-slate-50/80 px-6 py-4 flex flex-col md:flex-row items-center justify-between border-t border-slate-200 gap-4">
-                  <div className="text-xs text-slate-500 font-medium">
-                    Mostrando página <span className="text-[#003366]">{page}</span> de <span className="text-[#003366]">{totalPages}</span> 
+                  <div className="text-xs text-on-surface-variant/70 font-medium">
+                    Mostrando página <span className="text-[#003366]">{page}</span> de <span className="text-[#003366]">{totalPages}</span>
                     {' '}({totalRecords} registros en total)
                   </div>
-                  
+
                   <div className="flex items-center gap-1.5">
-                    <button 
+                    <button
                       onClick={() => setPage(1)} disabled={page === 1}
-                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      className="p-1.5 rounded-lg text-on-surface-variant/80 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     >
                       <ChevronsLeft className="h-4 w-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      className="p-1.5 rounded-lg text-on-surface-variant/80 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
-                    
+
                     {/* Simplified page numbers (just current around) */}
                     <div className="flex gap-1 mx-2">
                       <button className="w-8 h-8 rounded-lg bg-[#C5A059] text-slate-950 font-bold text-xs flex items-center justify-center">
@@ -874,15 +874,15 @@ function InvoicesList() {
                       </button>
                     </div>
 
-                    <button 
+                    <button
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      className="p-1.5 rounded-lg text-on-surface-variant/80 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setPage(totalPages)} disabled={page >= totalPages}
-                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      className="p-1.5 rounded-lg text-on-surface-variant/80 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
                     >
                       <ChevronsRight className="h-4 w-4" />
                     </button>
@@ -930,25 +930,25 @@ function InvoicesList() {
                 <div className="flex items-center justify-between border-b border-slate-200 pb-5 mb-6">
                   <div>
                     <h3 className="text-xl font-bold text-[#003366] tracking-tight">Detalles de Factura</h3>
-                    <p className="text-sm text-slate-600 mt-1">{selectedInvoice.ncf || 'Borrador'}</p>
+                    <p className="text-sm text-on-surface-variant/80 mt-1">{selectedInvoice.ncf || 'Borrador'}</p>
                   </div>
-                  <button onClick={() => setSelectedInvoice(null)} className="p-2 text-slate-600 hover:text-[#003366] hover:bg-slate-100 rounded-full transition-colors">
+                  <button onClick={() => setSelectedInvoice(null)} className="p-2 text-on-surface-variant/80 hover:text-[#003366] hover:bg-slate-100 rounded-full transition-colors">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
                   <div className="col-span-2">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Cliente</span>
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Cliente</span>
                     <p className="font-semibold text-[#003366] text-base">{selectedInvoice.buyerName || 'Consumidor Final'}</p>
-                    {selectedInvoice.buyerRnc && <p className="text-xs font-mono text-slate-600 mt-0.5">RNC: {selectedInvoice.buyerRnc}</p>}
+                    {selectedInvoice.buyerRnc && <p className="text-xs font-mono text-on-surface-variant/80 mt-0.5">RNC: {selectedInvoice.buyerRnc}</p>}
                   </div>
                   <div className="col-span-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Tipo Comprobante</span>
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Tipo Comprobante</span>
                     <p className="font-semibold text-[#003366] text-sm">{getTypeLabel(selectedInvoice.ecfType)}</p>
                   </div>
                   <div className="col-span-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Estado DGII</span>
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Estado DGII</span>
                     <div className="mt-1">
                       {(() => {
                         const badge = getStatusBadge(selectedInvoice.status);
@@ -964,7 +964,7 @@ function InvoicesList() {
 
                 <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50/60 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <thead className="bg-slate-50/60 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">
                       <tr>
                         <th className="py-3 px-4">Descripción del Artículo</th>
                         <th className="py-3 px-4 text-center">Cant.</th>
@@ -972,12 +972,12 @@ function InvoicesList() {
                         <th className="py-3 px-4 text-right">Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 bg-white/40">
+                    <tbody className="divide-y divide-outline-variant/20/60 bg-white/40">
                       {selectedInvoice.lines?.map((line: any) => (
                         <tr key={line.id}>
                           <td className="py-3 px-4 text-slate-700">{line.productName || 'Servicio'}</td>
-                          <td className="py-3 px-4 text-center font-mono text-slate-600">{parseFloat(line.quantity)}</td>
-                          <td className="py-3 px-4 text-right font-mono text-slate-600">RD$ {parseFloat(line.unitPrice).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                          <td className="py-3 px-4 text-center font-mono text-on-surface-variant/80">{parseFloat(line.quantity)}</td>
+                          <td className="py-3 px-4 text-right font-mono text-on-surface-variant/80">RD$ {parseFloat(line.unitPrice).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
                           <td className="py-3 px-4 text-right font-mono font-semibold text-[#003366]">RD$ {parseFloat(line.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
@@ -1003,13 +1003,13 @@ function InvoicesList() {
                       Imprimir PDF
                     </a>
                   </div>
-                  
+
                   <div className="w-full md:w-64 space-y-2 text-sm">
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-on-surface-variant/80">
                       <span>Subtotal</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="flex justify-between text-slate-600">
+                    <div className="flex justify-between text-on-surface-variant/80">
                       <span>ITBIS</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -1032,10 +1032,10 @@ export default function InvoicesPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center bg-slate-50 text-slate-100">
+        <div className="flex h-screen items-center justify-center bg-slate-50 text-on-surface">
           <div className="flex flex-col items-center gap-3">
             <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-            <p className="text-slate-600 text-sm font-medium">Cargando módulo de facturación...</p>
+            <p className="text-on-surface-variant/80 text-sm font-medium">Cargando módulo de facturación...</p>
           </div>
         </div>
       }

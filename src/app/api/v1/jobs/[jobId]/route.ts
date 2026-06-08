@@ -9,6 +9,10 @@ export async function GET(
   try {
     const { jobId } = await params;
     
+    if (!reportQueue) {
+      return NextResponse.json({ error: 'Queue not available' }, { status: 500 });
+    }
+    
     const job = await reportQueue.getJob(jobId);
     
     if (!job) {

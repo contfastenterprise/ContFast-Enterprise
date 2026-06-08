@@ -68,11 +68,11 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-900 pb-5">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
               <BarChart3 className="h-7 w-7 text-amber-500" />
               Reportes Financieros y Métricas
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-on-surface-variant text-sm mt-1">
               Visualice las métricas de ingresos, egresos y el libro de ventas homologado por la DGII.
             </p>
           </div>
@@ -93,45 +93,45 @@ export default function ReportsPage() {
           <>
             {/* Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400 uppercase">Ventas Totales</span>
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase">Ventas Totales</span>
                   <ArrowUpRight className="h-5 w-5 text-emerald-500" />
                 </div>
-                <p className="text-2xl font-bold text-white mt-2">
+                <p className="text-2xl font-bold text-primary mt-2">
                   RD$ {reportData.sales.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-emerald-500 font-medium">Facturado e-CF</span>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400 uppercase">ITBIS Liquidado</span>
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase">ITBIS Liquidado</span>
                   <FileText className="h-5 w-5 text-blue-500" />
                 </div>
-                <p className="text-2xl font-bold text-white mt-2">
+                <p className="text-2xl font-bold text-primary mt-2">
                   RD$ {reportData.taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-blue-400 font-medium">Impuestos Retenidos</span>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400 uppercase">Gastos Generales</span>
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase">Gastos Generales</span>
                   <ArrowDownRight className="h-5 w-5 text-rose-500" />
                 </div>
-                <p className="text-2xl font-bold text-white mt-2">
+                <p className="text-2xl font-bold text-primary mt-2">
                   RD$ {reportData.purchases.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                 </p>
-                <span className="text-[10px] text-slate-500 font-medium">Gastos de Operación</span>
+                <span className="text-[10px] text-on-surface-variant/70 font-medium">Gastos de Operación</span>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-5">
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-400 uppercase">Beneficio Neto</span>
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase">Beneficio Neto</span>
                   <DollarSign className="h-5 w-5 text-amber-500" />
                 </div>
-                <p className="text-2xl font-bold text-white mt-2">
+                <p className="text-2xl font-bold text-primary mt-2">
                   RD$ {reportData.netProfit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-amber-500 font-medium">Margen Neto Estimado</span>
@@ -141,22 +141,22 @@ export default function ReportsPage() {
             {/* Visual breakdown layout */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Monthly sales charts mockup */}
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 md:col-span-2 space-y-4">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Histórico de Ventas</h3>
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 md:col-span-2 space-y-4">
+                <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Histórico de Ventas</h3>
                 <div className="h-48 flex items-end justify-between pt-4 gap-2">
                   {reportData.monthlyRevenue.map((item: any, idx: number) => {
                     const maxAmount = Math.max(...reportData.monthlyRevenue.map((i: any) => i.amount));
                     const percentage = (item.amount / maxAmount) * 100;
                     return (
                       <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="w-full bg-slate-950 rounded-t relative h-36 flex items-end">
+                        <div className="w-full bg-background rounded-t relative h-36 flex items-end">
                           <motion.div
                             initial={{ height: 0 }}
                             animate={{ height: `${percentage}%` }}
                             className="w-full bg-amber-500/80 rounded-t hover:bg-amber-400 transition-colors"
                           />
                         </div>
-                        <span className="text-[10px] text-slate-400 font-bold">{item.month}</span>
+                        <span className="text-[10px] text-on-surface-variant font-bold">{item.month}</span>
                       </div>
                     );
                   })}
@@ -164,14 +164,14 @@ export default function ReportsPage() {
               </div>
 
               {/* Top Clients */}
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Top Clientes</h3>
-                <div className="divide-y divide-slate-800">
+              <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Top Clientes</h3>
+                <div className="divide-y divide-outline-variant/20">
                   {reportData.topClients.map((client: any, idx: number) => (
                     <div key={idx} className="py-3 flex justify-between items-center text-xs">
                       <div>
-                        <p className="font-semibold text-white">{client.name}</p>
-                        <span className="text-slate-500">Cliente Recurrente</span>
+                        <p className="font-semibold text-primary">{client.name}</p>
+                        <span className="text-on-surface-variant/70">Cliente Recurrente</span>
                       </div>
                       <span className="font-mono text-amber-500 font-semibold">
                         RD$ {client.amount.toLocaleString()}
