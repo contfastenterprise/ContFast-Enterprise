@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { db, users, sessions, roles } from '@/db';
+import { db, users, sessions, roles, userWarehouses } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cf_v2_jwt_access_secret_2026_super_secure_9876543210';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'cf_v2_jwt_refresh_secret_2026_super_secure_0123456789';
+
+// En desarrollo (http://localhost) el flag Secure bloquea las cookies.
+// Sólo activar en producción (HTTPS).
+const isProduction = process.env.NODE_ENV === 'production';
+const SECURE_FLAG = isProduction ? '; Secure' : '';
 
 export interface AuthPayload {
   userId: string;
@@ -13,11 +18,24 @@ export interface AuthPayload {
   role: string; // systems | admin | accounting | billing | bank | cashier
   roleId: string;
   sessionId: string;
+  allowedWarehouses: string[];
 }
 
 // Helpers for hash generation
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export async function fetchAllowedWarehouses(userId: string, roleName: string): Promise<string[]> {
+  if (roleName === 'administrador' || roleName === 'sistemas') {
+    return ['*'];
+  }
+  const assigned = await db
+    .select({ warehouseId: userWarehouses.warehouseId })
+    .from(userWarehouses)
+    .where(eq(userWarehouses.userId, userId));
+    
+  return assigned.map((a: any) => a.warehouseId);
 }
 
 /**
@@ -41,6 +59,7 @@ export async function verifyAuth(
         role: decoded.role,
         roleId: decoded.roleId,
         sessionId: decoded.sessionId,
+        allowedWarehouses: decoded.allowedWarehouses || [],
       };
     } catch (err: any) {
       // If access token is expired, proceed to refresh token validation
@@ -102,6 +121,9 @@ export async function verifyAuth(
       return null;
     }
 
+    // Fetch updated allowed warehouses
+    const allowedWarehouses = await fetchAllowedWarehouses(userWithRole.id, userWithRole.roleName);
+
     // Generate new Access and Refresh tokens
     const newSessionId = session.id;
     const newAccessToken = jwt.sign(
@@ -111,6 +133,7 @@ export async function verifyAuth(
         role: userWithRole.roleName,
         roleId: userWithRole.roleId,
         sessionId: newSessionId,
+        allowedWarehouses,
       },
       JWT_SECRET,
       { expiresIn: '15m' }
@@ -140,11 +163,11 @@ export async function verifyAuth(
     // Set cookies in response headers
     resHeaders.append(
       'Set-Cookie',
-      `accessToken=${newAccessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=900` // 15 mins
+      `accessToken=${newAccessToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=900`
     );
     resHeaders.append(
       'Set-Cookie',
-      `refreshToken=${newRefreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800` // 7 days
+      `refreshToken=${newRefreshToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=604800`
     );
 
     return {
@@ -153,6 +176,7 @@ export async function verifyAuth(
       role: userWithRole.roleName,
       roleId: userWithRole.roleId,
       sessionId: newSessionId,
+      allowedWarehouses,
     };
   } catch (error) {
     return null;
@@ -173,9 +197,12 @@ export async function createSession(
 ): Promise<void> {
   const sessionId = crypto.randomUUID();
 
+  // Fetch allowed warehouses
+  const allowedWarehouses = await fetchAllowedWarehouses(userId, role);
+
   // Generate tokens
   const accessToken = jwt.sign(
-    { userId, companyId, role, roleId, sessionId },
+    { userId, companyId, role, roleId, sessionId, allowedWarehouses },
     JWT_SECRET,
     { expiresIn: '15m' }
   );
@@ -202,11 +229,11 @@ export async function createSession(
   // Set cookies
   resHeaders.append(
     'Set-Cookie',
-    `accessToken=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=900`
+    `accessToken=${accessToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=900`
   );
   resHeaders.append(
     'Set-Cookie',
-    `refreshToken=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800`
+    `refreshToken=${refreshToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=604800`
   );
 }
 
@@ -226,10 +253,10 @@ export async function clearSession(
   // Expire cookies
   resHeaders.append(
     'Set-Cookie',
-    `accessToken=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`
+    `accessToken=; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=0`
   );
   resHeaders.append(
     'Set-Cookie',
-    `refreshToken=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`
+    `refreshToken=; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=0`
   );
 }

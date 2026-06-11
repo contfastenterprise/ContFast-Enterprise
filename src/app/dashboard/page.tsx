@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History, Clock, ChevronRight, Search, Activity
+  FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
+} from 'recharts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Invoice {
@@ -75,7 +78,9 @@ export default function DashboardPage() {
   });
   const [chartPeriod, setChartPeriod] = useState<'semana' | 'mes'>('semana');
   const [searchQuery, setSearchQuery] = useState('');
-  const [chartData, setChartData] = useState<{day: string, pct: number, amount: number}[]>([]);
+  const [chartData, setChartData] = useState<{ day: string, pct: number, amount: number }[]>([]);
+  const [comparisonChart, setComparisonChart] = useState<{ day: string, sales: number, purchases: number }[]>([]);
+  const [topCustomers, setTopCustomers] = useState<{ name: string, total: number }[]>([]);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
   const loadDashboardData = useCallback(async () => {
@@ -96,6 +101,8 @@ export default function DashboardPage() {
           totalInvoices: 0,
         });
         setChartData(data.data.chart || []);
+        setComparisonChart(data.data.comparisonChart || []);
+        setTopCustomers(data.data.topCustomers || []);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -110,6 +117,8 @@ export default function DashboardPage() {
         totalInvoices: 0,
       });
       setChartData([]);
+      setComparisonChart([]);
+      setTopCustomers([]);
       setRecentInvoices([]);
     } finally {
       setLoading(false);
@@ -151,7 +160,7 @@ export default function DashboardPage() {
           <p className="font-body-lg text-on-surface-variant/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
         <button
-          onClick={() => router.push('/invoices?new=true')}
+          onClick={() => router.push('/invoices')}
           className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 active:scale-95 group"
         >
           <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
@@ -215,58 +224,94 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Charts and Activity Section ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8">
-          <div className="flex justify-between items-center mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Line Chart for Sales Trend */}
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8">
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h4 className="font-headline-md text-xl font-bold text-primary">Tendencia de Ventas (E-CF)</h4>
-              <p className="text-body-sm text-on-surface-variant/60 font-medium">Análisis semanal de emisión</p>
-            </div>
-            <div className="flex p-1 bg-surface-container-high rounded-xl">
-              {(['semana', 'mes'] as const).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setChartPeriod(p)}
-                  className={clsx('text-xs px-5 py-2 font-bold rounded-lg transition-all capitalize', chartPeriod === p ? 'bg-white shadow-sm text-primary' : 'text-on-surface-variant hover:text-primary')}
-                >
-                  {p}
-                </button>
-              ))}
+              <h4 className="font-headline-md text-xl font-bold text-primary">Flujo de Ventas (Lineal)</h4>
+              <p className="text-body-sm text-on-surface-variant/60 font-medium">Tendencia semanal</p>
             </div>
           </div>
-          <div className="h-64 flex items-end justify-between gap-4 sm:gap-6 px-2 sm:px-4">
-            {chartData.map((bar, idx) => (
-              <div
-                key={idx}
-                onMouseEnter={() => setHoveredBar(idx)}
-                onMouseLeave={() => setHoveredBar(null)}
-                className={clsx('flex-1 rounded-2xl relative group cursor-pointer transition-all duration-500 shadow-sm', bar.pct === 100 && bar.amount > 0 ? 'bg-gradient-to-t from-primary to-surface-tint shadow-lg shadow-primary/20' : 'bg-primary/10 hover:bg-primary')}
-                style={{ height: `${Math.max(bar.pct, 5)}%` }}
-              >
-                <AnimatePresence>
-                  {(hoveredBar === idx || (bar.pct === 100 && bar.amount > 0)) && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] sm:text-[11px] px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10"
-                    >
-                      {fmt(bar.amount, true)}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
+                <RechartsTooltip 
+                  formatter={(value: any) => [fmt(Number(value) || 0), 'Ventas']}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                />
+                <Line type="monotone" dataKey="amount" stroke="#003366" strokeWidth={4} dot={{ r: 4, fill: '#003366', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Bar Chart for Sales vs Purchases */}
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h4 className="font-headline-md text-xl font-bold text-primary">Ventas vs Compras</h4>
+              <p className="text-body-sm text-on-surface-variant/60 font-medium">Comparativa semanal</p>
+            </div>
+          </div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparisonChart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
+                <RechartsTooltip 
+                  formatter={(value: any, name: any) => [fmt(Number(value) || 0), name === 'sales' ? 'Ventas' : 'Compras']}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '10px' }} />
+                <Bar dataKey="sales" name="Ventas" fill="#003366" radius={[4, 4, 0, 0]} barSize={20} />
+                <Bar dataKey="purchases" name="Compras" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Top Customers Table */}
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+            <h4 className="font-headline-md text-xl font-bold text-primary">Top Clientes del Mes</h4>
+            <Users className="h-5 w-5 text-on-surface-variant/40" />
+          </div>
+          <div className="space-y-4 flex-1">
+            {topCustomers.map((c, i) => (
+              <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-white hover:shadow-sm transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className="font-label-md font-bold text-on-surface">{c.name}</p>
+                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">Cliente Frecuente</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono-data font-bold text-primary">{fmt(c.total)}</p>
+                </div>
               </div>
             ))}
-          </div>
-          <div className="flex justify-between mt-6 text-[10px] sm:text-[11px] text-on-surface-variant font-bold tracking-widest px-2 sm:px-4">
-            {chartData.map((bar, i) => <span key={i}>{bar.day}</span>)}
+            {topCustomers.length === 0 && (
+              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay datos suficientes este mes.</div>
+            )}
           </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h4 className="font-headline-md text-xl font-bold text-primary">Actividad</h4>
-            <History className="h-5 w-5 text-on-surface-variant/40" />
+            <HistoryIcon className="h-5 w-5 text-on-surface-variant/40" />
           </div>
           <div className="space-y-6 flex-1 pr-2 overflow-y-auto max-h-64 custom-scrollbar">
             {filteredInvoices.slice(0, 5).map((inv, i) => (

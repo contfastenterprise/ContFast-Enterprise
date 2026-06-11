@@ -71,7 +71,7 @@ export default function CustomerHistoryPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex h-[80vh] items-center justify-center">
+        <div className="flex h-[80vh] items-center justify-center max-w-7xl mx-auto w-full">
           <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
         </div>
       </DashboardLayout>

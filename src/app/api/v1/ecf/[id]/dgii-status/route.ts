@@ -4,6 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, dgiiSubmissions, companySettings, companies } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
+import { decrypt } from '@/utils/encryption';
 import { eq, and, isNull } from 'drizzle-orm';
 
 function resolveEntorno(dgiiEnv: string | null): string {
@@ -64,8 +65,9 @@ export async function GET(
       .where(and(eq(companySettings.companyId, auth.companyId), isNull(companySettings.deletedAt)))
       .limit(1);
 
-    const msellerEmail = process.env.MSELLER_EMAIL;
-    const msellerPassword = process.env.MSELLER_PASSWORD;
+    const msellerEmail = settings?.msellerEmail || process.env.MSELLER_EMAIL;
+    const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
+    const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : process.env.MSELLER_PASSWORD;
     const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
 
     if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {
@@ -82,8 +84,13 @@ export async function GET(
     }
 
     const entorno = resolveEntorno(settings?.dgiiEnv || null);
+    const msellerUrl = settings?.msellerUrl || 'https://api.mseller.app/v1';
+    
+    // Convert /v1 to base URL if needed, MSellerClient uses baseUrl
+    const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : 'https://ecf.api.mseller.app';
+    
     const client = new MSellerClient({
-      baseUrl: 'https://ecf.api.mseller.app',
+      baseUrl,
       entorno,
       email: msellerEmail,
       password: msellerPassword,

@@ -1,9 +1,19 @@
-import { db, journalEntries, journalEntryLines, chartOfAccounts, companies } from '@/db';
+import { db, journalEntries, journalEntryLines, chartOfAccounts, companies, companySettings, customers, accountsReceivable, invoices } from '@/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 export class ReportRepository {
   static async getCompanyInfo(companyId: string) {
-    const [company] = await db.select().from(companies).where(eq(companies.id, companyId));
+    const [company] = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        rnc: companies.rnc,
+        businessActivity: companies.businessActivity,
+        logoUrl: companySettings.logoUrl,
+      })
+      .from(companies)
+      .leftJoin(companySettings, eq(companies.id, companySettings.companyId))
+      .where(eq(companies.id, companyId));
     return company;
   }
 
@@ -157,6 +167,48 @@ export class ReportRepository {
       totalAsset,
       totalLiability,
       totalEquity
+    };
+  }
+
+  static async getARStatement(companyId: string, customerId: string) {
+    const [customer] = await db.select()
+      .from(customers)
+      .where(and(
+        eq(customers.companyId, companyId),
+        eq(customers.id, customerId)
+      ));
+
+    if (!customer) throw new Error('Cliente no encontrado');
+
+    // Get pending invoices (balance > 0)
+    const openItems = await db.select({
+      id: accountsReceivable.id,
+      invoiceId: invoices.id,
+      invoiceNumber: invoices.invoiceNumber,
+      ncf: invoices.ncf,
+      date: invoices.issueDate,
+      dueDate: accountsReceivable.dueDate,
+      amount: accountsReceivable.amount,
+      balance: accountsReceivable.balance
+    })
+    .from(accountsReceivable)
+    .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
+    .where(and(
+      eq(accountsReceivable.companyId, companyId),
+      eq(accountsReceivable.customerId, customerId),
+      sql`${accountsReceivable.balance} > 0`
+    ))
+    .orderBy(invoices.issueDate);
+
+    let totalPending = 0;
+    for (const item of openItems) {
+      totalPending += Number(item.balance);
+    }
+
+    return {
+      customer,
+      openItems,
+      totalPending
     };
   }
 }

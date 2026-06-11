@@ -28,6 +28,9 @@ export const companySettings = pgTable('company_settings', {
   logoUrl: text('logo_url'),
   msellerUrl: text('mseller_url').default('https://api.mseller.app/v1').notNull(),
   msellerApiKeyEncrypted: text('mseller_api_key_encrypted'),
+  msellerEntorno: varchar('mseller_entorno', { length: 50 }).default('test').notNull(),
+  msellerEmail: varchar('mseller_email', { length: 255 }),
+  msellerPasswordEncrypted: text('mseller_password_encrypted'),
   printLayout: varchar('print_layout', { length: 50 }).default('carta').notNull(), // carta | 80mm | 58mm
   autoDeliveryNotes: boolean('auto_delivery_notes').default(false).notNull(),
   maxCreditNoteApprovalAmount: decimal('max_credit_note_approval_amount', { precision: 15, scale: 2 }).default('10000.00').notNull(),
@@ -210,6 +213,91 @@ export const priceListItems = pgTable('price_list_items', {
 }));
 
 // ==========================================
+// 2.5 WAREHOUSES & INVENTORY TRACKING MODULE
+// ==========================================
+
+export const warehouses = pgTable('warehouses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  code: varchar('code', { length: 50 }).notNull(), // Ej. ALM-01
+  address: text('address'),
+  status: varchar('status', { length: 50 }).default('active').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companyIdx: index('warehouses_company_idx').on(table.companyId),
+  codeIdx: uniqueIndex('warehouses_company_code_idx').on(table.companyId, table.code),
+}));
+
+export const userWarehouses = pgTable('user_warehouses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userWarehouseIdx: uniqueIndex('user_warehouses_user_wh_idx').on(table.userId, table.warehouseId),
+  companyIdx: index('user_warehouses_company_idx').on(table.companyId),
+}));
+
+export const inventoryLevels = pgTable('inventory_levels', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).default('0.0000').notNull(),
+  minStock: decimal('min_stock', { precision: 15, scale: 4 }).default('0.0000').notNull(),
+  maxStock: decimal('max_stock', { precision: 15, scale: 4 }),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  prodWhIdx: uniqueIndex('inventory_levels_prod_wh_idx').on(table.productId, table.warehouseId),
+  companyIdx: index('inventory_levels_company_idx').on(table.companyId),
+}));
+
+export const inventoryMovements = pgTable('inventory_movements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  type: varchar('type', { length: 50 }).notNull(), // sale | purchase | return | adjustment | transfer_in | transfer_out
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(), // Positive or negative
+  balanceAfter: decimal('balance_after', { precision: 15, scale: 4 }).notNull(),
+  referenceId: uuid('reference_id'), // invoice_id, expense_id, transfer_id, etc.
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('inv_movements_company_idx').on(table.companyId),
+  prodWhIdx: index('inv_movements_prod_wh_idx').on(table.productId, table.warehouseId),
+  createdIdx: index('inv_movements_created_idx').on(table.createdAt),
+}));
+
+export const inventoryTransfers = pgTable('inventory_transfers', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  sourceWarehouseId: uuid('source_warehouse_id').notNull().references(() => warehouses.id),
+  destinationWarehouseId: uuid('destination_warehouse_id').notNull().references(() => warehouses.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  status: varchar('status', { length: 50 }).default('completed').notNull(), // pending | completed | cancelled
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('inv_transfers_company_idx').on(table.companyId),
+}));
+
+export const inventoryTransferLines = pgTable('inventory_transfer_lines', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  transferId: uuid('transfer_id').notNull().references(() => inventoryTransfers.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+}, (table) => ({
+  transferIdx: index('inv_trans_lines_transfer_idx').on(table.transferId),
+}));
+
+// ==========================================
 // 3. CUSTOMERS & SUPPLIERS MODULE
 // ==========================================
 
@@ -312,6 +400,7 @@ export const ecfSequences = pgTable('ecf_sequences', {
 export const invoices = pgTable('invoices', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  warehouseId: uuid('warehouse_id').references(() => warehouses.id),
   customerId: uuid('customer_id').references(() => customers.id),
   userId: uuid('user_id').notNull().references(() => users.id),
   cashSessionId: uuid('cash_session_id').references(() => cashSessions.id), // If processed in cashier terminal
@@ -425,6 +514,7 @@ export const bankAccounts = pgTable('bank_accounts', {
   accountNumber: varchar('account_number', { length: 100 }).notNull(),
   currency: varchar('currency', { length: 10 }).default('DOP').notNull(), // DOP | USD | EUR
   type: varchar('type', { length: 50 }).default('corriente').notNull(), // corriente | ahorros
+  color: varchar('color', { length: 50 }).default('#003366').notNull(),
   balance: decimal('balance', { precision: 15, scale: 2 }).default('0.00').notNull(),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -742,6 +832,52 @@ export const cashSessionSummary = pgTable('cash_session_summary', {
 }, (table) => ({
   companyIdx: index('cash_session_summary_company_idx').on(table.companyId),
   sessionIdx: uniqueIndex('cash_session_summary_sess_idx').on(table.cashSessionId),
+}));
+
+export const expenses = pgTable('expenses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  warehouseId: uuid('warehouse_id').references(() => warehouses.id),
+  supplierId: uuid('supplier_id').references(() => suppliers.id), // Made nullable for minor expenses without supplier
+  expenseType: varchar('expense_type', { length: 2 }).notNull(), // '01' to '11'
+  isMinorExpense: boolean('is_minor_expense').default(false).notNull(), // TRUE if it's a petty cash / minor expense
+  ncf: varchar('ncf', { length: 19 }), // Nullable for informal minor expenses
+  ncfModified: varchar('ncf_modified', { length: 19 }),
+  issueDate: date('issue_date').notNull(),
+  paymentDate: date('payment_date'),
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  itbis: decimal('itbis', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  itbisRetained: decimal('itbis_retained', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  itbisProportionality: decimal('itbis_proportionality', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  isrRetained: decimal('isr_retained', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  isc: decimal('isc', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  otherTaxes: decimal('other_taxes', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  tip: decimal('tip', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  paymentMethod: varchar('payment_method', { length: 2 }).notNull(), // '01' to '07'
+  description: text('description'), // Optional general description
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companyIdx: index('expense_company_idx').on(table.companyId),
+  supplierIdx: index('expense_supplier_idx').on(table.supplierId),
+  issueDateIdx: index('expense_issue_date_idx').on(table.issueDate),
+}));
+
+export const expenseLines = pgTable('expense_lines', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  expenseId: uuid('expense_id').notNull().references(() => expenses.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').references(() => products.id), // Nullable for ad-hoc service lines
+  description: text('description').notNull(), // Either product name or manual description
+  quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull(),
+  unitCost: decimal('unit_cost', { precision: 15, scale: 2 }).notNull(),
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull(),
+  itbis: decimal('itbis', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  total: decimal('total', { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  expenseIdx: index('expense_line_exp_idx').on(table.expenseId),
+  productIdx: index('expense_line_prod_idx').on(table.productId),
 }));
 
 // ==========================================

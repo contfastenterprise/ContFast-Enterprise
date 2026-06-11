@@ -65,9 +65,16 @@ export function generateInvoicePdf(
         let logoBuffer: Buffer | null = null;
         if (data.companyLogoUrl) {
           try {
-            const res = await fetch(data.companyLogoUrl);
-            const arrayBuffer = await res.arrayBuffer();
-            logoBuffer = Buffer.from(arrayBuffer);
+            if (data.companyLogoUrl.startsWith('data:')) {
+              const base64Data = data.companyLogoUrl.split(',')[1];
+              if (base64Data) {
+                logoBuffer = Buffer.from(base64Data, 'base64');
+              }
+            } else {
+              const res = await fetch(data.companyLogoUrl);
+              const arrayBuffer = await res.arrayBuffer();
+              logoBuffer = Buffer.from(arrayBuffer);
+            }
           } catch (e) {
             console.error('Failed to load logo for PDF', e);
           }

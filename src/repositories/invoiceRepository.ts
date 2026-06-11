@@ -3,6 +3,7 @@ import { eq, and, isNull, desc, count } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
   companyId: string;
+  warehouseId: string;
   customerId?: string;
   userId: string;
   cashSessionId?: string;
@@ -47,6 +48,7 @@ export class InvoiceRepository {
         .insert(invoices)
         .values({
           companyId: data.companyId,
+          warehouseId: data.warehouseId,
           customerId: data.customerId,
           userId: data.userId,
           cashSessionId: data.cashSessionId,

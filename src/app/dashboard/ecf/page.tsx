@@ -229,22 +229,24 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700"
+          className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-primary">Nueva Autorización SACF</h3>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              <X className="h-5 w-5 text-gray-500" />
+          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+              <Plus className="h-5 w-5 text-[#C5A059]" /> Nueva Autorización SACF
+            </h3>
+            <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo e-CF</label>
+              <label className="text-sm font-semibold text-primary mb-1 block">Tipo e-CF</label>
               <select
                 value={form.ecfType}
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
               >
                 <option value="31">e-31 — Crédito Fiscal</option>
                 <option value="32">e-32 — Consumo</option>
@@ -253,48 +255,48 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secuencia Desde</label>
+                <label className="text-sm font-semibold text-primary mb-1 block">Secuencia Desde</label>
                 <input
                   type="number"
                   min="1"
                   value={form.startSequence}
                   onChange={(e) => setForm((f) => ({ ...f, startSequence: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Secuencia Hasta</label>
+                <label className="text-sm font-semibold text-primary mb-1 block">Secuencia Hasta</label>
                 <input
                   type="number"
                   min="2"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Fecha Vencimiento <span className="text-gray-400 text-xs">(dd-MM-yyyy)</span>
+              <label className="text-sm font-semibold text-primary mb-1 block">
+                Fecha Vencimiento <span className="text-on-surface-variant/70 text-xs font-normal">(dd-MM-yyyy)</span>
               </label>
               <input
                 type="text"
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
               >
                 Cancelar
               </button>
@@ -406,37 +408,45 @@ function ComprobantesTab() {
     {
       title: 'Total Facturado',
       value: formatCurrency(stats?.totalAmount || '0'),
-      icon: <TrendingUp className="h-5 w-5" />,
-      color: 'from-primary/10 to-primary/5 border-primary/20',
-      iconColor: 'text-primary',
+      icon: <TrendingUp className="h-6 w-6" />,
+      color: 'bg-secondary/10',
+      iconColor: 'text-secondary',
+      border: 'border-secondary/20',
+      glow: 'shadow-[0_0_15px_rgba(197,160,89,0.15)]'
     },
     {
       title: 'ITBIS Recaudado',
       value: formatCurrency(stats?.totalITBIS || '0'),
-      icon: <BarChart3 className="h-5 w-5" />,
-      color: 'from-secondary/10 to-secondary/5 border-secondary/20',
-      iconColor: 'text-secondary',
+      icon: <BarChart3 className="h-6 w-6" />,
+      color: 'bg-primary/10',
+      iconColor: 'text-primary',
+      border: 'border-primary/20',
+      glow: 'shadow-[0_0_15px_rgba(0,51,102,0.15)]'
     },
     {
       title: '% Aprobados',
       value: `${stats?.approvalRate ?? 0}%`,
-      icon: <CheckCircle2 className="h-5 w-5" />,
-      color: 'from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800',
-      iconColor: 'text-green-600 dark:text-green-400',
+      icon: <CheckCircle2 className="h-6 w-6" />,
+      color: 'bg-green-500/10',
+      iconColor: 'text-green-500',
+      border: 'border-green-500/20',
+      glow: 'shadow-[0_0_15px_rgba(34,197,94,0.15)]'
     },
     {
       title: 'Total Comprobantes',
       value: stats?.totalCount?.toLocaleString() ?? '0',
-      icon: <FileText className="h-5 w-5" />,
-      color: 'from-primary/5 to-primary/5 border-primary/10',
-      iconColor: 'text-primary/70',
+      icon: <FileText className="h-6 w-6" />,
+      color: 'bg-outline-variant/20',
+      iconColor: 'text-on-surface',
+      border: 'border-outline-variant/20',
+      glow: ''
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Premium Light */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {loadingStats
           ? Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
           : kpis.map((kpi) => (
@@ -444,32 +454,37 @@ function ComprobantesTab() {
                 key={kpi.title}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl border bg-gradient-to-br ${kpi.color} p-5 flex flex-col gap-2`}
+                className={`bg-white border border-outline-variant shadow-sm p-6 rounded-xl flex flex-col justify-between group transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden`}
               >
-                <div className={`${kpi.iconColor}`}>{kpi.icon}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{kpi.title}</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-primary">{kpi.value}</p>
+                <div className={`absolute top-0 left-0 right-0 h-[3px] opacity-80 ${kpi.color}`} />
+                <div className="flex justify-between items-start mb-6 mt-2">
+                  <div className={`p-2 rounded-xl ${kpi.color}`}>
+                    <div className={kpi.iconColor}>{kpi.icon}</div>
+                  </div>
+                </div>
+                <div className="font-label-md text-xs text-on-surface-variant uppercase tracking-widest mb-1.5 font-bold">{kpi.title}</div>
+                <div className="font-headline-md text-2xl md:text-3xl font-extrabold text-primary tracking-tight">{kpi.value}</div>
               </motion.div>
             ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex flex-wrap gap-3 items-center">
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
             <input
               type="text"
-              placeholder="Buscar por NCF..."
+              placeholder="Buscar por NCF o RNC..."
               value={filters.q}
               onChange={(e) => { setFilters((f) => ({ ...f, q: e.target.value })); setPage(1); }}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-outline-variant bg-white text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-on-surface-variant/50"
             />
           </div>
           <select
             value={filters.ecfType}
             onChange={(e) => { setFilters((f) => ({ ...f, ecfType: e.target.value })); setPage(1); }}
-            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
           >
             <option value="">Todos los tipos</option>
             <option value="31">e-31 Crédito Fiscal</option>
@@ -480,7 +495,7 @@ function ComprobantesTab() {
           <select
             value={filters.status}
             onChange={(e) => { setFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
-            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -493,105 +508,76 @@ function ComprobantesTab() {
             type="date"
             value={filters.from}
             onChange={(e) => { setFilters((f) => ({ ...f, from: e.target.value })); setPage(1); }}
-            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all"
           />
-          <span className="text-gray-400 text-sm">–</span>
+          <span className="text-on-surface-variant text-sm flex items-center">–</span>
           <input
             type="date"
             value={filters.to}
             onChange={(e) => { setFilters((f) => ({ ...f, to: e.target.value })); setPage(1); }}
-            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all"
           />
           {(filters.q || filters.ecfType || filters.status || filters.from || filters.to) && (
             <button
               onClick={() => { setFilters({ status: '', ecfType: '', from: '', to: '', q: '' }); setPage(1); }}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors"
             >
-              <X className="h-3.5 w-3.5" /> Limpiar
+              <X className="h-4 w-4" /> Limpiar
             </button>
           )}
         </div>
+        
+        <button
+          onClick={fetchInvoices}
+          className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap"
+        >
+          <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+          <span>ACTUALIZAR DATOS</span>
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto custom-scrollbar">
           {loadingList ? (
             <div className="p-6"><TableSkeleton /></div>
           ) : invoiceList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
-              <FileText className="h-12 w-12 opacity-30" />
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+              <FileText className="h-8 w-8 opacity-20" />
               <p className="text-sm font-medium">No se encontraron comprobantes</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Comprador</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monto</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ITBIS</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead className="bg-surface-container-low border-b border-outline-variant">
+                <tr>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">NCF</th>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Tipo</th>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Monto Total</th>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-center">Estado DGII</th>
+                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-outline-variant">
                 {invoiceList.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">{formatDate(inv.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{inv.ncf}</span>
-                    </td>
-                    <td className="px-4 py-3"><ECFTypeBadge type={inv.ecfType} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]">
-                          {inv.buyerName || 'CONSUMIDOR FINAL'}
+                  <tr key={inv.id} className="hover:bg-surface-container-low/50 transition-colors group">
+                    <td className="py-4 px-6 font-body-sm text-on-surface-variant">{formatDate(inv.createdAt)}</td>
+                    <td className="py-4 px-6 font-body-sm text-primary font-medium">{inv.ncf}</td>
+                    <td className="py-4 px-6"><ECFTypeBadge type={inv.ecfType} /></td>
+                    <td className="py-4 px-6 font-body-sm text-on-surface font-bold">{formatCurrency(inv.total)}</td>
+                    <td className="py-4 px-6 text-center flex flex-col items-center gap-1">
+                      <StatusBadge status={inv.status} />
+                      {inv.dgiiMessage && (
+                        <span className="text-[10px] text-on-surface-variant max-w-[120px] truncate" title={inv.dgiiMessage}>
+                          {inv.dgiiMessage}
                         </span>
-                        {inv.buyerRnc && (
-                          <span className="text-xs text-gray-400 font-mono">{inv.buyerRnc}</span>
-                        )}
-                      </div>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-primary whitespace-nowrap">
-                      {formatCurrency(inv.total)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      {formatCurrency(inv.totalTaxes)}
-                    </td>
-                    <td className="px-4 py-3 text-center"><StatusBadge status={inv.status} /></td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          title="Ver detalle"
-                          onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          title="Consultar estado DGII"
-                          onClick={() => handleRefreshStatus(inv)}
-                          disabled={refreshingId === inv.id}
-                          className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
-                        >
-                          {refreshingId === inv.id
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <RefreshCw className="h-3.5 w-3.5" />}
-                        </button>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary"><Eye className="h-4 w-4" /></button>
+                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
                         {['rejected', 'failed'].includes(inv.status) && (
-                          <button
-                            title="Reenviar a DGII"
-                            onClick={() => handleResubmit(inv)}
-                            disabled={resubmittingId === inv.id}
-                            className="p-1.5 rounded-lg hover:bg-secondary/10 text-secondary transition-colors disabled:opacity-50"
-                          >
-                            {resubmittingId === inv.id
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <ArrowRight className="h-3.5 w-3.5" />}
-                          </button>
+                          <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 hover:bg-error-container text-error rounded transition-colors"><ArrowRight className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>
@@ -602,27 +588,12 @@ function ComprobantesTab() {
           )}
         </div>
 
-        {/* Pagination */}
         {meta.total_pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800">
-            <span className="text-xs text-gray-500">
-              {meta.total} comprobantes • Página {meta.page} de {meta.total_pages}
-            </span>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
+            <span className="text-xs text-on-surface-variant font-medium">Página {meta.page} de {meta.total_pages}</span>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))}
-                disabled={page >= meta.total_pages}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors disabled:opacity-50">Anterior</button>
+              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors disabled:opacity-50">Siguiente</button>
             </div>
           </div>
         )}
@@ -1051,7 +1022,7 @@ export default function ECFPage() {
         const res = await fetch('/api/v1/company/settings');
         const data = await res.json();
         if (data.success) {
-          const env = data.data?.dgiiEnv;
+          const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
           if (env === 'production') setEntorno('PROD');
           else if (env === 'cert') setEntorno('CERT');
           else setEntorno('TEST');
@@ -1071,41 +1042,52 @@ export default function ECFPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Premium Light */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-outline-variant"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-outline-variant shadow-sm relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent" />
+            <ShieldCheck className="h-6 w-6 text-primary relative z-10" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-primary">Comprobantes Fiscales e-CF</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Gestión integral de facturación electrónica DGII</p>
+            <h1 className="text-3xl font-extrabold text-primary tracking-tight font-display-lg">Central e-CF</h1>
+            <p className="text-sm text-on-surface-variant mt-1">Gestión integral de facturación electrónica DGII</p>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${entornoConfig[entorno].color}`}>
-          <ShieldCheck className="h-3 w-3" />
-          {entornoConfig[entorno].label}
-        </span>
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border shadow-sm transition-all ${
+          entorno === 'TEST' 
+            ? 'bg-error-container text-on-error-container border-error/30 animate-pulse' 
+            : 'bg-white text-primary border-outline-variant'
+        }`}>
+          <ShieldCheck className="h-4 w-4" />
+          <span className="tracking-wider uppercase">{entornoConfig[entorno].label}</span>
+        </div>
       </motion.div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
+      {/* Tabs Premium Light */}
+      <div className="flex gap-2 border-b border-outline-variant px-2">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`relative flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all ${
               activeTab === tab.id
-                ? 'bg-surface-bright text-primary shadow-sm border border-outline-variant/30'
-                : 'text-on-surface-variant hover:text-primary'
+                ? 'text-primary'
+                : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-low/50 rounded-t-xl'
             }`}
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden sm:inline tracking-wide">{tab.label}</span>
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTabIndicator"
+                className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-sm"
+              />
+            )}
           </button>
         ))}
       </div>

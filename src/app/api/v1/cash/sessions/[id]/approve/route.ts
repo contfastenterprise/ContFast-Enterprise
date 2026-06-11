@@ -21,12 +21,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "administracion:write" or equivalent supervisor permissions
-    if (auth.role !== 'administracion' && auth.role !== 'sistemas') {
-      return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: 'Acción restringida. Requiere rol de Administración o Sistemas.' } },
-        { status: 403, headers: resHeaders }
-      );
-    }
+    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
 
     const session = await CashService.approveSession(auth.userId, auth.companyId, id);
 

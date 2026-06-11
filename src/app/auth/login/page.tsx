@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Shield, Mail, Lock, Loader2, Sparkles } from 'lucide-react';
+import { Mail, Lock, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -105,11 +105,16 @@ export default function LoginPage() {
       >
         <div className="text-center">
           <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-blue-950 border border-blue-900 text-amber-500 shadow-lg shadow-amber-500/10"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+            className="mx-auto flex h-20 w-20 items-center justify-center"
           >
-            <Shield className="h-8 w-8" />
+            <img
+              src="/contfast-logo.png"
+              alt="ContFast Enterprise"
+              className="h-20 w-20 rounded-2xl object-cover shadow-2xl shadow-teal-900/40 ring-2 ring-teal-500/30"
+            />
           </motion.div>
           <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-primary">
             ContFast <span className="text-amber-500">Enterprise</span>

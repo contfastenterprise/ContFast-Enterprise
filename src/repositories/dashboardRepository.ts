@@ -120,4 +120,80 @@ export class DashboardRepository {
     .orderBy(desc(invoices.createdAt))
     .limit(10);
   }
+
+  static async getComparisonChart(companyId: string) {
+    // Same week logic
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const startOfWeek = new Date(today.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weekInvoices = await db.select({
+      total: invoices.total,
+      createdAt: invoices.createdAt
+    }).from(invoices)
+    .where(and(
+      eq(invoices.companyId, companyId),
+      gte(invoices.createdAt, startOfWeek)
+    ));
+
+    const { expenses } = await import('@/db');
+    const weekExpenses = await db.select({
+      amount: expenses.amount,
+      createdAt: expenses.createdAt
+    }).from(expenses)
+    .where(and(
+      eq(expenses.companyId, companyId),
+      gte(expenses.createdAt, startOfWeek)
+    ));
+
+    const days = [1, 2, 3, 4, 5, 6, 0];
+    const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
+
+    const chartData = days.map(d => {
+      let sales = 0;
+      let purchases = 0;
+      for (const inv of weekInvoices) {
+        if (new Date(inv.createdAt).getDay() === d) sales += parseFloat(inv.total) || 0;
+      }
+      for (const exp of weekExpenses) {
+        if (new Date(exp.createdAt).getDay() === d) purchases += parseFloat(exp.amount) || 0;
+      }
+      return {
+        day: mapDayName[d as keyof typeof mapDayName],
+        sales,
+        purchases
+      };
+    });
+
+    return chartData;
+  }
+
+  static async getTopCustomers(companyId: string) {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const monthInvoices = await db.select({
+      total: invoices.total,
+      buyerName: invoices.buyerName
+    }).from(invoices)
+    .where(and(
+      eq(invoices.companyId, companyId),
+      gte(invoices.createdAt, startOfMonth)
+    ));
+
+    const customerTotals: Record<string, number> = {};
+    for (const inv of monthInvoices) {
+      const name = inv.buyerName || 'Consumidor Final';
+      customerTotals[name] = (customerTotals[name] || 0) + (parseFloat(inv.total) || 0);
+    }
+
+    const sorted = Object.entries(customerTotals)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    return sorted;
+  }
 }

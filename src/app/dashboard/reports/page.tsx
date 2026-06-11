@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
-import { PieChart, Download, FileText, Calendar, Building, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { PieChart, Download, FileText, Calendar, Building, BookOpen, Loader2, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ReportsPage() {
@@ -10,121 +9,206 @@ export default function ReportsPage() {
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+  const [warehouseId, setWarehouseId] = useState('all');
+  const [warehouses, setWarehouses] = useState<{id: string, name: string}[]>([]);
+  const [loadingType, setLoadingType] = useState<string | null>(null);
 
-  const handleGeneratePdf = (type: string) => {
+  useEffect(() => {
+    fetch('/api/v1/warehouses').then(res => res.json()).then(data => {
+      if (data.success && data.data) {
+        setWarehouses(data.data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleGeneratePdf = async (type: string) => {
     if (!dates.start || !dates.end) {
       toast.error('Seleccione un rango de fechas válido');
       return;
     }
-    
-    // Open PDF in new tab
-    const url = `/api/v1/reports/pdf?type=${type}&start=${dates.start}&end=${dates.end}`;
-    window.open(url, '_blank');
+
+    setLoadingType(type);
+    try {
+      // Usar fetch para que las cookies de sesión (HttpOnly) se envíen correctamente.
+      // window.open() en una pestaña nueva NO envía cookies SameSite=Strict.
+      const url = `/api/v1/reports/pdf?type=${type}&start=${dates.start}&end=${dates.end}${warehouseId !== 'all' ? `&warehouseId=${warehouseId}` : ''}`;
+      const res = await fetch(url, { credentials: 'include' });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: { message: 'Error desconocido' } }));
+        throw new Error(err?.error?.message || `Error ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      // Abrir en nueva pestaña y liberar la URL temporal tras la apertura
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+
+      toast.success('PDF generado correctamente');
+    } catch (err: any) {
+      toast.error('Error al generar PDF', { description: err.message });
+    } finally {
+      setLoadingType(null);
+    }
   };
 
   return (
-    <DashboardLayout>
-      <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20">
-        <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-           <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-             <PieChart className="h-3 w-3" /> Reportes Financieros
-           </span>
-        </div>
-
-        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-          
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-                Reportes y Analíticas
-              </h1>
-              <p className="text-on-surface-variant/70 text-sm mt-1">
-                Genera los estados financieros en formato PDF listo para auditoría.
-              </p>
-            </div>
-          </div>
-
-          {/* Global Date Filter */}
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
-            <div>
-              <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3"/> Fecha Inicio</label>
-              <input 
-                type="date" 
-                value={dates.start}
-                onChange={e => setDates({...dates, start: e.target.value})}
-                className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3"/> Fecha Fin / Corte</label>
-              <input 
-                type="date" 
-                value={dates.end}
-                onChange={e => setDates({...dates, end: e.target.value})}
-                className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
-              />
-            </div>
-            <div className="ml-auto text-xs text-on-surface-variant font-medium">
-              * Estos filtros aplicarán a todos los reportes generados a continuación.
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-            
-            {/* Income Statement Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
-              <div className="absolute top-0 left-0 w-1 h-full bg-[#003366]" />
-              <div className="flex items-center gap-3 mb-2">
-                <FileText className="w-6 h-6 text-[#003366]" />
-                <h3 className="font-bold text-lg text-[#003366]">Estado de Resultados (P&L)</h3>
-              </div>
-              <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
-                Detalle de Ingresos, Costos de Venta y Gastos Operativos. Calcula la Utilidad Bruta y Neta del periodo seleccionado.
-              </p>
-              <button 
-                onClick={() => handleGeneratePdf('income_statement')}
-                className="w-full bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-              >
-                <Download className="w-4 h-4" /> Generar PDF
-              </button>
-            </div>
-
-            {/* Balance Sheet Card */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
-              <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
-              <div className="flex items-center gap-3 mb-2">
-                <Building className="w-6 h-6 text-[#C5A059]" />
-                <h3 className="font-bold text-lg text-[#003366]">Balance General</h3>
-              </div>
-              <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
-                Estado de la situación financiera. Refleja todos los Activos, Pasivos y el Capital de la empresa a la fecha de corte seleccionada.
-              </p>
-              <button 
-                onClick={() => handleGeneratePdf('balance_sheet')}
-                className="w-full bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-              >
-                <Download className="w-4 h-4" /> Generar PDF
-              </button>
-            </div>
-
-            {/* Upcoming Reports Placeholders */}
-            <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center opacity-70">
-              <BookOpen className="w-8 h-8 text-on-surface-variant mb-3" />
-              <h3 className="font-bold text-on-surface-variant/80">Estado de Cuenta de Cliente</h3>
-              <p className="text-xs text-on-surface-variant mt-1">Próximamente</p>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center opacity-70">
-              <Building className="w-8 h-8 text-on-surface-variant mb-3" />
-              <h3 className="font-bold text-on-surface-variant/80">Conciliación Bancaria</h3>
-              <p className="text-xs text-on-surface-variant mt-1">Próximamente</p>
-            </div>
-
-          </div>
-
-        </div>
+    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
+      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
+        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+          <PieChart className="h-3 w-3" /> Reportes Financieros
+        </span>
       </div>
-    </DashboardLayout>
+
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
+              Reportes y Analíticas
+            </h1>
+            <p className="text-on-surface-variant/70 text-sm mt-1">
+              Genera los estados financieros en formato PDF listo para auditoría.
+            </p>
+          </div>
+        </div>
+
+        {/* Global Date Filter */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Inicio</label>
+            <input
+              type="date"
+              value={dates.start}
+              onChange={e => setDates({ ...dates, start: e.target.value })}
+              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Fin / Corte</label>
+            <input
+              type="date"
+              value={dates.end}
+              onChange={e => setDates({ ...dates, end: e.target.value })}
+              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Building2 className="w-3 h-3" /> Almacén</label>
+            <select
+              value={warehouseId}
+              onChange={e => setWarehouseId(e.target.value)}
+              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+            >
+              <option value="all">Todos los Almacenes</option>
+              {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
+          </div>
+          <div className="ml-auto text-xs text-on-surface-variant font-medium">
+            * Estos filtros aplicarán a todos los reportes generados a continuación.
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+
+          {/* Income Statement Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#003366]" />
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="w-6 h-6 text-[#003366]" />
+              <h3 className="font-bold text-lg text-[#003366]">Estado de Resultados (P&L)</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Detalle de Ingresos, Costos de Venta y Gastos Operativos. Calcula la Utilidad Bruta y Neta del periodo seleccionado.
+            </p>
+            <button
+              onClick={() => handleGeneratePdf('income_statement')}
+              disabled={loadingType !== null}
+              className="w-full bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loadingType === 'income_statement' ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
+              ) : (
+                <><Download className="w-4 h-4" /> Generar PDF</>
+              )}
+            </button>
+          </div>
+
+          {/* Balance Sheet Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
+            <div className="flex items-center gap-3 mb-2">
+              <Building className="w-6 h-6 text-[#C5A059]" />
+              <h3 className="font-bold text-lg text-[#003366]">Balance General</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Estado de la situación financiera. Refleja todos los Activos, Pasivos y el Capital de la empresa a la fecha de corte seleccionada.
+            </p>
+            <button
+              onClick={() => handleGeneratePdf('balance_sheet')}
+              disabled={loadingType !== null}
+              className="w-full bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loadingType === 'balance_sheet' ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
+              ) : (
+                <><Download className="w-4 h-4" /> Generar PDF</>
+              )}
+            </button>
+          </div>
+          {/* Formato 606 Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="w-6 h-6 text-blue-600" />
+              <h3 className="font-bold text-lg text-blue-900">Formato 606 (Compras y Gastos)</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Genera y exporta el archivo en formato TXT requerido por la DGII para el reporte mensual de compras y gastos.
+            </p>
+            <a
+              href="/dashboard/reports/606"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+            >
+              <FileText className="w-4 h-4" /> Ver Reporte 606
+            </a>
+          </div>
+          {/* Formato 607 Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-green-600" />
+            <div className="flex items-center gap-3 mb-2">
+              <FileText className="w-6 h-6 text-green-600" />
+              <h3 className="font-bold text-lg text-green-900">Formato 607 (Ventas e Ingresos)</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Consulta tu libro de ventas e-CF y exporta el archivo TXT resumen mensual equivalente al formato 607.
+            </p>
+            <a
+              href="/dashboard/reports/607"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+            >
+              <FileText className="w-4 h-4" /> Ver Reporte 607
+            </a>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center opacity-70">
+            <Building className="w-8 h-8 text-on-surface-variant mb-3" />
+            <h3 className="font-bold text-on-surface-variant/80">Conciliación Bancaria</h3>
+            <p className="text-xs text-on-surface-variant mt-1">Próximamente</p>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
   );
 }

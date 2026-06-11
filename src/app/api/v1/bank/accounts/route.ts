@@ -9,6 +9,7 @@ const createAccountSchema = z.object({
   accountNumber: z.string().min(4, 'El número de cuenta es requerido'),
   currency: z.string().min(3),
   type: z.string().min(2),
+  color: z.string().optional(),
   initialBalance: z.number()
 });
 

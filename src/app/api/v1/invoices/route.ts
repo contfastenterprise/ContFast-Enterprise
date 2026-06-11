@@ -9,6 +9,7 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 // Zod validation schema for creating an invoice
 const createInvoiceSchema = z.object({
   customerId: z.string().uuid().optional(),
+  warehouseId: z.string().uuid(),
   cashSessionId: z.string().uuid().optional(),
   ecfType: z.enum(['31', '32', '33', '34'], {
     message: 'Tipo de e-CF inválido. Debe ser 31 (Fiscal), 32 (Consumo), 33 (ND) o 34 (NC)',

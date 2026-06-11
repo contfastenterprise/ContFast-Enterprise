@@ -51,7 +51,7 @@ export async function GET(
       );
     }
 
-    if (auth.role === 'cajero' && session.userId !== auth.userId) {
+    if (auth.role.toLowerCase().includes('cajero') && session.userId !== auth.userId) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Como cajero, solo puede visualizar los movimientos de su propia sesión.' } },
         { status: 403, headers: resHeaders }

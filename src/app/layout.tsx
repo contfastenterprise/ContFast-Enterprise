@@ -20,6 +20,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ContFast Enterprise | Facturación Electrónica e-CF DGII",
   description: "Sistema de facturación electrónica e-CF multi-empresa homologado con la DGII de República Dominicana. Rápido, seguro e institucional.",
+  icons: {
+    icon: '/contfast-logo.png',
+    apple: '/contfast-logo.png',
+  },
 };
 
 export default function RootLayout({

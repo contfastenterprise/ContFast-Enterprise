@@ -67,11 +67,26 @@ export class AdminRepository {
     });
   }
 
-  static async toggleUserStatus(userId: string, companyId: string) {
-    const [user] = await db.select().from(users).where(and(eq(users.id, userId), eq(users.companyId, companyId)));
-    if (!user) throw new Error('Usuario no encontrado');
+  static async toggleUserStatus(userId: string, companyId: string, actingUserRole: string) {
+    const [userWithRole] = await db
+      .select({
+         user: users,
+         roleName: roles.name
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .where(and(eq(users.id, userId), eq(users.companyId, companyId)));
+      
+    if (!userWithRole) throw new Error('Usuario no encontrado');
 
-    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    const isTargetSystem = userWithRole.roleName?.toLowerCase().includes('sistema');
+    const isActorSystem = actingUserRole.toLowerCase().includes('sistema');
+
+    if (isTargetSystem && !isActorSystem) {
+       throw new Error('Permiso denegado: Solo un usuario de sistemas puede modificar o desactivar a otro usuario de sistemas.');
+    }
+
+    const newStatus = userWithRole.user.status === 'active' ? 'inactive' : 'active';
     
     const [updated] = await db.update(users)
       .set({ status: newStatus, updatedAt: new Date() })

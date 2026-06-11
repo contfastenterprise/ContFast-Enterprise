@@ -71,13 +71,15 @@ export async function hasPermission(
 ): Promise<boolean> {
   const permissionKey = `${module}:${action}`;
 
+  const normalizedRole = roleName.toLowerCase();
+
   // 1. Check Fixed Roles (Sistemas & Administracion)
-  if (roleName === 'sistemas') {
+  if (normalizedRole.includes('sistema')) {
     // Total access to everything, including audit logs modification config and technical parameters
     return true;
   }
 
-  if (roleName === 'administracion') {
+  if (normalizedRole.includes('admin')) {
     // Access to all operational modules, read-only for audit logs & technical config
     if (module === 'auditoria' || module === 'administracion') {
       return action === 'read';

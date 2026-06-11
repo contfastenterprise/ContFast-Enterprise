@@ -4,15 +4,18 @@ import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRep
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
+import { CustomerRepository } from '@/repositories/customerRepository';
 import { decrypt, decryptToBuffer } from '@/utils/encryption';
 import { generateInvoicePdf, PDFInvoiceData } from '@/utils/pdfGenerator';
 import { addJob } from '@/infrastructure/queue';
 import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
+import { checkStock, deductStock } from '@/services/inventoryService';
 import fs from 'fs';
 import path from 'path';
 
 export interface IssueInvoiceInput {
   companyId: string;
+  warehouseId: string;
   customerId?: string;
   userId: string;
   cashSessionId?: string;
@@ -80,6 +83,14 @@ export class InvoiceService {
 
     // 2. Perform transactional operations
     return await db.transaction(async (tx) => {
+      // 2.0. Verify Stock Availability
+      for (const line of itemLines) {
+        const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx);
+        if (!hasStock) {
+          throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
+        }
+      }
+
       // 2.1. Allocate NCF (locks sequence row)
       const ncf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
 
@@ -91,35 +102,13 @@ export class InvoiceService {
         throw new Error('Compañía no encontrada.');
       }
 
-      // 2.3. Delegate to MSeller API instead of manual XML generation and signing
-      const msellerPayload: MSellerInvoicePayload = {
-        companyRnc: company.rnc,
-        ncfType: data.ecfType,
-        buyerRnc: data.customerId ? '123456789' : '222222222', // Ideally fetch from DB
-        buyerName: 'CONSUMIDOR FINAL',
-        currency: 'DOP',
-        paymentMethod: data.paymentType === 'cash' ? 1 : 2,
-        items: itemLines.map(line => ({
-          quantity: line.quantity,
-          description: line.name,
-          unitPrice: line.unitPrice,
-          discount: line.discount,
-          taxRate: line.taxRate
-        }))
-      };
+      // 2.3. No synchronous mSeller API call here to maintain scalability and low latency.
+      // We rely on the worker to send the payload asynchronously.
+      const msellerTrackId = null;
+      const dgiiMessage = null;
 
-      const msellerResponse = await MSellerClient.issueInvoice(msellerPayload);
-      
-      // The API should return the NCF (or we use the allocated one)
-      const finalNcf = msellerResponse?.data?.ncf || ncf;
-      const signedXml = msellerResponse?.data?.signedXmlBase64 
-        ? Buffer.from(msellerResponse.data.signedXmlBase64, 'base64').toString('utf-8')
-        : '<xml>MOCK SIGNED XML FROM M-SELLER</xml>';
-      
-      const msellerTrackId = msellerResponse?.data?.trackId || null;
-      const dgiiMessage = msellerResponse?.data?.dgiiMessage || null;
-
-      const rawXml = '<xml>MOCK RAW XML (Handled by MSeller)</xml>';
+      const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
+      const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
 
       // 2.5. Generate security hash for PDF
       const securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
@@ -169,6 +158,7 @@ export class InvoiceService {
       // 2.8. Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
         companyId: data.companyId,
+        warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
         cashSessionId: data.cashSessionId,
@@ -192,6 +182,21 @@ export class InvoiceService {
       };
 
       const invoice = await InvoiceRepository.create(invoiceInput);
+
+      // 2.8.1 Deduct inventory
+      for (const line of itemLines) {
+        await deductStock(
+          data.companyId,
+          line.productId,
+          data.warehouseId,
+          line.quantity,
+          data.userId,
+          'sale',
+          invoice.id,
+          `Venta Factura ${ncf}`,
+          tx
+        );
+      }
 
       // 2.9. Book automatic accounting journal entries (Double Entry)
       const accCxC = await getOrCreateAccount(tx, data.companyId, '1.1.02', 'Cuentas por Cobrar Clientes', 'asset');
@@ -257,6 +262,24 @@ export class InvoiceService {
         companyId: data.companyId,
         invoiceId: invoice.id,
       });
+
+      // 4. Send credit invoice email if customer has a registered email
+      if (data.paymentType === 'credit' && data.customerId) {
+        try {
+          const customer = await CustomerRepository.findById(data.customerId, data.companyId);
+          if (customer && customer.email) {
+            await addJob('emails-sending', 'send-email', {
+              to: customer.email,
+              subject: `Factura a Crédito - NCF: ${invoice.ncf}`,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura a crédito NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\nContFast`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura a crédito NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
+            });
+            console.log(`[InvoiceService] Credit invoice email queued for customer ${customer.email} regarding NCF ${invoice.ncf}`);
+          }
+        } catch (emailErr) {
+          console.error('[InvoiceService] Error queuing email for credit invoice:', emailErr);
+        }
+      }
 
       return invoice;
     });

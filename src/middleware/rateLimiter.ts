@@ -29,12 +29,15 @@ export async function checkRateLimit(
   const redisKey = `ratelimit:${preset}:${key}`;
 
   try {
-    // Increment the request count for the key
-    const currentCount = await redis.incr(redisKey);
+    // Incrementar con un timeout de 1 segundo para evitar que el request se congele si Redis está caído
+    const incrPromise = redis.incr(redisKey);
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 1000));
+    
+    const currentCount = await Promise.race([incrPromise, timeoutPromise]) as number;
 
     // If it's the first request in the window, set the expiration
     if (currentCount === 1) {
-      await redis.expire(redisKey, windowSeconds);
+      redis.expire(redisKey, windowSeconds).catch(() => {}); // Fire and forget
     }
 
     // If count exceeds limit, rate limit the request

@@ -9,10 +9,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    const [stats, chart, recent] = await Promise.all([
+    const [stats, chart, recent, comparisonChart, topCustomers] = await Promise.all([
       DashboardRepository.getStats(session.companyId),
       DashboardRepository.getWeeklyChart(session.companyId),
-      DashboardRepository.getRecentActivity(session.companyId)
+      DashboardRepository.getRecentActivity(session.companyId),
+      DashboardRepository.getComparisonChart(session.companyId),
+      DashboardRepository.getTopCustomers(session.companyId)
     ]);
 
     return NextResponse.json({
@@ -20,7 +22,9 @@ export async function GET(req: NextRequest) {
       data: {
         stats,
         chart,
-        recent
+        recent,
+        comparisonChart,
+        topCustomers
       }
     });
   } catch (err: any) {

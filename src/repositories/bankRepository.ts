@@ -9,6 +9,7 @@ export interface CreateBankAccountInput {
   currency: string;
   type: string;
   initialBalance: number;
+  color?: string;
 }
 
 export interface RegisterBankTransactionInput {
@@ -44,6 +45,7 @@ export class BankRepository {
         accountNumber: data.accountNumber,
         currency: data.currency,
         type: data.type,
+        color: data.color || '#003366',
         balance: data.initialBalance.toString()
       }).returning();
 

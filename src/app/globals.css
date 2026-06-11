@@ -107,7 +107,12 @@
   --radius-full: 9999px;
 }
 
+
 body {
   background-color: var(--color-background);
   color: var(--color-on-background);
+}
+
+html {
+  font-size: 14px; /* Default is 16px. Reducir la fuente base escala todos los textos de Tailwind. */
 }

@@ -10,7 +10,8 @@ const confirmSchema = z.object({
   company: z.object({
     name: z.string().min(3),
     rnc: z.string().regex(/^(?:\d{9}|\d{11})$/),
-    businessActivity: z.string().min(5).optional(),
+    // Acepta cadena vacía o string con al menos 5 chars (el campo es opcional en el wizard)
+    businessActivity: z.string().min(5).optional().or(z.literal('')),
   }),
   fiscal: z.object({
     dgiiEnv: z.enum(['test', 'production']),

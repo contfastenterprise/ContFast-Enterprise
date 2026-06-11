@@ -50,6 +50,20 @@
       "when": 1780958570301,
       "tag": "0006_third_synch",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780971093207,
+      "tag": "0007_wide_dust",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781178674667,
+      "tag": "0008_sparkling_bug",
+      "breakpoints": true
     }
   ]
 }

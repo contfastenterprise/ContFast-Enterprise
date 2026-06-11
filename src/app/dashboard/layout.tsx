@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart } from 'lucide-react';
+import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -12,26 +12,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
 
   useEffect(() => {
-    const savedUser = typeof window !== 'undefined' ? localStorage.getItem('cf_user') : null;
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      setUser({
-        name: 'Administrador ContFast',
-        email: 'admin@contfast.com',
-        role: 'sistemas',
-        companyId: '123',
-      });
-    }
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        const data = await res.json();
+        if (data.success && data.data?.user) {
+          setUser(data.data.user);
+        } else {
+          router.push('/auth/login');
+        }
+      } catch (err) {
+        console.error('Error fetching user profile', err);
+      }
+    };
+    fetchUser();
 
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/v1/company/settings');
         const data = await res.json();
-        if (data.success && data.data?.logoUrl) {
-          setLogoUrl(data.data.logoUrl);
+        if (data.success) {
+          if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
+          
+          const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
+          if (env === 'production') setEntorno('PROD');
+          else if (env === 'cert') setEntorno('CERT');
+          else setEntorno('TEST');
         }
       } catch (err) {
         console.error('Error fetching company settings', err);
@@ -59,21 +68,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
-  const navItems = [
-    { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
-    { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" /> },
-    { name: 'Catálogo de Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
-    { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
-    { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
-    { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
-    { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
-    { name: 'Directorio de Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
-    { name: 'Directorio de Proveedores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
-    { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
-    { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
-    { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" /> },
-    { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" /> },
+  const navGroups = [
+    {
+      title: 'Principal',
+      items: [
+        { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
+        { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Inventario',
+      items: [
+        { name: 'Catálogo de Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
+        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" /> },
+        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" /> },
+        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Contactos',
+      items: [
+        { name: 'Directorio', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
+        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
+        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Finanzas y Reportes',
+      items: [
+        { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
+        { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
+        { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
+        { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
+        { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Sistema',
+      items: [
+        { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" /> },
+        { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" /> },
+        { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" /> },
+      ]
+    }
   ];
 
   return (
@@ -81,28 +119,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Toaster position="top-right" richColors />
 
       {/* Environment Indicator */}
-      <div className="environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]">
-        <span className="font-label-md text-on-secondary-fixed flex items-center gap-2 uppercase tracking-widest font-bold">
-          <Shield className="h-4 w-4" />
-          ENTORNO DE PRUEBAS - SIN VALOR FISCAL
-        </span>
-      </div>
+      {entorno !== 'PROD' && (
+        <div className={`environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md ${entorno === 'TEST' ? 'bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]' : 'bg-[repeating-linear-gradient(45deg,#bfdbfe,#bfdbfe_20px,#93c5fd_20px,#93c5fd_40px)]'}`}>
+          <span className="font-label-md text-on-secondary-fixed flex items-center gap-2 uppercase tracking-widest font-bold text-gray-800">
+            <Shield className="h-4 w-4" />
+            {entorno === 'TEST' ? 'ENTORNO DE PRUEBAS - SIN VALOR FISCAL' : 'ENTORNO DE CERTIFICACIÓN'}
+          </span>
+        </div>
+      )}
 
       {/* TopNavBar Shell */}
       <nav className="bg-primary/95 backdrop-blur-md text-on-primary flex justify-between items-center w-full px-8 h-14 fixed top-10 left-0 z-50 border-b border-white/10">
-        <div className="flex items-center gap-12">
-          <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center gap-2">
-            {logoUrl ? <img src={logoUrl} alt="Logo" className="h-8 w-auto" /> : 'Latin Doors e-CF'}
+        <div className="flex items-center gap-4">
+          <button className="p-2 hover:bg-white/10 rounded-full transition-all md:hidden" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1">
+            {logoUrl ? <img src={logoUrl} alt="Logo Empresa" className="h-10 w-auto md:h-12 rounded-lg object-contain" /> : 'Latin Doors e-CF'}
           </span>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-white/10 rounded-full transition-all md:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer text-primary font-bold">
+        <div className="flex items-center gap-4">
+          <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer text-primary font-bold text-sm">
             {user?.name?.substring(0, 2) || 'CF'}
+          </div>
+          {/* ContFast System Logo - Top Right */}
+          <div className="flex items-center gap-2 pl-3 border-l border-white/20">
+            <img
+              src="/contfast-logo.png"
+              alt="ContFast Enterprise"
+              className="h-9 w-9 rounded-xl object-cover shadow-md shadow-black/30 ring-1 ring-white/20 hover:scale-105 transition-transform"
+            />
+            <span className="hidden lg:block text-xs font-bold text-white/80 leading-tight">
+              ContFast<br />
+              <span className="text-amber-400 font-extrabold">Enterprise</span>
+            </span>
           </div>
         </div>
       </nav>
@@ -110,45 +160,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen pt-24">
         {/* SideNavBar Shell (Desktop) */}
         <aside className="hidden md:flex bg-surface-bright/50 backdrop-blur-xl fixed left-0 top-0 h-full w-72 flex-col pt-28 z-40 border-r border-outline-variant/30">
-          <div className="px-6 mb-8">
+          <div className="px-4 mb-8">
             <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40 backdrop-blur-md">
-              <div className="w-12 h-12 bg-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Shield className="text-secondary-fixed h-6 w-6" />
               </div>
-              <div>
-                <h2 className="font-headline-sm text-base font-bold text-primary leading-tight truncate w-32">{user?.name || 'Latin Doors'}</h2>
-                <p className="font-body-sm text-on-surface-variant/80 truncate w-32">{user?.email || 'RNC: 131-XXXXX-X'}</p>
+              <div className="flex-1 min-w-0">
+                <h3 title={user?.name} className="font-headline-xs text-base font-bold text-primary leading-tight truncate w-full">{user?.name || 'Latin Doors'}</h3>
+                <p title={user?.email} className="font-body-xs text-on-surface-variant/80 truncate w-full">{user?.email || 'RNC: 131-XXXXX-X'}</p>
               </div>
             </div>
-            <button onClick={() => router.push('/dashboard/invoices?new=true')} className="mt-6 w-full bg-primary text-on-primary py-3.5 rounded-xl font-label-md flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5 transition-all active:scale-[0.98]">
-              <span className="font-bold text-lg">+</span>
-              Nuevo e-CF
-            </button>
+
           </div>
-          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-            {navItems.map((item) => {
-              const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-              return (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
-                    ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                    }`}
-                >
-                  <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
-                    {item.icon}
-                  </div>
-                  <span className="font-label-md">{item.name}</span>
-                </a>
-              );
-            })}
+          <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
+            {navGroups.map((group, gIdx) => (
+              <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
+                <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
+                  {group.title}
+                </div>
+                <div className="space-y-1.5">
+                  {group.items.map((item) => {
+                    const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                    return (
+                      <a
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
+                          ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                          : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                          }`}
+                      >
+                        <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
+                          {item.icon}
+                        </div>
+                        <span className="font-label-md">{item.name}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+                {gIdx < navGroups.length - 1 && (
+                  <div className="mt-6 border-b border-outline-variant/30 w-full" />
+                )}
+              </div>
+            ))}
           </nav>
           <div className="p-6 mt-auto border-t border-outline-variant/20 space-y-3">
             <div className="flex items-center gap-3 text-on-surface-variant/70 px-2 py-1 text-xs font-semibold">
-              <span className="h-2 w-2 rounded-full bg-green-500"></span>
-              Entorno: Producción
+              <span className={`h-2 w-2 rounded-full ${entorno === 'PROD' ? 'bg-green-500' : entorno === 'CERT' ? 'bg-blue-500' : 'bg-yellow-500'}`}></span>
+              Entorno: {entorno === 'PROD' ? 'Producción' : entorno === 'CERT' ? 'Certificación' : 'Pruebas'}
             </div>
             <button
               onClick={handleLogout}
@@ -183,32 +242,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </button>
                 <div className="px-6 mb-8 mt-4">
                   <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40">
-                    <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center flex-shrink-0">
                       <Shield className="text-secondary-fixed h-5 w-5" />
                     </div>
-                    <div>
-                      <h2 className="font-headline-sm text-sm font-bold text-primary leading-tight truncate w-32">{user?.name || 'Latin Doors'}</h2>
+                    <div className="flex-1 min-w-0">
+                      <h2 title={user?.name} className="font-headline-sm text-sm font-bold text-primary leading-tight truncate w-full">{user?.name || 'Latin Doors'}</h2>
+                      <p title={user?.email} className="font-body-xs text-on-surface-variant/80 truncate w-full">{user?.email}</p>
                     </div>
                   </div>
                 </div>
-                <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
-                  {navItems.map((item) => {
-                    const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-                    return (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
-                          ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                          : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                          }`}
-                      >
-                        {item.icon}
-                        <span className="font-label-md">{item.name}</span>
-                      </a>
-                    );
-                  })}
+                <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
+                  {navGroups.map((group, gIdx) => (
+                    <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
+                      <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
+                        {group.title}
+                      </div>
+                      <div className="space-y-1.5">
+                        {group.items.map((item) => {
+                          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                          return (
+                            <a
+                              key={item.name}
+                              href={item.href}
+                              onClick={() => setSidebarOpen(false)}
+                              className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
+                                ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                                : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
+                                }`}
+                            >
+                              <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
+                                {item.icon}
+                              </div>
+                              <span className="font-label-md">{item.name}</span>
+                            </a>
+                          );
+                        })}
+                      </div>
+                      {gIdx < navGroups.length - 1 && (
+                        <div className="mt-6 border-b border-outline-variant/30 w-full" />
+                      )}
+                    </div>
+                  ))}
                 </nav>
                 <div className="p-6 mt-auto border-t border-outline-variant/20">
                   <button
@@ -233,9 +307,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Footer Shell */}
       <footer className="bg-surface-bright/80 backdrop-blur-md border-t border-outline-variant/20 md:ml-72 flex flex-col md:flex-row justify-between items-center px-8 py-6 z-40 gap-4 mt-auto">
         <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
-          <span className="font-headline-sm text-primary tracking-tight font-black">ContFast Enterprise</span>
           <span className="hidden md:block w-px h-6 bg-outline-variant/30"></span>
-          <span className="font-body-sm text-on-surface-variant/70">© 2026 ContFast - Proveedor Autorizado DGII</span>
+          <span className="font-body-sm text-on-surface-variant/70">© 2026 ContFast Enterprise- Proveedor Autorizado DGII</span>
         </div>
       </footer>
     </div>

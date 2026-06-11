@@ -17,7 +17,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 3. API Routes (/api/v1)
 - **Wizard de Configuración**: Inicialización técnica en 6 pasos.
 - **Autenticación RTR**: Rotación de tokens segura mediante cookies HttpOnly.
-- **Comprobantes e-CF**: Endpoints de facturación y consulta de estado de DGII.
+- **Comprobantes e-CF**: Endpoints de facturación, consulta de estado de DGII y reenvío manual de correos.
+- **Envío de Correos**: Despacho automático de facturas emitidas a crédito por email.
 - **Bancos y Conciliaciones**: Control de cuentas bancarias y conciliación de periodos.
 - **Reportes Financieros**: Ventas (607), Balance General y Estado de Resultados.
 - **Conduces (Remisiones)**: Generación, consulta y anulación de conduce.

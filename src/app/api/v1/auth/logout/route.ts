@@ -7,9 +7,13 @@ export async function POST(req: NextRequest) {
   const authPayload = await verifyAuth(req, resHeaders);
 
   if (!authPayload) {
+    // If there is no active session payload, we still want to make sure the client cookies are cleared
+    const clearHeaders = new Headers();
+    clearHeaders.append('Set-Cookie', 'accessToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+    clearHeaders.append('Set-Cookie', 'refreshToken=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
     return NextResponse.json(
-      { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado o sesión expirada.' } },
-      { status: 401 }
+      { success: true, message: 'Sesión no activa o ya expirada. Cookies limpiadas.' },
+      { status: 200, headers: clearHeaders }
     );
   }
 

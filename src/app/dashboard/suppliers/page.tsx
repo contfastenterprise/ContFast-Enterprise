@@ -97,10 +97,10 @@ export default function SuppliersPage() {
         }));
         toast.success('Proveedor validado por DGII');
       } else {
-        toast.error(data.message || 'No encontrado en DGII. Puede ingresarlo manual.');
+        toast.warning(data.message || 'No encontrado en DGII. Puede ingresarlo manual.');
       }
     } catch (error) {
-      toast.error('Error de red al consultar DGII');
+      toast.warning('Servicio DGII inactivo. Ingrese el nombre manualmente.');
     } finally {
       setSearchingDGII(false);
     }
@@ -154,7 +154,7 @@ export default function SuppliersPage() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-full bg-slate-50 text-slate-900 font-sans">
+      <div className="min-h-full bg-slate-50 text-slate-900 font-sans max-w-7xl mx-auto w-full">
         {/* Environment Indicator Placeholder (Corporate Modern Style) */}
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
            <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
@@ -169,10 +169,10 @@ export default function SuppliersPage() {
             <div>
               <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
                 <Truck className="h-7 w-7 text-[#C5A059]" />
-                Directorio de Proveedores
+                Directorio de Suplidores
               </h1>
               <p className="text-on-surface-variant/70 text-sm mt-1">
-                Administre sus proveedores para el registro de compras y gastos fiscales.
+                Administre sus suplidores para el registro de compras y gastos fiscales.
               </p>
             </div>
             <button
@@ -180,7 +180,7 @@ export default function SuppliersPage() {
               className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2 px-5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
             >
               <Plus className="h-5 w-5" />
-              Nuevo Proveedor
+              Nuevo Suplidor
             </button>
           </div>
 
@@ -209,7 +209,7 @@ export default function SuppliersPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-on-surface-variant/70 text-xs uppercase tracking-wider font-semibold">
-                    <th className="p-4">Proveedor / Empresa</th>
+                    <th className="p-4">Suplidor / Empresa</th>
                     <th className="p-4">RNC</th>
                     <th className="p-4 hidden md:table-cell">Contacto</th>
                     <th className="p-4 hidden lg:table-cell">Dirección</th>
@@ -296,39 +296,39 @@ export default function SuppliersPage() {
                 className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm"
               />
               <motion.div 
-                initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                className="bg-white border border-slate-200 rounded-lg w-full max-w-2xl overflow-hidden relative z-10 shadow-2xl"
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                className="relative w-full max-w-2xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
               >
-                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50">
-                  <h2 className="text-lg font-display font-semibold text-[#003366] flex items-center gap-2">
+                <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+                  <h2 className="text-xl font-display font-bold text-white flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-[#C5A059]" />
-                    {editId ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor'}
+                    {editId ? 'Editar Suplidor' : 'Registrar Nuevo Suplidor'}
                   </h2>
-                  <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-on-surface-variant/80 transition-colors">
+                  <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary transition-colors">
                     <X className="h-5 w-5" />
                   </button>
                 </div>
                 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC / Cédula <span className="text-[#C5A059]">*</span></label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-primary">RNC / Cédula <span className="text-[#C5A059]">*</span></label>
                       <div className="flex gap-2">
                         <input
                           type="text"
                           required
                           value={formData.rnc}
                           onChange={(e) => setFormData({ ...formData, rnc: e.target.value })}
-                          className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm font-mono"
+                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                           placeholder="Ej. 130123456"
                         />
                         <button
                           type="button"
                           onClick={handleSearchDGII}
                           disabled={searchingDGII || formData.rnc.length < 9}
-                          className="bg-slate-100 border border-slate-300 text-slate-700 hover:bg-slate-200 px-4 py-2 rounded text-xs font-bold uppercase transition-colors flex items-center gap-2 disabled:opacity-50"
+                          className="bg-[#C5A059] hover:bg-[#d4b069] text-[#001e40] px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
                         >
                           {searchingDGII ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                           DGII
@@ -336,58 +336,58 @@ export default function SuppliersPage() {
                       </div>
                     </div>
                     
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social <span className="text-[#C5A059]">*</span></label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-primary">Razón Social <span className="text-[#C5A059]">*</span></label>
                       <input
                         type="text"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
                         placeholder="Nombre de la empresa"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Correo Electrónico</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-primary">Correo Electrónico</label>
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
                         placeholder="contacto@proveedor.com"
                       />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-primary">Teléfono</label>
                       <input
                         type="text"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
                         placeholder="(809) 000-0000"
                       />
                     </div>
 
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Dirección</label>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-semibold text-primary">Dirección</label>
                       <input
                         type="text"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
                         placeholder="Calle, Número, Sector, Ciudad..."
                       />
                     </div>
 
                     {editId && (
-                      <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Estado</label>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-semibold text-primary">Estado</label>
                         <select
                           value={formData.status}
                           onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                          className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-slate-800 focus:border-[#003366] outline-none transition-colors text-sm"
+                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
                         >
                           <option value="active">Activo</option>
                           <option value="inactive">Inactivo</option>
@@ -396,28 +396,28 @@ export default function SuppliersPage() {
                     )}
                   </div>
 
-                  <div className="bg-[#003366]/5 border border-[#003366]/10 p-3 rounded flex items-start gap-2.5">
-                    <AlertTriangle className="h-4 w-4 text-[#003366] flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-[#003366] leading-relaxed">
+                  <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-500/90 leading-relaxed">
                       Este RNC se utilizará para registrar gastos y reportar a la DGII mediante el formato 606 y facturación electrónica (e-CF). Valide que sea correcto.
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4">
+                  <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="px-4 py-2 text-sm font-semibold text-on-surface-variant/80 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
+                      className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="bg-[#003366] hover:bg-[#002244] text-primary font-semibold py-2 px-6 rounded flex items-center gap-2 transition-all shadow-sm disabled:opacity-50 text-sm border-b-2 border-[#001122]"
+                      className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
                     >
                       {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileCheck className="h-4 w-4" />}
-                      {editId ? 'Guardar Cambios' : 'Registrar Proveedor'}
+                      {editId ? 'Guardar Cambios' : 'Registrar Suplidor'}
                     </button>
                   </div>
                 </form>

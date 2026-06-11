@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { AdminRepository } from '@/repositories/adminRepository';
 import { z } from 'zod';
 
@@ -13,9 +14,10 @@ const userSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
 
     const users = await AdminRepository.getUsers(session.companyId);
     return NextResponse.json({ success: true, data: users });
@@ -27,9 +29,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
 
     const body = await req.json();
     const parsed = userSchema.safeParse(body);
@@ -51,9 +54,10 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || (session.role !== 'sistemas' && session.role !== 'administracion')) {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
 
     const body = await req.json();
     if (!body.userId) {
@@ -65,7 +69,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No puedes desactivar tu propia cuenta' } }, { status: 400 });
     }
 
-    const result = await AdminRepository.toggleUserStatus(body.userId, session.companyId);
+    const result = await AdminRepository.toggleUserStatus(body.userId, session.companyId, session.role);
     return NextResponse.json({ success: true, data: result });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });

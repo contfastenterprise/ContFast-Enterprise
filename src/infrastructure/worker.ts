@@ -64,19 +64,21 @@ async function processDgiiSubmission(job: Job): Promise<any> {
     throw new Error(`Company settings not found for ${companyId}`);
   }
 
-  // 4. Check for mSeller credentials
-  const msellerEmail = process.env.MSELLER_EMAIL;
-  const msellerPassword = process.env.MSELLER_PASSWORD;
+  // 4. Check for mSeller credentials from settings
+  const msellerEmail = settings.msellerEmail;
+  const msellerPasswordEncrypted = settings.msellerPasswordEncrypted;
+  const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : null;
   const msellerApiKeyEncrypted = settings.msellerApiKeyEncrypted;
 
   if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {
     throw new Error(
-      'mSeller credentials not configured. Set MSELLER_EMAIL, MSELLER_PASSWORD in env and msellerApiKeyEncrypted in company settings.'
+      'mSeller credentials not configured. Please set them in company settings.'
     );
   }
 
   const entorno = resolveEntorno(settings.dgiiEnv);
-  const baseUrl = 'https://ecf.api.mseller.app';
+  const msellerUrl = settings.msellerUrl || 'https://ecf.api.mseller.app';
+  const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
 
   // 5. Instantiate MSellerClient
   const client = new MSellerClient({

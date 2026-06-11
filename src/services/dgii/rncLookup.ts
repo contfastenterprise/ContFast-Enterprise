@@ -4,40 +4,61 @@ export interface RncLookupResult {
   name: string;
   status: string;
   message?: string;
+  categoria?: string;
+  regimen?: string;
+  actividad_economica?: string;
+  provincia?: string;
+  municipio?: string;
 }
 
 export class DGIIService {
   /**
    * Consulta la Razón Social y el Estado de un RNC/Cédula
-   * Utilizando una API pública de consulta DGII (o proxy).
+   * Utilizando la API dgiiapicloud.com
    */
   static async lookupRNC(rnc: string): Promise<RncLookupResult> {
     try {
-      // Usamos una API pública de terceros común en RD para consultar RNCs 
-      // Si cuentas con una API privada o una URL oficial, debes cambiar esta constante.
-      const url = `https://dgii.marte.dev/v1/rnc/${rnc}`;
+      const API_URL = 'https://pptonanntevatndjyzmk.supabase.co/functions/v1/dgii-api';
+      const API_KEY = 'dgii_b76383a9adce413fb82e0f58ec206f71';
+      const url = `${API_URL}/rnc/${rnc}`;
       
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'x-api-key': API_KEY
         },
-        next: { revalidate: 86400 } // Cachear resultados por 24 horas para no saturar la API
+        next: { revalidate: 3600 } 
       });
 
-      if (!response.ok) {
-        throw new Error('No se pudo contactar al servicio de consulta.');
-      }
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        
+        // Si hay error en el JSON, lo manejamos (ej: {"error":"RNC no encontrado..."})
+        if (data.error) {
+          return {
+            success: false,
+            rnc,
+            name: '',
+            status: '',
+            message: data.error
+          };
+        }
 
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        return {
-          success: true,
-          rnc: data.data.rnc,
-          name: data.data.name || data.data.commercial_name,
-          status: data.data.status,
-        };
+        if (data && data.nombre) {
+          return {
+            success: true,
+            rnc: data.rnc || rnc,
+            name: data.nombre,
+            status: data.estatus || 'Activo',
+            categoria: data.categoria,
+            regimen: data.regimen,
+            actividad_economica: data.actividad_economica,
+            provincia: data.provincia,
+            municipio: data.municipio
+          };
+        }
       }
 
       return {
@@ -45,17 +66,17 @@ export class DGIIService {
         rnc,
         name: '',
         status: '',
-        message: 'RNC/Cédula no encontrado en los registros.',
+        message: 'La API externa no devolvió datos válidos.'
       };
 
     } catch (error: any) {
-      console.error('Error fetching RNC from DGII proxy:', error);
+      console.error('Error fetching RNC from dgiiapicloud:', error);
       return {
         success: false,
         rnc,
         name: '',
         status: '',
-        message: 'Error de red al consultar DGII.',
+        message: 'Error de red al consultar DGII.'
       };
     }
   }
