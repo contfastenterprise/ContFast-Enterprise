@@ -170,10 +170,10 @@ export default function DashboardPage() {
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
+        <div className="bg-blue-50/80 backdrop-blur-md border border-blue-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-primary/10 p-3 rounded-2xl group-hover:bg-primary group-hover:text-primary transition-colors">
-              <FileText className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
+            <div className="bg-blue-100 p-3 rounded-2xl group-hover:bg-blue-600 transition-colors">
+              <FileText className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
             </div>
             <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">+12% vs ayer</span>
           </div>
@@ -182,10 +182,10 @@ export default function DashboardPage() {
           <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
+        <div className="bg-amber-50/80 backdrop-blur-md border border-amber-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-secondary/10 p-3 rounded-2xl group-hover:bg-secondary group-hover:text-primary transition-colors">
-              <RefreshCw className="h-6 w-6 text-secondary group-hover:text-primary transition-colors" />
+            <div className="bg-amber-100 p-3 rounded-2xl group-hover:bg-amber-500 transition-colors">
+              <RefreshCw className="h-6 w-6 text-amber-600 group-hover:text-white transition-colors" />
             </div>
             {stats.pendingDgii > 0 && (
               <span className="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
@@ -196,10 +196,10 @@ export default function DashboardPage() {
           <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
+        <div className="bg-emerald-50/80 backdrop-blur-md border border-emerald-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-tertiary-container/10 p-3 rounded-2xl group-hover:bg-primary transition-colors">
-              <TrendingUp className="h-6 w-6 text-tertiary group-hover:text-primary transition-colors" />
+            <div className="bg-emerald-100 p-3 rounded-2xl group-hover:bg-emerald-600 transition-colors">
+              <TrendingUp className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
             </div>
           </div>
           <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
@@ -210,10 +210,10 @@ export default function DashboardPage() {
           <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">{salesPct}% de la meta mensual</p>
         </div>
 
-        <div className="bg-gradient-to-br from-error/10 to-error/5 border border-error/20 p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
+        <div className="bg-red-50/80 backdrop-blur-md border border-red-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
           <div className="flex justify-between items-start mb-6">
-            <div className="bg-error/10 p-3 rounded-2xl group-hover:bg-error group-hover:text-primary transition-colors">
-              <AlertCircle className="h-6 w-6 text-error group-hover:text-primary transition-colors" />
+            <div className="bg-red-100 p-3 rounded-2xl group-hover:bg-red-600 transition-colors">
+              <AlertCircle className="h-6 w-6 text-red-600 group-hover:text-white transition-colors" />
             </div>
             {stats.alertCount > 0 && <span className="flex h-3 w-3 rounded-full bg-error animate-ping"></span>}
           </div>

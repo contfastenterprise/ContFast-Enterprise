@@ -7,7 +7,7 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package
+  Package, Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -67,6 +67,51 @@ function InvoicesList() {
   const [modalCategoryFilter, setModalCategoryFilter] = useState('');
   const [modalProducts, setModalProducts] = useState<any[]>([]);
   const [modalProductsLoading, setModalProductsLoading] = useState(false);
+
+  // Customer Search Modal states
+  const [customerSearchModalOpen, setCustomerSearchModalOpen] = useState(false);
+  const [modalCustomerSearch, setModalCustomerSearch] = useState('');
+  const [modalCustomers, setModalCustomers] = useState<any[]>([]);
+  const [modalCustomersLoading, setModalCustomersLoading] = useState(false);
+
+  const fetchModalCustomers = useCallback(async (search = '') => {
+    setModalCustomersLoading(true);
+    try {
+      const url = `/api/v1/customers?limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setModalCustomers(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching customers for modal', error);
+    } finally {
+      setModalCustomersLoading(false);
+    }
+  }, []);
+
+  const openCustomerSearchModal = () => {
+    setModalCustomerSearch('');
+    setModalCustomers([]);
+    setCustomerSearchModalOpen(true);
+    fetchModalCustomers('');
+  };
+
+  useEffect(() => {
+    if (customerSearchModalOpen) {
+      const delayDebounceFn = setTimeout(() => {
+        fetchModalCustomers(modalCustomerSearch);
+      }, 300);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [modalCustomerSearch, customerSearchModalOpen, fetchModalCustomers]);
+
+  const applyCustomer = (cust: any) => {
+    setCustomerId(cust.id);
+    setCustomerRnc(cust.rncCedula || '');
+    setCustomerName(cust.name || '');
+    setCustomerSearchModalOpen(false);
+  };
 
   const fetchModalProducts = useCallback(async (search = '', catId = '', whId = '') => {
     setModalProductsLoading(true);
@@ -425,7 +470,7 @@ function InvoicesList() {
 
   return (
 
-    <div className=" pb-12 max-w-7xl mx-10 w-230">
+    <div className=" pb-12 max-w-7xl mx-10 w-280">
       <AnimatePresence mode="wait">
         {showForm ? (
           /* ==============================================================================
@@ -491,12 +536,22 @@ function InvoicesList() {
 
               {/* Customer Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-                <div className="col-span-1 md:col-span-2 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-[#C5A059]" />
-                  <div>
-                    <h4 className="text-[#003366] font-semibold text-base">Datos del Cliente</h4>
-                    <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
+                <div className="col-span-1 md:col-span-2 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-[#C5A059]" />
+                    <div>
+                      <h4 className="text-[#003366] font-semibold text-base">Datos del Cliente</h4>
+                      <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={openCustomerSearchModal}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    Buscar Cliente
+                  </button>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
@@ -1055,103 +1110,103 @@ function InvoicesList() {
 
               <div className="p-6 md:p-8">
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                <div className="col-span-2">
-                  <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Cliente</span>
-                  <p className="font-semibold text-[#003366] text-base">{selectedInvoice.buyerName || 'Consumidor Final'}</p>
-                  {selectedInvoice.buyerRnc && <p className="text-xs font-mono text-on-surface-variant/80 mt-0.5">RNC: {selectedInvoice.buyerRnc}</p>}
-                </div>
-                <div className="col-span-1">
-                  <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Tipo Comprobante</span>
-                  <p className="font-semibold text-[#003366] text-sm">{getTypeLabel(selectedInvoice.ecfType)}</p>
-                </div>
-                <div className="col-span-1">
-                  <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Estado DGII</span>
-                  <div className="mt-1">
-                    {(() => {
-                      const badge = getStatusBadge(selectedInvoice.status);
-                      return (
-                        <span className={clsx('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border', badge.cls)}>
-                          {badge.label}
-                        </span>
-                      );
-                    })()}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                  <div className="col-span-2">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Cliente</span>
+                    <p className="font-semibold text-[#003366] text-base">{selectedInvoice.buyerName || 'Consumidor Final'}</p>
+                    {selectedInvoice.buyerRnc && <p className="text-xs font-mono text-on-surface-variant/80 mt-0.5">RNC: {selectedInvoice.buyerRnc}</p>}
+                  </div>
+                  <div className="col-span-1">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Tipo Comprobante</span>
+                    <p className="font-semibold text-[#003366] text-sm">{getTypeLabel(selectedInvoice.ecfType)}</p>
+                  </div>
+                  <div className="col-span-1">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Estado DGII</span>
+                    <div className="mt-1">
+                      {(() => {
+                        const badge = getStatusBadge(selectedInvoice.status);
+                        return (
+                          <span className={clsx('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border', badge.cls)}>
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50/60 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">
-                    <tr>
-                      <th className="py-3 px-4">Descripción del Artículo</th>
-                      <th className="py-3 px-4 text-center">Cant.</th>
-                      <th className="py-3 px-4 text-right">Precio Unit.</th>
-                      <th className="py-3 px-4 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-outline-variant/20/60 bg-white/40">
-                    {selectedInvoice.lines?.map((line: any) => (
-                      <tr key={line.id}>
-                        <td className="py-3 px-4 text-slate-700">{line.productName || 'Servicio'}</td>
-                        <td className="py-3 px-4 text-center font-mono text-on-surface-variant/80">{parseFloat(line.quantity)}</td>
-                        <td className="py-3 px-4 text-right font-mono text-on-surface-variant/80">RD$ {parseFloat(line.unitPrice).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
-                        <td className="py-3 px-4 text-right font-mono font-semibold text-[#003366]">RD$ {parseFloat(line.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50/60 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">
+                      <tr>
+                        <th className="py-3 px-4">Descripción del Artículo</th>
+                        <th className="py-3 px-4 text-center">Cant.</th>
+                        <th className="py-3 px-4 text-right">Precio Unit.</th>
+                        <th className="py-3 px-4 text-right">Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20/60 bg-white/40">
+                      {selectedInvoice.lines?.map((line: any) => (
+                        <tr key={line.id}>
+                          <td className="py-3 px-4 text-slate-700">{line.productName || 'Servicio'}</td>
+                          <td className="py-3 px-4 text-center font-mono text-on-surface-variant/80">{parseFloat(line.quantity)}</td>
+                          <td className="py-3 px-4 text-right font-mono text-on-surface-variant/80">RD$ {parseFloat(line.unitPrice).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                          <td className="py-3 px-4 text-right font-mono font-semibold text-[#003366]">RD$ {parseFloat(line.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-              <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-4 border-t border-slate-200">
-                <div className="flex gap-3 w-full md:w-auto">
-                  <button
-                    onClick={() => setSelectedInvoice(null)}
-                    className="flex-1 md:flex-none rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 transition-colors"
-                  >
-                    Cerrar
-                  </button>
-                  <a
-                    href={`/api/v1/invoices/${selectedInvoice.id}/pdf`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-[#C5A059] px-6 py-2.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] transition-colors"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Imprimir PDF
-                  </a>
-                  {selectedInvoice.customerId && (
+                <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-4 border-t border-slate-200">
+                  <div className="flex gap-3 w-full md:w-auto">
                     <button
-                      onClick={() => handleResendEmail(selectedInvoice.id)}
-                      disabled={resendingEmailId === selectedInvoice.id}
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                      onClick={() => setSelectedInvoice(null)}
+                      className="flex-1 md:flex-none rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 transition-colors"
                     >
-                      {resendingEmailId === selectedInvoice.id ? (
-                        <RefreshCw className="h-4 w-4 animate-spin text-[#C5A059]" />
-                      ) : (
-                        <Mail className="h-4 w-4" />
-                      )}
-                      Reenviar Correo
+                      Cerrar
                     </button>
-                  )}
-                </div>
+                    <a
+                      href={`/api/v1/invoices/${selectedInvoice.id}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-[#C5A059] px-6 py-2.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] transition-colors"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir PDF
+                    </a>
+                    {selectedInvoice.customerId && (
+                      <button
+                        onClick={() => handleResendEmail(selectedInvoice.id)}
+                        disabled={resendingEmailId === selectedInvoice.id}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 disabled:opacity-40 transition-colors"
+                      >
+                        {resendingEmailId === selectedInvoice.id ? (
+                          <RefreshCw className="h-4 w-4 animate-spin text-[#C5A059]" />
+                        ) : (
+                          <Mail className="h-4 w-4" />
+                        )}
+                        Reenviar Correo
+                      </button>
+                    )}
+                  </div>
 
-                <div className="w-full md:w-64 space-y-2 text-sm">
-                  <div className="flex justify-between text-on-surface-variant/80">
-                    <span>Subtotal</span>
-                    <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between text-on-surface-variant/80">
-                    <span>ITBIS</span>
-                    <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-slate-200 pt-2 mt-2">
-                    <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total</span>
-                    <span className="font-mono font-bold text-xl text-[#C5A059]">RD$ {parseFloat(selectedInvoice.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                  <div className="w-full md:w-64 space-y-2 text-sm">
+                    <div className="flex justify-between text-on-surface-variant/80">
+                      <span>Subtotal</span>
+                      <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between text-on-surface-variant/80">
+                      <span>ITBIS</span>
+                      <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-slate-200 pt-2 mt-2">
+                      <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total</span>
+                      <span className="font-mono font-bold text-xl text-[#C5A059]">RD$ {parseFloat(selectedInvoice.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             </motion.div>
           </div>
         )}
@@ -1294,6 +1349,106 @@ function InvoicesList() {
                             </tr>
                           );
                         })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Customer Search Modal */}
+      <AnimatePresence>
+        {customerSearchModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCustomerSearchModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] z-10"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
+                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
+                  <Users className="h-5 w-5 text-[#C5A059]" /> Búsqueda de Clientes
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setCustomerSearchModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Search input */}
+              <div className="p-4 bg-slate-100 border-b border-slate-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={modalCustomerSearch}
+                    onChange={(e) => setModalCustomerSearch(e.target.value)}
+                    placeholder="Buscar por nombre, RNC o cédula de identidad..."
+                    className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#C5A059]"
+                  />
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {modalCustomersLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                  </div>
+                ) : modalCustomers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 text-sm">
+                    No se encontraron clientes en el directorio.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 text-[#003366] uppercase font-bold border-b border-slate-200">
+                          <th className="p-3">Nombre / Razón Social</th>
+                          <th className="p-3">RNC o Cédula</th>
+                          <th className="p-3">Contacto</th>
+                          <th className="p-3 text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {modalCustomers.map((c) => (
+                          <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3">
+                              <span className="font-bold text-slate-800 block">{c.name}</span>
+                              {c.address && <span className="text-[10px] text-slate-400 block truncate max-w-[250px]">{c.address}</span>}
+                            </td>
+                            <td className="p-3 font-mono text-slate-600">{c.rncCedula || '-'}</td>
+                            <td className="p-3 text-slate-500">
+                              {c.email && <div className="block">{c.email}</div>}
+                              {c.phone && <div className="block mt-0.5">{c.phone}</div>}
+                              {!c.email && !c.phone && <span className="text-slate-400">-</span>}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => applyCustomer(c)}
+                                className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-1.5 px-3 rounded text-[10px] transition-colors"
+                              >
+                                Seleccionar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
