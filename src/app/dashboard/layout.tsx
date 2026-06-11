@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote } from 'lucide-react';
+import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -80,9 +80,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Inventario',
       items: [
-        { name: 'Catálogo de Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
+        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
+        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" /> },
         { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" /> },
         { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" /> },
+        { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" /> },
         { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" /> },
       ]
     },

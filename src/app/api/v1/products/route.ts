@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
     const search = searchParams.get('search') || undefined;
+    const categoryId = searchParams.get('categoryId') || undefined;
     const barcode = searchParams.get('barcode') || undefined;
 
     if (barcode) {
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const result = await ProductRepository.list(auth.companyId, page, perPage, search);
+    const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId);
 
     return NextResponse.json(
       { success: true, data: result.data, meta: result.meta },

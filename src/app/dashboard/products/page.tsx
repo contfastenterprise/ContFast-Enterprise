@@ -33,12 +33,16 @@ export default function ProductsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
   // Form state
   const [manualPricesEnabled, setManualPricesEnabled] = useState(false);
   const [showPricesModal, setShowPricesModal] = useState(false);
   const [formData, setFormData] = useState({
     sku: '',
     name: '',
+    categoryId: '',
     unitOfMeasure: 'unidad',
     cost: '',
     price: '',
@@ -74,10 +78,12 @@ export default function ProductsPage() {
     }
   }, [formData.cost, manualPricesEnabled]);
 
-  const fetchProducts = async (searchQuery = '') => {
+  const fetchProducts = async (searchQuery = '', catId = selectedCategory) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/products?search=${searchQuery}`);
+      let url = `/api/v1/products?search=${searchQuery}`;
+      if (catId) url += `&categoryId=${catId}`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setProducts(data.data);
@@ -92,6 +98,18 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
+    fetchProducts();
+    // Fetch categories
+    fetch('/api/v1/categories').then(r => r.json()).then(data => {
+      if (data.success) setCategories(data.data);
+    });
+  }, []);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
+  useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchProducts(search);
     }, 500);
@@ -101,15 +119,16 @@ export default function ProductsPage() {
   const openNewModal = () => {
     setEditId(null);
     setManualPricesEnabled(false);
-    setFormData({ sku: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active' });
+    setFormData({ sku: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active' });
     setShowModal(true);
   };
 
-  const openEditModal = (product: Product) => {
+  const openEditModal = (product: any) => {
     setEditId(product.id);
     setManualPricesEnabled(false); // Activado por defecto (autocalcular)
     setFormData({
       sku: product.sku || '',
+      categoryId: product.categoryId || '',
       name: product.name,
       unitOfMeasure: product.unitOfMeasure,
       cost: product.cost,
@@ -165,7 +184,7 @@ export default function ProductsPage() {
       if (data.success) {
         toast.success(editId ? 'Producto actualizado' : 'Producto creado exitosamente');
         setShowModal(false);
-        fetchProducts(search);
+        fetchProducts(search, selectedCategory);
       } else {
         toast.error(data.error?.message || 'Error al guardar');
       }
@@ -236,16 +255,31 @@ export default function ProductsPage() {
       <div className="bg-[#0b1120] border border-outline-variant/30 rounded-xl shadow-xl overflow-hidden">
         {/* Toolbar */}
         <div className="p-4 border-b border-outline-variant/30 flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface-container-low/50">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/70" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, SKU o código..."
+          <div className="flex gap-4 flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-on-surface-variant/50" />
+            <input 
+              type="text" 
+              placeholder="Buscar por código, nombre o código de barras..." 
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-background border border-outline-variant/30 rounded-lg pl-10 pr-4 py-2 text-sm text-primary focus:border-amber-500 outline-none transition-colors"
+              onChange={handleSearch}
+              className="w-full bg-white border-none rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none transition-shadow"
             />
           </div>
+          <div className="w-48 hidden md:block">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                fetchProducts(search, e.target.value);
+              }}
+              className="w-full bg-white border-none rounded-2xl px-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
+            >
+              <option value="">Todas las categorías</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
           <button onClick={() => fetchProducts(search)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
           </button>
@@ -359,6 +393,18 @@ export default function ProductsPage() {
                       className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-primary">Categoría</label>
+                    <select
+                      value={formData.categoryId}
+                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    >
+                      <option value="">Sin categoría</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
 
                   <div className="space-y-2">

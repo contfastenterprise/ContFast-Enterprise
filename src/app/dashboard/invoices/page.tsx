@@ -6,7 +6,8 @@ import DashboardLayout from '@/app/dashboard/layout';
 import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
-  ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail
+  ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
+  Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -57,16 +58,74 @@ function InvoicesList() {
     },
   ]);
 
-  // Load products and warehouses when form opens
+  // Product Search Modal states
+  const [productSearchModalOpen, setProductSearchModalOpen] = useState(false);
+  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [modalWarehouseFilter, setModalWarehouseFilter] = useState('');
+  const [modalCategoryFilter, setModalCategoryFilter] = useState('');
+  const [modalProducts, setModalProducts] = useState<any[]>([]);
+  const [modalProductsLoading, setModalProductsLoading] = useState(false);
+
+  const fetchModalProducts = useCallback(async (search = '', catId = '', whId = '') => {
+    setModalProductsLoading(true);
+    try {
+      let url = `/api/v1/products?per_page=50&search=${encodeURIComponent(search)}`;
+      if (catId) url += `&categoryId=${catId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.data) {
+        const productsWithStock = await Promise.all(
+          data.data.map(async (prod: any) => {
+            try {
+              const stockRes = await fetch(`/api/v1/products/${prod.id}/inventory`);
+              const stockData = await stockRes.json();
+              const inventory = stockData.success ? stockData.data : [];
+              return { ...prod, inventory };
+            } catch {
+              return { ...prod, inventory: [] };
+            }
+          })
+        );
+        setModalProducts(productsWithStock);
+      }
+    } catch (error) {
+      console.error('Error fetching modal products', error);
+    } finally {
+      setModalProductsLoading(false);
+    }
+  }, []);
+
+  const openProductSearchModal = (lineIdx: number) => {
+    setActiveLineIndex(lineIdx);
+    setModalWarehouseFilter(warehouseId);
+    setModalCategoryFilter('');
+    setModalSearchTerm('');
+    setProductSearchModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (productSearchModalOpen) {
+      const delayDebounceFn = setTimeout(() => {
+        fetchModalProducts(modalSearchTerm, modalCategoryFilter, modalWarehouseFilter);
+      }, 300);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [modalSearchTerm, modalCategoryFilter, modalWarehouseFilter, productSearchModalOpen, fetchModalProducts]);
+
+  // Load products, warehouses and categories when form opens
   useEffect(() => {
     async function fetchData() {
       try {
-        const [res, whRes] = await Promise.all([
+        const [res, whRes, catRes] = await Promise.all([
           fetch('/api/v1/products?per_page=100'),
-          fetch('/api/v1/warehouses')
+          fetch('/api/v1/warehouses'),
+          fetch('/api/v1/categories')
         ]);
         const data = await res.json();
         const whData = await whRes.json();
+        const catData = await catRes.json();
         if (data.success) {
           setDbProducts(data.data || []);
         }
@@ -76,6 +135,9 @@ function InvoicesList() {
             setWarehouseId(whData.data[0].id);
           }
         }
+        if (catData.success) {
+          setCategories(catData.data || []);
+        }
       } catch (error) {
         console.error('Error fetching form data', error);
       }
@@ -83,7 +145,7 @@ function InvoicesList() {
     if (showForm) {
       fetchData();
     }
-  }, [showForm]);
+  }, [showForm, warehouseId]);
 
   // Load showForm from query parameter
   useEffect(() => {
@@ -491,25 +553,20 @@ function InvoicesList() {
                         <div className="md:col-span-6 space-y-1.5">
                           <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
                           <div className="flex gap-2">
-                            <select
-                              onChange={(e) => {
-                                const prod = dbProducts.find(p => p.id === e.target.value);
-                                if (prod) applyProductToLine(idx, prod);
-                              }}
-                              value={line.productId || ''}
-                              className="rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all max-w-[200px]"
+                            <button
+                              type="button"
+                              onClick={() => openProductSearchModal(idx)}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
                             >
-                              <option value="">-- Seleccionar producto --</option>
-                              {dbProducts.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                            </select>
+                              <Search className="h-3.5 w-3.5" />
+                              Buscar
+                            </button>
                             <input
                               type="text"
                               value={line.productName}
                               onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
                               className="flex-1 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                              placeholder="Nombre manual (si no está registrado)"
+                              placeholder="Nombre del producto o servicio"
                               required
                             />
                           </div>
@@ -1095,6 +1152,153 @@ function InvoicesList() {
                 </div>
               </div>
             </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Product Search Modal (Size: 4xl) */}
+      <AnimatePresence>
+        {productSearchModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setProductSearchModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] z-10"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
+                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
+                  <Package className="h-5 w-5 text-[#C5A059]" /> Búsqueda de Productos
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setProductSearchModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="p-4 bg-slate-100 border-b border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    placeholder="Buscar por nombre, SKU o barra..."
+                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#C5A059]"
+                  />
+                </div>
+
+                <select
+                  value={modalWarehouseFilter}
+                  onChange={(e) => setModalWarehouseFilter(e.target.value)}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
+                >
+                  <option value="">Todos los almacenes</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={modalCategoryFilter}
+                  onChange={(e) => setModalCategoryFilter(e.target.value)}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
+                >
+                  <option value="">Todas las categorías</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {modalProductsLoading ? (
+                  <div className="flex justify-center items-center py-12">
+                    <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                  </div>
+                ) : modalProducts.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500 text-sm">
+                    No se encontraron productos con los filtros seleccionados.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 text-[#003366] uppercase font-bold border-b border-slate-200">
+                          <th className="p-3">SKU / Código</th>
+                          <th className="p-3">Producto</th>
+                          <th className="p-3 text-center">Stock</th>
+                          <th className="p-3 text-right">Precio Consumidor</th>
+                          <th className="p-3 text-right">Precio Mayorista</th>
+                          <th className="p-3 text-right">Precio Distribuidor</th>
+                          <th className="p-3 text-right">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {modalProducts.map((p) => {
+                          let stockQty = 0;
+                          let showAllStock = !modalWarehouseFilter;
+                          if (modalWarehouseFilter) {
+                            const level = p.inventory?.find((l: any) => l.warehouseId === modalWarehouseFilter);
+                            stockQty = level ? parseFloat(level.quantity) : 0;
+                          } else {
+                            stockQty = p.inventory?.reduce((acc: number, cur: any) => acc + parseFloat(cur.quantity), 0) || 0;
+                          }
+
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-3 font-mono font-bold text-slate-500">{p.sku || p.barcode || '-'}</td>
+                              <td className="p-3">
+                                <span className="font-bold text-slate-800 block">{p.name}</span>
+                                {p.description && <span className="text-[10px] text-slate-400 block truncate max-w-[200px]">{p.description}</span>}
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] ${stockQty > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                  {stockQty.toFixed(2)} {p.unitOfMeasure || 'ud'}
+                                </span>
+                                {showAllStock && p.inventory?.length > 0 && (
+                                  <span className="block text-[8px] text-slate-400 mt-0.5">Total en almacenes</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right font-mono font-bold text-slate-700">RD$ {parseFloat(p.priceConsumidor || p.price || '0').toFixed(2)}</td>
+                              <td className="p-3 text-right font-mono text-slate-500">RD$ {parseFloat(p.priceMayorista || p.price || '0').toFixed(2)}</td>
+                              <td className="p-3 text-right font-mono text-slate-500">RD$ {parseFloat(p.priceProveedor || p.price || '0').toFixed(2)}</td>
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (activeLineIndex !== null) {
+                                      applyProductToLine(activeLineIndex, p);
+                                      setProductSearchModalOpen(false);
+                                    }
+                                  }}
+                                  className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-1 px-3 rounded text-[10px] transition-colors"
+                                >
+                                  Seleccionar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

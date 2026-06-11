@@ -76,21 +76,24 @@ export class ProductRepository {
     return product || null;
   }
 
-  static async list(companyId: string, page = 1, perPage = 20, search?: string) {
+  static async list(companyId: string, page = 1, perPage = 20, search?: string, categoryId?: string) {
     const offset = (page - 1) * perPage;
 
     let searchFilter = and(eq(products.companyId, companyId), isNull(products.deletedAt));
 
     if (search) {
       searchFilter = and(
-        eq(products.companyId, companyId),
-        isNull(products.deletedAt),
+        searchFilter,
         or(
           ilike(products.name, `%${search}%`),
           ilike(products.sku, `%${search}%`),
           ilike(products.barcode, `%${search}%`)
         )
       );
+    }
+
+    if (categoryId) {
+      searchFilter = and(searchFilter, eq(products.categoryId, categoryId));
     }
 
     const [totalResult] = await db
