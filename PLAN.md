@@ -32,9 +32,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Bancos**: `/bank` (Gestión de Cuentas Bancarias)
 - **Contabilidad**: `/dashboard/accounting`
 - **Administración de Seguridad**: `/dashboard/admin`
-- **Reportes Financieros**: `/reports` (Estadísticas y Métricas de Ventas)
+- **Reportes Financieros**: `/reports` (Estadísticas y Métricas de Ventas, y Conciliación Bancaria activa)
 - **Soporte y Ayuda**: `/support` (Centro de Contacto)
 
 ---
 **Status**: Verified & Polished (Score >= 9)
-

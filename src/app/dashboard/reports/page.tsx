@@ -78,26 +78,19 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
-      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-          <PieChart className="h-3 w-3" /> Reportes Financieros
-        </span>
-      </div>
-
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Reportes y Analíticas
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Genera los estados financieros en formato PDF listo para auditoría.
-            </p>
-          </div>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+      {/* Header section with title and CTA */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-primary font-display flex items-center gap-2">
+            <PieChart className="h-8 w-8 text-[#c5a059]" />
+            Reportes y Analíticas
+          </h1>
+          <p className="text-on-surface-variant text-sm mt-1">
+            Genera los estados financieros en formato PDF listo para auditoría.
+          </p>
         </div>
+      </div>
 
         {/* Global Date Filter */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
@@ -255,15 +248,26 @@ export default function ReportsPage() {
             </a>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center opacity-70">
-            <Building className="w-8 h-8 text-on-surface-variant mb-3" />
-            <h3 className="font-bold text-on-surface-variant/80">Conciliación Bancaria</h3>
-            <p className="text-xs text-on-surface-variant mt-1">Próximamente</p>
+          {/* Conciliación Bancaria Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#3a5f94]" />
+            <div className="flex items-center gap-3 mb-2">
+              <Building className="w-6 h-6 text-[#3a5f94]" />
+              <h3 className="font-bold text-lg text-[#003366]">Conciliación Bancaria</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Compara el saldo de tus extractos bancarios con el balance registrado en libros. Identifica cheques y depósitos en tránsito para asentar periodos conciliados.
+            </p>
+            <a
+              href="/dashboard/reports/bank-reconciliation"
+              className="w-full bg-[#3a5f94] hover:bg-[#2c4970] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 text-center text-sm"
+            >
+              <Building className="w-4 h-4" /> Ir a Conciliación Bancaria
+            </a>
           </div>
 
         </div>
 
-      </div>
     </div>
   );
 }

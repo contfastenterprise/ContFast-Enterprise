@@ -16,6 +16,8 @@ interface InvoiceSale {
   customerRnc?: string;
 }
 
+import { FileText, Download, Calendar } from 'lucide-react';
+
 export default function Report607() {
   const [period, setPeriod] = useState<string>(() => {
     const d = new Date();
@@ -74,76 +76,92 @@ export default function Report607() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">Reporte ITBIS 607 - Ventas</h1>
-      <div className="flex space-x-4 mb-6 items-end">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+      
+      {/* Header section with title and CTA */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Periodo</label>
+          <h1 className="text-2xl md:text-3xl font-bold text-primary font-display flex items-center gap-2">
+            <FileText className="h-8 w-8 text-[#c5a059]" />
+            Reporte ITBIS 607 - Ventas
+          </h1>
+          <p className="text-on-surface-variant text-sm mt-1">Libro de ventas e ingresos para la DGII.</p>
+        </div>
+      </div>
+
+      {/* Global Filter */}
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
+        <div>
+          <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Periodo</label>
           <input
             type="month"
             value={period}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriod(e.target.value)}
-            className="w-48 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
           />
         </div>
         <button
           onClick={exportTxt}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors h-[38px] flex items-center justify-center"
+          className="flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-md"
         >
-          Exportar TXT 607
+          <Download className="h-4 w-4" /> Exportar TXT 607
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Subtotal (Gravado + Exento)</p>
-          <p className="text-xl font-semibold text-gray-800 dark:text-gray-200">{(totals?.subtotal || 0).toFixed(2)}</p>
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <p className="text-slate-500 text-sm font-semibold mb-1">Subtotal (Gravado + Exento)</p>
+          <p className="text-3xl font-bold text-[#003366] font-display">{(totals?.subtotal || 0).toFixed(2)}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-400">ITBIS Facturado</p>
-          <p className="text-xl font-semibold text-gray-800 dark:text-gray-200">{(totals?.itbis || 0).toFixed(2)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <p className="text-slate-500 text-sm font-semibold mb-1">ITBIS Facturado</p>
+          <p className="text-3xl font-bold text-[#003366] font-display">{(totals?.itbis || 0).toFixed(2)}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Monto Total</p>
-          <p className="text-xl font-semibold text-gray-800 dark:text-gray-200">{(totals?.total || 0).toFixed(2)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <p className="text-slate-500 text-sm font-semibold mb-1">Monto Total</p>
+          <p className="text-3xl font-bold text-[#003366] font-display">{(totals?.total || 0).toFixed(2)}</p>
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded shadow">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs uppercase font-semibold">
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">Fecha</th>
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">NCF</th>
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">Cliente (RNC)</th>
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">Subtotal</th>
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">ITBIS</th>
-              <th className="px-6 py-3 border-b border-gray-200 dark:border-gray-600">Total</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm text-gray-600 dark:text-gray-400">
-            {!invoices || invoices.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-4 text-center">
-                  No hay ventas registradas para este periodo.
-                </td>
+      {/* Table Container */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 text-[#003366] text-xs uppercase font-bold border-b border-slate-200">
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4">NCF</th>
+                <th className="px-6 py-4">Cliente (RNC)</th>
+                <th className="px-6 py-4 text-right">Subtotal</th>
+                <th className="px-6 py-4 text-right">ITBIS</th>
+                <th className="px-6 py-4 text-right">Total</th>
               </tr>
-            ) : (
-              invoices.map((e) => (
-                <tr key={e.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">{new Date(e.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">{e.ncf}</td>
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    {e.customerName || 'Consumidor Final'} {e.customerRnc ? `(${e.customerRnc})` : ''}
+            </thead>
+            <tbody className="text-sm text-slate-700 divide-y divide-slate-100">
+              {!invoices || invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                    No hay ventas registradas para este periodo.
                   </td>
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">{Number(e.subtotal || 0).toFixed(2)}</td>
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">{Number(e.totalTaxes || 0).toFixed(2)}</td>
-                  <td className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">{Number(e.total || 0).toFixed(2)}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                invoices.map((e) => (
+                  <tr key={e.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">{new Date(e.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 font-mono">{e.ncf}</td>
+                    <td className="px-6 py-4">
+                      {e.customerName || 'Consumidor Final'} {e.customerRnc ? <span className="text-xs text-slate-400 block">{e.customerRnc}</span> : ''}
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono">{Number(e.subtotal || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right font-mono">{Number(e.totalTaxes || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right font-mono">{Number(e.total || 0).toFixed(2)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
