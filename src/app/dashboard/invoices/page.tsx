@@ -690,7 +690,7 @@ function InvoicesList() {
                             value={line.unitPrice}
                             onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
                             className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                            min={0} required
+                            min={0} step="any" required
                           />
                         </div>
 
