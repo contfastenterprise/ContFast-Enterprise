@@ -74,6 +74,20 @@ function InvoicesList() {
   const [modalCustomers, setModalCustomers] = useState<any[]>([]);
   const [modalCustomersLoading, setModalCustomersLoading] = useState(false);
 
+  // Create Customer Modal states
+  const [createCustomerModalOpen, setCreateCustomerModalOpen] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState({
+    rncCedula: '',
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    status: 'active'
+  });
+  const [isSearchingRnc, setIsSearchingRnc] = useState(false);
+  const [rncVerified, setRncVerified] = useState(false);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
   const fetchModalCustomers = useCallback(async (search = '') => {
     setModalCustomersLoading(true);
     try {
@@ -94,17 +108,83 @@ function InvoicesList() {
     setModalCustomerSearch('');
     setModalCustomers([]);
     setCustomerSearchModalOpen(true);
-    fetchModalCustomers('');
+    fetchModalCustomers();
   };
 
   useEffect(() => {
-    if (customerSearchModalOpen) {
-      const delayDebounceFn = setTimeout(() => {
-        fetchModalCustomers(modalCustomerSearch);
-      }, 300);
-      return () => clearTimeout(delayDebounceFn);
+    const delay = setTimeout(() => {
+      fetchModalCustomers(modalCustomerSearch);
+    }, 450);
+    return () => clearTimeout(delay);
+  }, [modalCustomerSearch, fetchModalCustomers]);
+
+  const handleNewCustomerSearchDGII = async () => {
+    const rnc = newCustomerData.rncCedula.replace(/\D/g, '');
+    if (rnc.length !== 9 && rnc.length !== 11) {
+      toast.error('El RNC/Cédula debe tener 9 u 11 dígitos');
+      return;
     }
-  }, [modalCustomerSearch, customerSearchModalOpen, fetchModalCustomers]);
+
+    setIsSearchingRnc(true);
+    setRncVerified(false);
+
+    try {
+      const res = await fetch(`/api/v1/dgii/rnc/${rnc}`);
+      const data = await res.json();
+
+      if (data.success && data.name) {
+        setNewCustomerData(prev => ({ ...prev, name: data.name }));
+        setRncVerified(true);
+        toast.success('Contribuyente validado por DGII');
+      } else {
+        toast.warning(data.message || 'No encontrado en DGII. Puede ingresarlo manual.');
+      }
+    } catch (error) {
+      toast.warning('Servicio DGII inactivo. Ingrese el nombre manualmente.');
+    } finally {
+      setIsSearchingRnc(false);
+    }
+  };
+
+  const handleCreateCustomerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomerData.name) {
+      return toast.error('El nombre o razón social es requerido');
+    }
+
+    setIsSavingCustomer(true);
+    try {
+      const res = await fetch('/api/v1/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCustomerData)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Cliente creado y seleccionado exitosamente');
+        setCustomerId(data.data.id);
+        setCustomerRnc(data.data.rncCedula || '');
+        setCustomerName(data.data.name);
+
+        setCreateCustomerModalOpen(false);
+        setNewCustomerData({
+          rncCedula: '',
+          name: '',
+          email: '',
+          phone: '',
+          address: '',
+          status: 'active'
+        });
+        setRncVerified(false);
+      } else {
+        toast.error(data.error?.message || 'Error al guardar cliente');
+      }
+    } catch (err: any) {
+      toast.error('Error de red al guardar cliente', { description: err.message });
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
 
   const applyCustomer = (cust: any) => {
     setCustomerId(cust.id);
@@ -544,14 +624,24 @@ function InvoicesList() {
                       <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={openCustomerSearchModal}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
-                  >
-                    <Search className="h-3.5 w-3.5" />
-                    Buscar Cliente
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={openCustomerSearchModal}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
+                    >
+                      <Search className="h-3.5 w-3.5" />
+                      Buscar Cliente
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCreateCustomerModalOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 border border-amber-600 rounded-lg text-xs font-bold text-slate-900 transition-all shadow-sm"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Nuevo Cliente
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
@@ -1454,6 +1544,144 @@ function InvoicesList() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Customer Modal */}
+      <AnimatePresence>
+        {createCustomerModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCreateCustomerModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 text-slate-800"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
+                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
+                  <Users className="h-5 w-5 text-[#C5A059]" /> Registrar Nuevo Cliente
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setCreateCustomerModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleCreateCustomerSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">RNC o Cédula</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ej: 131002002"
+                      value={newCustomerData.rncCedula}
+                      onChange={(e) => {
+                        setNewCustomerData({ ...newCustomerData, rncCedula: e.target.value });
+                        setRncVerified(false);
+                      }}
+                      className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleNewCustomerSearchDGII}
+                      disabled={isSearchingRnc || !newCustomerData.rncCedula}
+                      className="px-4 py-2 bg-[#003366] text-white rounded-lg text-xs font-bold hover:bg-[#002244] transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isSearchingRnc ? (
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Search className="h-3.5 w-3.5" />
+                      )}
+                      DGII
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Nombre o Razón Social *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Distribuidora Comercial S.A."
+                    value={newCustomerData.name}
+                    onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                  />
+                  {rncVerified && (
+                    <span className="text-[10px] text-emerald-600 font-bold block">✓ Contribuyente verificado y cargado de DGII</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      placeholder="ejemplo@correo.com"
+                      value={newCustomerData.email}
+                      onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Teléfono</label>
+                    <input
+                      type="text"
+                      placeholder="809-555-0199"
+                      value={newCustomerData.phone}
+                      onChange={(e) => setNewCustomerData({ ...newCustomerData, phone: e.target.value })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Dirección</label>
+                  <textarea
+                    placeholder="Calle Principal #123, Ensanche Naco..."
+                    value={newCustomerData.address}
+                    onChange={(e) => setNewCustomerData({ ...newCustomerData, address: e.target.value })}
+                    rows={2}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none resize-none"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateCustomerModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-[#003366] transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingCustomer}
+                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isSavingCustomer ? (
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    Registrar Cliente
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
