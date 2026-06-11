@@ -441,8 +441,8 @@ function InvoicesList() {
     setSubmitting(true);
 
     try {
-      if (ecfType === '31' && (!customerRnc || !customerName)) {
-        throw new Error('El RNC y la Razón Social del cliente son requeridos para facturas de Crédito Fiscal (e-31).');
+      if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
+        throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
       }
       if (lines.some((l) => !l.productName)) {
         throw new Error('Todos los artículos deben tener un nombre.');
@@ -544,6 +544,7 @@ function InvoicesList() {
       case '32': return 'Consumo';
       case '33': return 'Nota de Crédito';
       case '34': return 'Nota de Débito';
+      case '45': return 'Gubernamental';
       default: return `Tipo ${type}`;
     }
   };
@@ -598,6 +599,7 @@ function InvoicesList() {
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
+                    <option value="45">e-45 Comprobante Gubernamental</option>
                   </select>
                 </div>
                 <div className="space-y-2">

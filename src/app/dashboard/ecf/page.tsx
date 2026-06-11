@@ -105,6 +105,7 @@ const ECF_TYPE_LABELS: Record<string, string> = {
   '32': 'Consumo',
   '33': 'Nota Débito',
   '34': 'Nota Crédito',
+  '45': 'Gubernamental',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -133,6 +134,7 @@ function ECFTypeBadge({ type }: { type: string }) {
     '32': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300',
     '33': 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
     '34': 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300',
+    '45': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${colors[type] || 'bg-gray-100 text-gray-700'}`}>
@@ -252,6 +254,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 <option value="32">e-32 — Consumo</option>
                 <option value="33">e-33 — Nota Débito</option>
                 <option value="34">e-34 — Nota Crédito</option>
+                <option value="45">e-45 — Gubernamental</option>
               </select>
             </div>
 
@@ -491,6 +494,7 @@ function ComprobantesTab() {
             <option value="32">e-32 Consumo</option>
             <option value="33">e-33 Nota Débito</option>
             <option value="34">e-34 Nota Crédito</option>
+            <option value="45">e-45 Gubernamental</option>
           </select>
           <select
             value={filters.status}
@@ -676,43 +680,41 @@ function ColaTab() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : submissions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant/70">
             <Activity className="h-12 w-12 opacity-30" />
             <p className="text-sm font-medium">Cola vacía</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reintentos</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Error</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead className="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">NCF</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Estado</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-center">Reintentos</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Error</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-outline-variant">
               {submissions.map((sub) => (
-                <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                  <td className="px-4 py-3">
-                    <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">
+                <tr key={sub.id} className="hover:bg-surface-container-low/50 transition-colors group">
+                  <td className="py-4 px-6">
+                    <span className="font-mono text-xs font-semibold text-primary">
                       {(sub as any).ncf || sub.invoiceId.substring(0, 8) + '…'}
                     </span>
                   </td>
-                  <td className="px-4 py-3"><StatusBadge status={sub.status} /></td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`text-sm font-bold ${sub.retryCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>
-                      {sub.retryCount}
-                    </span>
+                  <td className="py-4 px-6"><StatusBadge status={sub.status} /></td>
+                  <td className="py-4 px-6 text-center font-bold text-on-surface-variant">
+                    {sub.retryCount}
                   </td>
-                  <td className="px-4 py-3 text-xs text-red-500 max-w-[240px] truncate">
+                  <td className="py-4 px-6 text-xs text-red-500 max-w-[240px] truncate">
                     {sub.responseMessage || '–'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(sub.createdAt)}</td>
+                  <td className="py-4 px-6 font-body-sm text-on-surface-variant">{formatDate(sub.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -794,7 +796,7 @@ function SecuenciasTab() {
           ))}
         </div>
       ) : sequences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant/70 bg-white rounded-xl border border-outline-variant shadow-sm">
           <Database className="h-12 w-12 opacity-30" />
           <p className="text-sm font-medium">No hay secuencias SACF configuradas</p>
           <button onClick={() => setShowModal(true)} className="text-primary text-sm font-semibold hover:underline">
@@ -818,16 +820,16 @@ function SecuenciasTab() {
                 key={seq.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl border p-5 bg-white dark:bg-gray-900 ${
+                className={`rounded-xl border p-5 bg-white shadow-sm ${
                   isNearLimit
-                    ? 'border-orange-300 dark:border-orange-700'
-                    : 'border-gray-200 dark:border-gray-700'
+                    ? 'border-orange-300'
+                    : 'border-outline-variant'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <ECFTypeBadge type={seq.ecfType} />
-                    <span className="font-semibold text-gray-900 dark:text-primary">
+                    <span className="font-bold text-primary">
                       {ECF_TYPE_LABELS[seq.ecfType] || `Tipo ${seq.ecfType}`}
                     </span>
                   </div>
@@ -836,31 +838,31 @@ function SecuenciasTab() {
                     disabled={togglingId === seq.id}
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
                       seq.status === 'active'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-800 hover:bg-gray-200'
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-slate-100 text-on-surface-variant hover:bg-slate-200'
                     }`}
                   >
                     {togglingId === seq.id ? '...' : seq.status === 'active' ? 'Activo' : 'Inactivo'}
                   </button>
                 </div>
 
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 space-y-1">
+                <div className="text-xs text-on-surface-variant/80 mb-3 space-y-1">
                   <div className="flex justify-between">
                     <span>Rango:</span>
-                    <span className="font-mono font-semibold text-gray-700 dark:text-gray-300">
+                    <span className="font-mono font-semibold text-primary">
                       {seq.prefix}{seq.ecfType}00000001 – {seq.prefix}{seq.ecfType}{seq.maxSequence.toString().padStart(8, '0')}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Usados:</span>
-                    <span className={`font-semibold ${isNearLimit ? 'text-orange-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <span className={`font-semibold ${isNearLimit ? 'text-orange-600' : 'text-primary'}`}>
                       {seq.usedCount} / {seq.maxSequence}
                     </span>
                   </div>
                   {expiry && (
                     <div className="flex justify-between">
                       <span>Vencimiento:</span>
-                      <span className={`font-semibold ${isExpiringSoon ? 'text-orange-600' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <span className={`font-semibold ${isExpiringSoon ? 'text-orange-600' : 'text-primary'}`}>
                         {expiry}
                       </span>
                     </div>
@@ -868,7 +870,7 @@ function SecuenciasTab() {
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                <div className="w-full bg-slate-100 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all ${
                       usedPct >= 90 ? 'bg-orange-500' : usedPct >= 70 ? 'bg-yellow-500' : 'bg-green-500'
@@ -877,12 +879,12 @@ function SecuenciasTab() {
                   />
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-xs text-gray-400">{usedPct}% usado</span>
-                  <span className="text-xs text-gray-400">{seq.maxSequence - seq.usedCount} disponibles</span>
+                  <span className="text-xs text-on-surface-variant/60">{usedPct}% usado</span>
+                  <span className="text-xs text-on-surface-variant/60">{seq.maxSequence - seq.usedCount} disponibles</span>
                 </div>
 
                 {isNearLimit && (
-                  <div className="mt-3 flex items-center gap-2 text-orange-600 dark:text-orange-400 text-xs font-semibold bg-orange-50 dark:bg-orange-900/20 rounded-lg px-3 py-2">
+                  <div className="mt-3 flex items-center gap-2 text-orange-600 text-xs font-semibold bg-orange-50 rounded-lg px-3 py-2">
                     <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
                     Secuencia al {usedPct}% — Solicita nueva autorización pronto
                   </div>
@@ -939,11 +941,11 @@ function NotasTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 bg-white rounded-xl border border-outline-variant shadow-sm p-4 items-center">
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
         >
           <option value="">Todos los tipos</option>
           <option value="33">e-33 Nota Débito</option>
@@ -952,7 +954,7 @@ function NotasTab() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
         >
           <option value="">Todos los estados</option>
           <option value="draft">Borrador</option>
@@ -961,37 +963,37 @@ function NotasTab() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : notes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant/70">
             <CreditCard className="h-12 w-12 opacity-30" />
             <p className="text-sm font-medium">No hay notas de crédito o débito</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF Nota</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monto</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead className="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">NCF Nota</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Tipo</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-right">Monto</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-center">Estado</th>
+                <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody className="divide-y divide-outline-variant">
               {notes.map((note: any) => (
-                <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                  <td className="px-4 py-3">
-                    <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{note.ncf}</span>
+                <tr key={note.id} className="hover:bg-surface-container-low/50 transition-colors group">
+                  <td className="py-4 px-6">
+                    <span className="font-mono text-xs font-semibold text-primary">{note.ncf}</span>
                   </td>
-                  <td className="px-4 py-3"><ECFTypeBadge type={note.ecfType} /></td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
+                  <td className="py-4 px-6"><ECFTypeBadge type={note.ecfType} /></td>
+                  <td className="py-4 px-6 text-right font-semibold text-on-surface font-bold">
                     {formatCurrency(note.total)}
                   </td>
-                  <td className="px-4 py-3 text-center"><StatusBadge status={note.status} /></td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(note.createdAt)}</td>
+                  <td className="py-4 px-6 text-center"><StatusBadge status={note.status} /></td>
+                  <td className="py-4 px-6 font-body-sm text-on-surface-variant">{formatDate(note.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
