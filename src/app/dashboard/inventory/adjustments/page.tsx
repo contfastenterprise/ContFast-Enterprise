@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Save, PackageMinus, Settings2, RefreshCw, Scale } from 'lucide-react';
+import { Search, Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Product { id: string; name: string; sku: string; }
@@ -22,6 +22,16 @@ export default function InventoryAdjustmentsPage() {
   
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+
+  // Table states
+  const [tableProducts, setTableProducts] = useState<Product[]>([]);
+  const [tableSearchQuery, setTableSearchQuery] = useState('');
+  const [tablePage, setTablePage] = useState(1);
+  const [tableTotalPages, setTableTotalPages] = useState(1);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [tableInventory, setTableInventory] = useState<Record<string, number>>({});
+  const [tableInputs, setTableInputs] = useState<Record<string, string>>({});
+  const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch('/api/v1/warehouses').then(r => r.json()).then(data => {
@@ -65,6 +75,64 @@ export default function InventoryAdjustmentsPage() {
     }
   }, [selectedProduct, warehouseId, warehouses]);
 
+  // Load products for the bottom table
+  useEffect(() => {
+    let active = true;
+    setTableLoading(true);
+    fetch(`/api/v1/products?per_page=10&page=${tablePage}&search=${encodeURIComponent(tableSearchQuery)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (active && data.success) {
+          const items = data.data || [];
+          setTableProducts(items);
+          setTableTotalPages(data.meta?.total_pages || 1);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error('Error al cargar productos para la tabla');
+      })
+      .finally(() => {
+        if (active) setTableLoading(false);
+      });
+    return () => { active = false; };
+  }, [tablePage, tableSearchQuery]);
+
+  // Fetch inventory levels for the table products when warehouseId or tableProducts change
+  useEffect(() => {
+    if (tableProducts.length === 0 || !warehouseId) {
+      setTableInventory({});
+      return;
+    }
+
+    const fetchAllInventory = async () => {
+      const invMap: Record<string, number> = {};
+      try {
+        await Promise.all(
+          tableProducts.map(async (p) => {
+            const res = await fetch(`/api/v1/products/${p.id}/inventory`);
+            const data = await res.json();
+            if (data.success) {
+              const wh = data.data.find(
+                (w: any) =>
+                  w.warehouseId === warehouseId ||
+                  w.warehouseName === warehouses.find((ww) => ww.id === warehouseId)?.name
+              );
+              invMap[p.id] = wh ? parseFloat(wh.quantity) : 0;
+            } else {
+              invMap[p.id] = 0;
+            }
+          })
+        );
+        setTableInventory(invMap);
+      } catch (err) {
+        console.error('Error fetching table inventories:', err);
+      }
+    };
+
+    fetchAllInventory();
+  }, [tableProducts, warehouseId, warehouses]);
+
   const handleAdjust = async () => {
     if (!warehouseId || !selectedProduct) return toast.error('Selecciona almacén y producto');
     if (newQuantity === '') return toast.error('Ingresa la nueva cantidad');
@@ -97,6 +165,53 @@ export default function InventoryAdjustmentsPage() {
       toast.error('Error de red', { description: err.message });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTableAdjust = async (productId: string) => {
+    const newQtyStr = tableInputs[productId];
+    if (newQtyStr === undefined || newQtyStr === '') {
+      return toast.error('Ingresa la nueva cantidad');
+    }
+    const newQty = parseFloat(newQtyStr);
+    if (isNaN(newQty) || newQty < 0) {
+      return toast.error('Ingresa una cantidad válida');
+    }
+
+    const currentVal = tableInventory[productId] ?? 0;
+    if (newQty === currentVal) {
+      return toast.info('La cantidad ingresada es igual al stock actual');
+    }
+
+    setRowLoading(prev => ({ ...prev, [productId]: true }));
+    try {
+      const res = await fetch('/api/v1/inventory/adjustments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          warehouseId,
+          productId,
+          newQuantity: newQty,
+          reason: 'Conteo físico (Ajuste rápido desde tabla)'
+        })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        toast.success('Ajuste guardado exitosamente');
+        setTableInventory(prev => ({ ...prev, [productId]: newQty }));
+        setTableInputs(prev => ({ ...prev, [productId]: '' }));
+        
+        if (selectedProduct && selectedProduct.id === productId) {
+          setCurrentQty(newQty);
+        }
+      } else {
+        toast.error('Error', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setRowLoading(prev => ({ ...prev, [productId]: false }));
     }
   };
 
@@ -218,6 +333,130 @@ export default function InventoryAdjustmentsPage() {
                 <span className="font-label-md text-sm font-bold">Aplicar Ajuste</span>
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabla de Productos Disponibles */}
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6 md:p-10 mt-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <div>
+            <h2 className="font-bold text-xl text-primary">Productos Disponibles</h2>
+            <p className="text-sm text-on-surface-variant/85 mt-1">
+              Establece directamente la cantidad total física en el almacén seleccionado.
+            </p>
+          </div>
+          
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/50" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o SKU..."
+              value={tableSearchQuery}
+              onChange={e => {
+                setTableSearchQuery(e.target.value);
+                setTablePage(1);
+              }}
+              className="w-full bg-surface-container-high border-none rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+            />
+          </div>
+        </div>
+
+        {tableLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        ) : tableProducts.length === 0 ? (
+          <div className="text-center py-12 text-on-surface-variant/70 text-sm">
+            No se encontraron productos.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-outline-variant/30 text-xs font-bold uppercase tracking-wider text-on-surface-variant/70">
+                  <th className="pb-3 pl-4">Producto</th>
+                  <th className="pb-3">SKU</th>
+                  <th className="pb-3 text-right">Stock Actual</th>
+                  <th className="pb-3 text-center" style={{ width: '180px' }}>Nueva Cantidad Total</th>
+                  <th className="pb-3 text-right">Diferencia</th>
+                  <th className="pb-3 pr-4 text-right">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {tableProducts.map(p => {
+                  const currentStock = tableInventory[p.id];
+                  const inputVal = tableInputs[p.id] ?? '';
+                  const newQty = inputVal !== '' ? parseFloat(inputVal) : NaN;
+                  const diffVal = !isNaN(newQty) && currentStock !== undefined ? newQty - currentStock : null;
+                  const isRowLoading = rowLoading[p.id] || false;
+
+                  return (
+                    <tr key={p.id} className="hover:bg-surface-container-lowest/40 transition-colors text-sm">
+                      <td className="py-4 pl-4 font-bold text-primary max-w-[200px] truncate">{p.name}</td>
+                      <td className="py-4 font-mono text-xs text-on-surface-variant">{p.sku}</td>
+                      <td className="py-4 text-right font-mono font-bold text-on-surface-variant">
+                        {currentStock === undefined ? '...' : currentStock.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-4 text-center">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={inputVal}
+                          onChange={e => setTableInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
+                          className="w-full text-center bg-surface-container-high border border-outline/10 rounded-lg px-2 py-1.5 text-sm font-mono font-bold text-primary focus:ring-2 focus:ring-primary outline-none"
+                          disabled={isRowLoading}
+                        />
+                      </td>
+                      <td className={`py-4 text-right font-mono font-bold ${diffVal !== null && diffVal > 0 ? 'text-emerald-500' : diffVal !== null && diffVal < 0 ? 'text-red-500' : 'text-on-surface-variant/60'}`}>
+                        {diffVal !== null ? (diffVal > 0 ? `+${diffVal.toFixed(2)}` : diffVal.toFixed(2)) : '0.00'}
+                      </td>
+                      <td className="py-4 pr-4 text-right">
+                        <button
+                          onClick={() => handleTableAdjust(p.id)}
+                          disabled={isRowLoading || inputVal === '' || isNaN(newQty) || newQty === currentStock}
+                          className="bg-primary text-on-primary hover:shadow-md hover:shadow-primary/20 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-bold transition-all disabled:opacity-40"
+                        >
+                          {isRowLoading ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5" />
+                          )}
+                          Establecer
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Controles de paginación */}
+            {tableTotalPages > 1 && (
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-outline-variant/20">
+                <span className="text-xs text-on-surface-variant">
+                  Página {tablePage} de {tableTotalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTablePage(p => Math.max(p - 1, 1))}
+                    disabled={tablePage === 1}
+                    className="p-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container transition-colors disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setTablePage(p => Math.min(p + 1, tableTotalPages))}
+                    disabled={tablePage === tableTotalPages}
+                    className="p-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container transition-colors disabled:opacity-40"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
