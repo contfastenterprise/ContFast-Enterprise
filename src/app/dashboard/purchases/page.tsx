@@ -36,8 +36,8 @@ export default function PurchasesPage() {
       fetch('/api/v1/suppliers').then(r => r.json()),
       fetch('/api/v1/warehouses').then(r => r.json())
     ]).then(([pr, sp, wh]) => {
-      if (pr.success) setProducts(pr.data.items);
-      if (sp.success) setSuppliers(sp.data);
+      if (pr.success) setProducts(pr.data.items || pr.data || []);
+      if (sp.success) setSuppliers(sp.data || []);
       if (wh.success) {
         setWarehouses(wh.data);
         if (wh.data.length > 0) setWarehouseId(wh.data[0].id);
@@ -62,10 +62,14 @@ export default function PurchasesPage() {
           }
         }
 
-        // Recalc
-        newLine.subtotal = newLine.quantity * newLine.unitCost;
-        // Basic 18% ITBIS assumption for example (could be modified per product)
-        newLine.itbis = newLine.subtotal * 0.18; 
+        // Recalc only total if subtotal/itbis changed manually, or calculate 18% if it's a new product selection
+        if (field === 'productId' || field === 'quantity' || field === 'unitCost') {
+          newLine.subtotal = newLine.quantity * newLine.unitCost;
+          // Only auto-calc 18% if we just picked a product. Otherwise leave the manual ITBIS.
+          if (field === 'productId') {
+            newLine.itbis = newLine.subtotal * 0.18;
+          }
+        }
         newLine.total = newLine.subtotal + newLine.itbis;
         return newLine;
       }
@@ -73,11 +77,14 @@ export default function PurchasesPage() {
     }));
   };
 
+  const [globalIsc, setGlobalIsc] = useState(0);
+  const [globalOtherTaxes, setGlobalOtherTaxes] = useState(0);
+
   const removeLine = (id: string) => setLines(lines.filter(l => l.id !== id));
 
   const totalSubtotal = lines.reduce((acc, l) => acc + l.subtotal, 0);
   const totalItbis = lines.reduce((acc, l) => acc + l.itbis, 0);
-  const grandTotal = totalSubtotal + totalItbis;
+  const grandTotal = totalSubtotal + totalItbis + globalIsc + globalOtherTaxes;
 
   const saveExpense = async () => {
     if (!isMinorExpense && !supplierId) return toast.error('Selecciona un suplidor');
@@ -97,6 +104,8 @@ export default function PurchasesPage() {
         description,
         amount: totalSubtotal,
         itbis: totalItbis,
+        isc: globalIsc,
+        otherTaxes: globalOtherTaxes,
         lines: lines.map(l => ({
           productId: l.productId || null,
           description: l.desc,
@@ -121,6 +130,8 @@ export default function PurchasesPage() {
         setLines([]);
         setNcf('');
         setDescription('');
+        setGlobalIsc(0);
+        setGlobalOtherTaxes(0);
       } else {
         toast.error('Error guardando gasto', { description: data.error?.message });
       }
@@ -243,8 +254,9 @@ export default function PurchasesPage() {
                   <tr className="bg-surface-container border-b border-outline-variant/20">
                     <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant">PRODUCTO / SERVICIO</th>
                     <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-24">CANTIDAD</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-32">COSTO UND.</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-32 text-right">TOTAL</th>
+                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28">COSTO UND.</th>
+                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28">ITBIS</th>
+                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28 text-right">TOTAL</th>
                     <th className="px-4 py-3 w-10"></th>
                   </tr>
                 </thead>
@@ -279,8 +291,15 @@ export default function PurchasesPage() {
                           className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
                         />
                       </td>
+                      <td className="px-4 py-2">
+                        <input 
+                          type="number" step="0.01" value={l.itbis}
+                          onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
+                          className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
+                        />
+                      </td>
                       <td className="px-4 py-2 text-right">
-                        <span className="font-mono-data font-bold text-sm text-primary">RD${l.subtotal.toFixed(2)}</span>
+                        <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
                       </td>
                       <td className="px-4 py-2">
                         <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
@@ -348,8 +367,22 @@ export default function PurchasesPage() {
                 <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-on-primary/80">ITBIS (18%)</span>
+                <span className="text-sm font-medium text-on-primary/80">ITBIS (Editable por línea)</span>
                 <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
+                <input 
+                  type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
+                  className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
+                <input 
+                  type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
+                  className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                />
               </div>
             </div>
             

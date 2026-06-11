@@ -169,6 +169,110 @@ export class PdfGenerator {
     });
   }
 
+  static generateARStatement(
+    company: CompanyInfo, 
+    customerInfo: { name: string, rnc: string, phone: string },
+    asOfDate: string, 
+    data: any
+  ): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const buffers: Buffer[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
+        doc.on('error', (err) => reject(err));
+
+        const logoBuffer = await this.getLogoBuffer(company.logoUrl);
+        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        
+        this.drawHeader(doc, company, 'Estado de Cuentas', `Al: ${asOfDate}`, currentDateStr, logoBuffer);
+
+        let y = doc.y + 10;
+
+        // Draw Customer Info block
+        doc.fillColor('#005E63').font('Courier-Bold').fontSize(10).text('DATOS DEL CLIENTE', 50, y);
+        y += 15;
+        doc.fillColor('#333333').font('Courier').fontSize(9);
+        doc.text(this.formatLabel('Nombre', customerInfo.name), 50, y);
+        y += 12;
+        doc.text(this.formatLabel('RNC/Cédula', customerInfo.rnc || 'N/A'), 50, y);
+        y += 12;
+        doc.text(this.formatLabel('Teléfono', customerInfo.phone || 'N/A'), 50, y);
+        y += 20;
+
+        // Draw Table Header (custom headers for AR)
+        doc.moveTo(50, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
+        doc.font('Courier-Bold').fontSize(9).fillColor('#005E63');
+        doc.text('Factura / NCF', 55, y + 5, { width: 150 });
+        doc.text('Fecha', 210, y + 5, { width: 70 });
+        doc.text('Vence', 285, y + 5, { width: 70 });
+        doc.text('Original', 360, y + 5, { width: 80, align: 'right' });
+        doc.text('Pendiente', 445, y + 5, { width: 95, align: 'right' });
+        doc.moveTo(50, y + 16).lineTo(545, y + 16).strokeColor('#005E63').lineWidth(1).stroke();
+        y += 25;
+
+        // Draw Items
+        doc.fillColor('#333333').font('Courier').fontSize(9);
+        for (const item of data.openItems) {
+          if (y > 740) {
+            doc.addPage();
+            y = 50;
+            // Repeat Header
+            doc.moveTo(50, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
+            doc.font('Courier-Bold').fontSize(9).fillColor('#005E63');
+            doc.text('Factura / NCF', 55, y + 5, { width: 150 });
+            doc.text('Fecha', 210, y + 5, { width: 70 });
+            doc.text('Vence', 285, y + 5, { width: 70 });
+            doc.text('Original', 360, y + 5, { width: 80, align: 'right' });
+            doc.text('Pendiente', 445, y + 5, { width: 95, align: 'right' });
+            doc.moveTo(50, y + 16).lineTo(545, y + 16).strokeColor('#005E63').lineWidth(1).stroke();
+            y += 25;
+            doc.fillColor('#333333').font('Courier').fontSize(9);
+          }
+
+          const invoiceLabel = `${item.invoiceNumber}${item.ncf ? ' / ' + item.ncf : ''}`;
+          doc.text(invoiceLabel, 55, y, { width: 150 });
+          doc.text(new Date(item.date).toLocaleDateString('es-DO'), 210, y, { width: 70 });
+          doc.text(new Date(item.dueDate).toLocaleDateString('es-DO'), 285, y, { width: 70 });
+          doc.text(this.formatCurrency(Number(item.amount)), 360, y, { width: 80, align: 'right' });
+          doc.text(this.formatCurrency(Number(item.balance)), 445, y, { width: 95, align: 'right' });
+          y += 14;
+        }
+
+        if (data.openItems.length === 0) {
+          doc.font('Courier-Oblique').text('No hay facturas pendientes.', 55, y + 10);
+          y += 30;
+        }
+
+        // Total
+        if (y > 680) {
+          doc.addPage();
+          y = 50;
+        }
+
+        y += 10;
+        doc.moveTo(350, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
+        doc.moveTo(350, y + 2).lineTo(545, y + 2).strokeColor('#005E63').lineWidth(1).stroke();
+        y += 8;
+
+        doc.font('Courier-Bold').fontSize(11).fillColor('#005E63');
+        const totalLabel = this.formatLineText('TOTAL PENDIENTE', 35);
+        doc.text(totalLabel, 50, y);
+        doc.text(this.formatCurrency(data.totalPending), 400, y, { width: 140, align: 'right' });
+
+        y += 15;
+        doc.moveTo(350, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
+        doc.moveTo(350, y + 2).lineTo(545, y + 2).strokeColor('#005E63').lineWidth(1).stroke();
+
+        this.drawFooter(doc);
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   private static drawHeader(
     doc: typeof PDFDocument, 
     company: CompanyInfo, 

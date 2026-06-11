@@ -184,9 +184,9 @@ export class ReportRepository {
     const openItems = await db.select({
       id: accountsReceivable.id,
       invoiceId: invoices.id,
-      invoiceNumber: invoices.invoiceNumber,
+      invoiceNumber: invoices.id,
       ncf: invoices.ncf,
-      date: invoices.issueDate,
+      date: invoices.createdAt,
       dueDate: accountsReceivable.dueDate,
       amount: accountsReceivable.amount,
       balance: accountsReceivable.balance
@@ -198,7 +198,7 @@ export class ReportRepository {
       eq(accountsReceivable.customerId, customerId),
       sql`${accountsReceivable.balance} > 0`
     ))
-    .orderBy(invoices.issueDate);
+    .orderBy(invoices.createdAt);
 
     let totalPending = 0;
     for (const item of openItems) {

@@ -115,7 +115,7 @@ export async function generate606Txt(companyId: string, period: string) {
   const rows = await getExpenses(companyId, period);
   const lines = rows.map((e) => {
     const fields = [
-      e.ncf.padEnd(19, ' '),
+      (e.ncf || '').padEnd(19, ' '),
       e.issueDate.replace(/-/g, ''),
       e.paymentMethod.padStart(2, '0'),
       Number(e.amount).toFixed(2).replace('.', ''),

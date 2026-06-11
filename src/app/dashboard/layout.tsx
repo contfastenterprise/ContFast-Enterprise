@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Contactos',
       items: [
-        { name: 'Directorio', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
+        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
         { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
         { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" /> },
       ]

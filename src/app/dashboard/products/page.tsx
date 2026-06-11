@@ -107,7 +107,7 @@ export default function ProductsPage() {
 
   const openEditModal = (product: Product) => {
     setEditId(product.id);
-    setManualPricesEnabled(true); // Asumimos que si lo edita, ya tiene precios fijados previamente
+    setManualPricesEnabled(false); // Activado por defecto (autocalcular)
     setFormData({
       sku: product.sku || '',
       name: product.name,
@@ -380,17 +380,28 @@ export default function ProductsPage() {
                   <div className="space-y-2 col-span-1 md:col-span-2 bg-card-bg p-4 rounded-xl border border-[#003366]">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm font-semibold text-primary">Precios de Venta</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setManualPricesEnabled(true);
-                          setShowPricesModal(true);
-                        }}
-                        className="text-xs flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-3 py-1.5 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                        Editar Precios Manualmente
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-on-surface-variant">
+                          <input 
+                            type="checkbox" 
+                            checked={!manualPricesEnabled}
+                            onChange={(e) => setManualPricesEnabled(!e.target.checked)}
+                            className="rounded border-[#c5a059] text-primary focus:ring-primary"
+                          />
+                          Autocalcular
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualPricesEnabled(true);
+                            setShowPricesModal(true);
+                          }}
+                          className="text-xs flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-3 py-1.5 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                          {manualPricesEnabled ? 'Editar Precios' : 'Ajustar Manual'}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

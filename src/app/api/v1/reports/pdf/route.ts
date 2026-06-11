@@ -54,6 +54,22 @@ export async function GET(req: NextRequest) {
       );
       filename = `Balance_General_${asOf}.pdf`;
     } 
+    else if (type === 'ar_statement') {
+      const customerId = searchParams.get('customerId');
+      if (!customerId) {
+        return NextResponse.json({ success: false, error: { message: 'Cliente requerido' } }, { status: 400 });
+      }
+      const asOf = end || new Date().toISOString().split('T')[0];
+      const data = await ReportRepository.getARStatement(session.companyId, customerId);
+      
+      pdfBuffer = await PdfGenerator.generateARStatement(
+        { name: companyInfo.name, rnc: companyInfo.rnc, logoUrl: companyInfo.logoUrl || undefined },
+        { name: data.customer.name, rnc: data.customer.rncCedula || '', phone: data.customer.phone || '' },
+        asOf,
+        data
+      );
+      filename = `Estado_Cuentas_${data.customer.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    }
     else {
       return NextResponse.json({ success: false, error: { message: 'Tipo de reporte no soportado' } }, { status: 400 });
     }

@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
         isMinorExpense: isMinorExpense || false,
         ncf: ncf || null,
         ncfModified: ncfModified || null,
-        issueDate: new Date(issueDate),
-        paymentDate: paymentDate ? new Date(paymentDate) : null,
+        issueDate: new Date(issueDate).toISOString().split('T')[0],
+        paymentDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : null,
         amount: amount.toString(),
         itbis: (itbis || 0).toString(),
         itbisRetained: (itbisRetained || 0).toString(),
@@ -141,13 +141,10 @@ export async function POST(req: NextRequest) {
           id: uuidv4(),
           companyId: session.companyId,
           supplierId: supplierId,
-          referenceId: newExpenseId,
-          documentType: 'expense',
           amount: amount.toString(), // Total with taxes ideally, but using amount + taxes
           balance: (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0)).toString(),
-          dueDate: paymentDate ? new Date(paymentDate) : new Date(new Date().setDate(new Date().getDate() + 30)),
+          dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           status: 'pending',
-          description: `Compra a crédito NCF: ${ncf || 'Gasto Menor'}`
         });
       }
 

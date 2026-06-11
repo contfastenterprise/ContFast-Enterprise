@@ -11,12 +11,19 @@ export default function ReportsPage() {
   });
   const [warehouseId, setWarehouseId] = useState('all');
   const [warehouses, setWarehouses] = useState<{id: string, name: string}[]>([]);
+  const [customers, setCustomers] = useState<{id: string, name: string, rncCedula: string}[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [loadingType, setLoadingType] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/v1/warehouses').then(res => res.json()).then(data => {
+      if (data.success && data.data) setWarehouses(data.data);
+    }).catch(() => {});
+    
+    fetch('/api/v1/customers').then(res => res.json()).then(data => {
       if (data.success && data.data) {
-        setWarehouses(data.data);
+        setCustomers(data.data);
+        if (data.data.length > 0) setSelectedCustomerId(data.data[0].id);
       }
     }).catch(() => {});
   }, []);
@@ -31,7 +38,17 @@ export default function ReportsPage() {
     try {
       // Usar fetch para que las cookies de sesión (HttpOnly) se envíen correctamente.
       // window.open() en una pestaña nueva NO envía cookies SameSite=Strict.
-      const url = `/api/v1/reports/pdf?type=${type}&start=${dates.start}&end=${dates.end}${warehouseId !== 'all' ? `&warehouseId=${warehouseId}` : ''}`;
+      let url = `/api/v1/reports/pdf?type=${type}&start=${dates.start}&end=${dates.end}${warehouseId !== 'all' ? `&warehouseId=${warehouseId}` : ''}`;
+      
+      if (type === 'ar_statement') {
+        if (!selectedCustomerId) {
+          toast.error('Debe seleccionar un cliente');
+          setLoadingType(null);
+          return;
+        }
+        url += `&customerId=${selectedCustomerId}`;
+      }
+
       const res = await fetch(url, { credentials: 'include' });
 
       if (!res.ok) {
@@ -165,6 +182,44 @@ export default function ReportsPage() {
               )}
             </button>
           </div>
+          {/* AR Statement Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-[#10b981]" />
+            <div className="flex items-center gap-3 mb-2">
+              <BookOpen className="w-6 h-6 text-[#10b981]" />
+              <h3 className="font-bold text-lg text-[#003366]">Estado de Cuentas por Cliente</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-4 flex-grow">
+              Genera un reporte detallado de las facturas pendientes y balances adeudados de un cliente específico.
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">Cliente</label>
+              <select
+                value={selectedCustomerId}
+                onChange={e => setSelectedCustomerId(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#10b981] text-sm"
+              >
+                {customers.length === 0 && <option value="">Cargando clientes...</option>}
+                {customers.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => handleGeneratePdf('ar_statement')}
+              disabled={loadingType !== null || !selectedCustomerId}
+              className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loadingType === 'ar_statement' ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
+              ) : (
+                <><Download className="w-4 h-4" /> Generar PDF</>
+              )}
+            </button>
+          </div>
+
           {/* Formato 606 Card */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
