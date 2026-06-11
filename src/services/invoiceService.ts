@@ -38,6 +38,17 @@ export class InvoiceService {
    * Main service function to issue and sign a new electronic e-CF invoice.
    */
   static async issueInvoice(data: IssueInvoiceInput) {
+    // Determine the active cash session
+    let activeCashSessionId = data.cashSessionId;
+
+    if (data.paymentType === 'cash') {
+      const activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+      if (!activeSession) {
+        throw new Error('Debe abrir una sesión de caja antes de realizar una venta en efectivo.');
+      }
+      activeCashSessionId = activeSession.id;
+    }
+
     // 1. Calculate totals
     let subtotal = 0;
     let totalDiscount = 0;
@@ -161,7 +172,7 @@ export class InvoiceService {
         warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
-        cashSessionId: data.cashSessionId,
+        cashSessionId: activeCashSessionId,
         ncf,
         ecfType: data.ecfType,
         status: 'signed',
@@ -221,10 +232,10 @@ export class InvoiceService {
       });
 
       // 2.10. Cash Session registration
-      if (data.cashSessionId) {
+      if (activeCashSessionId) {
         await CashRepository.addMovement(tx, {
           companyId: data.companyId,
-          cashSessionId: data.cashSessionId,
+          cashSessionId: activeCashSessionId,
           invoiceId: invoice.id,
           type: 'sale',
           amount: total,
