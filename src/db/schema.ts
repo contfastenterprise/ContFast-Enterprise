@@ -148,6 +148,7 @@ export const productCategories = pgTable('product_categories', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
   name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

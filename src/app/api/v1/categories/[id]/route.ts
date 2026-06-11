@@ -10,14 +10,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await req.json();
-    const { name, status } = body;
+    const { name, description, status } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: { message: 'El nombre es requerido' } }, { status: 400 });
     }
 
     const updated = await db.update(productCategories)
-      .set({ name, status, updatedAt: new Date() })
+      .set({ name, description, status, updatedAt: new Date() })
       .where(and(eq(productCategories.id, id), eq(productCategories.companyId, auth.companyId)))
       .returning();
 

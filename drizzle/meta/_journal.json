@@ -64,6 +64,13 @@
       "when": 1781178674667,
       "tag": "0008_sparkling_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781217421965,
+      "tag": "0009_known_proemial_gods",
+      "breakpoints": true
     }
   ]
 }

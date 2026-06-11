@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (!auth) return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
 
     const body = await req.json();
-    const { name, status } = body;
+    const { name, description, status } = body;
 
     if (!name) {
       return NextResponse.json({ success: false, error: { message: 'El nombre es requerido' } }, { status: 400 });
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       id: uuidv4(),
       companyId: auth.companyId,
       name,
+      description,
       status: status || 'active'
     }).returning();
 
