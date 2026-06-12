@@ -35,6 +35,11 @@ const fmt = (val: number | string) =>
     minimumFractionDigits: 2,
   }).format(typeof val === 'string' ? parseFloat(val) : val);
 
+const getSafeStock = (product: any): number => {
+  if (!product || product.stock === undefined || product.stock === null) return 0;
+  return parseFloat(product.stock.toString()) || 0;
+};
+
 export default function POSPage() {
   const router = useRouter();
   
@@ -92,13 +97,13 @@ export default function POSPage() {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
         // Validate stock
-        if (existing.cartQuantity + 1 > parseFloat(existing.stock.toString())) {
+        if (existing.cartQuantity + 1 > getSafeStock(existing)) {
           toast.error(`Stock insuficiente para ${product.name}`);
           return prev;
         }
         return prev.map(item => item.id === product.id ? { ...item, cartQuantity: item.cartQuantity + 1 } : item);
       }
-      if (parseFloat(product.stock.toString()) <= 0) {
+      if (getSafeStock(product) <= 0) {
         toast.error(`Producto agotado: ${product.name}`);
         return prev;
       }
@@ -111,7 +116,7 @@ export default function POSPage() {
       if (item.id === id) {
         const newQty = item.cartQuantity + delta;
         if (newQty <= 0) return item; // Handled by remove
-        if (newQty > parseFloat(item.stock.toString())) {
+        if (newQty > getSafeStock(item)) {
           toast.error(`Stock insuficiente para ${item.name}`);
           return item;
         }
@@ -271,7 +276,7 @@ export default function POSPage() {
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredProducts.map(product => {
-              const stockNum = parseFloat(product.stock.toString());
+              const stockNum = getSafeStock(product);
               const outOfStock = stockNum <= 0;
               return (
                 <button
