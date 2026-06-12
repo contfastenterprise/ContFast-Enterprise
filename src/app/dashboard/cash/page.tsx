@@ -556,64 +556,59 @@ export default function CashPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
+                className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden"
               >
-                <div className="bg-[#001733] border-b border-[#003366] px-6 py-5 flex justify-between items-center">
+                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <div>
-                    <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                      <Plus className="w-5 h-5 text-[#c5a059]" /> Nueva Terminal / Punto de Venta
-                    </h3>
-                    <p className="text-xs text-[#c5a059]/70 mt-1">Configure un nuevo punto de venta para su empresa.</p>
+                    <h3 className="text-base font-bold text-gray-800">Nueva Terminal de Caja</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Configure una nueva terminal para su empresa.</p>
                   </div>
-                  <button onClick={() => setShowNewRegisterModal(false)} className="text-on-surface-variant hover:text-white transition-colors">
+                  <button onClick={() => setShowNewRegisterModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-
-                <form onSubmit={handleCreateRegister} className="p-6 space-y-5">
+                <form onSubmit={handleCreateRegister} className="p-6 space-y-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-primary block">Nombre de la Terminal <span className="text-[#c5a059]">*</span></label>
+                    <label className="text-sm font-semibold text-gray-700 block">Nombre de la Terminal <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
                       value={newRegisterForm.name}
                       onChange={e => setNewRegisterForm({ ...newRegisterForm, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors"
-                      placeholder="Ej. Caja Principal, Terminal 1, POS Sucursal Norte"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors"
+                      placeholder="Ej. Caja Principal, Terminal 1"
                     />
                   </div>
-
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-primary block">Código Único <span className="text-[#c5a059]">*</span></label>
+                    <label className="text-sm font-semibold text-gray-700 block">Código Único <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
                       value={newRegisterForm.code}
                       onChange={e => setNewRegisterForm({ ...newRegisterForm, code: e.target.value.toUpperCase() })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono uppercase"
-                      placeholder="Ej. CAJA-01, POS-NORTE"
+                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors font-mono uppercase"
+                      placeholder="Ej. CAJA-01"
                     />
-                    <p className="text-[10px] text-on-surface-variant/60 mt-1">Identificador único interno para esta terminal.</p>
+                    <p className="text-[11px] text-gray-400">Identificador único interno para esta terminal.</p>
                   </div>
-
-                  <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                  <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
                     <button
                       type="button"
                       onClick={() => setShowNewRegisterModal(false)}
-                      className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                      className="px-5 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={creatingRegister}
-                      className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
                     >
                       {creatingRegister ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Terminal
                     </button>
@@ -1322,22 +1317,25 @@ export default function CashPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
             >
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <div className="flex items-center gap-3">
-                  {moveType === 'cash_in' ? <Plus className="w-5 h-5 text-[#c5a059]" /> : <Minus className="w-5 h-5 text-[#c5a059]" />}
-                  <h3 className="text-xl font-display font-bold text-white">
+              <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  {moveType === 'cash_in'
+                    ? <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><Plus className="w-4 h-4 text-emerald-600" /></div>
+                    : <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Minus className="w-4 h-4 text-red-600" /></div>
+                  }
+                  <h3 className="text-base font-bold text-gray-800">
                     {moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                   </h3>
                 </div>
-                <button onClick={() => setShowMoveModal(false)} className="text-on-surface-variant hover:text-primary transition-colors">
+                <button onClick={() => setShowMoveModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1350,10 +1348,10 @@ export default function CashPage() {
                       type="button"
                       onClick={() => setMoveType(t)}
                       className={clsx(
-                        'flex-1 py-2 rounded-lg text-sm font-semibold border transition-all',
+                        'flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all',
                         moveType === t
-                          ? t === 'cash_in' ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-red-500/20 border-red-500/50 text-red-400'
-                          : 'bg-[#001733] border-[#003366] text-on-surface-variant hover:text-primary'
+                          ? t === 'cash_in' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-300 text-red-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700'
                       )}
                     >
                       {t === 'cash_in' ? '↑ Entrada' : '↓ Salida'}
@@ -1362,9 +1360,9 @@ export default function CashPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-primary block mb-1">Monto (RD$)</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">Monto (RD$)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">RD$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">RD$</span>
                     <input
                       type="number"
                       value={moveAmount}
@@ -1372,29 +1370,29 @@ export default function CashPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0.01"
-                      className="w-full bg-[#001733] border border-[#003366] rounded-xl pl-14 pr-4 py-3 font-mono text-xl font-bold text-white focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-white border border-gray-200 rounded-xl pl-14 pr-4 py-3 font-mono text-xl font-bold text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-primary block mb-1">Descripción / Concepto</label>
+                  <label className="text-sm font-semibold text-gray-700 block mb-1">Descripción / Concepto</label>
                   <input
                     type="text"
                     value={moveDescription}
                     onChange={(e) => setMoveDescription(e.target.value)}
                     placeholder="Ej: Pago de mensajería, fondo adicional..."
-                    className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
                     required
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => setShowMoveModal(false)}
-                    className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    className="px-5 py-2.5 text-gray-500 hover:text-gray-700 font-medium transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1402,8 +1400,8 @@ export default function CashPage() {
                     type="submit"
                     disabled={submitting}
                     className={clsx(
-                      'flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-lg transition-colors',
-                      moveType === 'cash_in' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white',
+                      'flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-lg transition-colors text-white',
+                      moveType === 'cash_in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700',
                       submitting && 'opacity-50 cursor-not-allowed'
                     )}
                   >
