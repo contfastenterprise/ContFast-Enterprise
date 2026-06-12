@@ -167,7 +167,7 @@ export class DocumentTemplates {
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
       const logoHtml = company.logoUrl 
-        ? `<img src="${company.logoUrl}" style="max-height: 80px; max-width: 200px; object-fit: contain; margin-bottom: 15px;" alt="Logo">` 
+        ? `<img src="${company.logoUrl}" style="max-height: 80px; max-width: 200px; object-fit: contain; margin-bottom: 3px;" alt="Logo">` 
         : '';
 
       return `
@@ -207,8 +207,8 @@ export class DocumentTemplates {
             .signature-line { text-align: center; width: 150px; }
             .signature-line-border { border-top: 1px solid #777; padding-top: 6px; }
             
-            .qr-signature-section { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
-            .qr-block { display: flex; align-items: center; gap: 15px; font-family: monospace; font-size: 8.5pt; }
+            .qr-signature-section { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
+            .qr-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: monospace; font-size: 8.5pt; }
             .qr-img { width: 100px; height: 100px; }
           </style>
         </head>
@@ -301,10 +301,8 @@ export class DocumentTemplates {
           <div class="qr-signature-section">
             <div class="qr-block">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img" alt="QR">` : ''}
-              <div>
-                <div>Código de seguridad: ${inv.securityCode || 'N/A'}</div>
-                <div style="margin-top: 5px;">Fecha Firma: ${formattedSigDate}</div>
-              </div>
+              <div style="margin-top: 4px;">Código de seguridad: ${inv.securityCode || 'N/A'}</div>
+              <div>Fecha Firma: ${formattedSigDate}</div>
             </div>
             <div class="signature-container">
               <div class="signature-line">
