@@ -179,10 +179,10 @@ export class DocumentTemplates {
           <style>
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; }
-            .doc-info { text-align: right; font-family: 'Inter', sans-serif; }
-            .doc-title { font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; }
-            .doc-ncf { font-size: 12pt; font-weight: bold; color: #000; }
+            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; }
+            .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
+            .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
+            .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
             
             .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
             
@@ -221,12 +221,14 @@ export class DocumentTemplates {
   ${padDots('Teléfono', 12)} ${company.phone}
   ${padDots('Email', 12)} ${company.email}
   ${padDots('Dirección', 12)} ${company.address}
-  ${padDots('Fecha Emis', 12)} ${formattedEmiDate}
               </div>
             </div>
             <div class="doc-info">
               <div class="doc-title">${getEcfTypeName(inv.ecfType)}</div>
               <div class="doc-ncf">e-NCF: <span style="font-family: monospace;">${inv.ncf}</span></div>
+              <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
+                Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
+              </div>
             </div>
           </div>
 

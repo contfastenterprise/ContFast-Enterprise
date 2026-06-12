@@ -82,7 +82,7 @@ export default function CustomerHistoryPage() {
 
   return (
 
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
 
       {/* Navigation & Header */}
       <button
