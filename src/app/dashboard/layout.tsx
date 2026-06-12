@@ -76,6 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Punto de Venta', href: '/dashboard/pos', icon: <ShoppingCart className="h-5 w-5" /> },
         { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
         { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
+        { name: 'Ingreso', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
       ]
     },
     {
@@ -100,7 +101,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Finanzas y Reportes',
       items: [
-        { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
         { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
         { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
         { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
