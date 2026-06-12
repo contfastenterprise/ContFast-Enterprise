@@ -51,7 +51,7 @@ export async function POST(
       customer = cust;
     }
 
-    // 4. Fetch lines and join with product name
+    // 4. Fetch lines and join with product details
     const lines = await db
       .select({
         quantity: invoiceLines.quantity,
@@ -59,6 +59,8 @@ export async function POST(
         discount: invoiceLines.discount,
         total: invoiceLines.total,
         productName: products.name,
+        productSku: products.sku,
+        unitOfMeasure: products.unitOfMeasure,
       })
       .from(invoiceLines)
       .leftJoin(products, eq(invoiceLines.productId, products.id))
@@ -104,16 +106,21 @@ export async function POST(
 
     const invoiceRecord = {
       ncf: invoiceRecordDb.ncf,
+      ecfType: invoiceRecordDb.ecfType,
+      paymentType: invoiceRecordDb.paymentType,
       createdAt: invoiceRecordDb.createdAt.toISOString(),
       paymentStatus: invoiceRecordDb.paymentStatus,
       subtotal: Number(invoiceRecordDb.subtotal),
       discount: Number(invoiceRecordDb.discount),
+      totalTaxes: Number(invoiceRecordDb.totalTaxes),
       total: Number(invoiceRecordDb.total),
       securityCode,
       signatureDate: invoiceRecordDb.createdAt.toISOString(),
       lines: lines.map(l => ({
         quantity: Number(l.quantity),
         productName: l.productName || 'Producto/Servicio',
+        productSku: l.productSku || 'N/A',
+        unitOfMeasure: l.unitOfMeasure || 'Unidad',
         unitPrice: Number(l.unitPrice),
         discount: Number(l.discount),
         total: Number(l.total)
@@ -128,6 +135,7 @@ export async function POST(
         rnc: company.rnc,
         address: company.businessActivity || 'Santiago, R.D.',
         phone: '1-829-214-4128', // Latin Doors phone from the template
+        email: settings?.msellerEmail || 'latindoors@gmail.com',
         logoUrl: settings?.logoUrl || undefined,
         settings: { 
           printLayout: settings?.printLayout || 'carta' 
@@ -135,10 +143,14 @@ export async function POST(
       },
       customer: customer ? {
         name: customer.name,
-        rncCedula: customer.rncCedula
+        rncCedula: customer.rncCedula,
+        phone: customer.phone || '',
+        address: customer.address || ''
       } : {
         name: invoiceRecordDb.buyerName || 'Consumidor Final',
-        rncCedula: invoiceRecordDb.buyerRnc || ''
+        rncCedula: invoiceRecordDb.buyerRnc || '',
+        phone: '',
+        address: ''
       }
     };
 

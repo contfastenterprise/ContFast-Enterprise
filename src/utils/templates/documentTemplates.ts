@@ -79,10 +79,246 @@ export class DocumentTemplates {
    * Renderiza el HTML para una factura (e-CF)
    */
   static renderInvoice(data: any, layout: 'carta' | '80mm' | '58mm', qrBase64: string): string {
-    const css = this.getBaseCss(layout);
     const { company, customer, invoice, lines, taxes } = data;
     const inv = invoice || data;
-    
+
+    if (layout === 'carta') {
+      const padDots = (label: string, length: number) => {
+        const dotsNeeded = length - label.length;
+        return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+      };
+
+      const getEcfTypeName = (type: string) => {
+        const types: Record<string, string> = {
+          '31': 'Factura de Crédito Fiscal Electrónica',
+          '32': 'Factura de Consumo Electrónica',
+          '33': 'Nota de Débito Electrónica',
+          '34': 'Nota de Crédito Electrónica',
+          '41': 'Registro de Proveedores Informales Electrónico',
+          '43': 'Registro de Único Ingreso Electrónico',
+          '44': 'Registro de Gastos Menores Electrónico',
+          '45': 'Registro de Regímenes Especiales de Tributación Electrónico',
+          '46': 'Registro de Gubernamentales Electrónico'
+        };
+        return types[type] || 'Factura de Consumo Electrónica';
+      };
+
+      const formatNum = (val: number) => {
+        return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+
+      const emiDate = new Date(inv.createdAt);
+      const formattedEmiDate = `${String(emiDate.getDate()).padStart(2, '0')}/${String(emiDate.getMonth() + 1).padStart(2, '0')}/${emiDate.getFullYear()}`;
+
+      const isCredit = inv.paymentType === 'credit';
+      const conditionLabel = isCredit ? 'FACTURA A CREDITO' : 'FACTURA AL CONTADO';
+
+      // Lines processing
+      const linesHtml = lines.map((line: any) => {
+        const qty = Number(line.quantity);
+        const uPrice = Number(line.unitPrice);
+        const discUnit = Number(line.discount);
+        const lineTotal = Number(line.total);
+
+        const rawSubtotal = qty * uPrice;
+        const rawDiscount = qty * discUnit;
+        const rawTaxable = rawSubtotal - rawDiscount;
+
+        let lineItbis = 0;
+        let priceInclusive = uPrice;
+        let descTotalInclusive = rawDiscount;
+
+        if (rawTaxable > 0) {
+          const calculatedTaxRate = (lineTotal / rawTaxable) - 1;
+          lineItbis = lineTotal - rawTaxable;
+          priceInclusive = uPrice * (1 + calculatedTaxRate);
+          descTotalInclusive = rawDiscount * (1 + calculatedTaxRate);
+        }
+
+        return `
+          <tr>
+            <td>${line.productSku || 'N/A'}</td>
+            <td>${line.productName}</td>
+            <td>${line.unitOfMeasure || 'Unidad'}</td>
+            <td class="text-center">${qty}</td>
+            <td class="text-right">${formatNum(priceInclusive)}</td>
+            <td class="text-right">${formatNum(descTotalInclusive)}</td>
+            <td class="text-right">${formatNum(lineItbis)}</td>
+            <td class="text-right">${formatNum(lineTotal)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Totals calculations
+      const subtotalVal = formatNum(inv.subtotal - inv.discount);
+      const discountVal = formatNum(inv.discount);
+      const itbisVal = formatNum(inv.totalTaxes);
+      const totalVal = formatNum(inv.total);
+
+      // Signature Date formatting
+      const sigDate = new Date(inv.signatureDate || inv.createdAt);
+      const formattedSigDate = sigDate.toLocaleString('es-DO', {
+        hour12: true,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
+
+      const logoHtml = company.logoUrl 
+        ? `<img src="${company.logoUrl}" style="max-height: 80px; max-width: 200px; object-fit: contain; margin-bottom: 15px;" alt="Logo">` 
+        : '';
+
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Factura ${inv.ncf}</title>
+          <style>
+            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
+            .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; }
+            .doc-info { text-align: right; font-family: 'Inter', sans-serif; }
+            .doc-title { font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; }
+            .doc-ncf { font-size: 12pt; font-weight: bold; color: #000; }
+            
+            .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
+            
+            .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: 20px; }
+            .client-info { white-space: pre; }
+            .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 2px; }
+            
+            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .invoice-table th { background-color: #005E6A; color: #fff; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 8px 6px; border: none; text-align: left; }
+            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 8px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+            .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
+            .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
+            
+            .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 25px; margin-bottom: 40px; }
+            
+            .totals-table { width: 100%; border-collapse: collapse; }
+            .totals-table td { border: none; padding: 2px 0; }
+            .totals-table .grand-total-row { font-weight: bold; border-top: 1px solid #ccc; border-bottom: 3px double #000; }
+            .totals-table .grand-total-row td { padding: 4px 0; font-size: 11pt; }
+            
+            .signature-container { display: flex; gap: 40px; font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #555; align-items: flex-end; }
+            .signature-line { text-align: center; width: 150px; }
+            .signature-line-border { border-top: 1px solid #777; padding-top: 6px; }
+            
+            .qr-signature-section { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
+            .qr-block { display: flex; align-items: center; gap: 15px; font-family: monospace; font-size: 8.5pt; }
+            .qr-img { width: 100px; height: 100px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-container">
+            <div>
+              ${logoHtml}
+              <div class="company-info">
+  ${padDots('RNC', 12)} ${company.rnc}
+  ${padDots('Teléfono', 12)} ${company.phone}
+  ${padDots('Email', 12)} ${company.email}
+  ${padDots('Dirección', 12)} ${company.address}
+  ${padDots('Fecha Emis', 12)} ${formattedEmiDate}
+              </div>
+            </div>
+            <div class="doc-info">
+              <div class="doc-title">${getEcfTypeName(inv.ecfType)}</div>
+              <div class="doc-ncf">e-NCF: <span style="font-family: monospace;">${inv.ncf}</span></div>
+            </div>
+          </div>
+
+          <div class="condition-bar">
+            ${conditionLabel}
+          </div>
+
+          <div class="client-section">
+            <div class="client-info">
+  ${padDots('Razon Social', 18)} ${customer.name}
+  ${padDots('RNC/Cédula', 18)} ${customer.rncCedula}
+  ${padDots('Teléfono', 18)} ${customer.phone || ''}
+  ${padDots('Dirección', 18)} ${customer.address || ''}
+            </div>
+            <div class="invoice-num">
+              Factura N°: FAC-${inv.ncf.substring(3)}
+            </div>
+          </div>
+
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th>Medida</th>
+                <th class="text-center">Cantidad</th>
+                <th class="text-right">Precio</th>
+                <th class="text-right">Desc</th>
+                <th class="text-right">ITBIS</th>
+                <th class="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linesHtml}
+            </tbody>
+          </table>
+
+          <div class="bottom-section">
+            <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; max-width: 55%;">
+              <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas:</div>
+              <div style="margin-bottom: 15px; color: #555;">
+                Gracias por su compra! .<br>
+                No aceptamos devolucion de despues de la salida de mercancia.
+              </div>
+              <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Comentarios:</div>
+              <div style="color: #555;">N/A</div>
+            </div>
+            <div style="width: 300px; font-family: monospace; font-size: 9.5pt;">
+              <table class="totals-table">
+                <tr>
+                  <td>${padDots('SUB TOTAL', 15)}</td>
+                  <td class="text-right">${subtotalVal}</td>
+                </tr>
+                <tr>
+                  <td>${padDots('- DESCUENTO', 15)}</td>
+                  <td class="text-right">${discountVal}</td>
+                </tr>
+                <tr>
+                  <td>${padDots('+ ITBIS', 15)}</td>
+                  <td class="text-right">${itbisVal}</td>
+                </tr>
+                <tr class="grand-total-row">
+                  <td>${padDots('TOTAL NETO', 15)}</td>
+                  <td class="text-right">${totalVal}</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div class="qr-signature-section">
+            <div class="qr-block">
+              ${qrBase64 ? `<img src="${qrBase64}" class="qr-img" alt="QR">` : ''}
+              <div>
+                <div>Código de seguridad: ${inv.securityCode || 'N/A'}</div>
+                <div style="margin-top: 5px;">Fecha Firma: ${formattedSigDate}</div>
+              </div>
+            </div>
+            <div class="signature-container">
+              <div class="signature-line">
+                <div class="signature-line-border">Recibido conforme</div>
+              </div>
+              <div class="signature-line">
+                <div class="signature-line-border">Revisado por</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+
+    const css = this.getBaseCss(layout);
     const logoHtml = company.logoUrl && layout !== '58mm' 
       ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
       : '';
@@ -92,7 +328,6 @@ export class DocumentTemplates {
         <td>${line.quantity}</td>
         <td>${line.productName}</td>
         <td class="text-right">$${line.unitPrice.toFixed(2)}</td>
-        ${layout === 'carta' ? `<td class="text-right">$${line.discount.toFixed(2)}</td>` : ''}
         <td class="text-right">$${line.total.toFixed(2)}</td>
       </tr>
     `).join('');
@@ -144,7 +379,6 @@ export class DocumentTemplates {
               <th>Cant</th>
               <th>Descripción</th>
               <th class="text-right">Precio</th>
-              ${layout === 'carta' ? '<th class="text-right">Desc</th>' : ''}
               <th class="text-right">Total</th>
             </tr>
           </thead>

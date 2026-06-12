@@ -39,5 +39,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 5. Módulos Removidos
 - **Punto de Venta (POS)**: Eliminado `/dashboard/pos` — página, enlace de sidebar y botón de acceso rápido en el módulo de Caja. El módulo de caja nativo (`/dashboard/cash`) cubre el flujo de cobro requerido.
 
+### 6. Rediseño del Layout de Factura A4
+- **Latin Doorrs SRL A4**: Rediseño exacto del formato A4/Carta con alineación mediante relleno de puntos dinámico en monospace (RNC, teléfono, email, dirección, fecha de emisión, cliente y totales), barra de condición de pago enmarcada en turquesa (`#005E6A`), encabezado de tabla de ítems sólido, desglose de totales (Subtotal, Descuento, ITBIS, y Total Neto con doble subrayado), y bloque inferior de firma digital (QR, código de seguridad, fecha de firma y firmas físicas).
+
 ---
 **Status**: Verified & Polished (Score 10/10)
