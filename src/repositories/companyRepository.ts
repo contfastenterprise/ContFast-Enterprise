@@ -98,7 +98,18 @@ export class CompanyRepository {
     }
 
     if (seq.currentSequence >= seq.maxSequence) {
-      throw new Error(`La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo.`);
+      throw new Error(`La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seq.maxSequence}). Solicite una nueva autorización SACF.`);
+    }
+
+    // Expiry check — ONLY when DGII supplied a date. If null, no constraint applies.
+    if (seq.sequenceExpiry) {
+      const [dd, mm, yyyy] = (seq.sequenceExpiry as string).split('-').map(Number);
+      const expiryDate = new Date(yyyy, mm - 1, dd, 23, 59, 59, 999);
+      if (new Date() > expiryDate) {
+        throw new Error(
+          `La secuencia e-CF tipo ${ecfType} venció el ${seq.sequenceExpiry}. Renueve la autorización SACF antes de emitir comprobantes.`
+        );
+      }
     }
 
     const nextVal = seq.currentSequence + 1;

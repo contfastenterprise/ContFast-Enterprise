@@ -73,11 +73,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { ecfType, prefix, startSequence, maxSequence, sequenceExpiry } = body;
 
-    if (!ecfType || !startSequence || !maxSequence) {
+    const startSeq = parseInt(startSequence, 10);
+    const maxSeq = parseInt(maxSequence, 10);
+
+    if (isNaN(startSeq) || isNaN(maxSeq)) {
       return NextResponse.json(
         {
           success: false,
-          error: { code: 'VALIDATION_ERROR', message: 'ecfType, startSequence y maxSequence son requeridos.' },
+          error: { code: 'VALIDATION_ERROR', message: 'startSequence y maxSequence deben ser números válidos.' },
+        },
+        { status: 400, headers: resHeaders }
+      );
+    }
+
+    if (maxSeq < startSeq) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'La secuencia máxima (hasta) no puede ser menor que la secuencia inicial (desde).' },
         },
         { status: 400, headers: resHeaders }
       );
@@ -112,8 +125,8 @@ export async function POST(req: NextRequest) {
         companyId: auth.companyId,
         ecfType,
         prefix: prefix || 'E',
-        currentSequence: parseInt(startSequence, 10) - 1, // Will be incremented on first use
-        maxSequence: parseInt(maxSequence, 10),
+        currentSequence: startSeq - 1, // Will be incremented on first use
+        maxSequence: maxSeq,
         sequenceExpiry: sequenceExpiry || null,
         status: 'active',
       })

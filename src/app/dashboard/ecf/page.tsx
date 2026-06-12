@@ -194,13 +194,24 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
     e.preventDefault();
     setLoading(true);
     try {
+      const start = parseInt(form.startSequence, 10);
+      const max = parseInt(form.maxSequence, 10);
+
+      if (isNaN(start) || isNaN(max)) {
+        throw new Error('Secuencias inicial y final deben ser números válidos.');
+      }
+
+      if (max < start) {
+        throw new Error('La secuencia final (hasta) no puede ser menor que la secuencia inicial (desde).');
+      }
+
       const res = await fetch('/api/v1/ecf/sequences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          startSequence: parseInt(form.startSequence, 10),
-          maxSequence: parseInt(form.maxSequence, 10),
+          startSequence: start,
+          maxSequence: max,
         }),
       });
       const data = await res.json();

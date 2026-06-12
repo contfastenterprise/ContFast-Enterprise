@@ -4,6 +4,17 @@ import { eq, and, sql, desc, isNull, lte } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { CashRepository } from '@/repositories/cashRepository';
 
+function formatLocalDate(date: Date | string): string;
+function formatLocalDate(date: Date | string | undefined | null): string | undefined;
+function formatLocalDate(date: Date | string | undefined | null): string | undefined {
+  if (!date) return undefined;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export class ApRepository {
   /**
    * Find all accounts payable for a company, with supplier details.
@@ -64,7 +75,7 @@ export class ApRepository {
     checkId?: string;
     debitAccountId: string;
     creditAccountId: string;
-    paymentDate: Date;
+    paymentDate: Date | string;
     status: 'pending_guarantee' | 'applied' | 'voided';
   }) {
     const [payment] = await tx.insert(apPayments)
@@ -76,7 +87,7 @@ export class ApRepository {
         checkId: data.checkId,
         debitAccountId: data.debitAccountId,
         creditAccountId: data.creditAccountId,
-        paymentDate: data.paymentDate,
+        paymentDate: formatLocalDate(data.paymentDate),
         status: data.status,
       })
       .returning();
@@ -111,8 +122,8 @@ export class ApRepository {
     checkNumber: string;
     payee: string;
     amount: number;
-    issueDate: Date;
-    dueDate?: Date;
+    issueDate: Date | string;
+    dueDate?: Date | string;
     isGuarantee: boolean;
     apId?: string;
     status: 'pending' | 'cleared' | 'voided';
@@ -124,8 +135,8 @@ export class ApRepository {
         checkNumber: data.checkNumber,
         payee: data.payee,
         amount: data.amount.toString(),
-        issueDate: data.issueDate,
-        dueDate: data.dueDate,
+        issueDate: formatLocalDate(data.issueDate),
+        dueDate: formatLocalDate(data.dueDate),
         isGuarantee: data.isGuarantee,
         apId: data.apId,
         status: data.status,

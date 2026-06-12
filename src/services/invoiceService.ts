@@ -9,6 +9,7 @@ import { decrypt, decryptToBuffer } from '@/utils/encryption';
 import { generateInvoicePdf, PDFInvoiceData } from '@/utils/pdfGenerator';
 import { addJob } from '@/infrastructure/queue';
 import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
+import { EcfValidator } from '@/services/ecfValidator';
 import { checkStock, deductStock } from '@/services/inventoryService';
 import fs from 'fs';
 import path from 'path';
@@ -40,7 +41,29 @@ export class InvoiceService {
    * Main service function to issue and sign a new electronic e-CF invoice.
    */
   static async issueInvoice(data: IssueInvoiceInput) {
-    // Determine the active cash session
+    // ── 0. Pre-emission validations (before any DB transaction) ───────────────
+    // Fetch company profile to get the RNC needed for the DGII status check.
+    const company = await CompanyRepository.getProfile(data.companyId);
+    if (!company) {
+      throw new Error('Compañía no encontrada.');
+    }
+
+    const preCheck = await EcfValidator.runAll(
+      data.companyId,
+      data.ecfType,
+      company.rnc
+    );
+
+    if (!preCheck.valid) {
+      const messages = preCheck.errors.map((e) => e.message).join(' | ');
+      const err: any = new Error(`No se puede emitir el e-CF: ${messages}`);
+      err.status = 422;
+      err.code = 'ECF_PRE_EMISSION_FAILED';
+      err.validationErrors = preCheck.errors;
+      throw err;
+    }
+
+    // ── 1. Determine the active cash session ──────────────────────────────────
     let activeCashSessionId = data.cashSessionId;
 
     if (data.paymentType === 'cash') {
@@ -107,13 +130,8 @@ export class InvoiceService {
       // 2.1. Allocate NCF (locks sequence row)
       const ncf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
 
-      // 2.2. Fetch company and settings for XML signing
-      const company = await CompanyRepository.getProfile(data.companyId);
+      // 2.2. Company profile was already fetched above; reuse it.
       const settings = await CompanyRepository.getSettings(data.companyId);
-
-      if (!company) {
-        throw new Error('Compañía no encontrada.');
-      }
 
       // 2.3. No synchronous mSeller API call here to maintain scalability and low latency.
       // We rely on the worker to send the payload asynchronously.
@@ -197,7 +215,7 @@ export class InvoiceService {
         taxes: taxesList,
       };
 
-      const invoice = await InvoiceRepository.create(invoiceInput);
+      const invoice = await InvoiceRepository.create(invoiceInput, tx);
 
       // 2.8.1 Deduct inventory
       for (const line of itemLines) {

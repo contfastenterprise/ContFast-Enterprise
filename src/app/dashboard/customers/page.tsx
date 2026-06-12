@@ -165,7 +165,7 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
             <Users className="h-7 w-7 text-amber-500" />
-            Directorio de Clientes
+            Gestión de Clientes
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">
             Gestiona los datos de facturación y contacto de todos tus clientes.

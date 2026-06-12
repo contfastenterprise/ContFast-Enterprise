@@ -44,8 +44,8 @@ export class InvoiceRepository {
   /**
    * Creates an invoice with its lines and taxes in a transaction.
    */
-  static async create(data: CreateInvoiceInput) {
-    return await db.transaction(async (tx) => {
+  static async create(data: CreateInvoiceInput, externalTx?: any) {
+    const runInTx = async (tx: any) => {
       // 1. Insert Invoice
       const [invoice] = await tx
         .insert(invoices)
@@ -104,7 +104,12 @@ export class InvoiceRepository {
       }
 
       return invoice;
-    });
+    };
+
+    if (externalTx) {
+      return await runInTx(externalTx);
+    }
+    return await db.transaction(runInTx);
   }
 
   /**

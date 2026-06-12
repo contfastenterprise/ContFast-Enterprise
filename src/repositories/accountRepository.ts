@@ -4,13 +4,21 @@ import { eq, and, isNull } from 'drizzle-orm';
 export interface CreateJournalEntryInput {
   companyId: string;
   reference?: string;
-  date: Date;
+  date: Date | string;
   description: string;
   lines: {
     accountId: string;
     debit: number;
     credit: number;
   }[];
+}
+
+function formatLocalDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export class AccountRepository {
@@ -45,7 +53,7 @@ export class AccountRepository {
       .values({
         companyId: data.companyId,
         reference: data.reference,
-        date: data.date,
+        date: formatLocalDate(data.date),
         description: data.description,
         status: 'posted',
       })
@@ -73,7 +81,7 @@ export class AccountRepository {
     customerId: string;
     invoiceId: string;
     amount: number;
-    dueDate: Date;
+    dueDate: Date | string;
   }) {
     const [ar] = await tx
       .insert(accountsReceivable)
@@ -83,7 +91,7 @@ export class AccountRepository {
         invoiceId: data.invoiceId,
         amount: data.amount.toString(),
         balance: data.amount.toString(), // Initially fully outstanding
-        dueDate: data.dueDate,
+        dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
       })
       .returning();
@@ -97,7 +105,7 @@ export class AccountRepository {
     companyId: string;
     supplierId: string;
     amount: number;
-    dueDate: Date;
+    dueDate: Date | string;
   }) {
     const [ap] = await tx
       .insert(accountsPayable)
@@ -106,7 +114,7 @@ export class AccountRepository {
         supplierId: data.supplierId,
         amount: data.amount.toString(),
         balance: data.amount.toString(),
-        dueDate: data.dueDate,
+        dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
       })
       .returning();
