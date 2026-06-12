@@ -73,7 +73,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Principal',
       items: [
         { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { name: 'Punto de Venta', href: '/dashboard/pos', icon: <ShoppingCart className="h-5 w-5" /> },
         { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
         { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
         { name: 'Ingreso', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },

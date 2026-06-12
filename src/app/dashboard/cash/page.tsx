@@ -691,13 +691,6 @@ export default function CashPage() {
                   Salida de Efectivo
                 </button>
                 <button
-                  onClick={() => router.push('/dashboard/pos')}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-500 transition-all shadow-sm"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Ir al Punto de Venta
-                </button>
-                <button
                   onClick={() => handleTabChange('arqueo')}
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#c5a059] text-[#001e40] text-xs font-bold rounded-lg hover:bg-[#d4b069] transition-all shadow-sm"
                 >
