@@ -1,4 +1,4 @@
-import { db, invoices, invoiceLines, invoiceTaxes } from '@/db';
+import { db, invoices, invoiceLines, invoiceTaxes, products, customers } from '@/db';
 import { eq, and, isNull, desc, count } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
@@ -117,16 +117,62 @@ export class InvoiceRepository {
    */
   static async getById(id: string, companyId: string) {
     const [invoice] = await db
-      .select()
+      .select({
+        id: invoices.id,
+        companyId: invoices.companyId,
+        warehouseId: invoices.warehouseId,
+        customerId: invoices.customerId,
+        userId: invoices.userId,
+        cashSessionId: invoices.cashSessionId,
+        ncf: invoices.ncf,
+        ecfType: invoices.ecfType,
+        status: invoices.status,
+        paymentStatus: invoices.paymentStatus,
+        subtotal: invoices.subtotal,
+        discount: invoices.discount,
+        totalTaxes: invoices.totalTaxes,
+        total: invoices.total,
+        xmlPath: invoices.xmlPath,
+        signedXmlPath: invoices.signedXmlPath,
+        pdfPath: invoices.pdfPath,
+        msellerTrackId: invoices.msellerTrackId,
+        buyerRnc: invoices.buyerRnc,
+        buyerName: invoices.buyerName,
+        dgiiMessage: invoices.dgiiMessage,
+        paymentType: invoices.paymentType,
+        bankName: invoices.bankName,
+        transactionNumber: invoices.transactionNumber,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+        customerName: customers.name,
+        customerRnc: customers.rncCedula,
+        customerEmail: customers.email,
+        customerPhone: customers.phone,
+      })
       .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(and(eq(invoices.id, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)))
       .limit(1);
 
     if (!invoice) return null;
 
     const lines = await db
-      .select()
+      .select({
+        id: invoiceLines.id,
+        invoiceId: invoiceLines.invoiceId,
+        productId: invoiceLines.productId,
+        quantity: invoiceLines.quantity,
+        unitPrice: invoiceLines.unitPrice,
+        discount: invoiceLines.discount,
+        subtotal: invoiceLines.subtotal,
+        total: invoiceLines.total,
+        createdAt: invoiceLines.createdAt,
+        updatedAt: invoiceLines.updatedAt,
+        productName: products.name,
+        productSku: products.sku,
+      })
       .from(invoiceLines)
+      .leftJoin(products, eq(invoiceLines.productId, products.id))
       .where(eq(invoiceLines.invoiceId, id));
 
     const taxes = await db

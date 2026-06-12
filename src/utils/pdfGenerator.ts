@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import { Readable } from 'stream';
+import QRCode from 'qrcode';
 
 export interface PDFInvoiceItem {
   name: string;
@@ -34,10 +35,21 @@ export interface PDFInvoiceData {
  * Generates a PDF invoice in Letter (Carta) or Thermal Ticket (80mm / 58mm) formats.
  * Returns a Buffer containing the PDF.
  */
-export function generateInvoicePdf(
+export async function generateInvoicePdf(
   data: PDFInvoiceData,
   layout: 'carta' | '80mm' | '58mm' = 'carta'
 ): Promise<Buffer> {
+  let qrBuffer: Buffer | null = null;
+  if (data.securityCode) {
+    try {
+      const formattedDate = formatDate(data.invoiceDate).replace(/\//g, '-');
+      const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${data.companyRnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${data.ncf}&fechaFirma=${formattedDate}&montoTotal=${data.total.toFixed(2)}&codigoSeguridad=${data.securityCode}`;
+      qrBuffer = await QRCode.toBuffer(dgiiUrl, { margin: 1, width: layout === 'carta' ? 100 : 70 });
+    } catch (qrErr) {
+      console.error('Error generating QR buffer in pdfGenerator:', qrErr);
+    }
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const chunks: Buffer[] = [];
@@ -81,9 +93,9 @@ export function generateInvoicePdf(
         }
 
         if (layout === 'carta') {
-          buildLetterLayout(doc, data, logoBuffer);
+          buildLetterLayout(doc, data, logoBuffer, qrBuffer);
         } else {
-          buildTicketLayout(doc, data, layout === '80mm' ? 226.7 : 164.4, logoBuffer);
+          buildTicketLayout(doc, data, layout === '80mm' ? 226.7 : 164.4, logoBuffer, qrBuffer, layout);
         }
 
         doc.end();
@@ -96,7 +108,12 @@ export function generateInvoicePdf(
   });
 }
 
-function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData, logoBuffer: Buffer | null) {
+function buildLetterLayout(
+  doc: InstanceType<typeof PDFDocument>,
+  data: PDFInvoiceData,
+  logoBuffer: Buffer | null,
+  qrBuffer: Buffer | null
+) {
   const primaryColor = '#003366'; // Institutional Navy
   const secondaryColor = '#C5A059'; // Gold Accent
   const textColor = '#191C1D';
@@ -212,13 +229,22 @@ function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoi
   // --- TOTALS & SUMMARY ---
   const totalsY = currentY + 15;
 
-  // Left side: Security Code & QR Placeholder
+  // Left side: Security Code, Signature Date & QR
   if (data.securityCode) {
     doc.fillColor(textColor)
-      .font('Courier')
+      .font('Helvetica-Bold')
+      .fontSize(8)
+      .text(`FIRMA DIGITAL VÁLIDA`, 36, totalsY)
+      .font('Helvetica')
       .fontSize(7)
-      .text(`Firmado Digitalmente por ContFast - Código de Seguridad:`, 36, totalsY)
-      .text(data.securityCode, 36, totalsY + 10, { width: 280 });
+      .text(`Fecha Firma: ${data.invoiceDate.toLocaleString('es-DO')}`, 36, totalsY + 12)
+      .text(`Código de Seguridad:`, 36, totalsY + 22)
+      .font('Courier')
+      .text(data.securityCode, 36, totalsY + 32, { width: 220 });
+
+    if (qrBuffer) {
+      doc.image(qrBuffer, 260, totalsY, { width: 80, height: 80 });
+    }
   }
 
   // Right side: Totals
@@ -253,7 +279,14 @@ function buildLetterLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoi
     .text(formatCurrency(data.total), 500, summaryY, { width: 70, align: 'right' });
 }
 
-function buildTicketLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoiceData, width: number, logoBuffer: Buffer | null) {
+function buildTicketLayout(
+  doc: InstanceType<typeof PDFDocument>,
+  data: PDFInvoiceData,
+  width: number,
+  logoBuffer: Buffer | null,
+  qrBuffer: Buffer | null,
+  layout: '80mm' | '58mm'
+) {
   const contentWidth = width - 16; // Margin is 8
   const textColor = '#000000';
 
@@ -349,10 +382,22 @@ function buildTicketLayout(doc: InstanceType<typeof PDFDocument>, data: PDFInvoi
 
   doc.moveDown(0.5);
   if (data.securityCode) {
-    doc.font('Courier')
+    doc.font('Helvetica-Bold')
+      .fontSize(7)
+      .text('FIRMA DIGITAL VÁLIDA', { align: 'center' })
+      .font('Helvetica')
       .fontSize(6)
-      .text('Código de Firma Digital:', { align: 'center' })
-      .text(data.securityCode, { align: 'center', width: contentWidth });
+      .text(`Fecha Firma: ${data.invoiceDate.toLocaleString('es-DO')}`, { align: 'center' })
+      .text(`Cód. Seguridad: ${data.securityCode}`, { align: 'center' });
+
+    if (qrBuffer) {
+      doc.moveDown(0.2);
+      // Center the image in thermal ticket
+      const qrWidth = layout === '80mm' ? 60 : 50;
+      const pageX = (doc.page.width - qrWidth) / 2;
+      doc.image(qrBuffer, pageX, doc.y, { width: qrWidth, height: qrWidth });
+      doc.y += qrWidth; // advance Y position by image height
+    }
   }
 }
 

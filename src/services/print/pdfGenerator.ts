@@ -29,6 +29,18 @@ export class PdfGenerator {
       const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' as any });
 
+      // Wait for all images (logos, QR code) to load and decode completely
+      await page.evaluate(async () => {
+        const images = Array.from(document.querySelectorAll('img'));
+        await Promise.all(images.map(img => {
+          if (img.complete) return;
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }));
+      });
+
       let pdfOptions: import('puppeteer').PDFOptions = {};
 
       if (layout === 'carta') {

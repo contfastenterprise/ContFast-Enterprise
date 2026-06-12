@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences } from '@/db';
+import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -153,7 +153,8 @@ export class InvoiceService {
         companyLogoUrl: settings.logoUrl ?? undefined,
         ncf,
         ecfType: data.ecfType,
-        buyerName: 'CONSUMIDOR FINAL', // default
+        buyerName: data.buyerName || 'CONSUMIDOR FINAL',
+        buyerRnc: data.buyerRnc || undefined,
         invoiceDate: new Date(),
         items: itemLines.map((l) => ({
           name: l.name,
@@ -292,6 +293,13 @@ export class InvoiceService {
       });
 
       // 3. Queue asynchronous submission to DGII using BullMQ
+      await tx.insert(dgiiSubmissions).values({
+        companyId: data.companyId,
+        invoiceId: invoice.id,
+        status: 'pending',
+        retryCount: 0,
+      });
+
       await addJob('dgii-submissions', 'submit-ecf', {
         companyId: data.companyId,
         invoiceId: invoice.id,

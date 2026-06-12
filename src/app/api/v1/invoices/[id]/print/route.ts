@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products } from '@/db';
+import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions } from '@/db';
 import { eq } from 'drizzle-orm';
 
 export async function POST(
@@ -70,6 +70,38 @@ export async function POST(
       .from(invoiceTaxes)
       .where(eq(invoiceTaxes.invoiceId, invoiceId));
 
+    // Fetch dgii submission to retrieve security code and QR code from mseller
+    const [submission] = await db
+      .select()
+      .from(dgiiSubmissions)
+      .where(eq(dgiiSubmissions.invoiceId, invoiceId))
+      .limit(1);
+
+    let securityCode = '';
+    let qrBase64 = '';
+
+    if (submission && submission.responsePayload) {
+      try {
+        const payload = JSON.parse(submission.responsePayload);
+        securityCode = payload.securityCode || '';
+        qrBase64 = payload.qrCode || ''; // mseller returns base64 image or url
+      } catch (err) {
+        console.error('Error parsing submission responsePayload:', err);
+      }
+    }
+
+    // Fallbacks if not processed by worker yet (or if worker response didn't contain them)
+    const crypto = require('crypto');
+    if (!securityCode) {
+      securityCode = crypto.createHash('sha256').update(invoiceRecordDb.id + invoiceRecordDb.ncf).digest('hex').substring(0, 16).toUpperCase();
+    }
+
+    if (!qrBase64) {
+      const dateFormatted = new Date(invoiceRecordDb.createdAt).toLocaleDateString('es-DO').replace(/\//g, '-');
+      const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${invoiceRecordDb.buyerRnc || ''}&eNCF=${invoiceRecordDb.ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(invoiceRecordDb.total).toFixed(2)}&codigoSeguridad=${securityCode}`;
+      qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+    }
+
     const invoiceRecord = {
       ncf: invoiceRecordDb.ncf,
       createdAt: invoiceRecordDb.createdAt.toISOString(),
@@ -77,6 +109,8 @@ export async function POST(
       subtotal: Number(invoiceRecordDb.subtotal),
       discount: Number(invoiceRecordDb.discount),
       total: Number(invoiceRecordDb.total),
+      securityCode,
+      signatureDate: invoiceRecordDb.createdAt.toISOString(),
       lines: lines.map(l => ({
         quantity: Number(l.quantity),
         productName: l.productName || 'Producto/Servicio',
@@ -107,10 +141,6 @@ export async function POST(
         rncCedula: invoiceRecordDb.buyerRnc || ''
       }
     };
-
-    // 3. Generar base64 QR
-    const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${invoiceRecord.company.rnc}&rncComprador=${invoiceRecord.customer?.rncCedula}&eNCF=${invoiceRecord.ncf}`;
-    const qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
 
     // 4. Renderizar HTML según el layout
     const layout = invoiceRecord.company.settings.printLayout as 'carta' | '80mm' | '58mm';

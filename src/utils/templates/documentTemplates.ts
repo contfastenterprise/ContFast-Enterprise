@@ -175,15 +175,15 @@ export class DocumentTemplates {
           </div>
         </div>
 
-        ${qrBase64 ? `
         <div class="qr-section">
           <div class="qr-text">
-            Puede validar este comprobante en la DGII escaneando el código QR.<br>
-            Firma Digital Válida.
+            <strong>Firma Digital Válida</strong><br>
+            ${inv.securityCode ? `<strong>Código de Seguridad:</strong> ${inv.securityCode}<br>` : ''}
+            <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate || inv.createdAt).toLocaleString('es-DO')}<br>
+            Puede validar este e-CF en el portal de la DGII.
           </div>
-          <img src="${qrBase64}" class="qr-code" alt="QR Code">
+          ${qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
         </div>
-        ` : ''}
 
         <div class="footer">
           Generado por ContFast Enterprise - Sistema de Facturación Electrónica Autorizado
