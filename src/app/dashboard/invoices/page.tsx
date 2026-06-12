@@ -37,6 +37,8 @@ function InvoicesList() {
   // Form State
   const [ecfType, setEcfType] = useState('31'); // 31 (Fiscal), 32 (Consumo)
   const [paymentType, setPaymentType] = useState<'cash' | 'credit' | 'bank_transfer'>('cash');
+  const [bankName, setBankName] = useState('');
+  const [transactionNumber, setTransactionNumber] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [customerRnc, setCustomerRnc] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -45,10 +47,10 @@ function InvoicesList() {
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [lines, setLines] = useState<any[]>([
     {
-      productId: 'f56a31c0-0000-0000-0000-000000000000',
-      productName: 'Servicio de Consultoría Técnica',
+      productId: '',
+      productName: '',
       quantity: 1,
-      unitPrice: 5000,
+      unitPrice: 0,
       discount: 0,
       taxRate: 0.18,
       unitOfMeasure: 'unidad',
@@ -347,7 +349,7 @@ function InvoicesList() {
     setLines([
       ...lines,
       {
-        productId: 'f56a31c0-0000-0000-0000-000000000000',
+        productId: '',
         productName: '',
         quantity: 1,
         unitPrice: 0,
@@ -456,6 +458,8 @@ function InvoicesList() {
           warehouseId,
           ecfType,
           paymentType,
+          bankName: paymentType === 'bank_transfer' ? bankName : undefined,
+          transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
           lines,
         }),
       });
@@ -470,6 +474,7 @@ function InvoicesList() {
 
       setShowForm(false);
       setCustomerId(''); setCustomerRnc(''); setCustomerName('');
+      setBankName(''); setTransactionNumber('');
       setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
       loadInvoices();
     } catch (error: any) {
@@ -614,6 +619,40 @@ function InvoicesList() {
                     <option value="bank_transfer">Transferencia Bancaria</option>
                   </select>
                 </div>
+                {paymentType === 'bank_transfer' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-3 bg-[#003366]/5 p-4 rounded-xl border border-[#003366]/10 mt-2">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
+                      <select
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        required
+                        className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                      >
+                        <option value="">Seleccione Banco...</option>
+                        <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
+                        <option value="Banco de Reservas">Banco de Reservas (Banreservas)</option>
+                        <option value="Banco BHD">Banco BHD</option>
+                        <option value="Asociación Popular de Ahorros y Préstamos">Asociación Popular (APAP)</option>
+                        <option value="Banco Scotiabank">Banco Scotiabank</option>
+                        <option value="Banco Promerica">Banco Promerica</option>
+                        <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+                        <option value="Otro">Otro / Internacional</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Número de Transferencia / Referencia</label>
+                      <input
+                        type="text"
+                        required
+                        value={transactionNumber}
+                        onChange={(e) => setTransactionNumber(e.target.value)}
+                        placeholder="Ej. TXN12345678"
+                        className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Customer Details */}
@@ -1225,6 +1264,27 @@ function InvoicesList() {
                       })()}
                     </div>
                   </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Método de Pago</span>
+                    <p className="font-semibold text-[#003366] text-sm capitalize">
+                      {selectedInvoice.paymentType === 'cash' && 'Efectivo / Caja'}
+                      {selectedInvoice.paymentType === 'credit' && 'Crédito'}
+                      {selectedInvoice.paymentType === 'bank_transfer' && 'Transferencia Bancaria'}
+                      {!selectedInvoice.paymentType && 'Efectivo / Caja'}
+                    </p>
+                  </div>
+                  {selectedInvoice.paymentType === 'bank_transfer' && (
+                    <>
+                      <div className="col-span-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">Banco</span>
+                        <p className="font-semibold text-[#003366] text-sm">{selectedInvoice.bankName || '-'}</p>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest block mb-1">No. Transferencia</span>
+                        <p className="font-semibold font-mono text-[#003366] text-sm">{selectedInvoice.transactionNumber || '-'}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden">

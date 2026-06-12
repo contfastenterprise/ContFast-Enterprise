@@ -6,7 +6,7 @@ import DashboardLayout from '@/app/dashboard/layout';
 import {
   Wallet, Plus, Minus, Scale, History, Lock, RefreshCw,
   TrendingUp, AlertTriangle, CheckCircle2, XCircle, ChevronRight,
-  Download, Filter, Printer, Eye, Search, ClipboardList, X
+  Download, Filter, Printer, Eye, Search, ClipboardList, X, Loader2, ShoppingCart
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -96,6 +96,11 @@ export default function CashPage() {
   const [initialBalance, setInitialBalance] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // New POS register modal
+  const [showNewRegisterModal, setShowNewRegisterModal] = useState(false);
+  const [newRegisterForm, setNewRegisterForm] = useState({ name: '', code: '' });
+  const [creatingRegister, setCreatingRegister] = useState(false);
+
   // Movement modal
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [moveType, setMoveType] = useState<'cash_in' | 'cash_out'>('cash_in');
@@ -108,6 +113,10 @@ export default function CashPage() {
   const [closeObservations, setCloseObservations] = useState('');
   const [closing, setClosing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // History View Modal
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
   const [closedSessionId, setClosedSessionId] = useState<string | null>(null);
 
   // History filters
@@ -179,6 +188,42 @@ export default function CashPage() {
   }, [session]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
+  const handleCreateRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRegisterForm.name || !newRegisterForm.code) {
+      toast.error('Por favor, complete todos los campos de la terminal.');
+      return;
+    }
+    setCreatingRegister(true);
+    try {
+      const res = await fetch('/api/v1/cash/registers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRegisterForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Terminal de punto de venta creada exitosamente.');
+        setShowNewRegisterModal(false);
+        setNewRegisterForm({ name: '', code: '' });
+        
+        // Reload registers and auto-select
+        const regRes = await fetch('/api/v1/cash/registers');
+        const regData = await regRes.json();
+        if (regData.success) {
+          setRegisters(regData.data || []);
+          if (data.data?.id) setSelectedRegisterId(data.data.id);
+        }
+      } else {
+        toast.error(data.error?.message || 'Error al crear la terminal');
+      }
+    } catch {
+      toast.error('Error de red al crear la terminal');
+    } finally {
+      setCreatingRegister(false);
+    }
+  };
+
   const handleOpenSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRegisterId || !initialBalance) {
@@ -280,13 +325,44 @@ export default function CashPage() {
 
   const handleSuccessClose = async () => {
     setShowSuccessModal(false);
-    setSession(null);
-    setMovements([]);
+    setClosedSessionId(null);
     setDenomQty({});
     setCoinsTotal('');
     setCloseObservations('');
-    setClosedSessionId(null);
     await loadCashData();
+  };
+
+  const handleExportHistory = () => {
+    if (history.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+    const headers = ['Terminal', 'Usuario', 'Apertura', 'Cierre', 'Fondo Inicial', 'Saldo Esperado', 'Saldo Real', 'Diferencia', 'Estado'];
+    const csvContent = [
+      headers.join(','),
+      ...history.map(h => [
+        h.registerName,
+        h.userId,
+        new Date(h.createdAt).toLocaleString('es-DO'),
+        h.closedAt ? new Date(h.closedAt).toLocaleString('es-DO') : 'Abierto',
+        h.initialBalance || 0,
+        h.expectedBalance || 0,
+        h.actualBalance || 0,
+        h.difference || 0,
+        h.status === 'open' ? 'Abierto' : 'Cerrado'
+      ].map(v => `"${v}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `historico_caja_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Archivo exportado exitosamente');
   };
 
   const handleTabChange = (newView: CashView) => {
@@ -350,9 +426,18 @@ export default function CashPage() {
             {/* Terminal + Date row */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="text-sm font-semibold text-primary flex items-center gap-1">
-                  Punto de Venta / Terminal <span className="text-[#c5a059]">*</span>
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-primary flex items-center gap-1">
+                    Punto de Venta / Terminal <span className="text-[#c5a059]">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewRegisterModal(true)}
+                    className="text-xs font-bold text-[#c5a059] hover:underline"
+                  >
+                    + Nueva Terminal
+                  </button>
+                </div>
                 <select
                   value={selectedRegisterId}
                   onChange={(e) => setSelectedRegisterId(e.target.value)}
@@ -463,6 +548,81 @@ export default function CashPage() {
             </p>
           </div>
         </motion.div>
+
+        {/* ── New POS Terminal Modal ────────────────────────────────────── */}
+        <AnimatePresence>
+          {showNewRegisterModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
+              >
+                <div className="bg-[#001733] border-b border-[#003366] px-6 py-5 flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+                      <Plus className="w-5 h-5 text-[#c5a059]" /> Nueva Terminal / Punto de Venta
+                    </h3>
+                    <p className="text-xs text-[#c5a059]/70 mt-1">Configure un nuevo punto de venta para su empresa.</p>
+                  </div>
+                  <button onClick={() => setShowNewRegisterModal(false)} className="text-on-surface-variant hover:text-white transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateRegister} className="p-6 space-y-5">
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-primary block">Nombre de la Terminal <span className="text-[#c5a059]">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      value={newRegisterForm.name}
+                      onChange={e => setNewRegisterForm({ ...newRegisterForm, name: e.target.value })}
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      placeholder="Ej. Caja Principal, Terminal 1, POS Sucursal Norte"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-primary block">Código Único <span className="text-[#c5a059]">*</span></label>
+                    <input
+                      type="text"
+                      required
+                      value={newRegisterForm.code}
+                      onChange={e => setNewRegisterForm({ ...newRegisterForm, code: e.target.value.toUpperCase() })}
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono uppercase"
+                      placeholder="Ej. CAJA-01, POS-NORTE"
+                    />
+                    <p className="text-[10px] text-on-surface-variant/60 mt-1">Identificador único interno para esta terminal.</p>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                    <button
+                      type="button"
+                      onClick={() => setShowNewRegisterModal(false)}
+                      className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingRegister}
+                      className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                    >
+                      {creatingRegister ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Terminal
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -531,8 +691,15 @@ export default function CashPage() {
                   Salida de Efectivo
                 </button>
                 <button
+                  onClick={() => router.push('/dashboard/pos')}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-500 transition-all shadow-sm"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Ir al Punto de Venta
+                </button>
+                <button
                   onClick={() => handleTabChange('arqueo')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] text-primary text-xs font-semibold rounded-lg hover:bg-[#003366] transition-all shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#c5a059] text-[#001e40] text-xs font-bold rounded-lg hover:bg-[#d4b069] transition-all shadow-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Arqueo y Cierre
@@ -813,40 +980,40 @@ export default function CashPage() {
               {/* Right: Summary + Actions */}
               <div className="lg:col-span-5 space-y-4">
                 {/* Audit summary card */}
-                <div className="bg-[#001e40] text-primary rounded-xl p-8 shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-10">
-                    <Wallet className="w-20 h-20" />
+                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
+                    <Wallet className="w-20 h-20 text-[#001e40]" />
                   </div>
-                  <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
+                  <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-[#001e40]">
+                    <TrendingUp className="w-5 h-5 text-amber-600" />
                     Resumen de Auditoría
                   </h2>
                   <div className="space-y-6">
                     <div>
-                      <p className="text-xs text-primary/60 uppercase tracking-widest mb-1">Saldo Esperado en Sistema</p>
-                      <p className="text-4xl font-mono font-black tracking-tight">{fmt(getExpectedBalance())}</p>
+                      <p className="text-xs text-on-surface-variant/70 uppercase tracking-widest mb-1">Saldo Esperado en Sistema</p>
+                      <p className="text-4xl font-mono font-black tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
                     </div>
-                    <div className="h-px bg-white/10" />
+                    <div className="h-px bg-gray-100" />
                     <div>
-                      <p className="text-xs text-primary/60 uppercase tracking-widest mb-1">Saldo Real (Contado)</p>
-                      <p className="text-4xl font-mono font-black tracking-tight text-yellow-300">{fmt(getRealBalance())}</p>
+                      <p className="text-xs text-on-surface-variant/70 uppercase tracking-widest mb-1">Saldo Real (Contado)</p>
+                      <p className="text-4xl font-mono font-black tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
                     </div>
                   </div>
 
                   {/* Difference indicator */}
                   <div className={clsx(
-                    'mt-8 p-4 rounded-xl flex items-center justify-between',
-                    getDifference() === 0 ? 'bg-emerald-500/20' :
-                      getDifference() > 0 ? 'bg-blue-500/20' : 'bg-red-500/20'
+                    'mt-8 p-4 rounded-xl flex items-center justify-between border',
+                    getDifference() === 0 ? 'bg-emerald-50 border-emerald-100' :
+                      getDifference() > 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'
                   )}>
                     <div>
-                      <p className="text-xs uppercase opacity-70 font-semibold">Diferencia</p>
-                      <p className="font-mono text-xl font-bold">{fmt(getDifference())}</p>
+                      <p className="text-xs uppercase opacity-70 font-semibold text-slate-700">Diferencia</p>
+                      <p className="font-mono text-xl font-bold text-slate-800">{fmt(getDifference())}</p>
                     </div>
                     <span className={clsx(
                       'px-3 py-1 rounded-lg text-xs font-bold uppercase',
-                      getDifference() === 0 ? 'bg-emerald-500 text-white' :
-                        getDifference() > 0 ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
+                      getDifference() === 0 ? 'bg-emerald-100 text-emerald-800' :
+                        getDifference() > 0 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                     )}>
                       {getDifference() === 0 ? 'Cuadrado' : getDifference() > 0 ? 'Sobrante' : 'Faltante'}
                     </span>
@@ -934,7 +1101,7 @@ export default function CashPage() {
                 <p className="text-sm text-on-surface-variant/70 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
               </div>
               <div className="flex items-center gap-3">
-                <button className="bg-gray-100 text-on-surface-variant/80 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-200 hover:bg-gray-200 transition-colors">
+                <button onClick={handleExportHistory} className="bg-gray-100 text-on-surface-variant/80 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-200 hover:bg-gray-200 transition-colors">
                   <Download className="w-4 h-4" />
                   EXPORTAR XLS
                 </button>
@@ -1067,10 +1234,18 @@ export default function CashPage() {
                               </td>
                               <td className="px-6 py-4">
                                 <div className="flex justify-center gap-1">
-                                  <button className="p-2 text-on-surface-variant hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
+                                  <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-2 text-on-surface-variant hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
                                     <Eye className="w-4 h-4" />
                                   </button>
-                                  <button className="p-2 text-on-surface-variant hover:text-amber-600 transition-colors rounded" title="Reimprimir">
+                                  <button 
+                                    onClick={() => {
+                                      setClosedSessionId(null);
+                                      setTimeout(() => setClosedSessionId(s.id), 50);
+                                      toast.success('Generando impresión...');
+                                    }} 
+                                    className="p-2 text-on-surface-variant hover:text-amber-600 transition-colors rounded" 
+                                    title="Reimprimir"
+                                  >
                                     <Printer className="w-4 h-4" />
                                   </button>
                                 </div>
@@ -1283,6 +1458,110 @@ export default function CashPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── View Session Modal ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showViewModal && selectedSession && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#001e40]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+            >
+              <div className="bg-[#001e40] p-6 text-white flex justify-between items-center relative overflow-hidden">
+                <div className="absolute right-0 top-0 opacity-10">
+                  <Wallet className="w-32 h-32 transform translate-x-8 -translate-y-8" />
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold font-display">Detalle de Turno</h3>
+                  <p className="text-sm opacity-80 mt-1">{selectedSession.registerName}</p>
+                </div>
+                <button onClick={() => setShowViewModal(false)} className="relative z-10 text-white/70 hover:text-white transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="block text-gray-500 font-semibold mb-1">Apertura</span>
+                    <span className="font-bold">{new Date(selectedSession.createdAt).toLocaleString('es-DO')}</span>
+                  </div>
+                  <div>
+                    <span className="block text-gray-500 font-semibold mb-1">Cierre</span>
+                    <span className="font-bold">{selectedSession.closedAt ? new Date(selectedSession.closedAt).toLocaleString('es-DO') : 'En curso'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-gray-500 font-semibold mb-1">Usuario</span>
+                    <span className="font-bold">{selectedSession.userId}</span>
+                  </div>
+                  <div>
+                    <span className="block text-gray-500 font-semibold mb-1">Estado</span>
+                    <span className="font-bold">{selectedSession.status === 'open' ? 'Abierto' : 'Cerrado'}</span>
+                  </div>
+                </div>
+                <div className="h-px bg-gray-200 my-4" />
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Fondo Inicial</span>
+                    <span className="font-mono font-bold">{fmt(selectedSession.initialBalance || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Saldo Esperado</span>
+                    <span className="font-mono font-bold text-blue-600">{fmt(selectedSession.expectedBalance || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Saldo Real (Arqueo)</span>
+                    <span className="font-mono font-bold text-amber-600">{fmt(selectedSession.actualBalance || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
+                    <span className="text-gray-800 font-bold">Diferencia</span>
+                    <span className={clsx(
+                      "font-mono font-bold",
+                      (parseFloat(selectedSession.difference || '0') < 0) ? 'text-red-600' : 'text-emerald-600'
+                    )}>
+                      {fmt(selectedSession.difference || 0)}
+                    </span>
+                  </div>
+                </div>
+                {selectedSession.closeObservations && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <span className="block text-xs text-gray-500 font-semibold mb-1 uppercase">Observaciones</span>
+                    <p className="text-sm text-gray-700">{selectedSession.closeObservations}</p>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setClosedSessionId(null);
+                    setTimeout(() => setClosedSessionId(selectedSession.id), 50);
+                    toast.success('Generando impresión...');
+                  }}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Printer className="w-4 h-4" /> Reimprimir
+                </button>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-6 py-2 bg-[#001e40] text-white font-bold text-sm rounded-lg hover:bg-[#003366] transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Global Print overlay for Reimprimir ────────────────────────── */}
+      {!showSuccessModal && closedSessionId && (
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+          <ThermalTicketPrint sessionId={closedSessionId} autoPrint={true} />
+        </div>
+      )}
+
     </div>
   );
 }

@@ -28,13 +28,23 @@ export default function ProductsPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [inventoryLevels, setInventoryLevels] = useState<{warehouseName: string, quantity: string}[]>([]);
+  const [inventoryLevels, setInventoryLevels] = useState<{ warehouseId: string, warehouseName: string, quantity: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+
+  // Category modal state
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [submittingCategory, setSubmittingCategory] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
+
+  // Warehouses state
+  const [warehouses, setWarehouses] = useState<{ id: string, name: string }[]>([]);
+  const [inlineAdjustForm, setInlineAdjustForm] = useState<Record<string, string>>({});
+  const [submittingAdjustId, setSubmittingAdjustId] = useState<string | null>(null);
 
   // Form state
   const [manualPricesEnabled, setManualPricesEnabled] = useState(false);
@@ -97,12 +107,34 @@ export default function ProductsPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/v1/categories');
+      const data = await res.json();
+      if (data.success) {
+        setCategories(data.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const res = await fetch('/api/v1/warehouses');
+      const data = await res.json();
+      if (data.success) {
+        setWarehouses(data.data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
-    // Fetch categories
-    fetch('/api/v1/categories').then(r => r.json()).then(data => {
-      if (data.success) setCategories(data.data);
-    });
+    fetchCategories();
+    fetchWarehouses();
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,6 +227,77 @@ export default function ProductsPage() {
     }
   };
 
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryForm.name) return;
+    setSubmittingCategory(true);
+    try {
+      const res = await fetch('/api/v1/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: categoryForm.name, description: categoryForm.description, status: 'active' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Categoría creada exitosamente');
+        setCategoryForm({ name: '', description: '' });
+        setShowCategoryModal(false);
+        // Refresh categories and automatically select the new one
+        await fetchCategories();
+        setFormData(prev => ({ ...prev, categoryId: data.data.id }));
+      } else {
+        toast.error(data.error?.message || 'Error al crear categoría');
+      }
+    } catch (error) {
+      toast.error('Error de red');
+    } finally {
+      setSubmittingCategory(false);
+    }
+  };
+
+  const handleInlineAdjust = async (warehouseId: string) => {
+    if (!selectedProduct) return;
+    const newQuantity = inlineAdjustForm[warehouseId];
+    if (newQuantity === undefined || newQuantity === '') return;
+
+    setSubmittingAdjustId(warehouseId);
+    try {
+      const res = await fetch('/api/v1/inventory/adjustments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          warehouseId,
+          productId: selectedProduct.id,
+          newQuantity,
+          reason: 'Ajuste desde el dashboard de inventario'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Inventario actualizado');
+        // Limpiar el campo del formulario de esa fila para que vuelva a mostrar el valor en modo texto
+        setInlineAdjustForm(prev => {
+          const updated = { ...prev };
+          delete updated[warehouseId];
+          return updated;
+        });
+        
+        // Refresh inventory levels
+        const invRes = await fetch(`/api/v1/products/${selectedProduct.id}/inventory`);
+        const invData = await invRes.json();
+        if (invData.success) {
+          setInventoryLevels(invData.data);
+        }
+      } else {
+        toast.error(data.error?.message || 'Error al actualizar');
+      }
+    } catch (error) {
+      toast.error('Error de red');
+    } finally {
+      setSubmittingAdjustId(null);
+    }
+  };
+
   const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
@@ -256,30 +359,30 @@ export default function ProductsPage() {
         {/* Toolbar */}
         <div className="p-4 border-b border-outline-variant/30 flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface-container-low/50">
           <div className="flex gap-4 flex-1">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-on-surface-variant/50" />
-            <input 
-              type="text" 
-              placeholder="Buscar por código, nombre o código de barras..." 
-              value={search}
-              onChange={handleSearch}
-              className="w-full bg-white border-none rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none transition-shadow"
-            />
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-on-surface-variant/50" />
+              <input
+                type="text"
+                placeholder="Buscar por código, nombre o código de barras..."
+                value={search}
+                onChange={handleSearch}
+                className="w-full bg-white border-none rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none transition-shadow"
+              />
+            </div>
+            <div className="w-48 hidden md:block">
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  fetchProducts(search, e.target.value);
+                }}
+                className="w-full bg-white border-none rounded-2xl px-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
+              >
+                <option value="">Todas las categorías</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="w-48 hidden md:block">
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                fetchProducts(search, e.target.value);
-              }}
-              className="w-full bg-white border-none rounded-2xl px-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
-            >
-              <option value="">Todas las categorías</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </div>
           <button onClick={() => fetchProducts(search)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
           </button>
@@ -292,7 +395,7 @@ export default function ProductsPage() {
               <tr className="bg-surface-container-low/80 border-b border-outline-variant/30 text-on-surface-variant text-xs uppercase tracking-wider">
                 <th className="p-4 font-semibold">SKU / Código</th>
                 <th className="p-4 font-semibold">Nombre</th>
-                <th className="p-4 font-semibold">Unidad</th>
+                <th className="p-4 font-semibold">Medida</th>
                 <th className="p-4 font-semibold text-right">Costo</th>
                 <th className="p-4 font-semibold text-right">Precio Venta</th>
                 <th className="p-4 font-semibold text-center">Estado</th>
@@ -396,7 +499,16 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Categoría</label>
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-semibold text-primary">Categoría</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowCategoryModal(true)}
+                        className="text-xs text-[#c5a059] hover:text-[#d4b069] font-bold flex items-center gap-1 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" /> Nueva
+                      </button>
+                    </div>
                     <select
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
@@ -428,8 +540,8 @@ export default function ProductsPage() {
                       <label className="text-sm font-semibold text-primary">Precios de Venta</label>
                       <div className="flex items-center gap-3">
                         <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-on-surface-variant">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={!manualPricesEnabled}
                             onChange={(e) => setManualPricesEnabled(!e.target.checked)}
                             className="rounded border-[#c5a059] text-primary focus:ring-primary"
@@ -528,6 +640,76 @@ export default function ProductsPage() {
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Sub-Modal New Category */}
+      <AnimatePresence>
+        {showCategoryModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowCategoryModal(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-sm bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#0b1120]">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
+                </h3>
+                <button onClick={() => setShowCategoryModal(false)} className="text-on-surface-variant hover:text-primary">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateCategory} className="p-6 space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-primary">Nombre de Categoría <span className="text-[#c5a059]">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    placeholder="Ej. Herramientas"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-primary">Descripción</label>
+                  <textarea
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    placeholder="Opcional..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-outline/20">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(false)}
+                    className="px-4 py-2 text-sm text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingCategory}
+                    className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar'}
                   </button>
                 </div>
               </form>
@@ -652,33 +834,69 @@ export default function ProductsPage() {
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
-              <div className="p-6">
-                {inventoryLevels.length === 0 ? (
-                  <div className="text-center text-on-surface-variant/70 py-8">
-                    <Layers className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                    No hay inventario registrado en los almacenes.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {inventoryLevels.map((lvl, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant/30">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                            <Building2 className="h-5 w-5" />
-                          </div>
-                          <span className="font-bold text-on-surface">{lvl.warehouseName}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="block text-2xl font-display font-bold text-emerald-400">
-                            {Number(lvl.quantity).toFixed(2)}
-                          </span>
-                          <span className="text-xs text-on-surface-variant capitalize">{selectedProduct.unitOfMeasure}s</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="p-0 overflow-y-auto max-h-[70vh]">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-surface-container-low/80 border-b border-[#003366] sticky top-0 z-10">
+                    <tr>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider">Almacén</th>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Cant. Actual</th>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right w-40">Ajustar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/20 bg-surface-container-highest">
+                    {warehouses.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-8 text-center text-on-surface-variant/70">
+                          <Layers className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                          No hay almacenes configurados en el sistema.
+                        </td>
+                      </tr>
+                    ) : (
+                      warehouses.map((w) => {
+                        const level = inventoryLevels.find(l => l.warehouseId === w.id);
+                        const currentQuantity = level ? Number(level.quantity).toFixed(2) : '0.00';
+                        
+                        return (
+                          <tr key={w.id} className="hover:bg-surface-container-low/30 transition-colors">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-2 rounded-lg text-primary flex-shrink-0">
+                                  <Building2 className="h-4 w-4" />
+                                </div>
+                                <span className="font-bold text-on-surface text-sm">{w.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="block text-lg font-display font-bold text-emerald-400">
+                                {currentQuantity}
+                              </span>
+                              <span className="text-[10px] text-on-surface-variant capitalize">{selectedProduct.unitOfMeasure}s</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="flex items-center gap-2 justify-end">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={inlineAdjustForm[w.id] !== undefined ? inlineAdjustForm[w.id] : currentQuantity}
+                                  onChange={(e) => setInlineAdjustForm({ ...inlineAdjustForm, [w.id]: e.target.value })}
+                                  className="w-20 bg-[#0b1120] border border-outline/50 rounded-lg px-2 py-1.5 text-sm text-primary focus:border-[#c5a059] outline-none text-right font-mono"
+                                />
+                                <button
+                                  onClick={() => handleInlineAdjust(w.id)}
+                                  disabled={submittingAdjustId === w.id || inlineAdjustForm[w.id] === undefined || inlineAdjustForm[w.id] === currentQuantity}
+                                  title="Guardar cambio"
+                                  className="p-1.5 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] rounded-md transition-colors disabled:opacity-30 disabled:grayscale"
+                                >
+                                  {submittingAdjustId === w.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </motion.div>
           </div>

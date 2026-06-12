@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -50,9 +50,73 @@ export default function ReceivablesPage() {
   });
   const [appliedInvoices, setAppliedInvoices] = useState<Record<string, number>>({});
 
+  // Receipts History Tab State
+  const [activeTab, setActiveTab] = useState<'pending' | 'receipts'>('pending');
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [receiptsLoading, setReceiptsLoading] = useState(false);
+  const [receiptSearchTerm, setReceiptSearchTerm] = useState('');
+  const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
+  const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false);
+  const [loadingReceiptDetails, setLoadingReceiptDetails] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchReceipts = async () => {
+    setReceiptsLoading(true);
+    try {
+      const res = await fetch('/api/v1/ar/receipts');
+      const data = await res.json();
+      if (data.success) {
+        setReceipts(data.data);
+      } else {
+        toast.error('Error al cargar historial de recibos');
+      }
+    } catch (err) {
+      toast.error('Error de red al cargar recibos');
+    } finally {
+      setReceiptsLoading(false);
+    }
+  };
+
+  const handleOpenReceiptDetails = async (receiptId: string) => {
+    setLoadingReceiptDetails(true);
+    setShowReceiptDetailsModal(true);
+    try {
+      const res = await fetch(`/api/v1/ar/receipts/${receiptId}`);
+      const data = await res.json();
+      if (data.success) {
+        setSelectedReceipt(data.data);
+      } else {
+        toast.error('Error al obtener detalles del recibo');
+        setShowReceiptDetailsModal(false);
+      }
+    } catch (err) {
+      toast.error('Error de red al obtener detalles');
+      setShowReceiptDetailsModal(false);
+    } finally {
+      setLoadingReceiptDetails(false);
+    }
+  };
+
+  const handlePrintReceipt = async (receiptId: string) => {
+    const toastId = toast.loading('Generando PDF del recibo...');
+    try {
+      const res = await fetch(`/api/v1/ar/receipts/${receiptId}/print`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        toast.success('PDF generado con éxito', { id: toastId });
+        window.open(data.url, '_blank');
+      } else {
+        toast.error(data.error?.message || 'Error al generar PDF', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('Error de red al generar PDF', { id: toastId });
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -171,6 +235,7 @@ export default function ReceivablesPage() {
         });
         setShowPaymentModal(false);
         fetchData();
+        fetchReceipts();
       } else {
         toast.error(data.error?.message || 'Error al registrar cobro');
       }
@@ -182,6 +247,11 @@ export default function ReceivablesPage() {
   };
 
   const filteredCustomers = customers.filter(c => c.customerName.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredReceipts = receipts.filter(r => 
+    r.customerName.toLowerCase().includes(receiptSearchTerm.toLowerCase()) || 
+    (r.reference && r.reference.toLowerCase().includes(receiptSearchTerm.toLowerCase())) ||
+    `rec-${r.id.slice(0, 8)}`.toLowerCase().includes(receiptSearchTerm.toLowerCase())
+  );
   const globalTotalPending = customers.reduce((sum, c) => sum + c.totalBalance, 0);
 
   return (
@@ -210,35 +280,66 @@ export default function ReceivablesPage() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-on-surface-variant" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar cliente..."
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b border-slate-200">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={clsx(
+              "px-6 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2",
+              activeTab === 'pending'
+                ? "border-[#003366] text-[#003366]"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <HandCoins className="w-4 h-4" /> Balances de Clientes
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('receipts');
+              fetchReceipts();
+            }}
+            className={clsx(
+              "px-6 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2",
+              activeTab === 'receipts'
+                ? "border-[#003366] text-[#003366]"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <History className="w-4 h-4" /> Historial de Recibos
+          </button>
         </div>
 
-        {/* Customer List */}
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
-          ) : filteredCustomers.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
-              <CheckCircle2 className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-[#003366]">Todo al día</h3>
-              <p className="text-on-surface-variant/70 mt-2">No hay facturas pendientes de cobro en este momento.</p>
+        {activeTab === 'pending' && (
+          <>
+            {/* Search Bar */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-on-surface-variant" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar cliente..."
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredCustomers.map(customer => (
+
+            {/* Customer List */}
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : filteredCustomers.length === 0 ? (
+                <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
+                  <CheckCircle2 className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-[#003366]">Todo al día</h3>
+                  <p className="text-on-surface-variant/70 mt-2">No hay facturas pendientes de cobro en este momento.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredCustomers.map(customer => (
                 <div key={customer.customerId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                   {/* Customer Header */}
                   <div className="bg-slate-50 border-b border-slate-200 p-5 flex flex-wrap justify-between items-center gap-4">
@@ -303,6 +404,103 @@ export default function ReceivablesPage() {
             </div>
           )}
         </AnimatePresence>
+          </>
+        )}
+
+        {activeTab === 'receipts' && (
+          <>
+            {/* Search Bar for Receipts */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-on-surface-variant" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar por cliente o referencia..."
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                  value={receiptSearchTerm}
+                  onChange={(e) => setReceiptSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Receipts Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {receiptsLoading ? (
+                <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : filteredReceipts.length === 0 ? (
+                <div className="p-16 text-center">
+                  <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-[#003366]">Sin Recibos</h3>
+                  <p className="text-on-surface-variant/70 mt-2">No se han registrado recibos de ingreso todavía.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-xs text-on-surface-variant uppercase font-semibold">
+                      <tr>
+                        <th className="px-6 py-4">Código Recibo</th>
+                        <th className="px-6 py-4">Cliente</th>
+                        <th className="px-6 py-4">Fecha</th>
+                        <th className="px-6 py-4">Método</th>
+                        <th className="px-6 py-4">Referencia</th>
+                        <th className="px-6 py-4 text-right">Monto</th>
+                        <th className="px-6 py-4 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredReceipts.map((rec) => {
+                        const methodLabel = rec.paymentMethod === 'cash' ? 'Efectivo' : 
+                                            rec.paymentMethod === 'bank' ? 'Banco' : 
+                                            rec.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+                        return (
+                          <tr key={rec.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 font-mono font-bold text-[#003366]">
+                              REC-{rec.id.slice(0, 8).toUpperCase()}
+                            </td>
+                            <td className="px-6 py-4 font-semibold text-slate-800">{rec.customerName}</td>
+                            <td className="px-6 py-4 text-on-surface-variant/80">
+                              {new Date(rec.date).toLocaleDateString('es-DO')}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={clsx(
+                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
+                                rec.paymentMethod === 'cash' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                              )}>
+                                {methodLabel}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-mono text-on-surface-variant/80">{rec.reference || '-'}</td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-slate-800">{fmt(parseFloat(rec.amount))}</td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex justify-center gap-3">
+                                <button
+                                  onClick={() => handleOpenReceiptDetails(rec.id)}
+                                  className="p-1.5 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                                  title="Ver detalle"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handlePrintReceipt(rec.id)}
+                                  className="p-1.5 hover:bg-slate-100 text-[#003366] rounded transition-colors"
+                                  title="Imprimir PDF"
+                                >
+                                  <Printer className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
       </div>
 
@@ -428,6 +626,102 @@ export default function ReceivablesPage() {
                   </div>
 
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: DETALLE DEL RECIBO */}
+      <AnimatePresence>
+        {showReceiptDetailsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReceiptDetailsModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 flex flex-col max-h-[85vh] overflow-hidden">
+              <div className="bg-[#003366] px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <div>
+                  <h3 className="font-display font-bold text-lg">Detalle de Recibo de Ingreso</h3>
+                  {selectedReceipt && <p className="text-xs text-[#C5A059] font-mono">REC-{selectedReceipt.id.slice(0, 8).toUpperCase()}</p>}
+                </div>
+                <button onClick={() => setShowReceiptDetailsModal(false)} className="text-slate-300 hover:text-white transition-colors"><X className="w-6 h-6" /></button>
+              </div>
+
+              {loadingReceiptDetails || !selectedReceipt ? (
+                <div className="flex-1 flex justify-center items-center py-20">
+                  <RefreshCw className="w-8 h-8 animate-spin text-[#C5A059]" />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Header info */}
+                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Cliente</p>
+                      <p className="font-semibold text-slate-800 text-sm">{selectedReceipt.customerName}</p>
+                      {selectedReceipt.customerRnc && <p className="text-xs text-slate-500">RNC: {selectedReceipt.customerRnc}</p>}
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Detalles de Cobro</p>
+                      <p className="text-xs text-slate-700"><strong>Fecha:</strong> {new Date(selectedReceipt.date).toLocaleDateString('es-DO')}</p>
+                      <p className="text-xs text-slate-700"><strong>Método:</strong> {selectedReceipt.paymentMethod === 'cash' ? 'Efectivo' : 'Banco'}</p>
+                      {selectedReceipt.reference && <p className="text-xs text-slate-700"><strong>Referencia:</strong> {selectedReceipt.reference}</p>}
+                    </div>
+                  </div>
+
+                  {/* Facturas aplicadas */}
+                  <div>
+                    <h4 className="font-bold text-[#003366] text-sm mb-3">Facturas Amortizadas</h4>
+                    <div className="border border-slate-200 rounded-xl overflow-hidden font-sans">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200">
+                          <tr>
+                            <th className="px-4 py-3">NCF / Documento</th>
+                            <th className="px-4 py-3 text-right">Monto Original</th>
+                            <th className="px-4 py-3 text-right">Monto Aplicado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {selectedReceipt.appliedInvoices.map((inv: any) => (
+                            <tr key={inv.appliedId} className="hover:bg-slate-50/50">
+                              <td className="px-4 py-3 font-mono font-bold text-[#003366]">{inv.invoiceNumber}</td>
+                              <td className="px-4 py-3 text-right font-mono text-slate-600">{fmt(inv.totalAmount)}</td>
+                              <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600">{fmt(inv.amountApplied)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {selectedReceipt.notes && (
+                    <div className="bg-amber-50/50 border border-amber-200/50 rounded-xl p-4 text-xs text-amber-800">
+                      <p className="font-bold mb-1">Notas / Observaciones:</p>
+                      <p>{selectedReceipt.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Total summary */}
+                  <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                    <span className="text-sm font-bold text-slate-600">Total Recibido</span>
+                    <span className="text-2xl font-mono font-bold text-emerald-600">{fmt(selectedReceipt.amount)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
+                <button
+                  onClick={() => setShowReceiptDetailsModal(false)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-600 transition-colors"
+                >
+                  Cerrar
+                </button>
+                {selectedReceipt && (
+                  <button
+                    onClick={() => handlePrintReceipt(selectedReceipt.id)}
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors"
+                  >
+                    <Printer className="w-4 h-4" /> Imprimir Recibo
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>

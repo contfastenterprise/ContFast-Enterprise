@@ -17,6 +17,28 @@ const registerReceiptSchema = z.object({
   })).min(1, 'Debe aplicar el cobro a al menos una factura')
 });
 
+export async function GET(req: NextRequest) {
+  try {
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    await checkRateLimit(ip, 'standard');
+
+    const session = await verifyAuth(req);
+    if (!session) {
+      return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
+    }
+
+    const receipts = await ArRepository.getReceiptsList(session.companyId);
+
+    return NextResponse.json({ success: true, data: receipts });
+  } catch (error: any) {
+    console.error('Error fetching receipts:', error);
+    return NextResponse.json(
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';

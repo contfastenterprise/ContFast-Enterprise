@@ -11,6 +11,9 @@ export interface CreateInvoiceInput {
   ecfType: string;
   status: 'draft' | 'signed' | 'submitted' | 'accepted' | 'rejected' | 'void';
   paymentStatus: 'unpaid' | 'partial' | 'paid';
+  paymentType: 'cash' | 'credit' | 'bank_transfer';
+  bankName?: string;
+  transactionNumber?: string;
   subtotal: number;
   discount: number;
   totalTaxes: number;
@@ -67,6 +70,9 @@ export class InvoiceRepository {
           dgiiMessage: data.dgiiMessage,
           buyerRnc: data.buyerRnc,
           buyerName: data.buyerName,
+          paymentType: data.paymentType,
+          bankName: data.bankName,
+          transactionNumber: data.transactionNumber,
         })
         .returning();
 

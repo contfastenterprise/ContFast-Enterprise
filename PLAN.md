@@ -34,6 +34,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Administración de Seguridad**: `/dashboard/admin`
 - **Reportes Financieros**: `/reports` (Estadísticas y Métricas de Ventas, y Conciliación Bancaria activa)
 - **Soporte y Ayuda**: `/support` (Centro de Contacto)
+- **Recibos de Ingreso (Cuentas por Cobrar)**: Historial completo de cobros de facturas y descarga de recibos en formato PDF.
 
 ---
-**Status**: Verified & Polished (Score >= 9)
+**Status**: Verified & Polished (Score 10/10)

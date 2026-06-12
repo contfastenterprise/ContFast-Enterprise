@@ -15,6 +15,8 @@ const createInvoiceSchema = z.object({
     message: 'Tipo de e-CF inválido. Debe ser 31 (Fiscal), 32 (Consumo), 33 (ND), 34 (NC) o 45 (Gubernamental)',
   }),
   paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
+  bankName: z.string().optional(),
+  transactionNumber: z.string().optional(),
   lines: z.array(
     z.object({
       productId: z.string().uuid(),
@@ -25,6 +27,14 @@ const createInvoiceSchema = z.object({
       taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),
+}).refine((data) => {
+  if (data.paymentType === 'bank_transfer') {
+    return !!data.bankName && !!data.transactionNumber;
+  }
+  return true;
+}, {
+  message: 'El banco y número de transferencia son requeridos para pagos por transferencia.',
+  path: ['bankName'],
 });
 
 /**

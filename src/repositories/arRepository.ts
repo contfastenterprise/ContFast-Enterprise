@@ -176,4 +176,75 @@ export class ArRepository {
       return receipt;
     });
   }
+
+  // Get historical receipts for a company
+  static async getReceiptsList(companyId: string) {
+    return await db.select({
+      id: customerReceipts.id,
+      customerId: customerReceipts.customerId,
+      customerName: customers.name,
+      date: customerReceipts.date,
+      paymentMethod: customerReceipts.paymentMethod,
+      amount: customerReceipts.amount,
+      reference: customerReceipts.reference,
+      notes: customerReceipts.notes,
+      createdAt: customerReceipts.createdAt
+    })
+    .from(customerReceipts)
+    .innerJoin(customers, eq(customerReceipts.customerId, customers.id))
+    .where(and(
+      eq(customerReceipts.companyId, companyId),
+      sql`${customerReceipts.deletedAt} IS NULL`
+    ))
+    .orderBy(desc(customerReceipts.createdAt));
+  }
+
+  // Get detailed information of a receipt and its applied invoices
+  static async getReceiptDetails(companyId: string, receiptId: string) {
+    const [receipt] = await db.select({
+      id: customerReceipts.id,
+      companyId: customerReceipts.companyId,
+      customerId: customerReceipts.customerId,
+      customerName: customers.name,
+      customerRnc: customers.rncCedula,
+      date: customerReceipts.date,
+      paymentMethod: customerReceipts.paymentMethod,
+      amount: customerReceipts.amount,
+      reference: customerReceipts.reference,
+      notes: customerReceipts.notes,
+      createdAt: customerReceipts.createdAt
+    })
+    .from(customerReceipts)
+    .innerJoin(customers, eq(customerReceipts.customerId, customers.id))
+    .where(and(
+      eq(customerReceipts.id, receiptId),
+      eq(customerReceipts.companyId, companyId),
+      sql`${customerReceipts.deletedAt} IS NULL`
+    ))
+    .limit(1);
+
+    if (!receipt) return null;
+
+    const appliedInvoices = await db.select({
+      appliedId: customerReceiptApplied.id,
+      amountApplied: customerReceiptApplied.amountApplied,
+      invoiceNumber: invoices.ncf,
+      invoiceDate: invoices.createdAt,
+      totalAmount: invoices.total
+    })
+    .from(customerReceiptApplied)
+    .innerJoin(accountsReceivable, eq(customerReceiptApplied.arId, accountsReceivable.id))
+    .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
+    .where(eq(customerReceiptApplied.receiptId, receiptId));
+
+    return {
+      ...receipt,
+      appliedInvoices: appliedInvoices.map(ai => ({
+        ...ai,
+        amountApplied: parseFloat(ai.amountApplied as any),
+        totalAmount: parseFloat(ai.totalAmount as any),
+      })),
+      amount: parseFloat(receipt.amount as any),
+    };
+  }
 }

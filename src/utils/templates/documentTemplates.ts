@@ -193,5 +193,100 @@ export class DocumentTemplates {
     `;
   }
 
-  // Se pueden añadir más métodos: renderCreditNote, renderDeliveryNote, renderCashClosure...
+  static renderReceipt(data: any, layout: 'carta' | '80mm' | '58mm'): string {
+    const css = this.getBaseCss(layout);
+    const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices } = data;
+    
+    const logoHtml = company.logoUrl && layout !== '58mm' 
+      ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
+      : '';
+
+    const methodLabel = paymentMethod === 'cash' ? 'Efectivo / Caja Chica' : 
+                        paymentMethod === 'bank' ? 'Transferencia / Depósito' : 
+                        paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+
+    const linesHtml = appliedInvoices.map((inv: any) => `
+      <tr>
+        <td>${inv.invoiceNumber}</td>
+        <td>${new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
+        <td class="text-right">$${inv.totalAmount.toFixed(2)}</td>
+        <td class="text-right">$${inv.amountApplied.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Recibo de Ingreso REC-${id.slice(0, 8).toUpperCase()}</title>
+        <style>${css}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${logoHtml}
+            <div class="title">${company.name}</div>
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info">
+            <div class="subtitle">RECIBO DE INGRESO</div>
+            <div><strong>Recibo #:</strong> REC-${id.slice(0, 8).toUpperCase()}</div>
+            <div><strong>Fecha:</strong> ${new Date(date).toLocaleDateString('es-DO')}</div>
+            <div><strong>Método:</strong> ${methodLabel}</div>
+            ${reference ? `<div><strong>Referencia:</strong> ${reference}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="box client-info">
+            <div class="box-title">Recibido de:</div>
+            <div><strong>${customer ? customer.name : 'Cliente General'}</strong></div>
+            ${customer && customer.rncCedula ? `<div>RNC/Cédula: ${customer.rncCedula}</div>` : ''}
+            ${customer && customer.address ? `<div>Dirección: ${customer.address}</div>` : ''}
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #111; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalle de Facturas Aplicadas</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>NCF / Documento</th>
+              <th>Fecha Factura</th>
+              <th class="text-right">Monto Factura</th>
+              <th class="text-right">Monto Aplicado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-container">
+          <div class="totals">
+            <table>
+              <tr class="grand-total">
+                <th>TOTAL RECIBIDO</th>
+                <td class="text-right">$${amount.toFixed(2)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        ${notes ? `
+        <div class="box" style="margin-top: 20px;">
+          <div class="box-title">Observaciones:</div>
+          <div>${notes}</div>
+        </div>
+        ` : ''}
+
+        <div class="footer" style="margin-top: 50px;">
+          Generado por ContFast Enterprise - Módulo de Cuentas por Cobrar
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

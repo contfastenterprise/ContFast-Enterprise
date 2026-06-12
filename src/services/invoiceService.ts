@@ -21,6 +21,8 @@ export interface IssueInvoiceInput {
   cashSessionId?: string;
   ecfType: string; // '31' (Fiscal), '32' (Consumo), etc.
   paymentType: 'cash' | 'credit' | 'bank_transfer';
+  bankName?: string;
+  transactionNumber?: string;
   buyerRnc?: string;
   buyerName?: string;
   lines: {
@@ -177,6 +179,9 @@ export class InvoiceService {
         ecfType: data.ecfType,
         status: 'signed',
         paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
+        paymentType: data.paymentType,
+        bankName: data.bankName,
+        transactionNumber: data.transactionNumber,
         subtotal,
         discount: totalDiscount,
         totalTaxes,
