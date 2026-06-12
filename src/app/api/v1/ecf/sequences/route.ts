@@ -94,6 +94,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Deactivate previous active sequences of the same type
+    await db
+      .update(ecfSequences)
+      .set({ status: 'inactive', updatedAt: new Date() })
+      .where(
+        and(
+          eq(ecfSequences.companyId, auth.companyId),
+          eq(ecfSequences.ecfType, ecfType),
+          eq(ecfSequences.status, 'active')
+        )
+      );
+
     const [newSeq] = await db
       .insert(ecfSequences)
       .values({

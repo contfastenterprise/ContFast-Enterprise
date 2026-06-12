@@ -1,5 +1,5 @@
 import { db, companies, companySettings, ecfSequences } from '@/db';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, sql, desc } from 'drizzle-orm';
 
 export class CompanyRepository {
   /**
@@ -89,6 +89,7 @@ export class CompanyRepository {
           isNull(ecfSequences.deletedAt)
         )
       )
+      .orderBy(desc(ecfSequences.createdAt))
       .limit(1)
       .for('update'); // Row locking for thread safety!
 
