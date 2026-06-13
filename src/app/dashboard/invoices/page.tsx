@@ -45,6 +45,7 @@ function InvoicesList() {
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<any[]>([
     {
       productId: '',
@@ -460,6 +461,7 @@ function InvoicesList() {
           paymentType,
           bankName: paymentType === 'bank_transfer' ? bankName : undefined,
           transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
+          notes: notes || undefined,
           lines,
         }),
       });
@@ -483,6 +485,7 @@ function InvoicesList() {
                 bankName: paymentType === 'bank_transfer' ? bankName : undefined,
                 transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
                 ignoreCommunicationError: true,
+                notes: notes || undefined,
                 lines,
               }),
             });
@@ -497,6 +500,7 @@ function InvoicesList() {
             setShowForm(false);
             setCustomerId(''); setCustomerRnc(''); setCustomerName('');
             setBankName(''); setTransactionNumber('');
+            setNotes('');
             setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
             loadInvoices();
             return;
@@ -512,6 +516,7 @@ function InvoicesList() {
       setShowForm(false);
       setCustomerId(''); setCustomerRnc(''); setCustomerName('');
       setBankName(''); setTransactionNumber('');
+      setNotes('');
       setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
       loadInvoices();
     } catch (error: any) {
@@ -884,6 +889,18 @@ function InvoicesList() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Notas de la Factura */}
+              <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200 space-y-2">
+                <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Notas de la Factura</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Ej: Términos de pago, garantía, o cualquier otra observación que aparecerá en la factura impresa..."
+                  rows={3}
+                  className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all resize-y placeholder:text-slate-400"
+                />
               </div>
 
               {/* Calculation Summary & Submit */}

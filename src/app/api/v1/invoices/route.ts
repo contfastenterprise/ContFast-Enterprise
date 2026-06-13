@@ -17,6 +17,7 @@ const createInvoiceSchema = z.object({
   paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
   bankName: z.string().optional(),
   transactionNumber: z.string().optional(),
+  notes: z.string().optional(),
   ignoreCommunicationError: z.boolean().optional(),
   lines: z.array(
     z.object({

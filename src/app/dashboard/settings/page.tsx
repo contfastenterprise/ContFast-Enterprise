@@ -107,7 +107,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <SettingsIcon className="h-3 w-3" /> Configuración Global
         </span>
       </div>
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                     <strong>Seguridad:</strong> Las contraseñas y llaves de API se encriptan de forma segura (AES-256) antes de almacenarse en la base de datos. Una vez guardadas, no podrán ser visualizadas.
                   </p>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
@@ -298,7 +298,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-primary font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2">
+              <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2">
                 {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />} Guardar Cambios
               </button>
             </div>

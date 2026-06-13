@@ -115,6 +115,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     discount: Number(invoiceRecordDb.discount),
     totalTaxes: Number(invoiceRecordDb.totalTaxes),
     total: Number(invoiceRecordDb.total),
+    notes: invoiceRecordDb.notes || '',
     securityCode,
     signatureDate: invoiceRecordDb.createdAt.toISOString(),
     lines: lines.map(l => ({

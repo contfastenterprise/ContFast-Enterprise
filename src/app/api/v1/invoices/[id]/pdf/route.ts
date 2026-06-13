@@ -161,6 +161,7 @@ export async function GET(
       discount: Number(invoice.discount),
       totalTaxes: Number(invoice.totalTaxes),
       total: Number(invoice.total),
+      notes: invoice.notes || '',
       securityCode,
       signatureDate: invoice.createdAt.toISOString(),
       lines: lines.map(l => ({

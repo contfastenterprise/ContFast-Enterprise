@@ -29,6 +29,7 @@ export interface IssueInvoiceInput {
   transactionNumber?: string;
   buyerRnc?: string;
   buyerName?: string;
+  notes?: string;
   ignoreCommunicationError?: boolean;
   lines: {
     productId: string;
@@ -285,6 +286,7 @@ export class InvoiceService {
                 dgiiMessage: errMsg,
                 buyerRnc: data.buyerRnc,
                 buyerName: data.buyerName,
+                notes: data.notes,
                 lines: itemLines,
                 taxes: taxesList,
               }, tx);
@@ -345,6 +347,7 @@ export class InvoiceService {
         discount: totalDiscount,
         totalTaxes,
         total,
+        notes: data.notes || '',
         securityCode: securityHash,
         signatureDate: new Date().toISOString(),
         lines: itemLines.map(l => ({
@@ -438,6 +441,7 @@ export class InvoiceService {
         dgiiMessage: dgiiMessage || undefined,
         buyerRnc: data.buyerRnc,
         buyerName: data.buyerName,
+        notes: data.notes,
         lines: itemLines,
         taxes: taxesList,
       };

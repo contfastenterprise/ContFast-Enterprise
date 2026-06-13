@@ -15,7 +15,7 @@ export default function SetupWizard() {
 
   // Form State
   const [company, setCompany] = useState({ name: '', rnc: '', businessActivity: '' });
-  const [fiscal, setFiscal] = useState({ dgiiEnv: 'test', msellerUrl: 'https://api.mseller.app/v1', msellerApiKey: '' });
+  const [fiscal, setFiscal] = useState({ dgiiEnv: 'test', msellerUrl: 'https://ecf.api.mseller.app/v1', msellerApiKey: '' });
   const [printing, setPrinting] = useState({ printLayout: 'carta' });
   const [delivery, setDelivery] = useState({ autoDeliveryNotes: false });
   const [user, setUser] = useState({ name: '', email: '', password: '' });

@@ -46,8 +46,24 @@ export interface ECFPayload {
         UnidadMedida: string;
         PrecioUnitarioItem: number;
         DescuentoMonto: number;
+        MontoItem: number;
       }>;
     };
+    Paginacion: {
+      Pagina: Array<{
+        PaginaNo: number;
+        NoLineaDesde: number;
+        NoLineaHasta: number;
+        SubtotalMontoGravadoPagina: number;
+        SubtotalMontoGravado1Pagina: number;
+        SubtotalExentoPagina: number;
+        SubtotalItbisPagina: number;
+        SubtotalItbis1Pagina: number;
+        MontoSubtotalPagina: number;
+        SubtotalMontoNoFacturablePagina: number;
+      }>;
+    };
+    FechaHoraFirma?: string;
   };
 }
 
@@ -106,7 +122,20 @@ export class MSellerClient {
     password: string;
     apiKeyEncrypted: string;
   }) {
-    this.baseUrl = config.baseUrl || 'https://ecf.api.mseller.app';
+    let baseUrl = config.baseUrl || 'https://ecf.api.mseller.app';
+    if (baseUrl.includes('api.mseller.app') && !baseUrl.includes('ecf.api.mseller.app')) {
+      baseUrl = baseUrl.replace('api.mseller.app', 'ecf.api.mseller.app');
+    }
+    // Clean up baseUrl by removing any appended entornos and trailing slashes
+    baseUrl = baseUrl.replace(/\/TesteCF$/gi, '')
+                     .replace(/\/CerteCF$/gi, '')
+                     .replace(/\/eCF$/gi, '');
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+    
+    console.log('[MSellerClient] Constructor - config.baseUrl:', config.baseUrl, 'cleaned baseUrl:', baseUrl);
+    this.baseUrl = baseUrl;
     this.entorno = config.entorno || 'TesteCF';
     this.email = config.email;
     this.password = config.password;
@@ -126,7 +155,9 @@ export class MSellerClient {
     const url = `${this.baseUrl}/${this.entorno}/customer/authentication`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({ email: this.email, password: this.password }),
     });
 
@@ -173,9 +204,9 @@ export class MSellerClient {
 
     return {
       success: true,
-      trackId: raw?.trackId || raw?.id,
+      trackId: raw?.trackId || raw?.id || raw?.internalTrackId,
       securityCode: raw?.securityCode,
-      qrCode: raw?.qrCode,
+      qrCode: raw?.qrCode || raw?.qr_url || raw?.qr_code,
       message: raw?.message,
       rawResponse: raw,
     };
@@ -299,17 +330,40 @@ export class MSellerClient {
       ECF: {
         Encabezado: encabezado,
         DetallesItems: {
-          Item: params.lines.map((line, idx) => ({
-            NumeroLinea: String(idx + 1),
-            IndicadorFacturacion: '1',
-            NombreItem: line.name,
-            IndicadorBienoServicio: '1',
-            CantidadItem: line.quantity,
-            UnidadMedida: '43',
-            PrecioUnitarioItem: line.unitPrice,
-            DescuentoMonto: line.discount || 0,
-          })),
+          Item: params.lines.map((line, idx) => {
+            const subtotal = line.quantity * line.unitPrice;
+            const discount = line.discount || 0;
+            const montoItem = Number((subtotal - discount).toFixed(2));
+            return {
+              NumeroLinea: String(idx + 1),
+              IndicadorFacturacion: '1',
+              NombreItem: line.name,
+              IndicadorBienoServicio: '1',
+              CantidadItem: line.quantity,
+              UnidadMedida: '43',
+              PrecioUnitarioItem: line.unitPrice,
+              DescuentoMonto: discount,
+              MontoItem: montoItem,
+            };
+          }),
         },
+        Paginacion: {
+          Pagina: [
+            {
+              PaginaNo: 1,
+              NoLineaDesde: 1,
+              NoLineaHasta: params.lines.length || 1,
+              SubtotalMontoGravadoPagina: params.subtotal,
+              SubtotalMontoGravado1Pagina: params.subtotal,
+              SubtotalExentoPagina: 0,
+              SubtotalItbisPagina: params.totalTaxes,
+              SubtotalItbis1Pagina: params.totalTaxes,
+              MontoSubtotalPagina: params.total,
+              SubtotalMontoNoFacturablePagina: 0,
+            },
+          ],
+        },
+        FechaHoraFirma: '',
       },
     };
   }

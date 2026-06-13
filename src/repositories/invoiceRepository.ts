@@ -25,6 +25,7 @@ export interface CreateInvoiceInput {
   dgiiMessage?: string;
   buyerRnc?: string;
   buyerName?: string;
+  notes?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -70,6 +71,7 @@ export class InvoiceRepository {
           dgiiMessage: data.dgiiMessage,
           buyerRnc: data.buyerRnc,
           buyerName: data.buyerName,
+          notes: data.notes,
           paymentType: data.paymentType,
           bankName: data.bankName,
           transactionNumber: data.transactionNumber,
@@ -138,6 +140,7 @@ export class InvoiceRepository {
         msellerTrackId: invoices.msellerTrackId,
         buyerRnc: invoices.buyerRnc,
         buyerName: invoices.buyerName,
+        notes: invoices.notes,
         dgiiMessage: invoices.dgiiMessage,
         paymentType: invoices.paymentType,
         bankName: invoices.bankName,

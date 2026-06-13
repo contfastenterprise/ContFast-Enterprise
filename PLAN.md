@@ -47,5 +47,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Protección de Secuencia NCF**: Corregido el flujo en `src/services/invoiceService.ts` para predecir el NCF fuera de la transacción sin consumirlo en base de datos. La reserva física del NCF e incremento secuencial ahora se ejecutan exclusivamente dentro de la transacción final de guardado de la factura, previniendo saltos involuntarios en la secuencia de comprobantes ante fallos de conexión (por ejemplo, con MSeller o DGII).
 - **Integración con Cliente**: Actualizado `src/app/dashboard/invoices/[id]/page.tsx` para abrir el endpoint directamente en una nueva pestaña del navegador, emulando el comportamiento directo y fluido de `/api/v1/documents/[uuid]/download`.
 
+### 8. Campo de Notas de la Factura (Notes Field)
+- **Capa de Base de Datos**: Agregado el campo `notes` (TEXT) a la tabla `invoices` y actualizado el esquema de Drizzle.
+- **Validación & Repositorio**: Actualizado el esquema de validación y la API `/api/v1/invoices` para recibir opcionalmente el campo `notes`, guardándolo correctamente en la base de datos a través del repositorio y servicio de facturación.
+- **Rendimiento Visual**: Integración dinámica del campo `notes` en la plantilla de impresión de facturas en PDF (con soporte de múltiples líneas `white-space: pre-wrap` y fallback al texto por defecto si está vacío).
+- **Formulario de Creación**: Añadido un campo de texto `<textarea>` ("Notas de la Factura") estilizado al formulario de emisión de facturas e-CF del Dashboard.
+
 ---
 **Status**: Verified & Polished (Score 10/10)

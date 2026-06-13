@@ -421,6 +421,7 @@ export const invoices = pgTable('invoices', {
   buyerRnc: varchar('buyer_rnc', { length: 15 }),
   buyerName: varchar('buyer_name', { length: 255 }),
   dgiiMessage: text('dgii_message'),
+  notes: text('notes'),
   paymentType: varchar('payment_type', { length: 50 }).default('cash').notNull(),
   bankName: varchar('bank_name', { length: 100 }),
   transactionNumber: varchar('transaction_number', { length: 100 }),
