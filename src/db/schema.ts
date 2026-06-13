@@ -425,6 +425,8 @@ export const invoices = pgTable('invoices', {
   paymentType: varchar('payment_type', { length: 50 }).default('cash').notNull(),
   bankName: varchar('bank_name', { length: 100 }),
   transactionNumber: varchar('transaction_number', { length: 100 }),
+  modifiedNcf: varchar('modified_ncf', { length: 13 }),
+  modifiedInvoiceId: uuid('modified_invoice_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

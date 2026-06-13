@@ -264,6 +264,7 @@ export class MSellerClient {
     subtotal: number;
     totalTaxes: number;
     total: number;
+    modifiedNcf?: string;
     lines: Array<{
       index: number;
       name: string;
@@ -326,7 +327,7 @@ export class MSellerClient {
       };
     }
 
-    return {
+    const payload: any = {
       ECF: {
         Encabezado: encabezado,
         DetallesItems: {
@@ -366,6 +367,20 @@ export class MSellerClient {
         FechaHoraFirma: '',
       },
     };
+
+    if (params.modifiedNcf) {
+      payload.ECF.TablaReferencia = {
+        Referencia: [
+          {
+            NumeroLinea: '1',
+            NCFModificado: params.modifiedNcf,
+            CodigoModificacion: '1',
+          },
+        ],
+      };
+    }
+
+    return payload as ECFPayload;
   }
 
   /**

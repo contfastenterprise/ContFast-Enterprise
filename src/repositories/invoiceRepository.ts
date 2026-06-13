@@ -26,6 +26,8 @@ export interface CreateInvoiceInput {
   buyerRnc?: string;
   buyerName?: string;
   notes?: string;
+  modifiedNcf?: string;
+  modifiedInvoiceId?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -75,6 +77,8 @@ export class InvoiceRepository {
           paymentType: data.paymentType,
           bankName: data.bankName,
           transactionNumber: data.transactionNumber,
+          modifiedNcf: data.modifiedNcf,
+          modifiedInvoiceId: data.modifiedInvoiceId,
         })
         .returning();
 
@@ -145,6 +149,8 @@ export class InvoiceRepository {
         paymentType: invoices.paymentType,
         bankName: invoices.bankName,
         transactionNumber: invoices.transactionNumber,
+        modifiedNcf: invoices.modifiedNcf,
+        modifiedInvoiceId: invoices.modifiedInvoiceId,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
         customerName: customers.name,

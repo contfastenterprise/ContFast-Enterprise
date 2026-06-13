@@ -7,7 +7,7 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users
+  Package, Users, FileMinus, FilePlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -46,6 +46,8 @@ function InvoicesList() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [notes, setNotes] = useState('');
+  const [modifiedNcf, setModifiedNcf] = useState('');
+  const [modifiedInvoiceId, setModifiedInvoiceId] = useState('');
   const [lines, setLines] = useState<any[]>([
     {
       productId: '',
@@ -439,6 +441,49 @@ function InvoicesList() {
     setLines(updated);
   };
 
+  const handleCreateAdjustmentNote = async (inv: any, noteType: '33' | '34') => {
+    try {
+      toast.info('Cargando datos del e-CF original...');
+      const res = await fetch(`/api/v1/invoices/${inv.id}`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || 'Error al obtener detalles de la factura.');
+      }
+      
+      const invoice = data.data;
+      
+      // Cargar detalles al formulario
+      setWarehouseId(invoice.warehouseId || '');
+      setEcfType(noteType);
+      setPaymentType(invoice.paymentType || 'cash');
+      setBankName(invoice.bankName || '');
+      setTransactionNumber(invoice.transactionNumber || '');
+      setCustomerId(invoice.customerId || '');
+      setCustomerRnc(invoice.customerRnc || invoice.buyerRnc || '');
+      setCustomerName(invoice.customerName || invoice.buyerName || 'Consumidor Final');
+      setNotes(`Nota de ajuste para el e-CF ${invoice.ncf}`);
+      
+      // Precargar líneas de productos
+      const preloadedLines = invoice.lines.map((line: any) => ({
+        productId: line.productId,
+        productName: line.productName,
+        quantity: Number(line.quantity),
+        unitPrice: Number(line.unitPrice),
+        discount: Number(line.discount || 0),
+        taxRate: Number(line.taxRate || 0.18),
+      }));
+      setLines(preloadedLines);
+      
+      setModifiedNcf(invoice.ncf);
+      setModifiedInvoiceId(invoice.id);
+      
+      setShowForm(true);
+      toast.success(`Datos de ${invoice.ncf} cargados para nota de ${noteType === '34' ? 'crédito' : 'débito'}`);
+    } catch (err: any) {
+      toast.error('Error al iniciar nota de ajuste', { description: err.message });
+    }
+  };
+
   const handleIssueInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -462,6 +507,8 @@ function InvoicesList() {
           bankName: paymentType === 'bank_transfer' ? bankName : undefined,
           transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
           notes: notes || undefined,
+          modifiedNcf: modifiedNcf || undefined,
+          modifiedInvoiceId: modifiedInvoiceId || undefined,
           lines,
         }),
       });
@@ -486,6 +533,8 @@ function InvoicesList() {
                 transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
                 ignoreCommunicationError: true,
                 notes: notes || undefined,
+                modifiedNcf: modifiedNcf || undefined,
+                modifiedInvoiceId: modifiedInvoiceId || undefined,
                 lines,
               }),
             });
@@ -493,7 +542,7 @@ function InvoicesList() {
             if (!retryRes.ok || !retryData.success) {
               throw new Error(retryData.error?.message || 'Error al emitir factura localmente.');
             }
-            toast.success('Factura e-CF emitida localmente', {
+            toast.success('Documento e-CF emitido localmente', {
               description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.`
             });
 
@@ -501,6 +550,7 @@ function InvoicesList() {
             setCustomerId(''); setCustomerRnc(''); setCustomerName('');
             setBankName(''); setTransactionNumber('');
             setNotes('');
+            setModifiedNcf(''); setModifiedInvoiceId('');
             setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
             loadInvoices();
             return;
@@ -511,14 +561,15 @@ function InvoicesList() {
         throw new Error(data.error?.message || 'Error al emitir factura.');
       }
 
-      toast.success('Factura e-CF emitida y firmada', {
-        description: `NCF: ${data.data.ncf} | MSeller JSON: ${data.msellerResponse ? JSON.stringify(data.msellerResponse) : 'N/A'}`
+      toast.success('Comprobante e-CF emitido y firmado', {
+        description: `NCF: ${data.data.ncf}`
       });
 
       setShowForm(false);
       setCustomerId(''); setCustomerRnc(''); setCustomerName('');
       setBankName(''); setTransactionNumber('');
       setNotes('');
+      setModifiedNcf(''); setModifiedInvoiceId('');
       setLines([{ productId: '', productName: 'Producto', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
       loadInvoices();
     } catch (error: any) {
@@ -636,6 +687,8 @@ function InvoicesList() {
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
+                    <option value="33">e-33 Nota de Débito</option>
+                    <option value="34">e-34 Nota de Crédito</option>
                     <option value="45">e-45 Comprobante Gubernamental</option>
                   </select>
                 </div>
@@ -683,6 +736,21 @@ function InvoicesList() {
                         className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
                       />
                     </div>
+                  </div>
+                )}
+                {modifiedNcf && (
+                  <div className="space-y-2 col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-center justify-between mt-2">
+                    <div>
+                      <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
+                      <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
+                      className="text-xs text-rose-600 font-bold hover:underline"
+                    >
+                      Remover Referencia
+                    </button>
                   </div>
                 )}
               </div>
@@ -1031,7 +1099,8 @@ function InvoicesList() {
                   <option value="">Todos los Tipos</option>
                   <option value="31">Factura Crédito Fiscal (31)</option>
                   <option value="32">Factura Consumo (32)</option>
-                  <option value="33">Nota de Crédito (33)</option>
+                  <option value="33">Nota de Débito (33)</option>
+                  <option value="34">Nota de Crédito (34)</option>
                 </select>
               </div>
 
@@ -1190,6 +1259,24 @@ function InvoicesList() {
                                       <Mail className="h-4 w-4" />
                                     )}
                                   </button>
+                                )}
+                                {inv.status === 'accepted' && inv.ecfType !== '33' && inv.ecfType !== '34' && (
+                                  <>
+                                    <button
+                                      onClick={() => handleCreateAdjustmentNote(inv, '34')}
+                                      className="p-2 hover:bg-rose-50 rounded-lg transition-colors text-rose-600"
+                                      title="Emitir Nota de Crédito"
+                                    >
+                                      <FileMinus className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleCreateAdjustmentNote(inv, '33')}
+                                      className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600"
+                                      title="Emitir Nota de Débito"
+                                    >
+                                      <FilePlus className="h-4 w-4" />
+                                    </button>
+                                  </>
                                 )}
                                 {inv.status === 'draft' && (
                                   <button className="p-2 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500" title="Eliminar Borrador">

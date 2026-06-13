@@ -19,6 +19,8 @@ const createInvoiceSchema = z.object({
   transactionNumber: z.string().optional(),
   notes: z.string().optional(),
   ignoreCommunicationError: z.boolean().optional(),
+  modifiedNcf: z.string().length(13, 'El NCF modificado debe tener exactamente 13 caracteres').optional(),
+  modifiedInvoiceId: z.string().uuid().optional(),
   lines: z.array(
     z.object({
       productId: z.string().uuid(),
@@ -37,6 +39,14 @@ const createInvoiceSchema = z.object({
 }, {
   message: 'El banco y número de transferencia son requeridos para pagos por transferencia.',
   path: ['bankName'],
+}).refine((data) => {
+  if ((data.ecfType === '33' || data.ecfType === '34') && !data.modifiedNcf) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'El NCF modificado es requerido para Notas de Crédito y Notas de Débito.',
+  path: ['modifiedNcf'],
 });
 
 /**

@@ -66,5 +66,14 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - Solo el rol `sistemas` puede modificar el **Nombre Comercial** y el **RNC** de la empresa una vez definidos en la base de datos. Si están vacíos, un `administrador` (`administracion`) también tiene permitido agregarlos por primera vez.
 - **Frontend**: Se adaptó la vista `/dashboard/settings` para consultar el rol del usuario autenticado vía `/api/v1/auth/me`. Se enlazaron los inputs a los campos de identidad fiscal en `formData` y se controla de forma reactiva y visual su propiedad `disabled` de acuerdo con las reglas de negocio anteriores.
 
+### 10. Módulo de Notas de Crédito (e-34) y Notas de Débito (e-33)
+- **Base de Datos & Repositorio**: Se agregaron las columnas `modifiedNcf` y `modifiedInvoiceId` a la tabla `invoices`. Se adaptó `InvoiceRepository` para guardar y consultar estas relaciones.
+- **Backend & Validación Zod**: Se actualizó `createInvoiceSchema` para exigir obligatoriamente `modifiedNcf` cuando el tipo de e-CF es `33` o `34`.
+- **Lógica de Ajuste (mSeller, Inventario y Contabilidad)**:
+  - En `MSellerClient`, se añade la sección `<TablaReferencia>` con el eNCF del comprobante original.
+  - En `InvoiceService`, las Notas de Crédito (34) omiten la comprobación de stock y devuelven la mercancía ingresando stock a los almacenes (`quantity` negativa en `deductStock`).
+  - Se definieron reglas de reversión contable para Notas de Crédito (reversión de ingresos, ITBIS y cuentas por cobrar).
+- **Frontend**: Se agregaron botones de acción rápida ("Emitir Nota de Crédito" e "Emitir Nota de Débito") en el listado de facturas aceptadas. Al pulsarlos, se obtienen las líneas e información del comprobante original y se precargan en el formulario de emisión mostrando una alerta de referencia al usuario.
+
 ---
 **Status**: Verified & Polished (Score 10/10)

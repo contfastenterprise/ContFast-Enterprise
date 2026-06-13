@@ -31,6 +31,8 @@ export interface IssueInvoiceInput {
   buyerName?: string;
   notes?: string;
   ignoreCommunicationError?: boolean;
+  modifiedNcf?: string;
+  modifiedInvoiceId?: string;
   lines: {
     productId: string;
     productName: string;
@@ -212,6 +214,7 @@ export class InvoiceService {
           subtotal: subtotal - totalDiscount,
           totalTaxes,
           total,
+          modifiedNcf: data.modifiedNcf,
           lines: itemLines.map((line, idx) => ({
             index: idx + 1,
             name: line.name,
@@ -289,6 +292,8 @@ export class InvoiceService {
                 buyerRnc: data.buyerRnc,
                 buyerName: data.buyerName,
                 notes: data.notes,
+                modifiedNcf: data.modifiedNcf,
+                modifiedInvoiceId: data.modifiedInvoiceId,
                 lines: itemLines,
                 taxes: taxesList,
               }, tx);
@@ -323,11 +328,13 @@ export class InvoiceService {
         throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
       }
 
-      // 2.0. Verify Stock Availability
-      for (const line of itemLines) {
-        const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx);
-        if (!hasStock) {
-          throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
+      // 2.0. Verify Stock Availability (Skip for Credit Notes since it increases stock)
+      if (data.ecfType !== '34') {
+        for (const line of itemLines) {
+          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx);
+          if (!hasStock) {
+            throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
+          }
         }
       }
 
@@ -444,23 +451,29 @@ export class InvoiceService {
         buyerRnc: data.buyerRnc,
         buyerName: data.buyerName,
         notes: data.notes,
+        modifiedNcf: data.modifiedNcf,
+        modifiedInvoiceId: data.modifiedInvoiceId,
         lines: itemLines,
         taxes: taxesList,
       };
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
 
-      // Deduct inventory
+      // Deduct or add inventory
       for (const line of itemLines) {
+        const stockQty = data.ecfType === '34' ? -line.quantity : line.quantity;
+        const stockType = data.ecfType === '34' ? 'return' : 'sale';
+        const stockDesc = data.ecfType === '34' ? `Devolución Nota de Crédito ${ncf}` : `Venta Factura ${ncf}`;
+        
         await deductStock(
           data.companyId,
           line.productId,
           data.warehouseId,
-          line.quantity,
+          stockQty,
           data.userId,
-          'sale',
+          stockType,
           invoice.id,
-          `Venta Factura ${ncf}`,
+          stockDesc,
           tx
         );
       }
@@ -470,13 +483,24 @@ export class InvoiceService {
       const accVentas = await getOrCreateAccount(tx, data.companyId, '4.1.01', 'Ingresos por Ventas', 'revenue');
       const accItbis = await getOrCreateAccount(tx, data.companyId, '2.1.03', 'ITBIS por Pagar', 'liability');
 
-      const journalLines = [
-        { accountId: accCxC.id, debit: total, credit: 0 },
-        { accountId: accVentas.id, debit: 0, credit: subtotal - totalDiscount },
-      ];
-
-      if (totalTaxes > 0) {
-        journalLines.push({ accountId: accItbis.id, debit: 0, credit: totalTaxes });
+      let journalLines = [];
+      if (data.ecfType === '34') {
+        // Credit note reverses standard journal entry
+        journalLines = [
+          { accountId: accVentas.id, debit: subtotal - totalDiscount, credit: 0 },
+          { accountId: accCxC.id, debit: 0, credit: total },
+        ];
+        if (totalTaxes > 0) {
+          journalLines.unshift({ accountId: accItbis.id, debit: totalTaxes, credit: 0 });
+        }
+      } else {
+        journalLines = [
+          { accountId: accCxC.id, debit: total, credit: 0 },
+          { accountId: accVentas.id, debit: 0, credit: subtotal - totalDiscount },
+        ];
+        if (totalTaxes > 0) {
+          journalLines.push({ accountId: accItbis.id, debit: 0, credit: totalTaxes });
+        }
       }
 
       await AccountRepository.createJournalEntry(tx, {
