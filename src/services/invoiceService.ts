@@ -13,6 +13,7 @@ import { EcfValidator } from '@/services/ecfValidator';
 import { checkStock, deductStock } from '@/services/inventoryService';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export interface IssueInvoiceInput {
   companyId: string;
