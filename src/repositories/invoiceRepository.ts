@@ -28,6 +28,7 @@ export interface CreateInvoiceInput {
   notes?: string;
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
+  codigoFactura?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -79,6 +80,7 @@ export class InvoiceRepository {
           transactionNumber: data.transactionNumber,
           modifiedNcf: data.modifiedNcf,
           modifiedInvoiceId: data.modifiedInvoiceId,
+          codigoFactura: data.codigoFactura,
         })
         .returning();
 
@@ -151,6 +153,7 @@ export class InvoiceRepository {
         transactionNumber: invoices.transactionNumber,
         modifiedNcf: invoices.modifiedNcf,
         modifiedInvoiceId: invoices.modifiedInvoiceId,
+        codigoFactura: invoices.codigoFactura,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
         customerName: customers.name,

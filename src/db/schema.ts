@@ -427,6 +427,7 @@ export const invoices = pgTable('invoices', {
   transactionNumber: varchar('transaction_number', { length: 100 }),
   modifiedNcf: varchar('modified_ncf', { length: 13 }),
   modifiedInvoiceId: uuid('modified_invoice_id'),
+  codigoFactura: varchar('codigo_factura', { length: 50 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -434,6 +435,7 @@ export const invoices = pgTable('invoices', {
   companyNcfIdx: uniqueIndex('invoices_company_ncf_idx').on(table.companyId, table.ncf),
   statusIdx: index('invoices_status_idx').on(table.status),
   createdIdx: index('invoices_created_idx').on(table.createdAt),
+  codigoFacturaIdx: uniqueIndex('invoices_codigo_factura_idx').on(table.codigoFactura),
 }));
 
 export const invoiceLines = pgTable('invoice_lines', {

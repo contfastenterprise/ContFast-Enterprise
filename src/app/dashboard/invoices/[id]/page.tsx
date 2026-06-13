@@ -44,6 +44,7 @@ interface InvoiceDetail {
   signedXmlPath: string | null;
   pdfPath: string | null;
   msellerTrackId: string | null;
+  codigoFactura: string | null;
   createdAt: string;
   customerName: string | null;
   customerRnc: string | null;
@@ -243,8 +244,13 @@ export default function InvoiceDetailPage() {
               <FileText className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white font-display mb-1">
+              <h1 className="text-xl md:text-2xl font-bold text-white font-display mb-1 flex items-center flex-wrap gap-2">
                 e-NCF: <span className="font-mono text-[#c5a059]">{invoice.ncf}</span>
+                {invoice.codigoFactura && (
+                  <span className="text-xs bg-[#003366] border border-[#004883] text-white px-2 py-0.5 rounded font-mono font-medium tracking-wide">
+                    {invoice.codigoFactura}
+                  </span>
+                )}
               </h1>
               <p className="text-[#a7c8ff] text-sm">
                 {getEcfTypeName(invoice.ecfType)}
