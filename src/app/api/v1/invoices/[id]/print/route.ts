@@ -17,18 +17,6 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     throw new Error('Invoice not found');
   }
 
-  // Stream existing PDF file directly if it exists on disk
-  if (invoiceRecordDb.pdfPath) {
-    const fs = require('fs');
-    if (fs.existsSync(invoiceRecordDb.pdfPath)) {
-      const pdfBuffer = fs.readFileSync(invoiceRecordDb.pdfPath);
-      return {
-        pdfBuffer,
-        filename: `invoice_${invoiceRecordDb.ncf || invoiceId}.pdf`
-      };
-    }
-  }
-
   // 2. Fetch company and settings
   const [company] = await db
     .select()
