@@ -54,6 +54,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Formulario de Creación**: Añadido un campo de texto `<textarea>` ("Notas de la Factura") estilizado al formulario de emisión de facturas e-CF del Dashboard.
 - **Corrección de Impresión**: Simplificado el manejador `handleDownloadPdf` del listado de facturas en el Dashboard para abrir directamente el PDF vía `window.open` en lugar de realizar una petición fetch y fallar al parsear la respuesta binaria como JSON.
 - **Descuento por Línea de Factura**: Incorporado el campo "Desc. Unit." (descuento por unidad) como input editable dentro de la fila de cada artículo. Se agregó además una columna calculada de lectura "Total Fila" para mostrar de manera interactiva el importe neto incluyendo descuento e ITBIS a nivel de línea, sincronizando perfectamente todos los cálculos del subtotal, descuento acumulado, impuestos y total general.
+- **Corrección de Totales Impresos**: Corregido el cálculo del subtotal en el archivo de plantilla `documentTemplates.ts` cambiando `inv.subtotal - inv.discount` por el subtotal bruto real `inv.subtotal`. Esto previene el doble descuento en el resumen visual impreso (SUB TOTAL, DESCUENTO, ITBIS y TOTAL NETO).
 
 ---
 **Status**: Verified & Polished (Score 10/10)
