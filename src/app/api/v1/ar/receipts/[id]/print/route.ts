@@ -66,7 +66,7 @@ export async function POST(
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.businessActivity || 'República Dominicana',
+        address: company.address || 'República Dominicana',
         phone: '1-809-555-0199', // Placeholder
         logoUrl: settings?.logoUrl || undefined,
         settings: { 

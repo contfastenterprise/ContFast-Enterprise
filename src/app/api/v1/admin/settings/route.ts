@@ -8,6 +8,7 @@ import { enforcePermission } from '@/middleware/permissions';
 
 const settingsSchema = z.object({
   businessActivity: z.string().optional(),
+  address: z.string().optional(),
   logoUrl: z.string().optional(),
   dgiiEnv: z.enum(['test', 'production']),
   printLayout: z.enum(['carta', '80mm', '58mm']),
@@ -32,7 +33,8 @@ export async function GET(req: NextRequest) {
     const [company] = await db.select({
       name: companies.name,
       rnc: companies.rnc,
-      businessActivity: companies.businessActivity
+      businessActivity: companies.businessActivity,
+      address: companies.address
     }).from(companies).where(eq(companies.id, session.companyId));
 
     const [settings] = await db.select({
@@ -79,13 +81,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
     }
 
-    const { businessActivity, logoUrl, dgiiEnv, printLayout, autoDeliveryNotes, maxCreditNoteApprovalAmount, maxCashOutApprovalAmount, msellerUrl, msellerEntorno, msellerEmail, msellerApiKey, msellerPassword } = parsed.data;
+    const { address, businessActivity, logoUrl, dgiiEnv, printLayout, autoDeliveryNotes, maxCreditNoteApprovalAmount, maxCashOutApprovalAmount, msellerUrl, msellerEntorno, msellerEmail, msellerApiKey, msellerPassword } = parsed.data;
 
     await db.transaction(async (tx) => {
       // Update Company
-      if (businessActivity !== undefined) {
+      if (businessActivity !== undefined || address !== undefined) {
+        const companyUpdate: any = {};
+        if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
+        if (address !== undefined) companyUpdate.address = address;
+
         await tx.update(companies)
-          .set({ businessActivity })
+          .set(companyUpdate)
           .where(eq(companies.id, session.companyId));
       }
 

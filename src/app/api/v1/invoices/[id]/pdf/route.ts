@@ -173,7 +173,7 @@ export async function GET(
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.businessActivity || 'Santiago, R.D.',
+        address: company.address || 'Santiago, R.D.',
         phone: '1-829-214-4128', // Latin Doors phone from the template
         email: settings?.msellerEmail || 'latindoors@gmail.com',
         logoUrl: settings?.logoUrl || undefined,

@@ -10,6 +10,7 @@ export const companies = pgTable('companies', {
   name: varchar('name', { length: 255 }).notNull(),
   rnc: varchar('rnc', { length: 11 }).notNull(), // RNC is 9 or 11 digits in DR
   businessActivity: varchar('business_activity', { length: 255 }),
+  address: varchar('address', { length: 255 }),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -26,7 +27,7 @@ export const companySettings = pgTable('company_settings', {
   certP12Encrypted: text('cert_p12_encrypted'), // Encrypted base64 of .p12 certificate
   certPasswordEncrypted: text('cert_password_encrypted'), // Encrypted certificate password
   logoUrl: text('logo_url'),
-  msellerUrl: text('mseller_url').default('https://api.mseller.app/v1').notNull(),
+  msellerUrl: text('mseller_url').default('https://ecf.api.mseller.app/v1').notNull(),
   msellerApiKeyEncrypted: text('mseller_api_key_encrypted'),
   msellerEntorno: varchar('mseller_entorno', { length: 50 }).default('test').notNull(),
   msellerEmail: varchar('mseller_email', { length: 255 }),

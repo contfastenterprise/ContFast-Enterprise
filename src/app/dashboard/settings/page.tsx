@@ -17,13 +17,14 @@ export default function SettingsPage() {
   // Editable
   const [formData, setFormData] = useState({
     businessActivity: '',
+    address: '',
     logoUrl: '',
     dgiiEnv: 'test',
     printLayout: 'carta',
     autoDeliveryNotes: false,
     maxCreditNoteApprovalAmount: 0,
     maxCashOutApprovalAmount: 0,
-    msellerUrl: 'https://api.mseller.app/v1',
+    msellerUrl: 'https://ecf.api.mseller.app/v1',
     msellerEntorno: 'test',
     msellerEmail: '',
     msellerApiKey: '',
@@ -42,13 +43,14 @@ export default function SettingsPage() {
         setCompanyInfo({ name: data.data.company.name, rnc: data.data.company.rnc });
         setFormData({
           businessActivity: data.data.company.businessActivity || '',
+          address: data.data.company.address || '',
           logoUrl: data.data.settings.logoUrl || '',
           dgiiEnv: data.data.settings.dgiiEnv,
           printLayout: data.data.settings.printLayout,
           autoDeliveryNotes: data.data.settings.autoDeliveryNotes,
           maxCreditNoteApprovalAmount: Number(data.data.settings.maxCreditNoteApprovalAmount),
           maxCashOutApprovalAmount: Number(data.data.settings.maxCashOutApprovalAmount),
-          msellerUrl: data.data.settings.msellerUrl || 'https://api.mseller.app/v1',
+          msellerUrl: data.data.settings.msellerUrl || 'https://ecf.api.mseller.app/v1',
           msellerEntorno: data.data.settings.msellerEntorno || 'test',
           msellerEmail: data.data.settings.msellerEmail || '',
           msellerApiKey: '',
@@ -181,9 +183,14 @@ export default function SettingsPage() {
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <div className="col-span-1 md:col-span-2">
+                <div className="col-span-1">
                   <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
                   <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
+                </div>
+
+                <div className="col-span-1">
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
+                  <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
                 </div>
 
                 <div>
