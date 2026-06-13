@@ -125,14 +125,8 @@ export class DocumentTemplates {
         const rawTaxable = rawSubtotal - rawDiscount;
 
         let lineItbis = 0;
-        let priceInclusive = uPrice;
-        let descTotalInclusive = rawDiscount;
-
         if (rawTaxable > 0) {
-          const calculatedTaxRate = (lineTotal / rawTaxable) - 1;
           lineItbis = lineTotal - rawTaxable;
-          priceInclusive = uPrice * (1 + calculatedTaxRate);
-          descTotalInclusive = rawDiscount * (1 + calculatedTaxRate);
         }
 
         return `
@@ -141,8 +135,8 @@ export class DocumentTemplates {
             <td>${line.productName}</td>
             <td>${line.unitOfMeasure || 'Unidad'}</td>
             <td class="text-center">${qty}</td>
-            <td class="text-right">${formatNum(priceInclusive)}</td>
-            <td class="text-right">${formatNum(descTotalInclusive)}</td>
+            <td class="text-right">${formatNum(uPrice)}</td>
+            <td class="text-right">${formatNum(rawDiscount)}</td>
             <td class="text-right">${formatNum(lineItbis)}</td>
             <td class="text-right">${formatNum(lineTotal)}</td>
           </tr>
