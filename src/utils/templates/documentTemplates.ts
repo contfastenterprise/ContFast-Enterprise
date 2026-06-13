@@ -179,7 +179,7 @@ export class DocumentTemplates {
           <style>
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; }
+            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
             .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
             .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
             .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
