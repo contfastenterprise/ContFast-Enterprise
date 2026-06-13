@@ -117,14 +117,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Call service layer to perform all database transactions and PDF/XMLDSIG generation
-    const invoice = await InvoiceService.issueInvoice({
+    const { invoice, msellerResponse } = await InvoiceService.issueInvoice({
       companyId: auth.companyId,
       userId: auth.userId,
       ...result.data,
     });
 
     return NextResponse.json(
-      { success: true, data: invoice },
+      { success: true, data: invoice, msellerResponse },
       { status: 201, headers: resHeaders }
     );
   } catch (error: any) {

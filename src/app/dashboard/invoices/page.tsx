@@ -512,7 +512,7 @@ function InvoicesList() {
       }
 
       toast.success('Factura e-CF emitida y firmada', {
-        description: `NCF: ${data.data.ncf} | JSON: ${JSON.stringify(data.data)}`
+        description: `NCF: ${data.data.ncf} | MSeller JSON: ${data.msellerResponse ? JSON.stringify(data.msellerResponse) : 'N/A'}`
       });
 
       setShowForm(false);

@@ -146,6 +146,7 @@ export class InvoiceService {
     let securityHash: string = '';
     let qrCode: string | null = null;
     let finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected' = 'signed';
+    let msellerResponsePayload: any = null;
 
     const msellerEmail = settings?.msellerEmail;
     const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
@@ -230,6 +231,7 @@ export class InvoiceService {
           qrCode = msellerRes.qrCode || null;
           finalStatus = 'accepted';
           dgiiMessage = msellerRes.message || 'Aceptado por DGII';
+          msellerResponsePayload = msellerRes.rawResponse;
         } else {
           const errMsg = msellerRes.message || '';
           const isCommunicationError =
@@ -555,7 +557,10 @@ export class InvoiceService {
         }
       }
 
-      return invoice;
+      return {
+        invoice,
+        msellerResponse: msellerResponsePayload
+      };
     });
   }
 }
