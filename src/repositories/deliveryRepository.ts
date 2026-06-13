@@ -23,7 +23,7 @@ export class DeliveryRepository {
    * Generates the next automatic sequence number for delivery notes of a company.
    * Format: CON-YYYY-000001 (e.g. CON-2026-000001)
    */
-  static async getNextDeliveryNumber(companyId: string, tx = db): Promise<string> {
+  static async getNextDeliveryNumber(companyId: string, tx: any = db): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `CON-${year}-`;
     const pattern = `${prefix}%`;

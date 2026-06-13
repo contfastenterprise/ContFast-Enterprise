@@ -530,7 +530,7 @@ export class DocumentTemplates {
       : '';
 
     const delDate = new Date(deliveryNote.deliveryDate);
-    const formattedDelDate = \`\${String(delDate.getDate()).padStart(2, '0')}/\${String(delDate.getMonth() + 1).padStart(2, '0')}/\${delDate.getFullYear()}\`;
+    const formattedDelDate = `${String(delDate.getDate()).padStart(2, '0')}/${String(delDate.getMonth() + 1).padStart(2, '0')}/${delDate.getFullYear()}`;
 
     const linesHtml = lines.map((line: any) => {
       const invQty = Number(line.invoicedQty || 0);
@@ -538,17 +538,17 @@ export class DocumentTemplates {
       const currentQty = Number(line.quantity || 0);
       const remainingQty = Math.max(0, invQty - prevQty - currentQty);
 
-      return \`
+      return `
         <tr>
-          <td>\${line.productSku || 'N/A'}</td>
-          <td>\${line.productName}</td>
-          <td>\${line.unitOfMeasure || 'Unidad'}</td>
-          <td class="text-center">\${invQty}</td>
-          <td class="text-center">\${prevQty}</td>
-          <td class="text-center" style="font-weight: bold; color: #005E6A;">\${currentQty}</td>
-          <td class="text-center">\${remainingQty}</td>
+          <td>${line.productSku || 'N/A'}</td>
+          <td>${line.productName}</td>
+          <td>${line.unitOfMeasure || 'Unidad'}</td>
+          <td class="text-center">${invQty}</td>
+          <td class="text-center">${prevQty}</td>
+          <td class="text-center" style="font-weight: bold; color: #005E6A;">${currentQty}</td>
+          <td class="text-center">${remainingQty}</td>
         </tr>
-      \`;
+      `;
     }).join('');
 
     const statusBadge = deliveryNote.status === 'approved' 
@@ -557,12 +557,12 @@ export class DocumentTemplates {
       ? '<span style="background-color: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-weight: bold;">ANULADO</span>'
       : '<span style="background-color: #fff3cd; color: #664d03; padding: 4px 8px; border-radius: 4px; font-weight: bold;">BORRADOR</span>';
 
-    return \`
+    return `
       <!DOCTYPE html>
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <title>Conduce \${deliveryNote.deliveryNumber}</title>
+        <title>Conduce ${deliveryNote.deliveryNumber}</title>
         <style>
           body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
           .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
@@ -591,22 +591,22 @@ export class DocumentTemplates {
       <body>
         <div class="header-container">
           <div>
-            \${logoHtml}
+            ${logoHtml}
             <div class="company-info">
-  \${padDots('RNC', 12)} \${company.rnc}
-  \${padDots('Teléfono', 12)} \${company.phone || ''}
-  \${padDots('Email', 12)} \${company.email || ''}
-  \${padDots('Dirección', 12)} \${company.address || ''}
+  ${padDots('RNC', 12)} ${company.rnc}
+  ${padDots('Teléfono', 12)} ${company.phone || ''}
+  ${padDots('Email', 12)} ${company.email || ''}
+  ${padDots('Dirección', 12)} ${company.address || ''}
             </div>
           </div>
           <div class="doc-info">
             <div class="doc-title">CONDUCE DE ENTREGA</div>
-            <div class="doc-ncf">No: <span style="font-family: monospace;">\${deliveryNote.deliveryNumber}</span></div>
+            <div class="doc-ncf">No: <span style="font-family: monospace;">${deliveryNote.deliveryNumber}</span></div>
             <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
-              Fecha: <span style="font-family: monospace; font-weight: normal;">\${formattedDelDate}</span>
+              Fecha: <span style="font-family: monospace; font-weight: normal;">${formattedDelDate}</span>
             </div>
             <div style="margin-top: 5px;">
-              Estado: \${statusBadge}
+              Estado: ${statusBadge}
             </div>
           </div>
         </div>
@@ -618,16 +618,16 @@ export class DocumentTemplates {
         <div class="details-section">
           <div class="client-info">
   <span style="font-weight: bold; font-family: 'Inter', sans-serif; color: #005E6A;">DATOS DEL CLIENTE:</span>
-  \${padDots('Razon Social', 15)} \${customer.name}
-  \${padDots('RNC/Cédula', 15)} \${customer.rncCedula}
-  \${padDots('Dirección', 15)} \${customer.address || ''}
+  ${padDots('Razon Social', 15)} ${customer.name}
+  ${padDots('RNC/Cédula', 15)} ${customer.rncCedula}
+  ${padDots('Dirección', 15)} ${customer.address || ''}
           </div>
           <div class="logistic-info">
   <span style="font-weight: bold; font-family: 'Inter', sans-serif; color: #005E6A;">DATOS DE TRANSPORTE:</span>
-  Factura Ref : \${invoice.ncf}
-  Chofer      : \${deliveryNote.driverName || 'N/A'}
-  Placa       : \${deliveryNote.vehiclePlate || 'N/A'}
-  Despachador : \${deliveryNote.dispatcherName || 'N/A'}
+  Factura Ref : ${invoice.ncf}
+  Chofer      : ${deliveryNote.driverName || 'N/A'}
+  Placa       : ${deliveryNote.vehiclePlate || 'N/A'}
+  Despachador : ${deliveryNote.dispatcherName || 'N/A'}
           </div>
         </div>
 
@@ -644,13 +644,13 @@ export class DocumentTemplates {
             </tr>
           </thead>
           <tbody>
-            \${linesHtml}
+            ${linesHtml}
           </tbody>
         </table>
 
         <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; margin-top: 20px;">
           <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Observaciones:</div>
-          <div style="color: #555; white-space: pre-wrap; border: 1px solid #e9ecef; padding: 10px; border-radius: 6px;">\${deliveryNote.notes || 'Sin observaciones.'}</div>
+          <div style="color: #555; white-space: pre-wrap; border: 1px solid #e9ecef; padding: 10px; border-radius: 6px;">${deliveryNote.notes || 'Sin observaciones.'}</div>
         </div>
 
         <div class="bottom-section" style="margin-top: 80px;">
@@ -666,6 +666,6 @@ export class DocumentTemplates {
         </div>
       </body>
       </html>
-    \`;
+    `;
   }
 }
