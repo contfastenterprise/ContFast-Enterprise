@@ -198,18 +198,8 @@ export default function InvoiceDetailPage() {
     window.open(`/api/v1/invoices/${id}/print`, '_blank');
   };
 
-  const handleDownloadPdf = async () => {
-    try {
-      const res = await fetch(`/api/v1/invoices/${id}/pdf`);
-      const result = await res.json();
-      if (result.success && result.data?.url) {
-        window.open(result.data.url, '_blank');
-      } else {
-        toast.error('El archivo PDF no está disponible.');
-      }
-    } catch (error) {
-      toast.error('Error al descargar el PDF');
-    }
+  const handleDownloadPdf = () => {
+    window.open(`/api/v1/invoices/${id}/pdf`, '_blank');
   };
 
   if (loading) {
