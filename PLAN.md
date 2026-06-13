@@ -60,5 +60,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Validación de Decimales en e-CF (MSeller)**: Se aplicó un redondeo matemático estricto de exactamente 2 decimales (`Number(val.toFixed(2))`) en la construcción del payload de emisión (`buildECFPayload` en `msellerClient.ts`). Esto corrige el rechazo de la API de MSeller/DGII debido al tipo de datos `Decimal18D2Validation` cuando se transmitían totales con más de dos decimales (como el monto total `4781.5016` rechazado).
 - **Respuestas de DGII/MSeller en Notificaciones (Toasts)**: Se actualizó la notificación de emisión exitosa del formulario para serializar y mostrar exclusivamente el objeto JSON retornado por la API de MSeller (`data.msellerResponse`) en lugar del registro de base de datos de la factura, permitiendo al emisor visualizar de manera exacta los metadatos de firma digital de la DGII (RNC, ECF, trackId, código de seguridad, etc.).
 
+### 9. Control de Permisos y Roles en Ajustes (mSeller, Nombre y RNC)
+- **Backend & Validación Zod**: Se agregaron los campos `name` y `rnc` como obligatorios en la validación de esquema de la API `/api/v1/admin/settings`. Se implementaron validaciones de negocio basadas en el rol del usuario:
+  - Solo el rol `sistemas` puede agregar o modificar los parámetros de la sección **mSeller**.
+  - Solo el rol `sistemas` puede modificar el **Nombre Comercial** y el **RNC** de la empresa una vez definidos en la base de datos. Si están vacíos, un `administrador` (`administracion`) también tiene permitido agregarlos por primera vez.
+- **Frontend**: Se adaptó la vista `/dashboard/settings` para consultar el rol del usuario autenticado vía `/api/v1/auth/me`. Se enlazaron los inputs a los campos de identidad fiscal en `formData` y se controla de forma reactiva y visual su propiedad `disabled` de acuerdo con las reglas de negocio anteriores.
+
 ---
 **Status**: Verified & Polished (Score 10/10)

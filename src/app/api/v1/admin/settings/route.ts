@@ -7,6 +7,8 @@ import { encrypt } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
 
 const settingsSchema = z.object({
+  name: z.string().min(1, 'El Nombre Comercial es requerido'),
+  rnc: z.string().min(9, 'El RNC es requerido').max(11, 'El RNC debe tener entre 9 y 11 caracteres'),
   businessActivity: z.string().optional(),
   address: z.string().optional(),
   logoUrl: z.string().optional(),
@@ -81,15 +83,101 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
     }
 
-    const { address, businessActivity, logoUrl, dgiiEnv, printLayout, autoDeliveryNotes, maxCreditNoteApprovalAmount, maxCashOutApprovalAmount, msellerUrl, msellerEntorno, msellerEmail, msellerApiKey, msellerPassword } = parsed.data;
+    const { 
+      name, 
+      rnc, 
+      address, 
+      businessActivity, 
+      logoUrl, 
+      dgiiEnv, 
+      printLayout, 
+      autoDeliveryNotes, 
+      maxCreditNoteApprovalAmount, 
+      maxCashOutApprovalAmount, 
+      msellerUrl, 
+      msellerEntorno, 
+      msellerEmail, 
+      msellerApiKey, 
+      msellerPassword 
+    } = parsed.data;
+
+    // Obtener estado actual
+    const [currentCompany] = await db
+      .select({ name: companies.name, rnc: companies.rnc })
+      .from(companies)
+      .where(eq(companies.id, session.companyId));
+
+    const [currentSettings] = await db
+      .select({
+        msellerUrl: companySettings.msellerUrl,
+        msellerEntorno: companySettings.msellerEntorno,
+        msellerEmail: companySettings.msellerEmail
+      })
+      .from(companySettings)
+      .where(eq(companySettings.companyId, session.companyId));
+
+    const isSystemUser = session.role === 'sistemas';
+
+    // 1. Validar sección mSeller
+    if (!isSystemUser) {
+      const isUrlChanged = msellerUrl !== undefined && msellerUrl !== currentSettings?.msellerUrl;
+      const isEntornoChanged = msellerEntorno !== undefined && msellerEntorno !== currentSettings?.msellerEntorno;
+      const isEmailChanged = msellerEmail !== undefined && msellerEmail !== currentSettings?.msellerEmail;
+      const isApiKeyChanged = !!msellerApiKey;
+      const isPasswordChanged = !!msellerPassword;
+
+      if (isUrlChanged || isEntornoChanged || isEmailChanged || isApiKeyChanged || isPasswordChanged) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Solo el usuario con rol de sistema puede agregar o modificar la sección de mSeller.' } },
+          { status: 403 }
+        );
+      }
+    }
+
+    // 2. Validar cambios en Nombre Comercial y RNC
+    if (name !== undefined && name !== currentCompany?.name) {
+      // Si ya está definido y no es sistemas, error
+      if (currentCompany?.name && !isSystemUser) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Solo el usuario de sistemas puede modificar el nombre comercial de la empresa.' } },
+          { status: 403 }
+        );
+      }
+      // Si no está definido y no es administrador ni sistemas, error
+      if (!isSystemUser && session.role !== 'administracion') {
+        return NextResponse.json(
+          { success: false, error: { message: 'No tiene permisos para agregar el nombre comercial de la empresa.' } },
+          { status: 403 }
+        );
+      }
+    }
+
+    if (rnc !== undefined && rnc !== currentCompany?.rnc) {
+      // Si ya está definido y no es sistemas, error
+      if (currentCompany?.rnc && !isSystemUser) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Solo el usuario de sistemas puede modificar el RNC de la empresa.' } },
+          { status: 403 }
+        );
+      }
+      // Si no está definido y no es administrador ni sistemas, error
+      if (!isSystemUser && session.role !== 'administracion') {
+        return NextResponse.json(
+          { success: false, error: { message: 'No tiene permisos para agregar el RNC de la empresa.' } },
+          { status: 403 }
+        );
+      }
+    }
 
     await db.transaction(async (tx) => {
       // Update Company
-      if (businessActivity !== undefined || address !== undefined) {
-        const companyUpdate: any = {};
-        if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
-        if (address !== undefined) companyUpdate.address = address;
+      const companyUpdate: any = {};
+      if (name !== undefined) companyUpdate.name = name;
+      if (rnc !== undefined) companyUpdate.rnc = rnc;
+      if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
+      if (address !== undefined) companyUpdate.address = address;
 
+      if (Object.keys(companyUpdate).length > 0) {
         await tx.update(companies)
           .set(companyUpdate)
           .where(eq(companies.id, session.companyId));

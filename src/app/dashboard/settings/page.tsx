@@ -10,12 +10,15 @@ export default function SettingsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   // Read-only
-  const [companyInfo, setCompanyInfo] = useState({ name: '', rnc: '' });
+  const [initialCompanyInfo, setInitialCompanyInfo] = useState({ name: '', rnc: '' });
+  const [userRole, setUserRole] = useState<string>('');
   const [hasMsellerApiKey, setHasMsellerApiKey] = useState(false);
   const [hasMsellerPassword, setHasMsellerPassword] = useState(false);
 
   // Editable
   const [formData, setFormData] = useState({
+    name: '',
+    rnc: '',
     businessActivity: '',
     address: '',
     logoUrl: '',
@@ -31,17 +34,37 @@ export default function SettingsPage() {
     msellerPassword: ''
   });
 
+  const isSistemas = userRole === 'sistemas' || userRole?.toLowerCase().includes('sistema');
+  const isAdministracion = userRole === 'administracion' || userRole?.toLowerCase().includes('admin');
+  const isNameDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.name));
+  const isRncDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.rnc));
+
   useEffect(() => {
     fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
     try {
+      // Cargar rol de usuario
+      try {
+        const userRes = await fetch('/api/v1/auth/me');
+        const userData = await userRes.json();
+        if (userData.success && userData.data?.user) {
+          setUserRole(userData.data.user.role);
+        }
+      } catch (userErr) {
+        console.error('Error al obtener perfil de usuario', userErr);
+      }
+
       const res = await fetch('/api/v1/admin/settings');
       const data = await res.json();
       if (data.success) {
-        setCompanyInfo({ name: data.data.company.name, rnc: data.data.company.rnc });
+        const nameVal = data.data.company.name || '';
+        const rncVal = data.data.company.rnc || '';
+        setInitialCompanyInfo({ name: nameVal, rnc: rncVal });
         setFormData({
+          name: nameVal,
+          rnc: rncVal,
           businessActivity: data.data.company.businessActivity || '',
           address: data.data.company.address || '',
           logoUrl: data.data.settings.logoUrl || '',
@@ -130,20 +153,32 @@ export default function SettingsPage() {
         ) : (
           <form onSubmit={handleSave} className="space-y-6">
 
-            {/* Bloque: Identidad (No editable) */}
+            {/* Bloque: Identidad */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
-                <Lock className="w-5 h-5 text-on-surface-variant" />
-                <h3 className="font-bold text-slate-800">Identidad Fiscal (Solo Lectura)</h3>
+                <Lock className="w-5 h-5 text-[#003366]" />
+                <h3 className="font-bold text-slate-800">Identidad Fiscal</h3>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Nombre Comercial</label>
-                  <input type="text" disabled value={companyInfo.name} className="w-full bg-slate-100 border border-slate-200 text-slate-900 font-semibold rounded-lg px-3 py-2 cursor-not-allowed disabled:opacity-100" />
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Nombre Comercial</label>
+                  <input 
+                    type="text" 
+                    disabled={isNameDisabled} 
+                    value={formData.name} 
+                    onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">RNC</label>
-                  <input type="text" disabled value={companyInfo.rnc} className="w-full bg-slate-100 border border-slate-200 text-slate-900 font-semibold rounded-lg px-3 py-2 cursor-not-allowed disabled:opacity-100" />
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">RNC</label>
+                  <input 
+                    type="text" 
+                    disabled={isRncDisabled} 
+                    value={formData.rnc} 
+                    onChange={e => setFormData({ ...formData, rnc: e.target.value })} 
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
+                  />
                 </div>
                 <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
@@ -268,7 +303,12 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
-                    <select value={formData.msellerEntorno} onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] font-medium text-slate-900 bg-white">
+                    <select 
+                      disabled={!isSistemas} 
+                      value={formData.msellerEntorno} 
+                      onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] font-medium text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
                       <option value="test">Pruebas</option>
                       <option value="production">Producción</option>
                     </select>
@@ -276,22 +316,50 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
-                    <input type="text" value={formData.msellerUrl} onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white" placeholder="https://api.mseller.app/v1" />
+                    <input 
+                      type="text" 
+                      disabled={!isSistemas} 
+                      value={formData.msellerUrl} 
+                      onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                      placeholder="https://api.mseller.app/v1" 
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
-                    <input type="email" value={formData.msellerEmail} onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white" placeholder="usuario@empresa.com" />
+                    <input 
+                      type="email" 
+                      disabled={!isSistemas} 
+                      value={formData.msellerEmail} 
+                      onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                      placeholder="usuario@empresa.com" 
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
-                    <input type="password" value={formData.msellerPassword} onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white" placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"} />
+                    <input 
+                      type="password" 
+                      disabled={!isSistemas} 
+                      value={formData.msellerPassword} 
+                      onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                      placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"} 
+                    />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
-                    <input type="password" value={formData.msellerApiKey} onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white" placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"} />
+                    <input 
+                      type="password" 
+                      disabled={!isSistemas} 
+                      value={formData.msellerApiKey} 
+                      onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                      placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"} 
+                    />
                   </div>
                 </div>
               </div>
