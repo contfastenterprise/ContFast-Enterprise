@@ -538,20 +538,8 @@ function InvoicesList() {
     }
   };
 
-  const handleDownloadPdf = async (inv: any) => {
-    try {
-      // Pedir la URL firmada
-      const res = await fetch(`/api/v1/invoices/${inv.id}/pdf`);
-      const data = await res.json();
-      if (data.success && data.data?.url) {
-        // Abrir el PDF seguro en otra pestaña
-        window.open(data.data.url, '_blank');
-      } else {
-        toast.error(data.error?.message || 'Error al solicitar el PDF.');
-      }
-    } catch (error) {
-      toast.error('Error de red al descargar el PDF.');
-    }
+  const handleDownloadPdf = (inv: any) => {
+    window.open(`/api/v1/invoices/${inv.id}/pdf`, '_blank');
   };
 
   const handleResendEmail = async (invoiceId: string) => {
