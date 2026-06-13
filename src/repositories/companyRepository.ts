@@ -120,8 +120,23 @@ export class CompanyRepository {
       .set({ currentSequence: nextVal, updatedAt: new Date() })
       .where(eq(ecfSequences.id, seq.id));
 
-    // Pad sequence number to 8 digits
-    const sequenceStr = nextVal.toString().padStart(8, '0');
-    return `${seq.prefix}${ecfType}${sequenceStr}`; // E.g. E3100000001
+    // Electronic (e-CF) starts with 'E' and requires 13 characters total
+    // (1 char prefix + 2 chars type + 10 chars sequence).
+    // Traditional starts with 'B' (or other) and requires 11 characters total
+    // (1 char prefix + 2 chars type + 8 chars sequence).
+    const isElectronic = seq.prefix.toUpperCase().startsWith('E');
+    const padLength = isElectronic ? 10 : 8;
+    const expectedLength = isElectronic ? 13 : 11;
+    
+    const sequenceStr = nextVal.toString().padStart(padLength, '0');
+    const ncf = `${seq.prefix}${ecfType}${sequenceStr}`;
+
+    if (ncf.length !== expectedLength) {
+      throw new Error(
+        `Error de validación NCF: El comprobante generado ${ncf} tiene una longitud de ${ncf.length} caracteres, pero se esperaba ${expectedLength} caracteres para comprobantes ${isElectronic ? 'electrónicos' : 'tradicionales'}.`
+      );
+    }
+
+    return ncf;
   }
 }
