@@ -7,6 +7,8 @@ import { AccountRepository } from '@/repositories/accountRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { decrypt, decryptToBuffer } from '@/utils/encryption';
 import { generateInvoicePdf, PDFInvoiceData } from '@/utils/pdfGenerator';
+import { PdfGenerator } from '@/services/print/pdfGenerator';
+import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { addJob } from '@/infrastructure/queue';
 import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
 import { EcfValidator } from '@/services/ecfValidator';
@@ -332,33 +334,65 @@ export class InvoiceService {
         securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
       }
 
-      // Generate PDF Buffer
-      const pdfData: PDFInvoiceData = {
-        companyName: company.name,
-        companyRnc: company.rnc,
-        companyAddress: company.businessActivity ?? undefined,
-        companyPhone: '809-555-0199', // placeholder
-        companyLogoUrl: settings?.logoUrl ?? undefined,
+      // Generate PDF Buffer using premium HTML/Puppeteer rendering engine
+      const formattedInvoiceRecord = {
         ncf,
         ecfType: data.ecfType,
-        buyerName: data.buyerName || 'CONSUMIDOR FINAL',
-        buyerRnc: data.buyerRnc || undefined,
-        invoiceDate: new Date(),
-        items: itemLines.map((l) => ({
-          name: l.name,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          discount: l.discount,
-          total: l.total,
-        })),
+        paymentType: data.paymentType,
+        createdAt: new Date().toISOString(),
+        paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
         subtotal,
         discount: totalDiscount,
-        taxes: taxesList.map((t) => ({ name: `ITBIS (${t.rate}%)`, amount: t.amount })),
+        totalTaxes,
         total,
         securityCode: securityHash,
+        signatureDate: new Date().toISOString(),
+        lines: itemLines.map(l => ({
+          quantity: l.quantity,
+          productName: l.name,
+          productSku: 'N/A',
+          unitOfMeasure: 'Unidad',
+          unitPrice: l.unitPrice,
+          discount: l.discount,
+          total: l.total
+        })),
+        taxes: taxesList.map(t => ({
+          taxType: t.taxType,
+          rate: t.rate,
+          amount: t.amount
+        })),
+        company: {
+          name: company.name,
+          rnc: company.rnc,
+          address: company.businessActivity || 'Santiago, R.D.',
+          phone: '1-829-214-4128', // Latin Doors phone from the template
+          email: settings?.msellerEmail || 'latindoors@gmail.com',
+          logoUrl: settings?.logoUrl || undefined,
+          settings: { 
+            printLayout: settings?.printLayout || 'carta' 
+          }
+        },
+        customer: {
+          name: data.buyerName || 'Consumidor Final',
+          rncCedula: data.buyerRnc || '',
+          phone: '',
+          address: ''
+        }
       };
 
-      const pdfBuffer = await generateInvoicePdf(pdfData, settings?.printLayout as any);
+      // Generate QR Code base64
+      let qrBase64 = '';
+      if (qrCode) {
+        qrBase64 = qrCode; // mseller base64
+      } else {
+        const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
+        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(total).toFixed(2)}&codigoSeguridad=${securityHash}`;
+        qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+      }
+
+      const layout = settings?.printLayout as 'carta' | '80mm' | '58mm' || 'carta';
+      const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
+      const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
 
       // Save XML and PDF to local storage
       const storageDir = process.env.STORAGE_PATH || './storage';
