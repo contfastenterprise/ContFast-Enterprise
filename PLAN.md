@@ -42,5 +42,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 6. Rediseño del Layout de Factura A4
 - **Latin Doorrs SRL A4**: Rediseño exacto del formato A4/Carta con alineación mediante relleno de puntos dinámico en monospace (RNC, teléfono, email, dirección, fecha de emisión, cliente y totales), barra de condición de pago enmarcada en turquesa (`#005E6A`), encabezado de tabla de ítems sólido, desglose de totales (Subtotal, Descuento, ITBIS, y Total Neto con doble subrayado), y bloque inferior de firma digital (QR, código de seguridad, fecha de firma y firmas físicas).
 
+### 7. Impresión Directa de Facturas (PDF Stream)
+- **Direct Streaming**: Modificado `/api/v1/invoices/[id]/print` para soportar el método `GET`, el cual transmite directamente el archivo PDF (`Content-Type: application/pdf` con `Content-Disposition: inline`) en lugar de retornar una URL firmada intermedia en un JSON.
+- **Integración con Cliente**: Actualizado `src/app/dashboard/invoices/[id]/page.tsx` para abrir el endpoint directamente en una nueva pestaña del navegador, emulando el comportamiento directo y fluido de `/api/v1/documents/[uuid]/download`.
+
 ---
 **Status**: Verified & Polished (Score 10/10)

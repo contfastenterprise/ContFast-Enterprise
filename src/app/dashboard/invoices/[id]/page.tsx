@@ -194,23 +194,8 @@ export default function InvoiceDetailPage() {
     return types[type] || type;
   };
 
-  const handlePrint = async () => {
-    setPrinting(true);
-    try {
-      const res = await fetch(`/api/v1/invoices/${id}/print`, {
-        method: 'POST'
-      });
-      const result = await res.json();
-      if (result.url) {
-        window.open(result.url, '_blank');
-      } else {
-        toast.error('No se pudo generar la URL de impresión.');
-      }
-    } catch (error) {
-      toast.error('Error al generar la vista de impresión');
-    } finally {
-      setPrinting(false);
-    }
+  const handlePrint = () => {
+    window.open(`/api/v1/invoices/${id}/print`, '_blank');
   };
 
   const handleDownloadPdf = async () => {
