@@ -167,7 +167,7 @@ export class DocumentTemplates {
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
       const logoHtml = company.logoUrl 
-        ? `<img src="${company.logoUrl}" style="max-height: 80px; max-width: 200px; object-fit: contain; margin-bottom: 3px;" alt="Logo">` 
+        ? `<img src="${company.logoUrl}" style="max-height: 100px; max-width: 220px; object-fit: contain; margin-bottom: 3px;" alt="Logo">` 
         : '';
 
       return `
