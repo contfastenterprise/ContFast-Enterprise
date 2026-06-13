@@ -150,7 +150,7 @@ export class DocumentTemplates {
       }).join('');
 
       // Totals calculations
-      const subtotalVal = formatNum(inv.subtotal - inv.discount);
+      const subtotalVal = formatNum(inv.subtotal);
       const discountVal = formatNum(inv.discount);
       const itbisVal = formatNum(inv.totalTaxes);
       const totalVal = formatNum(inv.total);
