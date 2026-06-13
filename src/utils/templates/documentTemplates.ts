@@ -150,7 +150,29 @@ export class DocumentTemplates {
       const totalVal = formatNum(inv.total);
 
       // Signature Date formatting
-      const sigDate = new Date(inv.signatureDate || inv.createdAt);
+      let sigDate = new Date(inv.signatureDate || inv.createdAt);
+      if (isNaN(sigDate.getTime()) && inv.signatureDate) {
+        // Try parsing DD-MM-YYYY or DD/MM/YYYY or other common formats
+        const match = String(inv.signatureDate).match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+(.*))?$/);
+        if (match) {
+          const day = parseInt(match[1], 10);
+          const month = parseInt(match[2], 10) - 1; // 0-indexed
+          const year = parseInt(match[3], 10);
+          const timePart = match[4] || '';
+          if (timePart) {
+            sigDate = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T${timePart}`);
+            if (isNaN(sigDate.getTime())) {
+              sigDate = new Date(year, month, day);
+            }
+          } else {
+            sigDate = new Date(year, month, day);
+          }
+        }
+      }
+      if (isNaN(sigDate.getTime())) {
+        sigDate = new Date(inv.createdAt || new Date());
+      }
+
       const formattedSigDate = sigDate.toLocaleString('es-DO', {
         hour12: true,
         year: 'numeric',

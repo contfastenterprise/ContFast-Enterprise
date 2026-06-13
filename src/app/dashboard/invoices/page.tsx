@@ -449,9 +449,9 @@ function InvoicesList() {
       if (!res.ok || !data.success) {
         throw new Error(data.error?.message || 'Error al obtener detalles de la factura.');
       }
-      
+
       const invoice = data.data;
-      
+
       // Cargar detalles al formulario
       setWarehouseId(invoice.warehouseId || '');
       setEcfType(noteType);
@@ -462,7 +462,7 @@ function InvoicesList() {
       setCustomerRnc(invoice.customerRnc || invoice.buyerRnc || '');
       setCustomerName(invoice.customerName || invoice.buyerName || 'Consumidor Final');
       setNotes(`Nota de ajuste para el e-CF ${invoice.ncf}`);
-      
+
       // Precargar líneas de productos
       const preloadedLines = invoice.lines.map((line: any) => ({
         productId: line.productId,
@@ -473,10 +473,10 @@ function InvoicesList() {
         taxRate: Number(line.taxRate || 0.18),
       }));
       setLines(preloadedLines);
-      
+
       setModifiedNcf(invoice.ncf);
       setModifiedInvoiceId(invoice.id);
-      
+
       setShowForm(true);
       toast.success(`Datos de ${invoice.ncf} cargados para nota de ${noteType === '34' ? 'crédito' : 'débito'}`);
     } catch (err: any) {
@@ -687,8 +687,6 @@ function InvoicesList() {
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
-                    <option value="33">e-33 Nota de Débito</option>
-                    <option value="34">e-34 Nota de Crédito</option>
                     <option value="45">e-45 Comprobante Gubernamental</option>
                   </select>
                 </div>
@@ -700,7 +698,7 @@ function InvoicesList() {
                     className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
                   >
                     <option value="cash">Efectivo / Caja</option>
-                    <option value="credit">Crédito (A 30 días)</option>
+                    <option value="credit">Crédito </option>
                     <option value="bank_transfer">Transferencia Bancaria</option>
                   </select>
                 </div>
@@ -879,7 +877,7 @@ function InvoicesList() {
 
                           {/* Unit of measure */}
                           <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Unidad</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Medida</label>
                             <select
                               value={line.unitOfMeasure || 'unidad'}
                               onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
