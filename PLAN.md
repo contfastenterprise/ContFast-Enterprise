@@ -50,7 +50,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 8. Campo de Notas de la Factura (Notes Field)
 - **Capa de Base de Datos**: Agregado el campo `notes` (TEXT) a la tabla `invoices` y actualizado el esquema de Drizzle.
 - **Validación & Repositorio**: Actualizado el esquema de validación y la API `/api/v1/invoices` para recibir opcionalmente el campo `notes`, guardándolo correctamente en la base de datos a través del repositorio y servicio de facturación.
-- **Rendimiento Visual**: Integración dinámica del campo `notes` en la plantilla de impresión de facturas en PDF (con soporte de múltiples líneas `white-space: pre-wrap` y fallback al texto por defecto si está vacío).
+- **Rendimiento Visual**: Integración dinámica del campo `notes` en la plantilla de impresión de facturas en PDF (con soporte de múltiples líneas `white-space: pre-wrap`, fallback al texto por defecto si está vacío, y removiendo el bloque redundante de 'Comentarios: N/A').
 - **Formulario de Creación**: Añadido un campo de texto `<textarea>` ("Notas de la Factura") estilizado al formulario de emisión de facturas e-CF del Dashboard.
 
 ---
