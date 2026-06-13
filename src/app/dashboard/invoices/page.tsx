@@ -511,7 +511,9 @@ function InvoicesList() {
         throw new Error(data.error?.message || 'Error al emitir factura.');
       }
 
-      toast.success('Factura e-CF emitida y firmada', { description: `NCF asignado: ${data.data.ncf}` });
+      toast.success('Factura e-CF emitida y firmada', { 
+        description: `NCF: ${data.data.ncf} | Resp: ${data.data.dgiiMessage || 'Aceptado por DGII'}` 
+      });
 
       setShowForm(false);
       setCustomerId(''); setCustomerRnc(''); setCustomerName('');
