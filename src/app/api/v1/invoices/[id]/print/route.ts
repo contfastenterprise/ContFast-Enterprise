@@ -75,6 +75,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
 
   let securityCode = '';
   let qrBase64 = '';
+  let signedDate = '';
 
   if (submission && submission.responsePayload) {
     try {
@@ -88,6 +89,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
           qrBase64 = rawQr;
         }
       }
+      signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
     } catch (err) {
       console.error('Error parsing submission responsePayload:', err);
     }
@@ -117,7 +119,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     total: Number(invoiceRecordDb.total),
     notes: invoiceRecordDb.notes || '',
     securityCode,
-    signatureDate: invoiceRecordDb.createdAt.toISOString(),
+    signatureDate: signedDate || invoiceRecordDb.createdAt.toISOString(),
     lines: lines.map(l => ({
       quantity: Number(l.quantity),
       productName: l.productName || 'Producto/Servicio',

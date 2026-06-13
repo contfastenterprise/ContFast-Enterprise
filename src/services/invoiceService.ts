@@ -524,8 +524,18 @@ export class InvoiceService {
         ipAddress: 'server',
       });
 
-      // 3. Queue asynchronous submission to DGII using BullMQ only if we bypassed communication error
-      if (finalStatus === 'signed') {
+      // 3. Register submission or queue asynchronous submission to DGII
+      if (finalStatus === 'accepted') {
+        await tx.insert(dgiiSubmissions).values({
+          companyId: data.companyId,
+          invoiceId: invoice.id,
+          status: 'accepted',
+          trackId: msellerTrackId,
+          responseMessage: dgiiMessage,
+          responsePayload: JSON.stringify(msellerResponsePayload),
+          retryCount: 0,
+        });
+      } else if (finalStatus === 'signed') {
         await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
           invoiceId: invoice.id,

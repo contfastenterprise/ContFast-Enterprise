@@ -121,6 +121,7 @@ export async function GET(
 
     let securityCode = '';
     let qrBase64 = '';
+    let signedDate = '';
 
     if (submission && submission.responsePayload) {
       try {
@@ -134,6 +135,7 @@ export async function GET(
             qrBase64 = rawQr;
           }
         }
+        signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
       } catch (err) {
         console.error('Error parsing submission responsePayload:', err);
       }
@@ -163,7 +165,7 @@ export async function GET(
       total: Number(invoice.total),
       notes: invoice.notes || '',
       securityCode,
-      signatureDate: invoice.createdAt.toISOString(),
+      signatureDate: signedDate || invoice.createdAt.toISOString(),
       lines: lines.map(l => ({
         quantity: Number(l.quantity),
         productName: l.productName || 'Producto/Servicio',
