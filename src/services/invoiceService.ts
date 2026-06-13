@@ -330,7 +330,6 @@ export class InvoiceService {
 }
 
 // Helpers
-import crypto from 'crypto';
 
 async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
   const [acc] = await tx
