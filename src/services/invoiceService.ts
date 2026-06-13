@@ -27,6 +27,7 @@ export interface IssueInvoiceInput {
   transactionNumber?: string;
   buyerRnc?: string;
   buyerName?: string;
+  ignoreCommunicationError?: boolean;
   lines: {
     productId: string;
     productName: string;
@@ -118,7 +119,182 @@ export class InvoiceService {
       amount: val.amount,
     }));
 
-    // 2. Perform transactional operations
+    // 2. Allocate NCF in a separate isolated transaction first
+    const ncf = await db.transaction(async (tx) => {
+      return await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
+    });
+
+    // Load company settings
+    const settings = await CompanyRepository.getSettings(data.companyId);
+
+    let msellerTrackId: string | null = null;
+    let dgiiMessage: string | null = null;
+    let securityHash: string = '';
+    let qrCode: string | null = null;
+    let finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected' = 'signed';
+
+    const msellerEmail = settings?.msellerEmail;
+    const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
+    const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : null;
+    const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
+
+    if (msellerEmail && msellerPassword && msellerApiKeyEncrypted) {
+      try {
+        const resolveEntorno = (env?: string) => {
+          if (env === 'production' || env === '1') return 'eCF';
+          return 'TesteCF';
+        };
+        const entorno = resolveEntorno(settings.dgiiEnv);
+        const msellerUrl = settings.msellerUrl || 'https://ecf.api.mseller.app';
+        const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
+
+        const msellerClient = new MSellerClient({
+          baseUrl,
+          entorno,
+          email: msellerEmail,
+          password: msellerPassword,
+          apiKeyEncrypted: msellerApiKeyEncrypted,
+        });
+
+        // Load sequence to get sequenceExpiry
+        const [seqRecord] = await db
+          .select()
+          .from(ecfSequences)
+          .where(
+            and(
+              eq(ecfSequences.companyId, data.companyId),
+              eq(ecfSequences.ecfType, data.ecfType),
+              eq(ecfSequences.status, 'active'),
+              isNull(ecfSequences.deletedAt)
+            )
+          )
+          .limit(1);
+
+        let sequenceExpiry = '31-12-2026';
+        if (seqRecord) {
+          if (seqRecord.sequenceExpiry) {
+            sequenceExpiry = seqRecord.sequenceExpiry;
+          } else if (seqRecord.expiryDate) {
+            const d = new Date(seqRecord.expiryDate);
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            sequenceExpiry = `${dd}-${mm}-${yyyy}`;
+          }
+        }
+
+        const msellerPayload = MSellerClient.buildECFPayload({
+          ncf,
+          ecfType: data.ecfType,
+          sequenceExpiry,
+          paymentType: data.paymentType === 'credit' ? '2' : '1',
+          issueDate: new Date(),
+          emitterRnc: company.rnc,
+          emitterName: company.name,
+          emitterAddress: company.businessActivity || 'Santiago, R.D.',
+          buyerRnc: data.buyerRnc,
+          buyerName: data.buyerName,
+          subtotal: subtotal - totalDiscount,
+          totalTaxes,
+          total,
+          lines: itemLines.map((line, idx) => ({
+            index: idx + 1,
+            name: line.name,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            discount: line.discount,
+            taxRate: line.taxRate,
+          })),
+        });
+
+        // MSeller synchronously sends the document to DGII
+        const msellerRes = await msellerClient.sendDocument(msellerPayload);
+
+        if (msellerRes.success) {
+          msellerTrackId = msellerRes.trackId || null;
+          securityHash = msellerRes.securityCode || '';
+          qrCode = msellerRes.qrCode || null;
+          finalStatus = 'accepted';
+          dgiiMessage = msellerRes.message || 'Aceptado por DGII';
+        } else {
+          const errMsg = msellerRes.message || '';
+          const isCommunicationError =
+            errMsg.includes('auth failed') ||
+            errMsg.includes('FetchError') ||
+            errMsg.includes('timeout') ||
+            errMsg.includes('connection') ||
+            errMsg.includes('TypeError') ||
+            errMsg.includes('Aborted') ||
+            errMsg.includes('aborted') ||
+            errMsg.includes('failed to fetch') ||
+            errMsg.includes('Network request failed');
+
+          if (isCommunicationError) {
+            if (!data.ignoreCommunicationError) {
+              const err: any = new Error(`Error de comunicación con la DGII a través de MSeller: ${errMsg}`);
+              err.status = 409;
+              err.code = 'MSELLER_COMMUNICATION_ERROR';
+              throw err;
+            } else {
+              console.warn('[InvoiceService] Bypassing MSeller communication error since ignoreCommunicationError is true:', errMsg);
+              finalStatus = 'signed';
+              dgiiMessage = `Error de red: ${errMsg}. Emitida localmente, pendiente de envío.`;
+            }
+          } else {
+            // DGII Structural Rejection
+            const err: any = new Error(`Rechazo de DGII/MSeller: ${errMsg}`);
+            err.status = 422;
+            err.code = 'ECF_REJECTED';
+
+            // Phase 3 structural rejection fallback: Save the invoice in the DB as rejected so the sequence is recorded
+            await db.transaction(async (tx) => {
+              await InvoiceRepository.create({
+                companyId: data.companyId,
+                warehouseId: data.warehouseId,
+                customerId: data.customerId,
+                userId: data.userId,
+                cashSessionId: activeCashSessionId,
+                ncf,
+                ecfType: data.ecfType,
+                status: 'rejected',
+                paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
+                paymentType: data.paymentType,
+                bankName: data.bankName,
+                transactionNumber: data.transactionNumber,
+                subtotal,
+                discount: totalDiscount,
+                totalTaxes,
+                total,
+                dgiiMessage: errMsg,
+                buyerRnc: data.buyerRnc,
+                buyerName: data.buyerName,
+                lines: itemLines,
+                taxes: taxesList,
+              }, tx);
+            });
+            throw err;
+          }
+        }
+      } catch (err: any) {
+        if (err.code === 'MSELLER_COMMUNICATION_ERROR' || err.code === 'ECF_REJECTED') {
+          throw err;
+        }
+
+        // Unhandled connection/fetch exception
+        if (!data.ignoreCommunicationError) {
+          const mSellerErr: any = new Error(`Error de conexión con la DGII a través de MSeller: ${err.message}`);
+          mSellerErr.status = 409;
+          mSellerErr.code = 'MSELLER_COMMUNICATION_ERROR';
+          throw mSellerErr;
+        } else {
+          console.warn('[InvoiceService] Bypassing fetch network error since ignoreCommunicationError is true:', err.message);
+          finalStatus = 'signed';
+          dgiiMessage = `Error de red: ${err.message}. Emitida localmente, pendiente de envío.`;
+        }
+      }
+    }
+
+    // 3. Perform main transactional operations (Fase 3)
     return await db.transaction(async (tx) => {
       // 2.0. Verify Stock Availability
       for (const line of itemLines) {
@@ -128,30 +304,20 @@ export class InvoiceService {
         }
       }
 
-      // 2.1. Allocate NCF (locks sequence row)
-      const ncf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
-
-      // 2.2. Company profile was already fetched above; reuse it.
-      const settings = await CompanyRepository.getSettings(data.companyId);
-
-      // 2.3. No synchronous mSeller API call here to maintain scalability and low latency.
-      // We rely on the worker to send the payload asynchronously.
-      const msellerTrackId = null;
-      const dgiiMessage = null;
-
       const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
       const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
 
-      // 2.5. Generate security hash for PDF
-      const securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
+      if (!securityHash) {
+        securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
+      }
 
-      // 2.6. Generate PDF Buffer
+      // Generate PDF Buffer
       const pdfData: PDFInvoiceData = {
         companyName: company.name,
         companyRnc: company.rnc,
-        companyAddress: company.businessActivity ?? undefined, // placeholder
+        companyAddress: company.businessActivity ?? undefined,
         companyPhone: '809-555-0199', // placeholder
-        companyLogoUrl: settings.logoUrl ?? undefined,
+        companyLogoUrl: settings?.logoUrl ?? undefined,
         ncf,
         ecfType: data.ecfType,
         buyerName: data.buyerName || 'CONSUMIDOR FINAL',
@@ -171,9 +337,9 @@ export class InvoiceService {
         securityCode: securityHash,
       };
 
-      const pdfBuffer = await generateInvoicePdf(pdfData, settings.printLayout as any);
+      const pdfBuffer = await generateInvoicePdf(pdfData, settings?.printLayout as any);
 
-      // 2.7. Save XML and PDF to local storage (in production, upload to Supabase Storage)
+      // Save XML and PDF to local storage
       const storageDir = process.env.STORAGE_PATH || './storage';
       const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
       if (!fs.existsSync(invoicesDir)) {
@@ -188,7 +354,7 @@ export class InvoiceService {
       fs.writeFileSync(signedXmlPath, signedXml);
       fs.writeFileSync(pdfPath, pdfBuffer);
 
-      // 2.8. Create invoice in database
+      // Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
         companyId: data.companyId,
         warehouseId: data.warehouseId,
@@ -197,7 +363,7 @@ export class InvoiceService {
         cashSessionId: activeCashSessionId,
         ncf,
         ecfType: data.ecfType,
-        status: 'signed',
+        status: finalStatus,
         paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
         paymentType: data.paymentType,
         bankName: data.bankName,
@@ -219,7 +385,7 @@ export class InvoiceService {
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
 
-      // 2.8.1 Deduct inventory
+      // Deduct inventory
       for (const line of itemLines) {
         await deductStock(
           data.companyId,
@@ -293,18 +459,20 @@ export class InvoiceService {
         ipAddress: 'server',
       });
 
-      // 3. Queue asynchronous submission to DGII using BullMQ
-      await tx.insert(dgiiSubmissions).values({
-        companyId: data.companyId,
-        invoiceId: invoice.id,
-        status: 'pending',
-        retryCount: 0,
-      });
+      // 3. Queue asynchronous submission to DGII using BullMQ only if we bypassed communication error
+      if (finalStatus === 'signed') {
+        await tx.insert(dgiiSubmissions).values({
+          companyId: data.companyId,
+          invoiceId: invoice.id,
+          status: 'pending',
+          retryCount: 0,
+        });
 
-      await addJob('dgii-submissions', 'submit-ecf', {
-        companyId: data.companyId,
-        invoiceId: invoice.id,
-      });
+        await addJob('dgii-submissions', 'submit-ecf', {
+          companyId: data.companyId,
+          invoiceId: invoice.id,
+        });
+      }
 
       // 4. Send credit invoice email if customer has a registered email
       if (data.paymentType === 'credit' && data.customerId) {

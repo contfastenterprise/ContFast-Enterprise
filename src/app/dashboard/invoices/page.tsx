@@ -467,6 +467,43 @@ function InvoicesList() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
+        if (data.error?.code === 'MSELLER_COMMUNICATION_ERROR') {
+          const proceed = window.confirm(
+            'Hubo un error de comunicación con la DGII (a través de MSeller).\n\n¿Desea continuar emitiendo la factura localmente para transmitirla de manera automática más tarde?'
+          );
+          if (proceed) {
+            const retryRes = await fetch('/api/v1/invoices', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerId: customerId || undefined,
+                warehouseId,
+                ecfType,
+                paymentType,
+                bankName: paymentType === 'bank_transfer' ? bankName : undefined,
+                transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
+                ignoreCommunicationError: true,
+                lines,
+              }),
+            });
+            const retryData = await retryRes.json();
+            if (!retryRes.ok || !retryData.success) {
+              throw new Error(retryData.error?.message || 'Error al emitir factura localmente.');
+            }
+            toast.success('Factura e-CF emitida localmente', { 
+              description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.` 
+            });
+
+            setShowForm(false);
+            setCustomerId(''); setCustomerRnc(''); setCustomerName('');
+            setBankName(''); setTransactionNumber('');
+            setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
+            loadInvoices();
+            return;
+          } else {
+            return;
+          }
+        }
         throw new Error(data.error?.message || 'Error al emitir factura.');
       }
 
