@@ -52,6 +52,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Validación & Repositorio**: Actualizado el esquema de validación y la API `/api/v1/invoices` para recibir opcionalmente el campo `notes`, guardándolo correctamente en la base de datos a través del repositorio y servicio de facturación.
 - **Rendimiento Visual**: Integración dinámica del campo `notes` en la plantilla de impresión de facturas en PDF (con soporte de múltiples líneas `white-space: pre-wrap`, fallback al texto por defecto si está vacío, y removiendo el bloque redundante de 'Comentarios: N/A').
 - **Formulario de Creación**: Añadido un campo de texto `<textarea>` ("Notas de la Factura") estilizado al formulario de emisión de facturas e-CF del Dashboard.
+- **Corrección de Impresión**: Simplificado el manejador `handleDownloadPdf` del listado de facturas en el Dashboard para abrir directamente el PDF vía `window.open` en lugar de realizar una petición fetch y fallar al parsear la respuesta binaria como JSON.
 
 ---
 **Status**: Verified & Polished (Score 10/10)
