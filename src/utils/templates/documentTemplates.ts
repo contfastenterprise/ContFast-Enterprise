@@ -270,8 +270,6 @@ export class DocumentTemplates {
             <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; max-width: 55%;">
               <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas:</div>
               <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${inv.notes || 'Gracias por su compra! .\nNo aceptamos devolucion de despues de la salida de mercancia.'}</div>
-              <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Comentarios:</div>
-              <div style="color: #555;">N/A</div>
             </div>
             <div style="width: 300px; font-family: monospace; font-size: 9.5pt;">
               <table class="totals-table">
