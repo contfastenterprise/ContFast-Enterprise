@@ -331,7 +331,7 @@ export class InvoiceService {
       // 2.0. Verify Stock Availability (Skip for Credit Notes since it increases stock)
       if (data.ecfType !== '34') {
         for (const line of itemLines) {
-          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx);
+          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true);
           if (!hasStock) {
             throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
           }

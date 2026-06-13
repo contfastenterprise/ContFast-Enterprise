@@ -28,7 +28,7 @@ export default function ProductsPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [inventoryLevels, setInventoryLevels] = useState<{ warehouseId: string, warehouseName: string, quantity: string }[]>([]);
+  const [inventoryLevels, setInventoryLevels] = useState<{ warehouseId: string, warehouseName: string, quantity: string, availableQuantity?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -839,14 +839,15 @@ export default function ProductsPage() {
                   <thead className="bg-surface-container-low/80 border-b border-[#003366] sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider">Almacén</th>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Cant. Actual</th>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Físico</th>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Disponible</th>
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right w-40">Ajustar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/20 bg-surface-container-highest">
                     {warehouses.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="p-8 text-center text-on-surface-variant/70">
+                        <td colSpan={4} className="p-8 text-center text-on-surface-variant/70">
                           <Layers className="h-8 w-8 mx-auto mb-2 opacity-20" />
                           No hay almacenes configurados en el sistema.
                         </td>
@@ -855,6 +856,9 @@ export default function ProductsPage() {
                       warehouses.map((w) => {
                         const level = inventoryLevels.find(l => l.warehouseId === w.id);
                         const currentQuantity = level ? Number(level.quantity).toFixed(2) : '0.00';
+                        const availableQuantity = level && level.availableQuantity !== undefined
+                          ? Number(level.availableQuantity).toFixed(2)
+                          : currentQuantity;
                         
                         return (
                           <tr key={w.id} className="hover:bg-surface-container-low/30 transition-colors">
@@ -867,10 +871,16 @@ export default function ProductsPage() {
                               </div>
                             </td>
                             <td className="p-4 text-right">
-                              <span className="block text-lg font-display font-bold text-emerald-400">
+                              <span className="block text-md font-mono text-emerald-400">
                                 {currentQuantity}
                               </span>
                               <span className="text-[10px] text-on-surface-variant capitalize">{selectedProduct.unitOfMeasure}s</span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="block text-md font-mono font-bold text-amber-400">
+                                {availableQuantity}
+                              </span>
+                              <span className="text-[10px] text-on-surface-variant">Disponibles</span>
                             </td>
                             <td className="p-4 text-right">
                               <div className="flex items-center gap-2 justify-end">

@@ -1,9 +1,109 @@
 import { db } from '@/db';
-import { inventoryLevels, inventoryMovements, inventoryTransfers, inventoryTransferLines, products, warehouses } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { 
+  inventoryLevels, 
+  inventoryMovements, 
+  inventoryTransfers, 
+  inventoryTransferLines, 
+  products, 
+  warehouses,
+  invoices,
+  invoiceLines,
+  deliveryNotes,
+  deliveryNoteLines
+} from '@/db/schema';
+import { eq, and, sql, inArray, not, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function checkStock(productId: string, warehouseId: string, quantityNeeded: number, tx: any = db): Promise<boolean> {
+export async function getProvisionalStock(productId: string, warehouseId: string, tx: any = db): Promise<number> {
+  // 1. Get physical stock
+  const [level] = await tx.select().from(inventoryLevels).where(
+    and(eq(inventoryLevels.productId, productId), eq(inventoryLevels.warehouseId, warehouseId))
+  );
+  const physicalStock = level ? Number(level.quantity) : 0;
+
+  // 2. Find all active invoices in this warehouse that are not fully delivered
+  const activeInvoices = await tx
+    .select({
+      id: invoices.id,
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.warehouseId, warehouseId),
+        inArray(invoices.status, ['signed', 'submitted', 'accepted']),
+        inArray(invoices.ecfType, ['31', '32', '45']),
+        not(eq(invoices.deliveryStatus, 'delivered')),
+        isNull(invoices.deletedAt)
+      )
+    );
+
+  if (activeInvoices.length === 0) {
+    return physicalStock;
+  }
+
+  const invoiceIds = activeInvoices.map((inv: any) => inv.id);
+
+  // 3. Sum invoiced quantities for this product on these invoices
+  const lines = await tx
+    .select({
+      quantity: invoiceLines.quantity,
+    })
+    .from(invoiceLines)
+    .where(
+      and(
+        inArray(invoiceLines.invoiceId, invoiceIds),
+        eq(invoiceLines.productId, productId)
+      )
+    );
+  const totalInvoiced = lines.reduce((acc: number, line: any) => acc + Number(line.quantity), 0);
+
+  // 4. Find all approved delivery notes associated with these invoices
+  const approvedNotes = await tx
+    .select({
+      id: deliveryNotes.id,
+    })
+    .from(deliveryNotes)
+    .where(
+      and(
+        inArray(deliveryNotes.invoiceId, invoiceIds),
+        eq(deliveryNotes.status, 'approved'),
+        isNull(deliveryNotes.deletedAt)
+      )
+    );
+
+  let totalDelivered = 0;
+  if (approvedNotes.length > 0) {
+    const noteIds = approvedNotes.map((note: any) => note.id);
+    const delLines = await tx
+      .select({
+        quantity: deliveryNoteLines.quantity,
+      })
+      .from(deliveryNoteLines)
+      .where(
+        and(
+          inArray(deliveryNoteLines.deliveryNoteId, noteIds),
+          eq(deliveryNoteLines.productId, productId)
+        )
+      );
+    totalDelivered = delLines.reduce((acc: number, line: any) => acc + Number(line.quantity), 0);
+  }
+
+  const reservedQty = Math.max(0, totalInvoiced - totalDelivered);
+  return Math.max(0, physicalStock - reservedQty);
+}
+
+export async function checkStock(
+  productId: string,
+  warehouseId: string,
+  quantityNeeded: number,
+  tx: any = db,
+  useProvisional = false
+): Promise<boolean> {
+  if (useProvisional) {
+    const provStock = await getProvisionalStock(productId, warehouseId, tx);
+    return provStock >= quantityNeeded;
+  }
+
   const [level] = await tx.select().from(inventoryLevels).where(
     and(eq(inventoryLevels.productId, productId), eq(inventoryLevels.warehouseId, warehouseId))
   );

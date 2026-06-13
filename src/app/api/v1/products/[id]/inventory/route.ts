@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { inventoryLevels, warehouses } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { getProvisionalStock } from '@/services/inventoryService';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -25,7 +26,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       )
     );
 
-    return NextResponse.json({ success: true, data: levels });
+    const detailedLevels = await Promise.all(
+      levels.map(async (level) => {
+        const provStock = await getProvisionalStock(productId, level.warehouseId);
+        return {
+          ...level,
+          availableQuantity: provStock.toString(),
+        };
+      })
+    );
+
+    return NextResponse.json({ success: true, data: detailedLevels });
   } catch (error) {
     console.error('Error fetching inventory levels:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch inventory levels' }, { status: 500 });
