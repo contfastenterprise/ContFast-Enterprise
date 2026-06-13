@@ -511,15 +511,15 @@ function InvoicesList() {
         throw new Error(data.error?.message || 'Error al emitir factura.');
       }
 
-      toast.success('Factura e-CF emitida y firmada', { 
-        description: `NCF: ${data.data.ncf} | Resp: ${data.data.dgiiMessage || 'Aceptado por DGII'}` 
+      toast.success('Factura e-CF emitida y firmada', {
+        description: `NCF: ${data.data.ncf} | JSON: ${JSON.stringify(data.data)}`
       });
 
       setShowForm(false);
       setCustomerId(''); setCustomerRnc(''); setCustomerName('');
       setBankName(''); setTransactionNumber('');
       setNotes('');
-      setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
+      setLines([{ productId: '', productName: 'Producto', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
       loadInvoices();
     } catch (error: any) {
       toast.error('Error de emisión', { description: error.message });
