@@ -85,6 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
         { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" /> },
         { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" /> },
+        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" /> },
         { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" /> },
         { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" /> },
         { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" /> },

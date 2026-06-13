@@ -428,6 +428,7 @@ export const invoices = pgTable('invoices', {
   modifiedNcf: varchar('modified_ncf', { length: 13 }),
   modifiedInvoiceId: uuid('modified_invoice_id'),
   codigoFactura: varchar('codigo_factura', { length: 50 }),
+  deliveryStatus: varchar('delivery_status', { length: 50 }).default('pending').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -489,17 +490,25 @@ export const deliveryNotes = pgTable('delivery_notes', {
   companyId: uuid('company_id').notNull().references(() => companies.id),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   userId: uuid('user_id').notNull().references(() => users.id),
-  status: varchar('status', { length: 50 }).default('active').notNull(),
+  deliveryNumber: varchar('delivery_number', { length: 50 }).notNull(),
+  status: varchar('status', { length: 50 }).default('draft').notNull(), // draft | approved | voided
   deliveryDate: date('delivery_date').notNull(),
   driverName: varchar('driver_name', { length: 255 }),
   driverLicense: varchar('driver_license', { length: 50 }),
   vehiclePlate: varchar('vehicle_plate', { length: 50 }),
+  dispatcherName: varchar('dispatcher_name', { length: 255 }),
+  notes: text('notes'),
+  approvedBy: uuid('approved_by').references(() => users.id),
+  approvedAt: timestamp('approved_at'),
+  voidedBy: uuid('voided_by').references(() => users.id),
+  voidedAt: timestamp('voided_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('delivery_notes_company_idx').on(table.companyId),
   invoiceIdx: index('delivery_notes_invoice_idx').on(table.invoiceId),
+  deliveryNumIdx: uniqueIndex('delivery_notes_num_idx').on(table.companyId, table.deliveryNumber),
 }));
 
 export const deliveryNoteLines = pgTable('delivery_note_lines', {

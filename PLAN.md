@@ -75,5 +75,15 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - Se definieron reglas de reversión contable para Notas de Crédito (reversión de ingresos, ITBIS y cuentas por cobrar).
 - **Frontend**: Se agregaron botones de acción rápida ("Emitir Nota de Crédito" e "Emitir Nota de Débito") en el listado de facturas aceptadas. Al pulsarlos, se obtienen las líneas e información del comprobante original y se precargan en el formulario de emisión mostrando una alerta de referencia al usuario.
 
+### 11. Módulo de Conduces de Entrega (Control Logístico & WMS)
+- **Base de Datos & Repositorio**: Se agregaron las columnas `delivery_status` en la tabla `invoices`, y campos de auditoría (`approved_by`, `approved_at`, `voided_by`, `voided_at`), `delivery_number`, chofer y observaciones en `delivery_notes`. Se implementaron restricciones de clave externa y un índice único compuesto.
+- **Deducción de Inventario Diferida**: Se desactivó la deducción inmediata de stock en la emisión de facturas estándar de venta (`31`, `32`, `45`), delegando la salida real física de mercancías al momento de **aprobar** el Conduce. Las notas de crédito (`34`) continúan procesando los reingresos directamente.
+- **Validación Anti-Sobreentrega**: El repositorio valida transaccionalmente que la suma acumulada de mercancía despachada no exceda las cantidades facturadas de origen, protegiendo contra duplicidades y sobre-entregas.
+- **API & Impresión Directa (PDF)**:
+  - Creados endpoints para creación, consulta, aprobación y anulación transaccional de conduces.
+  - Implementado `GET /api/v1/delivery-notes/[id]/print` para renderizar y transmitir dinámicamente representaciones en PDF tamaño Carta de alta calidad contable.
+- **Frontend del Dashboard**:
+  - Diseñada una interfaz premium e intuitiva bajo `/dashboard/delivery-notes` para el control de remisiones (chofer, licencia, placa, despachador, observaciones), visor de estados logísticos (`pending`, `partial`, `delivered`) y acciones rápidas para descarga de PDF, aprobación y anulación.
+
 ---
 **Status**: Verified & Polished (Score 10/10)

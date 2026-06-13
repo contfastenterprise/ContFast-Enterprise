@@ -13,6 +13,8 @@ const createDeliveryNoteSchema = z.object({
   driverName: z.string().max(255).optional(),
   driverLicense: z.string().max(50).optional(),
   vehiclePlate: z.string().max(50).optional(),
+  dispatcherName: z.string().max(255).optional(),
+  notes: z.string().optional(),
   lines: z.array(
     z.object({
       productId: z.string().uuid('ID de producto inválido'),
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { invoiceId, deliveryDate, driverName, driverLicense, vehiclePlate, lines } = result.data;
+    const { invoiceId, deliveryDate, driverName, driverLicense, vehiclePlate, dispatcherName, notes, lines } = result.data;
 
     // Verify invoice exists and belongs to the same company
     const invoice = await InvoiceRepository.getById(invoiceId, auth.companyId);
@@ -108,6 +110,8 @@ export async function POST(req: NextRequest) {
       driverName,
       driverLicense,
       vehiclePlate,
+      dispatcherName,
+      notes,
       lines,
     });
 

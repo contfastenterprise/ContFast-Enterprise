@@ -89,12 +89,19 @@ export async function DELETE(
       );
     }
 
-    await DeliveryRepository.softDelete(id, auth.companyId);
-
-    return NextResponse.json(
-      { success: true, message: 'Conduce/Remisión de entrega anulado exitosamente.' },
-      { headers: resHeaders }
-    );
+    if (note.status === 'approved') {
+      await DeliveryRepository.void(id, auth.userId, auth.companyId);
+      return NextResponse.json(
+        { success: true, message: 'Conduce/Remisión de entrega anulado y revertido stock exitosamente.' },
+        { headers: resHeaders }
+      );
+    } else {
+      await DeliveryRepository.softDelete(id, auth.companyId);
+      return NextResponse.json(
+        { success: true, message: 'Borrador de conduce eliminado exitosamente.' },
+        { headers: resHeaders }
+      );
+    }
   } catch (error: any) {
     console.error('Error in DELETE /api/v1/delivery-notes/[id]:', error);
     const status = error.status || 500;

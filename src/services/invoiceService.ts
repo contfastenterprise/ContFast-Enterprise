@@ -459,23 +459,21 @@ export class InvoiceService {
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
 
-      // Deduct or add inventory
-      for (const line of itemLines) {
-        const stockQty = data.ecfType === '34' ? -line.quantity : line.quantity;
-        const stockType = data.ecfType === '34' ? 'return' : 'sale';
-        const stockDesc = data.ecfType === '34' ? `Devolución Nota de Crédito ${ncf}` : `Venta Factura ${ncf}`;
-        
-        await deductStock(
-          data.companyId,
-          line.productId,
-          data.warehouseId,
-          stockQty,
-          data.userId,
-          stockType,
-          invoice.id,
-          stockDesc,
-          tx
-        );
+      // Deduct or add inventory (Deducción diferida a Conduce de Entrega. Solo Nota de Crédito e-34 agrega stock aquí)
+      if (data.ecfType === '34') {
+        for (const line of itemLines) {
+          await deductStock(
+            data.companyId,
+            line.productId,
+            data.warehouseId,
+            -line.quantity,
+            data.userId,
+            'return',
+            invoice.id,
+            `Devolución Nota de Crédito ${ncf}`,
+            tx
+          );
+        }
       }
 
       // 2.9. Book automatic accounting journal entries (Double Entry)

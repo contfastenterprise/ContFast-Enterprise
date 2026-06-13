@@ -514,4 +514,158 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  /**
+   * Renderiza el HTML para un Conduce de Entrega (Delivery Note)
+   */
+  static renderDeliveryNote(data: any): string {
+    const { company, customer, invoice, deliveryNote, lines } = data;
+    const padDots = (label: string, length: number) => {
+      const dotsNeeded = length - label.length;
+      return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+    };
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" style="max-height: 50px; margin-bottom: 8px;" alt="Logo"/>`
+      : '';
+
+    const delDate = new Date(deliveryNote.deliveryDate);
+    const formattedDelDate = \`\${String(delDate.getDate()).padStart(2, '0')}/\${String(delDate.getMonth() + 1).padStart(2, '0')}/\${delDate.getFullYear()}\`;
+
+    const linesHtml = lines.map((line: any) => {
+      const invQty = Number(line.invoicedQty || 0);
+      const prevQty = Number(line.previouslyDeliveredQty || 0);
+      const currentQty = Number(line.quantity || 0);
+      const remainingQty = Math.max(0, invQty - prevQty - currentQty);
+
+      return \`
+        <tr>
+          <td>\${line.productSku || 'N/A'}</td>
+          <td>\${line.productName}</td>
+          <td>\${line.unitOfMeasure || 'Unidad'}</td>
+          <td class="text-center">\${invQty}</td>
+          <td class="text-center">\${prevQty}</td>
+          <td class="text-center" style="font-weight: bold; color: #005E6A;">\${currentQty}</td>
+          <td class="text-center">\${remainingQty}</td>
+        </tr>
+      \`;
+    }).join('');
+
+    const statusBadge = deliveryNote.status === 'approved' 
+      ? '<span style="background-color: #d1e7dd; color: #0f5132; padding: 4px 8px; border-radius: 4px; font-weight: bold;">APROBADO</span>'
+      : deliveryNote.status === 'voided'
+      ? '<span style="background-color: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-weight: bold;">ANULADO</span>'
+      : '<span style="background-color: #fff3cd; color: #664d03; padding: 4px 8px; border-radius: 4px; font-weight: bold;">BORRADOR</span>';
+
+    return \`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Conduce \${deliveryNote.deliveryNumber}</title>
+        <style>
+          body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
+          .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+          .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
+          .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
+          .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; }
+          .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; }
+          
+          .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
+          
+          .details-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: 20px; }
+          .client-info { white-space: pre; }
+          .logistic-info { white-space: pre; text-align: right; }
+          
+          .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .invoice-table th { background-color: #005E6A; color: #fff; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 8px 6px; border: none; text-align: left; }
+          .invoice-table td { font-family: monospace; font-size: 9pt; padding: 8px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+          .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
+          .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
+          
+          .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 40px; }
+          
+          .signature-box { border-top: 1px solid #777; width: 200px; text-align: center; padding-top: 6px; font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #555; }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <div>
+            \${logoHtml}
+            <div class="company-info">
+  \${padDots('RNC', 12)} \${company.rnc}
+  \${padDots('Teléfono', 12)} \${company.phone || ''}
+  \${padDots('Email', 12)} \${company.email || ''}
+  \${padDots('Dirección', 12)} \${company.address || ''}
+            </div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-title">CONDUCE DE ENTREGA</div>
+            <div class="doc-ncf">No: <span style="font-family: monospace;">\${deliveryNote.deliveryNumber}</span></div>
+            <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
+              Fecha: <span style="font-family: monospace; font-weight: normal;">\${formattedDelDate}</span>
+            </div>
+            <div style="margin-top: 5px;">
+              Estado: \${statusBadge}
+            </div>
+          </div>
+        </div>
+
+        <div class="condition-bar">
+          DOCUMENTO DE CONTROL DE DESPACHO
+        </div>
+
+        <div class="details-section">
+          <div class="client-info">
+  <span style="font-weight: bold; font-family: 'Inter', sans-serif; color: #005E6A;">DATOS DEL CLIENTE:</span>
+  \${padDots('Razon Social', 15)} \${customer.name}
+  \${padDots('RNC/Cédula', 15)} \${customer.rncCedula}
+  \${padDots('Dirección', 15)} \${customer.address || ''}
+          </div>
+          <div class="logistic-info">
+  <span style="font-weight: bold; font-family: 'Inter', sans-serif; color: #005E6A;">DATOS DE TRANSPORTE:</span>
+  Factura Ref : \${invoice.ncf}
+  Chofer      : \${deliveryNote.driverName || 'N/A'}
+  Placa       : \${deliveryNote.vehiclePlate || 'N/A'}
+  Despachador : \${deliveryNote.dispatcherName || 'N/A'}
+          </div>
+        </div>
+
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción del Artículo</th>
+              <th>Medida</th>
+              <th class="text-center">Facturado</th>
+              <th class="text-center">Entregado Ant.</th>
+              <th class="text-center">Despachado Hoy</th>
+              <th class="text-center">Pendiente</th>
+            </tr>
+          </thead>
+          <tbody>
+            \${linesHtml}
+          </tbody>
+        </table>
+
+        <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; margin-top: 20px;">
+          <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Observaciones:</div>
+          <div style="color: #555; white-space: pre-wrap; border: 1px solid #e9ecef; padding: 10px; border-radius: 6px;">\${deliveryNote.notes || 'Sin observaciones.'}</div>
+        </div>
+
+        <div class="bottom-section" style="margin-top: 80px;">
+          <div class="signature-box">
+            Firma Despachador
+          </div>
+          <div class="signature-box">
+            Firma Chofer / Transportista
+          </div>
+          <div class="signature-box">
+            Recibido Conforme (Cliente)
+          </div>
+        </div>
+      </body>
+      </html>
+    \`;
+  }
 }
