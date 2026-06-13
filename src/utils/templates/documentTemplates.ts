@@ -299,10 +299,12 @@ export class DocumentTemplates {
           </div>
 
           <div class="qr-signature-section">
-            <div class="qr-block">
+            <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img" alt="QR">` : ''}
-              <div style="margin-top: 4px;">Código de seguridad: ${inv.securityCode || 'N/A'}</div>
-              <div>Fecha Firma: ${formattedSigDate}</div>
+              <div style="font-family: monospace; font-size: 8.5pt; line-height: 1.5; text-align: left;">
+                Código de seguridad: ${inv.securityCode || 'N/A'}<br>
+                Fecha Firma: ${formattedSigDate}
+              </div>
             </div>
             <div class="signature-container">
               <div class="signature-line">
