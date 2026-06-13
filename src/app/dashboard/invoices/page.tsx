@@ -751,131 +751,160 @@ function InvoicesList() {
                 </div>
 
                 <div className="space-y-3">
-                  {lines.map((line, idx) => (
-                    <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
-                      {/* Upper row: Selection, Name, Barcode & Image Preview */}
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
+                  {lines.map((line, idx) => {
+                    const lineSubtotal = line.quantity * line.unitPrice;
+                    const lineDiscount = line.quantity * (line.discount || 0);
+                    const lineTaxable = lineSubtotal - lineDiscount;
+                    const lineTax = lineTaxable * line.taxRate;
+                    const lineTotal = lineTaxable + lineTax;
 
-                        {/* Image preview (if exists) */}
-                        <div className="md:col-span-1 flex items-center justify-center bg-white border border-slate-200 rounded-lg h-[42px] w-[42px] overflow-hidden self-end">
-                          {line.imageUrl ? (
-                            <img src={line.imageUrl} alt="preview" className="h-full w-full object-cover" />
-                          ) : (
-                            <FileText className="h-5 w-5 text-on-surface-variant/80" />
-                          )}
-                        </div>
+                    return (
+                      <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
+                        {/* Upper row: Selection, Name, Barcode & Image Preview */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
 
-                        {/* Product Selection / Custom Name */}
-                        <div className="md:col-span-6 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openProductSearchModal(idx)}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
-                            >
-                              <Search className="h-3.5 w-3.5" />
-                              Buscar
-                            </button>
+                          {/* Image preview (if exists) */}
+                          <div className="md:col-span-1 flex items-center justify-center bg-white border border-slate-200 rounded-lg h-[42px] w-[42px] overflow-hidden self-end">
+                            {line.imageUrl ? (
+                              <img src={line.imageUrl} alt="preview" className="h-full w-full object-cover" />
+                            ) : (
+                              <FileText className="h-5 w-5 text-on-surface-variant/80" />
+                            )}
+                          </div>
+
+                          {/* Product Selection / Custom Name */}
+                          <div className="md:col-span-6 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => openProductSearchModal(idx)}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
+                              >
+                                <Search className="h-3.5 w-3.5" />
+                                Buscar
+                              </button>
+                              <input
+                                type="text"
+                                value={line.productName}
+                                onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
+                                className="flex-1 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                                placeholder="Nombre del producto o servicio"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Barcode input */}
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Código de Barras</label>
                             <input
                               type="text"
-                              value={line.productName}
-                              onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
-                              className="flex-1 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                              placeholder="Nombre del producto o servicio"
-                              required
+                              value={line.barcode || ''}
+                              onChange={(e) => handleBarcodeSearch(idx, e.target.value)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              placeholder="Escanear o ingresar"
                             />
+                          </div>
+
+                          {/* Unit of measure */}
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Unidad</label>
+                            <select
+                              value={line.unitOfMeasure || 'unidad'}
+                              onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              <option value="unidad">Unidad</option>
+                              <option value="pie">Pie</option>
+                              <option value="pieza">Pieza</option>
+                              <option value="centimetro">Centímetro</option>
+                              <option value="plancha">Plancha</option>
+                              <option value="otro">Otro</option>
+                            </select>
                           </div>
                         </div>
 
-                        {/* Barcode input */}
-                        <div className="md:col-span-3 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Código de Barras</label>
-                          <input
-                            type="text"
-                            value={line.barcode || ''}
-                            onChange={(e) => handleBarcodeSearch(idx, e.target.value)}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                            placeholder="Escanear o ingresar"
-                          />
-                        </div>
+                        {/* Lower row: Quantities, Price tier, unitPrice, discount, taxRate, calculated total & delete button */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
+                          <div className="md:col-span-1 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
+                            <input
+                              type="number"
+                              value={line.quantity}
+                              onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              min={0.0001} step="any" required
+                            />
+                          </div>
 
-                        {/* Unit of measure */}
-                        <div className="md:col-span-2 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Unidad</label>
-                          <select
-                            value={line.unitOfMeasure || 'unidad'}
-                            onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                          >
-                            <option value="unidad">Unidad</option>
-                            <option value="pie">Pie</option>
-                            <option value="pieza">Pieza</option>
-                            <option value="centimetro">Centímetro</option>
-                            <option value="plancha">Plancha</option>
-                            <option value="otro">Otro</option>
-                          </select>
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
+                            <select
+                              value={line.priceTier || 'consumidor'}
+                              onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              <option value="consumidor">Consumidor (P1)</option>
+                              <option value="proveedor">Proveedor (P2)</option>
+                              <option value="mayorista">Mayorista (P3)</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
+                            <input
+                              type="number"
+                              value={line.unitPrice}
+                              onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              min={0} step="any" required
+                            />
+                          </div>
+
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
+                            <input
+                              type="number"
+                              value={line.discount || 0}
+                              onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              min={0} step="any"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
+                            <select
+                              value={line.taxRate}
+                              onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              <option value="0.18">18% ITBIS</option>
+                              <option value="0.16">16% ITBIS</option>
+                              <option value="0.00">0% Exento</option>
+                            </select>
+                          </div>
+
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Fila</label>
+                            <input
+                              type="text"
+                              value={`RD$ ${lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              disabled
+                              className="w-full rounded-lg bg-slate-100 border border-slate-200 py-2.5 px-2 text-[#003366] text-xs font-semibold"
+                            />
+                          </div>
+
+                          <div className="md:col-span-1 flex justify-end">
+                            <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      {/* Lower row: Quantities, Price tier, unitPrice, taxRate & delete button */}
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
-                        <div className="md:col-span-2 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
-                          <input
-                            type="number"
-                            value={line.quantity}
-                            onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                            min={0.0001} step="any" required
-                          />
-                        </div>
-
-                        <div className="md:col-span-3 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
-                          <select
-                            value={line.priceTier || 'consumidor'}
-                            onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                          >
-                            <option value="consumidor">Consumidor (P1)</option>
-                            <option value="proveedor">Proveedor (P2)</option>
-                            <option value="mayorista">Mayorista (P3)</option>
-                          </select>
-                        </div>
-
-                        <div className="md:col-span-3 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
-                          <input
-                            type="number"
-                            value={line.unitPrice}
-                            onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                            min={0} step="any" required
-                          />
-                        </div>
-
-                        <div className="md:col-span-3 space-y-1.5">
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
-                          <select
-                            value={line.taxRate}
-                            onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
-                            className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                          >
-                            <option value="0.18">18% ITBIS</option>
-                            <option value="0.16">16% ITBIS</option>
-                            <option value="0.00">0% Exento</option>
-                          </select>
-                        </div>
-
-                        <div className="md:col-span-1 flex justify-end">
-                          <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
