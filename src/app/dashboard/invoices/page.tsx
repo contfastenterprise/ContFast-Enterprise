@@ -1365,6 +1365,7 @@ function InvoicesList() {
                         <th className="py-3 px-4">Descripción del Artículo</th>
                         <th className="py-3 px-4 text-center">Cant.</th>
                         <th className="py-3 px-4 text-right">Precio Unit.</th>
+                        <th className="py-3 px-4 text-right">Descuento</th>
                         <th className="py-3 px-4 text-right">Total</th>
                       </tr>
                     </thead>
@@ -1374,6 +1375,7 @@ function InvoicesList() {
                           <td className="py-3 px-4 text-slate-700">{line.productName || 'Servicio'}</td>
                           <td className="py-3 px-4 text-center font-mono text-on-surface-variant/80">{parseFloat(line.quantity)}</td>
                           <td className="py-3 px-4 text-right font-mono text-on-surface-variant/80">RD$ {parseFloat(line.unitPrice).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                          <td className="py-3 px-4 text-right font-mono text-on-surface-variant/80">RD$ {(parseFloat(line.discount || 0) * parseFloat(line.quantity)).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
                           <td className="py-3 px-4 text-right font-mono font-semibold text-[#003366]">RD$ {parseFloat(line.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
@@ -1419,6 +1421,12 @@ function InvoicesList() {
                       <span>Subtotal</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {parseFloat(selectedInvoice.discount || 0) > 0 && (
+                      <div className="flex justify-between text-on-surface-variant/80">
+                        <span>Descuento</span>
+                        <span className="font-mono">- RD$ {parseFloat(selectedInvoice.discount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-on-surface-variant/80">
                       <span>ITBIS</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
