@@ -119,10 +119,21 @@ export class InvoiceService {
       amount: val.amount,
     }));
 
-    // 2. Allocate NCF in a separate isolated transaction first
-    const ncf = await db.transaction(async (tx) => {
-      return await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
-    });
+    // 2. Predict next NCF without incrementing database sequence yet
+    // This prevents skipping sequences on network/communication errors!
+    const seqRecord = await CompanyRepository.getSequence(data.companyId, data.ecfType);
+    if (!seqRecord) {
+      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${data.ecfType}.`);
+    }
+    if (seqRecord.currentSequence >= seqRecord.maxSequence) {
+      throw new Error(`La secuencia de comprobantes e-CF tipo ${data.ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}). Solicite una nueva autorización SACF.`);
+    }
+
+    const nextVal = seqRecord.currentSequence + 1;
+    const isElectronic = seqRecord.prefix.toUpperCase().startsWith('E');
+    const padLength = isElectronic ? 10 : 8;
+    const sequenceStr = nextVal.toString().padStart(padLength, '0');
+    const ncf = `${seqRecord.prefix}${data.ecfType}${sequenceStr}`;
 
     // Load company settings
     const settings = await CompanyRepository.getSettings(data.companyId);
@@ -248,6 +259,10 @@ export class InvoiceService {
 
             // Phase 3 structural rejection fallback: Save the invoice in the DB as rejected so the sequence is recorded
             await db.transaction(async (tx) => {
+              const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
+              if (allocatedNcf !== ncf) {
+                throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
+              }
               await InvoiceRepository.create({
                 companyId: data.companyId,
                 warehouseId: data.warehouseId,
@@ -296,6 +311,12 @@ export class InvoiceService {
 
     // 3. Perform main transactional operations (Fase 3)
     return await db.transaction(async (tx) => {
+      // Allocate and increment NCF inside the transaction to lock and commit it
+      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
+      if (allocatedNcf !== ncf) {
+        throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
+      }
+
       // 2.0. Verify Stock Availability
       for (const line of itemLines) {
         const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx);
