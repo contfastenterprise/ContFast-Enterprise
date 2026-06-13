@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart } from 'lucide-react';
+import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -74,6 +74,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       items: [
         { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
         { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
+        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" /> },
         { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
         { name: 'Ingreso', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
       ]

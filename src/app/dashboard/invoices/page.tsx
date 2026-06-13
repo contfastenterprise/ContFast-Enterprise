@@ -1099,8 +1099,7 @@ function InvoicesList() {
                   <option value="">Todos los Tipos</option>
                   <option value="31">Factura Crédito Fiscal (31)</option>
                   <option value="32">Factura Consumo (32)</option>
-                  <option value="33">Nota de Débito (33)</option>
-                  <option value="34">Nota de Crédito (34)</option>
+                  <option value="45">Gubernamental (45)</option>
                 </select>
               </div>
 
@@ -1259,24 +1258,6 @@ function InvoicesList() {
                                       <Mail className="h-4 w-4" />
                                     )}
                                   </button>
-                                )}
-                                {inv.status === 'accepted' && inv.ecfType !== '33' && inv.ecfType !== '34' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleCreateAdjustmentNote(inv, '34')}
-                                      className="p-2 hover:bg-rose-50 rounded-lg transition-colors text-rose-600"
-                                      title="Emitir Nota de Crédito"
-                                    >
-                                      <FileMinus className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleCreateAdjustmentNote(inv, '33')}
-                                      className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600"
-                                      title="Emitir Nota de Débito"
-                                    >
-                                      <FilePlus className="h-4 w-4" />
-                                    </button>
-                                  </>
                                 )}
                                 {inv.status === 'draft' && (
                                   <button className="p-2 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500" title="Eliminar Borrador">
