@@ -383,7 +383,11 @@ export class InvoiceService {
       // Generate QR Code base64
       let qrBase64 = '';
       if (qrCode) {
-        qrBase64 = qrCode; // mseller base64
+        if (qrCode.startsWith('http')) {
+          qrBase64 = await PdfGenerator.generateQrBase64(qrCode);
+        } else {
+          qrBase64 = qrCode;
+        }
       } else {
         const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
         const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(total).toFixed(2)}&codigoSeguridad=${securityHash}`;

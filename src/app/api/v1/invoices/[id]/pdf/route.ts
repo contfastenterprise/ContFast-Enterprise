@@ -125,8 +125,15 @@ export async function GET(
     if (submission && submission.responsePayload) {
       try {
         const payload = JSON.parse(submission.responsePayload);
-        securityCode = payload.securityCode || '';
-        qrBase64 = payload.qrCode || ''; // mseller returns base64 image or url
+        securityCode = payload.securityCode || payload.codigoSeguridad || '';
+        const rawQr = payload.qr_url || payload.qrCode || '';
+        if (rawQr) {
+          if (rawQr.startsWith('http')) {
+            qrBase64 = await PdfGenerator.generateQrBase64(rawQr);
+          } else {
+            qrBase64 = rawQr;
+          }
+        }
       } catch (err) {
         console.error('Error parsing submission responsePayload:', err);
       }
