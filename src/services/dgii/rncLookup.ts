@@ -22,14 +22,19 @@ export class DGIIService {
       const API_KEY = 'dgii_b76383a9adce413fb82e0f58ec206f71';
       const url = `${API_URL}/rnc/${rnc}`;
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds timeout
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'x-api-key': API_KEY
         },
+        signal: controller.signal,
         next: { revalidate: 3600 } 
       });
+      clearTimeout(timeoutId);
 
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {

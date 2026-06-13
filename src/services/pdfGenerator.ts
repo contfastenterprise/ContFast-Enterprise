@@ -19,7 +19,12 @@ export class PdfGenerator {
             return Buffer.from(base64Data, 'base64');
           }
         } else {
-          const res = await fetch(logoUrl);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          
+          const res = await fetch(logoUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
           const arrayBuffer = await res.arrayBuffer();
           return Buffer.from(arrayBuffer);
         }
