@@ -493,8 +493,8 @@ function InvoicesList() {
             if (!retryRes.ok || !retryData.success) {
               throw new Error(retryData.error?.message || 'Error al emitir factura localmente.');
             }
-            toast.success('Factura e-CF emitida localmente', { 
-              description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.` 
+            toast.success('Factura e-CF emitida localmente', {
+              description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.`
             });
 
             setShowForm(false);
@@ -1298,7 +1298,7 @@ function InvoicesList() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-surface-container-highest border border-[#003366] rounded-2xl max-w-3xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+              className="relative bg-surface-container-highest border border-[#003366] rounded-2xl max-w-4xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-5 md:px-8">
                 <div>
@@ -1398,7 +1398,7 @@ function InvoicesList() {
                       className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-[#C5A059] px-6 py-2.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] transition-colors"
                     >
                       <Printer className="h-4 w-4" />
-                      Imprimir PDF
+                      Imprimir
                     </a>
                     {selectedInvoice.customerId && (
                       <button
