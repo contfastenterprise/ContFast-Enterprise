@@ -2,6 +2,7 @@ import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions
 import { eq, and, isNull } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
+import { DeliveryRepository } from '@/repositories/deliveryRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
@@ -321,7 +322,7 @@ export class InvoiceService {
     }
 
     // 3. Perform main transactional operations (Fase 3)
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
       const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
       if (allocatedNcf !== ncf) {
@@ -594,6 +595,32 @@ export class InvoiceService {
         msellerResponse: msellerResponsePayload
       };
     });
+
+    // Automatically issue delivery note if autoDeliveryNotes is enabled
+    if (settings?.autoDeliveryNotes && ['31', '32', '45'].includes(data.ecfType)) {
+      try {
+        const draftNote = await DeliveryRepository.create({
+          companyId: data.companyId,
+          invoiceId: result.invoice.id,
+          userId: data.userId,
+          deliveryDate: new Date(),
+          driverName: 'Despacho Automático',
+          dispatcherName: 'Sistema',
+          notes: 'Conduce generado automáticamente al emitir la factura.',
+          lines: itemLines.map((line: any) => ({
+            productId: line.productId,
+            quantity: Number(line.quantity),
+          })),
+        });
+
+        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId);
+        result.invoice.deliveryStatus = 'delivered';
+      } catch (autoErr) {
+        console.error('[InvoiceService] Error creating automatic delivery note:', autoErr);
+      }
+    }
+
+    return result;
   }
 }
 

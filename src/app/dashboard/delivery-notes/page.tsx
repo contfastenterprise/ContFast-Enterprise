@@ -270,7 +270,7 @@ export default function DeliveryNotesPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
         {/* Header Ribbon */}
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
@@ -707,6 +707,6 @@ export default function DeliveryNotesPage() {
           </div>
         )}
       </AnimatePresence>
-    </DashboardLayout>
+    </>
   );
 }
