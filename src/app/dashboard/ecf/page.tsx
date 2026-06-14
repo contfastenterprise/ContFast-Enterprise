@@ -106,6 +106,12 @@ const ECF_TYPE_LABELS: Record<string, string> = {
   '32': 'Consumo',
   '33': 'Nota Débito',
   '34': 'Nota Crédito',
+  '41': 'Compras',
+  '43': 'Gastos Menores',
+  '44': 'Regímenes Especiales',
+  '45': 'Gubernamental',
+  '46': 'Pagos al Exterior',
+  '47': 'Exportación',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -134,6 +140,12 @@ function ECFTypeBadge({ type }: { type: string }) {
     '32': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300',
     '33': 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
     '34': 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300',
+    '41': 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+    '43': 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+    '44': 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300',
+    '45': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300',
+    '46': 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',
+    '47': 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${colors[type] || 'bg-gray-100 text-gray-700'}`}>
@@ -247,12 +259,18 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               <select
                 value={form.ecfType}
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
-                className="w-full bg-surface-container-  border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
               >
                 <option value="31">e-31 — Crédito Fiscal</option>
                 <option value="32">e-32 — Consumo</option>
                 <option value="33">e-33 — Nota Débito</option>
                 <option value="34">e-34 — Nota Crédito</option>
+                <option value="41">e-41 — Compras</option>
+                <option value="43">e-43 — Gastos Menores</option>
+                <option value="44">e-44 — Regímenes Especiales</option>
+                <option value="45">e-45 — Gubernamental</option>
+                <option value="46">e-46 — Pagos al Exterior</option>
+                <option value="47">e-47 — Exportación</option>
               </select>
             </div>
 
@@ -643,9 +661,14 @@ function ComprobantesTab() {
             <option value="">Todos los tipos</option>
             <option value="31">e-31 Crédito Fiscal</option>
             <option value="32">e-32 Consumo</option>
-            <option value="36">e-36 Gubernamental</option>
             <option value="33">e-33 Nota Débito</option>
             <option value="34">e-34 Nota Crédito</option>
+            <option value="41">e-41 Compras</option>
+            <option value="43">e-43 Gastos Menores</option>
+            <option value="44">e-44 Regímenes Especiales</option>
+            <option value="45">e-45 Gubernamental</option>
+            <option value="46">e-46 Pagos al Exterior</option>
+            <option value="47">e-47 Exportación</option>
           </select>
           <select
             value={filters.status}

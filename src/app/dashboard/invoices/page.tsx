@@ -630,8 +630,8 @@ function InvoicesList() {
     switch (type) {
       case '31': return 'Crédito Fiscal';
       case '32': return 'Consumo';
-      case '33': return 'Nota de Crédito';
-      case '34': return 'Nota de Débito';
+      case '33': return 'Nota de Débito';
+      case '34': return 'Nota de Crédito';
       case '45': return 'Gubernamental';
       default: return `Tipo ${type}`;
     }
@@ -687,6 +687,8 @@ function InvoicesList() {
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
+                    <option value="33">e-33 Nota de Débito</option>
+                    <option value="34">e-34 Nota de Crédito</option>
                     <option value="45">e-45 Comprobante Gubernamental</option>
                   </select>
                 </div>
@@ -1097,6 +1099,8 @@ function InvoicesList() {
                   <option value="">Todos los Tipos</option>
                   <option value="31">Factura Crédito Fiscal (31)</option>
                   <option value="32">Factura Consumo (32)</option>
+                  <option value="33">Nota Débito (33)</option>
+                  <option value="34">Nota Crédito (34)</option>
                   <option value="45">Gubernamental (45)</option>
                 </select>
               </div>
@@ -1468,6 +1472,30 @@ function InvoicesList() {
                       <Printer className="h-4 w-4" />
                       Imprimir
                     </a>
+                    {selectedInvoice.status !== 'draft' && ['31', '32', '45'].includes(selectedInvoice.ecfType) && (
+                      <>
+                        <button
+                          onClick={() => {
+                            handleCreateAdjustmentNote(selectedInvoice, '34');
+                            setSelectedInvoice(null);
+                          }}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-pink-50 border border-pink-200 px-6 py-2.5 text-sm font-bold text-pink-700 hover:bg-pink-100 transition-colors"
+                        >
+                          <FileMinus className="h-4 w-4" />
+                          Nota de Crédito
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleCreateAdjustmentNote(selectedInvoice, '33');
+                            setSelectedInvoice(null);
+                          }}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-orange-50 border border-orange-200 px-6 py-2.5 text-sm font-bold text-orange-700 hover:bg-orange-100 transition-colors"
+                        >
+                          <FilePlus className="h-4 w-4" />
+                          Nota de Débito
+                        </button>
+                      </>
+                    )}
                     {selectedInvoice.customerId && (
                       <button
                         onClick={() => handleResendEmail(selectedInvoice.id)}

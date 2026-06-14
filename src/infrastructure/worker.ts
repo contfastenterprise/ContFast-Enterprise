@@ -133,6 +133,7 @@ async function processDgiiSubmission(job: Job): Promise<any> {
     subtotal,
     totalTaxes,
     total,
+    modifiedNcf: (invoice as any).modifiedNcf || undefined,
     lines: (invoice.lines || []).map((line: any, idx: number) => ({
       index: idx + 1,
       name: line.productId, // fallback; ideally fetch product name

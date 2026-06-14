@@ -98,5 +98,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Interfaz del Dashboard**: Incorporación de la pestaña **Herramientas** en el menú lateral de navegación conectando las dos herramientas técnicas.
 
 ---
+### 14. Envío de Notas de Crédito (e-34) y Débito (e-33) a MSeller y Gestión de Secuencias
+- **Transmisión de Notas de Crédito y Débito**: Habilitado el envío automático de comprobantes de ajuste (debit notes e-33 y credit notes e-34) a MSeller de la misma manera que las facturas normales, asociando el eNCF del comprobante original mediante la referencia (`modifiedNcf` a `<TablaReferencia>`) tanto en el servicio de facturación directo (`InvoiceService`) como en el worker de transmisión en segundo plano (`worker.ts`).
+- **Secuencias Separadas**: Habilitada la creación y el mantenimiento de secuencias independientes para Nota de Crédito (34) y Nota de Débito (33) en el formulario de configuración de secuencias SACF del Dashboard y en el servicio de base de datos.
+- **Acceso en Interfaz de Usuario**: Añadidas las opciones e-33 y e-34 en el selector del formulario de facturación y en los filtros de tipo de comprobante. Integrada la funcionalidad de emitir notas de débito y crédito mediante botones rápidos de acción dentro del modal de visualización de detalles de factura en el listado del Dashboard.
+
 **Status**: Verified & Polished (Score 10/10)
+
 
