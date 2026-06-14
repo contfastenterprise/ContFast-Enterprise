@@ -85,5 +85,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Frontend del Dashboard**:
   - Diseñada una interfaz premium e intuitiva bajo `/dashboard/delivery-notes` para el control de remisiones (chofer, licencia, placa, despachador, observaciones), visor de estados logísticos (`pending`, `partial`, `delivered`) y acciones rápidas para descarga de PDF, aprobación y anulación.
 
+### 12. Edición de Secuencias SACF (Solo rol sistemas)
+- **Backend & Seguridad**: Se actualizó el endpoint `PUT /api/v1/ecf/sequences/[id]` para validar que el rol del usuario autenticado sea exactamente `sistemas`. Se habilitó la modificación de los campos `currentSequence`, `maxSequence` y `sequenceExpiry` en la tabla `ecf_sequences`. La fecha de vencimiento (`sequenceExpiry` en formato `DD-MM-YYYY`) se convierte a un objeto Date y se guarda en la columna `expiryDate`.
+- **Frontend**: En el dashboard de e-CF (`/dashboard/ecf`), en la pestaña de "Secuencias SACF", se añadió la capacidad de recuperar el rol del usuario actual. Si el rol es `sistemas`, se muestra un botón de edición (icono de lápiz) en las tarjetas de secuencia, el cual abre el modal `EditSequenceModal` permitiendo actualizar en tiempo real la secuencia actual, secuencia máxima y fecha de vencimiento de las autorizaciones.
+
 ---
 **Status**: Verified & Polished (Score 10/10)
+

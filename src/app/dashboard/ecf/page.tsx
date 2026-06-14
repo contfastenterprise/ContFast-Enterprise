@@ -24,6 +24,7 @@ import {
   Database,
   CreditCard,
   BarChart3,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -306,6 +307,159 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 className="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Guardar
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}
+
+interface EditSeqModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  sequence: Sequence | null;
+}
+
+function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalProps) {
+  const [form, setForm] = useState({
+    currentSequence: '',
+    maxSequence: '',
+    sequenceExpiry: '',
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (sequence) {
+      setForm({
+        currentSequence: (sequence.currentSequence ?? 0).toString(),
+        maxSequence: (sequence.maxSequence ?? 0).toString(),
+        sequenceExpiry: sequence.sequenceExpiry || sequence.expiryDate || '',
+      });
+    }
+  }, [sequence]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sequence) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/ecf/sequences/${sequence.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentSequence: parseInt(form.currentSequence, 10),
+          maxSequence: parseInt(form.maxSequence, 10),
+          sequenceExpiry: form.sequenceExpiry,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al actualizar secuencia');
+      toast.success('Secuencia actualizada exitosamente');
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open || !sequence) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+        >
+          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-[#C5A059]" /> Editar Secuencia SACF
+            </h3>
+            <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <div>
+              <label className="text-sm font-semibold text-primary mb-1 block">Tipo e-CF</label>
+              <input
+                type="text"
+                disabled
+                value={`e-${sequence.ecfType} — ${ECF_TYPE_LABELS[sequence.ecfType] || ''}`}
+                className="w-full bg-surface-container border border-outline rounded-lg px-4 py-2 text-primary opacity-60 outline-none font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-primary mb-1 block">Secuencia Actual</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.currentSequence}
+                  onChange={(e) => setForm((f) => ({ ...f, currentSequence: e.target.value }))}
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-primary mb-1 block">Secuencia Máxima</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.maxSequence}
+                  onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-primary mb-1 block">
+                Fecha Vencimiento <span className="text-on-surface-variant/70 text-xs font-normal">(dd-MM-yyyy)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="31-12-2026"
+                value={form.sequenceExpiry}
+                onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                pattern="\d{2}-\d{2}-\d{4}"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                 Guardar
               </button>
             </div>
@@ -730,6 +884,9 @@ function SecuenciasTab() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetchSequences = useCallback(async () => {
     setLoading(true);
@@ -744,7 +901,21 @@ function SecuenciasTab() {
     }
   }, []);
 
-  useEffect(() => { fetchSequences(); }, [fetchSequences]);
+  useEffect(() => {
+    fetchSequences();
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        const data = await res.json();
+        if (data.success && data.data?.user?.role) {
+          setUserRole(data.data.user.role);
+        }
+      } catch (err) {
+        console.error('Error fetching user role:', err);
+      }
+    };
+    fetchUserRole();
+  }, [fetchSequences]);
 
   const handleToggleStatus = async (seq: Sequence) => {
     const newStatus = seq.status === 'active' ? 'inactive' : 'active';
@@ -831,16 +1002,30 @@ function SecuenciasTab() {
                       {ECF_TYPE_LABELS[seq.ecfType] || `Tipo ${seq.ecfType}`}
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleToggleStatus(seq)}
-                    disabled={togglingId === seq.id}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${seq.status === 'active'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-500 dark:bg-gray-800 hover:bg-gray-200'
-                      }`}
-                  >
-                    {togglingId === seq.id ? '...' : seq.status === 'active' ? 'Activo' : 'Inactivo'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {userRole === 'sistemas' && (
+                      <button
+                        onClick={() => {
+                          setSelectedSequence(seq);
+                          setShowEditModal(true);
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+                        title="Editar secuencia"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleToggleStatus(seq)}
+                      disabled={togglingId === seq.id}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${seq.status === 'active'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-800 hover:bg-gray-200'
+                        }`}
+                    >
+                      {togglingId === seq.id ? '...' : seq.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 space-y-1">
@@ -896,6 +1081,18 @@ function SecuenciasTab() {
         onClose={() => setShowModal(false)}
         onSuccess={fetchSequences}
       />
+
+      {userRole === 'sistemas' && (
+        <EditSequenceModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedSequence(null);
+          }}
+          onSuccess={fetchSequences}
+          sequence={selectedSequence}
+        />
+      )}
     </div>
   );
 }

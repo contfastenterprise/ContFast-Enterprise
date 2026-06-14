@@ -21,24 +21,80 @@ export async function PUT(
   try {
     const { id } = await params;
 
+    // Enforce systems role constraint
+    if (auth.role !== 'sistemas') {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: 'Acceso denegado. Solo el usuario de sistemas puede modificar las secuencias.' } },
+        { status: 403, headers: resHeaders }
+      );
+    }
+
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
     const body = await req.json();
-    const { status } = body;
+    const { status, currentSequence, maxSequence, sequenceExpiry } = body;
 
-    if (!status || !['active', 'inactive'].includes(status)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: 'status debe ser "active" o "inactive".' },
-        },
-        { status: 400, headers: resHeaders }
-      );
+    const updateFields: any = { updatedAt: new Date() };
+
+    if (status !== undefined) {
+      if (!['active', 'inactive'].includes(status)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: 'VALIDATION_ERROR', message: 'status debe ser "active" o "inactive".' },
+          },
+          { status: 400, headers: resHeaders }
+        );
+      }
+      updateFields.status = status;
+    }
+
+    if (currentSequence !== undefined) {
+      const seqNum = Number(currentSequence);
+      if (isNaN(seqNum) || seqNum < 0) {
+        return NextResponse.json(
+          { success: false, error: { code: 'VALIDATION_ERROR', message: 'Secuencia actual debe ser un número positivo.' } },
+          { status: 400, headers: resHeaders }
+        );
+      }
+      updateFields.currentSequence = Math.floor(seqNum);
+    }
+
+    if (maxSequence !== undefined) {
+      const maxNum = Number(maxSequence);
+      if (isNaN(maxNum) || maxNum <= 0) {
+        return NextResponse.json(
+          { success: false, error: { code: 'VALIDATION_ERROR', message: 'Secuencia máxima debe ser un número mayor a cero.' } },
+          { status: 400, headers: resHeaders }
+        );
+      }
+      updateFields.maxSequence = Math.floor(maxNum);
+    }
+
+    if (sequenceExpiry !== undefined) {
+      if (typeof sequenceExpiry !== 'string' || sequenceExpiry.trim() === '') {
+        return NextResponse.json(
+          { success: false, error: { code: 'VALIDATION_ERROR', message: 'Fecha de vencimiento debe ser una cadena válida.' } },
+          { status: 400, headers: resHeaders }
+        );
+      }
+      updateFields.sequenceExpiry = sequenceExpiry.trim();
+      
+      const parts = sequenceExpiry.split('-');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+        if (!isNaN(dateObj.getTime())) {
+          updateFields.expiryDate = dateObj;
+        }
+      }
     }
 
     const [updated] = await db
       .update(ecfSequences)
-      .set({ status, updatedAt: new Date() })
+      .set(updateFields)
       .where(and(eq(ecfSequences.id, id), eq(ecfSequences.companyId, auth.companyId)))
       .returning();
 
@@ -50,7 +106,7 @@ export async function PUT(
     }
 
     return NextResponse.json(
-      { success: true, data: updated, message: `Secuencia ${status === 'active' ? 'activada' : 'desactivada'} exitosamente.` },
+      { success: true, data: updated, message: 'Secuencia actualizada exitosamente.' },
       { headers: resHeaders }
     );
   } catch (error: any) {
