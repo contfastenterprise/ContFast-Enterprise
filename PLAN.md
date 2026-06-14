@@ -82,6 +82,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **API & Impresión Directa (PDF)**:
   - Creados endpoints para creación, consulta, aprobación y anulación transaccional de conduces.
   - Implementado `GET /api/v1/delivery-notes/[id]/print` para renderizar y transmitir dinámicamente representaciones en PDF tamaño Carta de alta calidad contable.
+  - Corregida la consulta de listado de comprobantes/facturas (`GET /api/v1/ecf`) para incluir el campo `deliveryStatus` (estado de despacho), solucionando la omisión en el frontend que impedía listar facturas aptas para emitir conduces.
 - **Frontend del Dashboard**:
   - Diseñada una interfaz premium e intuitiva bajo `/dashboard/delivery-notes` para el control de remisiones (chofer, licencia, placa, despachador, observaciones), visor de estados logísticos (`pending`, `partial`, `delivered`) y acciones rápidas para descarga de PDF, aprobación y anulación.
 

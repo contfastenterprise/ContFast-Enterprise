@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
         msellerTrackId: invoices.msellerTrackId,
         dgiiMessage: invoices.dgiiMessage,
         customerId: invoices.customerId,
+        deliveryStatus: invoices.deliveryStatus,
         createdAt: invoices.createdAt,
       })
       .from(invoices)
