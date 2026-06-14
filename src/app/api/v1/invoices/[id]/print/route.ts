@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions } from '@/db';
-import { eq } from 'drizzle-orm';
+import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
+import { eq, and } from 'drizzle-orm';
 
 async function getInvoicePdfBuffer(invoiceId: string) {
   // 1. Fetch invoice from DB
@@ -29,6 +29,23 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     .from(companySettings)
     .where(eq(companySettings.companyId, invoiceRecordDb.companyId))
     .limit(1);
+
+  // Fetch NCF sequence details to get the expiration date
+  const [sequence] = await db
+    .select({
+      expiryDate: ecfSequences.expiryDate,
+      sequenceExpiry: ecfSequences.sequenceExpiry,
+    })
+    .from(ecfSequences)
+    .where(
+      and(
+        eq(ecfSequences.companyId, invoiceRecordDb.companyId),
+        eq(ecfSequences.ecfType, invoiceRecordDb.ecfType)
+      )
+    )
+    .limit(1);
+
+  const ncfExpiry = sequence?.sequenceExpiry || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : '31-12-2027');
 
   if (!company) {
     throw new Error('Company profile not found');
@@ -120,6 +137,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     notes: invoiceRecordDb.notes || '',
     securityCode,
     signatureDate: signedDate || invoiceRecordDb.createdAt.toISOString(),
+    ncfExpiryDate: ncfExpiry,
     lines: lines.map(l => ({
       quantity: Number(l.quantity),
       productName: l.productName || 'Producto/Servicio',

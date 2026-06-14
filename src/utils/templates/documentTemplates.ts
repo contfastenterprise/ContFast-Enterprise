@@ -245,6 +245,12 @@ export class DocumentTemplates {
               <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
                 Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
               </div>
+              ${['31', '44', '45', '46'].includes(inv.ecfType) && inv.ncfExpiryDate
+                ? `<div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
+                    Vence NCF: <span style="font-family: monospace; font-weight: normal;">${inv.ncfExpiryDate}</span>
+                   </div>`
+                : ''
+              }
             </div>
           </div>
 

@@ -5,8 +5,8 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
-import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions } from '@/db';
-import { eq } from 'drizzle-orm';
+import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
+import { eq, and } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cf_v2_jwt_access_secret_2026_super_secure_9876543210';
 
@@ -75,6 +75,23 @@ export async function GET(
       .from(companySettings)
       .where(eq(companySettings.companyId, invoice.companyId))
       .limit(1);
+
+    // Fetch NCF sequence details to get the expiration date
+    const [sequence] = await db
+      .select({
+        expiryDate: ecfSequences.expiryDate,
+        sequenceExpiry: ecfSequences.sequenceExpiry,
+      })
+      .from(ecfSequences)
+      .where(
+        and(
+          eq(ecfSequences.companyId, invoice.companyId),
+          eq(ecfSequences.ecfType, invoice.ecfType)
+        )
+      )
+      .limit(1);
+
+    const ncfExpiry = sequence?.sequenceExpiry || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : '31-12-2027');
 
     if (!company) {
       return new NextResponse('Company profile not found', { status: 404 });
@@ -166,6 +183,7 @@ export async function GET(
       notes: invoice.notes || '',
       securityCode,
       signatureDate: signedDate || invoice.createdAt.toISOString(),
+      ncfExpiryDate: ncfExpiry,
       lines: lines.map(l => ({
         quantity: Number(l.quantity),
         productName: l.productName || 'Producto/Servicio',
