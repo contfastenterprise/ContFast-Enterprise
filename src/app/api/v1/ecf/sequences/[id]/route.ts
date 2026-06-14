@@ -87,7 +87,10 @@ export async function PUT(
         const year = parseInt(parts[2], 10);
         const dateObj = new Date(year, month, day);
         if (!isNaN(dateObj.getTime())) {
-          updateFields.expiryDate = dateObj;
+          const yyyy = dateObj.getFullYear();
+          const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const dd = String(dateObj.getDate()).padStart(2, '0');
+          updateFields.expiryDate = `${yyyy}-${mm}-${dd}`;
         }
       }
     }
