@@ -101,8 +101,12 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 14. Envío de Notas de Crédito (e-34) y Débito (e-33) a MSeller y Gestión de Secuencias
 - **Transmisión de Notas de Crédito y Débito**: Habilitado el envío automático de comprobantes de ajuste (debit notes e-33 y credit notes e-34) a MSeller de la misma manera que las facturas normales, asociando el eNCF del comprobante original mediante la referencia (`modifiedNcf` a `<TablaReferencia>`) tanto en el servicio de facturación directo (`InvoiceService`) como en el worker de transmisión en segundo plano (`worker.ts`).
 - **Secuencias Separadas**: Habilitada la creación y el mantenimiento de secuencias independientes para Nota de Crédito (34) y Nota de Débito (33) en el formulario de configuración de secuencias SACF del Dashboard y en el servicio de base de datos.
+- **Numeración Interna Consecutiva (NC/ND/FAC)**: Se automatizó la generación del código interno del documento (`codigoFactura`) en formato `PREFIJO-AÑO-SECUENCIAL` (ej: `NC-2026-000001` para notas de crédito, `ND-2026-000001` para notas de débito y `FAC-2026-000001` para facturas estándar), incrementándose de forma aislada por tipo de documento, año y compañía.
 - **Acceso en Interfaz de Usuario**: Añadidas las opciones e-33 y e-34 en el selector del formulario de facturación y en los filtros de tipo de comprobante. Integrada la funcionalidad de emitir notas de débito y crédito mediante botones rápidos de acción dentro del modal de visualización de detalles de factura en el listado del Dashboard.
 
+- **Visualización Completa de Comprobantes**: Modificado el panel de creación y filtrado de secuencias para incluir los 10 tipos de comprobantes fiscales electrónicos (e-CF) autorizados por la DGII (e-31 Crédito Fiscal, e-32 Consumo, e-33 Nota Débito, e-34 Nota Crédito, e-41 Compras, e-43 Gastos Menores, e-44 Regímenes Especiales, e-45 Gubernamental, e-46 Pagos al Exterior y e-47 Exportación), actualizando además la asignación de colores en los badges identificadores correspondientes.
+
 **Status**: Verified & Polished (Score 10/10)
+
 
 

@@ -1,5 +1,5 @@
 import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
@@ -272,6 +272,22 @@ export class InvoiceService {
               if (allocatedNcf !== ncf) {
                 throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
               }
+
+              // Generate internal document number (codigoFactura) in format: PREFIX-YYYY-XXXXXX (e.g. NC-2026-000001)
+              const year = new Date().getFullYear();
+              const docPrefix = data.ecfType === '34' ? 'NC' : data.ecfType === '33' ? 'ND' : 'FAC';
+              const [countResult] = await tx
+                .select({ count: sql<number>`count(*)` })
+                .from(invoices)
+                .where(
+                  and(
+                    eq(invoices.companyId, data.companyId),
+                    sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
+                  )
+                );
+              const nextNum = Number(countResult?.count || 0) + 1;
+              const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
+
               await InvoiceRepository.create({
                 companyId: data.companyId,
                 warehouseId: data.warehouseId,
@@ -295,6 +311,7 @@ export class InvoiceService {
                 notes: data.notes,
                 modifiedNcf: data.modifiedNcf,
                 modifiedInvoiceId: data.modifiedInvoiceId,
+                codigoFactura,
                 lines: itemLines,
                 taxes: taxesList,
               }, tx);
@@ -328,6 +345,21 @@ export class InvoiceService {
       if (allocatedNcf !== ncf) {
         throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
       }
+
+      // Generate internal document number (codigoFactura) in format: PREFIX-YYYY-XXXXXX (e.g. NC-2026-000001)
+      const year = new Date().getFullYear();
+      const docPrefix = data.ecfType === '34' ? 'NC' : data.ecfType === '33' ? 'ND' : 'FAC';
+      const [countResult] = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, data.companyId),
+            sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
+          )
+        );
+      const nextNum = Number(countResult?.count || 0) + 1;
+      const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
 
       // 2.0. Verify Stock Availability (Skip for Credit Notes since it increases stock)
       if (data.ecfType !== '34') {
@@ -454,6 +486,7 @@ export class InvoiceService {
         notes: data.notes,
         modifiedNcf: data.modifiedNcf,
         modifiedInvoiceId: data.modifiedInvoiceId,
+        codigoFactura,
         lines: itemLines,
         taxes: taxesList,
       };
