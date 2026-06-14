@@ -1595,7 +1595,8 @@ function InvoicesList() {
                         <tr className="bg-slate-50 text-[#003366] uppercase font-bold border-b border-slate-200">
                           <th className="p-3">SKU / Código</th>
                           <th className="p-3">Producto</th>
-                          <th className="p-3 text-center">Stock</th>
+                          <th className="p-3 text-center">Stock Físico</th>
+                          <th className="p-3 text-center">Existencia</th>
                           <th className="p-3 text-right">Precio Consumidor</th>
                           <th className="p-3 text-right">Precio Mayorista</th>
                           <th className="p-3 text-right">Precio Distribuidor</th>
@@ -1605,12 +1606,15 @@ function InvoicesList() {
                       <tbody className="divide-y divide-slate-100">
                         {modalProducts.map((p) => {
                           let stockQty = 0;
+                          let availQty = 0;
                           let showAllStock = !modalWarehouseFilter;
                           if (modalWarehouseFilter) {
                             const level = p.inventory?.find((l: any) => l.warehouseId === modalWarehouseFilter);
                             stockQty = level ? parseFloat(level.quantity) : 0;
+                            availQty = level ? parseFloat(level.availableQuantity || level.quantity) : 0;
                           } else {
                             stockQty = p.inventory?.reduce((acc: number, cur: any) => acc + parseFloat(cur.quantity), 0) || 0;
+                            availQty = p.inventory?.reduce((acc: number, cur: any) => acc + parseFloat(cur.availableQuantity || cur.quantity), 0) || 0;
                           }
 
                           return (
@@ -1621,11 +1625,16 @@ function InvoicesList() {
                                 {p.description && <span className="text-[10px] text-slate-400 block truncate max-w-[200px]">{p.description}</span>}
                               </td>
                               <td className="p-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] ${stockQty > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] bg-slate-100 text-slate-700">
                                   {stockQty.toFixed(2)} {p.unitOfMeasure || 'ud'}
                                 </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] ${availQty > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                  {availQty.toFixed(2)} {p.unitOfMeasure || 'ud'}
+                                </span>
                                 {showAllStock && p.inventory?.length > 0 && (
-                                  <span className="block text-[8px] text-slate-400 mt-0.5">Total en almacenes</span>
+                                  <span className="block text-[8px] text-slate-400 mt-0.5">Total disponible</span>
                                 )}
                               </td>
                               <td className="p-3 text-right font-mono font-bold text-slate-700">RD$ {parseFloat(p.priceConsumidor || p.price || '0').toFixed(2)}</td>

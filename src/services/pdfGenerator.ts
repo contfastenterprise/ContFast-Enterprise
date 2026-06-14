@@ -426,6 +426,247 @@ export class PdfGenerator {
     doc.fillColor('#aaaaaa').fontSize(7).text('Generado por ContFast ERP - Reportes de Contabilidad General', 50, pageHeight - 35, { align: 'center' });
   }
 
+  static generateWindowBreakdown(company: CompanyInfo, data: any[]): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+        const buffers: Buffer[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
+        doc.on('error', (err) => reject(err));
+
+        const logoBuffer = await this.getLogoBuffer(company.logoUrl);
+        const currentDateStr = new Date().toLocaleDateString('es-DO');
+
+        // Draw Landscape Header
+        doc.moveTo(30, 25).lineTo(811, 25).strokeColor('#005E63').lineWidth(2).stroke();
+        
+        let textStartY = 35;
+        if (logoBuffer) {
+          try {
+            doc.image(logoBuffer, 30, 35, { fit: [150, 40], valign: 'center' });
+            textStartY = 80;
+          } catch (e) {
+            console.error('Failed to draw logo in landscape', e);
+          }
+        }
+
+        doc.font('Courier').fontSize(8).fillColor('#333333');
+        let yPos = textStartY;
+        doc.text(this.formatLabel('Compañía', company.name, 10), 30, yPos);
+        yPos += 10;
+        doc.text(this.formatLabel('RNC', company.rnc || 'N/A', 10), 30, yPos);
+        yPos += 10;
+        doc.text(this.formatLabel('Fecha Gen', currentDateStr, 10), 30, yPos);
+
+        doc.font('Courier-Bold').fontSize(14).fillColor('#005E63');
+        doc.text('DESGLOSE DE PRODUCCIÓN DE VENTANAS', 400, 35, { width: 411, align: 'right' });
+        doc.font('Courier').fontSize(9).fillColor('#333333');
+        doc.text('Uso Interno Administrativo / Taller', 400, 52, { width: 411, align: 'right' });
+
+        const dividerY = Math.max(yPos + 15, 110);
+        doc.moveTo(30, dividerY).lineTo(811, dividerY).strokeColor('#005E63').lineWidth(1).stroke();
+        
+        let y = dividerY + 15;
+
+        // Draw Table Header
+        doc.moveTo(30, y).lineTo(811, y).strokeColor('#005E63').lineWidth(1).stroke();
+        doc.font('Courier-Bold').fontSize(8).fillColor('#005E63');
+        const colWidths = [25, 60, 30, 80, 35, 110, 110, 90, 90, 150];
+        const colX = [30];
+        for (let i = 0; i < colWidths.length - 1; i++) {
+          colX.push(colX[i] + colWidths[i]);
+        }
+        
+        const headers = ['#', 'Tipo', 'Cant', 'Medida Base', 'Vías', 'Afel/Cabezal', 'Llavin/Enganche', 'Rieles', 'Laterales', 'Vidrio (A x H)'];
+        for (let i = 0; i < headers.length; i++) {
+          doc.text(headers[i], colX[i] + 2, y + 4);
+        }
+        doc.moveTo(30, y + 15).lineTo(811, y + 15).strokeColor('#005E63').lineWidth(1).stroke();
+        y += 20;
+
+        // Rows
+        doc.font('Courier').fontSize(8).fillColor('#333333');
+        data.forEach((item, index) => {
+          if (y > 450) {
+            doc.addPage();
+            y = 40;
+            // Draw page marker
+            doc.moveTo(30, y).lineTo(811, y).strokeColor('#005E63').lineWidth(1).stroke();
+            for (let i = 0; i < headers.length; i++) {
+              doc.text(headers[i], colX[i] + 2, y + 4);
+            }
+            doc.moveTo(30, y + 15).lineTo(811, y + 15).strokeColor('#005E63').lineWidth(1).stroke();
+            y += 20;
+          }
+
+          doc.text((index + 1).toString(), colX[0] + 2, y);
+          doc.text((item.tipo || '').substring(0, 8), colX[1] + 2, y);
+          doc.text(item.cantidad.toString(), colX[2] + 2, y);
+          doc.text(`${item.ancho} x ${item.altura}`, colX[3] + 2, y);
+          doc.text(item.vias.toString(), colX[4] + 2, y);
+          doc.text(item.cabezal || '-', colX[5] + 2, y);
+          doc.text(item.llavin || '-', colX[6] + 2, y);
+          doc.text(item.riel || '-', colX[7] + 2, y);
+          doc.text(item.lateral || '-', colX[8] + 2, y);
+          doc.text(item.vidrio || '-', colX[9] + 2, y);
+          
+          doc.moveTo(30, y + 10).lineTo(811, y + 10).strokeColor('#f0f0f0').lineWidth(0.5).stroke();
+          y += 13;
+        });
+
+        // Draw signatures
+        if (y > 460) {
+          doc.addPage();
+          y = 40;
+        }
+        y += 25;
+        doc.moveTo(60, y).lineTo(250, y).strokeColor('#000000').lineWidth(1).stroke();
+        doc.fillColor('#000000').font('Courier-Bold').fontSize(8).text('Encargado de Taller', 60, y + 6, { width: 190, align: 'center' });
+
+        doc.moveTo(560, y).lineTo(750, y).strokeColor('#000000').lineWidth(1).stroke();
+        doc.text('Control de Calidad', 560, y + 6, { width: 190, align: 'center' });
+
+        doc.fillColor('#aaaaaa').fontSize(7).text('Nota: Verifique todas las medidas antes de realizar cortes. Generado por ContFast Enterprise.', 30, doc.page.height - 30, { align: 'center' });
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  static generateGlassCutting(company: CompanyInfo, sheets: any[], sheetWidth: number, sheetHeight: number): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 30, size: 'A4', layout: sheetHeight > sheetWidth ? 'portrait' : 'landscape' });
+        const buffers: Buffer[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
+        doc.on('error', (err) => reject(err));
+
+        const logoBuffer = await this.getLogoBuffer(company.logoUrl);
+        const currentDateStr = new Date().toLocaleDateString('es-DO');
+
+        for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
+          const sheet = sheets[sIdx];
+          if (sIdx > 0) doc.addPage();
+
+          const pageWidth = doc.page.width;
+          const pageHeight = doc.page.height;
+
+          // Draw Top Accent
+          doc.moveTo(30, 25).lineTo(pageWidth - 30, 25).strokeColor('#005E63').lineWidth(2).stroke();
+
+          // Header
+          let textStartY = 35;
+          if (logoBuffer) {
+            try {
+              doc.image(logoBuffer, 30, 35, { fit: [140, 40], valign: 'center' });
+              textStartY = 80;
+            } catch (e) {
+              console.error('Logo render fail in cutting report', e);
+            }
+          }
+
+          doc.font('Courier').fontSize(8).fillColor('#333333');
+          let yPos = textStartY;
+          doc.text(this.formatLabel('Compañía', company.name, 10), 30, yPos);
+          yPos += 10;
+          doc.text(this.formatLabel('RNC', company.rnc || 'N/A', 10), 30, yPos);
+          yPos += 10;
+          doc.text(this.formatLabel('Plancha', `#${sheet.id} de ${sheets.length}`, 10), 30, yPos);
+
+          doc.font('Courier-Bold').fontSize(14).fillColor('#005E63');
+          doc.text('PATRÓN DE CORTE DE VIDRIO', pageWidth - 300, 35, { width: 270, align: 'right' });
+          doc.font('Courier').fontSize(8).fillColor('#333333');
+          doc.text(`Medidas Plancha: ${sheetWidth}" x ${sheetHeight}"`, pageWidth - 300, 52, { width: 270, align: 'right' });
+          doc.text(`Aprovechamiento: ${(100 - sheet.wastePercent).toFixed(1)}%`, pageWidth - 300, 62, { width: 270, align: 'right' });
+
+          const dividerY = Math.max(yPos + 15, 110);
+          doc.moveTo(30, dividerY).lineTo(pageWidth - 30, dividerY).strokeColor('#005E63').lineWidth(1).stroke();
+
+          // Title for Pattern
+          doc.font('Courier-Bold').fontSize(10).fillColor('#005E63');
+          doc.text(`DIAGRAMA DE CORTE - PLANCHA #${sheet.id}`, 30, dividerY + 10, { align: 'center', width: pageWidth - 60 });
+
+          // Draw diagram area
+          const topSpace = dividerY + 25;
+          const bottomSafeSpace = 80;
+          const drawAreaWidth = pageWidth - 60;
+          const drawAreaHeight = pageHeight - topSpace - bottomSafeSpace;
+
+          const scaleX = drawAreaWidth / sheetWidth;
+          const scaleY = drawAreaHeight / sheetHeight;
+          const scale = Math.min(scaleX, scaleY);
+
+          const canvasW = sheetWidth * scale;
+          const canvasH = sheetHeight * scale;
+
+          const offsetX = 30 + (drawAreaWidth - canvasW) / 2;
+          const offsetY = topSpace + (drawAreaHeight - canvasH) / 2;
+
+          // Draw Plate background
+          doc.rect(offsetX, offsetY, canvasW, canvasH).fillColor('#f8f9fa').strokeColor('#005E63').lineWidth(1).fillAndStroke();
+
+          // Grid Lines
+          doc.strokeColor('#e5e7eb').lineWidth(0.5);
+          for (let i = 12; i < sheetWidth; i += 12) {
+            doc.moveTo(offsetX + i * scale, offsetY).lineTo(offsetX + i * scale, offsetY + canvasH).stroke();
+          }
+          for (let j = 12; j < sheetHeight; j += 12) {
+            doc.moveTo(offsetX, offsetY + j * scale).lineTo(offsetX + canvasW, offsetY + j * scale).stroke();
+          }
+
+          // Placed pieces
+          sheet.placed.forEach((p: any) => {
+            const px = offsetX + (p.x * scale);
+            const py = offsetY + (p.y * scale);
+            const pw = (p.rotated ? p.height : p.width) * scale;
+            const ph = (p.rotated ? p.width : p.height) * scale;
+
+            doc.rect(px, py, pw, ph).fillColor('#ffffff').strokeColor('#374151').lineWidth(0.8).fillAndStroke();
+
+            let titleSize = 7;
+            if (pw < 35 || ph < 15) titleSize = 5;
+            if (pw < 15 || ph < 8) titleSize = 0;
+
+            if (titleSize > 0) {
+              doc.fillColor('#000000').font('Courier-Bold').fontSize(titleSize);
+              doc.text(p.label, px + 2, py + (ph / 2) - 4, { width: pw - 4, align: 'center' });
+              if (ph > 12) {
+                doc.font('Courier').fontSize(titleSize - 1);
+                doc.text(`${p.width}"x${p.height}"`, px + 2, py + (ph / 2) + 3, { width: pw - 4, align: 'center' });
+              }
+            }
+          });
+
+          // Markers
+          doc.fillColor('#888888').font('Courier').fontSize(7);
+          doc.text(`${sheetWidth}" ANCHO`, offsetX, offsetY - 10, { width: canvasW, align: 'center' });
+
+          doc.save();
+          doc.translate(offsetX - 10, offsetY + canvasH / 2);
+          doc.rotate(-90);
+          doc.text(`${sheetHeight}" ALTO`, -canvasH / 2, -3, { width: canvasH, align: 'center' });
+          doc.restore();
+
+          // Signatures at the bottom
+          const signatureY = pageHeight - 60;
+          doc.moveTo(50, signatureY).lineTo(200, signatureY).strokeColor('#000000').lineWidth(1).stroke();
+          doc.fillColor('#000000').font('Courier-Bold').fontSize(8).text('Encargado de Taller', 50, signatureY + 5, { width: 150, align: 'center' });
+
+          doc.moveTo(pageWidth - 200, signatureY).lineTo(pageWidth - 50, signatureY).strokeColor('#000000').lineWidth(1).stroke();
+          doc.text('Control de Calidad', pageWidth - 200, signatureY + 5, { width: 150, align: 'center' });
+        }
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   // Helpers to align text and labels matching Factura_FAC-00000138.pdf
   private static formatLabel(label: string, value: string, length = 12): string {
     const dots = '.'.repeat(Math.max(0, length - label.length));
@@ -442,3 +683,4 @@ export class PdfGenerator {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   }
 }
+

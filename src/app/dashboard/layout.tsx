@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus } from 'lucide-react';
+import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -106,6 +106,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
         { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
         { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Herramientas',
+      items: [
+        { name: 'Desglose Ventanas', href: '/dashboard/tools/desglose/ventanas', icon: <Calculator className="h-5 w-5" /> },
+        { name: 'Corte de Vidrio', href: '/dashboard/tools/glass-cutting', icon: <Layers className="h-5 w-5" /> },
       ]
     },
     {

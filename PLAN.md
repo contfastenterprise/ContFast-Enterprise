@@ -90,6 +90,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Backend & Seguridad**: Se actualizó el endpoint `PUT /api/v1/ecf/sequences/[id]` para validar que el rol del usuario autenticado sea exactamente `sistemas`. Se habilitó la modificación de los campos `currentSequence`, `maxSequence` y `sequenceExpiry` en la tabla `ecf_sequences`. La fecha de vencimiento (`sequenceExpiry` en formato `DD-MM-YYYY`) se convierte a un objeto Date y se guarda en la columna `expiryDate`.
 - **Frontend**: En el dashboard de e-CF (`/dashboard/ecf`), en la pestaña de "Secuencias SACF", se añadió la capacidad de recuperar el rol del usuario actual. Si el rol es `sistemas`, se muestra un botón de edición (icono de lápiz) en las tarjetas de secuencia, el cual abre el modal `EditSequenceModal` permitiendo actualizar en tiempo real la secuencia actual, secuencia máxima y fecha de vencimiento de las autorizaciones.
 
+### 13. Módulo de Herramientas de Producción
+- **Configuración de Perfiles Escalable**: Centralización de las fórmulas matemáticas para el desglose de ventanas corredizas (`Tradicional`, `P-65`, `P-92`) en `src/utils/profilesRegistry.ts` para facilitar la incorporación de futuros sistemas de aluminio sin alterar el frontend.
+- **Optimizador de Corte de Vidrio**: Implementación del motor de optimización 2D (`src/utils/cuttingOptimizer.ts`) con visualizador interactivo del mapa de planchas basado en pulgadas.
+- **Persistencia en LocalStorage**: Autoguardado automático de las listas de corte del usuario para evitar pérdida de trabajo ante recargas involuntarias del navegador.
+- **Impresión Profesional Vía Backend**: Implementación de endpoints `/api/v1/tools/print` conectados a `pdfkit` (existente en el sistema) para la generación de PDFs de alta fidelidad, listos para descargar o imprimir directamente en el taller físico.
+- **Interfaz del Dashboard**: Incorporación de la pestaña **Herramientas** en el menú lateral de navegación conectando las dos herramientas técnicas.
+
 ---
 **Status**: Verified & Polished (Score 10/10)
 
