@@ -111,7 +111,12 @@ export class DocumentTemplates {
       const formattedEmiDate = `${String(emiDate.getDate()).padStart(2, '0')}/${String(emiDate.getMonth() + 1).padStart(2, '0')}/${emiDate.getFullYear()}`;
 
       const isCredit = inv.paymentType === 'credit';
-      const conditionLabel = isCredit ? 'FACTURA A CREDITO' : 'FACTURA AL CONTADO';
+      let conditionLabel = isCredit ? 'FACTURA A CREDITO' : 'FACTURA AL CONTADO';
+      if (inv.ecfType === '33') {
+        conditionLabel = 'NOTA DE DEBITO';
+      } else if (inv.ecfType === '34') {
+        conditionLabel = 'NOTA DE CREDITO';
+      }
 
       // Lines processing
       const linesHtml = lines.map((line: any) => {
