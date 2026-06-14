@@ -307,25 +307,26 @@ export class MSellerClient {
         DireccionEmisor: params.emitterAddress,
         FechaEmision: formatDate(params.issueDate),
       },
-      Totales: {
-        MontoGravadoTotal: Number(params.subtotal.toFixed(2)),
-        MontoGravadoI1: Number(params.subtotal.toFixed(2)),
-        MontoExento: 0,
-        ITBIS1: itbisRate,
-        TotalITBIS: Number(params.totalTaxes.toFixed(2)),
-        TotalITBIS1: Number(params.totalTaxes.toFixed(2)),
-        MontoTotal: Number(params.total.toFixed(2)),
-        MontoNoFacturable: 0,
-      },
     };
 
-    // Comprador required for tipo 31 (Crédito Fiscal)
-    if (params.ecfType === '31' && params.buyerRnc) {
+    // Comprador must be serialized BEFORE Totales
+    if (params.buyerRnc || ['31', '44', '45', '46'].includes(params.ecfType)) {
       encabezado.Comprador = {
-        RNCComprador: params.buyerRnc,
+        RNCComprador: params.buyerRnc || '222222222',
         RazonSocialComprador: params.buyerName || 'CONSUMIDOR FINAL',
       };
     }
+
+    encabezado.Totales = {
+      MontoGravadoTotal: Number(params.subtotal.toFixed(2)),
+      MontoGravadoI1: Number(params.subtotal.toFixed(2)),
+      MontoExento: 0,
+      ITBIS1: itbisRate,
+      TotalITBIS: Number(params.totalTaxes.toFixed(2)),
+      TotalITBIS1: Number(params.totalTaxes.toFixed(2)),
+      MontoTotal: Number(params.total.toFixed(2)),
+      MontoNoFacturable: 0,
+    };
 
     const payload: any = {
       ECF: {
