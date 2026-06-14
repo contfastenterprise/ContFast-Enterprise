@@ -160,7 +160,7 @@ export default function DashboardPage() {
           <p className="font-body-lg text-on-surface-variant/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
         <button
-          onClick={() => router.push('/invoices')}
+          onClick={() => router.push('/dashboard/invoices')}
           className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 active:scale-95 group"
         >
           <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
