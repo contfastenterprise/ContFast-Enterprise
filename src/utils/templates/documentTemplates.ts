@@ -1419,6 +1419,7 @@ export class DocumentTemplates {
             max-width: 200px;
             object-fit: contain;
             margin-bottom: 8px;
+            margin-left: -15px;
           }
           
           .company-info {
