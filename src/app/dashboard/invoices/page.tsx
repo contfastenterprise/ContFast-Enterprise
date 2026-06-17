@@ -687,8 +687,6 @@ function InvoicesList() {
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
-                    <option value="33">e-33 Nota de Débito</option>
-                    <option value="34">e-34 Nota de Crédito</option>
                     <option value="45">e-45 Comprobante Gubernamental</option>
                   </select>
                 </div>
