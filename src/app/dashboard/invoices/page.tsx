@@ -817,6 +817,7 @@ function InvoicesList() {
                     const lineTaxable = lineSubtotal - lineDiscount;
                     const lineTax = lineTaxable * line.taxRate;
                     const lineTotal = lineTaxable + lineTax;
+                    const hasProduct = !!line.productId;
 
                     return (
                       <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
@@ -873,7 +874,8 @@ function InvoicesList() {
                             <select
                               value={line.unitOfMeasure || 'unidad'}
                               onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              disabled={!hasProduct}
+                              className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                             >
                               <option value="unidad">Unidad</option>
                               <option value="pie">Pie</option>
@@ -893,7 +895,8 @@ function InvoicesList() {
                               type="number"
                               value={line.quantity}
                               onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              disabled={!hasProduct}
+                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                               min={0.0001} step="any" required
                             />
                           </div>
@@ -903,7 +906,8 @@ function InvoicesList() {
                             <select
                               value={line.priceTier || 'consumidor'}
                               onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              disabled={!hasProduct}
+                              className={`w-full rounded-lg border py-2 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                             >
                               <option value="consumidor">Consumidor (P1)</option>
                               <option value="proveedor">Proveedor (P2)</option>
@@ -928,7 +932,8 @@ function InvoicesList() {
                               type="number"
                               value={line.discount || 0}
                               onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              disabled={!hasProduct}
+                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                               min={0} step="any"
                             />
                           </div>
@@ -938,7 +943,8 @@ function InvoicesList() {
                             <select
                               value={line.taxRate}
                               onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              disabled={!hasProduct}
+                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                             >
                               <option value="0.18">18% ITBIS</option>
                               <option value="0.16">16% ITBIS</option>
