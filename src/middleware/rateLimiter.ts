@@ -20,8 +20,8 @@ export async function checkRateLimit(
   key: string,
   preset: keyof typeof RATE_LIMIT_PRESETS = 'standard'
 ): Promise<boolean> {
-  // If Redis is offline or not configured, allow the request to prevent service outage
-  if (!redis) {
+  // If Redis is offline, not configured, or in closed/end state, allow the request to prevent service outage
+  if (!redis || redis.status === 'close' || redis.status === 'end') {
     return true;
   }
 
@@ -29,11 +29,11 @@ export async function checkRateLimit(
   const redisKey = `ratelimit:${preset}:${key}`;
 
   try {
-    // Incrementar con un timeout de 1 segundo para evitar que el request se congele si Redis está caído
+    // Incrementar con un timeout rápido de 200ms para evitar que el request se demore si Redis está caído
     const incrPromise = redis.incr(redisKey);
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 1000));
+    const timeoutPromise = new Promise<number>((_, reject) => setTimeout(() => reject(new Error('Redis timeout')), 200));
     
-    const currentCount = await Promise.race([incrPromise, timeoutPromise]) as number;
+    const currentCount = await Promise.race([incrPromise, timeoutPromise]);
 
     // If it's the first request in the window, set the expiration
     if (currentCount === 1) {
