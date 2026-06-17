@@ -238,16 +238,17 @@ export class InvoiceService {
           msellerResponsePayload = msellerRes.rawResponse;
         } else {
           const errMsg = msellerRes.message || '';
+          const lowerErrMsg = errMsg.toLowerCase();
           const isCommunicationError =
-            errMsg.includes('auth failed') ||
-            errMsg.includes('FetchError') ||
-            errMsg.includes('timeout') ||
-            errMsg.includes('connection') ||
-            errMsg.includes('TypeError') ||
-            errMsg.includes('Aborted') ||
-            errMsg.includes('aborted') ||
-            errMsg.includes('failed to fetch') ||
-            errMsg.includes('Network request failed');
+            lowerErrMsg.includes('auth failed') ||
+            lowerErrMsg.includes('fetcherror') ||
+            lowerErrMsg.includes('timeout') ||
+            lowerErrMsg.includes('timed out') ||
+            lowerErrMsg.includes('connection') ||
+            lowerErrMsg.includes('typeerror') ||
+            lowerErrMsg.includes('aborted') ||
+            lowerErrMsg.includes('failed to fetch') ||
+            lowerErrMsg.includes('network request failed');
 
           if (isCommunicationError) {
             if (!data.ignoreCommunicationError) {
