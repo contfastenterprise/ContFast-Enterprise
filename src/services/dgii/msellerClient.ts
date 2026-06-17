@@ -414,7 +414,7 @@ export class MSellerClient {
             const subtotal = line.quantity * line.unitPrice;
             const discount = line.discount || 0;
             const montoItem = Number((subtotal - discount).toFixed(2));
-            return {
+            const item: any = {
               NumeroLinea: String(idx + 1),
               IndicadorFacturacion: '1',
               NombreItem: line.name,
@@ -422,9 +422,14 @@ export class MSellerClient {
               CantidadItem: Number(line.quantity.toFixed(2)),
               UnidadMedida: '43',
               PrecioUnitarioItem: Number(line.unitPrice.toFixed(2)),
-              DescuentoMonto: Number(discount.toFixed(2)),
               MontoItem: montoItem,
             };
+
+            if (discount > 0) {
+              item.DescuentoMonto = Number(discount.toFixed(2));
+            }
+
+            return item;
           }),
         },
         Paginacion: {
