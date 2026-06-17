@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText } from 'lucide-react';
+import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -12,6 +12,7 @@ interface InvoiceAR {
   arId: string;
   invoiceId: string;
   invoiceNumber: string;
+  codigoFactura?: string;
   invoiceDate: string;
   amount: number;
   balance: number;
@@ -27,7 +28,12 @@ interface CustomerAR {
 }
 
 const fmt = (val: number) => {
-  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(val || 0);
+  return new Intl.NumberFormat('es-DO', { 
+    style: 'currency', 
+    currency: 'DOP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(val || 0);
 };
 
 export default function ReceivablesPage() {
@@ -51,22 +57,74 @@ export default function ReceivablesPage() {
   const [appliedInvoices, setAppliedInvoices] = useState<Record<string, number>>({});
 
   // Receipts History Tab State
-  const [activeTab, setActiveTab] = useState<'pending' | 'receipts'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'receipts' | 'customer_statement'>('pending');
   const [receipts, setReceipts] = useState<any[]>([]);
   const [receiptsLoading, setReceiptsLoading] = useState(false);
   const [receiptSearchTerm, setReceiptSearchTerm] = useState('');
+  const [receiptStartDate, setReceiptStartDate] = useState('');
+  const [receiptEndDate, setReceiptEndDate] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<any | null>(null);
   const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false);
   const [loadingReceiptDetails, setLoadingReceiptDetails] = useState(false);
+
+  // Customer Statement Tab State
+  const [statementCustomers, setStatementCustomers] = useState<any[]>([]);
+  const [selectedStatementCustomerId, setSelectedStatementCustomerId] = useState('');
+  const [statementReceipts, setStatementReceipts] = useState<any[]>([]);
+  const [statementLoading, setStatementLoading] = useState(false);
+  const [statementSearch, setStatementSearch] = useState('');
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'customer_statement' && statementCustomers.length === 0) {
+      fetchStatementCustomers();
+    }
+  }, [activeTab]);
+
+  const fetchStatementCustomers = async () => {
+    try {
+      const res = await fetch('/api/v1/customers?limit=200');
+      const data = await res.json();
+      if (data.success) {
+        setStatementCustomers(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching customers for statement:', err);
+    }
+  };
+
+  const fetchCustomerStatement = async (customerId: string) => {
+    if (!customerId) return;
+    setStatementLoading(true);
+    try {
+      const res = await fetch(`/api/v1/ar/receipts/by-customer?customerId=${customerId}`);
+      const data = await res.json();
+      if (data.success) {
+        setStatementReceipts(data.data);
+      } else {
+        toast.error('Error al cargar estado de cuenta');
+      }
+    } catch (err) {
+      toast.error('Error de red al cargar estado de cuenta');
+    } finally {
+      setStatementLoading(false);
+    }
+  };
+
   const fetchReceipts = async () => {
     setReceiptsLoading(true);
+    setHasSearched(true);
     try {
-      const res = await fetch('/api/v1/ar/receipts');
+      const queryParams = new URLSearchParams();
+      if (receiptSearchTerm) queryParams.append('search', receiptSearchTerm);
+      if (receiptStartDate) queryParams.append('startDate', receiptStartDate);
+      if (receiptEndDate) queryParams.append('endDate', receiptEndDate);
+
+      const res = await fetch(`/api/v1/ar/receipts?${queryParams.toString()}`);
       const data = await res.json();
       if (data.success) {
         setReceipts(data.data);
@@ -139,7 +197,7 @@ export default function ReceivablesPage() {
     setSelectedCustomer(customer);
     setPaymentForm({
       date: new Date().toISOString().split('T')[0],
-      paymentMethod: 'bank',
+      paymentMethod: 'cash',
       amount: '',
       reference: '',
       notes: ''
@@ -148,14 +206,15 @@ export default function ReceivablesPage() {
     setShowPaymentModal(true);
   };
 
-  // Automatically distribute payment amount across oldest invoices first
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const amountInput = e.target.value;
     setPaymentForm({ ...paymentForm, amount: amountInput });
+  };
 
+  const handleDistributeAmount = () => {
     if (!selectedCustomer) return;
 
-    let remainingAmount = parseFloat(amountInput) || 0;
+    let remainingAmount = Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100;
     const newApplied: Record<string, number> = {};
 
     // Sort invoices by due date (oldest first)
@@ -164,15 +223,20 @@ export default function ReceivablesPage() {
     for (const inv of sortedInvoices) {
       if (remainingAmount <= 0) break;
 
-      const applied = Math.min(remainingAmount, inv.balance);
+      const applied = Math.round(Math.min(remainingAmount, inv.balance) * 100) / 100;
       newApplied[inv.arId] = applied;
-      remainingAmount -= applied;
+      remainingAmount = Math.round((remainingAmount - applied) * 100) / 100;
     }
 
     setAppliedInvoices(newApplied);
   };
 
   const handleManualApplyChange = (arId: string, val: string, maxBalance: number) => {
+    // Force a maximum of two decimal places by truncating extra decimals
+    if (val.includes('.') && val.split('.')[1].length > 2) {
+      val = val.split('.')[0] + '.' + val.split('.')[1].slice(0, 2);
+    }
+
     let numVal = parseFloat(val) || 0;
     if (numVal > maxBalance) numVal = maxBalance;
     if (numVal < 0) numVal = 0;
@@ -182,8 +246,8 @@ export default function ReceivablesPage() {
 
     setAppliedInvoices(newApplied);
 
-    // Update total amount based on manual sum
-    const newTotal = Object.values(newApplied).reduce((sum, v) => sum + v, 0);
+    // Update total amount based on manual sum, rounded to 2 decimal places
+    const newTotal = Math.round(Object.values(newApplied).reduce((sum, v) => sum + v, 0) * 100) / 100;
     setPaymentForm({ ...paymentForm, amount: newTotal.toString() });
   };
 
@@ -191,13 +255,13 @@ export default function ReceivablesPage() {
     e.preventDefault();
     if (!selectedCustomer) return;
 
-    const amount = parseFloat(paymentForm.amount);
+    const amount = Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100;
     if (!amount || amount <= 0) {
       toast.error('Ingrese un monto válido');
       return;
     }
 
-    const totalApplied = Object.values(appliedInvoices).reduce((sum, v) => sum + v, 0);
+    const totalApplied = Math.round(Object.values(appliedInvoices).reduce((sum, v) => sum + v, 0) * 100) / 100;
     if (Math.abs(totalApplied - amount) > 0.01) {
       toast.error('El monto a cobrar no coincide con la suma aplicada a las facturas');
       return;
@@ -236,6 +300,9 @@ export default function ReceivablesPage() {
         setShowPaymentModal(false);
         fetchData();
         fetchReceipts();
+        if (data.data?.id) {
+          handlePrintReceipt(data.data.id);
+        }
       } else {
         toast.error(data.error?.message || 'Error al registrar cobro');
       }
@@ -296,7 +363,6 @@ export default function ReceivablesPage() {
           <button
             onClick={() => {
               setActiveTab('receipts');
-              fetchReceipts();
             }}
             className={clsx(
               "px-6 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2",
@@ -306,6 +372,19 @@ export default function ReceivablesPage() {
             )}
           >
             <History className="w-4 h-4" /> Historial de Recibos
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('customer_statement');
+            }}
+            className={clsx(
+              "px-6 py-3 text-sm font-semibold border-b-2 transition-all flex items-center gap-2",
+              activeTab === 'customer_statement'
+                ? "border-[#003366] text-[#003366]"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <FileText className="w-4 h-4" /> Estado de Cuenta y Abonos
           </button>
         </div>
 
@@ -371,6 +450,7 @@ export default function ReceivablesPage() {
                     <table className="w-full text-sm text-left">
                       <thead className="bg-white border-b border-slate-100 text-xs text-on-surface-variant uppercase font-semibold">
                         <tr>
+                          <th className="px-6 py-3">Factura</th>
                           <th className="px-6 py-3">NCF / Documento</th>
                           <th className="px-6 py-3">Fecha Emisión</th>
                           <th className="px-6 py-3">Vencimiento</th>
@@ -383,7 +463,8 @@ export default function ReceivablesPage() {
                           const isOverdue = new Date(inv.dueDate) < new Date() && inv.balance > 0;
                           return (
                             <tr key={inv.arId} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-3 font-mono font-bold text-[#003366]">{inv.invoiceNumber}</td>
+                              <td className="px-6 py-3 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
+                              <td className="px-6 py-3 font-mono text-slate-600">{inv.invoiceNumber}</td>
                               <td className="px-6 py-3 text-on-surface-variant/80">{new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
                               <td className="px-6 py-3">
                                 <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", isOverdue ? 'bg-rose-100 text-rose-700' : 'text-on-surface-variant/80')}>
@@ -410,19 +491,47 @@ export default function ReceivablesPage() {
         {activeTab === 'receipts' && (
           <>
             {/* Search Bar for Receipts */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-end">
               <div className="relative flex-1 w-full">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-on-surface-variant" />
+                <label className="block text-xs font-semibold text-primary mb-1">Buscar por Cliente o Referencia</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-on-surface-variant" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Ej. Juan Pérez, REC-023a..."
+                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                    value={receiptSearchTerm}
+                    onChange={(e) => setReceiptSearchTerm(e.target.value)}
+                  />
                 </div>
+              </div>
+              <div className="w-full md:w-48">
+                <label className="block text-xs font-semibold text-primary mb-1">Desde</label>
                 <input
-                  type="text"
-                  placeholder="Buscar por cliente o referencia..."
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
-                  value={receiptSearchTerm}
-                  onChange={(e) => setReceiptSearchTerm(e.target.value)}
+                  type="date"
+                  value={receiptStartDate}
+                  onChange={(e) => setReceiptStartDate(e.target.value)}
+                  className="block w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
                 />
               </div>
+              <div className="w-full md:w-48">
+                <label className="block text-xs font-semibold text-primary mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={receiptEndDate}
+                  onChange={(e) => setReceiptEndDate(e.target.value)}
+                  className="block w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={fetchReceipts}
+                className="w-full md:w-auto bg-[#003366] hover:bg-[#002244] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center justify-center gap-2"
+              >
+                <Search className="w-4 h-4" /> Buscar
+              </button>
             </div>
 
             {/* Receipts Table */}
@@ -432,8 +541,14 @@ export default function ReceivablesPage() {
               ) : filteredReceipts.length === 0 ? (
                 <div className="p-16 text-center">
                   <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-[#003366]">Sin Recibos</h3>
-                  <p className="text-on-surface-variant/70 mt-2">No se han registrado recibos de ingreso todavía.</p>
+                  <h3 className="text-xl font-bold text-[#003366]">
+                    {hasSearched ? 'No se encontraron recibos' : 'Historial de Recibos'}
+                  </h3>
+                  <p className="text-on-surface-variant/70 mt-2">
+                    {hasSearched 
+                      ? 'No hay registros que coincidan con los filtros seleccionados.' 
+                      : 'Configure los filtros de fecha o búsqueda y presione el botón de "Buscar" para cargar el historial.'}
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -502,6 +617,228 @@ export default function ReceivablesPage() {
           </>
         )}
 
+        {activeTab === 'customer_statement' && (
+          <>
+            {/* Selector de Cliente y Filtros */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full">
+                <label className="block text-xs font-semibold text-primary mb-1.5">Seleccionar Cliente</label>
+                <select
+                  value={selectedStatementCustomerId}
+                  onChange={(e) => {
+                    const cid = e.target.value;
+                    setSelectedStatementCustomerId(cid);
+                    fetchCustomerStatement(cid);
+                  }}
+                  className="block w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                >
+                  <option value="">-- Seleccione un cliente --</option>
+                  {statementCustomers.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.rncCedula ? `(${c.rncCedula})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full md:w-72">
+                <label className="block text-xs font-semibold text-primary mb-1.5">Filtro de búsqueda (Factura, Recibo, Ref)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Filtrar resultados..."
+                    className="block w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:border-[#003366] focus:ring-1 focus:ring-[#003366] transition-all outline-none"
+                    value={statementSearch}
+                    onChange={(e) => setStatementSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {selectedStatementCustomerId && statementReceipts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="w-full md:w-auto bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center justify-center gap-2"
+                >
+                  <Printer className="w-4 h-4" /> Imprimir Estado
+                </button>
+              )}
+            </div>
+
+            {/* Contenedor del Estado de Cuenta */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden print:border-none print:shadow-none">
+              {statementLoading ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                </div>
+              ) : !selectedStatementCustomerId ? (
+                <div className="p-16 text-center">
+                  <Building2 className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-[#003366]">Seleccione un Cliente</h3>
+                  <p className="text-on-surface-variant/70 mt-2">
+                    Elija un cliente de la lista para ver el estado de cuenta y el historial detallado de abonos.
+                  </p>
+                </div>
+              ) : statementReceipts.length === 0 ? (
+                <div className="p-16 text-center">
+                  <CheckCircle2 className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-[#003366]">Sin Movimientos</h3>
+                  <p className="text-on-surface-variant/70 mt-2">
+                    Este cliente no tiene recibos de cobro registrados en el sistema.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto print:overflow-visible">
+                  {/* Encabezado visible al imprimir */}
+                  <div className="hidden print:block p-6 border-b border-slate-200">
+                    <h2 className="text-2xl font-bold text-[#003366]">ESTADO DE CUENTA DE COBROS Y ABONOS</h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      <strong>Cliente:</strong> {statementCustomers.find(c => c.id === selectedStatementCustomerId)?.name}
+                    </p>
+                    <p className="text-xs text-slate-500">Generado el: {new Date().toLocaleString('es-DO')}</p>
+                  </div>
+
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-xs text-on-surface-variant uppercase font-semibold print:bg-transparent">
+                      <tr>
+                        <th className="px-6 py-4">Fecha</th>
+                        <th className="px-6 py-4">Recibo</th>
+                        <th className="px-6 py-4">Factura / NCF</th>
+                        <th className="px-6 py-4">Mapeo de Pago</th>
+                        <th className="px-6 py-4 text-right">Monto Factura</th>
+                        <th className="px-6 py-4 text-right">Monto Aplicado (Abono)</th>
+                        <th className="px-6 py-4 text-right text-rose-600">Balance Restante</th>
+                        <th className="px-6 py-4 text-center print:hidden">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(() => {
+                        // Progressive balance calculation grouping by invoiceId
+                        const groupedByInvoice: Record<string, any[]> = {};
+                        statementReceipts.forEach(item => {
+                          const invId = item.invoiceId;
+                          if (!groupedByInvoice[invId]) {
+                            groupedByInvoice[invId] = [];
+                          }
+                          groupedByInvoice[invId].push(item);
+                        });
+
+                        const processedItems: any[] = [];
+                        Object.values(groupedByInvoice).forEach(group => {
+                          const sorted = [...group].sort((a, b) => {
+                            const dateA = new Date(a.receiptDate).getTime();
+                            const dateB = new Date(b.receiptDate).getTime();
+                            if (dateA !== dateB) return dateA - dateB;
+                            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+                          });
+
+                          let runningBalance = sorted[0].invoiceTotal;
+                          const computedGroup = sorted.map(item => {
+                            runningBalance -= item.amountApplied;
+                            return {
+                              ...item,
+                              progressiveBalance: Math.max(0, runningBalance)
+                            };
+                          });
+                          processedItems.push(...computedGroup);
+                        });
+
+                        const sortedFinal = processedItems.sort((a, b) => {
+                          const dateA = new Date(a.receiptDate).getTime();
+                          const dateB = new Date(b.receiptDate).getTime();
+                          if (dateA !== dateB) return dateB - dateA;
+                          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                        });
+
+                        const filteredFinal = sortedFinal.filter(item => {
+                          if (!statementSearch) return true;
+                          const q = statementSearch.toLowerCase();
+                          return (
+                            item.codigoFactura?.toLowerCase().includes(q) ||
+                            item.invoiceNumber?.toLowerCase().includes(q) ||
+                            `rec-${item.receiptId.slice(0, 8).toUpperCase()}`.toLowerCase().includes(q) ||
+                            item.reference?.toLowerCase().includes(q) ||
+                            item.receiptDate.includes(q)
+                          );
+                        });
+
+                        if (filteredFinal.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                                No se encontraron registros que coincidan con la búsqueda.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredFinal.map((item) => {
+                          const methodLabel = item.paymentMethod === 'cash' ? 'Efectivo' : 
+                                              item.paymentMethod === 'bank' ? 'Banco' : 
+                                              item.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+                          return (
+                            <tr key={item.appliedId} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4 text-on-surface-variant/80">
+                                {new Date(item.receiptDate).toLocaleDateString('es-DO')}
+                              </td>
+                              <td className="px-6 py-4 font-mono font-bold text-[#003366]">
+                                REC-{item.receiptId.slice(0, 8).toUpperCase()}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-semibold text-slate-800">{item.codigoFactura || 'N/A'}</div>
+                                {item.invoiceNumber && <div className="text-[10px] text-slate-400 font-mono">{item.invoiceNumber}</div>}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={clsx(
+                                  "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold",
+                                  item.paymentMethod === 'cash' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                                )}>
+                                  {methodLabel}
+                                </span>
+                                {item.reference && <span className="block text-[10px] text-slate-500 font-mono mt-0.5">Ref: {item.reference}</span>}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono text-slate-500">
+                                {fmt(item.invoiceTotal)}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600">
+                                {fmt(item.amountApplied)}
+                              </td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">
+                                {fmt(item.progressiveBalance)}
+                              </td>
+                              <td className="px-6 py-4 text-center print:hidden">
+                                <div className="flex justify-center gap-2">
+                                  <button
+                                    onClick={() => handleOpenReceiptDetails(item.receiptId)}
+                                    className="p-1.5 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                                    title="Ver Recibo Completo"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handlePrintReceipt(item.receiptId)}
+                                    className="p-1.5 hover:bg-slate-100 text-[#003366] rounded transition-colors"
+                                    title="Imprimir Recibo"
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
       </div>
 
       {/* MODAL: REGISTRAR COBRO */}
@@ -509,7 +846,7 @@ export default function ReceivablesPage() {
         {showPaymentModal && selectedCustomer && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl w-full max-w-4xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl w-full max-w-5xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden">
               <div className="bg-[#001733] border-b border-[#003366] px-6 py-5 flex justify-between items-center shrink-0">
                 <div>
                   <h3 className="text-white font-display font-bold text-xl flex items-center gap-2"><HandCoins className="w-6 h-6 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
@@ -520,23 +857,23 @@ export default function ReceivablesPage() {
 
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
                 {/* Left Column: Form Settings */}
-                <div className="md:w-1/3 bg-surface-container-highest border-r border-[#003366] p-6 space-y-5 overflow-y-auto shrink-0">
+                <div className="md:w-1/3 bg-surface-container-highest border-r border-outline/40 p-6 space-y-5 overflow-y-auto shrink-0">
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><Calendar className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Fecha de Cobro</label>
-                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-white transition-colors" />
+                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><CreditCard className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Método de Pago</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'bank' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-slate-300 hover:text-white')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'bank' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-white border-outline/40 text-[#001733] hover:text-[#c5a059]')}>
                         <Landmark className="w-4 h-4" /> Banco
                       </button>
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'cash' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-slate-300 hover:text-white')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash', reference: '' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'cash' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-white border-outline/40 text-[#001733] hover:text-[#c5a059]')}>
                         <HandCoins className="w-4 h-4" /> Caja Chica
                       </button>
                     </div>
                     {paymentForm.paymentMethod === 'cash' && (
-                      <p className="text-[10px] text-amber-500 mt-2 font-medium flex items-center gap-1 bg-[#001733] p-2 rounded border border-amber-500/30">
+                      <p className="text-[10px] text-amber-600 mt-2 font-medium flex items-center gap-1 bg-amber-50 p-2 rounded border border-amber-500/30">
                         <AlertCircle className="w-3 h-3" /> Este cobro se agregará directamente al arqueo de tu sesión de caja actual.
                       </p>
                     )}
@@ -544,48 +881,66 @@ export default function ReceivablesPage() {
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Monto Recibido</label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
-                      <input type="number" min="0.01" step="0.01" required value={paymentForm.amount} onChange={handleAmountChange} className="w-full bg-[#001733] border border-[#003366] rounded-lg pl-8 pr-3 py-2.5 outline-none focus:border-[#C5A059] font-mono text-lg font-bold text-white transition-colors" placeholder="0.00" />
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
+                      <input type="number" min="0.01" step="0.01" required value={paymentForm.amount} onChange={handleAmountChange} className="w-full bg-white border border-outline/40 rounded-lg pl-8 pr-3 py-2.5 outline-none focus:border-[#C5A059] font-mono text-lg font-bold text-primary transition-colors" placeholder="0.00" />
                     </div>
-                    <p className="text-[10px] text-[#c5a059]/80 mt-1">El monto se auto-distribuye en las facturas más antiguas.</p>
+                    <button
+                      type="button"
+                      onClick={handleDistributeAmount}
+                      className="w-full mt-2 bg-[#001733] hover:bg-[#00254d] text-[#C5A059] border border-[#003366] rounded-lg py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Distribuir en Facturas
+                    </button>
+                    <p className="text-[10px] text-slate-500 mt-1">Presiona para auto-distribuir el monto en las facturas más antiguas.</p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Referencia (Cheque/Transfer)</label>
-                    <input type="text" value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono text-white transition-colors" placeholder="Ej. TX-98442" />
+                    <input
+                      type="text"
+                      disabled={paymentForm.paymentMethod !== 'bank'}
+                      value={paymentForm.reference}
+                      onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })}
+                      className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono text-primary transition-colors disabled:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+                      placeholder={paymentForm.paymentMethod === 'bank' ? "Ej. TX-98442" : "No requerido para caja chica"}
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Nota Interna (Opcional)</label>
-                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-white resize-none transition-colors"></textarea>
+                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary resize-none transition-colors"></textarea>
                   </div>
                 </div>
 
                 {/* Right Column: Invoice Application */}
-                <div className="md:w-2/3 bg-surface-container-highest flex flex-col overflow-hidden">
+                <div className="md:w-2/3 bg-white flex flex-col overflow-hidden">
                   <div className="px-6 py-4 border-b border-[#003366] bg-[#001733] shrink-0">
                     <h4 className="font-bold text-white">Aplicación del Pago</h4>
                     <p className="text-xs text-[#c5a059]/80">Distribuye el monto recibido en las facturas pendientes a continuación.</p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4">
                     <table className="w-full text-sm text-left">
-                      <thead className="text-[10px] text-primary uppercase font-bold tracking-widest border-b border-[#003366]">
+                      <thead className="text-[10px] text-[#001733] uppercase font-bold tracking-widest border-b border-slate-200">
                         <tr>
-                          <th className="pb-2">Factura</th>
-                          <th className="pb-2 text-right">Vencimiento</th>
-                          <th className="pb-2 text-right">Balance Original</th>
-                          <th className="pb-2 text-right w-36">Monto a Aplicar</th>
+                          <th className="px-4 pb-3">Factura</th>
+                          <th className="px-4 pb-3">NCF / Documento</th>
+                          <th className="px-4 pb-3 text-right">Vencimiento</th>
+                          <th className="px-4 pb-3 text-right">Balance Original</th>
+                          <th className="px-4 pb-3 text-right w-40">Monto a Aplicar</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#003366]">
+                      <tbody className="divide-y divide-slate-100">
                         {selectedCustomer.invoices.map(inv => {
                           const applied = appliedInvoices[inv.arId] || 0;
                           return (
-                            <tr key={inv.arId} className={clsx("transition-colors", applied > 0 ? 'bg-emerald-900/20' : '')}>
-                              <td className="py-3">
-                                <span className="font-mono font-bold text-white block">{inv.invoiceNumber}</span>
+                            <tr key={inv.arId} className={clsx("transition-colors", applied > 0 ? 'bg-emerald-50' : 'hover:bg-slate-50')}>
+                              <td className="px-4 py-3.5">
+                                <span className="font-mono font-bold text-primary block">{inv.codigoFactura || 'N/A'}</span>
                               </td>
-                              <td className="py-3 text-right text-on-surface-variant">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
-                              <td className="py-3 text-right font-mono font-bold text-white">{fmt(inv.balance)}</td>
-                              <td className="py-3 text-right">
+                              <td className="px-4 py-3.5">
+                                <span className="font-mono text-slate-600 block">{inv.invoiceNumber}</span>
+                              </td>
+                              <td className="px-4 py-3.5 text-right text-on-surface-variant">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-3.5 text-right font-mono font-bold text-primary">{fmt(inv.balance)}</td>
+                              <td className="px-4 py-3.5 text-right">
                                 <input
                                   type="number"
                                   min="0"
@@ -593,7 +948,7 @@ export default function ReceivablesPage() {
                                   step="0.01"
                                   value={applied || ''}
                                   onChange={(e) => handleManualApplyChange(inv.arId, e.target.value, inv.balance)}
-                                  className={clsx("w-full border rounded px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-1 transition-all", applied > 0 ? 'border-emerald-500/50 bg-emerald-900/30 focus:ring-emerald-500 text-emerald-400 font-bold' : 'border-[#003366] bg-[#001733] text-white focus:border-[#c5a059]')}
+                                  className={clsx("w-full border rounded px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-1 transition-all", applied > 0 ? 'border-emerald-500 bg-emerald-50 focus:ring-emerald-500 text-emerald-700 font-bold' : 'border-outline/40 bg-white text-primary focus:border-[#c5a059]')}
                                   placeholder="0.00"
                                 />
                               </td>
@@ -609,13 +964,20 @@ export default function ReceivablesPage() {
                     <div className="flex gap-8">
                       <div>
                         <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Monto Recibido</p>
-                        <p className="font-mono text-xl font-bold text-white">{fmt(parseFloat(paymentForm.amount) || 0)}</p>
+                        <p className="font-mono text-xl font-bold text-white">{fmt(Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Total Aplicado</p>
-                        <p className={clsx("font-mono text-xl font-bold", Math.abs((parseFloat(paymentForm.amount) || 0) - Object.values(appliedInvoices).reduce((s, v) => s + v, 0)) < 0.01 ? 'text-emerald-400' : 'text-rose-400')}>
-                          {fmt(Object.values(appliedInvoices).reduce((s, v) => s + v, 0))}
-                        </p>
+                        {(() => {
+                          const totalApplied = Math.round(Object.values(appliedInvoices).reduce((s, v) => s + v, 0) * 100) / 100;
+                          const amountReceived = Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100;
+                          const match = Math.abs(amountReceived - totalApplied) < 0.01;
+                          return (
+                            <p className={clsx("font-mono text-xl font-bold", match ? 'text-emerald-400' : 'text-rose-400')}>
+                              {fmt(totalApplied)}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
 

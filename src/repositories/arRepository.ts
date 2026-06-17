@@ -25,6 +25,7 @@ export class ArRepository {
       customerName: customers.name,
       invoiceId: accountsReceivable.invoiceId,
       invoiceNumber: invoices.ncf,
+      codigoFactura: invoices.codigoFactura,
       invoiceDate: invoices.createdAt,
       amount: accountsReceivable.amount,
       balance: accountsReceivable.balance,
@@ -57,6 +58,7 @@ export class ArRepository {
         arId: ar.id,
         invoiceId: ar.invoiceId,
         invoiceNumber: ar.invoiceNumber || 'Sin NCF',
+        codigoFactura: ar.codigoFactura || '',
         invoiceDate: ar.invoiceDate,
         amount: parseFloat(ar.amount as any),
         balance: parseFloat(ar.balance as any),
@@ -177,8 +179,24 @@ export class ArRepository {
     });
   }
 
-  // Get historical receipts for a company
-  static async getReceiptsList(companyId: string) {
+  // Get historical receipts for a company with optional filters
+  static async getReceiptsList(companyId: string, filters?: { startDate?: string; endDate?: string; search?: string }) {
+    const conditions = [
+      eq(customerReceipts.companyId, companyId),
+      sql`${customerReceipts.deletedAt} IS NULL`
+    ];
+
+    if (filters?.startDate) {
+      conditions.push(sql`${customerReceipts.date} >= ${filters.startDate}`);
+    }
+    if (filters?.endDate) {
+      conditions.push(sql`${customerReceipts.date} <= ${filters.endDate}`);
+    }
+    if (filters?.search) {
+      const searchPattern = `%${filters.search.toLowerCase()}%`;
+      conditions.push(sql`(lower(${customers.name}) like ${searchPattern} or lower(${customerReceipts.reference}) like ${searchPattern} or lower(${customerReceipts.id}::text) like ${searchPattern})`);
+    }
+
     return await db.select({
       id: customerReceipts.id,
       customerId: customerReceipts.customerId,
@@ -192,10 +210,7 @@ export class ArRepository {
     })
     .from(customerReceipts)
     .innerJoin(customers, eq(customerReceipts.customerId, customers.id))
-    .where(and(
-      eq(customerReceipts.companyId, companyId),
-      sql`${customerReceipts.deletedAt} IS NULL`
-    ))
+    .where(and(...conditions))
     .orderBy(desc(customerReceipts.createdAt));
   }
 
@@ -229,13 +244,27 @@ export class ArRepository {
       appliedId: customerReceiptApplied.id,
       amountApplied: customerReceiptApplied.amountApplied,
       invoiceNumber: invoices.ncf,
+      codigoFactura: invoices.codigoFactura,
       invoiceDate: invoices.createdAt,
-      totalAmount: invoices.total
+      totalAmount: invoices.total,
+      remainingBalance: accountsReceivable.balance
     })
     .from(customerReceiptApplied)
     .innerJoin(accountsReceivable, eq(customerReceiptApplied.arId, accountsReceivable.id))
     .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
     .where(eq(customerReceiptApplied.receiptId, receiptId));
+
+    // Get customer's overall remaining pending balance
+    const [balanceResult] = await db.select({
+      totalPending: sql<string>`coalesce(sum(${accountsReceivable.balance}), 0)`
+    })
+    .from(accountsReceivable)
+    .where(and(
+      eq(accountsReceivable.customerId, receipt.customerId),
+      sql`${accountsReceivable.deletedAt} IS NULL`
+    ));
+
+    const customerTotalBalance = parseFloat(balanceResult?.totalPending || '0');
 
     return {
       ...receipt,
@@ -243,8 +272,49 @@ export class ArRepository {
         ...ai,
         amountApplied: parseFloat(ai.amountApplied as any),
         totalAmount: parseFloat(ai.totalAmount as any),
+        remainingBalance: parseFloat(ai.remainingBalance as any),
+        codigoFactura: ai.codigoFactura || undefined
       })),
       amount: parseFloat(receipt.amount as any),
+      customerTotalBalance
     };
+  }
+
+  // Get detailed receipts breakdown for a customer (all payments applied to invoices)
+  static async getCustomerReceiptsBreakdown(companyId: string, customerId: string) {
+    const applications = await db.select({
+      receiptId: customerReceipts.id,
+      receiptDate: customerReceipts.date,
+      receiptAmount: customerReceipts.amount,
+      paymentMethod: customerReceipts.paymentMethod,
+      reference: customerReceipts.reference,
+      appliedId: customerReceiptApplied.id,
+      amountApplied: customerReceiptApplied.amountApplied,
+      createdAt: customerReceiptApplied.createdAt,
+      invoiceId: accountsReceivable.invoiceId,
+      invoiceNumber: invoices.ncf,
+      codigoFactura: invoices.codigoFactura,
+      invoiceDate: invoices.createdAt,
+      invoiceTotal: invoices.total,
+      currentBalance: accountsReceivable.balance
+    })
+    .from(customerReceiptApplied)
+    .innerJoin(customerReceipts, eq(customerReceiptApplied.receiptId, customerReceipts.id))
+    .innerJoin(accountsReceivable, eq(customerReceiptApplied.arId, accountsReceivable.id))
+    .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
+    .where(and(
+      eq(customerReceipts.companyId, companyId),
+      eq(customerReceipts.customerId, customerId),
+      sql`${customerReceipts.deletedAt} IS NULL`
+    ))
+    .orderBy(desc(customerReceipts.date), desc(customerReceiptApplied.createdAt));
+
+    return applications.map(app => ({
+      ...app,
+      receiptAmount: parseFloat(app.receiptAmount as any),
+      amountApplied: parseFloat(app.amountApplied as any),
+      invoiceTotal: parseFloat(app.invoiceTotal as any),
+      currentBalance: parseFloat(app.currentBalance as any)
+    }));
   }
 }

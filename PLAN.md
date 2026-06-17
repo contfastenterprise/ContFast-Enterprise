@@ -122,6 +122,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Espaciado Inferior en Título**: Se añadió una separación vertical (`margin-bottom: 8px`) debajo del título central `"RECIBO DE INGRESO"` en la plantilla de impresión de recibos (`documentTemplates.ts`), desplazando los metadatos del recibo (número de recibo, fecha, método de pago, etc.) una línea hacia abajo para mayor claridad visual.
 - **Alineación del Logo**: Se desplazó el logotipo de la empresa en el recibo (formato Carta) `20px` (aproximadamente 3 caracteres) hacia la izquierda para alinear y ajustar su posición según las preferencias visuales del cliente.
 
+### 19. Apartado de Estado de Cuenta y Abonos por Cliente (Cuentas por Cobrar)
+- **Nueva Pestaña en Interfaz**: Se creó una pestaña `"Estado de Cuenta y Abonos"` que permite seleccionar dinámicamente cualquier cliente de la base de datos para consultar el historial completo de sus movimientos.
+- **Detalle Progresivo de Balances**: Muestra cronológicamente todos los abonos aplicados con fecha, código del recibo, número/NCF de factura, método de pago, monto total facturado, importe del abono y calcula el balance restante progresivo de la factura después de cada pago.
+- **Impresión y Búsqueda**: Incorpora un filtro reactivo de búsqueda (para filtrar por código de factura, NCF, recibo o referencia) y un botón de impresión optimizado para generar estados de cuenta impresos legibles y limpios.
+
 **Status**: Verified & Polished (Score 10/10)
 
 
