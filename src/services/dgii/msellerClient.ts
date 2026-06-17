@@ -365,8 +365,14 @@ export class MSellerClient {
       TotalPaginas: 1,
     };
 
-    if (params.paymentType === '2' && params.paymentDueDate) {
-      idDoc.FechaLimitePago = params.paymentDueDate;
+    if (params.paymentType === '2') {
+      let dueDateStr = params.paymentDueDate;
+      if (!dueDateStr) {
+        const defaultDueDate = new Date(params.issueDate);
+        defaultDueDate.setDate(defaultDueDate.getDate() + 30); // Default to 30 days credit
+        dueDateStr = formatDate(defaultDueDate);
+      }
+      idDoc.FechaLimitePago = dueDateStr;
     }
 
     const encabezado: any = {
