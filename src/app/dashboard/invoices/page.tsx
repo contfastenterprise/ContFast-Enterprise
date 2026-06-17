@@ -665,7 +665,19 @@ function InvoicesList() {
 
             <form onSubmit={handleIssueInvoice} className="space-y-8">
               {/* General Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Almacén Origen</label>
+                  <select
+                    value={warehouseId}
+                    onChange={(e) => setWarehouseId(e.target.value)}
+                    required
+                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                  >
+                    <option value="">Seleccione...</option>
+                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Tipo de e-CF</label>
                   <select
@@ -693,7 +705,7 @@ function InvoicesList() {
                   </select>
                 </div>
                 {paymentType === 'bank_transfer' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-2 bg-[#003366]/5 p-4 rounded-xl border border-[#003366]/10 mt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-3 bg-[#003366]/5 p-4 rounded-xl border border-[#003366]/10 mt-2">
                     <div className="space-y-2">
                       <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
                       <select
@@ -1575,17 +1587,6 @@ function InvoicesList() {
                 </div>
 
                 <select
-                  value={modalWarehouseFilter}
-                  onChange={(e) => setModalWarehouseFilter(e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
-                >
-                  <option value="">Todos los almacenes</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-
-                <select
                   value={modalCategoryFilter}
                   onChange={(e) => setModalCategoryFilter(e.target.value)}
                   className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
@@ -1664,16 +1665,6 @@ function InvoicesList() {
                                   type="button"
                                   onClick={() => {
                                     if (activeLineIndex !== null) {
-                                      if (modalWarehouseFilter) {
-                                        setWarehouseId(modalWarehouseFilter);
-                                      } else if (p.inventory && p.inventory.length > 0) {
-                                        const withStock = p.inventory.find((l: any) => parseFloat(l.quantity) > 0);
-                                        if (withStock) {
-                                          setWarehouseId(withStock.warehouseId);
-                                        } else {
-                                          setWarehouseId(p.inventory[0].warehouseId);
-                                        }
-                                      }
                                       applyProductToLine(activeLineIndex, p);
                                       setProductSearchModalOpen(false);
                                     }
