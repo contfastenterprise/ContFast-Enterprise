@@ -422,12 +422,13 @@ export class MSellerClient {
               CantidadItem: Number(line.quantity.toFixed(2)),
               UnidadMedida: '43',
               PrecioUnitarioItem: Number(line.unitPrice.toFixed(2)),
-              MontoItem: montoItem,
             };
 
             if (discount > 0) {
               item.DescuentoMonto = Number(discount.toFixed(2));
             }
+
+            item.MontoItem = montoItem;
 
             return item;
           }),
