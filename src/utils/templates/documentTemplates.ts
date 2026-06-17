@@ -1,3 +1,6 @@
+import { parseFraction } from '../calculos';
+import { windowProfiles } from '../profilesRegistry';
+
 export class DocumentTemplates {
   private static getBaseCss(layout: 'carta' | '80mm' | '58mm') {
     if (layout === 'carta') {
@@ -1186,6 +1189,518 @@ export class DocumentTemplates {
 
         <div class="footer">
           Balance General Financiero - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderWindowBreakdown(data: { company: any; items: any[] }): string {
+    const { company, items } = data;
+    const currentDateStr = new Date().toLocaleDateString('es-DO');
+
+    const padDots = (label: string, length: number) => {
+      const dotsNeeded = length - label.length;
+      return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+    };
+
+    // 1. Group by type and count
+    const typeCounts: Record<string, number> = {};
+    items.forEach(item => {
+      const t = item.tipo || 'Desconocido';
+      typeCounts[t] = (typeCounts[t] || 0) + (Number(item.cantidad) || 0);
+    });
+
+    // 2. Systems calculations
+    const systems = ['Tradicional', 'P-65', 'P-92'];
+    const systemsSummary = systems.map(sys => {
+      const sysItems = items.filter(item => item.tipo === sys);
+      const totalUnits = sysItems.reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
+
+      let cabezalPies = 0;
+      let llavinPies = 0;
+      let rielPies = 0;
+      let lateralPies = 0;
+      let ruedas = 0;
+      let cierres = 0;
+      let gomaPies = 0;
+
+      sysItems.forEach(item => {
+        const w = parseFraction(item.ancho) || 0;
+        const h = parseFraction(item.altura) || 0;
+        const qty = Number(item.cantidad) || 0;
+        const vias = Number(item.vias) || 2;
+
+        const profileSystem = windowProfiles[sys];
+        if (profileSystem) {
+          const cuts = profileSystem.calculate(w, h, 1, vias);
+          const glassPerimeter = (cuts.vidrio.valueWidth + cuts.vidrio.valueHeight) * 2 * vias * qty;
+          gomaPies += glassPerimeter / 12;
+        }
+
+        if (sys === 'Tradicional') {
+          cabezalPies += (w - 0.25) * qty / 12;
+          llavinPies += (h - 0.875) * 2 * qty / 12;
+          rielPies += (w - 0.25) * qty / 12;
+          lateralPies += (h - 0.5) * 2 * qty / 12;
+          ruedas += 4 * qty;
+          cierres += 1 * qty;
+        } else if (sys === 'P-65') {
+          cabezalPies += (w - 1.25) * 2 * qty / 12;
+          llavinPies += (h - 2) * 2 * qty / 12;
+          rielPies += (w - 1.5) * qty / 12;
+          lateralPies += (h - 0.125) * 2 * qty / 12;
+          ruedas += 4 * qty;
+          cierres += 1 * qty;
+        } else if (sys === 'P-92') {
+          cabezalPies += (w - 0.875) * 2 * qty / 12;
+          llavinPies += (h - 2.5) * 2 * qty / 12;
+          rielPies += (w - 1.625) * qty / 12;
+          lateralPies += (h - 0.125) * 2 * qty / 12;
+          ruedas += 4 * qty;
+          cierres += 1 * qty;
+        }
+      });
+
+      return {
+        sys,
+        totalUnits,
+        hasItems: sysItems.length > 0,
+        cabezalPies,
+        llavinPies,
+        rielPies,
+        lateralPies,
+        ruedas,
+        cierres,
+        gomaPies
+      };
+    });
+
+    const logoHtml = company.logoUrl
+      ? `<img class="logo" src="${company.logoUrl}" alt="Logo">`
+      : '';
+
+    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
+    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
+    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
+    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+
+    const formatPies = (val: number) => val > 0 ? `${val.toFixed(2)} pies` : '0.00 pies';
+    const formatPiesCU = (val: number) => val > 0 ? `${val.toFixed(2)} pies c/u` : '0.00 pies c/u';
+
+    const rowsHtml = items.map((item, index) => {
+      let glassText = item.vidrio || '-';
+      if (glassText.includes(' x ')) {
+        glassText = glassText.replace(' x ', ' * ');
+      }
+      return `
+        <tr>
+          <td class="text-center font-mono">${index + 1}</td>
+          <td class="text-center font-bold">${item.tipo || ''}</td>
+          <td class="text-center font-mono font-bold">${item.cantidad}</td>
+          <td class="text-center font-mono">${item.ancho} x ${item.altura}</td>
+          <td class="text-center font-mono">${item.vias}</td>
+          <td class="font-mono">${item.cabezal || '-'}</td>
+          <td class="font-mono">${item.llavin || '-'}</td>
+          <td class="font-mono">${item.riel || '-'}</td>
+          <td class="font-mono">${item.lateral || '-'}</td>
+          <td class="font-mono font-bold" style="color: #0f172a;">${glassText}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const huecosHtml = Object.entries(typeCounts).map(([t, count]) => {
+      return `
+        <div class="hueco-item">
+          <span class="hueco-label">${padDots(t, 25)}</span>
+          <span class="hueco-value font-mono">${count} piezas</span>
+        </div>
+      `;
+    }).join('');
+
+    const systemsHtml = systemsSummary.map(s => {
+      if (!s.hasItems) {
+        return `
+          <div class="system-card empty">
+            <div class="system-card-header">${s.sys}</div>
+            <div class="system-card-body" style="text-align: center; color: #94a3b8; padding: 20px 0;">
+              No hay elementos en este sistema
+            </div>
+          </div>
+        `;
+      }
+
+      const cabLabel = s.sys === 'Tradicional' ? 'Cabezal/Afeizal' : 'Cabezal';
+      const rielLabel = 'Rieles (2/4 vías)';
+      const latLabel = 'Laterales (2/4 vías)';
+
+      return `
+        <div class="system-card">
+          <div class="system-card-header">${s.sys}</div>
+          <div class="system-card-body">
+            <div class="material-row">
+              <span>${padDots(cabLabel, 18)}</span>
+              <span class="font-mono font-bold">${s.sys === 'Tradicional' ? formatPiesCU(s.cabezalPies) : formatPies(s.cabezalPies)}</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots('Lavín/Enganche', 18)}</span>
+              <span class="font-mono font-bold">${formatPiesCU(s.llavinPies)}</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots(rielLabel, 18)}</span>
+              <span class="font-mono font-bold">${formatPiesCU(s.rielPies)}</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots(latLabel, 18)}</span>
+              <span class="font-mono font-bold">${formatPies(s.lateralPies)}</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots('Ruedas', 18)}</span>
+              <span class="font-mono font-bold">${s.ruedas} unidades</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots('Cierre de Centro', 18)}</span>
+              <span class="font-mono font-bold">${s.cierres} unidades</span>
+            </div>
+            <div class="material-row">
+              <span>${padDots('Goma', 18)}</span>
+              <span class="font-mono font-bold">${formatPies(s.gomaPies)}</span>
+            </div>
+            <div class="system-card-footer font-bold">
+              Total unidades: ${s.totalUnits}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Desglose de Ventanas</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          
+          @page {
+            size: letter landscape;
+            margin: 10mm;
+          }
+          
+          body {
+            font-family: 'Inter', Helvetica, Arial, sans-serif;
+            font-size: 8.5pt;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            -webkit-print-color-adjust: exact;
+          }
+          
+          .top-bar {
+            height: 6px;
+            background: linear-gradient(90deg, #002244 0%, #005E6A 50%, #C5A059 100%);
+            width: 100%;
+            margin-bottom: 15px;
+          }
+          
+          .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 15px;
+          }
+          
+          .logo {
+            max-height: 55px;
+            max-width: 200px;
+            object-fit: contain;
+            margin-bottom: 8px;
+          }
+          
+          .company-info {
+            font-family: monospace;
+            font-size: 8.5pt;
+            line-height: 1.4;
+            color: #475569;
+          }
+          
+          .doc-info {
+            text-align: right;
+          }
+          
+          .doc-title {
+            font-size: 16pt;
+            font-weight: 800;
+            color: #002244;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+          }
+          
+          .doc-subtitle {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #005E6A;
+            margin: 0 0 2px 0;
+            text-transform: uppercase;
+          }
+          
+          .doc-meta {
+            font-size: 8.5pt;
+            color: #64748b;
+          }
+          
+          .section-banner {
+            background-color: #002244;
+            color: #ffffff;
+            text-align: center;
+            font-weight: 700;
+            font-size: 9pt;
+            padding: 6px 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border-radius: 4px;
+          }
+          
+          .desglose-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          
+          .desglose-table th {
+            background-color: #005E6A;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 8pt;
+            padding: 6px 4px;
+            text-align: left;
+            border: 1px solid #004d57;
+            text-transform: uppercase;
+          }
+          
+          .desglose-table th.text-center, .desglose-table td.text-center {
+            text-align: center;
+          }
+          
+          .desglose-table td {
+            font-size: 8pt;
+            padding: 6px 4px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+          }
+          
+          .desglose-table tr:nth-child(even) td {
+            background-color: #f8fafc;
+          }
+          
+          .summary-section {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            page-break-inside: avoid;
+          }
+          
+          .huecos-card {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            background-color: #f8fafc;
+          }
+          
+          .card-title {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #002244;
+            border-bottom: 2px solid #005E6A;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-align: center;
+          }
+          
+          .hueco-item {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 8.5pt;
+            margin-bottom: 6px;
+            color: #334155;
+          }
+          
+          .hueco-label {
+            color: #64748b;
+          }
+          
+          .hueco-value {
+            font-weight: bold;
+            color: #0f172a;
+          }
+          
+          .systems-container {
+            flex: 3;
+            display: flex;
+            gap: 12px;
+          }
+          
+          .system-card {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+          }
+          
+          .system-card.empty {
+            background-color: #f8fafc;
+            border-style: dashed;
+          }
+          
+          .system-card-header {
+            background-color: #005E6A;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 9pt;
+            padding: 6px;
+            text-align: center;
+            text-transform: uppercase;
+          }
+          
+          .system-card-body {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex-grow: 1;
+          }
+          
+          .material-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 8pt;
+            color: #475569;
+          }
+          
+          .material-row span:first-child {
+            color: #64748b;
+          }
+          
+          .system-card-footer {
+            margin-top: auto;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 6px;
+            font-size: 8pt;
+            color: #0f172a;
+            text-align: right;
+          }
+          
+          .footer-signature {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            page-break-inside: avoid;
+          }
+          
+          .signature-box {
+            width: 200px;
+            text-align: center;
+            font-size: 8pt;
+            color: #64748b;
+          }
+          
+          .signature-line {
+            border-top: 1px solid #94a3b8;
+            margin-bottom: 4px;
+          }
+          
+          .footer-note {
+            text-align: center;
+            font-size: 7.5pt;
+            color: #94a3b8;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="top-bar"></div>
+        
+        <div class="header-container">
+          <div>
+            ${logoHtml}
+            <div class="company-info">
+              RNC.........: ${company.rnc || 'N/A'}<br>
+              Teléfono....: ${tel}<br>
+              Email.......: ${email}<br>
+              Dirección...: ${dir}
+            </div>
+          </div>
+          <div class="doc-info">
+            <h2 class="doc-subtitle">PRODUCCIÓN Y CORTE</h2>
+            <h1 class="doc-title">Desglose Ventanas</h1>
+            <div class="doc-meta">
+              Lote Interno / Control de Producción<br>
+              Fecha: <strong>${currentDateStr}</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="section-banner">
+          DETALLES DE CORTE Y MATERIALES
+        </div>
+        
+        <table class="desglose-table">
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 3%;">#</th>
+              <th class="text-center" style="width: 8%;">Tipo</th>
+              <th class="text-center" style="width: 5%;">Cant</th>
+              <th class="text-center" style="width: 12%;">Medida Base</th>
+              <th class="text-center" style="width: 5%;">Vías</th>
+              <th style="width: 15%;">Afel/Cabezal</th>
+              <th style="width: 15%;">Llavin/Enganche</th>
+              <th style="width: 12%;">Rieles</th>
+              <th style="width: 12%;">Laterales</th>
+              <th style="width: 13%;">Vidrio (A x H)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+        
+        <div class="summary-section">
+          <div class="huecos-card">
+            <div class="card-title">Huecos por Tipo</div>
+            ${huecosHtml}
+          </div>
+          
+          <div class="systems-container">
+            ${systemsHtml}
+          </div>
+        </div>
+        
+        <div class="footer-signature">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            Preparado por
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            Recibido por (Taller)
+          </div>
+        </div>
+        
+        <div class="footer-note">
+          Reporte Técnico de Producción - Generado por ContFast Enterprise
         </div>
       </body>
       </html>

@@ -134,9 +134,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - **Balance General** (`DocumentTemplates.renderBalanceSheet`)
 - **Detalle y Estilo**: Muestra de forma elegante el logo de la empresa, RNC, dirección fiscal, datos del cliente (cuando corresponda), y la estructura visual de cuentas y totales financieros alineados y formateados con separador de miles.
 
+### 21. Plantilla de Impresión de Desglose de Ventanas (HTML/Puppeteer)
+- **Migración a Puppeteer**: Se reemplazó la generación tradicional monospaced basada en `pdfkit` del desglose de ventanas por una plantilla HTML premium renderizada por Puppeteer (`DocumentTemplates.renderWindowBreakdown`), en orientación Carta horizontal (landscape).
+- **Diseño Técnico Preservado**: Mantiene el diseño exacto de taller con la tabla de medidas base, vías, cortes de perfiles (Cabezal, Llavín, Rieles, Laterales), y cristales, además de los bloques resúmenes de cantidad de piezas por tipo y resumen acumulado de materiales por sistema (Tradicional, P-65 y P-92) calculados dinámicamente.
+
 **Status**: Verified & Polished (Score 10/10)
-
-
-
-
-

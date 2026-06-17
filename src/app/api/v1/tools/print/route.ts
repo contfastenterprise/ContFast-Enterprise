@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/pdfGenerator';
+import { PdfGenerator as PuppeteerPdfGenerator } from '@/services/print/pdfGenerator';
+import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { db, companies, companySettings } from '@/db';
 import { eq } from 'drizzle-orm';
@@ -25,12 +27,16 @@ export async function POST(request: NextRequest) {
     const companyInfo = {
       name: company.name,
       rnc: company.rnc,
+      address: company.address || 'Santiago, R.D.',
+      phone: '1-829-214-4128', // Latin Doors phone
+      email: settings?.msellerEmail || 'latindoors@gmail.com',
       logoUrl: settings?.logoUrl || undefined,
     };
 
     let pdfBuffer: Buffer;
     if (type === 'desglose') {
-      pdfBuffer = await PdfGenerator.generateWindowBreakdown(companyInfo, data);
+      const html = DocumentTemplates.renderWindowBreakdown({ company: companyInfo, items: data });
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta', true);
     } else if (type === 'corte') {
       const sw = Number(sheetWidth) || 96;
       const sh = Number(sheetHeight) || 72;
