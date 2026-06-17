@@ -120,6 +120,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 ### 18. Personalización y Spacing en el Recibo de Ingreso (Cuentas por Cobrar)
 - **Espaciado Inferior en Título**: Se añadió una separación vertical (`margin-bottom: 8px`) debajo del título central `"RECIBO DE INGRESO"` en la plantilla de impresión de recibos (`documentTemplates.ts`), desplazando los metadatos del recibo (número de recibo, fecha, método de pago, etc.) una línea hacia abajo para mayor claridad visual.
+- **Alineación del Logo**: Se desplazó el logotipo de la empresa en el recibo (formato Carta) `20px` (aproximadamente 3 caracteres) hacia la izquierda para alinear y ajustar su posición según las preferencias visuales del cliente.
 
 **Status**: Verified & Polished (Score 10/10)
 

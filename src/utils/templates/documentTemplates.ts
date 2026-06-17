@@ -456,7 +456,7 @@ export class DocumentTemplates {
     const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices, customerTotalBalance } = data;
     
     const logoHtml = company.logoUrl && layout !== '58mm' 
-      ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
+      ? `<img src="${company.logoUrl}" class="logo" style="${layout === 'carta' ? 'margin-left: -20px;' : ''}" alt="Logo">` 
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
