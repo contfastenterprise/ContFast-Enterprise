@@ -221,12 +221,33 @@ export class MSellerClient {
         };
       }
 
+      // Check if DGII rejected the document (even with HTTP 200)
+      if (raw?.estado === 'Rechazado') {
+        const rejectionMsg = raw.mensajes && Array.isArray(raw.mensajes) && raw.mensajes.length > 0
+          ? raw.mensajes.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
+          : (raw.message || 'Rechazado por la DGII');
+        return {
+          success: false,
+          message: rejectionMsg,
+          rawResponse: raw,
+        };
+      }
+
+      // If accepted or has warning messages, build success message
+      let successMsg = 'Aceptado por la DGII';
+      if (raw?.estado) {
+        successMsg = raw.estado;
+        if (raw?.mensajes && Array.isArray(raw.mensajes) && raw.mensajes.length > 0) {
+          successMsg += `: ${raw.mensajes.map((m: any) => m.valor).join(' | ')}`;
+        }
+      }
+
       return {
         success: true,
         trackId: raw?.trackId || raw?.id || raw?.internalTrackId,
         securityCode: raw?.securityCode,
         qrCode: raw?.qrCode || raw?.qr_url || raw?.qr_code,
-        message: raw?.message,
+        message: successMsg,
         rawResponse: raw,
       };
     } catch (err: any) {
