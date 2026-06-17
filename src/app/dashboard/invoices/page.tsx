@@ -916,8 +916,8 @@ function InvoicesList() {
                             <input
                               type="number"
                               value={line.unitPrice}
-                              onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2.5 px-2 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                              readOnly
+                              className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2.5 px-2 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
                               min={0} step="any" required
                             />
                           </div>
