@@ -362,7 +362,6 @@ export class MSellerClient {
       IndicadorMontoGravado: '0',
       TipoIngresos: '05',
       TipoPago: params.paymentType,
-      TotalPaginas: 1,
     };
 
     if (params.paymentType === '2') {
@@ -374,6 +373,8 @@ export class MSellerClient {
       }
       idDoc.FechaLimitePago = dueDateStr;
     }
+
+    idDoc.TotalPaginas = 1;
 
     const encabezado: any = {
       Version: '1.0',
