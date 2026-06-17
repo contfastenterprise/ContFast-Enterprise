@@ -45,7 +45,13 @@ export interface ECFPayload {
         CantidadItem: number;
         UnidadMedida: string;
         PrecioUnitarioItem: number;
-        DescuentoMonto: number;
+        DescuentoMonto?: number;
+        TablaSubDescuento?: {
+          SubDescuento: Array<{
+            TipoSubDescuento: string;
+            MontoSubDescuento: number;
+          }>;
+        };
         MontoItem: number;
       }>;
     };
@@ -426,6 +432,14 @@ export class MSellerClient {
 
             if (discount > 0) {
               item.DescuentoMonto = Number(discount.toFixed(2));
+              item.TablaSubDescuento = {
+                SubDescuento: [
+                  {
+                    TipoSubDescuento: '$',
+                    MontoSubDescuento: Number(discount.toFixed(2)),
+                  },
+                ],
+              };
             }
 
             item.MontoItem = montoItem;
