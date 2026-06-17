@@ -5,6 +5,9 @@ import { eq, and, isNull, sql } from 'drizzle-orm';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { decrypt } from '@/utils/encryption';
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 const CONCURRENCY = parseInt(process.env.QUEUE_CONCURRENCY || '5', 10);
 
@@ -264,13 +267,57 @@ if (redis) {
   const emailWorker = new Worker(
     'emails-sending',
     async (job: Job) => {
-      const { to, subject, text, html } = job.data;
-      console.log(`[Worker] Sending email to: ${to} with subject: "${subject}"...`);
+      const { to, subject, text, html, pdfPath } = job.data;
+      console.log(`[Worker] Preparing to send email to: ${to} with subject: "${subject}"...`);
 
-      // Simulating SMTP send
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const host = process.env.SMTP_HOST;
+      const port = parseInt(process.env.SMTP_PORT || '587', 10);
+      const user = process.env.SMTP_USER;
+      const pass = process.env.SMTP_PASS;
+      const from = process.env.SMTP_FROM || 'no-reply@contfast.com';
 
-      console.log(`[Worker] Email sent to ${to}.`);
+      if (!host || !user || !pass) {
+        console.error('[Worker] SMTP configuration is missing. Cannot send email.');
+        throw new Error('SMTP configuration missing');
+      }
+
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465, // true for port 465, false for other ports
+        auth: {
+          user,
+          pass,
+        },
+      });
+
+      const attachments: any[] = [];
+      if (pdfPath) {
+        const resolvedPath = path.isAbsolute(pdfPath) 
+          ? pdfPath 
+          : path.join(process.cwd(), pdfPath);
+
+        if (fs.existsSync(resolvedPath)) {
+          attachments.push({
+            filename: path.basename(resolvedPath),
+            path: resolvedPath,
+          });
+          console.log(`[Worker] Attaching PDF file: ${resolvedPath}`);
+        } else {
+          console.warn(`[Worker] PDF file not found at path: ${resolvedPath}`);
+        }
+      }
+
+      await transporter.sendMail({
+        from,
+        to,
+        subject,
+        text,
+        html,
+        attachments,
+      });
+
+      console.log(`[Worker] Email sent successfully to ${to}.`);
       return { success: true };
     },
     { connection: redis as any, concurrency: CONCURRENCY }

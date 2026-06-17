@@ -531,30 +531,6 @@ export class InvoiceService {
         });
       }
 
-      // 4. Send invoice email if customer has a registered email
-      if (data.customerId) {
-        try {
-          const customer = await CustomerRepository.findById(data.customerId, data.companyId);
-          if (customer && customer.email) {
-            const isCredit = data.paymentType === 'credit';
-            const subject = isCredit 
-              ? `Factura a Crédito - NCF: ${invoice.ncf}`
-              : `Factura - NCF: ${invoice.ncf}`;
-            const typeStr = isCredit ? ' a crédito' : '';
-
-            await addJob('emails-sending', 'send-email', {
-              to: customer.email,
-              subject,
-              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\nContFast`,
-              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
-            });
-            console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${invoice.ncf}`);
-          }
-        } catch (emailErr) {
-          console.error('[InvoiceService] Error queuing email for invoice:', emailErr);
-        }
-      }
-
       return {
         invoice,
         msellerResponse: msellerResponsePayload
@@ -634,6 +610,31 @@ export class InvoiceService {
       const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
       const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
       fs.writeFileSync(pdfPath, pdfBuffer);
+
+      // Send invoice email if customer has a registered email
+      if (data.customerId) {
+        try {
+          const customer = await CustomerRepository.findById(data.customerId, data.companyId);
+          if (customer && customer.email) {
+            const isCredit = data.paymentType === 'credit';
+            const subject = isCredit 
+              ? `Factura a Crédito - NCF: ${ncf}`
+              : `Factura - NCF: ${ncf}`;
+            const typeStr = isCredit ? ' a crédito' : '';
+
+            await addJob('emails-sending', 'send-email', {
+              to: customer.email,
+              subject,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\nContFast`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
+              pdfPath,
+            });
+            console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${ncf} with attachment ${pdfPath}`);
+          }
+        } catch (emailErr) {
+          console.error('[InvoiceService] Error queuing email for invoice:', emailErr);
+        }
+      }
     } catch (pdfErr: any) {
       console.error('[InvoiceService] Error generating PDF or XML outside transaction:', pdfErr.message);
     }

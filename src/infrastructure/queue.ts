@@ -25,6 +25,7 @@ export interface JobPayloads {
     subject: string;
     text: string;
     html?: string;
+    pdfPath?: string;
   };
 }
 
