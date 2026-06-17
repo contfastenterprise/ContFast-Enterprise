@@ -153,28 +153,41 @@ export class MSellerClient {
     }
 
     const url = `${this.baseUrl}/${this.entorno}/customer/authentication`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email: this.email, password: this.password }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`mSeller auth failed (${response.status}): ${errText}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: this.email, password: this.password }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`mSeller auth failed (${response.status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const idToken = data.idToken;
+      if (!idToken) {
+        throw new Error('mSeller auth: idToken not returned in response');
+      }
+
+      // Cache for 50 minutes
+      this.tokenCache = { idToken, expiresAt: Date.now() + 50 * 60 * 1000 };
+      return idToken;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Timeout de autenticación con mSeller (el servidor no responde).');
+      }
+      throw err;
     }
-
-    const data = await response.json();
-    const idToken = data.idToken;
-    if (!idToken) {
-      throw new Error('mSeller auth: idToken not returned in response');
-    }
-
-    // Cache for 50 minutes
-    this.tokenCache = { idToken, expiresAt: Date.now() + 50 * 60 * 1000 };
-    return idToken;
   }
 
   async sendDocument(payload: ECFPayload): Promise<MSellerSendResponse> {
@@ -182,34 +195,53 @@ export class MSellerClient {
     const apiKey = this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${idToken}`,
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
 
-    const raw = await response.json().catch(() => ({}));
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'X-API-KEY': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
+      const raw = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: raw?.message || `Error ${response.status} de mSeller`,
+          rawResponse: raw,
+        };
+      }
+
       return {
-        success: false,
-        message: raw?.message || `Error ${response.status} de mSeller`,
+        success: true,
+        trackId: raw?.trackId || raw?.id || raw?.internalTrackId,
+        securityCode: raw?.securityCode,
+        qrCode: raw?.qrCode || raw?.qr_url || raw?.qr_code,
+        message: raw?.message,
         rawResponse: raw,
       };
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return {
+          success: false,
+          message: 'timeout - El servidor de integración mSeller/DGII tardó demasiado en responder.',
+        };
+      }
+      return {
+        success: false,
+        message: err.message || 'FetchError - Error de comunicación con mSeller',
+      };
     }
-
-    return {
-      success: true,
-      trackId: raw?.trackId || raw?.id || raw?.internalTrackId,
-      securityCode: raw?.securityCode,
-      qrCode: raw?.qrCode || raw?.qr_url || raw?.qr_code,
-      message: raw?.message,
-      rawResponse: raw,
-    };
   }
 
   async getDocumentStatus(ncf: string): Promise<MSellerStatusResponse> {
@@ -217,32 +249,51 @@ export class MSellerClient {
     const apiKey = this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf?ecf=${encodeURIComponent(ncf)}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${idToken}`,
-        'X-API-KEY': apiKey,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    const raw = await response.json().catch(() => ({}));
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'X-API-KEY': apiKey,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
+      const raw = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: raw?.message || `Error ${response.status}`,
+          rawResponse: raw,
+        };
+      }
+
       return {
-        success: false,
-        message: raw?.message || `Error ${response.status}`,
+        success: true,
+        ncf: raw?.ncf || ncf,
+        status: raw?.status,
+        dgiiStatus: raw?.dgiiStatus || raw?.estadoDGII,
+        message: raw?.message,
         rawResponse: raw,
       };
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return {
+          success: false,
+          message: 'timeout - Excedido el tiempo límite para obtener el estatus del comprobante.',
+        };
+      }
+      return {
+        success: false,
+        message: err.message || 'FetchError - Error al obtener el estatus.',
+      };
     }
-
-    return {
-      success: true,
-      ncf: raw?.ncf || ncf,
-      status: raw?.status,
-      dgiiStatus: raw?.dgiiStatus || raw?.estadoDGII,
-      message: raw?.message,
-      rawResponse: raw,
-    };
   }
 
   /**
