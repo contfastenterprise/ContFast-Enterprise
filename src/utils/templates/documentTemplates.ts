@@ -810,4 +810,100 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderARStatement(data: any, asOf: string): string {
+    const { company, customer, openItems, totalPending } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = openItems.map((item: any) => {
+      const isOverdue = new Date(item.dueDate) < new Date();
+      const invoiceLabel = item.codigoFactura || 'Factura';
+      const ncfLabel = item.ncf ? ` / NCF: ${item.ncf}` : '';
+      return `
+        <tr>
+          <td>${invoiceLabel}${ncfLabel}</td>
+          <td>${new Date(item.date).toLocaleDateString('es-DO')}</td>
+          <td>
+            <span style="${isOverdue ? 'color: #dc3545; font-weight: bold;' : ''}">
+              ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+            </span>
+          </td>
+          <td class="text-right font-mono">$${formatNum(Number(item.amount))}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #dc3545;">$${formatNum(Number(item.balance))}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuentas por Cliente - ${customer.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR CLIENTE</div>
+            <div><strong>Cliente:</strong> ${customer.name}</div>
+            ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
+            <div><strong>Fecha de Corte:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Facturas Pendientes y Balances Adeudados</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Factura / NCF</th>
+              <th>Fecha Emisión</th>
+              <th>Fecha Vencimiento</th>
+              <th class="text-right">Monto Original</th>
+              <th class="text-right" style="color: #dc3545;">Balance Pendiente</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 20px;">
+          <div class="totals">
+            <table>
+              <tr class="grand-total" style="border-top: 2px solid #003366; color: #dc3545;">
+                <th>TOTAL PENDIENTE</th>
+                <td class="text-right">$${formatNum(totalPending)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Documento de Balance Pendiente - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

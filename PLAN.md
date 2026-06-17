@@ -127,6 +127,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Detalle Progresivo de Balances**: Muestra cronológicamente todos los abonos aplicados con fecha, código del recibo, número/NCF de factura, método de pago, monto total facturado, importe del abono y calcula el balance restante progresivo de la factura después de cada pago.
 - **Impresión y Búsqueda**: Incorpora un filtro reactivo de búsqueda (para filtrar por código de factura, NCF, recibo o referencia) y un botón de impresión conectado a un nuevo endpoint de backend `/api/v1/ar/receipts/by-customer/print` que genera un documento PDF oficial de estado de cuenta utilizando Puppeteer y la plantilla `DocumentTemplates.renderCustomerStatement` con logo de la empresa y detalles fiscales.
 
+### 20. Impresión Premium del Estado de Cuenta por Cliente en Reportes
+- **Generación HTML/Puppeteer**: Se reemplazó la antigua generación `pdfkit` monospaced en la sección de reportes por una plantilla de impresión HTML premium generada con Puppeteer (`DocumentTemplates.renderARStatement`).
+- **Detalle y Estilo**: Muestra de forma elegante el logo de la empresa, RNC, dirección fiscal, datos del cliente, y la tabla de facturas pendientes con fecha de vencimiento destacada, totalizando el importe pendiente total adeudado.
+
 **Status**: Verified & Polished (Score 10/10)
 
 

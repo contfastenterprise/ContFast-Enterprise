@@ -185,6 +185,7 @@ export class ReportRepository {
       id: accountsReceivable.id,
       invoiceId: invoices.id,
       invoiceNumber: invoices.id,
+      codigoFactura: invoices.codigoFactura,
       ncf: invoices.ncf,
       date: invoices.createdAt,
       dueDate: accountsReceivable.dueDate,

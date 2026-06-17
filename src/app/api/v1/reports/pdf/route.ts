@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { ReportRepository } from '@/repositories/reportRepository';
 import { PdfGenerator } from '@/services/pdfGenerator';
+import { db, companySettings } from '@/db';
+import { eq } from 'drizzle-orm';
+import { DocumentTemplates } from '@/utils/templates/documentTemplates';
+import { PdfGenerator as PuppeteerPdfGenerator } from '@/services/print/pdfGenerator';
 
 // pdfkit usa módulos nativos de Node.js (fs, Buffer, crypto).
 // Forzar el runtime de Node.js para que funcione en Next.js App Router.
@@ -61,13 +65,31 @@ export async function GET(req: NextRequest) {
       }
       const asOf = end || new Date().toISOString().split('T')[0];
       const data = await ReportRepository.getARStatement(session.companyId, customerId);
+
+      const [settings] = await db
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, session.companyId))
+        .limit(1);
+
+      const html = DocumentTemplates.renderARStatement({
+        company: {
+          name: companyInfo.name,
+          rnc: companyInfo.rnc,
+          address: companyInfo.address || 'República Dominicana',
+          phone: '1-809-555-0199', // Placeholder
+          logoUrl: settings?.logoUrl || undefined
+        },
+        customer: {
+          name: data.customer.name,
+          rncCedula: data.customer.rncCedula || '',
+          phone: data.customer.phone || ''
+        },
+        openItems: data.openItems,
+        totalPending: data.totalPending
+      }, asOf);
       
-      pdfBuffer = await PdfGenerator.generateARStatement(
-        { name: companyInfo.name, rnc: companyInfo.rnc, logoUrl: companyInfo.logoUrl || undefined },
-        { name: data.customer.name, rnc: data.customer.rncCedula || '', phone: data.customer.phone || '' },
-        asOf,
-        data
-      );
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
       filename = `Estado_Cuentas_${data.customer.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     }
     else {
