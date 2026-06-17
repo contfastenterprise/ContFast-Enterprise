@@ -723,4 +723,91 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderCustomerStatement(data: any): string {
+    const { company, customer, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = items.map((item: any) => {
+      const methodLabel = item.paymentMethod === 'cash' ? 'Efectivo' : 
+                          item.paymentMethod === 'bank' ? 'Banco' : 
+                          item.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+      return `
+        <tr>
+          <td>${new Date(item.receiptDate).toLocaleDateString('es-DO')}</td>
+          <td class="font-mono">REC-${item.receiptId.slice(0, 8).toUpperCase()}</td>
+          <td class="font-semibold text-slate-800">${item.codigoFactura || 'N/A'}${item.invoiceNumber ? ` (${item.invoiceNumber})` : ''}</td>
+          <td>${methodLabel}${item.reference ? ` - Ref: ${item.reference}` : ''}</td>
+          <td class="text-right font-mono">$${formatNum(item.invoiceTotal)}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #1e7e34;">$${formatNum(item.amountApplied)}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #dc3545;">$${formatNum(item.progressiveBalance)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuenta - ${customer.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA</div>
+            <div><strong>Cliente:</strong> ${customer.name}</div>
+            ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Historial de Cobros y Abonos</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Fecha</th>
+              <th>Recibo</th>
+              <th>Factura / NCF</th>
+              <th>Método de Pago</th>
+              <th class="text-right">Monto Factura</th>
+              <th class="text-right">Abono</th>
+              <th class="text-right" style="color: #dc3545;">Restante</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Documento Informativo - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

@@ -74,6 +74,7 @@ export default function ReceivablesPage() {
   const [statementReceipts, setStatementReceipts] = useState<any[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
   const [statementSearch, setStatementSearch] = useState('');
+  const [printingStatement, setPrintingStatement] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -173,6 +174,33 @@ export default function ReceivablesPage() {
       }
     } catch (err) {
       toast.error('Error de red al generar PDF', { id: toastId });
+    }
+  };
+
+  const handlePrintStatement = async () => {
+    if (!selectedStatementCustomerId) return;
+    const toastId = toast.loading('Generando PDF del estado de cuenta...');
+    setPrintingStatement(true);
+    try {
+      const res = await fetch('/api/v1/ar/receipts/by-customer/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          customerId: selectedStatementCustomerId,
+          search: statementSearch
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        toast.success('PDF del estado de cuenta generado con éxito', { id: toastId });
+        window.open(data.url, '_blank');
+      } else {
+        toast.error(data.error?.message || 'Error al generar PDF del estado', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('Error de red al generar PDF del estado', { id: toastId });
+    } finally {
+      setPrintingStatement(false);
     }
   };
 
@@ -660,10 +688,16 @@ export default function ReceivablesPage() {
               {selectedStatementCustomerId && statementReceipts.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="w-full md:w-auto bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center justify-center gap-2"
+                  disabled={printingStatement}
+                  onClick={handlePrintStatement}
+                  className="w-full md:w-auto bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Printer className="w-4 h-4" /> Imprimir Estado
+                  {printingStatement ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Printer className="w-4 h-4" />
+                  )}
+                  {printingStatement ? 'Generando...' : 'Imprimir Estado'}
                 </button>
               )}
             </div>

@@ -125,7 +125,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 19. Apartado de Estado de Cuenta y Abonos por Cliente (Cuentas por Cobrar)
 - **Nueva Pestaña en Interfaz**: Se creó una pestaña `"Estado de Cuenta y Abonos"` que permite seleccionar dinámicamente cualquier cliente de la base de datos para consultar el historial completo de sus movimientos.
 - **Detalle Progresivo de Balances**: Muestra cronológicamente todos los abonos aplicados con fecha, código del recibo, número/NCF de factura, método de pago, monto total facturado, importe del abono y calcula el balance restante progresivo de la factura después de cada pago.
-- **Impresión y Búsqueda**: Incorpora un filtro reactivo de búsqueda (para filtrar por código de factura, NCF, recibo o referencia) y un botón de impresión optimizado para generar estados de cuenta impresos legibles y limpios.
+- **Impresión y Búsqueda**: Incorpora un filtro reactivo de búsqueda (para filtrar por código de factura, NCF, recibo o referencia) y un botón de impresión conectado a un nuevo endpoint de backend `/api/v1/ar/receipts/by-customer/print` que genera un documento PDF oficial de estado de cuenta utilizando Puppeteer y la plantilla `DocumentTemplates.renderCustomerStatement` con logo de la empresa y detalles fiscales.
 
 **Status**: Verified & Polished (Score 10/10)
 
