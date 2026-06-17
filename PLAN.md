@@ -118,6 +118,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Campos de Entrada y Formularios**: Se modificaron las entradas de formulario (inputs de fecha, inputs de referencia, textareas de notas, celdas de inputs de facturas amortizadas) y botones de opciones inactivas en el modal de cobros para usar `text-white` o `text-slate-300` sobre fondos azul oscuro (`bg-[#001733]`), eliminando problemas de contraste de texto oscuro.
 - **Botones con Fondo Azul**: Se ajustaron los botones de actualización de historial de caja (`bg-[#001e40]`), botones de retorno (`bg-[#001e40]`), y botones de generación de reportes en PDF (`bg-[#003366]`) para cambiar `text-primary` a `text-white`, evitando texto invisible.
 
+### 18. Personalización y Spacing en el Recibo de Ingreso (Cuentas por Cobrar)
+- **Espaciado Inferior en Título**: Se añadió una separación vertical (`margin-bottom: 8px`) debajo del título central `"RECIBO DE INGRESO"` en la plantilla de impresión de recibos (`documentTemplates.ts`), desplazando los metadatos del recibo (número de recibo, fecha, método de pago, etc.) una línea hacia abajo para mayor claridad visual.
+
 **Status**: Verified & Polished (Score 10/10)
 
 

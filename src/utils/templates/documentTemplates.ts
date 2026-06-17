@@ -4,7 +4,7 @@ export class DocumentTemplates {
       return `
         body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-        .logo { max-width: 150px; max-height: 80px; object-fit: contain; }
+        .logo { max-width: 250px; max-height: 110px; object-fit: contain; }
         .company-info { text-align: left; }
         .doc-info { text-align: right; }
         .title { font-size: 16pt; font-weight: bold; color: #111; margin-bottom: 5px; }
@@ -453,24 +453,38 @@ export class DocumentTemplates {
 
   static renderReceipt(data: any, layout: 'carta' | '80mm' | '58mm'): string {
     const css = this.getBaseCss(layout);
-    const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices } = data;
+    const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices, customerTotalBalance } = data;
     
     const logoHtml = company.logoUrl && layout !== '58mm' 
       ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
       : '';
 
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
     const methodLabel = paymentMethod === 'cash' ? 'Efectivo / Caja Chica' : 
                         paymentMethod === 'bank' ? 'Transferencia / Depósito' : 
                         paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
 
-    const linesHtml = appliedInvoices.map((inv: any) => `
-      <tr>
-        <td>${inv.invoiceNumber}</td>
-        <td>${new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
-        <td class="text-right">$${inv.totalAmount.toFixed(2)}</td>
-        <td class="text-right">$${inv.amountApplied.toFixed(2)}</td>
-      </tr>
-    `).join('');
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = appliedInvoices.map((inv: any) => {
+      const isPaid = (inv.remainingBalance || 0) <= 0.01;
+      const typeLabel = isPaid ? 'SALDO' : 'ABONO';
+      const typeColor = isPaid ? '#1e7e34' : '#d39e00';
+      const invoiceLabel = inv.codigoFactura || inv.invoiceNumber || 'N/A';
+      return `
+        <tr>
+          <td>${invoiceLabel}</td>
+          <td>${new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
+          <td class="text-right">$${formatNum(inv.totalAmount)}</td>
+          <td class="text-right" style="font-weight: bold; color: #001e40;">$${formatNum(inv.amountApplied)}</td>
+          <td class="text-center" style="font-weight: bold; color: ${typeColor};">${typeLabel}</td>
+          <td class="text-right" style="font-weight: bold; color: #dc3545;">$${formatNum(inv.remainingBalance || 0)}</td>
+        </tr>
+      `;
+    }).join('');
 
     return `
       <!DOCTYPE html>
@@ -482,15 +496,15 @@ export class DocumentTemplates {
       </head>
       <body>
         <div class="header">
-          <div class="company-info">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
             ${logoHtml}
-            <div class="title">${company.name}</div>
+            ${companyTitleHtml}
             <div>RNC: ${company.rnc}</div>
             ${company.address ? `<div>${company.address}</div>` : ''}
             ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
           </div>
           <div class="doc-info">
-            <div class="subtitle">RECIBO DE INGRESO</div>
+            <div class="subtitle" style="margin-bottom: 8px;">RECIBO DE INGRESO</div>
             <div><strong>Recibo #:</strong> REC-${id.slice(0, 8).toUpperCase()}</div>
             <div><strong>Fecha:</strong> ${new Date(date).toLocaleDateString('es-DO')}</div>
             <div><strong>Método:</strong> ${methodLabel}</div>
@@ -511,10 +525,12 @@ export class DocumentTemplates {
         <table>
           <thead>
             <tr>
-              <th>NCF / Documento</th>
+              <th>Factura</th>
               <th>Fecha Factura</th>
               <th class="text-right">Monto Factura</th>
               <th class="text-right">Monto Aplicado</th>
+              <th class="text-center">Tipo de Transacción</th>
+              <th class="text-right">Balance Restante</th>
             </tr>
           </thead>
           <tbody>
@@ -527,8 +543,14 @@ export class DocumentTemplates {
             <table>
               <tr class="grand-total">
                 <th>TOTAL RECIBIDO</th>
-                <td class="text-right">$${amount.toFixed(2)}</td>
+                <td class="text-right">$${formatNum(amount)}</td>
               </tr>
+              ${customerTotalBalance !== undefined ? `
+              <tr class="grand-total" style="border-top: 1px solid #dee2e6; color: #dc3545;">
+                <th style="font-size: 10pt;">BALANCE PENDIENTE</th>
+                <td class="text-right" style="font-weight: bold; font-size: 10pt;">$${formatNum(customerTotalBalance)}</td>
+              </tr>
+              ` : ''}
             </table>
           </div>
         </div>
