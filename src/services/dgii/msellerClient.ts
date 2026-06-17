@@ -243,8 +243,11 @@ export class MSellerClient {
       let successMsg = 'Aceptado por la DGII';
       if (raw?.estado) {
         successMsg = raw.estado;
-        if (raw?.mensajes && Array.isArray(raw.mensajes) && raw.mensajes.length > 0) {
-          successMsg += `: ${raw.mensajes.map((m: any) => m.valor).join(' | ')}`;
+        const validMsgs = raw.mensajes && Array.isArray(raw.mensajes)
+          ? raw.mensajes.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
+          : [];
+        if (validMsgs.length > 0) {
+          successMsg += `: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
         }
       }
 
