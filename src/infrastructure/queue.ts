@@ -40,33 +40,41 @@ export async function addJob<K extends keyof JobPayloads>(
   const attempts = opts.attempts ?? 3;
   const backoff = opts.backoff ?? 5000; // 5 seconds default backoff retry
 
+  // Safeguard: Timeout queue additions after 1500ms to prevent hanging if Redis is offline
+  const timeoutPromise = new Promise<null>((resolve) =>
+    setTimeout(() => {
+      console.warn(`[Queue] Timeout adding job to ${queueName} - Redis is likely offline or unresponsive.`);
+      resolve(null);
+    }, 1500)
+  );
+
   try {
+    let addPromise: Promise<any>;
+
     if (queueName === 'dgii-submissions' && dgiiQueue) {
-      return await dgiiQueue.add(name, data, {
+      addPromise = dgiiQueue.add(name, data, {
         attempts,
         backoff: { type: 'exponential', delay: backoff },
         ...opts
       });
-    }
-
-    if (queueName === 'reports-generation' && reportQueue) {
-      return await reportQueue.add(name, data, {
+    } else if (queueName === 'reports-generation' && reportQueue) {
+      addPromise = reportQueue.add(name, data, {
         attempts,
         backoff: { type: 'fixed', delay: backoff },
         ...opts
       });
-    }
-
-    if (queueName === 'emails-sending' && emailQueue) {
-      return await emailQueue.add(name, data, {
+    } else if (queueName === 'emails-sending' && emailQueue) {
+      addPromise = emailQueue.add(name, data, {
         attempts,
         backoff: { type: 'fixed', delay: backoff },
         ...opts
       });
+    } else {
+      console.warn(`Could not add job to ${queueName}: Queue or Redis is offline.`);
+      return null;
     }
 
-    console.warn(`Could not add job to ${queueName}: Queue or Redis is offline.`);
-    return null;
+    return await Promise.race([addPromise, timeoutPromise]);
   } catch (error: any) {
     console.error(`Failed to add job to queue ${queueName}:`, error.message);
     return null;

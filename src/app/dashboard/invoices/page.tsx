@@ -810,14 +810,6 @@ function InvoicesList() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
-                  <button
-                    type="button"
-                    onClick={handleAddLine}
-                    className="text-xs text-[#C5A059] font-bold hover:text-[#b08c4a] flex items-center gap-1.5 bg-[#C5A059]/10 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Fila
-                  </button>
                 </div>
 
                 <div className="space-y-3">
@@ -975,6 +967,17 @@ function InvoicesList() {
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="flex justify-start mt-2">
+                  <button
+                    type="button"
+                    onClick={handleAddLine}
+                    className="text-xs text-[#C5A059] font-bold hover:text-[#b08c4a] flex items-center gap-1.5 bg-[#C5A059]/10 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar Fila
+                  </button>
                 </div>
               </div>
 

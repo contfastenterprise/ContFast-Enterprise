@@ -338,6 +338,19 @@ export class InvoiceService {
       }
     }
 
+    const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
+    const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
+
+    if (!securityHash) {
+      securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
+    }
+
+    const storageDir = process.env.STORAGE_PATH || './storage';
+    const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
+    const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
+    const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
+    const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
+
     // 3. Perform main transactional operations (Fase 3)
     const result = await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
@@ -370,93 +383,6 @@ export class InvoiceService {
           }
         }
       }
-
-      const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
-      const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
-
-      if (!securityHash) {
-        securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
-      }
-
-      // Generate PDF Buffer using premium HTML/Puppeteer rendering engine
-      const formattedInvoiceRecord = {
-        ncf,
-        ecfType: data.ecfType,
-        paymentType: data.paymentType,
-        createdAt: new Date().toISOString(),
-        paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
-        subtotal,
-        discount: totalDiscount,
-        totalTaxes,
-        total,
-        notes: data.notes || '',
-        securityCode: securityHash,
-        signatureDate: new Date().toISOString(),
-        lines: itemLines.map(l => ({
-          quantity: l.quantity,
-          productName: l.name,
-          productSku: 'N/A',
-          unitOfMeasure: 'Unidad',
-          unitPrice: l.unitPrice,
-          discount: l.discount,
-          total: l.total
-        })),
-        taxes: taxesList.map(t => ({
-          taxType: t.taxType,
-          rate: t.rate,
-          amount: t.amount
-        })),
-        company: {
-          name: company.name,
-          rnc: company.rnc,
-          address: company.address || 'Santiago, R.D.',
-          phone: '1-829-214-4128', // Latin Doors phone from the template
-          email: settings?.msellerEmail || 'latindoors@gmail.com',
-          logoUrl: settings?.logoUrl || undefined,
-          settings: { 
-            printLayout: settings?.printLayout || 'carta' 
-          }
-        },
-        customer: {
-          name: data.buyerName || 'Consumidor Final',
-          rncCedula: data.buyerRnc || '',
-          phone: '',
-          address: ''
-        }
-      };
-
-      // Generate QR Code base64
-      let qrBase64 = '';
-      if (qrCode) {
-        if (qrCode.startsWith('http')) {
-          qrBase64 = await PdfGenerator.generateQrBase64(qrCode);
-        } else {
-          qrBase64 = qrCode;
-        }
-      } else {
-        const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
-        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(total).toFixed(2)}&codigoSeguridad=${securityHash}`;
-        qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
-      }
-
-      const layout = settings?.printLayout as 'carta' | '80mm' | '58mm' || 'carta';
-      const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
-      const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
-
-      // Save XML and PDF to local storage
-      const storageDir = process.env.STORAGE_PATH || './storage';
-      const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
-      if (!fs.existsSync(invoicesDir)) {
-        fs.mkdirSync(invoicesDir, { recursive: true });
-      }
-
-      const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
-      const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
-      const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
-
-      fs.writeFileSync(xmlPath, rawXml);
-      fs.writeFileSync(signedXmlPath, signedXml);
-      fs.writeFileSync(pdfPath, pdfBuffer);
 
       // Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
@@ -605,21 +531,27 @@ export class InvoiceService {
         });
       }
 
-      // 4. Send credit invoice email if customer has a registered email
-      if (data.paymentType === 'credit' && data.customerId) {
+      // 4. Send invoice email if customer has a registered email
+      if (data.customerId) {
         try {
           const customer = await CustomerRepository.findById(data.customerId, data.companyId);
           if (customer && customer.email) {
+            const isCredit = data.paymentType === 'credit';
+            const subject = isCredit 
+              ? `Factura a Crédito - NCF: ${invoice.ncf}`
+              : `Factura - NCF: ${invoice.ncf}`;
+            const typeStr = isCredit ? ' a crédito' : '';
+
             await addJob('emails-sending', 'send-email', {
               to: customer.email,
-              subject: `Factura a Crédito - NCF: ${invoice.ncf}`,
-              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura a crédito NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\nContFast`,
-              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura a crédito NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
+              subject,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\nContFast`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
             });
-            console.log(`[InvoiceService] Credit invoice email queued for customer ${customer.email} regarding NCF ${invoice.ncf}`);
+            console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${invoice.ncf}`);
           }
         } catch (emailErr) {
-          console.error('[InvoiceService] Error queuing email for credit invoice:', emailErr);
+          console.error('[InvoiceService] Error queuing email for invoice:', emailErr);
         }
       }
 
@@ -628,6 +560,83 @@ export class InvoiceService {
         msellerResponse: msellerResponsePayload
       };
     });
+
+    // ── File generation outside the transaction block to avoid lockups ──────
+    try {
+      if (!fs.existsSync(invoicesDir)) {
+        fs.mkdirSync(invoicesDir, { recursive: true });
+      }
+      fs.writeFileSync(xmlPath, rawXml);
+      fs.writeFileSync(signedXmlPath, signedXml);
+
+      // Generate PDF Buffer using premium HTML/Puppeteer rendering engine
+      const formattedInvoiceRecord = {
+        ncf,
+        ecfType: data.ecfType,
+        paymentType: data.paymentType,
+        createdAt: new Date().toISOString(),
+        paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
+        subtotal,
+        discount: totalDiscount,
+        totalTaxes,
+        total,
+        notes: data.notes || '',
+        securityCode: securityHash,
+        signatureDate: new Date().toISOString(),
+        lines: itemLines.map(l => ({
+          quantity: l.quantity,
+          productName: l.name,
+          productSku: 'N/A',
+          unitOfMeasure: 'Unidad',
+          unitPrice: l.unitPrice,
+          discount: l.discount,
+          total: l.total
+        })),
+        taxes: taxesList.map(t => ({
+          taxType: t.taxType,
+          rate: t.rate,
+          amount: t.amount
+        })),
+        company: {
+          name: company.name,
+          rnc: company.rnc,
+          address: company.address || 'Santiago, R.D.',
+          phone: '1-829-214-4128',
+          email: settings?.msellerEmail || 'latindoors@gmail.com',
+          logoUrl: settings?.logoUrl || undefined,
+          settings: { 
+            printLayout: settings?.printLayout || 'carta' 
+          }
+        },
+        customer: {
+          name: data.buyerName || 'Consumidor Final',
+          rncCedula: data.buyerRnc || '',
+          phone: '',
+          address: ''
+        }
+      };
+
+      // Generate QR Code base64
+      let qrBase64 = '';
+      if (qrCode) {
+        if (qrCode.startsWith('http')) {
+          qrBase64 = await PdfGenerator.generateQrBase64(qrCode);
+        } else {
+          qrBase64 = qrCode;
+        }
+      } else {
+        const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
+        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(total).toFixed(2)}&codigoSeguridad=${securityHash}`;
+        qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+      }
+
+      const layout = settings?.printLayout as 'carta' | '80mm' | '58mm' || 'carta';
+      const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
+      const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
+      fs.writeFileSync(pdfPath, pdfBuffer);
+    } catch (pdfErr: any) {
+      console.error('[InvoiceService] Error generating PDF or XML outside transaction:', pdfErr.message);
+    }
 
     // Automatically issue delivery note if autoDeliveryNotes is enabled
     if (settings?.autoDeliveryNotes && ['31', '32', '45'].includes(data.ecfType)) {
