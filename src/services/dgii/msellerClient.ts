@@ -8,7 +8,7 @@ export interface ECFPayload {
         TipoeCF: string;
         eNCF: string;
         FechaVencimientoSecuencia: string;
-        IndicadorEnvioDiferido: string;
+        IndicadorEnvioDiferido?: string;
         IndicadorMontoGravado: string;
         TipoIngresos: string;
         TipoPago: string;
@@ -338,7 +338,6 @@ export class MSellerClient {
       TipoeCF: params.ecfType,
       eNCF: params.ncf,
       FechaVencimientoSecuencia: params.sequenceExpiry,
-      IndicadorEnvioDiferido: '0',
       IndicadorMontoGravado: '0',
       TipoIngresos: '05',
       TipoPago: params.paymentType,
