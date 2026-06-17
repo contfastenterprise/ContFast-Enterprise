@@ -257,7 +257,7 @@ export default function ReceivablesPage() {
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <HandCoins className="h-3 w-3" /> Cuentas por Cobrar (Cobros)
         </span>
       </div>
@@ -359,7 +359,7 @@ export default function ReceivablesPage() {
                       </div>
                       <button
                         onClick={() => handleOpenPayment(customer)}
-                        className="bg-[#003366] hover:bg-[#002244] text-primary px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2"
+                        className="bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2"
                       >
                         <Receipt className="h-4 w-4" /> Registrar Cobro
                       </button>
@@ -523,15 +523,15 @@ export default function ReceivablesPage() {
                 <div className="md:w-1/3 bg-surface-container-highest border-r border-[#003366] p-6 space-y-5 overflow-y-auto shrink-0">
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><Calendar className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Fecha de Cobro</label>
-                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary transition-colors" />
+                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-white transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><CreditCard className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Método de Pago</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'bank' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-on-surface-variant hover:text-primary')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'bank' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-slate-300 hover:text-white')}>
                         <Landmark className="w-4 h-4" /> Banco
                       </button>
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'cash' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-on-surface-variant hover:text-primary')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'cash' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-[#001733] border-[#003366] text-slate-300 hover:text-white')}>
                         <HandCoins className="w-4 h-4" /> Caja Chica
                       </button>
                     </div>
@@ -551,11 +551,11 @@ export default function ReceivablesPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Referencia (Cheque/Transfer)</label>
-                    <input type="text" value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono text-primary transition-colors" placeholder="Ej. TX-98442" />
+                    <input type="text" value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono text-white transition-colors" placeholder="Ej. TX-98442" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Nota Interna (Opcional)</label>
-                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary resize-none transition-colors"></textarea>
+                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-[#001733] border border-[#003366] rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-white resize-none transition-colors"></textarea>
                   </div>
                 </div>
 
@@ -593,7 +593,7 @@ export default function ReceivablesPage() {
                                   step="0.01"
                                   value={applied || ''}
                                   onChange={(e) => handleManualApplyChange(inv.arId, e.target.value, inv.balance)}
-                                  className={clsx("w-full border rounded px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-1 transition-all", applied > 0 ? 'border-emerald-500/50 bg-emerald-900/30 focus:ring-emerald-500 text-emerald-400 font-bold' : 'border-[#003366] bg-[#001733] text-primary focus:border-[#c5a059]')}
+                                  className={clsx("w-full border rounded px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-1 transition-all", applied > 0 ? 'border-emerald-500/50 bg-emerald-900/30 focus:ring-emerald-500 text-emerald-400 font-bold' : 'border-[#003366] bg-[#001733] text-white focus:border-[#c5a059]')}
                                   placeholder="0.00"
                                 />
                               </td>

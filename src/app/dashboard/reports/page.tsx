@@ -143,7 +143,7 @@ export default function ReportsPage() {
             <button
               onClick={() => handleGeneratePdf('income_statement')}
               disabled={loadingType !== null}
-              className="w-full bg-[#003366] hover:bg-[#002244] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'income_statement' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>

@@ -106,7 +106,21 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 - **Visualización Completa de Comprobantes**: Modificado el panel de creación y filtrado de secuencias para incluir los 10 tipos de comprobantes fiscales electrónicos (e-CF) autorizados por la DGII (e-31 Crédito Fiscal, e-32 Consumo, e-33 Nota Débito, e-34 Nota Crédito, e-41 Compras, e-43 Gastos Menores, e-44 Regímenes Especiales, e-45 Gubernamental, e-46 Pagos al Exterior y e-47 Exportación), actualizando además la asignación de colores en los badges identificadores correspondientes.
 
+### 15. Optimización de Memoria (Rendimiento)
+- **Singleton de Puppeteer**: Implementación de una instancia compartida y persistente del navegador Chromium (`PdfGenerator.browserInstance`) con reinicio automático ante desconexiones y banderas optimizadas de bajo consumo. Esto evita lanzar un navegador completo por cada PDF, abriendo/cerrando únicamente páginas virtuales, reduciendo drásticamente el consumo de RAM en el servidor.
+- **Carga Diferida de Gráficos (Dashboard)**: Migración de los gráficos del Dashboard a un subcomponente `DashboardCharts.tsx` importado de manera dinámica (`next/dynamic` sin SSR). Esto aligera el bundle de carga inicial reduciendo la huella de memoria del navegador en el cliente.
+
+### 16. Corrección en Cuentas por Cobrar (Receivables)
+- **Color de Texto del Botón**: Se cambió el color del texto del botón "Registrar Cobro" (de la tabla de saldos de clientes) de `text-primary` (el cual heredaba el color azul principal y se volvía invisible contra el fondo azul del botón) a `text-white` para garantizar su legibilidad y contraste.
+
+### 17. Corrección de contraste de texto en fondos azules (Accesibilidad y Legibilidad)
+- **Corrección en Status Bars y Pestañas**: Se cambió el color de texto `text-primary` a `text-white` en todas las barras superiores y menús de pestañas que tienen fondo azul oscuro (`bg-[#003366]`).
+- **Campos de Entrada y Formularios**: Se modificaron las entradas de formulario (inputs de fecha, inputs de referencia, textareas de notas, celdas de inputs de facturas amortizadas) y botones de opciones inactivas en el modal de cobros para usar `text-white` o `text-slate-300` sobre fondos azul oscuro (`bg-[#001733]`), eliminando problemas de contraste de texto oscuro.
+- **Botones con Fondo Azul**: Se ajustaron los botones de actualización de historial de caja (`bg-[#001e40]`), botones de retorno (`bg-[#001e40]`), y botones de generación de reportes en PDF (`bg-[#003366]`) para cambiar `text-primary` a `text-white`, evitando texto invisible.
+
 **Status**: Verified & Polished (Score 10/10)
+
+
 
 
 

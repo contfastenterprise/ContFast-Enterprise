@@ -1095,7 +1095,7 @@ export default function CashPage() {
                 </button>
                 <button
                   onClick={loadHistory}
-                  className="bg-[#001e40] text-primary text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all"
+                  className="bg-[#001e40] text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all"
                 >
                   <RefreshCw className="w-4 h-4" />
                   ACTUALIZAR
@@ -1441,7 +1441,7 @@ export default function CashPage() {
               )}
               <button
                 onClick={handleSuccessClose}
-                className="w-full bg-[#001e40] text-primary py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"
+                className="w-full bg-[#001e40] text-white py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"
               >
                 Volver al Inicio
               </button>

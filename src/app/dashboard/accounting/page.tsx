@@ -188,7 +188,7 @@ export default function AccountingPage() {
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <BookOpen className="h-3 w-3" /> Contabilidad Financiera
         </span>
       </div>
@@ -238,7 +238,7 @@ export default function AccountingPage() {
             onClick={() => setActiveTab('journals')}
             className={clsx(
               'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              activeTab === 'journals' ? 'bg-[#003366] text-primary shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
+              activeTab === 'journals' ? 'bg-[#003366] text-white shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
             )}
           >
             Asientos Contables

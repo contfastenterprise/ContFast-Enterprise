@@ -111,7 +111,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <Shield className="h-3 w-3" /> Permisos & Administración
         </span>
       </div>
