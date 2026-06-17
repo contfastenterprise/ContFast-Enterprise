@@ -1454,16 +1454,15 @@ export class DocumentTemplates {
           }
           
           .section-banner {
-            background-color: #002244;
-            color: #ffffff;
+            color: #000000;
             text-align: center;
             font-weight: 700;
-            font-size: 9pt;
+            font-size: 9.5pt;
             padding: 6px 0;
             letter-spacing: 1px;
             text-transform: uppercase;
             margin-bottom: 12px;
-            border-radius: 4px;
+            border-bottom: 1px solid #e2e8f0;
           }
           
           .desglose-table {
