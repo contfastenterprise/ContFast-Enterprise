@@ -906,4 +906,289 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderIncomeStatement(data: any, startDate: string, endDate: string): string {
+    const { company, revenueAccounts, totalRevenue, costAccounts, totalCost, grossProfit, expenseAccounts, totalExpense, netIncome } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const renderAccountRows = (accounts: any[]) => {
+      if (!accounts || accounts.length === 0) {
+        return `<tr><td colspan="3" class="text-center text-slate-400 font-mono">Sin registros</td></tr>`;
+      }
+      return accounts.map(acc => `
+        <tr>
+          <td class="font-mono text-slate-500">${acc.code}</td>
+          <td>${acc.name}</td>
+          <td class="text-right font-mono">$${formatNum(Number(acc.balance))}</td>
+        </tr>
+      `).join('');
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Resultados - ${company.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .section-title { font-weight: bold; font-size: 11pt; color: #003366; background-color: #f1f5f9; padding: 6px 10px; margin-top: 15px; border-left: 3px solid #003366; }
+          .summary-row { font-weight: bold; background-color: #fafafa; border-top: 1.5px solid #e2e8f0; }
+          .grand-total-section { border-top: 2px double #003366; border-bottom: 2px double #003366; background-color: #f8fafc; font-size: 11pt; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE RESULTADOS</div>
+            <div><strong>Periodo:</strong> Desde ${new Date(startDate).toLocaleDateString('es-DO')} Hasta ${new Date(endDate).toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <!-- INGRESOS -->
+        <div class="section-title">INGRESOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(revenueAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL INGRESOS</td>
+              <td class="text-right font-mono">$${formatNum(totalRevenue)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- COSTOS -->
+        <div class="section-title">COSTOS DE VENTA</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(costAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL COSTOS DE VENTA</td>
+              <td class="text-right font-mono">$${formatNum(totalCost)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- UTILIDAD BRUTA -->
+        <table style="margin-top: 10px;">
+          <tbody>
+            <tr class="grand-total-section">
+              <td style="width: 100px;"></td>
+              <td>UTILIDAD BRUTA (Ingresos - Costos)</td>
+              <td class="text-right font-mono" style="color: #003366;">$${formatNum(grossProfit)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- GASTOS OPERATIVOS -->
+        <div class="section-title">GASTOS OPERATIVOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(expenseAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL GASTOS OPERATIVOS</td>
+              <td class="text-right font-mono">$${formatNum(totalExpense)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- UTILIDAD NETA -->
+        <table style="margin-top: 15px; margin-bottom: 40px;">
+          <tbody>
+            <tr class="grand-total-section" style="background-color: #f0fdf4; border-top: 2px double #1e7e34; border-bottom: 2px double #1e7e34;">
+              <td style="width: 100px;"></td>
+              <td style="color: #1e7e34;">UTILIDAD NETA DEL PERIODO</td>
+              <td class="text-right font-mono" style="color: #1e7e34; font-size: 12pt;">$${formatNum(netIncome)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Estado Financiero de Resultados - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderBalanceSheet(data: any, asOf: string): string {
+    const { company, assetAccounts, totalAsset, liabilityAccounts, totalLiability, equityAccounts, totalEquity } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const renderAccountRows = (accounts: any[]) => {
+      if (!accounts || accounts.length === 0) {
+        return `<tr><td colspan="3" class="text-center text-slate-400 font-mono">Sin registros</td></tr>`;
+      }
+      return accounts.map(acc => `
+        <tr>
+          <td class="font-mono text-slate-500">${acc.code}</td>
+          <td>${acc.name}</td>
+          <td class="text-right font-mono">$${formatNum(Number(acc.balance))}</td>
+        </tr>
+      `).join('');
+    };
+
+    const totalLE = totalLiability + totalEquity;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Balance General - ${company.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .section-title { font-weight: bold; font-size: 11pt; color: #003366; background-color: #f1f5f9; padding: 6px 10px; margin-top: 15px; border-left: 3px solid #003366; }
+          .summary-row { font-weight: bold; background-color: #fafafa; border-top: 1.5px solid #e2e8f0; }
+          .grand-total-section { border-top: 2px double #003366; border-bottom: 2px double #003366; background-color: #f8fafc; font-size: 11pt; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">BALANCE GENERAL</div>
+            <div><strong>Corte Al:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <!-- ACTIVOS -->
+        <div class="section-title">ACTIVOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(assetAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL ACTIVOS</td>
+              <td class="text-right font-mono" style="color: #003366;">$${formatNum(totalAsset)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- PASIVOS -->
+        <div class="section-title">PASIVOS</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(liabilityAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL PASIVOS</td>
+              <td class="text-right font-mono">$${formatNum(totalLiability)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- CAPITAL -->
+        <div class="section-title">CAPITAL / PATRIMONIO</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Código</th>
+              <th>Cuenta / Descripción</th>
+              <th class="text-right" style="width: 150px;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderAccountRows(equityAccounts)}
+            <tr class="summary-row">
+              <td></td>
+              <td>TOTAL CAPITAL</td>
+              <td class="text-right font-mono">$${formatNum(totalEquity)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- PASIVO Y CAPITAL -->
+        <table style="margin-top: 20px; margin-bottom: 40px;">
+          <tbody>
+            <tr class="grand-total-section" style="background-color: #f8fafc; border-top: 2px double #003366; border-bottom: 2px double #003366;">
+              <td style="width: 100px;"></td>
+              <td>TOTAL PASIVO Y CAPITAL</td>
+              <td class="text-right font-mono" style="color: #003366; font-size: 11pt;">$${formatNum(totalLE)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footer">
+          Balance General Financiero - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

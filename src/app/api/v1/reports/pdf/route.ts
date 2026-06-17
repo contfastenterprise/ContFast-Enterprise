@@ -40,22 +40,61 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: 'Fechas requeridas' } }, { status: 400 });
       }
       const data = await ReportRepository.getIncomeStatement(session.companyId, start, end);
-      pdfBuffer = await PdfGenerator.generateIncomeStatement(
-        { name: companyInfo.name, rnc: companyInfo.rnc, logoUrl: companyInfo.logoUrl || undefined },
-        start,
-        end,
-        data
-      );
+
+      const [settings] = await db
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, session.companyId))
+        .limit(1);
+
+      const html = DocumentTemplates.renderIncomeStatement({
+        company: {
+          name: companyInfo.name,
+          rnc: companyInfo.rnc,
+          address: companyInfo.address || 'República Dominicana',
+          phone: '1-809-555-0199', // Placeholder
+          logoUrl: settings?.logoUrl || undefined
+        },
+        revenueAccounts: data.revenueAccounts,
+        totalRevenue: data.totalRevenue,
+        costAccounts: data.costAccounts,
+        totalCost: data.totalCost,
+        grossProfit: data.grossProfit,
+        expenseAccounts: data.expenseAccounts,
+        totalExpense: data.totalExpense,
+        netIncome: data.netIncome
+      }, start, end);
+
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
       filename = `Estado_Resultados_${start}_${end}.pdf`;
     } 
     else if (type === 'balance_sheet') {
       const asOf = end || new Date().toISOString().split('T')[0];
       const data = await ReportRepository.getBalanceSheet(session.companyId, asOf);
-      pdfBuffer = await PdfGenerator.generateBalanceSheet(
-        { name: companyInfo.name, rnc: companyInfo.rnc, logoUrl: companyInfo.logoUrl || undefined },
-        asOf,
-        data
-      );
+
+      const [settings] = await db
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, session.companyId))
+        .limit(1);
+
+      const html = DocumentTemplates.renderBalanceSheet({
+        company: {
+          name: companyInfo.name,
+          rnc: companyInfo.rnc,
+          address: companyInfo.address || 'República Dominicana',
+          phone: '1-809-555-0199', // Placeholder
+          logoUrl: settings?.logoUrl || undefined
+        },
+        assetAccounts: data.assetAccounts,
+        totalAsset: data.totalAsset,
+        liabilityAccounts: data.liabilityAccounts,
+        totalLiability: data.totalLiability,
+        equityAccounts: data.equityAccounts,
+        totalEquity: data.totalEquity
+      }, asOf);
+
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
       filename = `Balance_General_${asOf}.pdf`;
     } 
     else if (type === 'ar_statement') {
