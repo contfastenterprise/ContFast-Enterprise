@@ -1,28 +1,69 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, Tag, FileText, CheckSquare, Square } from 'lucide-react';
+import { 
+  RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
+  Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
+  DollarSign, ArrowUpRight, ShoppingCart, Activity
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
 interface Warehouse { id: string; name: string; }
+interface Expense {
+  id: string;
+  companyId: string;
+  warehouseId: string | null;
+  supplierId: string | null;
+  expenseType: string;
+  isMinorExpense: boolean;
+  ncf: string | null;
+  issueDate: string;
+  paymentDate: string | null;
+  amount: string;
+  itbis: string;
+  itbisRetained: string;
+  isrRetained: string;
+  isc: string;
+  otherTaxes: string;
+  tip: string;
+  paymentMethod: string;
+  description: string | null;
+  createdAt: string;
+  supplierName: string | null;
+  supplierRnc: string | null;
+  warehouseName: string | null;
+}
+interface ExpenseDetail extends Expense {
+  lines: {
+    id: string;
+    productId: string | null;
+    description: string;
+    quantity: string;
+    unitCost: string;
+    subtotal: string;
+    itbis: string;
+    total: string;
+  }[];
+}
 
 export default function PurchasesPage() {
+  const [activeTab, setActiveTab] = useState<'historial' | 'nuevo'>('historial');
   const [loading, setLoading] = useState(false);
   const [isMinorExpense, setIsMinorExpense] = useState(false);
 
   // Form State
   const [supplierId, setSupplierId] = useState('');
   const [ncf, setNcf] = useState('');
-  const [expenseType, setExpenseType] = useState('02'); // Gastos por Trabajos, Suministros y Servicios (o 09 Compras)
+  const [expenseType, setExpenseType] = useState('02'); // Gastos por Trabajos, Suministros y Servicios
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
-
-  // Lines
+  
+  // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
 
   // Lookup data
@@ -30,7 +71,35 @@ export default function PurchasesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
+  // Filters State
+  const [filterStartDate, setFilterStartDate] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+  );
+  const [filterEndDate, setFilterEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterType, setFilterType] = useState<'all' | 'purchases' | 'expenses'>('all');
+  const [filterSupplier, setFilterSupplier] = useState('');
+  const [filterWarehouse, setFilterWarehouse] = useState('');
+  const [filterNcf, setFilterNcf] = useState('');
+
+  // Search results state
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchResults, setSearchResults] = useState<Expense[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Load metadata and user info
   useEffect(() => {
+    fetch('/api/v1/auth/me')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.user) {
+          setUserRole(data.data.user.role);
+        }
+      })
+      .catch(err => console.error('Error fetching user info:', err));
+
     Promise.all([
       fetch('/api/v1/products?limit=1000').then(r => r.json()),
       fetch('/api/v1/suppliers').then(r => r.json()),
@@ -38,12 +107,88 @@ export default function PurchasesPage() {
     ]).then(([pr, sp, wh]) => {
       if (pr.success) setProducts(pr.data.items || pr.data || []);
       if (sp.success) setSuppliers(sp.data || []);
-      if (wh.success) {
-        setWarehouses(wh.data);
-        if (wh.data.length > 0) setWarehouseId(wh.data[0].id);
+      if (wh.success || wh.data) {
+        const whList = wh.data || [];
+        setWarehouses(whList);
+        if (whList.length > 0) setWarehouseId(whList[0].id);
       }
     });
   }, []);
+
+  // Filter and search action
+  const handleSearch = async () => {
+    setSearchLoading(true);
+    setHasSearched(true);
+    try {
+      let url = `/api/v1/expenses?startDate=${filterStartDate}&endDate=${filterEndDate}`;
+      if (filterType === 'purchases') {
+        url += '&isMinorExpense=false';
+      } else if (filterType === 'expenses') {
+        url += '&isMinorExpense=true';
+      }
+      if (filterSupplier) {
+        url += `&supplierId=${filterSupplier}`;
+      }
+      if (filterWarehouse) {
+        url += `&warehouseId=${filterWarehouse}`;
+      }
+      if (filterNcf) {
+        url += `&ncf=${encodeURIComponent(filterNcf)}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResults(data.data || []);
+        toast.success(`Se encontraron ${data.data.length} transacciones`);
+      } else {
+        toast.error('Error al realizar búsqueda', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // View expense details
+  const viewDetails = async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/v1/expenses/${id}`);
+      const data = await res.json();
+      if (data.success) {
+        setSelectedExpense(data.data);
+      } else {
+        toast.error('Error al cargar detalle', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Delete/void expense
+  const handleDeleteExpense = async (id: string) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar permanentemente este registro de compra/gasto? Esta acción no se puede deshacer y revertirá los niveles de stock correspondientes.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/v1/expenses/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Compra/Gasto eliminado exitosamente');
+        setSelectedExpense(null);
+        handleSearch(); // Refresh list
+      } else {
+        toast.error('Error al eliminar', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    }
+  };
 
   const addLine = () => {
     setLines([...lines, { id: Math.random().toString(), productId: '', desc: '', quantity: 1, unitCost: 0, subtotal: 0, itbis: 0, total: 0 }]);
@@ -62,10 +207,8 @@ export default function PurchasesPage() {
           }
         }
 
-        // Recalc only total if subtotal/itbis changed manually, or calculate 18% if it's a new product selection
         if (field === 'productId' || field === 'quantity' || field === 'unitCost') {
           newLine.subtotal = newLine.quantity * newLine.unitCost;
-          // Only auto-calc 18% if we just picked a product. Otherwise leave the manual ITBIS.
           if (field === 'productId') {
             newLine.itbis = newLine.subtotal * 0.18;
           }
@@ -100,7 +243,7 @@ export default function PurchasesPage() {
         ncf,
         issueDate,
         paymentMethod,
-        warehouseId,
+        warehouseId: warehouseId || null,
         description,
         amount: totalSubtotal,
         itbis: totalItbis,
@@ -132,6 +275,8 @@ export default function PurchasesPage() {
         setDescription('');
         setGlobalIsc(0);
         setGlobalOtherTaxes(0);
+        setActiveTab('historial');
+        handleSearch(); // Refresh list if searched before
       } else {
         toast.error('Error guardando gasto', { description: data.error?.message });
       }
@@ -142,257 +287,735 @@ export default function PurchasesPage() {
     }
   };
 
+  // Calculations for dashboard indicators
+  const kpis = {
+    totalPurchases: searchResults.filter(e => !e.isMinorExpense).reduce((sum, e) => sum + parseFloat(e.amount), 0),
+    totalExpenses: searchResults.filter(e => e.isMinorExpense).reduce((sum, e) => sum + parseFloat(e.amount), 0),
+    totalItbis: searchResults.reduce((sum, e) => sum + parseFloat(e.itbis), 0),
+    totalTransactions: searchResults.length,
+  };
+
   return (
     <div className="space-y-8 animate-fade-in-up pb-10">
+      {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
             <Banknote className="h-8 w-8 text-primary" /> Compras y Gastos
           </h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">Registra comprobantes de suplidores o gastos menores.</p>
+          <p className="font-body-lg text-on-surface-variant/80 mt-1">
+            Administra facturas de suplidores, compras de inventario y gastos de caja chica.
+          </p>
         </div>
-        <button
-          onClick={saveExpense}
-          disabled={loading}
-          className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-          <span className="font-label-md text-sm font-bold">Guardar Transacción</span>
-        </button>
+
+        {/* Tab Switcher & Action button */}
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          <div className="bg-surface-container-high p-1 rounded-2xl flex gap-1 border border-white/20">
+            <button
+              onClick={() => setActiveTab('historial')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'historial'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              }`}
+            >
+              <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
+            </button>
+            <button
+              onClick={() => setActiveTab('nuevo')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'nuevo'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              }`}
+            >
+              <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
+            </button>
+          </div>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Cabecera del Gasto */}
-        <section className="lg:col-span-2 space-y-6">
-          <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+      {activeTab === 'historial' ? (
+        <div className="space-y-8">
+          {/* Advanced Filter Panel */}
+          <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
             <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Datos del Comprobante
+              <Filter className="h-4 w-4" /> Filtros de Búsqueda
             </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div 
-                className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-surface-container-low rounded-2xl cursor-pointer hover:bg-surface-container transition-all"
-                onClick={() => setIsMinorExpense(!isMinorExpense)}
-              >
-                {isMinorExpense ? <CheckSquare className="h-6 w-6 text-primary" /> : <Square className="h-6 w-6 text-on-surface-variant/40" />}
-                <div>
-                  <p className="font-bold text-primary">Es un Gasto Menor (Caja Chica)</p>
-                  <p className="text-xs text-on-surface-variant">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
-                </div>
-              </div>
 
-              {!isMinorExpense && (
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
-                  <select 
-                    value={supplierId} onChange={e => setSupplierId(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
-                  >
-                    <option value="">Selecciona un suplidor...</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
-                  </select>
-                </div>
-              )}
-
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">NCF (Opcional si es Gasto Menor)</label>
-                <input 
-                  type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
-                  value={ncf} onChange={e => setNcf(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Fecha Emisión</label>
-                <input 
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Desde</label>
+                <input
                   type="date"
-                  value={issueDate} onChange={e => setIssueDate(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  value={filterStartDate}
+                  onChange={e => setFilterStartDate(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Tipo de Gasto (Formato 606)</label>
-                <select 
-                  value={expenseType} onChange={e => setExpenseType(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Hasta</label>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={e => setFilterEndDate(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Tipo de Registro</label>
+                <select
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value as any)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                 >
-                  <option value="01">01 - Gastos de Personal</option>
-                  <option value="02">02 - Trabajos, Suministros y Servicios</option>
-                  <option value="09">09 - Compras de Mercancía (Inventario)</option>
-                  <option value="11">11 - Gastos Financieros</option>
+                  <option value="all">Todos</option>
+                  <option value="purchases">Solo Compras (Mercancía/Suplidor)</option>
+                  <option value="expenses">Solo Gastos (Menores/Caja Chica)</option>
                 </select>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Concepto General</label>
-              <textarea 
-                rows={2} placeholder="Descripción de la compra..."
-                value={description} onChange={e => setDescription(e.target.value)}
-                className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
-              />
-            </div>
-          </div>
 
-          <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
-                <Box className="h-4 w-4" /> Líneas de Compra / Gasto
-              </h3>
-              <button 
-                onClick={addLine}
-                className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" /> Añadir Línea
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-container border-b border-outline-variant/20">
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant">PRODUCTO / SERVICIO</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-24">CANTIDAD</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28">COSTO UND.</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28">ITBIS</th>
-                    <th className="px-4 py-3 font-label-md text-[10px] font-bold text-on-surface-variant w-28 text-right">TOTAL</th>
-                    <th className="px-4 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={l.id} className="border-b border-outline-variant/10">
-                      <td className="px-4 py-2">
-                        <select 
-                          value={l.productId} onChange={e => updateLine(l.id, 'productId', e.target.value)}
-                          className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary mb-1"
-                        >
-                          <option value="">Servicio o Gasto Manual...</option>
-                          {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <input 
-                          type="text" placeholder="Descripción..." value={l.desc}
-                          onChange={e => updateLine(l.id, 'desc', e.target.value)}
-                          className="w-full bg-white border border-outline-variant/20 rounded-lg px-3 py-1.5 text-xs focus:ring-1 focus:ring-primary"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <input 
-                          type="number" min="1" value={l.quantity}
-                          onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <input 
-                          type="number" step="0.01" value={l.unitCost}
-                          onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <input 
-                          type="number" step="0.01" value={l.itbis}
-                          onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-surface-container-high border-none rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-primary"
-                        />
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
-                      </td>
-                      <td className="px-4 py-2">
-                        <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {lines.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-sm font-medium text-on-surface-variant/60">
-                        Aún no has agregado productos o servicios a esta compra.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* Resumen y Config */}
-        <section className="space-y-6">
-          <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-            <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
-              <Store className="h-4 w-4" /> Configuración
-            </h3>
-            
-            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
-                <select 
-                  value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Suplidor</label>
+                <select
+                  value={filterSupplier}
+                  onChange={e => setFilterSupplier(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                 >
-                  <option value="">No afecta inventario</option>
+                  <option value="">Cualquier Suplidor</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Almacén</label>
+                <select
+                  value={filterWarehouse}
+                  onChange={e => setFilterWarehouse(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                >
+                  <option value="">Cualquier Almacén</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
-                <p className="text-[10px] text-on-surface-variant mt-1 ml-1">Los productos con registro sumarán stock a este almacén.</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Método de Pago</label>
-                <select 
-                  value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
-                >
-                  <option value="01">Efectivo</option>
-                  <option value="02">Cheque</option>
-                  <option value="03">Transferencia</option>
-                  <option value="04">A Crédito (CXP)</option>
-                </select>
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">NCF</label>
+                <input
+                  type="text"
+                  placeholder="Ej. B01..."
+                  value={filterNcf}
+                  onChange={e => setFilterNcf(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none font-mono"
+                />
               </div>
             </div>
-          </div>
 
-          <div className="bg-primary text-on-primary rounded-3xl p-6 shadow-xl shadow-primary/20">
-            <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2">
-              <Tag className="h-4 w-4" /> Resumen Total
-            </h3>
-            
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-on-primary/80">Subtotal</span>
-                <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleSearch}
+                disabled={searchLoading}
+                className="bg-primary text-on-primary px-8 py-3 rounded-2xl flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/25 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {searchLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                <span className="font-bold text-xs">Buscar Registros</span>
+              </button>
+            </div>
+          </section>
+
+          {/* Indicators & Data presentation */}
+          {!hasSearched ? (
+            <div className="bg-surface-container-low border border-dashed border-on-surface-variant/20 rounded-3xl p-12 text-center">
+              <ListFilter className="h-12 w-12 text-primary mx-auto mb-4 opacity-55" />
+              <h4 className="text-lg font-extrabold text-primary mb-2">Establece los filtros de búsqueda</h4>
+              <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">
+                No se muestran transacciones hasta que apliques los filtros de fecha/tipo y presiones el botón de **Buscar Registros**.
+              </p>
+              <button
+                onClick={() => setActiveTab('nuevo')}
+                className="bg-primary text-on-primary px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
+              >
+                <Plus className="h-4 w-4" /> Registrar Compra o Gasto
+              </button>
+            </div>
+          ) : searchLoading ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(n => (
+                  <div key={n} className="h-28 bg-surface-container-high animate-pulse rounded-2xl"></div>
+                ))}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-on-primary/80">ITBIS (Editable por línea)</span>
-                <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+              <div className="h-80 bg-surface-container-high animate-pulse rounded-3xl"></div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* KPI Cards Dashboard */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Compras de Inventario</p>
+                    <h3 className="text-2xl font-black text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                  </div>
+                  <div className="bg-emerald-500/20 p-3 rounded-2xl text-emerald-800">
+                    <ShoppingCart className="h-6 w-6" />
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-6 rounded-3xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Gastos de Operación</p>
+                    <h3 className="text-2xl font-black text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                  </div>
+                  <div className="bg-blue-500/20 p-3 rounded-2xl text-blue-800">
+                    <Activity className="h-6 w-6" />
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-6 rounded-3xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-purple-800 tracking-wider">ITBIS Soportado</p>
+                    <h3 className="text-2xl font-black text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                  </div>
+                  <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-800">
+                    <DollarSign className="h-6 w-6" />
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-6 rounded-3xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Total Transacciones</p>
+                    <h3 className="text-2xl font-black text-amber-950 mt-1 font-mono-data">{kpis.totalTransactions}</h3>
+                  </div>
+                  <div className="bg-amber-500/20 p-3 rounded-2xl text-amber-800">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
-                <input 
-                  type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
-                  className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
-                />
+
+              {/* Lists Split Panel (Compras / Gastos por separado) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Compras de Inventario (Comprobantes) */}
+                <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+                  <h3 className="font-extrabold text-primary mb-4 flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5" /> 1. Compras (Con Suplidor / Inventario)
+                    </span>
+                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">
+                      {searchResults.filter(e => !e.isMinorExpense).length} Comprobantes
+                    </span>
+                  </h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
+                          <th className="py-3 px-2">Suplidor / RNC</th>
+                          <th className="py-3 px-2">NCF</th>
+                          <th className="py-3 px-2">Fecha</th>
+                          <th className="py-3 px-2 text-right">Total</th>
+                          <th className="py-3 px-2 text-center">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {searchResults.filter(e => !e.isMinorExpense).map(e => (
+                          <tr key={e.id} className="border-b border-surface-container-low hover:bg-surface-container-low/55 transition-colors">
+                            <td className="py-3 px-2">
+                              <p className="font-bold text-xs text-primary">{e.supplierName || 'Desconocido'}</p>
+                              <p className="text-[10px] text-on-surface-variant">{e.supplierRnc || '-'}</p>
+                            </td>
+                            <td className="py-3 px-2 font-mono text-xs">{e.ncf || 'Sin NCF'}</td>
+                            <td className="py-3 px-2 text-xs">{e.issueDate}</td>
+                            <td className="py-3 px-2 text-right font-bold font-mono-data text-xs">
+                              RD${parseFloat(e.amount).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <button
+                                onClick={() => viewDetails(e.id)}
+                                className="p-1 text-primary hover:bg-primary/10 rounded-lg"
+                                title="Ver Detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {searchResults.filter(e => !e.isMinorExpense).length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
+                              No hay compras comerciales en el rango de búsqueda.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Gastos Menores / Caja Chica */}
+                <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+                  <h3 className="font-extrabold text-primary mb-4 flex items-center justify-between text-base">
+                    <span className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" /> 2. Gastos Menores / Caja Chica
+                    </span>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">
+                      {searchResults.filter(e => e.isMinorExpense).length} Transacciones
+                    </span>
+                  </h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
+                          <th className="py-3 px-2">Concepto / NCF</th>
+                          <th className="py-3 px-2">Tipo de Gasto</th>
+                          <th className="py-3 px-2">Fecha</th>
+                          <th className="py-3 px-2 text-right">Total</th>
+                          <th className="py-3 px-2 text-center">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {searchResults.filter(e => e.isMinorExpense).map(e => (
+                          <tr key={e.id} className="border-b border-surface-container-low hover:bg-surface-container-low/55 transition-colors">
+                            <td className="py-3 px-2">
+                              <p className="font-bold text-xs text-primary">{e.description || 'Gasto General'}</p>
+                              {e.ncf && <p className="text-[10px] font-mono text-on-surface-variant">{e.ncf}</p>}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
+                                {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-xs">{e.issueDate}</td>
+                            <td className="py-3 px-2 text-right font-bold font-mono-data text-xs">
+                              RD${parseFloat(e.amount).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-2 text-center">
+                              <button
+                                onClick={() => viewDetails(e.id)}
+                                className="p-1 text-primary hover:bg-primary/10 rounded-lg"
+                                title="Ver Detalles"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {searchResults.filter(e => e.isMinorExpense).length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
+                              No hay gastos registrados en el rango de búsqueda.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
-                <input 
-                  type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
-                  className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Create Form (Original register purchase screen) */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cabecera del Gasto */}
+          <section className="lg:col-span-2 space-y-6">
+            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+              <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Datos del Comprobante
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div 
+                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-surface-container-low rounded-2xl cursor-pointer hover:bg-surface-container transition-all"
+                  onClick={() => setIsMinorExpense(!isMinorExpense)}
+                >
+                  {isMinorExpense ? <CheckSquare className="h-6 w-6 text-primary" /> : <Square className="h-6 w-6 text-on-surface-variant/40" />}
+                  <div>
+                    <p className="font-bold text-primary">Es un Gasto Menor (Caja Chica)</p>
+                    <p className="text-xs text-on-surface-variant">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
+                  </div>
+                </div>
+
+                {!isMinorExpense && (
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
+                    <select 
+                      value={supplierId} onChange={e => setSupplierId(e.target.value)}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                    >
+                      <option value="">Selecciona un suplidor...</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">NCF (Opcional si es Gasto Menor)</label>
+                  <input 
+                    type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
+                    value={ncf} onChange={e => setNcf(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none font-mono uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Fecha Emisión</label>
+                  <input 
+                    type="date"
+                    value={issueDate} onChange={e => setIssueDate(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Tipo de Gasto (Formato 606)</label>
+                  <select 
+                    value={expenseType} onChange={e => setExpenseType(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="01">01 - Gastos de Personal</option>
+                    <option value="02">02 - Trabajos, Suministros y Servicios</option>
+                    <option value="09">09 - Compras de Mercancía (Inventario)</option>
+                    <option value="11">11 - Gastos Financieros</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Concepto General</label>
+                <textarea 
+                  rows={2} placeholder="Descripción de la compra..."
+                  value={description} onChange={e => setDescription(e.target.value)}
+                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
             </div>
-            
-            <div className="pt-4 border-t border-white/20 flex justify-between items-center">
-              <span className="text-sm font-bold">TOTAL NETO</span>
-              <span className="font-display-lg text-2xl font-black">RD$ {grandTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+
+            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+                  <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+                </h3>
+                <button 
+                  onClick={addLine}
+                  className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
+                >
+                  <Plus className="h-4 w-4" /> Añadir Línea
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-surface-container-high text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider">
+                      <th className="py-3 px-2">Producto / Descripción</th>
+                      <th className="py-3 px-2 w-20">Cant.</th>
+                      <th className="py-3 px-2 w-32">Costo U.</th>
+                      <th className="py-3 px-2 w-28">ITBIS (18%)</th>
+                      <th className="py-3 px-2 w-32 text-right">Total Fila</th>
+                      <th className="py-3 px-2 w-12 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map(l => (
+                      <tr key={l.id} className="border-b border-surface-container-low align-middle">
+                        <td className="py-3 px-2 space-y-1.5 min-w-[200px]">
+                          <select 
+                            value={l.productId} onChange={e => updateLine(l.id, 'productId', e.target.value)}
+                            className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                          >
+                            <option value="">-- Servicio o ítem manual --</option>
+                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                          <input 
+                            type="text" placeholder="Descripción de la línea..."
+                            value={l.desc} onChange={e => updateLine(l.id, 'desc', e.target.value)}
+                            className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-medium text-on-surface"
+                          />
+                        </td>
+                        <td className="py-3 px-2">
+                          <input 
+                            type="number" min="1" value={l.quantity} onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 0)}
+                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs text-center font-bold focus:ring-1 focus:ring-primary outline-none"
+                          />
+                        </td>
+                        <td className="py-3 px-2">
+                          <input 
+                            type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
+                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                          />
+                        </td>
+                        <td className="py-3 px-2">
+                          <input 
+                            type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
+                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                          />
+                        </td>
+                        <td className="py-3 px-2 text-right">
+                          <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
+                        </td>
+                        <td className="py-3 px-2 text-center">
+                          <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {lines.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-sm font-medium text-on-surface-variant/60">
+                          Aún no has agregado productos o servicios a esta compra.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
+          </section>
+
+          {/* Resumen y Config */}
+          <section className="space-y-6">
+            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+              <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+                <Store className="h-4 w-4" /> Configuración
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
+                  <select 
+                    value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="">No afecta inventario</option>
+                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                  </select>
+                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1">Los productos con registro sumarán stock a este almacén.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Método de Pago</label>
+                  <select 
+                    value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="01">Efectivo</option>
+                    <option value="02">Cheque</option>
+                    <option value="03">Transferencia</option>
+                    <option value="04">A Crédito (CXP)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-primary text-on-primary rounded-3xl p-6 shadow-xl shadow-primary/20">
+              <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2">
+                <Tag className="h-4 w-4" /> Resumen Total
+              </h3>
+              
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-on-primary/80">Subtotal</span>
+                  <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-on-primary/80">ITBIS (18%)</span>
+                  <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
+                  <input 
+                    type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
+                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
+                  <input 
+                    type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
+                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-white/20 flex justify-between items-center mb-6">
+                <span className="text-sm font-bold">TOTAL NETO</span>
+                <span className="font-display-lg text-2xl font-black">RD$ {grandTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+              </div>
+
+              <button
+                onClick={saveExpense}
+                disabled={loading}
+                className="w-full bg-white text-primary py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
+              >
+                {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                <span>Guardar Compra / Gasto</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Premium Detail Modal for Expense/Purchase */}
+      <AnimatePresence>
+        {selectedExpense && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+            >
+              {/* Modal Header */}
+              <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Info className="h-5 w-5" /> Detalle de la Transacción
+                  </h3>
+                  <p className="text-xs text-on-primary/80 mt-1">
+                    ID Transacción: {selectedExpense.id}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSelectedExpense(null)}
+                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition-all"
+                >
+                  Cerrar Ventana
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-surface-container-low p-4 rounded-2xl">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Tipo y Comprobante</p>
+                    <p className="font-bold text-sm text-primary mt-1">
+                      {selectedExpense.isMinorExpense ? 'Gastos Menores (Caja Chica)' : 'Compra Comercial (Suplidor)'}
+                    </p>
+                    <p className="text-xs font-mono text-on-surface-variant/80 mt-0.5">
+                      NCF: {selectedExpense.ncf || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="bg-surface-container-low p-4 rounded-2xl">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Suplidor / Proveedor</p>
+                    {selectedExpense.isMinorExpense ? (
+                      <p className="font-bold text-sm text-primary mt-1">N/A (Informal / Caja Chica)</p>
+                    ) : (
+                      <>
+                        <p className="font-bold text-sm text-primary mt-1">{selectedExpense.supplierName}</p>
+                        <p className="text-xs text-on-surface-variant mt-0.5">RNC: {selectedExpense.supplierRnc}</p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="bg-surface-container-low p-4 rounded-2xl">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Fecha y Almacén</p>
+                    <p className="font-bold text-sm text-primary mt-1">Emisión: {selectedExpense.issueDate}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">
+                      Almacén Destino: {selectedExpense.warehouseName || 'No afecta inventario'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lines breakdown */}
+                <div>
+                  <h4 className="font-bold text-sm text-primary mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                    <Box className="h-4 w-4" /> Desglose de Líneas de Artículos
+                  </h4>
+                  <div className="border border-surface-container-high rounded-2xl overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-surface-container-low border-b border-surface-container-high font-bold text-on-surface-variant/85 uppercase">
+                          <th className="p-3">Descripción</th>
+                          <th className="p-3 text-center w-20">Cantidad</th>
+                          <th className="p-3 text-right w-28">Costo Unitario</th>
+                          <th className="p-3 text-right w-24">ITBIS (18%)</th>
+                          <th className="p-3 text-right w-28">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedExpense.lines.map(line => (
+                          <tr key={line.id} className="border-b border-surface-container-low">
+                            <td className="p-3 font-semibold text-primary">{line.description}</td>
+                            <td className="p-3 text-center font-bold">{parseFloat(line.quantity)}</td>
+                            <td className="p-3 text-right font-mono-data">RD${parseFloat(line.unitCost).toFixed(2)}</td>
+                            <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(line.itbis).toFixed(2)}</td>
+                            <td className="p-3 text-right font-mono-data font-bold">RD${parseFloat(line.total).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Summary block */}
+                <div className="flex justify-end">
+                  <div className="w-full max-w-sm bg-surface-container-low p-5 rounded-2xl space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">Subtotal</span>
+                      <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-on-surface-variant">ITBIS Soportado</span>
+                      <span className="font-bold font-mono-data text-emerald-600">RD$ {parseFloat(selectedExpense.itbis).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    </div>
+                    {parseFloat(selectedExpense.isc) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-on-surface-variant">ISC (Combustibles)</span>
+                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.isc).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                      </div>
+                    )}
+                    {parseFloat(selectedExpense.otherTaxes) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-on-surface-variant">Otros Impuestos</span>
+                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.otherTaxes).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                      </div>
+                    )}
+                    <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-black text-primary">
+                      <span>TOTAL GENERAL</span>
+                      <span className="font-mono-data">
+                        RD$ {(
+                          parseFloat(selectedExpense.amount) + 
+                          parseFloat(selectedExpense.itbis) + 
+                          parseFloat(selectedExpense.isc) + 
+                          parseFloat(selectedExpense.otherTaxes)
+                        ).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-surface-container-high p-4 flex justify-between items-center">
+                {userRole === 'sistemas' ? (
+                  <button
+                    onClick={() => handleDeleteExpense(selectedExpense.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-red-500/20"
+                  >
+                    <Trash2 className="h-4 w-4" /> Eliminar Transacción
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2 text-[11px] font-bold text-amber-600 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20">
+                    <Info className="h-3.5 w-3.5" />
+                    <span>Solo usuarios con rol de sistema pueden eliminar transacciones</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => setSelectedExpense(null)}
+                  className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ml-auto"
+                >
+                  Cerrar Detalle
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </section>
-      </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

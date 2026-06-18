@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    const receipts = await ArRepository.getReceiptsList(session.companyId);
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+    const search = searchParams.get('search') || undefined;
+
+    const receipts = await ArRepository.getReceiptsList(session.companyId, { startDate, endDate, search });
 
     return NextResponse.json({ success: true, data: receipts });
   } catch (error: any) {

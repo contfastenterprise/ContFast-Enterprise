@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     // Por ahora obtenemos todos los de la compañía
     const companyWarehouses = await db.select().from(warehouses).where(eq(warehouses.companyId, companyId));
 
-    return NextResponse.json({ data: companyWarehouses });
+    return NextResponse.json({ success: true, data: companyWarehouses });
   } catch (error) {
     console.error('Error fetching warehouses:', error);
     return NextResponse.json({ error: 'Failed to fetch warehouses' }, { status: 500 });

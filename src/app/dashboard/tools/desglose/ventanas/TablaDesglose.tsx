@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
-import { Trash2, Calculator } from 'lucide-react';
-import { parseFraction, decimalToFraccion, formatFraction } from '@/utils/calculos';
+import { Trash2, Calculator, Layers, Scissors, Info } from 'lucide-react';
+import { parseFraction, decimalToFraccion } from '@/utils/calculos';
 import { windowProfiles } from '@/utils/profilesRegistry';
 import { toast } from 'sonner';
 
@@ -33,20 +33,30 @@ interface Props {
   vias: number;
   limpiarCampos: () => void;
   tipoCorredera: number;
+  onDataChange?: (datos: ItemDesglose[]) => void;
 }
 
 const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
-  ({ ancho, altura, cantidad, vias, limpiarCampos, tipoCorredera }, ref) => {
+  ({ ancho, altura, cantidad, vias, limpiarCampos, tipoCorredera, onDataChange }, ref) => {
     const [filas, setFilas] = useState<ItemDesglose[]>([]);
 
     const titulos = ['Tradicional', 'P-65', 'P-92'];
 
-    // Load from localstorage on mount
+    const triggerDataChange = useCallback((updated: ItemDesglose[]) => {
+      if (onDataChange) {
+        onDataChange(updated);
+      }
+    }, [onDataChange]);
+
     useEffect(() => {
       const saved = localStorage.getItem('cf_desglose_ventanas');
       if (saved) {
         try {
-          setFilas(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          setFilas(parsed);
+          if (onDataChange) {
+            onDataChange(parsed);
+          }
         } catch (e) {
           console.error('Failed to parse saved breakdown rows', e);
         }
@@ -79,7 +89,7 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
         return;
       }
 
-      // Calculate cuts using the registry (Extremely scalable!)
+      // Calculate cuts
       const cuts = profileSystem.calculate(intAncho, intAltura, cantidad, vias);
 
       // Render fractions texts
@@ -90,7 +100,6 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
 
       let vidrioText = '';
       if (vias === 3) {
-        // Special render for 3 vias (mixed glass sizes)
         const vW1 = cuts.vidrio.valueWidth;
         const vH = cuts.vidrio.valueHeight;
         
@@ -100,7 +109,7 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
 
         const vW2 = vW1 + offset;
 
-        vidrioText = `(2 * ${cantidad}) ${decimalToFraccion(vW1)} x ${decimalToFraccion(vH)} y (1 * ${cantidad}) ${decimalToFraccion(vW2)} x ${decimalToFraccion(vH)}`;
+        vidrioText = `(2x) ${decimalToFraccion(vW1)} x ${decimalToFraccion(vH)} y (1x) ${decimalToFraccion(vW2)} x ${decimalToFraccion(vH)}`;
       } else {
         vidrioText = `${cuts.vidrio.label} ${decimalToFraccion(cuts.vidrio.valueWidth)} x ${decimalToFraccion(cuts.vidrio.valueHeight)}`;
       }
@@ -122,14 +131,16 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
       const updated = [...filas, nuevaFila];
       setFilas(updated);
       localStorage.setItem('cf_desglose_ventanas', JSON.stringify(updated));
+      triggerDataChange(updated);
       limpiarCampos();
-      toast.success("Registro añadido a la tabla");
-    }, [ancho, altura, cantidad, vias, tipoCorredera, filas, limpiarCampos]);
+      toast.success("Registro añadido");
+    }, [ancho, altura, cantidad, vias, tipoCorredera, filas, limpiarCampos, triggerDataChange]);
 
     const limpiarTabla = useCallback(() => {
       setFilas([]);
       localStorage.removeItem('cf_desglose_ventanas');
-    }, []);
+      triggerDataChange([]);
+    }, [triggerDataChange]);
 
     useImperativeHandle(ref, () => ({
       agregarFila,
@@ -138,108 +149,117 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
     }), [agregarFila, filas, limpiarTabla]);
 
     const eliminarFila = (id: string) => {
-      if (window.confirm("¿Seguro que desea eliminar esta fila?")) {
+      if (window.confirm("¿Seguro que desea eliminar este registro de corte?")) {
         const updated = filas.filter((f) => f.id !== id);
         setFilas(updated);
         localStorage.setItem('cf_desglose_ventanas', JSON.stringify(updated));
-        toast.success("Fila eliminada");
+        triggerDataChange(updated);
+        toast.success("Registro eliminado");
       }
     };
 
     return (
-      <div className="w-full overflow-hidden border border-slate-200 rounded-xl shadow-sm bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-xs tracking-wider uppercase">
-                <th className="py-4 px-4 w-[60px] text-center">Cant.</th>
-                <th className="py-4 px-4 w-[110px]">Sistema</th>
-                <th className="py-4 px-4 w-[130px]">Medida Base</th>
-                <th className="py-4 px-4 w-[80px] text-center">Vías</th>
-                <th className="py-4 px-4 w-[240px] bg-slate-100/60 text-[#005E63]">Medidas Vidrio</th>
-                <th className="py-4 px-4">Perfiles (Corte)</th>
-                <th className="py-4 px-4 w-[80px] text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {filas.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-16 text-slate-400">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="p-4 rounded-full bg-slate-100 text-slate-300">
-                        <Calculator className="w-10 h-10" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-bold text-slate-700">Lista de cortes vacía</p>
-                        <p className="text-xs max-w-[280px]">Agregue medidas desde el panel izquierdo para generar el desglose técnico.</p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filas.map((fila) => (
-                  <tr key={fila.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-900 text-center text-base">{fila.cantidad}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        fila.tipo === 'P-65' ? 'bg-blue-100 text-blue-700' :
-                        fila.tipo === 'P-92' ? 'bg-purple-100 text-purple-700' :
-                        'bg-emerald-100 text-emerald-700'
+      <div className="w-full space-y-4">
+        {filas.length === 0 ? (
+          <div className="text-center py-16 text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-4 rounded-full bg-white text-slate-300 shadow-xs border border-slate-100">
+                <Calculator className="w-10 h-10" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-slate-700">Sin cortes calculados</p>
+                <p className="text-xs max-w-[280px]">Introduce las medidas arriba y haz clic en "Add" para generar las tarjetas de producción.</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 w-full overflow-x-auto pb-2">
+            {filas.map((fila) => (
+              <div 
+                key={fila.id} 
+                className="bg-white rounded-xl border border-slate-150 shadow-xs hover:shadow-md transition-all p-4 flex flex-row items-center justify-between gap-4 group min-w-[900px]"
+              >
+                {/* 1. Bloque de Identificación y Medidas Base (Horizontal) */}
+                <div className="flex items-center gap-4 min-w-[240px]">
+                  {/* Burbuja de Cantidad */}
+                  <div className="w-11 h-11 rounded-xl bg-[#003366]/5 border border-[#003366]/10 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-[#003366]/60 uppercase leading-none">Cant</span>
+                    <span className="font-black text-lg text-[#003366] leading-tight">{fila.cantidad}</span>
+                  </div>
+
+                  {/* Detalles de Sistema y Vías */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                        fila.tipo === 'P-65' ? 'bg-blue-100 text-blue-800' :
+                        fila.tipo === 'P-92' ? 'bg-purple-100 text-purple-800' :
+                        'bg-emerald-100 text-emerald-800'
                       }`}>
                         {fila.tipo}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-600">
-                      {fila.ancho} x {fila.altura}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 text-xs font-black border border-slate-200">
-                        {fila.vias}
+                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
+                        {fila.vias} Vías
                       </span>
-                    </td>
-                    <td className="py-3 px-4 bg-slate-100/30">
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-[#005E63] text-xs leading-tight block">
-                          {fila.vidrio}
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Ancho x Alto</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 py-1 text-xs">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Cabezal</span>
-                          <span className="font-mono text-slate-600 font-semibold">{fila.cabezal}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Lateral</span>
-                          <span className="font-mono text-slate-600 font-semibold">{fila.lateral}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Llavín</span>
-                          <span className="font-mono text-slate-600 font-semibold">{fila.llavin}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Rieles</span>
-                          <span className="font-mono text-slate-600 font-semibold">{fila.riel}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => eliminarFila(fila.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Eliminar fila"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    <div className="text-sm font-bold text-slate-800 font-mono">
+                      W: {fila.ancho} x H: {fila.altura}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Bloque de Medidas del Vidrio */}
+                <div className="bg-[#005E63]/5 border border-[#005E63]/10 rounded-xl px-4 py-2.5 min-w-[220px] max-w-full">
+                  <div className="text-[9px] font-bold text-[#005E63]/70 uppercase tracking-widest mb-0.5">Medida Cristal (Vidrio)</div>
+                  <div className="flex items-center gap-1.5 font-bold text-[#005E63] text-xs">
+                    <Layers className="h-4 w-4 shrink-0" />
+                    <span className="font-mono">{fila.vidrio}</span>
+                  </div>
+                </div>
+
+                {/* 3. Bloque de Cortes de Perfiles en Fila Horizontal */}
+                <div className="flex-1 w-auto">
+                  <div className="grid grid-cols-4 gap-2.5">
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 flex flex-col justify-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Cabezal</span>
+                      <span className="font-mono text-slate-700 font-bold text-xs flex items-center gap-1 mt-0.5">
+                        <Scissors className="h-3 w-3 text-slate-400 shrink-0" /> {fila.cabezal.replace('Cabezal', '')}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 flex flex-col justify-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Llavín</span>
+                      <span className="font-mono text-slate-700 font-bold text-xs flex items-center gap-1 mt-0.5">
+                        <Scissors className="h-3 w-3 text-slate-400 shrink-0" /> {fila.llavin.replace('Llavin', '').replace('Llavín', '')}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 flex flex-col justify-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Riel</span>
+                      <span className="font-mono text-slate-700 font-bold text-xs flex items-center gap-1 mt-0.5">
+                        <Scissors className="h-3 w-3 text-slate-400 shrink-0" /> {fila.riel.replace('Rieles', '').replace('Riel', '')}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 flex flex-col justify-center">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Lateral</span>
+                      <span className="font-mono text-slate-700 font-bold text-xs flex items-center gap-1 mt-0.5">
+                        <Scissors className="h-3 w-3 text-slate-400 shrink-0" /> {fila.lateral.replace('Lateral', '')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Botón de Eliminar */}
+                <div className="self-center">
+                  <button
+                    onClick={() => eliminarFila(fila.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all"
+                    title="Eliminar registro"
+                  >
+                    <Trash2 className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

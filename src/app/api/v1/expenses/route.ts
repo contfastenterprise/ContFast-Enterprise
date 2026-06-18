@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users } from '@/db';
+import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
-import { eq, sql, and } from 'drizzle-orm';
+import { eq, sql, and, between } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
@@ -157,3 +157,90 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await verifyAuth(req);
+    if (!session) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const isMinorExpenseStr = searchParams.get('isMinorExpense'); // 'true' or 'false'
+    const expenseType = searchParams.get('expenseType');
+    const supplierId = searchParams.get('supplierId');
+    const warehouseId = searchParams.get('warehouseId');
+    const ncf = searchParams.get('ncf');
+
+    const filters: any[] = [eq(expenses.companyId, session.companyId)];
+
+    if (startDate && endDate) {
+      filters.push(between(expenses.issueDate, startDate, endDate));
+    } else if (startDate) {
+      filters.push(sql`${expenses.issueDate} >= ${startDate}`);
+    } else if (endDate) {
+      filters.push(sql`${expenses.issueDate} <= ${endDate}`);
+    }
+
+    if (isMinorExpenseStr === 'true') {
+      filters.push(eq(expenses.isMinorExpense, true));
+    } else if (isMinorExpenseStr === 'false') {
+      filters.push(eq(expenses.isMinorExpense, false));
+    }
+
+    if (expenseType) {
+      filters.push(eq(expenses.expenseType, expenseType));
+    }
+
+    if (supplierId) {
+      filters.push(eq(expenses.supplierId, supplierId));
+    }
+
+    if (warehouseId) {
+      filters.push(eq(expenses.warehouseId, warehouseId));
+    }
+
+    if (ncf) {
+      filters.push(sql`LOWER(${expenses.ncf}) LIKE ${'%' + ncf.toLowerCase() + '%'}`);
+    }
+
+    const data = await db
+      .select({
+        id: expenses.id,
+        companyId: expenses.companyId,
+        warehouseId: expenses.warehouseId,
+        supplierId: expenses.supplierId,
+        expenseType: expenses.expenseType,
+        isMinorExpense: expenses.isMinorExpense,
+        ncf: expenses.ncf,
+        issueDate: expenses.issueDate,
+        paymentDate: expenses.paymentDate,
+        amount: expenses.amount,
+        itbis: expenses.itbis,
+        itbisRetained: expenses.itbisRetained,
+        isrRetained: expenses.isrRetained,
+        isc: expenses.isc,
+        otherTaxes: expenses.otherTaxes,
+        tip: expenses.tip,
+        paymentMethod: expenses.paymentMethod,
+        description: expenses.description,
+        createdAt: expenses.createdAt,
+        supplierName: suppliers.name,
+        supplierRnc: suppliers.rnc,
+        warehouseName: warehouses.name,
+      })
+      .from(expenses)
+      .leftJoin(suppliers, eq(expenses.supplierId, suppliers.id))
+      .leftJoin(warehouses, eq(expenses.warehouseId, warehouses.id))
+      .where(and(...filters))
+      .orderBy(sql`${expenses.issueDate} DESC, ${expenses.createdAt} DESC`);
+
+    return NextResponse.json({ success: true, data });
+  } catch (err: any) {
+    console.error('Error fetching expenses:', err);
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  }
+}
+

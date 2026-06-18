@@ -4,8 +4,11 @@ import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 export class DashboardRepository {
   
   static async getStats(companyId: string) {
-    const today = new Date();
+        const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     
@@ -19,6 +22,8 @@ export class DashboardRepository {
 
     let invoicesToday = 0;
     let invoicesTodayAmount = 0;
+    let invoicesYesterday = 0;
+    let invoicesYesterdayAmount = 0;
     let pendingDgii = 0;
     let monthlySales = 0;
     let alertCount = 0;
@@ -32,6 +37,11 @@ export class DashboardRepository {
       if (invDate >= today) {
         invoicesToday++;
         invoicesTodayAmount += totalAmount;
+      }
+      // Yesterday stats
+      else if (invDate >= yesterday && invDate < today) {
+        invoicesYesterday++;
+        invoicesYesterdayAmount += totalAmount;
       }
 
       // Monthly sales
@@ -52,9 +62,17 @@ export class DashboardRepository {
       }
     }
 
+    let invoicesTodayChangePct = 0;
+    if (invoicesYesterday > 0) {
+      invoicesTodayChangePct = Math.round(((invoicesToday - invoicesYesterday) / invoicesYesterday) * 100);
+    } else if (invoicesToday > 0) {
+      invoicesTodayChangePct = 100;
+    }
+
     return {
       invoicesToday,
       invoicesTodayAmount,
+      invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
       alertCount,

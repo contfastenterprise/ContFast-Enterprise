@@ -1,7 +1,42 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import QRCode from 'qrcode';
 
 export class PdfGenerator {
+  private static browserInstance: Browser | null = null;
+
+  /**
+   * Gets or initializes the shared browser instance.
+   */
+  private static async getBrowser(): Promise<Browser> {
+    if (this.browserInstance) {
+      try {
+        // Test connection to ensure the browser hasn't crashed or closed
+        await this.browserInstance.version();
+        return this.browserInstance;
+      } catch (err) {
+        console.warn('Puppeteer shared browser instance disconnected or crashed. Recreating...', err);
+        try {
+          await this.browserInstance.close();
+        } catch (_) {}
+        this.browserInstance = null;
+      }
+    }
+
+    this.browserInstance = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Prevents crashing in memory-constrained environments like VPS/containers
+        '--disable-gpu',           // Saves GPU memory
+        '--no-zygote',             // Disables zygote process creation for extra savings
+        '--no-first-run',
+      ]
+    });
+
+    return this.browserInstance;
+  }
+
   /**
    * Generates a base64 encoded QR code from a URL.
    */
@@ -19,14 +54,11 @@ export class PdfGenerator {
    * @param html The HTML content
    * @param layout The printer layout ('carta' | '80mm' | '58mm')
    */
-  static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm'): Promise<Buffer> {
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+  static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm', landscape: boolean = false): Promise<Buffer> {
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
     
     try {
-      const page = await browser.newPage();
       await page.setContent(html, { waitUntil: 'networkidle0' as any });
 
       // Wait for all images (logos, QR code) to load and decode completely
@@ -46,7 +78,8 @@ export class PdfGenerator {
       if (layout === 'carta') {
         pdfOptions = {
           format: 'Letter',
-          margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
+          landscape,
+          margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
           printBackground: true,
           displayHeaderFooter: false,
         };
@@ -71,7 +104,7 @@ export class PdfGenerator {
       const pdfBuffer = await page.pdf(pdfOptions);
       return Buffer.from(pdfBuffer);
     } finally {
-      await browser.close();
+      await page.close();
     }
   }
 }

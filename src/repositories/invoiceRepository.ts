@@ -1,4 +1,4 @@
-import { db, invoices, invoiceLines, invoiceTaxes, products, customers } from '@/db';
+import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions } from '@/db';
 import { eq, and, isNull, desc, count } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
@@ -18,6 +18,8 @@ export interface CreateInvoiceInput {
   discount: number;
   totalTaxes: number;
   total: number;
+  totalRetained?: number;
+  totalNet?: number;
   xmlPath?: string;
   signedXmlPath?: string;
   pdfPath?: string;
@@ -29,6 +31,8 @@ export interface CreateInvoiceInput {
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
   codigoFactura?: string;
+  deliveryStatus?: string;
+  quoteId?: string;
   lines: {
     productId: string;
     quantity: number;
@@ -42,11 +46,20 @@ export interface CreateInvoiceInput {
     rate: number;
     amount: number;
   }[];
+  retentions?: {
+    retentionId?: string;
+    retentionName: string;
+    retentionType: 'ITBIS' | 'ISR' | 'OTRA';
+    retentionPercentage: number;
+    retentionAmount: number;
+    agentRnc?: string;
+    retentionDate?: string;
+  }[];
 }
 
 export class InvoiceRepository {
   /**
-   * Creates an invoice with its lines and taxes in a transaction.
+   * Creates an invoice with its lines, taxes and retentions in a transaction.
    */
   static async create(data: CreateInvoiceInput, externalTx?: any) {
     const runInTx = async (tx: any) => {
@@ -67,6 +80,8 @@ export class InvoiceRepository {
           discount: data.discount.toString(),
           totalTaxes: data.totalTaxes.toString(),
           total: data.total.toString(),
+          totalRetained: (data.totalRetained || 0).toString(),
+          totalNet: (data.totalNet ?? data.total).toString(),
           xmlPath: data.xmlPath,
           signedXmlPath: data.signedXmlPath,
           pdfPath: data.pdfPath,
@@ -111,6 +126,23 @@ export class InvoiceRepository {
         );
       }
 
+      // 4. Insert Retentions (if provided)
+      if (data.retentions && data.retentions.length > 0) {
+        await tx.insert(invoiceRetentions).values(
+          data.retentions.map((ret) => ({
+            invoiceId: invoice.id,
+            retentionId: ret.retentionId || null,
+            retentionName: ret.retentionName,
+            retentionType: ret.retentionType,
+            retentionPercentage: ret.retentionPercentage.toString(),
+            retentionAmount: ret.retentionAmount.toString(),
+            agentRnc: ret.agentRnc || null,
+            retentionDate: ret.retentionDate || null,
+            createdBy: data.userId,
+          }))
+        );
+      }
+
       return invoice;
     };
 
@@ -140,6 +172,8 @@ export class InvoiceRepository {
         discount: invoices.discount,
         totalTaxes: invoices.totalTaxes,
         total: invoices.total,
+        totalRetained: invoices.totalRetained,
+        totalNet: invoices.totalNet,
         xmlPath: invoices.xmlPath,
         signedXmlPath: invoices.signedXmlPath,
         pdfPath: invoices.pdfPath,
@@ -192,10 +226,16 @@ export class InvoiceRepository {
       .from(invoiceTaxes)
       .where(eq(invoiceTaxes.invoiceId, id));
 
+    const retentionsData = await db
+      .select()
+      .from(invoiceRetentions)
+      .where(eq(invoiceRetentions.invoiceId, id));
+
     return {
       ...invoice,
       lines,
       taxes,
+      retentions: retentionsData,
     };
   }
 

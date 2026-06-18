@@ -399,6 +399,66 @@ export const ecfSequences = pgTable('ecf_sequences', {
   statusIdx: index('ecf_seq_status_idx').on(table.status),
 }));
 
+export const quoteSequences = pgTable('quote_sequences', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  currentYear: integer('current_year').notNull(),
+  currentSequence: integer('current_sequence').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyYearIdx: uniqueIndex('quote_seq_company_year_idx').on(table.companyId, table.currentYear),
+}));
+
+export const quotes = pgTable('quotes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  warehouseId: uuid('warehouse_id').references(() => warehouses.id),
+  customerId: uuid('customer_id').references(() => customers.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  sequenceNumber: varchar('sequence_number', { length: 20 }).notNull(), // COT-2026-000001
+  status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | invoiced | cancelled
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  discount: decimal('discount', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  totalTaxes: decimal('total_taxes', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  total: decimal('total', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  notes: text('notes'),
+  validUntil: timestamp('valid_until'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => ({
+  companySeqIdx: uniqueIndex('quotes_company_seq_idx').on(table.companyId, table.sequenceNumber),
+  statusIdx: index('quotes_status_idx').on(table.status),
+}));
+
+export const quoteLines = pgTable('quote_lines', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  quoteId: uuid('quote_id').notNull().references(() => quotes.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
+  unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
+  discount: decimal('discount', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull(),
+  total: decimal('total', { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  quoteIdx: index('quote_lines_quote_idx').on(table.quoteId),
+}));
+
+export const quoteTaxes = pgTable('quote_taxes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  quoteId: uuid('quote_id').notNull().references(() => quotes.id),
+  taxType: varchar('tax_type', { length: 50 }).notNull(), // ITBIS | ISC | CDT
+  rate: decimal('rate', { precision: 5, scale: 2 }).notNull(), // 18.00 | 16.00 | etc.
+  amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  quoteIdx: index('quote_taxes_quote_idx').on(table.quoteId),
+}));
+
 export const invoices = pgTable('invoices', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
@@ -406,6 +466,7 @@ export const invoices = pgTable('invoices', {
   customerId: uuid('customer_id').references(() => customers.id),
   userId: uuid('user_id').notNull().references(() => users.id),
   cashSessionId: uuid('cash_session_id').references(() => cashSessions.id), // If processed in cashier terminal
+  quoteId: uuid('quote_id').references(() => quotes.id),
   ncf: varchar('ncf', { length: 13 }).notNull(), // E310000000001
   ecfType: varchar('ecf_type', { length: 5 }).notNull(), // 31 | 32 | etc.
   status: varchar('status', { length: 50 }).default('draft').notNull(), // draft | signed | submitted | accepted | rejected | void
@@ -429,6 +490,8 @@ export const invoices = pgTable('invoices', {
   modifiedInvoiceId: uuid('modified_invoice_id'),
   codigoFactura: varchar('codigo_factura', { length: 50 }),
   deliveryStatus: varchar('delivery_status', { length: 50 }).default('pending').notNull(),
+  totalRetained: decimal('total_retained', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  totalNet: decimal('total_net', { precision: 15, scale: 2 }).default('0.00').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -946,4 +1009,32 @@ export const vPublicProducts = pgView('v_public_products', {
   WHERE p.status = 'active' AND p.deleted_at IS NULL
     AND pl.is_public = true AND pl.status = 'active' AND pl.deleted_at IS NULL
 `);
+
+export const retentions = pgTable('retentions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').references(() => companies.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  percentage: decimal('percentage', { precision: 5, scale: 2 }).notNull(), // e.g. 30.00
+  type: varchar('type', { length: 20 }).notNull(), // ITBIS | ISR | OTRA
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const invoiceRetentions = pgTable('invoice_retentions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
+  retentionId: uuid('retention_id').references(() => retentions.id),
+  retentionName: varchar('retention_name', { length: 255 }).notNull(),
+  retentionType: varchar('retention_type', { length: 20 }).notNull(), // ITBIS | ISR | OTRA
+  retentionPercentage: decimal('retention_percentage', { precision: 5, scale: 2 }).notNull(),
+  retentionAmount: decimal('retention_amount', { precision: 15, scale: 2 }).notNull(),
+  agentRnc: varchar('agent_rnc', { length: 15 }),
+  retentionDate: date('retention_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdBy: uuid('created_by').references(() => users.id),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  invoiceIdx: index('invoice_retentions_invoice_idx').on(table.invoiceId),
+}));
 

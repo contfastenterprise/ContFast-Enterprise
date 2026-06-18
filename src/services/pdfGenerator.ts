@@ -1,11 +1,16 @@
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { parseFraction } from '@/utils/calculos';
+import { windowProfiles } from '@/utils/profilesRegistry';
 
 interface CompanyInfo {
   name: string;
   rnc: string;
   logoUrl?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 export class PdfGenerator {
@@ -21,10 +26,10 @@ export class PdfGenerator {
         } else {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 2000);
-          
+
           const res = await fetch(logoUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
-          
+
           const arrayBuffer = await res.arrayBuffer();
           return Buffer.from(arrayBuffer);
         }
@@ -47,9 +52,9 @@ export class PdfGenerator {
   }
 
   static generateIncomeStatement(
-    company: CompanyInfo, 
-    startDate: string, 
-    endDate: string, 
+    company: CompanyInfo,
+    startDate: string,
+    endDate: string,
     data: any
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
@@ -62,7 +67,7 @@ export class PdfGenerator {
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
         const currentDateStr = new Date().toLocaleDateString('es-DO');
-        
+
         this.drawHeader(doc, company, 'Estado de Resultados (P&L)', `Desde: ${startDate} Hasta: ${endDate}`, currentDateStr, logoBuffer);
 
         let y = doc.y + 20;
@@ -73,13 +78,13 @@ export class PdfGenerator {
         // Draw Sections
         y = this.drawSection(doc, 'Ingresos', data.revenueAccounts, data.totalRevenue, y);
         y = this.drawSection(doc, 'Costos de Venta', data.costAccounts, data.totalCost, y);
-        
+
         // Gross Profit (Utilidad Bruta)
         if (y > 700) {
           doc.addPage();
           y = 50;
         }
-        
+
         doc.font('Courier-Bold').fontSize(10).fillColor('#000000');
         const grossProfitLabel = this.formatLineText('UTILIDAD BRUTA', 50);
         doc.text(grossProfitLabel, 50, y);
@@ -103,7 +108,7 @@ export class PdfGenerator {
         const netIncomeLabel = this.formatLineText('UTILIDAD NETA', 50);
         doc.text(netIncomeLabel, 50, y);
         doc.text(this.formatCurrency(data.netIncome), 400, y, { width: 145, align: 'right' });
-        
+
         // Draw double line under net income
         y += 15;
         doc.moveTo(50, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
@@ -118,8 +123,8 @@ export class PdfGenerator {
   }
 
   static generateBalanceSheet(
-    company: CompanyInfo, 
-    asOfDate: string, 
+    company: CompanyInfo,
+    asOfDate: string,
     data: any
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
@@ -132,7 +137,7 @@ export class PdfGenerator {
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
         const currentDateStr = new Date().toLocaleDateString('es-DO');
-        
+
         this.drawHeader(doc, company, 'Balance General', `Al: ${asOfDate}`, currentDateStr, logoBuffer);
 
         let y = doc.y + 20;
@@ -175,9 +180,9 @@ export class PdfGenerator {
   }
 
   static generateARStatement(
-    company: CompanyInfo, 
+    company: CompanyInfo,
     customerInfo: { name: string, rnc: string, phone: string },
-    asOfDate: string, 
+    asOfDate: string,
     data: any
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
@@ -190,7 +195,7 @@ export class PdfGenerator {
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
         const currentDateStr = new Date().toLocaleDateString('es-DO');
-        
+
         this.drawHeader(doc, company, 'Estado de Cuentas', `Al: ${asOfDate}`, currentDateStr, logoBuffer);
 
         let y = doc.y + 10;
@@ -278,16 +283,91 @@ export class PdfGenerator {
     });
   }
 
-  private static drawHeader(
-    doc: typeof PDFDocument, 
-    company: CompanyInfo, 
-    title: string, 
-    subtitle: string, 
+  private static drawInvoiceStyleHeader(
+    doc: typeof PDFDocument,
+    company: CompanyInfo,
+    title: string,
+    subtitle: string,
     currentDate: string,
-    logoBuffer: Buffer | null
+    logoBuffer: Buffer | null,
+    reportType: string
   ) {
+    const primaryColor = '#003366';
+    const textColor = '#191C1D';
+    const pageWidth = doc.page.width;
+
+    // Top blue accent bar
+    doc.fillColor(primaryColor).rect(0, 0, pageWidth, 15).fill();
+
+    let yOffset = 36;
+    if (logoBuffer) {
+      try {
+        // Specify only width to let PDFKit scale height proportionally, matching the invoice max-width: 220px layout
+        doc.image(logoBuffer, 36, 30, { width: 220 });
+        yOffset = 90;
+      } catch (e) {
+        doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(18).text(company.name.toUpperCase(), 36, yOffset);
+        yOffset += 24;
+      }
+    } else {
+      doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(18).text(company.name.toUpperCase(), 36, yOffset);
+      yOffset += 24;
+    }
+
+    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
+    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
+    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
+    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+
+    const padDots = (label: string, length: number) => {
+      const dotsNeeded = length - label.length;
+      return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+    };
+
+    doc.fillColor('#333333')
+      .font('Courier')
+      .fontSize(9.5) // Reverted to 9.5
+      .text(`${padDots('RNC', 12)} ${company.rnc || 'N/A'}`, 36, yOffset)
+      .text(`${padDots('Teléfono', 12)} ${tel}`, 36, yOffset + 12) // Reverted spacing
+      .text(`${padDots('Email', 12)} ${email}`, 36, yOffset + 24)
+      .text(`${padDots('Dirección', 12)} ${dir}`, 36, yOffset + 36);
+
+    // Meta Info (Right) - Clean text aligned to the right to match the Invoice layout
+    const metaWidth = 350;
+    const metaX = pageWidth - metaWidth - 36;
+
+    doc.fillColor('#005E6A') // Teal color matching the invoice title style
+      .font('Helvetica-Bold')
+      .fontSize(14) // Reverted to 14
+      .text(reportType, metaX, 30, { width: metaWidth, align: 'right' });
+
+    doc.fillColor(textColor)
+      .font('Helvetica-Bold')
+      .fontSize(11) // Reverted to 11
+      .text(title, metaX, 50, { width: metaWidth, align: 'right' });
+
+    doc.font('Helvetica')
+      .fontSize(10) // Reverted to 10
+      .text(subtitle, metaX, 64, { width: metaWidth, align: 'right' })
+      .text(`Fecha: ${currentDate}`, metaX, 78, { width: metaWidth, align: 'right' });
+
+    doc.y = Math.max(yOffset + 55, 140);
+  }
+
+  private static drawHeader(
+    doc: typeof PDFDocument,
+    company: CompanyInfo,
+    title: string,
+    subtitle: string,
+    currentDate: string,
+    logoBuffer: Buffer | null,
+    reportType: string = 'REPORTE FINANCIERO'
+  ) {
+    const margin = doc.page.margins?.left || 30;
+    const rightEdge = doc.page.width - (doc.page.margins?.right || 30);
+
     // Top Accent line
-    doc.moveTo(50, 40).lineTo(545, 40).strokeColor('#005E63').lineWidth(2).stroke();
+    doc.moveTo(margin, 40).lineTo(rightEdge, 40).strokeColor('#005E63').lineWidth(2).stroke();
 
     let textStartY = 55;
 
@@ -305,57 +385,59 @@ export class PdfGenerator {
     // 1. Company info formatted with monospaced label layout
     doc.font('Courier').fontSize(9).fillColor('#333333');
     let yPos = textStartY;
-    
+
     // Check if company is Latin Doors or use defaults
     const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
-    const tel = isLatinDoors ? '1-829-214-4128' : '809-555-0199';
-    const email = isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com';
-    const dir = isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.';
+    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
+    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
+    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
 
     // If logo was drawn, let's keep details compact and clear
-    doc.text(this.formatLabel('Compañía', company.name), 50, yPos);
+    doc.text(this.formatLabel('Compañía', company.name), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('RNC', company.rnc), 50, yPos);
+    doc.text(this.formatLabel('RNC', company.rnc || 'N/A'), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Teléfono', tel), 50, yPos);
+    doc.text(this.formatLabel('Teléfono', tel), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Email', email), 50, yPos);
+    doc.text(this.formatLabel('Email', email), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Dirección', dir), 50, yPos);
+    doc.text(this.formatLabel('Dirección', dir), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Fecha Gen', currentDate), 50, yPos);
+    doc.text(this.formatLabel('Fecha Gen', currentDate), margin, yPos);
 
     // 2. Title block on the right
+    const titleWidth = 300;
+    const titleX = rightEdge - titleWidth;
     doc.font('Courier-Bold').fontSize(14).fillColor('#005E63');
-    doc.text(title.toUpperCase(), 300, 55, { width: 245, align: 'right' });
-    
+    doc.text(title.toUpperCase(), titleX, 55, { width: titleWidth, align: 'right' });
+
     doc.font('Courier').fontSize(10).fillColor('#333333');
-    doc.text(subtitle, 300, 75, { width: 245, align: 'right' });
-    doc.text('REPORTE FINANCIERO', 300, 92, { width: 245, align: 'right' });
+    doc.text(subtitle, titleX, 75, { width: titleWidth, align: 'right' });
+    doc.text(reportType, titleX, 92, { width: titleWidth, align: 'right' });
 
     // Section title divider (double line)
     const lineY = Math.max(yPos + 15, 130);
-    doc.moveTo(50, lineY).lineTo(545, lineY).strokeColor('#005E63').lineWidth(1).stroke();
-    doc.moveTo(50, lineY + 2).lineTo(545, lineY + 2).strokeColor('#005E63').lineWidth(1).stroke();
-    
+    doc.moveTo(margin, lineY).lineTo(rightEdge, lineY).strokeColor('#005E63').lineWidth(1).stroke();
+    doc.moveTo(margin, lineY + 2).lineTo(rightEdge, lineY + 2).strokeColor('#005E63').lineWidth(1).stroke();
+
     doc.y = lineY + 10;
   }
 
   private static drawTableHeader(doc: typeof PDFDocument, startY: number, headers: string[]): number {
     let y = startY;
-    
+
     // Draw horizontal line above header
     doc.moveTo(50, y).lineTo(545, y).strokeColor('#005E63').lineWidth(1).stroke();
-    
+
     // Draw Text in dark teal Courier-Bold (No background rectangle fill)
     doc.font('Courier-Bold').fontSize(9).fillColor('#005E63');
     doc.text(headers[0], 55, y + 5, { width: 80 });
     doc.text(headers[1], 130, y + 5, { width: 270 });
     doc.text(headers[2], 400, y + 5, { width: 140, align: 'right' });
-    
+
     // Draw horizontal line below header
     doc.moveTo(50, y + 16).lineTo(545, y + 16).strokeColor('#005E63').lineWidth(1).stroke();
-    
+
     return y + 25;
   }
 
@@ -417,13 +499,6 @@ export class PdfGenerator {
     // Prepared By
     doc.moveTo(80, yLine).lineTo(230, yLine).strokeColor('#000000').lineWidth(1).stroke();
     doc.fillColor('#000000').font('Courier').fontSize(9).text('Preparado por', 80, yLine + 8, { width: 150, align: 'center' });
-
-    // Approved By
-    doc.moveTo(365, yLine).lineTo(515, yLine).strokeColor('#000000').lineWidth(1).stroke();
-    doc.fillColor('#000000').font('Courier').fontSize(9).text('Revisado por', 365, yLine + 8, { width: 150, align: 'center' });
-
-    // Footer message
-    doc.fillColor('#aaaaaa').fontSize(7).text('Generado por ContFast ERP - Reportes de Contabilidad General', 50, pageHeight - 35, { align: 'center' });
   }
 
   static generateWindowBreakdown(company: CompanyInfo, data: any[]): Promise<Buffer> {
@@ -438,96 +513,202 @@ export class PdfGenerator {
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
         const currentDateStr = new Date().toLocaleDateString('es-DO');
 
-        // Draw Landscape Header
-        doc.moveTo(30, 25).lineTo(811, 25).strokeColor('#005E63').lineWidth(2).stroke();
-        
-        let textStartY = 35;
-        if (logoBuffer) {
-          try {
-            doc.image(logoBuffer, 30, 35, { fit: [150, 40], valign: 'center' });
-            textStartY = 80;
-          } catch (e) {
-            console.error('Failed to draw logo in landscape', e);
-          }
-        }
+        const padDots = (label: string, length: number) => {
+          const dotsNeeded = length - label.length;
+          return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+        };
 
-        doc.font('Courier').fontSize(8).fillColor('#333333');
-        let yPos = textStartY;
-        doc.text(this.formatLabel('Compañía', company.name, 10), 30, yPos);
-        yPos += 10;
-        doc.text(this.formatLabel('RNC', company.rnc || 'N/A', 10), 30, yPos);
-        yPos += 10;
-        doc.text(this.formatLabel('Fecha Gen', currentDateStr, 10), 30, yPos);
+        this.drawInvoiceStyleHeader(doc, company, 'Desglose Ventanas', `Lote Interno`, currentDateStr, logoBuffer, 'PRODUCCIÓN Y CORTE');
 
-        doc.font('Courier-Bold').fontSize(14).fillColor('#005E63');
-        doc.text('DESGLOSE DE PRODUCCIÓN DE VENTANAS', 400, 35, { width: 411, align: 'right' });
-        doc.font('Courier').fontSize(9).fillColor('#333333');
-        doc.text('Uso Interno Administrativo / Taller', 400, 52, { width: 411, align: 'right' });
+        let y = doc.y;
 
-        const dividerY = Math.max(yPos + 15, 110);
-        doc.moveTo(30, dividerY).lineTo(811, dividerY).strokeColor('#005E63').lineWidth(1).stroke();
-        
-        let y = dividerY + 15;
-
-        // Draw Table Header
+        // Section Banner: DETALLES DE CORTE Y MATERIALES
         doc.moveTo(30, y).lineTo(811, y).strokeColor('#005E63').lineWidth(1).stroke();
-        doc.font('Courier-Bold').fontSize(8).fillColor('#005E63');
-        const colWidths = [25, 60, 30, 80, 35, 110, 110, 90, 90, 150];
+        doc.font('Courier-Bold').fontSize(10).fillColor('#005E63').text('DETALLES DE CORTE Y MATERIALES', 30, y + 6, { align: 'center', width: 781 });
+        doc.moveTo(30, y + 20).lineTo(811, y + 20).strokeColor('#005E63').lineWidth(1).stroke();
+
+        y += 35;
+
+        // Draw Table Header Helper
+        const colWidths = [25, 60, 35, 95, 35, 110, 110, 90, 90, 131];
         const colX = [30];
         for (let i = 0; i < colWidths.length - 1; i++) {
           colX.push(colX[i] + colWidths[i]);
         }
-        
         const headers = ['#', 'Tipo', 'Cant', 'Medida Base', 'Vías', 'Afel/Cabezal', 'Llavin/Enganche', 'Rieles', 'Laterales', 'Vidrio (A x H)'];
-        for (let i = 0; i < headers.length; i++) {
-          doc.text(headers[i], colX[i] + 2, y + 4);
-        }
-        doc.moveTo(30, y + 15).lineTo(811, y + 15).strokeColor('#005E63').lineWidth(1).stroke();
-        y += 20;
+
+        const drawTableHeader = (currentY: number) => {
+          doc.rect(30, currentY, 781, 22).fill('#005E63');
+          doc.font('Courier-Bold').fontSize(9).fillColor('#ffffff');
+          for (let i = 0; i < headers.length; i++) {
+            const align = ['#', 'Tipo', 'Cant', 'Medida Base', 'Vías'].includes(headers[i]) ? 'center' : 'left';
+            doc.text(headers[i], colX[i] + 2, currentY + 6, { width: colWidths[i] - 4, align });
+          }
+          doc.fillColor('#333333');
+          return currentY + 22;
+        };
+
+        y = drawTableHeader(y);
 
         // Rows
-        doc.font('Courier').fontSize(8).fillColor('#333333');
+        doc.font('Courier').fontSize(9).fillColor('#333333');
         data.forEach((item, index) => {
           if (y > 450) {
             doc.addPage();
             y = 40;
-            // Draw page marker
-            doc.moveTo(30, y).lineTo(811, y).strokeColor('#005E63').lineWidth(1).stroke();
-            for (let i = 0; i < headers.length; i++) {
-              doc.text(headers[i], colX[i] + 2, y + 4);
-            }
-            doc.moveTo(30, y + 15).lineTo(811, y + 15).strokeColor('#005E63').lineWidth(1).stroke();
-            y += 20;
+            y = drawTableHeader(y);
           }
 
-          doc.text((index + 1).toString(), colX[0] + 2, y);
-          doc.text((item.tipo || '').substring(0, 8), colX[1] + 2, y);
-          doc.text(item.cantidad.toString(), colX[2] + 2, y);
-          doc.text(`${item.ancho} x ${item.altura}`, colX[3] + 2, y);
-          doc.text(item.vias.toString(), colX[4] + 2, y);
-          doc.text(item.cabezal || '-', colX[5] + 2, y);
-          doc.text(item.llavin || '-', colX[6] + 2, y);
-          doc.text(item.riel || '-', colX[7] + 2, y);
-          doc.text(item.lateral || '-', colX[8] + 2, y);
-          doc.text(item.vidrio || '-', colX[9] + 2, y);
-          
-          doc.moveTo(30, y + 10).lineTo(811, y + 10).strokeColor('#f0f0f0').lineWidth(0.5).stroke();
-          y += 13;
+          // Row background border
+          doc.rect(30, y, 781, 18).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+
+          // Draw vertical lines
+          colX.forEach(x => {
+            doc.moveTo(x, y).lineTo(x, y + 18).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+          });
+
+          // Text alignment inside columns
+          doc.text((index + 1).toString(), colX[0], y + 4, { width: colWidths[0], align: 'center' });
+          doc.text((item.tipo || '').substring(0, 8), colX[1], y + 4, { width: colWidths[1], align: 'center' });
+          doc.text(item.cantidad.toString(), colX[2], y + 4, { width: colWidths[2], align: 'center' });
+          doc.text(`${item.ancho} x ${item.altura}`, colX[3], y + 4, { width: colWidths[3], align: 'center' });
+          doc.text(item.vias.toString(), colX[4], y + 4, { width: colWidths[4], align: 'center' });
+
+          doc.text(item.cabezal || '-', colX[5] + 4, y + 4);
+          doc.text(item.llavin || '-', colX[6] + 4, y + 4);
+          doc.text(item.riel || '-', colX[7] + 4, y + 4);
+          doc.text(item.lateral || '-', colX[8] + 4, y + 4);
+
+          // Vidrio formatting using "*" instead of "x" or "/"
+          let glassText = item.vidrio || '-';
+          if (glassText.includes(' x ')) {
+            glassText = glassText.replace(' x ', ' * ');
+          }
+          doc.text(glassText, colX[9] + 4, y + 4);
+
+          y += 18;
         });
 
-        // Draw signatures
-        if (y > 460) {
+        if (y > 400) {
           doc.addPage();
           y = 40;
         }
+
+        y += 15;
+        doc.font('Courier-Bold').fontSize(11).fillColor('#005E63');
+        doc.text('CANTIDAD DE HUECOS POR TIPO', 30, y, { align: 'center', width: 781 });
+        y += 20;
+
+        // Group by type and count
+        const typeCounts: Record<string, number> = {};
+        data.forEach(item => {
+          const t = item.tipo || 'Desconocido';
+          typeCounts[t] = (typeCounts[t] || 0) + (Number(item.cantidad) || 0);
+        });
+
+        doc.font('Courier').fontSize(10).fillColor('#333333');
+        Object.entries(typeCounts).forEach(([t, count]) => {
+          doc.text(`${padDots(t, 25)} ${count} piezas`, 300, y);
+          y += 16.5;
+        });
+
+        if (y > 400) {
+          doc.addPage();
+          y = 40;
+        }
+
         y += 25;
-        doc.moveTo(60, y).lineTo(250, y).strokeColor('#000000').lineWidth(1).stroke();
-        doc.fillColor('#000000').font('Courier-Bold').fontSize(8).text('Encargado de Taller', 60, y + 6, { width: 190, align: 'center' });
+        doc.font('Courier-Bold').fontSize(11).fillColor('#005E63');
+        doc.text('RESUMEN TOTAL DE MATERIALES POR SISTEMA', 30, y, { align: 'center', width: 781 });
+        y += 20;
 
-        doc.moveTo(560, y).lineTo(750, y).strokeColor('#000000').lineWidth(1).stroke();
-        doc.text('Control de Calidad', 560, y + 6, { width: 190, align: 'center' });
+        const systems = ['Tradicional', 'P-65', 'P-92'];
+        const systemsX = [60, 300, 540];
+        const systemsW = 220;
 
-        doc.fillColor('#aaaaaa').fontSize(7).text('Nota: Verifique todas las medidas antes de realizar cortes. Generado por ContFast Enterprise.', 30, doc.page.height - 30, { align: 'center' });
+        systems.forEach((sys, idx) => {
+          const sysX = systemsX[idx];
+          let sysY = y + 25;
+
+          const sysItems = data.filter(item => item.tipo === sys);
+          const totalUnits = sysItems.reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
+
+          // Header banner
+          doc.rect(sysX, y, systemsW, 20).fill('#005E63');
+          doc.font('Courier-Bold').fontSize(10).fillColor('#ffffff');
+          doc.text(sys, sysX, y + 5, { width: systemsW, align: 'center' });
+
+          doc.font('Courier').fontSize(9.5).fillColor('#333333');
+
+          // Calculate materials lengths
+          let cabezalPies = 0;
+          let llavinPies = 0;
+          let rielPies = 0;
+          let lateralPies = 0;
+          let ruedas = 0;
+          let cierres = 0;
+          let gomaPies = 0;
+
+          sysItems.forEach(item => {
+            const w = parseFraction(item.ancho) || 0;
+            const h = parseFraction(item.altura) || 0;
+            const qty = Number(item.cantidad) || 0;
+            const vias = Number(item.vias) || 2;
+
+            const profileSystem = windowProfiles[sys];
+            if (profileSystem) {
+              const cuts = profileSystem.calculate(w, h, 1, vias);
+              const glassPerimeter = (cuts.vidrio.valueWidth + cuts.vidrio.valueHeight) * 2 * vias * qty;
+              gomaPies += glassPerimeter / 12;
+            }
+
+            if (sys === 'Tradicional') {
+              cabezalPies += (w - 0.25) * qty / 12;
+              llavinPies += (h - 0.875) * 2 * qty / 12;
+              rielPies += (w - 0.25) * qty / 12;
+              lateralPies += (h - 0.5) * 2 * qty / 12;
+              ruedas += 4 * qty;
+              cierres += 1 * qty;
+            } else if (sys === 'P-65') {
+              cabezalPies += (w - 1.25) * 2 * qty / 12;
+              llavinPies += (h - 2) * 2 * qty / 12;
+              rielPies += (w - 1.5) * qty / 12;
+              lateralPies += (h - 0.125) * 2 * qty / 12;
+              ruedas += 4 * qty;
+              cierres += 1 * qty;
+            } else if (sys === 'P-92') {
+              cabezalPies += (w - 0.875) * 2 * qty / 12;
+              llavinPies += (h - 2.5) * 2 * qty / 12;
+              rielPies += (w - 1.625) * qty / 12;
+              lateralPies += (h - 0.125) * 2 * qty / 12;
+              ruedas += 4 * qty;
+              cierres += 1 * qty;
+            }
+          });
+
+          const formatPies = (val: number) => val > 0 ? `${val.toFixed(2)} pies` : '0.00 pies';
+          const formatPiesCU = (val: number) => val > 0 ? `${val.toFixed(2)} pies c/u` : '0.00 pies c/u';
+
+          const cabLabel = sys === 'Tradicional' ? 'Cabezal/Afeizal:' : 'Cabezal:';
+          const rielLabel = 'Rieles (2/4 vías):';
+          const latLabel = 'Laterales (2/4 vías):';
+
+          doc.text(`${padDots(cabLabel, 18)} ${sys === 'Tradicional' ? formatPiesCU(cabezalPies) : formatPies(cabezalPies)}`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots('Lavín/Enganche:', 18)} ${formatPiesCU(llavinPies)}`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots(rielLabel, 18)} ${formatPiesCU(rielPies)}`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots(latLabel, 18)} ${formatPies(lateralPies)}`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots('Ruedas:', 18)} ${ruedas} unidades`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots('Cierre de Centro:', 18)} ${cierres} unidades`, sysX + 5, sysY);
+          sysY += 14;
+          doc.text(`${padDots('Goma:', 18)} ${formatPies(gomaPies)}`, sysX + 5, sysY);
+          sysY += 16.5;
+          doc.font('Courier-Bold').fontSize(10).text(`Total unidades: ${totalUnits}`, sysX + 5, sysY);
+        });
 
         doc.end();
       } catch (err) {
@@ -555,35 +736,15 @@ export class PdfGenerator {
           const pageWidth = doc.page.width;
           const pageHeight = doc.page.height;
 
-          // Draw Top Accent
-          doc.moveTo(30, 25).lineTo(pageWidth - 30, 25).strokeColor('#005E63').lineWidth(2).stroke();
+          this.drawInvoiceStyleHeader(doc, company, 'Patrón de Vidrio', `Plancha #${sheet.id} de ${sheets.length}`, currentDateStr, logoBuffer, 'CORTE OPTIMIZADO');
 
-          // Header
-          let textStartY = 35;
-          if (logoBuffer) {
-            try {
-              doc.image(logoBuffer, 30, 35, { fit: [140, 40], valign: 'center' });
-              textStartY = 80;
-            } catch (e) {
-              console.error('Logo render fail in cutting report', e);
-            }
-          }
+          let y = doc.y;
 
-          doc.font('Courier').fontSize(8).fillColor('#333333');
-          let yPos = textStartY;
-          doc.text(this.formatLabel('Compañía', company.name, 10), 30, yPos);
-          yPos += 10;
-          doc.text(this.formatLabel('RNC', company.rnc || 'N/A', 10), 30, yPos);
-          yPos += 10;
-          doc.text(this.formatLabel('Plancha', `#${sheet.id} de ${sheets.length}`, 10), 30, yPos);
+          doc.font('Courier-Bold').fontSize(10).fillColor('#005E63');
+          doc.text(`Medidas Plancha: ${sheetWidth}" x ${sheetHeight}"  |  Aprovechamiento: ${(100 - sheet.wastePercent).toFixed(1)}%`, 30, y, { align: 'center', width: pageWidth - 60 });
+          y += 20;
 
-          doc.font('Courier-Bold').fontSize(14).fillColor('#005E63');
-          doc.text('PATRÓN DE CORTE DE VIDRIO', pageWidth - 300, 35, { width: 270, align: 'right' });
-          doc.font('Courier').fontSize(8).fillColor('#333333');
-          doc.text(`Medidas Plancha: ${sheetWidth}" x ${sheetHeight}"`, pageWidth - 300, 52, { width: 270, align: 'right' });
-          doc.text(`Aprovechamiento: ${(100 - sheet.wastePercent).toFixed(1)}%`, pageWidth - 300, 62, { width: 270, align: 'right' });
-
-          const dividerY = Math.max(yPos + 15, 110);
+          const dividerY = y;
           doc.moveTo(30, dividerY).lineTo(pageWidth - 30, dividerY).strokeColor('#005E63').lineWidth(1).stroke();
 
           // Title for Pattern
@@ -651,13 +812,6 @@ export class PdfGenerator {
           doc.text(`${sheetHeight}" ALTO`, -canvasH / 2, -3, { width: canvasH, align: 'center' });
           doc.restore();
 
-          // Signatures at the bottom
-          const signatureY = pageHeight - 60;
-          doc.moveTo(50, signatureY).lineTo(200, signatureY).strokeColor('#000000').lineWidth(1).stroke();
-          doc.fillColor('#000000').font('Courier-Bold').fontSize(8).text('Encargado de Taller', 50, signatureY + 5, { width: 150, align: 'center' });
-
-          doc.moveTo(pageWidth - 200, signatureY).lineTo(pageWidth - 50, signatureY).strokeColor('#000000').lineWidth(1).stroke();
-          doc.text('Control de Calidad', pageWidth - 200, signatureY + 5, { width: 150, align: 'center' });
         }
 
         doc.end();

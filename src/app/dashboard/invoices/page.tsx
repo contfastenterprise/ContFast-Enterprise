@@ -7,11 +7,12 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users, FileMinus, FilePlus
+  Package, Users, FileMinus, FilePlus, ChevronDown, Save
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import RetentionSelector from '@/components/RetentionSelector';
 
 function InvoicesList() {
   const router = useRouter();
@@ -22,6 +23,9 @@ function InvoicesList() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
+  const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,6 +52,8 @@ function InvoicesList() {
   const [notes, setNotes] = useState('');
   const [modifiedNcf, setModifiedNcf] = useState('');
   const [modifiedInvoiceId, setModifiedInvoiceId] = useState('');
+  const [retentions, setRetentions] = useState<any[]>([]);
+  const [retentionsEnabled, setRetentionsEnabled] = useState(false);
   const [lines, setLines] = useState<any[]>([
     {
       productId: '',
@@ -62,6 +68,7 @@ function InvoicesList() {
       imageUrl: ''
     },
   ]);
+  const [quoteId, setQuoteId] = useState('');
 
   // Product Search Modal states
   const [productSearchModalOpen, setProductSearchModalOpen] = useState(false);
@@ -282,7 +289,54 @@ function InvoicesList() {
     if (searchParams.get('new') === 'true') {
       setShowForm(true);
     }
+    const qid = searchParams.get('quoteId');
+    if (qid) {
+      setShowForm(true);
+      setQuoteId(qid);
+      fetch(`/api/v1/quotes/${qid}/convert`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.data) {
+            const quote = data.data;
+            if (quote.customerId) setCustomerId(quote.customerId);
+            if (quote.warehouseId) setWarehouseId(quote.warehouseId);
+            if (quote.notes) setNotes(quote.notes);
+            if (quote.lines && quote.lines.length > 0) {
+              setLines(quote.lines.map((l: any) => ({
+                productId: l.productId,
+                productName: l.productName || 'Producto Cotizado',
+                quantity: l.quantity,
+                unitPrice: l.unitPrice,
+                discount: l.discount,
+                taxRate: 0.18,
+                unitOfMeasure: 'unidad'
+              })));
+            }
+          }
+        });
+    }
   }, [searchParams]);
+
+  // Fetch Current User
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cf_user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch(e) {}
+    
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        const data = await res.json();
+        if (data.success && data.data?.user) {
+          setCurrentUser(data.data.user);
+        }
+      } catch (err) {}
+    };
+    fetchUser();
+  }, []);
 
   // Load Invoices
   const loadInvoices = useCallback(async () => {
@@ -342,10 +396,19 @@ function InvoicesList() {
     });
 
     const total = subtotal - discount + taxes;
-    return { subtotal, discount, taxes, total };
+
+    let totalRetained = 0;
+    if (retentionsEnabled) {
+      retentions.forEach((ret) => {
+        totalRetained += ret.retentionAmount;
+      });
+    }
+    const totalNet = total - totalRetained;
+
+    return { subtotal, discount, taxes, total, totalRetained, totalNet };
   };
 
-  const { subtotal, discount, taxes, total } = calculateTotals();
+  const { subtotal, discount, taxes, total, totalRetained, totalNet } = calculateTotals();
 
   // Form Operations
   const handleAddLine = () => {
@@ -484,8 +547,82 @@ function InvoicesList() {
     }
   };
 
-  const handleIssueInvoice = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setCustomerId(''); setCustomerRnc(''); setCustomerName('');
+    setBankName(''); setTransactionNumber('');
+    setNotes('');
+    setModifiedNcf(''); setModifiedInvoiceId('');
+    setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'consumidor', imageUrl: '' }]);
+    setQuoteId('');
+  };
+
+  const buildInvoicePayload = () => ({
+    customerId: customerId || undefined,
+    warehouseId,
+    ecfType,
+    paymentType,
+    bankName: paymentType === 'bank_transfer' ? bankName : undefined,
+    transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
+    notes: notes || undefined,
+    modifiedNcf: modifiedNcf || undefined,
+    modifiedInvoiceId: modifiedInvoiceId || undefined,
+    quoteId: quoteId || undefined,
+    buyerRnc: customerRnc || undefined,
+    buyerName: customerName || undefined,
+    lines: lines.map(l => ({
+      productId: l.productId,
+      productName: l.productName,
+      quantity: l.quantity,
+      unitPrice: l.unitPrice,
+      discount: l.discount,
+      taxRate: l.taxRate,
+    })),
+  });
+
+  const validateFormBasic = () => {
+    if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
+      throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
+    }
+    if (lines.some((l) => !l.productName)) {
+      throw new Error('Todos los artículos deben tener un nombre.');
+    }
+    if (!warehouseId) {
+      throw new Error('Debe seleccionar un almacén.');
+    }
+  };
+
+  // Handler: Save as Draft
+  const handleSaveDraft = async () => {
+    setSaveDropdownOpen(false);
+    setSavingDraft(true);
+    try {
+      validateFormBasic();
+      const res = await fetch('/api/v1/invoices/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildInvoicePayload()),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || 'Error al guardar borrador.');
+      }
+      toast.success('Factura guardada en Borrador', {
+        description: `Código: ${data.data.codigoFactura}. Puedes emitirla más tarde.`
+      });
+      setShowForm(false);
+      router.replace('/dashboard/invoices');
+      resetForm();
+      loadInvoices();
+    } catch (error: any) {
+      toast.error('Error al guardar borrador', { description: error.message });
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'email') => {
     e.preventDefault();
+    setSaveDropdownOpen(false);
     setSubmitting(true);
 
     try {
@@ -495,6 +632,16 @@ function InvoicesList() {
       if (lines.some((l) => !l.productName)) {
         throw new Error('Todos los artículos deben tener un nombre.');
       }
+
+      const isNote = ecfType === '33' || ecfType === '34';
+      const linesToSubmit = lines.map((l: any) => ({
+        productId: l.productId,
+        productName: l.productName,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        discount: l.discount,
+        taxRate: l.taxRate,
+      }));
 
       const res = await fetch('/api/v1/invoices', {
         method: 'POST',
@@ -507,9 +654,11 @@ function InvoicesList() {
           bankName: paymentType === 'bank_transfer' ? bankName : undefined,
           transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
           notes: notes || undefined,
-          modifiedNcf: modifiedNcf || undefined,
-          modifiedInvoiceId: modifiedInvoiceId || undefined,
-          lines,
+          modifiedNcf: isNote ? modifiedNcf : undefined,
+          modifiedInvoiceId: isNote ? modifiedInvoiceId : undefined,
+          quoteId: quoteId || undefined,
+          lines: linesToSubmit,
+          retentions: retentionsEnabled ? retentions : undefined,
         }),
       });
 
@@ -535,7 +684,8 @@ function InvoicesList() {
                 notes: notes || undefined,
                 modifiedNcf: modifiedNcf || undefined,
                 modifiedInvoiceId: modifiedInvoiceId || undefined,
-                lines,
+                lines: linesToSubmit,
+                retentions: retentionsEnabled ? retentions : undefined,
               }),
             });
             const retryData = await retryRes.json();
@@ -547,11 +697,8 @@ function InvoicesList() {
             });
 
             setShowForm(false);
-            setCustomerId(''); setCustomerRnc(''); setCustomerName('');
-            setBankName(''); setTransactionNumber('');
-            setNotes('');
-            setModifiedNcf(''); setModifiedInvoiceId('');
-            setLines([{ productId: 'f56a31c0-0000-0000-0000-000000000000', productName: 'Servicio de Consultoría Técnica', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
+            router.replace('/dashboard/invoices');
+            resetForm();
             loadInvoices();
             return;
           } else {
@@ -565,13 +712,35 @@ function InvoicesList() {
         description: `NCF: ${data.data.ncf}`
       });
 
+      const invoiceId = data.data.id;
+
       setShowForm(false);
-      setCustomerId(''); setCustomerRnc(''); setCustomerName('');
-      setBankName(''); setTransactionNumber('');
-      setNotes('');
-      setModifiedNcf(''); setModifiedInvoiceId('');
-      setLines([{ productId: '', productName: 'Producto', quantity: 1, unitPrice: 5000, discount: 0, taxRate: 0.18 }]);
+      router.replace('/dashboard/invoices');
+      resetForm();
       loadInvoices();
+
+      // Post-action: print or email
+      if (postAction === 'print') {
+        setTimeout(() => {
+          window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+        }, 500);
+      } else if (postAction === 'email') {
+        if (!data.data.customerId) {
+          toast.warning('No se puede enviar correo', { description: 'La factura no tiene un cliente con correo asociado.' });
+        } else {
+          try {
+            const emailRes = await fetch(`/api/v1/invoices/${invoiceId}/email`, { method: 'POST' });
+            const emailData = await emailRes.json();
+            if (emailRes.ok && emailData.success) {
+              toast.success('Correo enviado', { description: emailData.message });
+            } else {
+              toast.error('Error al enviar correo', { description: emailData.error?.message });
+            }
+          } catch {
+            toast.error('Error de red al enviar el correo.');
+          }
+        }
+      }
     } catch (error: any) {
       toast.error('Error de emisión', { description: error.message });
     } finally {
@@ -928,14 +1097,28 @@ function InvoicesList() {
 
                           <div className="md:col-span-2 space-y-1.5">
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
-                            <input
-                              type="number"
-                              value={line.discount || 0}
-                              onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                              disabled={!hasProduct}
-                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                              min={0} step="any"
-                            />
+                            {(() => {
+                              const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
+                              const canEditDiscount = userRole === 'admin' || userRole === 'sistema';
+                              const isDisabled = !hasProduct || !canEditDiscount;
+                              
+                              return (
+                                <div>
+                                  <input
+                                    type="number"
+                                    value={line.discount || 0}
+                                    onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                    disabled={isDisabled}
+                                    className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${isDisabled ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                                    min={0} step="any"
+                                    title={!canEditDiscount ? "Solo administradores pueden modificar el descuento" : ""}
+                                  />
+                                  {!canEditDiscount && (
+                                    <p className="text-[9px] text-red-500 mt-0.5">Solo admin</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className="md:col-span-2 space-y-1.5">
@@ -997,6 +1180,18 @@ function InvoicesList() {
                 />
               </div>
 
+              {/* Retenciones Fiscales */}
+              <RetentionSelector
+                subtotal={subtotal}
+                discount={discount}
+                itbis={taxes}
+                defaultRnc={customerRnc}
+                onChange={(applied, enabled) => {
+                  setRetentions(applied);
+                  setRetentionsEnabled(enabled);
+                }}
+              />
+
               {/* Calculation Summary & Submit */}
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-t border-slate-200 pt-8">
                 <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 w-full md:max-w-sm space-y-2 text-sm text-slate-700">
@@ -1013,9 +1208,27 @@ function InvoicesList() {
                     <span className="font-semibold text-[#003366]">RD$ {taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between border-t border-slate-200 pt-3 mt-3 text-lg font-bold">
-                    <span className="text-[#003366]">Total General:</span>
-                    <span className="text-emerald-400">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-[#003366]">Total Bruto:</span>
+                    <span className="text-[#003366]">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                   </div>
+                  {retentionsEnabled && totalRetained > 0 && (
+                    <>
+                      <div className="flex justify-between text-orange-600 text-sm">
+                        <span>Total Retenido:</span>
+                        <span className="font-semibold">- RD$ {totalRetained.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-orange-200 pt-3 mt-1 text-lg font-bold">
+                        <span className="text-emerald-700">Total Neto a Cobrar:</span>
+                        <span className="text-emerald-500">RD$ {totalNet.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </>
+                  )}
+                  {(!retentionsEnabled || totalRetained === 0) && (
+                    <div className="flex justify-between border-t border-slate-200 pt-1 mt-1 text-lg font-bold">
+                      <span className="text-[#003366]">Total General:</span>
+                      <span className="text-emerald-400">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col-reverse sm:flex-row gap-4 w-full md:w-auto">
@@ -1026,17 +1239,110 @@ function InvoicesList() {
                   >
                     Cancelar
                   </button>
+
+                  {/* Save Draft button */}
                   <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 sm:flex-none flex justify-center items-center gap-2 rounded-xl bg-[#C5A059] px-8 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                    type="button"
+                    onClick={handleSaveDraft}
+                    disabled={savingDraft || submitting}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition-all"
+                    title="Guardar como Borrador (sin emitir NCF)"
                   >
-                    {submitting ? (
-                      <><RefreshCw className="h-5 w-5 animate-spin" /> Procesando...</>
+                    {savingDraft ? (
+                      <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
                     ) : (
-                      <><Check className="h-5 w-5" /> Emitir Comprobante</>
+                      <><Save className="h-4 w-4" /> Guardar Borrador</>
                     )}
                   </button>
+
+                  {/* Split Emit Button */}
+                  <div className="relative flex">
+                    {/* Main action: Emitir Comprobante */}
+                    <button
+                      type="submit"
+                      disabled={submitting || savingDraft}
+                      onClick={(e) => { setSaveDropdownOpen(false); }}
+                      className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                    >
+                      {submitting ? (
+                        <><RefreshCw className="h-4 w-4 animate-spin" /> Procesando...</>
+                      ) : (
+                        <><Check className="h-4 w-4" /> Emitir Comprobante</>
+                      )}
+                    </button>
+                    {/* Dropdown toggle */}
+                    <button
+                      type="button"
+                      disabled={submitting || savingDraft}
+                      onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
+                      className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                      title="Más opciones"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+
+                    {/* Dropdown menu */}
+                    <AnimatePresence>
+                      {saveDropdownOpen && (
+                        <>
+                          {/* Backdrop to close */}
+                          <div
+                            className="fixed inset-0 z-30"
+                            onClick={() => setSaveDropdownOpen(false)}
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute bottom-full right-0 mb-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[230px]"
+                          >
+                            <div className="px-3 py-2 border-b border-slate-100">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
+                            </div>
+                            {/* Option 1: Emitir e Imprimir */}
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => {
+                                setSaveDropdownOpen(false);
+                                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                                handleIssueInvoice(fakeEvent, 'print');
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
+                            >
+                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                <Printer className="h-4 w-4 text-amber-700" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-800">Emitir e Imprimir</p>
+                                <p className="text-xs text-slate-500">Emite el e-CF y abre el PDF automáticamente</p>
+                              </div>
+                            </button>
+                            {/* Option 2: Emitir y Enviar por Correo */}
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={(e) => {
+                                setSaveDropdownOpen(false);
+                                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                                handleIssueInvoice(fakeEvent, 'email');
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 transition-colors text-left"
+                            >
+                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <Mail className="h-4 w-4 text-blue-700" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-800">Emitir y Enviar por Correo</p>
+                                <p className="text-xs text-slate-500">Emite el e-CF y lo envía al correo del cliente</p>
+                              </div>
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             </form>
@@ -1535,9 +1841,28 @@ function InvoicesList() {
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between items-center border-t border-slate-200 pt-2 mt-2">
-                      <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total</span>
+                      <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total Bruto</span>
                       <span className="font-mono font-bold text-xl text-[#C5A059]">RD$ {parseFloat(selectedInvoice.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
+                    {selectedInvoice.retentions && selectedInvoice.retentions.length > 0 && (
+                      <div className="border-t border-orange-200 pt-2 mt-2 space-y-1">
+                        <p className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-1">Retenciones Fiscales</p>
+                        {selectedInvoice.retentions.map((ret: any, i: number) => (
+                          <div key={i} className="flex justify-between text-orange-600 text-xs">
+                            <span>{ret.retentionName} ({parseFloat(ret.retentionPercentage).toFixed(2)}%)</span>
+                            <span className="font-mono">- RD$ {parseFloat(ret.retentionAmount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center border-t border-orange-200 pt-2 mt-1">
+                          <span className="text-orange-700 font-bold uppercase tracking-wider text-xs">Total Retenido</span>
+                          <span className="font-mono font-bold text-orange-600">- RD$ {parseFloat(selectedInvoice.totalRetained).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-1">
+                          <span className="text-emerald-700 font-bold uppercase tracking-wider text-xs">Total Neto a Cobrar</span>
+                          <span className="font-mono font-bold text-xl text-emerald-500">RD$ {parseFloat(selectedInvoice.totalNet).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

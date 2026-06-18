@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
         discount: invoices.discount,
         totalTaxes: invoices.totalTaxes,
         total: invoices.total,
+        totalRetained: invoices.totalRetained,
+        totalNet: invoices.totalNet,
         createdAt: invoices.createdAt,
         customerName: customers.name,
         customerRnc: customers.rncCedula,
@@ -67,6 +69,8 @@ export async function GET(req: NextRequest) {
     let totalDiscount = 0;
     let totalITBIS = 0;
     let totalAmount = 0;
+    let totalRetained = 0;
+    let totalNet = 0;
     let totalCount = list.length;
 
     list.forEach((inv) => {
@@ -74,6 +78,8 @@ export async function GET(req: NextRequest) {
       totalDiscount += parseFloat(inv.discount);
       totalITBIS += parseFloat(inv.totalTaxes);
       totalAmount += parseFloat(inv.total);
+      totalRetained += parseFloat(inv.totalRetained);
+      totalNet += parseFloat(inv.totalNet);
     });
 
     return NextResponse.json(
@@ -88,6 +94,8 @@ export async function GET(req: NextRequest) {
             discount: totalDiscount,
             itbis: totalITBIS,
             total: totalAmount,
+            totalRetained,
+            totalNet,
           },
           invoices: list,
         },

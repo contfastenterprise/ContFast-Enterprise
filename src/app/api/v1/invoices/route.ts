@@ -31,6 +31,16 @@ const createInvoiceSchema = z.object({
       taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),
+  retentions: z.array(
+    z.object({
+      retentionId: z.string().uuid().optional(),
+      retentionName: z.string(),
+      retentionType: z.enum(['ITBIS', 'ISR', 'OTRA']),
+      retentionPercentage: z.number().nonnegative().max(100),
+      agentRnc: z.string().optional(),
+      retentionDate: z.string().optional(),
+    })
+  ).optional(),
 }).refine((data) => {
   if (data.paymentType === 'bank_transfer') {
     return !!data.bankName && !!data.transactionNumber;

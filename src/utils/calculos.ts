@@ -88,3 +88,10 @@ export function formatFraction(decimal: number): string {
  * Alias para compatibilidad
  */
 export const decimalToFraccion = formatFraction;
+
+/**
+ * Safe money rounding to 2 decimal places to avoid floating point precision errors
+ */
+export function roundMoney(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}

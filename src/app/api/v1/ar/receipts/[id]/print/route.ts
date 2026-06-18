@@ -63,6 +63,7 @@ export async function POST(
       reference: receipt.reference,
       notes: receipt.notes,
       appliedInvoices: receipt.appliedInvoices,
+      customerTotalBalance: receipt.customerTotalBalance,
       company: {
         name: company.name,
         rnc: company.rnc,

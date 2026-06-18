@@ -7,9 +7,23 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
-} from 'recharts';
+import dynamic from 'next/dynamic';
+
+const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
+  ssr: false,
+  loading: () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
+        <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
+        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+      </div>
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
+        <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
+        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+      </div>
+    </div>
+  )
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Invoice {
@@ -26,6 +40,7 @@ interface Invoice {
 interface DashboardStats {
   invoicesToday: number;
   invoicesTodayAmount: number;
+  invoicesTodayChangePct?: number;
   pendingDgii: number;
   monthlySales: number;
   monthlyGoal: number;
@@ -70,6 +85,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     invoicesToday: 0,
     invoicesTodayAmount: 0,
+    invoicesTodayChangePct: 0,
     pendingDgii: 0,
     monthlySales: 0,
     monthlyGoal: 2_000_000,
@@ -94,6 +110,7 @@ export default function DashboardPage() {
         setStats(data.data.stats || {
           invoicesToday: 0,
           invoicesTodayAmount: 0,
+          invoicesTodayChangePct: 0,
           pendingDgii: 0,
           monthlySales: 0,
           monthlyGoal: 2_000_000,
@@ -110,6 +127,7 @@ export default function DashboardPage() {
       setStats({
         invoicesToday: 0,
         invoicesTodayAmount: 0,
+        invoicesTodayChangePct: 0,
         pendingDgii: 0,
         monthlySales: 0,
         monthlyGoal: 2_000_000,
@@ -175,7 +193,12 @@ export default function DashboardPage() {
             <div className="bg-blue-100 p-3 rounded-2xl group-hover:bg-blue-600 transition-colors">
               <FileText className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
             </div>
-            <span className="text-[11px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">+12% vs ayer</span>
+            <span className={clsx(
+              "text-[11px] px-2 py-1 rounded-full font-bold transition-all",
+              (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            )}>
+              {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
+            </span>
           </div>
           <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
           <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.invoicesToday}</h3>
@@ -224,58 +247,7 @@ export default function DashboardPage() {
       </section>
 
       {/* ── Charts and Activity Section ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* Line Chart for Sales Trend */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h4 className="font-headline-md text-xl font-bold text-primary">Flujo de Ventas (Lineal)</h4>
-              <p className="text-body-sm text-on-surface-variant/60 font-medium">Tendencia semanal</p>
-            </div>
-          </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
-                <RechartsTooltip 
-                  formatter={(value: any) => [fmt(Number(value) || 0), 'Ventas']}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                />
-                <Line type="monotone" dataKey="amount" stroke="#003366" strokeWidth={4} dot={{ r: 4, fill: '#003366', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Bar Chart for Sales vs Purchases */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h4 className="font-headline-md text-xl font-bold text-primary">Ventas vs Compras</h4>
-              <p className="text-body-sm text-on-surface-variant/60 font-medium">Comparativa semanal</p>
-            </div>
-          </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={comparisonChart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
-                <RechartsTooltip 
-                  formatter={(value: any, name: any) => [fmt(Number(value) || 0), name === 'sales' ? 'Ventas' : 'Compras']}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '10px' }} />
-                <Bar dataKey="sales" name="Ventas" fill="#003366" radius={[4, 4, 0, 0]} barSize={20} />
-                <Bar dataKey="purchases" name="Compras" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <DashboardCharts chartData={chartData} comparisonChart={comparisonChart} />
 
       {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

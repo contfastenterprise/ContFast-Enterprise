@@ -73,10 +73,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Principal',
       items: [
         { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
-        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" /> },
         { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
-        { name: 'Ingreso', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Contactos',
+      items: [
+        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
+        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
       ]
     },
     {
@@ -92,17 +96,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ]
     },
     {
-      title: 'Contactos',
+      title: 'Ingresos',
       items: [
-        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
-        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
-        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" /> },
+        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
+        { name: 'Cotizaciones', href: '/dashboard/quotes', icon: <FileText className="h-5 w-5" /> },
+        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" /> },
+        { name: 'Cobros y Abonos', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
       ]
     },
     {
-      title: 'Finanzas y Reportes',
+      title: 'Egresos',
       items: [
+        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" /> },
         { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
+      ]
+    },
+    {
+      title: 'Finanzas Y Reportes',
+      items: [
         { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
         { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
         { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
@@ -116,7 +127,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ]
     },
     {
-      title: 'Sistema',
+      title: 'Sistemas',
       items: [
         { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" /> },
         { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" /> },

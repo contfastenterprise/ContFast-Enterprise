@@ -157,6 +157,36 @@ export class DocumentTemplates {
       const itbisVal = formatNum(inv.totalTaxes);
       const totalVal = formatNum(inv.total);
 
+      // Retention calculations
+      const retentions: any[] = Array.isArray(inv.retentions) ? inv.retentions : [];
+      const hasRetentions = retentions.length > 0;
+      const totalRetainedVal = hasRetentions ? formatNum(Number(inv.totalRetained) || 0) : null;
+      const totalNetVal = hasRetentions ? formatNum(Number(inv.totalNet) || 0) : null;
+
+      const retentionsHtml = hasRetentions ? `
+        <tr style="border-top: 1px dashed #e2a000;">
+          <td colspan="2" style="padding-top:6px; padding-bottom:2px; color:#b45309; font-weight:bold; font-size:8pt; letter-spacing:0.5px; text-transform:uppercase;">Retenciones Fiscales</td>
+        </tr>
+        ${retentions.map((r: any) => `
+        <tr>
+          <td style="color:#b45309; font-size:8.5pt;">${r.retentionName} (${Number(r.retentionPercentage).toFixed(2)}%)</td>
+          <td class="text-right" style="color:#b45309; font-size:8.5pt;">- ${formatNum(Number(r.retentionAmount))}</td>
+        </tr>`).join('')}
+        <tr style="border-top: 1px solid #fbbf24;">
+          <td style="color:#b45309; font-weight:bold; font-size:9pt;">Total Retenido</td>
+          <td class="text-right" style="color:#b45309; font-weight:bold; font-size:9pt;">- ${totalRetainedVal}</td>
+        </tr>
+        <tr class="grand-total-row" style="border-top: 2px double #065f46; color:#065f46;">
+          <td>TOTAL NETO A COBRAR</td>
+          <td class="text-right">${totalNetVal}</td>
+        </tr>
+      ` : `
+        <tr class="grand-total-row">
+          <td>TOTAL NETO</td>
+          <td class="text-right">${totalVal}</td>
+        </tr>
+      `;
+
       // Signature Date formatting
       let sigDate = new Date(inv.signatureDate || inv.createdAt);
       if (isNaN(sigDate.getTime()) && inv.signatureDate) {
@@ -315,10 +345,11 @@ export class DocumentTemplates {
                   <td>${padDots('+ ITBIS', 15)}</td>
                   <td class="text-right">${itbisVal}</td>
                 </tr>
-                <tr class="grand-total-row">
-                  <td>${padDots('TOTAL NETO', 15)}</td>
+                <tr ${hasRetentions ? '' : 'class="grand-total-row"'}>
+                  <td>${padDots('TOTAL BRUTO', 15)}</td>
                   <td class="text-right">${totalVal}</td>
                 </tr>
+                ${retentionsHtml}
               </table>
             </div>
           </div>
@@ -419,19 +450,31 @@ export class DocumentTemplates {
             <table>
               <tr>
                 <th>Subtotal</th>
-                <td class="text-right">$${inv.subtotal.toFixed(2)}</td>
+                <td class="text-right">$${Number(inv.subtotal).toFixed(2)}</td>
               </tr>
-              ${inv.discount > 0 ? `
+              ${Number(inv.discount) > 0 ? `
               <tr>
                 <th>Descuento</th>
-                <td class="text-right">-$${inv.discount.toFixed(2)}</td>
+                <td class="text-right">-$${Number(inv.discount).toFixed(2)}</td>
               </tr>
               ` : ''}
               ${taxesHtml}
-              <tr class="grand-total">
-                <th>TOTAL</th>
-                <td class="text-right">$${inv.total.toFixed(2)}</td>
+              <tr class="${Array.isArray(inv.retentions) && inv.retentions.length > 0 ? '' : 'grand-total'}">
+                <th>TOTAL BRUTO</th>
+                <td class="text-right">$${Number(inv.total).toFixed(2)}</td>
               </tr>
+              ${Array.isArray(inv.retentions) && inv.retentions.length > 0 ? `
+                <tr><th colspan="2" style="color:#b45309; padding-top:4px; font-size:7pt; text-transform:uppercase;">RETENCIONES</th></tr>
+                ${inv.retentions.map((r: any) => `
+                <tr>
+                  <th style="color:#b45309; font-size:7pt;">${r.retentionName} (${Number(r.retentionPercentage).toFixed(1)}%)</th>
+                  <td class="text-right" style="color:#b45309;">-$${Number(r.retentionAmount).toFixed(2)}</td>
+                </tr>`).join('')}
+                <tr class="grand-total" style="color:#065f46;">
+                  <th>TOTAL NETO</th>
+                  <td class="text-right">$${Number(inv.totalNet).toFixed(2)}</td>
+                </tr>
+              ` : ''}
             </table>
           </div>
         </div>

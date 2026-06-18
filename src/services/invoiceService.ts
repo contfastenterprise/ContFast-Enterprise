@@ -14,6 +14,7 @@ import { addJob } from '@/infrastructure/queue';
 import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
 import { EcfValidator } from '@/services/ecfValidator';
 import { checkStock, deductStock } from '@/services/inventoryService';
+import { roundMoney } from '@/utils/calculos';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -34,6 +35,7 @@ export interface IssueInvoiceInput {
   ignoreCommunicationError?: boolean;
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
+  quoteId?: string;
   lines: {
     productId: string;
     productName: string;
@@ -41,6 +43,14 @@ export interface IssueInvoiceInput {
     unitPrice: number;
     discount: number;
     taxRate: number; // e.g. 0.18 for 18% ITBIS
+  }[];
+  retentions?: {
+    retentionId?: string;
+    retentionName: string;
+    retentionType: 'ITBIS' | 'ISR' | 'OTRA';
+    retentionPercentage: number;
+    agentRnc?: string;
+    retentionDate?: string;
   }[];
 }
 
@@ -90,15 +100,15 @@ export class InvoiceService {
     const taxSummaryMap: Record<string, { rate: number; amount: number }> = {};
 
     data.lines.forEach((line) => {
-      const lineSubtotal = line.quantity * line.unitPrice;
-      const lineDiscount = line.quantity * line.discount;
-      const lineTaxableAmount = lineSubtotal - lineDiscount;
-      const lineTaxAmount = lineTaxableAmount * line.taxRate;
-      const lineTotal = lineTaxableAmount + lineTaxAmount;
+      const lineSubtotal = roundMoney(line.quantity * line.unitPrice);
+      const lineDiscount = roundMoney(line.quantity * line.discount);
+      const lineTaxableAmount = roundMoney(lineSubtotal - lineDiscount);
+      const lineTaxAmount = roundMoney(lineTaxableAmount * line.taxRate);
+      const lineTotal = roundMoney(lineTaxableAmount + lineTaxAmount);
 
-      subtotal += lineSubtotal;
-      totalDiscount += lineDiscount;
-      totalTaxes += lineTaxAmount;
+      subtotal = roundMoney(subtotal + lineSubtotal);
+      totalDiscount = roundMoney(totalDiscount + lineDiscount);
+      totalTaxes = roundMoney(totalTaxes + lineTaxAmount);
 
       itemLines.push({
         productId: line.productId,
@@ -115,15 +125,50 @@ export class InvoiceService {
       if (!taxSummaryMap[taxKey]) {
         taxSummaryMap[taxKey] = { rate: line.taxRate * 100, amount: 0 };
       }
-      taxSummaryMap[taxKey].amount += lineTaxAmount;
+      taxSummaryMap[taxKey].amount = roundMoney(taxSummaryMap[taxKey].amount + lineTaxAmount);
     });
 
-    const total = subtotal - totalDiscount + totalTaxes;
+    const total = roundMoney(subtotal - totalDiscount + totalTaxes);
     const taxesList = Object.entries(taxSummaryMap).map(([name, val]) => ({
       taxType: 'ITBIS',
       rate: val.rate,
       amount: val.amount,
     }));
+
+    // Calculate retenciones
+    let totalRetained = 0;
+    const calculatedRetentions: any[] = [];
+
+    if (data.retentions && data.retentions.length > 0) {
+      data.retentions.forEach((ret) => {
+        let amount = 0;
+        const baseTaxable = roundMoney(subtotal - totalDiscount);
+        
+        if (ret.retentionType === 'ISR') {
+          // ISR retention is calculated on the subtotal (ex-discount)
+          amount = roundMoney(baseTaxable * (ret.retentionPercentage / 100));
+        } else if (ret.retentionType === 'ITBIS') {
+          // ITBIS retention is calculated on the ITBIS amount (totalTaxes)
+          amount = roundMoney(totalTaxes * (ret.retentionPercentage / 100));
+        } else {
+          // Custom / Other retention is calculated on subtotal
+          amount = roundMoney(baseTaxable * (ret.retentionPercentage / 100));
+        }
+
+        totalRetained = roundMoney(totalRetained + amount);
+        calculatedRetentions.push({
+          retentionId: ret.retentionId,
+          retentionName: ret.retentionName,
+          retentionType: ret.retentionType,
+          retentionPercentage: ret.retentionPercentage,
+          retentionAmount: amount,
+          agentRnc: ret.agentRnc,
+          retentionDate: ret.retentionDate,
+        });
+      });
+    }
+
+    const totalNet = roundMoney(total - totalRetained);
 
     // 2. Predict next NCF without incrementing database sequence yet
     // This prevents skipping sequences on network/communication errors!
@@ -306,6 +351,8 @@ export class InvoiceService {
                 discount: totalDiscount,
                 totalTaxes,
                 total,
+                totalRetained,
+                totalNet,
                 dgiiMessage: errMsg,
                 buyerRnc: data.buyerRnc,
                 buyerName: data.buyerName,
@@ -313,8 +360,11 @@ export class InvoiceService {
                 modifiedNcf: data.modifiedNcf,
                 modifiedInvoiceId: data.modifiedInvoiceId,
                 codigoFactura,
+                deliveryStatus: 'pending',
+                quoteId: data.quoteId || undefined,
                 lines: itemLines,
                 taxes: taxesList,
+                retentions: calculatedRetentions,
               }, tx);
             });
             throw err;
@@ -403,6 +453,8 @@ export class InvoiceService {
         discount: totalDiscount,
         totalTaxes,
         total,
+        totalRetained,
+        totalNet,
         xmlPath,
         signedXmlPath,
         pdfPath,
@@ -416,6 +468,7 @@ export class InvoiceService {
         codigoFactura,
         lines: itemLines,
         taxes: taxesList,
+        retentions: calculatedRetentions,
       };
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
@@ -445,20 +498,53 @@ export class InvoiceService {
       let journalLines = [];
       if (data.ecfType === '34') {
         // Credit note reverses standard journal entry
+        const creditAmount = totalNet;
         journalLines = [
           { accountId: accVentas.id, debit: subtotal - totalDiscount, credit: 0 },
-          { accountId: accCxC.id, debit: 0, credit: total },
+          { accountId: accCxC.id, debit: 0, credit: creditAmount },
         ];
         if (totalTaxes > 0) {
           journalLines.unshift({ accountId: accItbis.id, debit: totalTaxes, credit: 0 });
         }
+
+        // Revert retentions if any
+        if (totalRetained > 0) {
+          for (const ret of calculatedRetentions) {
+            if (ret.retentionType === 'ISR') {
+              const accIsr = await getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
+              journalLines.push({ accountId: accIsr.id, debit: 0, credit: ret.retentionAmount });
+            } else if (ret.retentionType === 'ITBIS') {
+              const accItbisRet = await getOrCreateAccount(tx, data.companyId, '1.1.04', 'Anticipo de Impuestos - Retención ITBIS', 'asset');
+              journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: ret.retentionAmount });
+            } else {
+              const accOtras = await getOrCreateAccount(tx, data.companyId, '1.1.05', 'Anticipo de Impuestos - Otras Retenciones', 'asset');
+              journalLines.push({ accountId: accOtras.id, debit: 0, credit: ret.retentionAmount });
+            }
+          }
+        }
       } else {
         journalLines = [
-          { accountId: accCxC.id, debit: total, credit: 0 },
+          { accountId: accCxC.id, debit: totalNet, credit: 0 },
           { accountId: accVentas.id, debit: 0, credit: subtotal - totalDiscount },
         ];
         if (totalTaxes > 0) {
           journalLines.push({ accountId: accItbis.id, debit: 0, credit: totalTaxes });
+        }
+
+        // Book retention assets (Anticipo de impuestos)
+        if (totalRetained > 0) {
+          for (const ret of calculatedRetentions) {
+            if (ret.retentionType === 'ISR') {
+              const accIsr = await getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
+              journalLines.push({ accountId: accIsr.id, debit: ret.retentionAmount, credit: 0 });
+            } else if (ret.retentionType === 'ITBIS') {
+              const accItbisRet = await getOrCreateAccount(tx, data.companyId, '1.1.04', 'Anticipo de Impuestos - Retención ITBIS', 'asset');
+              journalLines.push({ accountId: accItbisRet.id, debit: ret.retentionAmount, credit: 0 });
+            } else {
+              const accOtras = await getOrCreateAccount(tx, data.companyId, '1.1.05', 'Anticipo de Impuestos - Otras Retenciones', 'asset');
+              journalLines.push({ accountId: accOtras.id, debit: ret.retentionAmount, credit: 0 });
+            }
+          }
         }
       }
 
@@ -477,7 +563,7 @@ export class InvoiceService {
           cashSessionId: activeCashSessionId,
           invoiceId: invoice.id,
           type: 'sale',
-          amount: total,
+          amount: totalNet,
           description: `Venta e-CF Comprobante: ${ncf}`,
           reference: ncf,
         });
@@ -491,7 +577,7 @@ export class InvoiceService {
           companyId: data.companyId,
           customerId: data.customerId,
           invoiceId: invoice.id,
-          amount: total,
+          amount: totalNet,
           dueDate,
         });
       }
@@ -661,6 +747,15 @@ export class InvoiceService {
         result.invoice.deliveryStatus = 'delivered';
       } catch (autoErr) {
         console.error('[InvoiceService] Error creating automatic delivery note:', autoErr);
+      }
+    }
+
+    if (data.quoteId) {
+      try {
+        const { QuoteService } = await import('@/services/quoteService');
+        await QuoteService.markAsInvoiced(data.quoteId);
+      } catch (err) {
+        console.error('[InvoiceService] Error marking quote as invoiced:', err);
       }
     }
 
