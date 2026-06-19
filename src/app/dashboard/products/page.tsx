@@ -481,7 +481,7 @@ export default function ProductsPage() {
                       type="text"
                       value={formData.sku}
                       onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                       placeholder="PROD-001"
                     />
                   </div>
@@ -493,7 +493,7 @@ export default function ProductsPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
                   </div>
@@ -512,7 +512,7 @@ export default function ProductsPage() {
                     <select
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                     >
                       <option value="">Sin categoría</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -529,7 +529,7 @@ export default function ProductsPage() {
                         required
                         value={formData.cost}
                         onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-12 pr-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-12 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                         placeholder="0.00"
                       />
                     </div>
@@ -570,7 +570,7 @@ export default function ProductsPage() {
                           type="number"
                           readOnly
                           value={formData.priceConsumidor || formData.price}
-                          className=" mr-3 w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-4 py-2 text-primary opacity-80 cursor-not-allowed font-bold"
+                          className=" mr-3 w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
@@ -581,7 +581,7 @@ export default function ProductsPage() {
                           type="number"
                           readOnly
                           value={formData.priceMayorista}
-                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-4 py-2 text-primary opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
@@ -592,7 +592,7 @@ export default function ProductsPage() {
                           type="number"
                           readOnly
                           value={formData.priceProveedor}
-                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-4 py-2 text-primary opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
                     </div>
@@ -603,7 +603,7 @@ export default function ProductsPage() {
                     <select
                       value={formData.unitOfMeasure}
                       onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="unidad">Unidad</option>
                       <option value="pie">Pie (pie)</option>
@@ -617,7 +617,7 @@ export default function ProductsPage() {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
@@ -680,7 +680,7 @@ export default function ProductsPage() {
                     required
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                     placeholder="Ej. Herramientas"
                   />
                 </div>
@@ -762,7 +762,7 @@ export default function ProductsPage() {
                         onChange={(e) => {
                           setFormData({ ...formData, priceConsumidor: e.target.value, price: e.target.value });
                         }}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -776,7 +776,7 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceMayorista}
                         onChange={(e) => setFormData({ ...formData, priceMayorista: e.target.value })}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -790,7 +790,7 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceProveedor}
                         onChange={(e) => setFormData({ ...formData, priceProveedor: e.target.value })}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -889,7 +889,7 @@ export default function ProductsPage() {
                                   step="0.01"
                                   value={inlineAdjustForm[w.id] !== undefined ? inlineAdjustForm[w.id] : currentQuantity}
                                   onChange={(e) => setInlineAdjustForm({ ...inlineAdjustForm, [w.id]: e.target.value })}
-                                  className="w-20 bg-[#0b1120] border border-outline/50 rounded-lg px-2 py-1.5 text-sm text-primary focus:border-[#c5a059] outline-none text-right font-mono"
+                                  className="w-20 bg-[#0b1120] border border-outline/50 rounded-lg px-2 py-1.5 text-xs text-primary focus:border-[#c5a059] outline-none text-right font-mono"
                                 />
                                 <button
                                   onClick={() => handleInlineAdjust(w.id)}

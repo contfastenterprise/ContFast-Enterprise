@@ -46,6 +46,7 @@ function InvoicesList() {
   const [customerId, setCustomerId] = useState('');
   const [customerRnc, setCustomerRnc] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
@@ -177,6 +178,7 @@ function InvoicesList() {
         setCustomerId(data.data.id);
         setCustomerRnc(data.data.rncCedula || '');
         setCustomerName(data.data.name);
+        setCustomerPhone(data.data.phone || '');
 
         setCreateCustomerModalOpen(false);
         setNewCustomerData({
@@ -202,6 +204,7 @@ function InvoicesList() {
     setCustomerId(cust.id);
     setCustomerRnc(cust.rncCedula || '');
     setCustomerName(cust.name || '');
+    setCustomerPhone(cust.phone || '');
     setCustomerSearchModalOpen(false);
   };
 
@@ -298,7 +301,19 @@ function InvoicesList() {
         .then(data => {
           if (data.success && data.data) {
             const quote = data.data;
-            if (quote.customerId) setCustomerId(quote.customerId);
+            if (quote.customerId) {
+              setCustomerId(quote.customerId);
+              // Fetch customer to fill details
+              fetch(`/api/v1/customers/${quote.customerId}`)
+                .then(cr => cr.json())
+                .then(cdata => {
+                  if (cdata.success && cdata.data) {
+                    setCustomerRnc(cdata.data.rncCedula || '');
+                    setCustomerName(cdata.data.name || '');
+                    setCustomerPhone(cdata.data.phone || '');
+                  }
+                }).catch(err => console.error("Error fetching customer on convert:", err));
+            }
             if (quote.warehouseId) setWarehouseId(quote.warehouseId);
             if (quote.notes) setNotes(quote.notes);
             if (quote.lines && quote.lines.length > 0) {
@@ -524,6 +539,16 @@ function InvoicesList() {
       setCustomerId(invoice.customerId || '');
       setCustomerRnc(invoice.customerRnc || invoice.buyerRnc || '');
       setCustomerName(invoice.customerName || invoice.buyerName || 'Consumidor Final');
+      setCustomerPhone('');
+      if (invoice.customerId) {
+        fetch(`/api/v1/customers/${invoice.customerId}`)
+          .then(cr => cr.json())
+          .then(cdata => {
+            if (cdata.success && cdata.data) {
+              setCustomerPhone(cdata.data.phone || '');
+            }
+          }).catch(err => console.error("Error fetching customer phone on adjustment:", err));
+      }
       setNotes(`Nota de ajuste para el e-CF ${invoice.ncf}`);
 
       // Precargar líneas de productos
@@ -548,7 +573,7 @@ function InvoicesList() {
   };
 
   const resetForm = () => {
-    setCustomerId(''); setCustomerRnc(''); setCustomerName('');
+    setCustomerId(''); setCustomerRnc(''); setCustomerName(''); setCustomerPhone('');
     setBankName(''); setTransactionNumber('');
     setNotes('');
     setModifiedNcf(''); setModifiedInvoiceId('');
@@ -572,10 +597,10 @@ function InvoicesList() {
     lines: lines.map(l => ({
       productId: l.productId,
       productName: l.productName,
-      quantity: l.quantity,
-      unitPrice: l.unitPrice,
-      discount: l.discount,
-      taxRate: l.taxRate,
+      quantity: Number(l.quantity),
+      unitPrice: Number(l.unitPrice),
+      discount: Number(l.discount || 0),
+      taxRate: Number(l.taxRate || 0.18),
     })),
   });
 
@@ -637,11 +662,20 @@ function InvoicesList() {
       const linesToSubmit = lines.map((l: any) => ({
         productId: l.productId,
         productName: l.productName,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        discount: l.discount,
-        taxRate: l.taxRate,
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unitPrice),
+        discount: Number(l.discount || 0),
+        taxRate: Number(l.taxRate || 0.18),
       }));
+
+      const retentionsToSubmit = retentionsEnabled && retentions ? retentions.map((r: any) => ({
+        retentionId: r.retentionId || undefined,
+        retentionName: r.retentionName,
+        retentionType: r.retentionType,
+        retentionPercentage: Number(r.retentionPercentage),
+        agentRnc: r.agentRnc || undefined,
+        retentionDate: r.retentionDate || undefined,
+      })) : undefined;
 
       const res = await fetch('/api/v1/invoices', {
         method: 'POST',
@@ -657,8 +691,10 @@ function InvoicesList() {
           modifiedNcf: isNote ? modifiedNcf : undefined,
           modifiedInvoiceId: isNote ? modifiedInvoiceId : undefined,
           quoteId: quoteId || undefined,
+          buyerRnc: customerRnc || undefined,
+          buyerName: customerName || undefined,
           lines: linesToSubmit,
-          retentions: retentionsEnabled ? retentions : undefined,
+          retentions: retentionsToSubmit,
         }),
       });
 
@@ -680,12 +716,14 @@ function InvoicesList() {
                 paymentType,
                 bankName: paymentType === 'bank_transfer' ? bankName : undefined,
                 transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
+                buyerRnc: customerRnc || undefined,
+                buyerName: customerName || undefined,
                 ignoreCommunicationError: true,
                 notes: notes || undefined,
                 modifiedNcf: modifiedNcf || undefined,
                 modifiedInvoiceId: modifiedInvoiceId || undefined,
                 lines: linesToSubmit,
-                retentions: retentionsEnabled ? retentions : undefined,
+                retentions: retentionsToSubmit,
               }),
             });
             const retryData = await retryRes.json();
@@ -841,7 +879,7 @@ function InvoicesList() {
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
                     required
-                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                   >
                     <option value="">Seleccione...</option>
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -852,7 +890,7 @@ function InvoicesList() {
                   <select
                     value={ecfType}
                     onChange={(e) => setEcfType(e.target.value)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                   >
                     <option value="31">e-31 Factura de Crédito Fiscal</option>
                     <option value="32">e-32 Factura de Consumo</option>
@@ -864,7 +902,7 @@ function InvoicesList() {
                   <select
                     value={paymentType}
                     onChange={(e) => setPaymentType(e.target.value as any)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                   >
                     <option value="cash">Efectivo / Caja</option>
                     <option value="credit">Crédito </option>
@@ -879,7 +917,7 @@ function InvoicesList() {
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
                         required
-                        className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                        className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                       >
                         <option value="">Seleccione Banco...</option>
                         <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
@@ -900,7 +938,7 @@ function InvoicesList() {
                         value={transactionNumber}
                         onChange={(e) => setTransactionNumber(e.target.value)}
                         placeholder="Ej. TXN12345678"
-                        className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                        className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                       />
                     </div>
                   </div>
@@ -923,8 +961,8 @@ function InvoicesList() {
               </div>
 
               {/* Customer Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-                <div className="col-span-1 md:col-span-2 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+                <div className="col-span-1 md:col-span-3 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-[#C5A059]" />
                     <div>
@@ -957,7 +995,7 @@ function InvoicesList() {
                     type="text"
                     value={customerRnc}
                     onChange={(e) => setCustomerRnc(e.target.value.replace(/\D/g, ''))}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-on-surface-variant/80"
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
                     placeholder="Ej: 131002002"
                   />
                 </div>
@@ -967,8 +1005,18 @@ function InvoicesList() {
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all placeholder:text-on-surface-variant/80"
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
                     placeholder="Ej: Distribuidora Comercial S.A."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
+                  <input
+                    type="text"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
+                    placeholder="Ej: 809-555-5555"
                   />
                 </div>
               </div>
@@ -1099,24 +1147,25 @@ function InvoicesList() {
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
                             {(() => {
                               const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
-                              const canEditDiscount = userRole === 'admin' || userRole === 'sistema';
-                              const isDisabled = !hasProduct || !canEditDiscount;
-                              
+                              const canEditDiscount = userRole.includes('sistema') || userRole.includes('admin');
+
                               return (
-                                <div>
-                                  <input
-                                    type="number"
-                                    value={line.discount || 0}
-                                    onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                    disabled={isDisabled}
-                                    className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${isDisabled ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                                    min={0} step="any"
-                                    title={!canEditDiscount ? "Solo administradores pueden modificar el descuento" : ""}
-                                  />
-                                  {!canEditDiscount && (
-                                    <p className="text-[9px] text-red-500 mt-0.5">Solo admin</p>
-                                  )}
-                                </div>
+                                <input
+                                  type="number"
+                                  value={line.discount || 0}
+                                  onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                  disabled={!hasProduct}
+                                  className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${
+                                    !hasProduct
+                                      ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
+                                      : !canEditDiscount
+                                        ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
+                                        : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
+                                  }`}
+                                  min={0}
+                                  step="any"
+                                  title={!canEditDiscount ? 'Solo administradores pueden aplicar descuentos' : ''}
+                                />
                               );
                             })()}
                           </div>

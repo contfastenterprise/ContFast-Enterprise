@@ -320,7 +320,7 @@ export default function SuppliersPage() {
                         required
                         value={formData.rnc}
                         onChange={(e) => setFormData({ ...formData, rnc: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                         placeholder="Ej. 130123456"
                       />
                       <button
@@ -342,7 +342,7 @@ export default function SuppliersPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
                       placeholder="Nombre de la empresa"
                     />
                   </div>
@@ -353,7 +353,7 @@ export default function SuppliersPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
                       placeholder="contacto@proveedor.com"
                     />
                   </div>
@@ -364,7 +364,7 @@ export default function SuppliersPage() {
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
                       placeholder="(809) 000-0000"
                     />
                   </div>
@@ -375,7 +375,7 @@ export default function SuppliersPage() {
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
@@ -386,7 +386,7 @@ export default function SuppliersPage() {
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>

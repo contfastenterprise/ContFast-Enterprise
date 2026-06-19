@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
@@ -73,65 +73,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       title: 'Principal',
       items: [
         { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" /> },
+        { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'cajero'] },
       ]
     },
     {
       title: 'Contactos',
       items: [
-        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" /> },
-        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" /> },
+        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab', 'cajero'] },
+        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
       ]
     },
     {
       title: 'Inventario',
       items: [
-        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" /> },
-        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" /> },
-        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" /> },
-        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" /> },
-        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" /> },
-        { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" /> },
-        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" /> },
+        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab', 'cajero'] },
+        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
+        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
+        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
       ]
     },
     {
       title: 'Ingresos',
       items: [
-        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" /> },
-        { name: 'Cotizaciones', href: '/dashboard/quotes', icon: <FileText className="h-5 w-5" /> },
-        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" /> },
-        { name: 'Cobros y Abonos', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" /> },
+        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Cotizaciones', href: '/dashboard/quotes', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Cobros y Abonos', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Retenciones', href: '/dashboard/retentions', icon: <ShieldAlert className="h-5 w-5" />, roles: ['sistema', 'admin'] },
       ]
     },
     {
       title: 'Egresos',
       items: [
-        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" /> },
-        { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" /> },
+        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
+        { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
       ]
     },
     {
       title: 'Finanzas Y Reportes',
       items: [
-        { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" /> },
-        { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" /> },
-        { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" /> },
+        { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
+        { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
+        { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
       ]
     },
     {
       title: 'Herramientas',
       items: [
-        { name: 'Desglose Ventanas', href: '/dashboard/tools/desglose/ventanas', icon: <Calculator className="h-5 w-5" /> },
-        { name: 'Corte de Vidrio', href: '/dashboard/tools/glass-cutting', icon: <Layers className="h-5 w-5" /> },
+        { name: 'Desglose Ventanas', href: '/dashboard/tools/desglose/ventanas', icon: <Calculator className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Corte de Vidrio', href: '/dashboard/tools/glass-cutting', icon: <Layers className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
       ]
     },
     {
       title: 'Sistemas',
       items: [
-        { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" /> },
-        { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" /> },
-        { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" /> },
+        { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" />, roles: ['sistema', 'admin'] },
       ]
     }
   ];
@@ -195,13 +196,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           </div>
           <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
-            {navGroups.map((group, gIdx) => (
+            {navGroups.map((group, gIdx) => {
+              const ur = (user?.role || '').toLowerCase();
+              const visibleItems = group.items.filter((item: any) => {
+                if (!item.roles) return true;
+                return item.roles.some((r: string) => ur.includes(r));
+              });
+              if (visibleItems.length === 0) return null;
+              return (
               <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
                 <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
                   {group.title}
                 </div>
                 <div className="space-y-1.5">
-                  {group.items.map((item) => {
+                  {visibleItems.map((item: any) => {
                     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                     return (
                       <a
@@ -224,7 +232,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="mt-6 border-b border-outline-variant/30 w-full" />
                 )}
               </div>
-            ))}
+              );
+            })}
           </nav>
           <div className="p-6 mt-auto border-t border-outline-variant/20 space-y-3">
             <div className="flex items-center gap-3 text-on-surface-variant/70 px-2 py-1 text-xs font-semibold">
@@ -274,13 +283,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </div>
                 </div>
                 <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
-                  {navGroups.map((group, gIdx) => (
+                  {navGroups.map((group, gIdx) => {
+                    const ur = (user?.role || '').toLowerCase();
+                    const visibleItems = group.items.filter((item: any) => {
+                      if (!item.roles) return true;
+                      return item.roles.some((r: string) => ur.includes(r));
+                    });
+                    if (visibleItems.length === 0) return null;
+                    return (
                     <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
                       <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
                         {group.title}
                       </div>
                       <div className="space-y-1.5">
-                        {group.items.map((item) => {
+                        {visibleItems.map((item: any) => {
                           const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                           return (
                             <a
@@ -304,7 +320,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <div className="mt-6 border-b border-outline-variant/30 w-full" />
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </nav>
                 <div className="p-6 mt-auto border-t border-outline-variant/20">
                   <button

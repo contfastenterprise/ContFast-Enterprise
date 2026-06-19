@@ -192,7 +192,7 @@ export default function NewQuote() {
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
                 required
-                className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all"
+                className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
               >
                 <option value="">Seleccione Almacén...</option>
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -214,7 +214,7 @@ export default function NewQuote() {
                   type="text"
                   readOnly
                   value={customerName || 'Consumidor Final (Opcional)'}
-                  className="flex-1 rounded-lg bg-slate-50 border border-slate-300 py-2.5 px-4 text-[#003366]/70 cursor-not-allowed outline-none text-sm transition-all"
+                  className="flex-1 rounded-lg bg-slate-50 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
                 />
                 {customerId && (
                   <button

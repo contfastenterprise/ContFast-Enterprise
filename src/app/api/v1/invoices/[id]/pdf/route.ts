@@ -180,6 +180,8 @@ export async function GET(
       discount: Number(invoice.discount),
       totalTaxes: Number(invoice.totalTaxes),
       total: Number(invoice.total),
+      totalRetained: Number(invoice.totalRetained || 0),
+      totalNet: Number(invoice.totalNet || invoice.total),
       notes: invoice.notes || '',
       securityCode,
       signatureDate: signedDate || invoice.createdAt.toISOString(),
@@ -197,6 +199,13 @@ export async function GET(
         taxType: t.taxType,
         rate: Number(t.rate),
         amount: Number(t.amount)
+      })),
+      retentions: (invoice.retentions || []).map((r: any) => ({
+        retentionId: r.retentionId || undefined,
+        retentionName: r.retentionName,
+        retentionType: r.retentionType,
+        retentionPercentage: Number(r.retentionPercentage),
+        retentionAmount: Number(r.retentionAmount)
       })),
       company: {
         name: company.name,

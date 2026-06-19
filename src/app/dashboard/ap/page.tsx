@@ -635,7 +635,7 @@ export default function AccountsPayablePage() {
                       type="date" required
                       value={paymentForm.date}
                       onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                     />
                   </div>
                   <div>
@@ -643,7 +643,7 @@ export default function AccountsPayablePage() {
                     <select
                       value={paymentForm.paymentMethod}
                       onChange={e => handleMethodChange(e.target.value as any)}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                     >
                       <option value="transfer">Transferencia Bancaria</option>
                       <option value="check">Cheque Bancario</option>
@@ -665,7 +665,7 @@ export default function AccountsPayablePage() {
                         required
                         value={paymentForm.debitAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, debitAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -681,7 +681,7 @@ export default function AccountsPayablePage() {
                         required
                         value={paymentForm.creditAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, creditAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -704,7 +704,7 @@ export default function AccountsPayablePage() {
                         type="number" min="0.01" step="0.01" required
                         value={paymentForm.amount}
                         onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                         placeholder="0.00"
                       />
                     </div>
@@ -717,7 +717,7 @@ export default function AccountsPayablePage() {
                         type="text"
                         value={paymentForm.reference}
                         onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                         placeholder="Ref / Transfer #"
                       />
                     </div>
@@ -748,7 +748,7 @@ export default function AccountsPayablePage() {
                         <select
                           value={paymentForm.bankAccountId}
                           onChange={e => setPaymentForm({ ...paymentForm, bankAccountId: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                         >
                           <option value="">-- Seleccionar Banco --</option>
                           {bankAccountsList.map(b => (
@@ -762,7 +762,7 @@ export default function AccountsPayablePage() {
                           type="text"
                           value={paymentForm.checkNumber}
                           onChange={e => setPaymentForm({ ...paymentForm, checkNumber: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                           placeholder="Ej. 000192"
                         />
                       </div>
@@ -772,7 +772,7 @@ export default function AccountsPayablePage() {
                           type="text"
                           value={paymentForm.payee}
                           onChange={e => setPaymentForm({ ...paymentForm, payee: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                           placeholder="Beneficiario"
                         />
                       </div>
@@ -800,7 +800,7 @@ export default function AccountsPayablePage() {
                             type="date"
                             value={paymentForm.dueDate}
                             onChange={e => setPaymentForm({ ...paymentForm, dueDate: e.target.value })}
-                            className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                            className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                           />
                         </motion.div>
                       )}

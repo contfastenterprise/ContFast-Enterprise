@@ -310,7 +310,7 @@ export default function CustomersPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6 ">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-primary flex justify-between">
@@ -325,7 +325,7 @@ export default function CustomersPage() {
                           setFormData({ ...formData, rncCedula: e.target.value });
                           setRncVerified(false);
                         }}
-                        className={`w-full bg-surface-container-highest border ${rncVerified ? 'border-emerald-500/50' : 'border-outline'} rounded-lg pl-4 pr-24 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors`}
+                        className={`w-full bg-surface-container-highest border ${rncVerified ? 'border-emerald-500/50' : 'border-outline'} rounded-lg pl-3 pr-24 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors`}
                         placeholder="Ej. 130123456"
                       />
                       <button
@@ -347,7 +347,7 @@ export default function CustomersPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2  text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       placeholder="Nombre de la empresa o persona"
                     />
                   </div>
@@ -358,7 +358,7 @@ export default function CustomersPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       placeholder="contacto@empresa.com"
                     />
                   </div>
@@ -369,7 +369,7 @@ export default function CustomersPage() {
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       placeholder="(809) 000-0000"
                     />
                   </div>
@@ -380,7 +380,7 @@ export default function CustomersPage() {
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-all"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
@@ -391,7 +391,7 @@ export default function CustomersPage() {
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>

@@ -343,11 +343,11 @@ export default function BankAccountsPage() {
               <form onSubmit={handleCreateAccount} className="p-6 space-y-5">
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Nombre del Banco</label>
-                  <input type="text" required value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Banco Popular" />
+                  <input type="text" required value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Banco Popular" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Número de Cuenta</label>
-                  <input type="text" required value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
+                  <input type="text" required value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -377,7 +377,7 @@ export default function BankAccountsPage() {
                     <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Balance Inicial</label>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
-                      <input type="number" min="0" step="0.01" required value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="0.00" />
+                      <input type="number" min="0" step="0.01" required value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="0.00" />
                     </div>
                   </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
@@ -417,7 +417,7 @@ export default function BankAccountsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-semibold text-primary block mb-1">Fecha</label>
-                    <input type="date" required value={txForm.date} onChange={e => setTxForm({ ...txForm, date: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                    <input type="date" required value={txForm.date} onChange={e => setTxForm({ ...txForm, date: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-primary block mb-1">Tipo de Movimiento</label>
@@ -434,7 +434,7 @@ export default function BankAccountsPage() {
                   <label className="text-sm font-semibold text-primary block mb-1">Monto</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
-                    <input type="number" min="0.01" step="0.01" required value={txForm.amount} onChange={e => setTxForm({ ...txForm, amount: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono text-xl font-bold" placeholder="0.00" />
+                    <input type="number" min="0.01" step="0.01" required value={txForm.amount} onChange={e => setTxForm({ ...txForm, amount: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono font-bold" placeholder="0.00" />
                   </div>
                 </div>
                 <div>
@@ -449,11 +449,11 @@ export default function BankAccountsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="text-sm font-semibold text-primary block mb-1">Descripción</label>
-                    <input type="text" required value={txForm.description} onChange={e => setTxForm({ ...txForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Depósito ventas del día" />
+                    <input type="text" required value={txForm.description} onChange={e => setTxForm({ ...txForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Depósito ventas del día" />
                   </div>
                   <div className="col-span-2">
                     <label className="text-sm font-semibold text-primary block mb-1">Referencia (Opcional)</label>
-                    <input type="text" value={txForm.reference} onChange={e => setTxForm({ ...txForm, reference: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. TX-58493" />
+                    <input type="text" value={txForm.reference} onChange={e => setTxForm({ ...txForm, reference: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. TX-58493" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">

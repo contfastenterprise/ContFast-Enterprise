@@ -221,7 +221,7 @@ export class DocumentTemplates {
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
       const logoHtml = company.logoUrl 
-        ? `<img src="${company.logoUrl}" style="max-height: 100px; max-width: 220px; object-fit: contain; margin-bottom: 3px;" alt="Logo">` 
+        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">` 
         : '';
 
       return `
@@ -345,10 +345,12 @@ export class DocumentTemplates {
                   <td>${padDots('+ ITBIS', 15)}</td>
                   <td class="text-right">${itbisVal}</td>
                 </tr>
-                <tr ${hasRetentions ? '' : 'class="grand-total-row"'}>
+                ${hasRetentions ? `
+                <tr>
                   <td>${padDots('TOTAL BRUTO', 15)}</td>
                   <td class="text-right">${totalVal}</td>
                 </tr>
+                ` : ''}
                 ${retentionsHtml}
               </table>
             </div>

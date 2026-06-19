@@ -441,7 +441,7 @@ export default function CashPage() {
                 <select
                   value={selectedRegisterId}
                   onChange={(e) => setSelectedRegisterId(e.target.value)}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-3 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                   required
                 >
                   {registers.length === 0 && (
@@ -460,7 +460,7 @@ export default function CashPage() {
                   type="date"
                   defaultValue={dateStr}
                   readOnly
-                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-4 py-3 text-on-surface-variant font-mono cursor-not-allowed opacity-70"
+                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-3 py-2 text-on-surface-variant font-mono cursor-not-allowed opacity-70 text-xs"
                 />
               </div>
             </div>
@@ -475,7 +475,7 @@ export default function CashPage() {
                   type="time"
                   defaultValue={timeStr}
                   readOnly
-                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-4 py-3 text-on-surface-variant font-mono cursor-not-allowed opacity-70"
+                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-3 py-2 text-on-surface-variant font-mono cursor-not-allowed opacity-70 text-xs"
                 />
               </div>
               <div className="flex items-end pb-1">
@@ -1362,7 +1362,7 @@ export default function CashPage() {
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-gray-700 block mb-1">Monto (RD$)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">RD$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">RD$</span>
                     <input
                       type="number"
                       value={moveAmount}
@@ -1370,7 +1370,7 @@ export default function CashPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0.01"
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-14 pr-4 py-3 font-mono text-xl font-bold text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
+                      className="w-full bg-white border border-gray-200 rounded-lg pl-12 pr-4 py-2 font-mono text-xs font-bold text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
                       required
                     />
                   </div>
@@ -1383,7 +1383,7 @@ export default function CashPage() {
                     value={moveDescription}
                     onChange={(e) => setMoveDescription(e.target.value)}
                     placeholder="Ej: Pago de mensajería, fondo adicional..."
-                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
+                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none text-xs transition-colors"
                     required
                   />
                 </div>

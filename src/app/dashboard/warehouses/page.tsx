@@ -220,7 +220,7 @@ export default function WarehousesPage() {
                       defaultValue={currentWarehouse?.code}
                       placeholder="Ej. ALM-01"
                       required
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     />
                   </div>
                   <div className="col-span-2 md:col-span-1">
@@ -228,7 +228,7 @@ export default function WarehousesPage() {
                     <select
                       name="status"
                       defaultValue={currentWarehouse?.status || 'active'}
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     >
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
@@ -241,7 +241,7 @@ export default function WarehousesPage() {
                       defaultValue={currentWarehouse?.name}
                       placeholder="Ej. Almacén Principal"
                       required
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     />
                   </div>
                   <div className="col-span-2">

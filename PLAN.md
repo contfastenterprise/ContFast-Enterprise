@@ -138,4 +138,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Migración a Puppeteer**: Se reemplazó la generación tradicional monospaced basada en `pdfkit` del desglose de ventanas por una plantilla HTML premium renderizada por Puppeteer (`DocumentTemplates.renderWindowBreakdown`), en orientación Carta horizontal (landscape).
 - **Diseño Técnico Preservado**: Mantiene el diseño exacto de taller con la tabla de medidas base, vías, cortes de perfiles (Cabezal, Llavín, Rieles, Laterales), y cristales, además de los bloques resúmenes de cantidad de piezas por tipo y resumen acumulado de materiales por sistema (Tradicional, P-65 y P-92) calculados dinámicamente.
 
+### 22. Estandarización del Tamaño de Inputs y Selects
+- **Estandarización del Tamaño**: Se modificaron todos los campos de tipo `input` y `select` en los formularios y modales del resto de las páginas del dashboard (`products`, `suppliers`, `warehouses`, `quotes/new`, `quotes/[id]/edit`, `purchases`, `accounting`, `bank`, `ecf`, y `ap`) a la altura compacta `py-2 px-3 text-xs` (o `py-2 px-3 text-xs` equivalente). Los campos de tipo `textarea` se mantuvieron intactos sin modificaciones.
+- **Validación del Proyecto**: Se ejecutó `npx tsc --noEmit` confirmando la correcta compilación y la ausencia de errores en todo el proyecto.
+
 **Status**: Verified & Polished (Score 10/10)

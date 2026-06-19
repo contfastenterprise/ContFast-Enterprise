@@ -171,7 +171,7 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
   };
 
   return (
-    <div className="bg-[#001733] border border-slate-700/50 rounded-xl p-5 text-white">
+    <div className="bg-slate-50/60 border border-slate-200 rounded-xl p-5 text-slate-700">
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-3 cursor-pointer select-none">
           <input
@@ -183,42 +183,17 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                 setApplied([]);
               }
             }}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-primary focus:ring-primary focus:ring-2"
+            className="w-4 h-4 rounded border-slate-300 bg-white text-[#003366] focus:ring-[#003366] focus:ring-2"
           />
-          <span className="font-semibold text-sm">Aplicar retenciones fiscales</span>
+          <span className="font-semibold text-sm text-[#003366]">Aplicar retenciones fiscales</span>
         </label>
       </div>
 
       {enabled && (
-        <div className="mt-4 space-y-4 border-t border-slate-700/50 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
-                RNC/Cédula Agente Retenedor
-              </label>
-              <input
-                type="text"
-                placeholder="RNC o Cédula"
-                value={agentRnc}
-                onChange={(e) => setAgentRnc(e.target.value.replace(/\D/g, '').substring(0, 11))}
-                className="w-full bg-[#001122] border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-[#c5a059] outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1.5">
-                Fecha de la Retención
-              </label>
-              <input
-                type="date"
-                value={retentionDate}
-                onChange={(e) => setRetentionDate(e.target.value)}
-                className="w-full bg-[#001122] border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-[#c5a059] outline-none"
-              />
-            </div>
-          </div>
+        <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-2">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
               Seleccionar Retención a Aplicar
             </label>
             <div className="flex flex-wrap gap-2">
@@ -227,7 +202,7 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                   key={ret.id}
                   type="button"
                   onClick={() => handleAdd(ret)}
-                  className="flex items-center gap-1.5 bg-[#002855] hover:bg-[#003a7d] border border-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   {ret.name}
@@ -237,10 +212,10 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
           </div>
 
           {applied.length > 0 ? (
-            <div className="border border-slate-700 bg-[#001122] rounded-lg overflow-hidden">
+            <div className="border border-slate-200 bg-white rounded-lg overflow-hidden">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-[#002244] text-slate-300 font-bold border-b border-slate-700">
+                  <tr className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                     <th className="px-4 py-2.5">Retención</th>
                     <th className="px-4 py-2.5">Tipo</th>
                     <th className="px-4 py-2.5 text-center w-24">Porcentaje</th>
@@ -248,15 +223,15 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                     <th className="px-4 py-2.5 text-center w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {applied.map((item, index) => (
-                    <tr key={index} className="hover:bg-[#001e3d]/40 transition-colors">
+                    <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-4 py-2.5 font-medium">{item.retentionName}</td>
                       <td className="px-4 py-2.5">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          item.retentionType === 'ISR' ? 'bg-orange-900/50 text-orange-400 border border-orange-700/50' :
-                          item.retentionType === 'ITBIS' ? 'bg-blue-900/50 text-blue-400 border border-blue-700/50' :
-                          'bg-slate-900/50 text-slate-400 border border-slate-700/50'
+                          item.retentionType === 'ISR' ? 'bg-orange-50 text-orange-600 border border-orange-200' :
+                          item.retentionType === 'ITBIS' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+                          'bg-slate-50 text-slate-600 border border-slate-200'
                         }`}>
                           {item.retentionType}
                         </span>
@@ -270,19 +245,19 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                             step="0.1"
                             value={item.retentionPercentage}
                             onChange={(e) => handlePercentageChange(index, parseFloat(e.target.value) || 0)}
-                            className="w-14 bg-slate-900 border border-slate-600 rounded px-1.5 py-0.5 text-center text-xs text-white focus:border-[#c5a059] outline-none"
+                            className="w-14 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-center text-xs text-[#003366] focus:border-[#c5a059] outline-none"
                           />
                           <span>%</span>
                         </div>
                       </td>
-                      <td className="px-4 py-2.5 text-right font-semibold font-mono">
+                      <td className="px-4 py-2.5 text-right font-semibold font-mono text-[#003366]">
                         RD$ {item.retentionAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <button
                           type="button"
                           onClick={() => handleRemove(index)}
-                          className="text-red-400 hover:text-red-300 transition-colors p-1 cursor-pointer"
+                          className="text-red-500 hover:text-red-600 transition-colors p-1 cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -293,7 +268,7 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
               </table>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-[#002244]/50 border border-slate-700/50 p-4 rounded-lg text-slate-300 text-xs">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-4 rounded-lg text-slate-500 text-xs">
               <ShieldAlert className="w-4 h-4 text-[#c5a059] shrink-0" />
               <span>No ha seleccionado ninguna retención. Haga clic en una de las opciones superiores para agregarla.</span>
             </div>

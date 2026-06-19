@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
+import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
 async function getInvoicePdfBuffer(invoiceId: string) {
@@ -83,6 +83,12 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     .from(invoiceTaxes)
     .where(eq(invoiceTaxes.invoiceId, invoiceId));
 
+  // 5.1. Fetch retentions
+  const retentions = await db
+    .select()
+    .from(invoiceRetentions)
+    .where(eq(invoiceRetentions.invoiceId, invoiceId));
+
   // Fetch dgii submission to retrieve security code and QR code from mseller
   const [submission] = await db
     .select()
@@ -134,6 +140,8 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     discount: Number(invoiceRecordDb.discount),
     totalTaxes: Number(invoiceRecordDb.totalTaxes),
     total: Number(invoiceRecordDb.total),
+    totalRetained: Number(invoiceRecordDb.totalRetained || 0),
+    totalNet: Number(invoiceRecordDb.totalNet || invoiceRecordDb.total),
     notes: invoiceRecordDb.notes || '',
     securityCode,
     signatureDate: signedDate || invoiceRecordDb.createdAt.toISOString(),
@@ -151,6 +159,13 @@ async function getInvoicePdfBuffer(invoiceId: string) {
       taxType: t.taxType,
       rate: Number(t.rate),
       amount: Number(t.amount)
+    })),
+    retentions: retentions.map(r => ({
+      retentionId: r.retentionId || undefined,
+      retentionName: r.retentionName,
+      retentionType: r.retentionType,
+      retentionPercentage: Number(r.retentionPercentage),
+      retentionAmount: Number(r.retentionAmount)
     })),
     company: {
       name: company.name,

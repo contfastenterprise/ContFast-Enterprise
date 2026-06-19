@@ -383,15 +383,15 @@ export default function AccountingPage() {
               <form onSubmit={handleCreateAccount} className="p-6 space-y-5">
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Código</label>
-                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. 1.1.01" />
+                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. 1.1.01" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Nombre de Cuenta</label>
-                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Efectivo en Caja y Banco" />
+                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Efectivo en Caja y Banco" />
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Tipo de Cuenta</label>
-                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors">
+                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors">
                     <option value="asset">Activo</option>
                     <option value="liability">Pasivo</option>
                     <option value="equity">Capital</option>
@@ -426,15 +426,15 @@ export default function AccountingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                     <label className="text-sm font-semibold text-primary block mb-1">Fecha</label>
-                    <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                    <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
                   </div>
                   <div>
                     <label className="text-sm font-semibold text-primary block mb-1">Referencia</label>
-                    <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. CHK-1024" />
+                    <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. CHK-1024" />
                   </div>
                   <div className="md:col-span-3">
                     <label className="text-sm font-semibold text-primary block mb-1">Concepto / Descripción</label>
-                    <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Registro de..." />
+                    <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Registro de..." />
                   </div>
                 </div>
 

@@ -239,7 +239,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                         disabled={!isEditable}
                         onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
                         className={clsx(
-                          "w-full text-left px-3 py-2 border rounded-lg text-sm text-white",
+                          "w-full text-left px-3 py-2 border rounded-lg text-xs text-white",
                           isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed opacity-70"
                         )}
                       >
@@ -256,7 +256,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].quantity = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-sm text-white",
+                          "w-full px-3 py-2 border rounded-lg text-xs text-white",
                           isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
                         )}
                       />
@@ -271,7 +271,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-sm text-white",
+                          "w-full px-3 py-2 border rounded-lg text-xs text-white",
                           isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
                         )}
                       />
@@ -286,7 +286,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].discount = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-sm",
+                          "w-full px-3 py-2 border rounded-lg text-xs",
                           (!isEditable || !canEditDiscount)
                             ? "bg-neutral-800 border-white/5 text-neutral-500 cursor-not-allowed" 
                             : "bg-neutral-900 border-white/10 text-white"

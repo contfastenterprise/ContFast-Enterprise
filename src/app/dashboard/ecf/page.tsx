@@ -282,7 +282,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="1"
                   value={form.startSequence}
                   onChange={(e) => setForm((f) => ({ ...f, startSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
               <div>
@@ -292,7 +292,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="2"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
             </div>
@@ -306,7 +306,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
               />
             </div>
@@ -420,7 +420,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 type="text"
                 disabled
                 value={`e-${sequence.ecfType} — ${ECF_TYPE_LABELS[sequence.ecfType] || ''}`}
-                className="w-full bg-surface-container border border-outline rounded-lg px-4 py-2 text-primary opacity-60 outline-none font-medium"
+                 className="w-full bg-surface-container border border-outline rounded-lg px-3 py-2 text-xs text-primary opacity-60 outline-none font-medium"
               />
             </div>
 
@@ -432,7 +432,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="0"
                   value={form.currentSequence}
                   onChange={(e) => setForm((f) => ({ ...f, currentSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -443,7 +443,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="1"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -458,7 +458,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
                 required
               />

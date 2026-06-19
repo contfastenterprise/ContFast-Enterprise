@@ -644,7 +644,7 @@ export default function PurchasesPage() {
                     <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
                     <select 
                       value={supplierId} onChange={e => setSupplierId(e.target.value)}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                     >
                       <option value="">Selecciona un suplidor...</option>
                       {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
@@ -654,27 +654,27 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">NCF (Opcional si es Gasto Menor)</label>
-                  <input 
+                   <input 
                     type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
                     value={ncf} onChange={e => setNcf(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none font-mono uppercase"
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none font-mono uppercase"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Fecha Emisión</label>
-                  <input 
+                   <input 
                     type="date"
                     value={issueDate} onChange={e => setIssueDate(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Tipo de Gasto (Formato 606)</label>
-                  <select 
+                   <select 
                     value={expenseType} onChange={e => setExpenseType(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                   >
                     <option value="01">01 - Gastos de Personal</option>
                     <option value="02">02 - Trabajos, Suministros y Servicios</option>
@@ -827,16 +827,16 @@ export default function PurchasesPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
-                  <input 
+                   <input 
                     type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
                   />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
-                  <input 
+                   <input 
                     type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-sm font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
                   />
                 </div>
               </div>

@@ -41,6 +41,8 @@ const createInvoiceSchema = z.object({
       retentionDate: z.string().optional(),
     })
   ).optional(),
+  buyerRnc: z.string().optional(),
+  buyerName: z.string().optional(),
 }).refine((data) => {
   if (data.paymentType === 'bank_transfer') {
     return !!data.bankName && !!data.transactionNumber;
