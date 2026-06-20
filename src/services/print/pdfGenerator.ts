@@ -59,7 +59,7 @@ export class PdfGenerator {
     const page = await browser.newPage();
     
     try {
-      await page.setContent(html, { waitUntil: 'networkidle0' as any });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 10000 });
 
       // Wait for all images (logos, QR code) to load and decode completely
       await page.evaluate(async () => {
