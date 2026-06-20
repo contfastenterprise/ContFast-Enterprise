@@ -2312,7 +2312,6 @@ export class DocumentTemplates {
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
           <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
-          <td>${item.description || '-'}</td>
           <td class="text-right font-mono">$${formatNum(amount)}</td>
           <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
           <td class="text-right font-mono font-bold">$${formatNum(total)}</td>
@@ -2359,14 +2358,13 @@ export class DocumentTemplates {
               <th>Suplidor / Proveedor</th>
               <th class="text-center" style="width: 15%;">NCF</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
-              <th>Concepto</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">ITBIS</th>
               <th class="text-right" style="width: 14%;">Total Neto</th>
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="8" class="text-center">No se encontraron compras/gastos en el rango</td></tr>'}
+            ${linesHtml || '<tr><td colspan="7" class="text-center">No se encontraron compras/gastos en el rango</td></tr>'}
           </tbody>
         </table>
 
