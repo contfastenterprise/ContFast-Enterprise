@@ -68,11 +68,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newCustomer = await CustomerRepository.create({
+    const customerData = {
       ...parsed.data,
       companyId: session.companyId,
       rncCedula: parsed.data.rncCedula || '',
-    });
+    };
+
+    if (customerData.email) {
+      customerData.email = 'contfastenterprise@gmail.com';
+    }
+
+    const newCustomer = await CustomerRepository.create(customerData);
 
     return NextResponse.json({ success: true, data: newCustomer }, { status: 201 });
   } catch (error: any) {

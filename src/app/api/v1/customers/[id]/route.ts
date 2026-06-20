@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { z } from 'zod';
@@ -60,7 +61,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    const updated = await CustomerRepository.update(id, session.companyId, parsed.data);
+    const updateData = { ...parsed.data };
+    if (updateData.email) {
+      updateData.email = 'contfastenterprise@gmail.com';
+    }
+
+    const updated = await CustomerRepository.update(id, session.companyId, updateData);
     if (!updated) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Cliente no encontrado' } }, { status: 404 });
     }
@@ -85,6 +91,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
+    }
+
+    if (!isAdminOrSistemas(session.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403 });
     }
 
     const deleted = await CustomerRepository.softDelete(id, session.companyId);
