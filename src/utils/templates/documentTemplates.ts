@@ -859,6 +859,92 @@ export class DocumentTemplates {
     `;
   }
 
+  static renderSupplierAPStatement(data: any): string {
+    const { company, supplier, items, totalBalance } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = items.map((item: any) => {
+      const isOverdue = new Date(item.dueDate) < new Date();
+      return `
+        <tr>
+          <td class="font-mono">${item.apId.slice(0, 8).toUpperCase()}</td>
+          <td>${new Date(item.dueDate).toLocaleDateString('es-DO')}</td>
+          <td class="text-right font-mono">$${formatNum(item.amount)}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #dc3545;">$${formatNum(item.balance)}</td>
+          <td>
+            <span style="padding: 2px 6px; border-radius: 4px; font-size: 8pt; font-weight: bold; background-color: ${isOverdue ? '#fce8e6' : '#e6f4ea'}; color: ${isOverdue ? '#c5221f' : '#137333'};">
+              ${isOverdue ? 'Vencido' : 'Pendiente'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Cuentas por Pagar - ${supplier.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR PAGAR</div>
+            <div><strong>Proveedor:</strong> ${supplier.name}</div>
+            ${supplier.rnc ? `<div><strong>RNC:</strong> ${supplier.rnc}</div>` : ''}
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="margin-top: 8px; font-size: 11pt; font-weight: bold; color: #dc3545;">Total Pendiente: $${formatNum(totalBalance)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Detalle de Cuentas por Pagar Pendientes</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Referencia CXP</th>
+              <th>Vencimiento</th>
+              <th class="text-right">Monto Original</th>
+              <th class="text-right">Balance Pendiente</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Documento Informativo - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   static renderARStatement(data: any, asOf: string): string {
     const { company, customer, openItems, totalPending } = data;
     const css = this.getBaseCss('carta');
@@ -949,6 +1035,253 @@ export class DocumentTemplates {
 
         <div class="footer" style="margin-top: 60px;">
           Documento de Balance Pendiente - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderProductsList(data: any): string {
+    const { company, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number | string) => {
+      return Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = items.map((item: any) => {
+      return `
+        <tr>
+          <td class="font-mono">${item.sku || 'N/A'}</td>
+          <td class="font-semibold text-slate-800">${item.name}</td>
+          <td style="text-transform: capitalize;">${item.unitOfMeasure}</td>
+          <td class="text-right font-mono">$${formatNum(item.cost)}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #16a34a;">$${formatNum(item.price)}</td>
+          <td class="text-center">
+            <span style="padding: 2px 6px; border-radius: 4px; font-size: 8pt; font-weight: bold; background-color: ${item.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${item.status === 'active' ? '#137333' : '#5f6368'};">
+              ${item.status === 'active' ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Catálogo de Productos</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">CATÁLOGO DE PRODUCTOS</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Total Productos:</strong> ${items.length}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Listado de Productos y Precios</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>SKU / Código</th>
+              <th>Nombre</th>
+              <th>Medida</th>
+              <th class="text-right">Costo</th>
+              <th class="text-right">Precio Venta</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Documento de Catálogo - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderSuppliersList(data: any): string {
+    const { company, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const linesHtml = items.map((item: any) => {
+      return `
+        <tr>
+          <td class="font-semibold text-slate-800">${item.name}</td>
+          <td class="font-mono">${item.rnc}</td>
+          <td>${item.email || '-'}</td>
+          <td>${item.phone || '-'}</td>
+          <td style="font-size: 9pt;">${item.address || '-'}</td>
+          <td class="text-center">
+            <span style="padding: 2px 6px; border-radius: 4px; font-size: 8pt; font-weight: bold; background-color: ${item.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${item.status === 'active' ? '#137333' : '#5f6368'};">
+              ${item.status === 'active' ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Suplidores</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">DIRECTORIO DE SUPLIDORES</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Total Suplidores:</strong> ${items.length}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Listado de Proveedores Registrados</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Suplidor / Empresa</th>
+              <th>RNC</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Directorio de Suplidores - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderCustomersList(data: any): string {
+    const { company, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const linesHtml = items.map((item: any) => {
+      return `
+        <tr>
+          <td class="font-semibold text-slate-800">${item.name}</td>
+          <td class="font-mono">${item.rncCedula || '-'}</td>
+          <td>${item.email || '-'}</td>
+          <td>${item.phone || '-'}</td>
+          <td style="font-size: 9pt;">${item.address || '-'}</td>
+          <td class="text-center">
+            <span style="padding: 2px 6px; border-radius: 4px; font-size: 8pt; font-weight: bold; background-color: ${item.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${item.status === 'active' ? '#137333' : '#5f6368'};">
+              ${item.status === 'active' ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Clientes</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">DIRECTORIO DE CLIENTES</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Total Clientes:</strong> ${items.length}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Listado de Clientes Registrados</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Cliente / Empresa</th>
+              <th>RNC/Cédula</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Dirección</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Directorio de Clientes - Generado por ContFast Enterprise
         </div>
       </body>
       </html>
@@ -1746,6 +2079,196 @@ export class DocumentTemplates {
         
         <div class="footer-note">
           Reporte Técnico de Producción - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderPurchase(data: any): string {
+    const { company, supplier, purchase, lines } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number | string) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const paymentMethods: Record<string, string> = {
+      '01': 'Efectivo',
+      '02': 'Cheque/Transferencia/Depósito',
+      '03': 'Tarjeta de Crédito/Débito',
+      '04': 'Compra a Crédito',
+      '05': 'Permuta',
+      '06': 'Nota de Crédito',
+      '07': 'Mixto'
+    };
+
+    const expenseTypes: Record<string, string> = {
+      '01': 'Gastos de Personal',
+      '02': 'Gastos por Trabajos, Suministros y Servicios',
+      '03': 'Arrendamientos',
+      '04': 'Gastos de Activos Fijos',
+      '05': 'Gastos de Representación',
+      '06': 'Otras Deducciones Admitidas',
+      '07': 'Gastos Financieros',
+      '08': 'Gastos Extraordinarios',
+      '09': 'Compras y Gastos que formarán parte del Costo de Venta',
+      '10': 'Adquisiciones de Activos'
+    };
+
+    const linesHtml = lines.map((line: any) => {
+      const qty = parseFloat(line.quantity) || 0;
+      const cost = parseFloat(line.unitCost) || 0;
+      const sub = parseFloat(line.subtotal) || (qty * cost);
+      const itbis = parseFloat(line.itbis) || 0;
+      const total = parseFloat(line.total) || (sub + itbis);
+
+      return `
+        <tr>
+          <td>${line.description}</td>
+          <td class="text-center">${qty}</td>
+          <td class="text-right">$${formatNum(cost)}</td>
+          <td class="text-right" style="color: #059669;">$${formatNum(itbis)}</td>
+          <td class="text-right" style="font-weight: bold;">$${formatNum(total)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const subtotal = parseFloat(purchase.amount) || 0;
+    const itbisVal = parseFloat(purchase.itbis) || 0;
+    const iscVal = parseFloat(purchase.isc) || 0;
+    const otherTaxesVal = parseFloat(purchase.otherTaxes) || 0;
+    const tipVal = parseFloat(purchase.tip) || 0;
+    const totalVal = subtotal + itbisVal + iscVal + otherTaxesVal + tipVal;
+
+    const issueDateStr = new Date(purchase.issueDate).toLocaleDateString('es-DO');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Comprobante de Compra - ${purchase.id.slice(0, 8).toUpperCase()}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-bold { font-weight: bold; }
+          .text-emerald { color: #059669; }
+          .section-title {
+            color: #003366;
+            border-bottom: 2px solid #003366;
+            padding-bottom: 4px;
+            margin-top: 20px;
+            font-size: 11pt;
+            text-transform: uppercase;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">COMPROBANTE DE COMPRA</div>
+            <div><strong>Referencia:</strong> <span class="font-mono">${purchase.id.toUpperCase()}</span></div>
+            <div><strong>Tipo Gasto:</strong> ${expenseTypes[purchase.expenseType] || purchase.expenseType || 'N/A'}</div>
+            <div><strong>NCF:</strong> <span class="font-mono" style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${purchase.ncf || 'N/A'}</span></div>
+            <div><strong>Fecha Emisión:</strong> ${issueDateStr}</div>
+            <div><strong>Método Pago:</strong> ${paymentMethods[purchase.paymentMethod] || purchase.paymentMethod || 'Otros'}</div>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="box">
+            <div class="box-title">INFORMACIÓN DEL PROVEEDOR</div>
+            <div style="line-height: 1.5; font-size: 9pt;">
+              ${purchase.isMinorExpense ? `
+                <strong>Proveedor Informal / Caja Chica</strong>
+              ` : `
+                <strong>${supplier?.name || 'N/A'}</strong><br>
+                RNC/Cedula: ${supplier?.rnc || 'N/A'}<br>
+                ${supplier?.address ? `Dirección: ${supplier.address}` : ''}
+              `}
+            </div>
+          </div>
+          <div class="box">
+            <div class="box-title">INFORMACIÓN DE ENTREGA / ALMACÉN</div>
+            <div style="line-height: 1.5; font-size: 9pt;">
+              Almacén Destino: <strong>${purchase.warehouseName || 'No afecta inventario'}</strong><br>
+              ${purchase.description ? `Descripción: <em>${purchase.description}</em>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Detalle de Artículos / Servicios</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Descripción</th>
+              <th class="text-center" style="width: 10%;">Cant</th>
+              <th class="text-right" style="width: 15%;">Costo Unit.</th>
+              <th class="text-right" style="width: 15%;">ITBIS</th>
+              <th class="text-right" style="width: 18%;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || `<tr><td colspan="5" class="text-center">No hay líneas en este comprobante</td></tr>`}
+          </tbody>
+        </table>
+
+        <div class="totals-container">
+          <div class="totals">
+            <table style="width: 100%; font-size: 9.5pt;">
+              <tr>
+                <td>Subtotal:</td>
+                <td class="text-right font-mono">$${formatNum(subtotal)}</td>
+              </tr>
+              <tr>
+                <td>ITBIS Soportado:</td>
+                <td class="text-right font-mono text-emerald">$${formatNum(itbisVal)}</td>
+              </tr>
+              ${iscVal > 0 ? `
+              <tr>
+                <td>ISC:</td>
+                <td class="text-right font-mono">$${formatNum(iscVal)}</td>
+              </tr>
+              ` : ''}
+              ${otherTaxesVal > 0 ? `
+              <tr>
+                <td>Otros Impuestos:</td>
+                <td class="text-right font-mono">$${formatNum(otherTaxesVal)}</td>
+              </tr>
+              ` : ''}
+              ${tipVal > 0 ? `
+              <tr>
+                <td>Propina Legal (10%):</td>
+                <td class="text-right font-mono">$${formatNum(tipVal)}</td>
+              </tr>
+              ` : ''}
+              <tr class="grand-total">
+                <td style="font-weight: bold; padding-top: 8px;">TOTAL GENERAL:</td>
+                <td class="text-right font-mono" style="font-weight: bold; padding-top: 8px; font-size: 11pt; color: #0f172a;">$${formatNum(totalVal)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Comprobante de Compra Interno - ContFast Enterprise
         </div>
       </body>
       </html>

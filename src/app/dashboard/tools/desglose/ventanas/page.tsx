@@ -175,7 +175,7 @@ export default function DesgloseVentanasPage() {
               className="flex items-center gap-2 px-5 py-2.5 bg-[#005E63] text-white rounded-xl hover:bg-[#004d51] transition-all text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-50"
             >
               <Printer className="h-4 w-4" />
-              {isPrinting ? 'Generando PDF...' : 'Imprimir Reporte Técnico'}
+              {isPrinting ? 'Generando PDF...' : 'Imprimir'}
             </button>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function DesgloseVentanasPage() {
                         setVias(2);
                       }
                     }}
-                    className={`text-xs font-bold py-2.5 rounded-lg transition-all ${
+                    className={`text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center ${
                       tab === idx
                         ? 'bg-[#003366] text-white shadow-sm'
                         : 'text-slate-500 hover:text-slate-800'
@@ -223,7 +223,7 @@ export default function DesgloseVentanasPage() {
                 min={1}
                 value={cantidad}
                 onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] text-slate-900 bg-white font-bold text-center text-lg"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#003366] focus:bg-white transition-all font-bold text-center"
               />
             </div>
 
@@ -234,7 +234,7 @@ export default function DesgloseVentanasPage() {
                 id="vias"
                 value={vias}
                 onChange={(e) => setVias(Number(e.target.value))}
-                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] text-slate-800 bg-white font-bold text-center text-base h-[46px]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#003366] focus:bg-white transition-all font-bold text-center"
               >
                 <option value="2">2 Vías (2 Hojas)</option>
                 <option value="3">3 Vías (3 Hojas)</option>
@@ -254,9 +254,9 @@ export default function DesgloseVentanasPage() {
                   value={ancho}
                   onChange={(e) => setAncho(e.target.value)}
                   placeholder='Ej: 48"'
-                  className="w-full border border-slate-200 rounded-xl pl-3 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-[#C5A059]/30 focus:border-[#C5A059] text-slate-900 bg-white font-mono text-center text-lg font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all font-mono text-center font-bold"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
               </div>
             </div>
 
@@ -269,9 +269,9 @@ export default function DesgloseVentanasPage() {
                   value={altura}
                   onChange={(e) => setAltura(e.target.value)}
                   placeholder='Ej: 60"'
-                  className="w-full border border-slate-200 rounded-xl pl-3 pr-10 py-2.5 outline-none focus:ring-2 focus:ring-[#C5A059]/30 focus:border-[#C5A059] text-slate-900 bg-white font-mono text-center text-lg font-bold"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all font-mono text-center font-bold"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
               </div>
             </div>
 
@@ -280,7 +280,7 @@ export default function DesgloseVentanasPage() {
               <button
                 onClick={handleAdd}
                 disabled={!enable}
-                className="w-full py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-bold transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5 h-[46px]"
+                className="w-full py-2.5 px-4 bg-[#003366] hover:bg-[#002244] text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5 text-sm"
               >
                 <Plus className="h-5 w-5" />
                 <span>Add</span>

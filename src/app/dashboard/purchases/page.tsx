@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
-  DollarSign, ArrowUpRight, ShoppingCart, Activity
+  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -531,13 +531,22 @@ export default function PurchasesPage() {
                               RD${parseFloat(e.amount).toFixed(2)}
                             </td>
                             <td className="py-3 px-2 text-center">
-                              <button
-                                onClick={() => viewDetails(e.id)}
-                                className="p-1 text-primary hover:bg-primary/10 rounded-lg"
-                                title="Ver Detalles"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => viewDetails(e.id)}
+                                  className="p-1 text-primary hover:bg-primary/10 rounded-lg"
+                                  title="Ver Detalles"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                  className="p-1 text-[#005E63] hover:bg-[#005E63]/10 rounded-lg"
+                                  title="Imprimir"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -592,13 +601,22 @@ export default function PurchasesPage() {
                               RD${parseFloat(e.amount).toFixed(2)}
                             </td>
                             <td className="py-3 px-2 text-center">
-                              <button
-                                onClick={() => viewDetails(e.id)}
-                                className="p-1 text-primary hover:bg-primary/10 rounded-lg"
-                                title="Ver Detalles"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => viewDetails(e.id)}
+                                  className="p-1 text-primary hover:bg-primary/10 rounded-lg"
+                                  title="Ver Detalles"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                  className="p-1 text-[#005E63] hover:bg-[#005E63]/10 rounded-lg"
+                                  title="Imprimir"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1006,8 +1024,14 @@ export default function PurchasesPage() {
                   </div>
                 )}
                 <button
+                  onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank')}
+                  className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 ml-auto mr-2"
+                >
+                  <Printer className="h-4 w-4" /> Imprimir
+                </button>
+                <button
                   onClick={() => setSelectedExpense(null)}
-                  className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ml-auto"
+                  className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
                 >
                   Cerrar Detalle
                 </button>
