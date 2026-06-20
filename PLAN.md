@@ -138,8 +138,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Migración a Puppeteer**: Se reemplazó la generación tradicional monospaced basada en `pdfkit` del desglose de ventanas por una plantilla HTML premium renderizada por Puppeteer (`DocumentTemplates.renderWindowBreakdown`), en orientación Carta horizontal (landscape).
 - **Diseño Técnico Preservado**: Mantiene el diseño exacto de taller con la tabla de medidas base, vías, cortes de perfiles (Cabezal, Llavín, Rieles, Laterales), y cristales, además de los bloques resúmenes de cantidad de piezas por tipo y resumen acumulado de materiales por sistema (Tradicional, P-65 y P-92) calculados dinámicamente.
 
-### 22. Estandarización del Tamaño de Inputs y Selects
-- **Estandarización del Tamaño**: Se modificaron todos los campos de tipo `input` y `select` en los formularios y modales del resto de las páginas del dashboard (`products`, `suppliers`, `warehouses`, `quotes/new`, `quotes/[id]/edit`, `purchases`, `accounting`, `bank`, `ecf`, y `ap`) a la altura compacta `py-2 px-3 text-xs` (o `py-2 px-3 text-xs` equivalente). Los campos de tipo `textarea` se mantuvieron intactos sin modificaciones.
-- **Validación del Proyecto**: Se ejecutó `npx tsc --noEmit` confirmando la correcta compilación y la ausencia de errores en todo el proyecto.
+### 23. Sistema de Colas con Fallback Auto-Curativo (Redis Offline)
+- **Extracción de Lógica de Colas**: Se centralizó la lógica de negocio para la presentación a la DGII y el despacho de correos en [jobRunners.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/infrastructure/jobRunners.ts), permitiendo su importación aislada sin efectos secundarios en el ciclo de vida del servidor.
+- **Mecanismo de Resiliencia en Colas**: Se configuró un fallback automático en [queue.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/infrastructure/queue.ts) que detecta si el cliente de Redis está fuera de línea (ECONNREFUSED) o si el tiempo de encolado expira. Ante esta situación, el sistema ejecuta la tarea en segundo plano utilizando el event loop (`setTimeout(..., 0)`) in-process, garantizando la entrega de correos electrónicos de facturas y los envíos DGII en entornos locales y en contingencias.
 
 **Status**: Verified & Polished (Score 10/10)
+
