@@ -2274,4 +2274,126 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderPurchasesReport(data: any): string {
+    const { company, items, filters } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number | string) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    let totalAmount = 0;
+    let totalItbis = 0;
+    let totalTaxed = 0;
+
+    const linesHtml = items.map((item: any, idx: number) => {
+      const amount = parseFloat(item.amount) || 0;
+      const itbis = parseFloat(item.itbis) || 0;
+      const total = amount + itbis + (parseFloat(item.isc) || 0) + (parseFloat(item.otherTaxes) || 0);
+
+      totalAmount += total;
+      totalItbis += itbis;
+      totalTaxed += amount;
+
+      return `
+        <tr>
+          <td class="text-center">${idx + 1}</td>
+          <td>
+            <div class="font-bold">${item.isMinorExpense ? 'Gastos Menores / Caja Chica' : (item.supplierName || 'N/A')}</div>
+            ${item.supplierRnc ? `<div style="font-size: 8pt; color: #666;">RNC: ${item.supplierRnc}</div>` : ''}
+          </td>
+          <td class="font-mono text-center">${item.ncf || '-'}</td>
+          <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
+          <td>${item.description || '-'}</td>
+          <td class="text-right font-mono">$${formatNum(amount)}</td>
+          <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
+          <td class="text-right font-mono font-bold">$${formatNum(total)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Compras y Gastos</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-bold { font-weight: bold; }
+          .text-emerald { color: #059669; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE COMPRAS Y GASTOS</div>
+            <div><strong>Rango:</strong> ${filters.startDate} al ${filters.endDate}</div>
+            <div><strong>Tipo:</strong> ${filters.type === 'purchases' ? 'Compras Comerciales' : filters.type === 'expenses' ? 'Gastos Menores' : 'Todos'}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Lote: $${formatNum(totalAmount)}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; margin-top: 20px;">
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 5%;">#</th>
+              <th>Suplidor / Proveedor</th>
+              <th class="text-center" style="width: 15%;">NCF</th>
+              <th class="text-center" style="width: 12%;">Fecha</th>
+              <th>Concepto</th>
+              <th class="text-right" style="width: 12%;">Subtotal</th>
+              <th class="text-right" style="width: 12%;">ITBIS</th>
+              <th class="text-right" style="width: 14%;">Total Neto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || '<tr><td colspan="8" class="text-center">No se encontraron compras/gastos en el rango</td></tr>'}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 20px;">
+          <div class="totals">
+            <table style="width: 100%; font-size: 9.5pt;">
+              <tr>
+                <td>Subtotal Total:</td>
+                <td class="text-right font-mono">$${formatNum(totalTaxed)}</td>
+              </tr>
+              <tr>
+                <td>ITBIS Total:</td>
+                <td class="text-right font-mono text-emerald">$${formatNum(totalItbis)}</td>
+              </tr>
+              <tr class="grand-total">
+                <td style="font-weight: bold; padding-top: 8px;">TOTAL GENERAL:</td>
+                <td class="text-right font-mono" style="font-weight: bold; padding-top: 8px; font-size: 11pt; color: #0f172a;">$${formatNum(totalAmount)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Reporte de Compras - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

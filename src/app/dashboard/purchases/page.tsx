@@ -413,7 +413,34 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end gap-2.5">
+              {hasSearched && searchResults.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    let url = `/api/v1/expenses/report?startDate=${filterStartDate}&endDate=${filterEndDate}`;
+                    if (filterType === 'purchases') {
+                      url += '&isMinorExpense=false';
+                    } else if (filterType === 'expenses') {
+                      url += '&isMinorExpense=true';
+                    }
+                    if (filterSupplier) {
+                      url += `&supplierId=${filterSupplier}`;
+                    }
+                    if (filterWarehouse) {
+                      url += `&warehouseId=${filterWarehouse}`;
+                    }
+                    if (filterNcf) {
+                      url += `&ncf=${encodeURIComponent(filterNcf)}`;
+                    }
+                    window.open(url, '_blank');
+                  }}
+                  className="bg-[#005E63] hover:bg-[#004d51] text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Imprimir Reporte</span>
+                </button>
+              )}
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
