@@ -4,6 +4,7 @@ import { isAdminOrSistemas } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { z } from 'zod';
+import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
 
 const updateCustomerSchema = z.object({
   rncCedula: z.string().min(9).max(15).optional(),
@@ -61,15 +62,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    const updateData = { ...parsed.data };
-    if (updateData.email) {
-      updateData.email = 'contfastenterprise@gmail.com';
-    }
-
-    const updated = await CustomerRepository.update(id, session.companyId, updateData);
+    const updated = await CustomerRepository.update(id, session.companyId, parsed.data);
     if (!updated) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Cliente no encontrado' } }, { status: 404 });
     }
+
+    // Asynchronously synchronize to Google Contacts in the background
+    syncCustomerToGoogleContacts({
+      name: updated.name,
+      email: updated.email,
+      phone: updated.phone,
+      address: updated.address,
+    }).catch(err => console.error('[CustomerByIdRoute] Google Contacts sync failed:', err.message));
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {

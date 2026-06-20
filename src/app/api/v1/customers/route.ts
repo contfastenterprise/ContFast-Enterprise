@@ -3,6 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { z } from 'zod';
+import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
 
 const createCustomerSchema = z.object({
   rncCedula: z.string().min(9, 'El RNC o Cédula es muy corto').max(15, 'El RNC o Cédula es muy largo').optional().or(z.literal('')),
@@ -68,17 +69,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const customerData = {
+    const newCustomer = await CustomerRepository.create({
       ...parsed.data,
       companyId: session.companyId,
       rncCedula: parsed.data.rncCedula || '',
-    };
+    });
 
-    if (customerData.email) {
-      customerData.email = 'contfastenterprise@gmail.com';
-    }
-
-    const newCustomer = await CustomerRepository.create(customerData);
+    // Asynchronously synchronize to Google Contacts in the background
+    syncCustomerToGoogleContacts({
+      name: newCustomer.name,
+      email: newCustomer.email,
+      phone: newCustomer.phone,
+      address: newCustomer.address,
+    }).catch(err => console.error('[CustomersRoute] Google Contacts sync failed:', err.message));
 
     return NextResponse.json({ success: true, data: newCustomer }, { status: 201 });
   } catch (error: any) {
