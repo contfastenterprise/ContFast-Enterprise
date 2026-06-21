@@ -1732,7 +1732,7 @@ function InvoicesList() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-surface-container-highest border border-[#003366] rounded-2xl max-w-4xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+              className="relative bg-white border border-[#003366] rounded-2xl max-w-4xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-5 md:px-8">
                 <div>
@@ -1874,22 +1874,22 @@ function InvoicesList() {
                     )}
                   </div>
 
-                  <div className="w-full md:w-64 space-y-2 text-sm">
-                    <div className="flex justify-between text-on-surface-variant/80">
-                      <span>Subtotal</span>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex flex-col">
+                      <span className="text-on-surface-variant/80">Subtotal</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
                     {parseFloat(selectedInvoice.discount || 0) > 0 && (
-                      <div className="flex justify-between text-on-surface-variant/80">
-                        <span>Descuento</span>
+                      <div className="flex flex-col">
+                        <span className="text-on-surface-variant/80">Descuento</span>
                         <span className="font-mono">- RD$ {parseFloat(selectedInvoice.discount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-on-surface-variant/80">
-                      <span>ITBIS</span>
+                    <div className="flex flex-col">
+                      <span className="text-on-surface-variant/80">ITBIS</span>
                       <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="flex justify-between items-center border-t border-slate-200 pt-2 mt-2">
+                    <div className="flex flex-col items-center border-t border-slate-200 pt-2 mt-2">
                       <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total Bruto</span>
                       <span className="font-mono font-bold text-xl text-[#C5A059]">RD$ {parseFloat(selectedInvoice.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -1906,12 +1906,12 @@ function InvoicesList() {
                           <span className="text-orange-700 font-bold uppercase tracking-wider text-xs">Total Retenido</span>
                           <span className="font-mono font-bold text-orange-600">- RD$ {parseFloat(selectedInvoice.totalRetained).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                         </div>
-                        <div className="flex justify-between items-center border-t border-slate-300 pt-2 mt-1">
-                          <span className="text-emerald-700 font-bold uppercase tracking-wider text-xs">Total Neto a Cobrar</span>
-                          <span className="font-mono font-bold text-xl text-emerald-500">RD$ {parseFloat(selectedInvoice.totalNet).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                        </div>
                       </div>
                     )}
+                    <div className="flex flex-col items-center border-t border-slate-300 pt-2 mt-1">
+                      <span className="text-emerald-700 font-bold uppercase tracking-wider text-xs">Total Neto a Cobrar</span>
+                      <span className="font-mono font-bold text-xl text-emerald-500">RD$ {parseFloat(selectedInvoice.totalNet).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles } from '@/db';
+import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, products } from '@/db';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -656,6 +656,21 @@ export class InvoiceService {
       fs.writeFileSync(xmlPath, rawXml);
       fs.writeFileSync(signedXmlPath, signedXml);
 
+      // Fetch real product SKUs and units of measure
+      const productIds = itemLines.map(l => l.productId).filter(Boolean);
+      let dbProducts: any[] = [];
+      if (productIds.length > 0) {
+        dbProducts = await db
+          .select({
+            id: products.id,
+            sku: products.sku,
+            unitOfMeasure: products.unitOfMeasure,
+          })
+          .from(products)
+          .where(sql`${products.id} in (${sql.raw(productIds.map(id => `'${id}'`).join(','))})`);
+      }
+      const productMap = new Map(dbProducts.map(p => [p.id, p]));
+
       // Generate PDF Buffer using premium HTML/Puppeteer rendering engine
       const formattedInvoiceRecord = {
         ncf,
@@ -670,15 +685,18 @@ export class InvoiceService {
         notes: data.notes || '',
         securityCode: securityHash,
         signatureDate: new Date().toISOString(),
-        lines: itemLines.map(l => ({
-          quantity: l.quantity,
-          productName: l.name,
-          productSku: 'N/A',
-          unitOfMeasure: 'Unidad',
-          unitPrice: l.unitPrice,
-          discount: l.discount,
-          total: l.total
-        })),
+        lines: itemLines.map(l => {
+          const prod = productMap.get(l.productId);
+          return {
+            quantity: l.quantity,
+            productName: l.name,
+            productSku: prod?.sku || 'N/A',
+            unitOfMeasure: prod?.unitOfMeasure || 'Unidad',
+            unitPrice: l.unitPrice,
+            discount: l.discount,
+            total: l.total
+          };
+        }),
         taxes: taxesList.map(t => ({
           taxType: t.taxType,
           rate: t.rate,
