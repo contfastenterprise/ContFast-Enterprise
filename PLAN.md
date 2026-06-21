@@ -142,5 +142,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Extracción de Lógica de Colas**: Se centralizó la lógica de negocio para la presentación a la DGII y el despacho de correos en [jobRunners.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/infrastructure/jobRunners.ts), permitiendo su importación aislada sin efectos secundarios en el ciclo de vida del servidor.
 - **Mecanismo de Resiliencia en Colas**: Se configuró un fallback automático en [queue.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/infrastructure/queue.ts) que detecta si el cliente de Redis está fuera de línea (ECONNREFUSED) o si el tiempo de encolado expira. Ante esta situación, el sistema ejecuta la tarea en segundo plano utilizando el event loop (`setTimeout(..., 0)`) in-process, garantizando la entrega de correos electrónicos de facturas y los envíos DGII en entornos locales y en contingencias.
 
+### 24. Borde con Degradado Animado (BorderRotate)
+- **Componente**: Creado en `src/components/ui/animated-gradient-border.tsx` para proporcionar una animación de borde fluido con velocidad y colores configurables.
+- **Configuración CSS**: Añadida la animación y la propiedad `@property --gradient-angle` a `src/app/globals.css` para soportar rotación de color cónica fluida en Tailwind CSS v4.
+- **Integración**: Se envolvieron las tarjetas principales de resumen del Dashboard con el componente `BorderRotate`, aplicando una paleta de colores degradados que complementan el tema corporativo de Latin Doors.
+
 **Status**: Verified & Polished (Score 10/10)
 

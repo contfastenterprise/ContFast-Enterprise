@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import SkeletonBasic from '@/components/ui/skeleton';
+import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import dynamic from 'next/dynamic';
 
 const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
@@ -156,13 +158,17 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <motion.div className="flex flex-col items-center gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}>
-            <RefreshCw className="h-8 w-8 text-primary" />
-          </motion.div>
-          <p className="text-on-surface-variant font-medium">Cargando métricas del sistema...</p>
-        </motion.div>
+      <div className="space-y-10 pb-8">
+        <header className="flex flex-col gap-2">
+          <div className="h-9 w-64 bg-slate-200/60 rounded-xl animate-pulse"></div>
+          <div className="h-5 w-96 bg-slate-200/40 rounded-xl animate-pulse"></div>
+        </header>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <SkeletonBasic />
+          <SkeletonBasic />
+          <SkeletonBasic />
+          <SkeletonBasic />
+        </div>
       </div>
     );
   }
@@ -188,62 +194,110 @@ export default function DashboardPage() {
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-blue-50/80 backdrop-blur-md border border-blue-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="bg-blue-100 p-3 rounded-2xl group-hover:bg-blue-600 transition-colors">
-              <FileText className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
+        <BorderRotate
+          borderRadius={24}
+          borderWidth={2}
+          backgroundColor="rgba(239, 246, 255, 0.85)"
+          gradientColors={{
+            primary: '#93c5fd',
+            secondary: '#3b82f6',
+            accent: '#1d4ed8'
+          }}
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-blue-100 p-3 rounded-2xl group-hover:bg-blue-600 transition-colors">
+                <FileText className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
+              </div>
+              <span className={clsx(
+                "text-[11px] px-2 py-1 rounded-full font-bold transition-all",
+                (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              )}>
+                {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
+              </span>
             </div>
-            <span className={clsx(
-              "text-[11px] px-2 py-1 rounded-full font-bold transition-all",
-              (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-            )}>
-              {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
-            </span>
+            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
+            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.invoicesToday}</h3>
+            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
           </div>
-          <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
-          <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.invoicesToday}</h3>
-          <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
-        </div>
+        </BorderRotate>
 
-        <div className="bg-amber-50/80 backdrop-blur-md border border-amber-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="bg-amber-100 p-3 rounded-2xl group-hover:bg-amber-500 transition-colors">
-              <RefreshCw className="h-6 w-6 text-amber-600 group-hover:text-white transition-colors" />
+        <BorderRotate
+          borderRadius={24}
+          borderWidth={2}
+          backgroundColor="rgba(254, 243, 199, 0.85)"
+          gradientColors={{
+            primary: '#fde047',
+            secondary: '#f59e0b',
+            accent: '#b45309'
+          }}
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-amber-100 p-3 rounded-2xl group-hover:bg-amber-500 transition-colors">
+                <RefreshCw className="h-6 w-6 text-amber-600 group-hover:text-white transition-colors" />
+              </div>
+              {stats.pendingDgii > 0 && (
+                <span className="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
+              )}
             </div>
-            {stats.pendingDgii > 0 && (
-              <span className="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
-            )}
+            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
+            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.pendingDgii}</h3>
+            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
           </div>
-          <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
-          <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.pendingDgii}</h3>
-          <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
-        </div>
+        </BorderRotate>
 
-        <div className="bg-emerald-50/80 backdrop-blur-md border border-emerald-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="bg-emerald-100 p-3 rounded-2xl group-hover:bg-emerald-600 transition-colors">
-              <TrendingUp className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+        <BorderRotate
+          borderRadius={24}
+          borderWidth={2}
+          backgroundColor="rgba(209, 250, 229, 0.85)"
+          gradientColors={{
+            primary: '#6ee7b7',
+            secondary: '#10b981',
+            accent: '#047857'
+          }}
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-emerald-100 p-3 rounded-2xl group-hover:bg-emerald-600 transition-colors">
+                <TrendingUp className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+              </div>
             </div>
+            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
+            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{fmt(stats.monthlySales, true)}</h3>
+            <div className="w-full bg-surface-container h-2 rounded-full mt-5 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary to-surface-tint h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
+            </div>
+            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">{salesPct}% de la meta mensual</p>
           </div>
-          <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
-          <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{fmt(stats.monthlySales, true)}</h3>
-          <div className="w-full bg-surface-container h-2 rounded-full mt-5 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-surface-tint h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
-          </div>
-          <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">{salesPct}% de la meta mensual</p>
-        </div>
+        </BorderRotate>
 
-        <div className="bg-red-50/80 backdrop-blur-md border border-red-200 shadow-[0_4px_30px_rgba(0,0,0,0.05)] p-6 rounded-3xl hover:shadow-2xl transition-all hover:-translate-y-1 group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="bg-red-100 p-3 rounded-2xl group-hover:bg-red-600 transition-colors">
-              <AlertCircle className="h-6 w-6 text-red-600 group-hover:text-white transition-colors" />
+        <BorderRotate
+          borderRadius={24}
+          borderWidth={2}
+          backgroundColor="rgba(254, 226, 226, 0.85)"
+          gradientColors={{
+            primary: '#fca5a5',
+            secondary: '#ef4444',
+            accent: '#b91c1c'
+          }}
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        >
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-red-100 p-3 rounded-2xl group-hover:bg-red-600 transition-colors">
+                <AlertCircle className="h-6 w-6 text-red-600 group-hover:text-white transition-colors" />
+              </div>
+              {stats.alertCount > 0 && <span className="flex h-3 w-3 rounded-full bg-error animate-ping"></span>}
             </div>
-            {stats.alertCount > 0 && <span className="flex h-3 w-3 rounded-full bg-error animate-ping"></span>}
+            <p className="font-label-md text-error/70 uppercase tracking-[0.1em] text-[10px] font-bold">Alertas</p>
+            <h3 className="font-display-lg text-3xl font-extrabold text-error mt-1">{stats.alertCount}</h3>
+            <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Acción requerida inmediata' : 'Sistema en óptimas condiciones'}</p>
           </div>
-          <p className="font-label-md text-error/70 uppercase tracking-[0.1em] text-[10px] font-bold">Alertas</p>
-          <h3 className="font-display-lg text-3xl font-extrabold text-error mt-1">{stats.alertCount}</h3>
-          <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Acción requerida inmediata' : 'Sistema en óptimas condiciones'}</p>
-        </div>
+        </BorderRotate>
       </section>
 
       {/* ── Charts and Activity Section ─────────────────────────────────────── */}
