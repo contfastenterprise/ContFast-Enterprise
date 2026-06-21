@@ -27,9 +27,9 @@ loadEnv();
 
 async function runTest() {
   console.log('--- STARTING GOOGLE CONTACTS SYNC TEST ---');
-  console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Configured' : 'Missing');
-  console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET ? 'Configured' : 'Missing');
-  console.log('Refresh Token:', process.env.GOOGLE_REFRESH_TOKEN ? 'Configured' : 'Missing');
+  console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? `Length: ${process.env.GOOGLE_CLIENT_ID.length}, Start: ${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}` : 'Missing');
+  console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET ? `Length: ${process.env.GOOGLE_CLIENT_SECRET.length}, Start: ${process.env.GOOGLE_CLIENT_SECRET.substring(0, 10)}...${process.env.GOOGLE_CLIENT_SECRET.slice(-5)}` : 'Missing');
+  console.log('Refresh Token:', process.env.GOOGLE_REFRESH_TOKEN ? `Length: ${process.env.GOOGLE_REFRESH_TOKEN.length}, Start: ${process.env.GOOGLE_REFRESH_TOKEN.substring(0, 10)}...${process.env.GOOGLE_REFRESH_TOKEN.slice(-5)}` : 'Missing');
 
   const testCustomer = {
     name: 'Cliente de Prueba ContFast',
