@@ -4,6 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { addJob } from '@/infrastructure/queue';
+import { CompanyRepository } from '@/repositories/companyRepository';
 
 export const runtime = 'nodejs';
 
@@ -57,12 +58,15 @@ export async function POST(
       );
     }
 
+    const company = await CompanyRepository.getProfile(auth.companyId);
+    const companyName = company?.name || 'ContFast';
+
     // Queue resending the email
     await addJob('emails-sending', 'send-email', {
       to: customer.email,
       subject: `Reenvío de Factura - NCF: ${invoice.ncf}`,
-      text: `Estimado(a) ${customer.name},\n\nLe reenviamos su factura NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\nContFast`,
-      html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le reenviamos su factura NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
+      text: `Estimado(a) ${customer.name},\n\nLe reenviamos su factura NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\n${companyName}`,
+      html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le reenviamos su factura NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
       pdfPath: invoice.pdfPath || undefined,
     });
 

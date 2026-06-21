@@ -733,11 +733,13 @@ export class InvoiceService {
               : `Factura - NCF: ${ncf}`;
             const typeStr = isCredit ? ' a crédito' : '';
 
+            const companyName = company.name || 'ContFast';
+
             await addJob('emails-sending', 'send-email', {
               to: customer.email,
               subject,
-              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\nContFast`,
-              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>ContFast</p>`,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\n${companyName}`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
               pdfPath,
             });
             console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${ncf} with attachment ${pdfPath}`);
