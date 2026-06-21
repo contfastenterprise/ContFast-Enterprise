@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses } from '@/db';
+import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, chartOfAccounts } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { eq, sql, and, between } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { AccountRepository } from '@/repositories/accountRepository';
+
+async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+  const [acc] = await tx
+    .select()
+    .from(chartOfAccounts)
+    .where(and(eq(chartOfAccounts.companyId, companyId), eq(chartOfAccounts.code, code)));
+
+  if (acc) return acc;
+
+  const [newAcc] = await tx
+    .insert(chartOfAccounts)
+    .values({
+      companyId,
+      code,
+      name,
+      type,
+      status: 'active',
+    })
+    .returning();
+
+  return newAcc;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -71,6 +94,7 @@ export async function POST(req: NextRequest) {
       });
 
       // 2. Insert Lines & Update Inventory
+      const hasInventory = !!(warehouseId && lines && lines.length > 0);
       if (lines && lines.length > 0) {
         for (const line of lines) {
           const lineId = uuidv4();
@@ -145,6 +169,62 @@ export async function POST(req: NextRequest) {
           balance: (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0)).toString(),
           dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           status: 'pending',
+        });
+      }
+
+      // 5. Journal Entry Generation (Asiento Contable)
+      const subtotalVal = parseFloat(amount);
+      const itbisAmount = parseFloat(itbis || 0);
+      const otherTaxesAmount = parseFloat(otherTaxes || 0);
+      const isrRet = parseFloat(isrRetained || 0);
+      const itbisRet = parseFloat(itbisRetained || 0);
+
+      // Total net to pay: subtotal + itbis + otherTaxes - isrRet - itbisRet
+      const netAmount = subtotalVal + itbisAmount + otherTaxesAmount - isrRet - itbisRet;
+
+      if (netAmount > 0) {
+        const isCredit = paymentMethod === '04';
+
+        const accDebit = hasInventory
+          ? await getOrCreateAccount(tx, session.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
+          : await getOrCreateAccount(tx, session.companyId, '5.1.01', 'Costo de Ventas', 'expense');
+
+        const accCredit = isCredit
+          ? await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')
+          : await getOrCreateAccount(tx, session.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
+
+        const journalLines = [
+          { accountId: accDebit.id, debit: subtotalVal, credit: 0 },
+        ];
+
+        if (itbisAmount > 0) {
+          const accItbisPagado = await getOrCreateAccount(tx, session.companyId, '1.1.08', 'ITBIS Pagado en Compras', 'asset');
+          journalLines.push({ accountId: accItbisPagado.id, debit: itbisAmount, credit: 0 });
+        }
+
+        if (otherTaxesAmount > 0) {
+          const accOtrosImp = await getOrCreateAccount(tx, session.companyId, '5.1.02', 'Otros Impuestos y Tasas', 'expense');
+          journalLines.push({ accountId: accOtrosImp.id, debit: otherTaxesAmount, credit: 0 });
+        }
+
+        journalLines.push({ accountId: accCredit.id, debit: 0, credit: netAmount });
+
+        if (isrRet > 0) {
+          const accIsrRet = await getOrCreateAccount(tx, session.companyId, '2.1.04', 'ISR Retenido por Pagar', 'liability');
+          journalLines.push({ accountId: accIsrRet.id, debit: 0, credit: isrRet });
+        }
+
+        if (itbisRet > 0) {
+          const accItbisRet = await getOrCreateAccount(tx, session.companyId, '2.1.05', 'ITBIS Retenido por Pagar', 'liability');
+          journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: itbisRet });
+        }
+
+        await AccountRepository.createJournalEntry(tx, {
+          companyId: session.companyId,
+          reference: newExpenseId,
+          date: new Date(issueDate),
+          description: `Asiento Automático de Compra NCF: ${ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'}`,
+          lines: journalLines,
         });
       }
 

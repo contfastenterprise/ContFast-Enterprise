@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { ArRepository } from '@/repositories/arRepository';
 import { z } from 'zod';
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
+    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
@@ -53,6 +56,8 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'write');
 
     const body = await req.json();
     const parsed = registerReceiptSchema.safeParse(body);

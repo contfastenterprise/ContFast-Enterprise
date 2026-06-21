@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Warehouse {
@@ -23,6 +23,104 @@ export default function WarehousesPage() {
   useEffect(() => {
     fetchWarehouses();
   }, []);
+
+  const filteredWarehouses = warehouses.filter((w) =>
+    w.name.toLowerCase().includes(searchTerm.toLowerCase()) || w.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handlePrintList = async () => {
+    const toastId = toast.loading('Preparando plantilla de impresión...');
+    try {
+      const res = await fetch('/api/v1/company/settings');
+      const settingsData = await res.json();
+      const company = settingsData.data || {};
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const logoHtml = company.logoUrl 
+        ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
+        : '';
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Latin Doors e-CF'}</div>`;
+
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Reporte de Almacenes - ${company.companyName || 'Latin Doors e-CF'}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 13px; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
+              .company-info { font-size: 12px; color: #555; line-height: 1.4; }
+              .doc-info { text-align: right; }
+              .subtitle { font-size: 16pt; color: #003366; font-weight: bold; margin-bottom: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { padding: 9px 10px; font-size: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+              .text-center { text-align: center; }
+              .font-mono { font-family: monospace; font-size: 12px; }
+              .footer { margin-top: 50px; font-size: 11px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company-info">
+                ${logoHtml}
+                ${companyTitleHtml}
+                ${company.rnc ? `<div>RNC: ${company.rnc}</div>` : ''}
+                ${company.address ? `<div>${company.address}</div>` : ''}
+              </div>
+              <div class="doc-info">
+                <div class="subtitle">DIRECTORIO DE ALMACENES</div>
+                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Almacenes Filtrados:</strong> ${filteredWarehouses.length}</div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Dirección</th>
+                  <th class="text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredWarehouses.map(w => `
+                  <tr>
+                    <td class="font-mono"><strong>${w.code}</strong></td>
+                    <td>${w.name}</td>
+                    <td>${w.address || '-'}</td>
+                    <td class="text-center">
+                      <span style="padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; background-color: ${w.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${w.status === 'active' ? '#137333' : '#5f6368'};">
+                        ${w.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div class="footer">
+              Directorio de Almacenes - Generado por ContFast Enterprise
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      toast.success('Impresión preparada con éxito', { id: toastId });
+    } catch (err) {
+      toast.error('Error al preparar impresión', { id: toastId });
+    }
+  };
 
   const fetchWarehouses = async () => {
     try {
@@ -81,10 +179,6 @@ export default function WarehousesPage() {
     }
   };
 
-  const filteredWarehouses = warehouses.filter((w) =>
-    w.name.toLowerCase().includes(searchTerm.toLowerCase()) || w.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -100,16 +194,24 @@ export default function WarehousesPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setCurrentWarehouse(null);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-2xl font-label-lg font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all w-full md:w-auto justify-center"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Almacén
-        </button>
+        <div className="flex gap-2 w-full md:w-auto">
+          <button
+            onClick={handlePrintList}
+            className="bg-white border border-outline-variant/50 hover:bg-surface-container-low text-primary px-4 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm"
+          >
+            <Printer className="h-5 w-5" /> Imprimir
+          </button>
+          <button
+            onClick={() => {
+              setCurrentWarehouse(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-2xl font-label-lg font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all justify-center"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo Almacén
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

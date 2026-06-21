@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { SupplierRepository } from '@/repositories/supplierRepository';
 import { z } from 'zod';
@@ -85,6 +86,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
+    }
+
+    if (!isAdminOrSistemas(session.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403 });
     }
 
     const deleted = await SupplierRepository.softDelete(id, session.companyId);

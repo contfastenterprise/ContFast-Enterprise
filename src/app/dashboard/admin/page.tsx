@@ -200,9 +200,13 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
-                              {user.status === 'active' ? 'Suspender' : 'Activar'}
-                            </button>
+                            {user.roleName?.toLowerCase().includes('sistema') ? (
+                              <span className="text-xs text-slate-400 italic font-semibold">No suspendible</span>
+                            ) : (
+                              <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
+                                {user.status === 'active' ? 'Suspender' : 'Activar'}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -212,17 +216,19 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {roles.map(role => (
-                  <div key={role.id} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
-                    <div className="flex items-center gap-3 mb-2">
-                      <Lock className="w-5 h-5 text-[#003366]" />
-                      <h3 className="font-bold text-lg text-[#003366] capitalize">{role.name}</h3>
-                      {role.isFixed && <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-on-surface-variant/70 px-2 py-1 rounded">Sistema</span>}
+                {roles
+                  .filter(role => role.name.toLowerCase() !== 'sistemas' && role.name.toLowerCase() !== 'sistema')
+                  .map(role => (
+                    <div key={role.id} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
+                      <div className="flex items-center gap-3 mb-2">
+                        <Lock className="w-5 h-5 text-[#003366]" />
+                        <h3 className="font-bold text-lg text-[#003366] capitalize">{role.name}</h3>
+                        {role.isFixed && <span className="ml-auto text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-on-surface-variant/70 px-2 py-1 rounded">Sistema</span>}
+                      </div>
+                      <p className="text-sm text-on-surface-variant/70 mb-4">{role.description || 'Sin descripción'}</p>
                     </div>
-                    <p className="text-sm text-on-surface-variant/70 mb-4">{role.description || 'Sin descripción'}</p>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>
@@ -256,9 +262,11 @@ export default function AdminPage() {
                   <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
                   <select required value={userForm.roleId} onChange={e => setUserForm({ ...userForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
                     <option value="">Seleccione un rol...</option>
-                    {roles.map(r => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
+                    {roles
+                      .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                      .map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
                   </select>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">

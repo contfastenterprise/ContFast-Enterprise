@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, productCategories } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -36,6 +37,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const auth = await verifyAuth(req);
     if (!auth) return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
+
+    if (!isAdminOrSistemas(auth.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403 });
+    }
 
     const { id } = await params;
 

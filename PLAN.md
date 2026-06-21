@@ -147,5 +147,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Configuración CSS**: Añadida la animación y la propiedad `@property --gradient-angle` a `src/app/globals.css` para soportar rotación de color cónica fluida en Tailwind CSS v4.
 - **Integración**: Se envolvieron las tarjetas principales de resumen del Dashboard con el componente `BorderRotate`, aplicando una paleta de colores degradados que complementan el tema corporativo de Latin Doors.
 
+### 25. Gmail SMTP Delivery & Google Contacts Sync
+- **Gmail SMTP Configuration**: Configured nodemailer to use Google's Gmail SMTP with App Passwords (`smtp.gmail.com:465`) to allow sending invoice emails to arbitrary client domains, bypassing the Sandbox restrictions of the previous email service provider.
+- **Google Contacts Sync**: Fully operational Google Contacts integration to synchronize customer details with the `contfastenterprise@gmail.com` Google account when customer details are created or edited.
+
 **Status**: Verified & Polished (Score 10/10)
+
+
 

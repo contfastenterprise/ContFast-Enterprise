@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions } from '@/db';
+import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles } from '@/db';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -85,7 +85,31 @@ export class InvoiceService {
     let activeCashSessionId = data.cashSessionId;
 
     if (data.paymentType === 'cash') {
-      const activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+      // Get the role of the user
+      const [userWithRole] = await db
+        .select({
+          roleName: roles.name,
+        })
+        .from(users)
+        .innerJoin(roles, eq(users.roleId, roles.id))
+        .where(eq(users.id, data.userId))
+        .limit(1);
+
+      const roleName = userWithRole?.roleName?.toLowerCase() || '';
+      const isAdminOrSys = roleName.includes('admin') || roleName.includes('sistema');
+
+      let activeSession = null;
+      if (isAdminOrSys) {
+        // Admins and systems can use their own active session or fallback to ANY active session in the company
+        activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+        if (!activeSession) {
+          activeSession = await CashRepository.getAnyActiveSession(data.companyId);
+        }
+      } else {
+        // Standard cashiers / billing must have their own active session open
+        activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+      }
+
       if (!activeSession) {
         throw new Error('Debe abrir una sesión de caja antes de realizar una venta en efectivo.');
       }

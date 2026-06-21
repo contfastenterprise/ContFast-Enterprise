@@ -82,8 +82,8 @@ export async function GET(
         name: company.name,
         rnc: company.rnc,
         address: company.address || '',
-        phone: company.phone || '',
-        email: company.email || '',
+        phone: '1-809-555-0199',
+        email: settings?.msellerEmail || '',
         logoUrl: settings?.logoUrl || undefined,
       },
       supplier: {

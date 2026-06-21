@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
-import { enforcePermission } from '@/middleware/permissions';
+import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
 
 const updateProductSchema = z.object({
@@ -135,6 +135,13 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
   try {
+    if (!isAdminOrSistemas(auth.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403, headers: resHeaders });
+    }
+
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
 
     const product = await ProductRepository.delete(id, auth.companyId);

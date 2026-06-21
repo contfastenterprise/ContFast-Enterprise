@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const settings = await CompanyRepository.getSettings(session.companyId);
+    const company = await CompanyRepository.getProfile(session.companyId);
 
     if (!settings) {
       return NextResponse.json({ success: false, error: { message: 'Configuración no encontrada' } }, { status: 404 });
@@ -21,7 +22,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: settings,
+      data: {
+        ...settings,
+        companyName: company?.name || null,
+        rnc: company?.rnc || null,
+        address: company?.address || null,
+      },
     });
   } catch (error: any) {
     return NextResponse.json(

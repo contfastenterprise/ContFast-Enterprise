@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { ArRepository } from '@/repositories/arRepository';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
@@ -17,6 +18,8 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
 
     const body = await req.json();
     const { customerId, search } = body;

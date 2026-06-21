@@ -566,7 +566,7 @@ export default function DeliveryNotesPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {dispatchLines.map((line, idx) => (
-                                <tr key={line.productId} className="group">
+                                <tr key={`${line.productId}-${idx}`} className="group">
                                   <td className="py-4 font-medium text-slate-800">{line.productName}</td>
                                   <td className="py-4 text-center text-slate-500 font-semibold">{line.invoicedQty}</td>
                                   <td className="py-4 text-center text-slate-500 font-semibold">{line.previouslyDelivered}</td>

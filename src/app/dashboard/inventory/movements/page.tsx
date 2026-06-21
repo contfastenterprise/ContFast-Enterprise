@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter } from 'lucide-react';
+import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -97,6 +97,130 @@ export default function MovementsPage() {
     fetchMovements();
   }, [fetchMovements]);
 
+  const handlePrintList = async () => {
+    const toastId = toast.loading('Preparando plantilla de impresión...');
+    try {
+      const query = new URLSearchParams({
+        page: '1',
+        limit: '2000',
+        warehouseId: filters.warehouseId,
+        productId: filters.productId,
+        type: filters.type,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+      });
+
+      const [settingsRes, movementsRes] = await Promise.all([
+        fetch('/api/v1/company/settings').then(r => r.json()),
+        fetch(`/api/v1/inventory/movements?${query.toString()}`).then(r => r.json())
+      ]);
+
+      const company = settingsRes.data || {};
+      const printMovements: Movement[] = movementsRes.success ? movementsRes.data.items : movements;
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const logoHtml = company.logoUrl 
+        ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
+        : '';
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Latin Doors e-CF'}</div>`;
+
+      const getMovementTypeText = (type: string) => {
+        switch(type) {
+          case 'sale': return 'Venta';
+          case 'purchase': return 'Compra';
+          case 'transfer_in': return 'Entrada TR.';
+          case 'transfer_out': return 'Salida TR.';
+          case 'adjustment': return 'Ajuste';
+          default: return type;
+        }
+      };
+
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Historial de Movimientos - ${company.companyName || 'Latin Doors e-CF'}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 13px; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
+              .company-info { font-size: 12px; color: #555; line-height: 1.4; }
+              .doc-info { text-align: right; }
+              .subtitle { font-size: 16pt; color: #003366; font-weight: bold; margin-bottom: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { padding: 9px 10px; font-size: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+              .text-right { text-align: right; }
+              .text-center { text-align: center; }
+              .font-mono { font-family: monospace; font-size: 12px; }
+              .footer { margin-top: 50px; font-size: 11px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company-info">
+                ${logoHtml}
+                ${companyTitleHtml}
+                ${company.rnc ? `<div>RNC: ${company.rnc}</div>` : ''}
+                ${company.address ? `<div>${company.address}</div>` : ''}
+              </div>
+              <div class="doc-info">
+                <div class="subtitle">HISTORIAL DE MOVIMIENTOS</div>
+                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Movimientos Filtrados:</strong> ${printMovements.length}</div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha / Hora</th>
+                  <th>Producto</th>
+                  <th>Almacén</th>
+                  <th>Tipo</th>
+                  <th class="text-right">Cantidad</th>
+                  <th class="text-right">Balance</th>
+                  <th>Usuario / Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${printMovements.map(mov => `
+                  <tr>
+                    <td>${new Date(mov.createdAt).toLocaleString('es-DO')}</td>
+                    <td><strong>${mov.productName || '-'}</strong>${mov.productSku ? `<br><small style="color: #666; font-family: monospace;">${mov.productSku}</small>` : ''}</td>
+                    <td>${mov.warehouseName || '-'}</td>
+                    <td>${getMovementTypeText(mov.type)}</td>
+                    <td class="text-right" style="font-weight: bold; color: ${parseFloat(mov.quantity) > 0 ? '#137333' : '#c5221f'};">
+                      ${parseFloat(mov.quantity) > 0 ? '+' : ''}${parseFloat(mov.quantity).toLocaleString()}
+                    </td>
+                    <td class="text-right">${parseFloat(mov.balanceAfter).toLocaleString()}</td>
+                    <td>${mov.userName || '-'}${mov.description ? ` - <small>${mov.description}</small>` : ''}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div class="footer">
+              Historial de Movimientos de Inventario - Generado por ContFast Enterprise
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      toast.success('Impresión preparada con éxito', { id: toastId });
+    } catch (err) {
+      toast.error('Error al preparar impresión', { id: toastId });
+    }
+  };
+
   const getMovementTypeBadge = (type: string) => {
     switch(type) {
       case 'sale': return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">Venta</span>;
@@ -110,7 +234,6 @@ export default function MovementsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10">
-      {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
@@ -120,6 +243,12 @@ export default function MovementsPage() {
             Auditoría de entradas, salidas y traslados de inventario por almacén.
           </p>
         </div>
+        <button
+          onClick={handlePrintList}
+          className="bg-white border border-outline-variant/50 hover:bg-surface-container-low text-primary px-4 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm w-full md:w-auto"
+        >
+          <Printer className="h-5 w-5" /> Imprimir
+        </button>
       </header>
 
       {/* Summary Cards */}

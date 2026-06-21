@@ -1154,7 +1154,7 @@ function InvoicesList() {
                                   type="number"
                                   value={line.discount || 0}
                                   onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                  disabled={!hasProduct}
+                                  disabled={!hasProduct || !canEditDiscount}
                                   className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${
                                     !hasProduct
                                       ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'

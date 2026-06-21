@@ -5,7 +5,7 @@ import DashboardLayout from '@/app/dashboard/layout';
 import {
   Search, Receipt, RefreshCw, X, HandCoins, Building2, Calendar,
   CreditCard, Landmark, CheckCircle2, AlertCircle, FileSignature,
-  HelpCircle, Settings, Check
+  HelpCircle, Settings, Check, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -70,6 +70,8 @@ export default function AccountsPayablePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'bills' | 'guarantees' | 'history'>('bills');
 
+  const [printingSupplierId, setPrintingSupplierId] = useState<string | null>(null);
+
   // Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -99,6 +101,29 @@ export default function AccountsPayablePage() {
     fetchData();
     fetchSecondaryData();
   }, []);
+
+  const handlePrintSupplierAP = async (supplierId: string) => {
+    const toastId = toast.loading('Generando reporte de cuentas por pagar...');
+    setPrintingSupplierId(supplierId);
+    try {
+      const res = await fetch('/api/v1/ap/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplierId })
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        toast.success('PDF generado con éxito', { id: toastId });
+        window.open(data.url, '_blank');
+      } else {
+        toast.error(data.error?.message || 'Error al generar PDF del reporte', { id: toastId });
+      }
+    } catch (err) {
+      toast.error('Error de red al generar PDF', { id: toastId });
+    } finally {
+      setPrintingSupplierId(null);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -407,7 +432,16 @@ export default function AccountsPayablePage() {
                             <p className="text-xs text-on-surface-variant font-semibold uppercase tracking-wider">{supplier.bills.length} factura(s) pendiente(s)</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-6">
+                         <div className="flex items-center gap-6">
+                          <button
+                            onClick={() => handlePrintSupplierAP(supplier.supplierId)}
+                            disabled={printingSupplierId === supplier.supplierId}
+                            className="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+                            title="Imprimir Cuentas por Pagar"
+                          >
+                            <Printer className="w-4 h-4 text-amber-500" />
+                            <span>Imprimir</span>
+                          </button>
                           <div className="text-right">
                             <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Balance Total</p>
                             <p className="font-mono text-lg font-bold text-rose-500">{fmt(supplier.totalBalance)}</p>

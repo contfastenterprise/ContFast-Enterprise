@@ -9,6 +9,10 @@ try {
   redis = new Redis(REDIS_URL, {
     maxRetriesPerRequest: null, // Required by BullMQ
     lazyConnect: true, // Connect lazily so we can catch initial connect errors
+    retryStrategy(times) {
+      // Retry every 5 seconds to prevent event loop flooding
+      return 5000;
+    }
   });
 
   redis.on('connect', () => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, expenses, expenseLines, suppliers, warehouses } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 import { eq, and } from 'drizzle-orm';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -74,8 +75,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    if (session.role !== 'sistemas') {
-      return NextResponse.json({ success: false, error: { message: 'Solo los usuarios con rol de sistema pueden eliminar transacciones.' } }, { status: 403 });
+    if (!isAdminOrSistemas(session.role)) {
+      return NextResponse.json({ success: false, error: { message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' } }, { status: 403 });
     }
 
     const { id } = await params;

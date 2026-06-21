@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -305,6 +305,106 @@ export default function ProductsPage() {
     }).format(Number(amount));
   };
 
+  const handlePrintList = async () => {
+    const toastId = toast.loading('Preparando plantilla de impresión...');
+    try {
+      const res = await fetch('/api/v1/company/settings');
+      const settingsData = await res.json();
+      const company = settingsData.data || {};
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const logoHtml = company.logoUrl 
+        ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
+        : '';
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Latin Doors e-CF'}</div>`;
+
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Catálogo de Productos - ${company.companyName || 'Latin Doors e-CF'}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 13px; }
+              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
+              .company-info { font-size: 12px; color: #555; line-height: 1.4; }
+              .doc-info { text-align: right; }
+              .subtitle { font-size: 16pt; color: #003366; font-weight: bold; margin-bottom: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { padding: 9px 10px; font-size: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+              tr:nth-child(even) { background-color: #f8f9fa; }
+              .text-right { text-align: right; }
+              .text-center { text-align: center; }
+              .font-mono { font-family: monospace; font-size: 11px; }
+              .font-bold { font-weight: bold; }
+              .footer { margin-top: 50px; font-size: 11px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company-info">
+                ${logoHtml}
+                ${companyTitleHtml}
+                ${company.rnc ? `<div>RNC: ${company.rnc}</div>` : ''}
+                ${company.address ? `<div>${company.address}</div>` : ''}
+              </div>
+              <div class="doc-info">
+                <div class="subtitle">CATÁLOGO DE PRODUCTOS</div>
+                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Productos Filtrados:</strong> ${products.length}</div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU / Código</th>
+                  <th>Nombre</th>
+                  <th>Medida</th>
+                  <th class="text-right">Costo</th>
+                  <th class="text-right">Precio Venta</th>
+                  <th class="text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${products.map(p => `
+                  <tr>
+                    <td class="font-mono">${p.sku || 'N/A'}</td>
+                    <td class="font-bold">${p.name}</td>
+                    <td style="text-transform: capitalize;">${p.unitOfMeasure}</td>
+                    <td class="text-right">${formatCurrency(p.cost)}</td>
+                    <td class="text-right font-bold" style="color: #16a34a;">${formatCurrency(p.price)}</td>
+                    <td class="text-center">
+                      <span style="padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; background-color: ${p.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${p.status === 'active' ? '#137333' : '#5f6368'};">
+                        ${p.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div class="footer">
+              Reporte de Inventario - Generado por ContFast Enterprise
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      toast.success('Impresión preparada con éxito', { id: toastId });
+    } catch (err) {
+      toast.error('Error al preparar impresión', { id: toastId });
+    }
+  };
+
   // Metrics calculation (Mock/derived from current page for demo purposes)
   const totalItems = products.length; // In real app, use meta.total
   const totalValue = products.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
@@ -383,9 +483,19 @@ export default function ProductsPage() {
               </select>
             </div>
           </div>
-          <button onClick={() => fetchProducts(search)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrintList}
+              className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-350 px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+              title="Imprimir listado filtrado"
+            >
+              <Printer className="w-4 h-4 text-[#c5a059]" />
+              <span>Imprimir</span>
+            </button>
+            <button onClick={() => fetchProducts(search)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
+            </button>
+          </div>
         </div>
 
         {/* Data Table */}

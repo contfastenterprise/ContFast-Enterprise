@@ -196,19 +196,25 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
               Seleccionar Retención a Aplicar
             </label>
-            <div className="flex flex-wrap gap-2">
+            <select
+              value=""
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) return;
+                const ret = availableRetentions.find(r => r.id === val);
+                if (ret) {
+                  handleAdd(ret);
+                }
+              }}
+              className="w-full md:w-96 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all cursor-pointer font-medium"
+            >
+              <option value="">Seleccione una retención para agregar...</option>
               {availableRetentions.map((ret) => (
-                <button
-                  key={ret.id}
-                  type="button"
-                  onClick={() => handleAdd(ret)}
-                  className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {ret.name}
-                </button>
+                <option key={ret.id} value={ret.id}>
+                  {ret.name} ({ret.type} - {ret.percentage}%)
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {applied.length > 0 ? (

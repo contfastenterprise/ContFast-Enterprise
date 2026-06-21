@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { enforcePermission } from '@/middleware/permissions';
+import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
 
 /**
@@ -69,6 +69,13 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+
+    if (!isAdminOrSistemas(auth.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403, headers: resHeaders });
+    }
 
     // Enforce "facturacion:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');

@@ -32,7 +32,7 @@ async function runTest() {
   console.log('SMTP From:', process.env.SMTP_FROM);
 
   const emailData = {
-    to: 'contfastenterprise@gmail.com', // testing target or user email
+    to: 'latindoors@gmail.com', // testing target or user email
     subject: `Test Email Fallback - ${new Date().toISOString()}`,
     text: 'This is a test to verify that the queue fallback mechanism works perfectly when Redis is offline.',
     html: '<p>This is a <strong>test</strong> to verify that the queue fallback mechanism works perfectly when Redis is offline.</p>'

@@ -404,36 +404,36 @@ export default function CashPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative w-full max-w-2xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
+          className="relative w-full max-w-2xl bg-surface-bright border border-outline-variant/30 rounded-3xl shadow-2xl overflow-hidden z-10"
         >
           {/* Modal Header */}
-          <div className="bg-[#001733] border-b border-[#003366] px-8 py-6 flex justify-between items-center">
+          <div className="p-6 border-b border-outline-variant/20 bg-primary flex justify-between items-center text-on-primary">
             <div>
-              <h2 className="text-3xl font-display font-bold text-white mb-1 tracking-tight">
+              <h2 className="font-headline-sm text-xl font-bold text-on-primary">
                 Apertura de Turno de Caja
               </h2>
-              <p className="text-xs text-[#c5a059]/80">
+              <p className="text-sm text-on-primary/80 mt-1">
                 Inicie su jornada laboral validando los datos de la terminal.
               </p>
             </div>
-            <div className="bg-[#003366]/50 border border-[#003366] p-3 rounded-xl">
-              <Wallet className="w-10 h-10 text-[#c5a059]" />
+            <div className="w-14 h-14 bg-on-primary/10 rounded-2xl flex items-center justify-center text-on-primary shadow-inner">
+              <Wallet className="w-7 h-7" />
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleOpenSession} className="p-8 space-y-6">
+          <form onSubmit={handleOpenSession} className="p-6 space-y-4">
             {/* Terminal + Date row */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <label className="text-sm font-semibold text-primary flex items-center gap-1">
-                    Punto de Venta / Terminal <span className="text-[#c5a059]">*</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-sm font-bold text-on-surface mb-0">
+                    Punto de Venta / Terminal <span className="text-error">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowNewRegisterModal(true)}
-                    className="text-xs font-bold text-[#c5a059] hover:underline"
+                    className="text-xs font-bold text-primary hover:underline"
                   >
                     + Nueva Terminal
                   </button>
@@ -441,7 +441,7 @@ export default function CashPage() {
                 <select
                   value={selectedRegisterId}
                   onChange={(e) => setSelectedRegisterId(e.target.value)}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-on-surface"
                   required
                 >
                   {registers.length === 0 && (
@@ -452,34 +452,34 @@ export default function CashPage() {
                   ))}
                 </select>
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-primary">
+              <div>
+                <label className="block text-sm font-bold text-on-surface mb-1.5">
                   Fecha de Apertura
                 </label>
                 <input
                   type="date"
                   defaultValue={dateStr}
                   readOnly
-                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-3 py-2 text-on-surface-variant font-mono cursor-not-allowed opacity-70 text-xs"
+                  className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
                 />
               </div>
             </div>
 
             {/* Time row */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-primary">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-on-surface mb-1.5">
                   Hora de Inicio
                 </label>
                 <input
                   type="time"
                   defaultValue={timeStr}
                   readOnly
-                  className="w-full bg-surface-container-highest border border-outline/50 rounded-lg px-3 py-2 text-on-surface-variant font-mono cursor-not-allowed opacity-70 text-xs"
+                  className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
                 />
               </div>
-              <div className="flex items-end pb-1">
-                <div className="flex items-center gap-2 text-[#c5a059] text-sm font-semibold bg-[#001733] border border-[#003366] px-4 py-2 rounded-lg">
+              <div className="flex items-end pb-0.5">
+                <div className="flex items-center gap-2 text-green-700 text-xs font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-xl w-full justify-center">
                   <CheckCircle2 className="w-4 h-4" />
                   Conexión segura activa
                 </div>
@@ -487,9 +487,9 @@ export default function CashPage() {
             </div>
 
             {/* Opening Balance */}
-            <div className="space-y-1 pt-2">
-              <label className="text-sm font-semibold text-primary flex items-center gap-1">
-                Monto de Apertura (Fondo de Caja) <span className="text-[#c5a059]">*</span>
+            <div className="space-y-1.5 pt-2">
+              <label className="block text-sm font-bold text-on-surface">
+                Monto de Apertura (Fondo de Caja) <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant text-lg">
@@ -502,21 +502,21 @@ export default function CashPage() {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full bg-[#001733] border border-[#003366] rounded-xl pl-14 pr-4 py-4 text-white font-mono text-2xl font-bold focus:border-[#c5a059] outline-none transition-colors"
+                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl pl-14 pr-4 py-4 text-on-surface font-mono text-2xl font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                   required
                 />
               </div>
-              <p className="text-xs text-[#c5a059]/80 pl-1 mt-1">
+              <p className="text-xs text-on-surface-variant/80 pl-1">
                 Sugerencia: Monto base operativo (RD$ 5,000.00)
               </p>
             </div>
 
             {/* Buttons */}
-            <div className="flex items-center gap-4 pt-6 border-t border-[#003366]">
+            <div className="flex items-center gap-4 pt-6 border-t border-outline-variant/20">
               <button
                 type="button"
                 onClick={() => router.push('/dashboard')}
-                className="flex-1 py-3 px-5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                className="flex-1 py-3 px-5 rounded-xl font-bold text-on-surface-variant border border-outline-variant hover:bg-surface-variant transition-colors"
               >
                 Cancelar
               </button>
@@ -524,7 +524,7 @@ export default function CashPage() {
                 type="submit"
                 disabled={submitting || registers.length === 0}
                 className={clsx(
-                  'flex-[2] py-3 bg-[#c5a059] text-[#001e40] font-bold text-base rounded-xl flex items-center justify-center gap-3 transition-colors hover:bg-[#d4b069]',
+                  'flex-[2] py-3 bg-primary text-on-primary font-bold text-base rounded-xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all',
                   (submitting || registers.length === 0) && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -541,7 +541,7 @@ export default function CashPage() {
           </form>
 
           {/* Status bar */}
-          <div className="bg-gray-50 border-t border-gray-100 px-8 py-3 flex items-center gap-3">
+          <div className="bg-surface-variant/10 border-t border-outline-variant/10 px-6 py-3 flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">
               Esperando autorización de terminal...

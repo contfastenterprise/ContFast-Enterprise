@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>('Latin Doors e-CF');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const data = await res.json();
         if (data.success) {
           if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
+          if (data.data?.companyName) setCompanyName(data.data.companyName);
           
           const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
           if (env === 'production') setEntorno('PROD');
@@ -48,6 +50,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (user && pathname === '/dashboard') {
+      const normalized = (user.role || '').toLowerCase();
+      const isAdminOrSys = normalized.includes('admin') || normalized.includes('sistema');
+      if (!isAdminOrSys) {
+        if (normalized.includes('factura')) {
+          router.replace('/dashboard/invoices');
+          return;
+        }
+        // Find first allowed navigation item
+        let firstAllowedHref = '';
+        for (const group of navGroups) {
+          for (const item of group.items) {
+            if (item.href && item.href !== '/dashboard') {
+              if (!item.roles || item.roles.some((r: string) => normalized.includes(r))) {
+                firstAllowedHref = item.href;
+                break;
+              }
+            }
+          }
+          if (firstAllowedHref) break;
+        }
+        if (firstAllowedHref) {
+          router.replace(firstAllowedHref);
+        } else {
+          router.replace('/auth/login');
+        }
+      }
+    }
+  }, [user, pathname, router]);
 
   const handleLogout = async () => {
     try {
@@ -86,13 +119,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Inventario',
       items: [
-        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab', 'cajero'] },
-        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
-        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
-        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'cajero'] },
+        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" />, roles: ['sistema', 'admin'] },
         { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
+        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" />, roles: ['sistema', 'admin'] },
       ]
     },
     {
@@ -101,7 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
         { name: 'Cotizaciones', href: '/dashboard/quotes', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
         { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Cobros y Abonos', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
+        { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
         { name: 'Retenciones', href: '/dashboard/retentions', icon: <ShieldAlert className="h-5 w-5" />, roles: ['sistema', 'admin'] },
       ]
     },
@@ -158,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-5 w-5" />
           </button>
           <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1">
-            {logoUrl ? <img src={logoUrl} alt="Logo Empresa" className="h-10 w-auto md:h-12 rounded-lg object-contain" /> : 'Latin Doors e-CF'}
+            {companyName}
           </span>
         </div>
         <div className="flex items-center gap-4">

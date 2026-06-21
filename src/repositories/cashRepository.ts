@@ -45,6 +45,23 @@ export class CashRepository {
   }
 
   /**
+   * Gets any active open session in the company (not user-specific).
+   */
+  static async getAnyActiveSession(companyId: string) {
+    const [session] = await db
+      .select()
+      .from(cashSessions)
+      .where(
+        and(
+          eq(cashSessions.companyId, companyId),
+          eq(cashSessions.status, 'open')
+        )
+      )
+      .limit(1);
+    return session || null;
+  }
+
+  /**
    * Opens a new session. Enforces single active session check in transaction.
    */
   static async openSession(data: OpenSessionInput) {

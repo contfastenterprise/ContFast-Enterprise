@@ -11,7 +11,8 @@ export type PermissionModule =
   | 'catalogo'
   | 'reportes'
   | 'administracion'
-  | 'auditoria';
+  | 'auditoria'
+  | 'cobros';
 
 export type PermissionAction = 'read' | 'write' | 'delete' | 'execute' | 'admin';
 
@@ -20,33 +21,31 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
   contabilidad: {
     'contabilidad:read': true,
     'contabilidad:write': true,
-    'contabilidad:delete': true,
     'banco:read': true,
     'banco:write': true,
-    'banco:delete': true,
     'proveedores:read': true,
     'proveedores:write': true,
-    'proveedores:delete': true,
     'clientes:read': true,
-    'catalogo:read': true,
+    'cobros:read': true,
+    'cobros:write': true,
   },
   facturacion: {
     'facturacion:read': true,
     'facturacion:write': true,
-    'facturacion:delete': true,
-    'caja:read': true,
-    'caja:write': true,
-    'caja:delete': true,
     'clientes:read': true,
     'clientes:write': true,
-    'clientes:delete': true,
     'catalogo:read': true,
+    'caja:read': true,
+    'caja:write': true,
+    'cobros:read': true,
+    'cobros:write': true,
   },
   banco: {
     'banco:read': true,
     'banco:write': true,
-    'banco:delete': true,
     'proveedores:read': true,
+    'cobros:read': true,
+    'cobros:write': true,
   },
   cajero: {
     'caja:read': true,
@@ -145,6 +144,20 @@ export async function enforcePermission(
   const allowed = await hasPermission(userId, roleName, roleId, module, action);
   if (!allowed) {
     const err: any = new Error('No tiene permisos para realizar esta acción.');
+    err.status = 403;
+    err.code = 'INSUFFICIENT_PERMISSIONS';
+    throw err;
+  }
+}
+
+export function isAdminOrSistemas(roleName: string): boolean {
+  const normalizedRole = roleName.toLowerCase();
+  return normalizedRole.includes('sistema') || normalizedRole.includes('admin');
+}
+
+export function enforceAdminOrSistemas(roleName: string): void {
+  if (!isAdminOrSistemas(roleName)) {
+    const err: any = new Error('No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden realizar esta acción.');
     err.status = 403;
     err.code = 'INSUFFICIENT_PERMISSIONS';
     throw err;

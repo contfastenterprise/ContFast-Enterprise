@@ -80,10 +80,9 @@ export class AdminRepository {
     if (!userWithRole) throw new Error('Usuario no encontrado');
 
     const isTargetSystem = userWithRole.roleName?.toLowerCase().includes('sistema');
-    const isActorSystem = actingUserRole.toLowerCase().includes('sistema');
 
-    if (isTargetSystem && !isActorSystem) {
-       throw new Error('Permiso denegado: Solo un usuario de sistemas puede modificar o desactivar a otro usuario de sistemas.');
+    if (isTargetSystem) {
+       throw new Error('No se puede suspender o activar a un usuario con el rol de sistemas.');
     }
 
     const newStatus = userWithRole.user.status === 'active' ? 'inactive' : 'active';

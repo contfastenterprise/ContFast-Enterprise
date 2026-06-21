@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { warehouses } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -68,8 +69,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Only admins/system can delete warehouses
-    if (auth.role !== 'administrador' && auth.role !== 'sistemas') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isAdminOrSistemas(auth.role)) {
+      return NextResponse.json({ error: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }, { status: 403 });
     }
 
     const { id } = await params;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { enforcePermission } from '@/middleware/permissions';
+import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { db, retentions } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { z } from 'zod';
@@ -76,6 +76,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   try {
+    if (!isAdminOrSistemas(auth.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
+      }, { status: 403, headers: resHeaders });
+    }
+
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
 
     const existing = await db.select().from(retentions).where(eq(retentions.id, id)).limit(1);

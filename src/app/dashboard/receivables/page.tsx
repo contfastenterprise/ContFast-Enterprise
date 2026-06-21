@@ -44,6 +44,7 @@ export default function ReceivablesPage() {
   // Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [printingCustomerId, setPrintingCustomerId] = useState<string | null>(null);
 
   // Selected Payment State
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerAR | null>(null);
@@ -218,6 +219,20 @@ export default function ReceivablesPage() {
       toast.error('Error de red al cargar datos');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePrintCustomerStatement = async (customerId: string) => {
+    setPrintingCustomerId(customerId);
+    const toastId = toast.loading('Generando estado de cuenta...');
+    try {
+      const url = `/api/v1/reports/pdf?type=ar_statement&customerId=${customerId}`;
+      window.open(url, '_blank');
+      toast.success('Documento enviado a imprimir', { id: toastId });
+    } catch (err) {
+      toast.error('Error al abrir documento de impresión', { id: toastId });
+    } finally {
+      setPrintingCustomerId(null);
     }
   };
 
@@ -464,6 +479,13 @@ export default function ReceivablesPage() {
                         <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Balance Total</p>
                         <p className="font-mono text-lg font-bold text-rose-600">{fmt(customer.totalBalance)}</p>
                       </div>
+                      <button
+                        onClick={() => handlePrintCustomerStatement(customer.customerId)}
+                        disabled={printingCustomerId === customer.customerId}
+                        className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-350 px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <Printer className="h-4 w-4 text-[#003366]" /> Imprimir
+                      </button>
                       <button
                         onClick={() => handleOpenPayment(customer)}
                         className="bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2"

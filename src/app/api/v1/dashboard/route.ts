@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
 
 export async function GET(req: NextRequest) {
@@ -7,6 +8,13 @@ export async function GET(req: NextRequest) {
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
+    }
+
+    if (!isAdminOrSistemas(session.role)) {
+      return NextResponse.json({
+        success: false,
+        error: { message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o de sistemas pueden acceder a esta información.' }
+      }, { status: 403 });
     }
 
     const [stats, chart, recent, comparisonChart, topCustomers] = await Promise.all([
