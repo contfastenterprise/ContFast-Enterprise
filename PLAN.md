@@ -155,6 +155,12 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - **Catálogo de Productos**: Reemplazados los botones primarios y de guardado/creación por el componente `<Button animated>`.
   - **Gestión de Clientes**: Actualizado el formulario de registro y creación con botones de borde dinámico.
 
+
+### 27. Persistencia de Selección en el Selector de Empresa
+- **Corrección de Token y Sesión**: Se actualizó la lógica de rotación de refresh tokens en `verifyAuth` para que los nuevos tokens generados preserven el `companyId` de la sesión activa (`session.companyId`) en lugar de restablecerlo al valor por defecto del usuario (`userWithRole.companyId`).
+- **Endpoints de Sesión**: Se modificaron los endpoints `/api/v1/auth/me` y `/api/v1/auth/refresh` para retornar la propiedad `companyId` basada en el valor activo del token/sesión (`auth.companyId` / `authPayload.companyId`) en lugar del valor estático de la tabla `users` en la base de datos.
+- **Resultado**: Al cambiar de empresa en el selector, el estado de la empresa seleccionada se mantiene de manera consistente a través de recargas de página y rotaciones de token de sesión.
+
 **Status**: Verified & Polished (Score 10/10)
 
 

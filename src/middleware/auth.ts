@@ -129,7 +129,7 @@ export async function verifyAuth(
     const newAccessToken = jwt.sign(
       {
         userId: userWithRole.id,
-        companyId: userWithRole.companyId,
+        companyId: session.companyId,
         role: userWithRole.roleName,
         roleId: userWithRole.roleId,
         sessionId: newSessionId,
@@ -172,7 +172,7 @@ export async function verifyAuth(
 
     return {
       userId: userWithRole.id,
-      companyId: userWithRole.companyId,
+      companyId: session.companyId,
       role: userWithRole.roleName,
       roleId: userWithRole.roleId,
       sessionId: newSessionId,

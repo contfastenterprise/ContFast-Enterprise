@@ -50,7 +50,15 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: true, data: { user } },
+      { 
+        success: true, 
+        data: { 
+          user: {
+            ...user,
+            companyId: auth.companyId,
+          } 
+        } 
+      },
       { headers: resHeaders }
     );
   } catch (error: any) {
