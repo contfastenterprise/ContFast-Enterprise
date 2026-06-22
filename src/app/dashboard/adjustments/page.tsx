@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import DashboardLayout from '@/app/dashboard/layout';
 import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
@@ -40,6 +41,7 @@ export default function AdjustmentsPage() {
 
   // Line adjustments
   const [adjustedLines, setAdjustedLines] = useState<any[]>([]);
+  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(1); // 1=Anulación, 2=Texto, 3=Montos
 
   // Load adjustments list
   const loadAdjustments = useCallback(async () => {
@@ -91,7 +93,7 @@ export default function AdjustmentsPage() {
   const handleSearchInvoices = async () => {
     setInvoicesLoading(true);
     try {
-      const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&status=accepted&per_page=30`);
+      const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&status=accepted&excludeAdjusted=true&per_page=30`);
       const data = await res.json();
       if (data.success) {
         // Standard invoices e-31, e-32, e-45
@@ -126,6 +128,7 @@ export default function AdjustmentsPage() {
           taxRate: Number(l.taxRate || 0.18),
         }));
         setAdjustedLines(linesMap);
+        setIndicadorNotaCredito(1);
         setShowInvoiceSearch(false);
         toast.success(`e-CF ${inv.ncf} seleccionado como referencia.`);
       }
@@ -185,6 +188,9 @@ export default function AdjustmentsPage() {
         notes: notesText,
         modifiedNcf: targetInvoice.ncf,
         modifiedInvoiceId: targetInvoice.id,
+        buyerRnc: targetInvoice.buyerRnc || undefined,
+        buyerName: targetInvoice.buyerName || undefined,
+        indicadorNotaCredito: indicadorNotaCredito,
         lines: adjustedLines
           .filter(l => l.quantity > 0)
           .map(l => ({
@@ -312,7 +318,7 @@ export default function AdjustmentsPage() {
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50 text-slate-500 font-semibold uppercase text-xs">
                           <th className="px-6 py-4 text-left">eNCF Nota</th>
-                          <th className="px-6 py-4 text-left">Factura Afectada</th>
+                          <th className="px-6 py-4 text-left">eNCF Afectado</th>
                           <th className="px-6 py-4 text-left">Tipo</th>
                           <th className="px-6 py-4 text-left">Cliente</th>
                           <th className="px-6 py-4 text-right">Monto</th>
@@ -326,8 +332,17 @@ export default function AdjustmentsPage() {
                             <td className="px-6 py-4 font-mono font-bold text-slate-800 text-xs">
                               {note.ncf}
                             </td>
-                            <td className="px-6 py-4 font-mono text-slate-500 text-xs">
-                              {note.modifiedNcf || '-'}
+                            <td className="px-6 py-4 font-mono text-xs">
+                              {note.modifiedNcf ? (
+                                <Link
+                                  href={`/dashboard/invoices/${note.modifiedInvoiceId}`}
+                                  className="text-[#003366] hover:text-[#C5A059] hover:underline font-bold"
+                                >
+                                  {note.modifiedNcf}
+                                </Link>
+                              ) : (
+                                '-'
+                              )}
                             </td>
                             <td className="px-6 py-4">
                               <span className={clsx(
@@ -428,7 +443,7 @@ export default function AdjustmentsPage() {
                       <div className="flex gap-4">
                         <button
                           type="button"
-                          onClick={() => setNoteType('34')}
+                          onClick={() => { setNoteType('34'); setIndicadorNotaCredito(1); }}
                           className={clsx(
                             "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
                             noteType === '34' ? "bg-rose-50 border-rose-300 text-rose-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
@@ -438,7 +453,7 @@ export default function AdjustmentsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setNoteType('33')}
+                          onClick={() => { setNoteType('33'); setIndicadorNotaCredito(1); }}
                           className={clsx(
                             "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
                             noteType === '33' ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
@@ -452,18 +467,46 @@ export default function AdjustmentsPage() {
                     <div className="space-y-2 flex flex-col justify-end">
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Comprobante de Referencia (Afectado)</label>
                       {targetInvoice ? (
-                        <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50/50 rounded-xl px-4 py-2.5">
-                          <div>
-                            <div className="text-xs font-bold text-emerald-800 font-mono">eNCF: {targetInvoice.ncf}</div>
-                            <div className="text-[11px] text-slate-500">{targetInvoice.buyerName || 'Consumidor Final'}</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50/50 rounded-xl px-4 py-2.5">
+                            <div>
+                              <div className="text-xs font-bold text-emerald-800 font-mono">eNCF: {targetInvoice.ncf}</div>
+                              <div className="text-[11px] text-slate-500">{targetInvoice.buyerName || 'Consumidor Final'}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => { setTargetInvoice(null); setAdjustedLines([]); }}
+                              className="text-xs text-rose-600 font-bold hover:underline"
+                            >
+                              Cambiar
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => { setTargetInvoice(null); setAdjustedLines([]); }}
-                            className="text-xs text-rose-600 font-bold hover:underline"
-                          >
-                            Cambiar
-                          </button>
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Motivo / Tipo de Ajuste</label>
+                            {noteType === '34' ? (
+                              <select
+                                value={indicadorNotaCredito}
+                                onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                                className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                              >
+                                <option value={0}>0 - No aplica (Consumo / Ajuste general)</option>
+                                <option value={1}>1 - Anulación completa</option>
+                                <option value={2}>2 - Corrección de texto</option>
+                                <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
+                              </select>
+                            ) : (
+                              <select
+                                value={indicadorNotaCredito}
+                                onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                                className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                              >
+                                <option value={1}>1 - Intereses</option>
+                                <option value={2}>2 - Gastos de cobranzas</option>
+                                <option value={3}>3 - Gastos de facturación</option>
+                                <option value={4}>4 - Otros</option>
+                              </select>
+                            )}
+                          </div>
                         </div>
                       ) : (
                         <button

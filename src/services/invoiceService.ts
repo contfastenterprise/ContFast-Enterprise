@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, products } from '@/db';
+import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, products, accountsReceivable } from '@/db';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -35,6 +35,7 @@ export interface IssueInvoiceInput {
   ignoreCommunicationError?: boolean;
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
+  indicadorNotaCredito?: number;
   quoteId?: string;
   lines: {
     productId: string;
@@ -270,6 +271,20 @@ export class InvoiceService {
           }
         }
 
+        let originalInvoiceTotal: number | undefined;
+        let originalInvoiceDate: Date | undefined;
+        if (data.modifiedInvoiceId) {
+          const [originalInvoice] = await db
+            .select({ total: invoices.total, createdAt: invoices.createdAt })
+            .from(invoices)
+            .where(eq(invoices.id, data.modifiedInvoiceId))
+            .limit(1);
+          if (originalInvoice) {
+            originalInvoiceTotal = Number(originalInvoice.total);
+            originalInvoiceDate = originalInvoice.createdAt;
+          }
+        }
+
         const msellerPayload = MSellerClient.buildECFPayload({
           ncf,
           ecfType: data.ecfType,
@@ -285,6 +300,9 @@ export class InvoiceService {
           totalTaxes,
           total,
           modifiedNcf: data.modifiedNcf,
+          modifiedNcfDate: originalInvoiceDate,
+          originalInvoiceTotal,
+          indicadorNotaCredito: data.indicadorNotaCredito,
           lines: itemLines.map((line, idx) => ({
             index: idx + 1,
             name: line.name,
@@ -516,8 +534,12 @@ export class InvoiceService {
 
       // 2.9. Book automatic accounting journal entries (Double Entry)
       const accCxC = await getOrCreateAccount(tx, data.companyId, '1.1.02', 'Cuentas por Cobrar Clientes', 'asset');
+      const accCaja = await getOrCreateAccount(tx, data.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
       const accVentas = await getOrCreateAccount(tx, data.companyId, '4.1.01', 'Ingresos por Ventas', 'revenue');
       const accItbis = await getOrCreateAccount(tx, data.companyId, '2.1.03', 'ITBIS por Pagar', 'liability');
+
+      const isCashOrBank = data.paymentType === 'cash' || data.paymentType === 'bank_transfer';
+      const paymentAccount = isCashOrBank ? accCaja : accCxC;
 
       let journalLines = [];
       if (data.ecfType === '34') {
@@ -525,7 +547,7 @@ export class InvoiceService {
         const creditAmount = totalNet;
         journalLines = [
           { accountId: accVentas.id, debit: subtotal - totalDiscount, credit: 0 },
-          { accountId: accCxC.id, debit: 0, credit: creditAmount },
+          { accountId: paymentAccount.id, debit: 0, credit: creditAmount },
         ];
         if (totalTaxes > 0) {
           journalLines.unshift({ accountId: accItbis.id, debit: totalTaxes, credit: 0 });
@@ -548,7 +570,7 @@ export class InvoiceService {
         }
       } else {
         journalLines = [
-          { accountId: accCxC.id, debit: totalNet, credit: 0 },
+          { accountId: paymentAccount.id, debit: totalNet, credit: 0 },
           { accountId: accVentas.id, debit: 0, credit: subtotal - totalDiscount },
         ];
         if (totalTaxes > 0) {
@@ -582,28 +604,54 @@ export class InvoiceService {
 
       // 2.10. Cash Session registration
       if (activeCashSessionId) {
+        const isCreditNote = data.ecfType === '34';
         await CashRepository.addMovement(tx, {
           companyId: data.companyId,
           cashSessionId: activeCashSessionId,
           invoiceId: invoice.id,
-          type: 'sale',
+          type: isCreditNote ? 'refund' : 'sale',
           amount: totalNet,
-          description: `Venta e-CF Comprobante: ${ncf}`,
+          description: isCreditNote
+            ? `Devolución Nota de Crédito: ${ncf}`
+            : data.ecfType === '33'
+            ? `Nota de Débito e-CF Comprobante: ${ncf}`
+            : `Venta e-CF Comprobante: ${ncf}`,
           reference: ncf,
         });
       }
 
       // 2.11. Accounts Receivable registration for credit sales
       if (data.paymentType === 'credit' && data.customerId) {
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 30); // 30 days credit default
-        await AccountRepository.createAccountsReceivable(tx, {
-          companyId: data.companyId,
-          customerId: data.customerId,
-          invoiceId: invoice.id,
-          amount: totalNet,
-          dueDate,
-        });
+        if (data.ecfType === '34' && data.modifiedInvoiceId) {
+          // A credit note on a credit sale reduces the existing receivable balance!
+          const [existingAr] = await tx
+            .select()
+            .from(accountsReceivable)
+            .where(eq(accountsReceivable.invoiceId, data.modifiedInvoiceId))
+            .limit(1);
+          if (existingAr) {
+            const newBalance = Math.max(0, parseFloat(existingAr.balance || '0') - totalNet);
+            await tx
+              .update(accountsReceivable)
+              .set({
+                balance: newBalance.toString(),
+                status: newBalance <= 0.01 ? 'paid' : 'pending',
+                updatedAt: new Date(),
+              })
+              .where(eq(accountsReceivable.id, existingAr.id));
+          }
+        } else {
+          // Standard invoice or Debit Note (increases receivable)
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 30); // 30 days credit default
+          await AccountRepository.createAccountsReceivable(tx, {
+            companyId: data.companyId,
+            customerId: data.customerId,
+            invoiceId: invoice.id,
+            amount: totalNet,
+            dueDate,
+          });
+        }
       }
 
       // 2.12. Record audit log
@@ -745,19 +793,24 @@ export class InvoiceService {
         try {
           const customer = await CustomerRepository.findById(data.customerId, data.companyId);
           if (customer && customer.email) {
-            const isCredit = data.paymentType === 'credit';
-            const subject = isCredit 
-              ? `Factura a Crédito - NCF: ${ncf}`
-              : `Factura - NCF: ${ncf}`;
-            const typeStr = isCredit ? ' a crédito' : '';
+            let docName = 'Factura';
+            let typeStr = data.paymentType === 'credit' ? ' a crédito' : '';
+            if (data.ecfType === '33') {
+              docName = 'Nota de Débito';
+              typeStr = '';
+            } else if (data.ecfType === '34') {
+              docName = 'Nota de Crédito';
+              typeStr = '';
+            }
 
+            const subject = `${docName}${typeStr} - NCF: ${ncf}`;
             const companyName = company.name || 'ContFast';
 
             await addJob('emails-sending', 'send-email', {
               to: customer.email,
               subject,
-              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su factura${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\n${companyName}`,
-              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su factura${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\n${companyName}`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
               pdfPath,
             });
             console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${ncf} with attachment ${pdfPath}`);

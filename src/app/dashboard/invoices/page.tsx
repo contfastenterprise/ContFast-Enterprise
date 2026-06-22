@@ -594,7 +594,7 @@ function InvoicesList() {
     notes: notes || undefined,
     modifiedNcf: modifiedNcf || undefined,
     modifiedInvoiceId: modifiedInvoiceId || undefined,
-    indicadorNotaCredito: ecfType === '34' ? indicadorNotaCredito : undefined,
+    indicadorNotaCredito: (ecfType === '33' || ecfType === '34') ? indicadorNotaCredito : undefined,
     quoteId: quoteId || undefined,
     buyerRnc: customerRnc || undefined,
     buyerName: customerName || undefined,
@@ -963,21 +963,34 @@ function InvoicesList() {
                        </button>
                      </div>
 
-                     {ecfType === '34' && (
-                       <div className="max-w-xs pt-2 border-t border-amber-200">
-                         <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Motivo / Tipo de Ajuste</label>
-                         <select
-                           value={indicadorNotaCredito}
-                           onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                           className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
-                         >
-                           <option value={0}>0 - No aplica (Consumo / Ajuste general)</option>
-                           <option value={1}>1 - Anulación completa</option>
-                           <option value={2}>2 - Corrección de texto</option>
-                           <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
-                         </select>
-                       </div>
-                     )}
+                     {(ecfType === '33' || ecfType === '34') && (
+                        <div className="max-w-xs pt-2 border-t border-amber-200">
+                          <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Motivo / Tipo de Ajuste</label>
+                          {ecfType === '34' ? (
+                            <select
+                              value={indicadorNotaCredito}
+                              onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                              className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              <option value={0}>0 - No aplica (Consumo / Ajuste general)</option>
+                              <option value={1}>1 - Anulación completa</option>
+                              <option value={2}>2 - Corrección de texto</option>
+                              <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
+                            </select>
+                          ) : (
+                            <select
+                              value={indicadorNotaCredito}
+                              onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                              className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              <option value={1}>1 - Intereses</option>
+                              <option value={2}>2 - Gastos de cobranzas</option>
+                              <option value={3}>3 - Gastos de facturación</option>
+                              <option value={4}>4 - Otros</option>
+                            </select>
+                          )}
+                        </div>
+                      )}
                    </div>
                  )}
               </div>
