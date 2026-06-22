@@ -138,42 +138,37 @@ export class ArRepository {
       }
 
       // 4. Create Journal Entry (Asiento Contable)
-      // For simplicity, we assume Account Codes: '1.1.01' (Efectivo) or '1.1.02' (Banco), and '1.1.03' (Cuentas por Cobrar)
-      // This is a dynamic search based on name/type for safety if codes aren't strictly defined.
-      const cashAccounts = await tx.select().from(chartOfAccounts).where(and(eq(chartOfAccounts.companyId, data.companyId), eq(chartOfAccounts.type, 'asset')));
-      let debitAccount = cashAccounts.find(a => a.name.toLowerCase().includes(data.paymentMethod === 'cash' ? 'caja' : 'banco'))?.id;
-      let creditAccount = cashAccounts.find(a => a.name.toLowerCase().includes('por cobrar'))?.id;
+      const accCaja = await ArRepository.getOrCreateAccount(tx, data.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
+      const accCxC = await ArRepository.getOrCreateAccount(tx, data.companyId, '1.1.02', 'Cuentas por Cobrar Clientes', 'asset');
 
-      if (debitAccount && creditAccount) {
-        const entryId = uuidv4();
-        await tx.insert(journalEntries).values({
-          id: entryId,
+      const entryId = uuidv4();
+      await tx.insert(journalEntries).values({
+        id: entryId,
+        companyId: data.companyId,
+        date: data.date,
+        reference: receiptId.slice(0, 8),
+        description: `Recibo de Cobro - Cliente ID: ${data.customerId.slice(0,8)}`,
+        status: 'posted'
+      });
+
+      await tx.insert(journalEntryLines).values([
+        {
+          id: uuidv4(),
           companyId: data.companyId,
-          date: data.date,
-          reference: receiptId.slice(0, 8),
-          description: `Recibo de Cobro - Cliente ID: ${data.customerId.slice(0,8)}`,
-          status: 'posted'
-        });
-
-        await tx.insert(journalEntryLines).values([
-          {
-            id: uuidv4(),
-            companyId: data.companyId,
-            journalEntryId: entryId,
-            accountId: debitAccount,
-            debit: data.amount.toString(),
-            credit: '0.00'
-          },
-          {
-            id: uuidv4(),
-            companyId: data.companyId,
-            journalEntryId: entryId,
-            accountId: creditAccount,
-            debit: '0.00',
-            credit: data.amount.toString()
-          }
-        ]);
-      }
+          journalEntryId: entryId,
+          accountId: accCaja.id,
+          debit: data.amount.toString(),
+          credit: '0.00'
+        },
+        {
+          id: uuidv4(),
+          companyId: data.companyId,
+          journalEntryId: entryId,
+          accountId: accCxC.id,
+          debit: '0.00',
+          credit: data.amount.toString()
+        }
+      ]);
 
       return receipt;
     });
@@ -316,5 +311,27 @@ export class ArRepository {
       invoiceTotal: parseFloat(app.invoiceTotal as any),
       currentBalance: parseFloat(app.currentBalance as any)
     }));
+  }
+
+  private static async getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+    const [acc] = await tx
+      .select()
+      .from(chartOfAccounts)
+      .where(and(eq(chartOfAccounts.code, code), eq(chartOfAccounts.companyId, companyId)));
+
+    if (acc) return acc;
+
+    const [newAcc] = await tx
+      .insert(chartOfAccounts)
+      .values({
+        companyId,
+        code,
+        name,
+        type,
+        status: 'active',
+      })
+      .returning();
+
+    return newAcc;
   }
 }
