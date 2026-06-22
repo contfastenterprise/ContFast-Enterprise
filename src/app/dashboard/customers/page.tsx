@@ -6,6 +6,8 @@ import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Buildi
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
 
 interface Customer {
   id: string;
@@ -269,13 +271,16 @@ export default function CustomersPage() {
             Gestiona los datos de facturación y contacto de todos tus clientes.
           </p>
         </div>
-        <button
+        <Button
           onClick={openNewModal}
-          className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 px-5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+          variant="secondary"
+          size="md"
+          animated
+          className="shadow-lg shadow-amber-500/20"
         >
           <Plus className="h-5 w-5" />
           Nuevo Cliente
-        </button>
+        </Button>
       </div>
 
       {/* SEARCH BAR */}
@@ -513,21 +518,24 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    className="text-on-surface-variant hover:text-primary"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="secondary"
+                    animated
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Cliente'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

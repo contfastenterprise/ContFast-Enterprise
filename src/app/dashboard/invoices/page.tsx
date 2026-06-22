@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import RetentionSelector from '@/components/RetentionSelector';
+import { BorderRotate } from '@/components/ui/animated-gradient-border';
 
 function InvoicesList() {
   const router = useRouter();
@@ -53,6 +54,7 @@ function InvoicesList() {
   const [notes, setNotes] = useState('');
   const [modifiedNcf, setModifiedNcf] = useState('');
   const [modifiedInvoiceId, setModifiedInvoiceId] = useState('');
+  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(1); // 1=Anulación, 2=Texto, 3=Montos
   const [retentions, setRetentions] = useState<any[]>([]);
   const [retentionsEnabled, setRetentionsEnabled] = useState(false);
   const [lines, setLines] = useState<any[]>([
@@ -577,6 +579,7 @@ function InvoicesList() {
     setBankName(''); setTransactionNumber('');
     setNotes('');
     setModifiedNcf(''); setModifiedInvoiceId('');
+    setIndicadorNotaCredito(1);
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'consumidor', imageUrl: '' }]);
     setQuoteId('');
   };
@@ -591,6 +594,7 @@ function InvoicesList() {
     notes: notes || undefined,
     modifiedNcf: modifiedNcf || undefined,
     modifiedInvoiceId: modifiedInvoiceId || undefined,
+    indicadorNotaCredito: ecfType === '34' ? indicadorNotaCredito : undefined,
     quoteId: quoteId || undefined,
     buyerRnc: customerRnc || undefined,
     buyerName: customerName || undefined,
@@ -944,20 +948,38 @@ function InvoicesList() {
                   </div>
                 )}
                 {modifiedNcf && (
-                  <div className="space-y-2 col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 flex items-center justify-between mt-2">
-                    <div>
-                      <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
-                      <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
-                      className="text-xs text-rose-600 font-bold hover:underline"
-                    >
-                      Remover Referencia
-                    </button>
-                  </div>
-                )}
+                   <div className="col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-2">
+                     <div className="flex items-center justify-between">
+                       <div>
+                         <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
+                         <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
+                       </div>
+                       <button
+                         type="button"
+                         onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
+                         className="text-xs text-rose-600 font-bold hover:underline"
+                       >
+                         Remover Referencia
+                       </button>
+                     </div>
+
+                     {ecfType === '34' && (
+                       <div className="max-w-xs pt-2 border-t border-amber-200">
+                         <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Motivo / Tipo de Ajuste</label>
+                         <select
+                           value={indicadorNotaCredito}
+                           onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                           className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                         >
+                           <option value={0}>0 - No aplica (Consumo / Ajuste general)</option>
+                           <option value={1}>1 - Anulación completa</option>
+                           <option value={2}>2 - Corrección de texto</option>
+                           <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
+                         </select>
+                       </div>
+                     )}
+                   </div>
+                 )}
               </div>
 
               {/* Customer Details */}
@@ -1792,7 +1814,7 @@ function InvoicesList() {
                   )}
                 </div>
 
-                <div className="mb-6 border border-slate-200 rounded-xl overflow-hidden">
+                <div className="mb-6 border border-slate-200 rounded-xl overflow-auto max-h-[240px]">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50/60 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">
                       <tr>
@@ -1817,84 +1839,28 @@ function InvoicesList() {
                   </table>
                 </div>
 
-                <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-4 border-t border-slate-200">
-                  <div className="flex gap-3 w-full md:w-auto">
-                    <button
-                      onClick={() => setSelectedInvoice(null)}
-                      className="flex-1 md:flex-none rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 transition-colors"
-                    >
-                      Cerrar
-                    </button>
-                    <a
-                      href={`/api/v1/invoices/${selectedInvoice.id}/pdf`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-[#C5A059] px-6 py-2.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] transition-colors"
-                    >
-                      <Printer className="h-4 w-4" />
-                      Imprimir
-                    </a>
-                    {selectedInvoice.status !== 'draft' && ['31', '32', '45'].includes(selectedInvoice.ecfType) && (
-                      <>
-                        <button
-                          onClick={() => {
-                            handleCreateAdjustmentNote(selectedInvoice, '34');
-                            setSelectedInvoice(null);
-                          }}
-                          className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-pink-50 border border-pink-200 px-6 py-2.5 text-sm font-bold text-pink-700 hover:bg-pink-100 transition-colors"
-                        >
-                          <FileMinus className="h-4 w-4" />
-                          Nota de Crédito
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleCreateAdjustmentNote(selectedInvoice, '33');
-                            setSelectedInvoice(null);
-                          }}
-                          className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl bg-orange-50 border border-orange-200 px-6 py-2.5 text-sm font-bold text-orange-700 hover:bg-orange-100 transition-colors"
-                        >
-                          <FilePlus className="h-4 w-4" />
-                          Nota de Débito
-                        </button>
-                      </>
-                    )}
-                    {selectedInvoice.customerId && (
-                      <button
-                        onClick={() => handleResendEmail(selectedInvoice.id)}
-                        disabled={resendingEmailId === selectedInvoice.id}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-bold text-[#003366] hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                      >
-                        {resendingEmailId === selectedInvoice.id ? (
-                          <RefreshCw className="h-4 w-4 animate-spin text-[#C5A059]" />
-                        ) : (
-                          <Mail className="h-4 w-4" />
-                        )}
-                        Reenviar Correo
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-on-surface-variant/80">Subtotal</span>
-                      <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    {parseFloat(selectedInvoice.discount || 0) > 0 && (
+                <div className="flex flex-col gap-3 pt-3 border-t border-slate-200">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Subtotales */}
+                    <div className="flex flex-col space-y-2">
                       <div className="flex flex-col">
-                        <span className="text-on-surface-variant/80">Descuento</span>
-                        <span className="font-mono">- RD$ {parseFloat(selectedInvoice.discount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-on-surface-variant/80">Subtotal</span>
+                        <span className="font-mono">RD$ {parseFloat(selectedInvoice.subtotal).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                       </div>
-                    )}
-                    <div className="flex flex-col">
-                      <span className="text-on-surface-variant/80">ITBIS</span>
-                      <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                      {parseFloat(selectedInvoice.discount || 0) > 0 && (
+                        <div className="flex flex-col">
+                          <span className="text-on-surface-variant/80">Descuento</span>
+                          <span className="font-mono">- RD$ {parseFloat(selectedInvoice.discount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="text-on-surface-variant/80">ITBIS</span>
+                        <span className="font-mono">RD$ {parseFloat(selectedInvoice.totalTaxes).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-center border-t border-slate-200 pt-2 mt-2">
-                      <span className="text-[#003366] font-bold uppercase tracking-wider text-xs">Total Bruto</span>
-                      <span className="font-mono font-bold text-xl text-[#C5A059]">RD$ {parseFloat(selectedInvoice.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                    </div>
+                    {/* Retenciones */}
                     {selectedInvoice.retentions && selectedInvoice.retentions.length > 0 && (
-                      <div className="border-t border-orange-200 pt-2 mt-2 space-y-1">
+                      <div className="flex flex-col space-y-2">
                         <p className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-1">Retenciones Fiscales</p>
                         {selectedInvoice.retentions.map((ret: any, i: number) => (
                           <div key={i} className="flex justify-between text-orange-600 text-xs">
@@ -1908,10 +1874,125 @@ function InvoicesList() {
                         </div>
                       </div>
                     )}
-                    <div className="flex flex-col items-center border-t border-slate-300 pt-2 mt-1">
+                    {/* Total Neto */}
+                    <div className="flex flex-col items-center text-center justify-center">
                       <span className="text-emerald-700 font-bold uppercase tracking-wider text-xs">Total Neto a Cobrar</span>
                       <span className="font-mono font-bold text-xl text-emerald-500">RD$ {parseFloat(selectedInvoice.totalNet).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                     </div>
+                  </div>
+                  <hr className="my-2 border-t border-slate-200" />
+                  <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+                    <BorderRotate
+                      animationMode="stop-rotate-on-hover"
+                      borderRadius={12}
+                      backgroundColor="#ffffff"
+                      gradientColors={{
+                        primary: '#003366',
+                        secondary: '#C5A059',
+                        accent: '#3b6998'
+                      }}
+                      className="flex-1 md:flex-none hover:bg-slate-50 transition-colors"
+                    >
+                      <button
+                        onClick={() => setSelectedInvoice(null)}
+                        className="w-full h-full bg-transparent border-0 text-sm font-bold text-[#003366] px-6 py-2.5 text-center focus:outline-none"
+                      >
+                        Cerrar
+                      </button>
+                    </BorderRotate>
+
+                    <BorderRotate
+                      animationMode="auto-rotate"
+                      borderRadius={12}
+                      backgroundColor="#C5A059"
+                      gradientColors={{
+                        primary: '#003366',
+                        secondary: '#C5A059',
+                        accent: '#e2d1b0'
+                      }}
+                      className="flex-1 md:flex-none hover:opacity-95 transition-opacity"
+                    >
+                      <a
+                        href={`/api/v1/invoices/${selectedInvoice.id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-slate-950 px-6 py-2.5 text-center focus:outline-none"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Imprimir
+                      </a>
+                    </BorderRotate>
+
+                    {selectedInvoice.status !== 'draft' && ['31', '32', '45'].includes(selectedInvoice.ecfType) && (
+                      <>
+                        <BorderRotate
+                          animationMode="auto-rotate"
+                          borderRadius={12}
+                          backgroundColor="#fdf2f8"
+                          gradientColors={{
+                            primary: '#dc2626',
+                            secondary: '#f87171',
+                            accent: '#fbcfe8'
+                          }}
+                          className="flex-1 md:flex-none hover:bg-pink-100/50 transition-colors"
+                        >
+                          <button
+                            onClick={() => { handleCreateAdjustmentNote(selectedInvoice, '34'); setSelectedInvoice(null); }}
+                            className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-pink-700 px-6 py-2.5 text-center focus:outline-none"
+                          >
+                            <FileMinus className="h-4 w-4" />
+                            Nota de Crédito
+                          </button>
+                        </BorderRotate>
+
+                        <BorderRotate
+                          animationMode="auto-rotate"
+                          borderRadius={12}
+                          backgroundColor="#fff7ed"
+                          gradientColors={{
+                            primary: '#ea580c',
+                            secondary: '#fb923c',
+                            accent: '#ffedd5'
+                          }}
+                          className="flex-1 md:flex-none hover:bg-orange-100/50 transition-colors"
+                        >
+                          <button
+                            onClick={() => { handleCreateAdjustmentNote(selectedInvoice, '33'); setSelectedInvoice(null); }}
+                            className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-orange-700 px-6 py-2.5 text-center focus:outline-none"
+                          >
+                            <FilePlus className="h-4 w-4" />
+                            Nota de Débito
+                          </button>
+                        </BorderRotate>
+                      </>
+                    )}
+
+                    {selectedInvoice.customerId && (
+                      <BorderRotate
+                        animationMode="stop-rotate-on-hover"
+                        borderRadius={12}
+                        backgroundColor="#ffffff"
+                        gradientColors={{
+                          primary: '#003366',
+                          secondary: '#C5A059',
+                          accent: '#3b6998'
+                        }}
+                        className={`flex-1 md:flex-none hover:bg-slate-50 transition-colors ${resendingEmailId === selectedInvoice.id ? 'opacity-50' : ''}`}
+                      >
+                        <button
+                          onClick={() => handleResendEmail(selectedInvoice.id)}
+                          disabled={resendingEmailId === selectedInvoice.id}
+                          className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-[#003366] px-6 py-2.5 text-center focus:outline-none disabled:cursor-not-allowed"
+                        >
+                          {resendingEmailId === selectedInvoice.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin text-[#C5A059]" />
+                          ) : (
+                            <Mail className="h-4 w-4" />
+                          )}
+                          Reenviar Correo
+                        </button>
+                      </BorderRotate>
+                    )}
                   </div>
                 </div>
               </div>

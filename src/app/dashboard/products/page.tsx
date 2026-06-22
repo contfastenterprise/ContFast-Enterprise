@@ -5,10 +5,13 @@ import DashboardLayout from '@/app/dashboard/layout';
 import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+
 
 interface Product {
   id: string;
   sku: string | null;
+  barcode: string | null;
   name: string;
   description: string | null;
   unitOfMeasure: string;
@@ -51,6 +54,7 @@ export default function ProductsPage() {
   const [showPricesModal, setShowPricesModal] = useState(false);
   const [formData, setFormData] = useState({
     sku: '',
+    barcode: '',
     name: '',
     categoryId: '',
     unitOfMeasure: 'unidad',
@@ -151,7 +155,7 @@ export default function ProductsPage() {
   const openNewModal = () => {
     setEditId(null);
     setManualPricesEnabled(false);
-    setFormData({ sku: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active' });
+    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active' });
     setShowModal(true);
   };
 
@@ -160,6 +164,7 @@ export default function ProductsPage() {
     setManualPricesEnabled(false); // Activado por defecto (autocalcular)
     setFormData({
       sku: product.sku || '',
+      barcode: product.barcode || '',
       categoryId: product.categoryId || '',
       name: product.name,
       unitOfMeasure: product.unitOfMeasure,
@@ -422,12 +427,15 @@ export default function ProductsPage() {
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
         </div>
-        <button
+        <Button
           onClick={openNewModal}
-          className="flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-5 py-2.5 rounded-lg font-bold text-sm transition-all shadow-lg shadow-amber-900/20"
+          variant="secondary"
+          size="md"
+          animated
+          className="shadow-lg shadow-amber-900/20"
         >
           <Plus className="h-4 w-4" /> Nuevo Producto
-        </button>
+        </Button>
       </div>
 
       {/* Metrics Cards */}
@@ -530,7 +538,14 @@ export default function ProductsPage() {
               ) : (
                 products.map((p) => (
                   <tr key={p.id} className="hover:bg-surface-container-high/30 transition-colors group">
-                    <td className="p-4 text-sm font-mono text-on-surface-variant">{p.sku || 'N/A'}</td>
+                    <td className="p-4 text-sm font-mono text-on-surface-variant">
+                      <div>{p.sku || 'N/A'}</div>
+                      {p.barcode && (
+                        <div className="text-[10px] text-on-surface-variant/60 font-sans mt-0.5" title="Código de Barra">
+                          CB: {p.barcode}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-4 text-sm font-semibold text-primary">{p.name}</td>
                     <td className="p-4 text-sm text-on-surface-variant capitalize">{p.unitOfMeasure}</td>
                     <td className="p-4 text-sm text-on-surface-variant text-right">{formatCurrency(p.cost)}</td>
@@ -572,45 +587,56 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex justify-between items-center p-6 border-b border-[#003366] bg-[#001733]">
                 <h2 className="text-xl font-bold text-white font-display">
                   {editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}
                 </h2>
-                <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary">
+                <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6 ">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Código SKU <span className="text-on-surface-variant/70 font-normal text-xs">(Opcional)</span></label>
+                    <label className="text-sm font-semibold text-[#001e40]">Código SKU <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
                     <input
                       type="text"
                       value={formData.sku}
                       onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                       placeholder="PROD-001"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
+                    <label className="text-sm font-semibold text-[#001e40]">Código de Barra <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
+                    <input
+                      type="text"
+                      value={formData.barcode}
+                      onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      placeholder="7501234567890"
+                    />
+                  </div>
+
+                  <div className="space-y-2 col-span-1 md:col-span-2">
+                    <label className="text-sm font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-sm font-semibold text-primary">Categoría</label>
+                      <label className="text-sm font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
                       <button
                         type="button"
                         onClick={() => setShowCategoryModal(true)}
@@ -620,41 +646,44 @@ export default function ProductsPage() {
                       </button>
                     </div>
                     <select
+                      required
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                     >
-                      <option value="">Sin categoría</option>
+                      <option value="">Selecciona una categoría...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Costo de Compra <span className="text-[#c5a059]">*</span></label>
+                    <div className="flex justify-between items-center min-h-[20px]">
+                      <label className="text-sm font-semibold text-[#001e40]">Costo de Compra <span className="text-[#c5a059]">*</span></label>
+                    </div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70">RD$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">RD$</span>
                       <input
                         type="number"
                         step="0.01"
                         required
                         value={formData.cost}
                         onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-12 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-card-bg p-4 rounded-xl border border-[#003366]">
+                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-semibold text-primary">Precios de Venta</label>
+                      <label className="text-sm font-semibold text-[#001e40]">Precios de Venta</label>
                       <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-on-surface-variant">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#001e40]">
                           <input
                             type="checkbox"
                             checked={!manualPricesEnabled}
                             onChange={(e) => setManualPricesEnabled(!e.target.checked)}
-                            className="rounded border-[#c5a059] text-primary focus:ring-primary"
+                            className="rounded border-slate-300 text-primary focus:ring-primary"
                           />
                           Autocalcular
                         </label>
@@ -674,46 +703,46 @@ export default function ProductsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="relative">
-                        <label className="text-xs text-on-surface-variant font-medium block mb-1">P. Consumidor (+20%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-500 font-bold z-10">RD$</span>
+                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Consumidor (+20%)</label>
+                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceConsumidor || formData.price}
-                          className=" mr-3 w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
                       <div className="relative">
-                        <label className="text-xs text-on-surface-variant font-medium block mb-1">P. Mayorista (+15%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-500 font-bold z-10">RD$</span>
+                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Mayorista (+15%)</label>
+                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceMayorista}
-                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
                       <div className="relative">
-                        <label className="text-xs text-on-surface-variant font-medium block mb-1">P. Proveedor (+10%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-500 font-bold z-10">RD$</span>
+                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Proveedor (+10%)</label>
+                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceProveedor}
-                          className="w-full bg-surface-container-high border border-outline/50 rounded-lg pl-12 pr-3 py-2 text-xs text-primary opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
+                    <label className="text-sm font-semibold text-[#001e40]">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
                     <select
                       value={formData.unitOfMeasure}
                       onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="unidad">Unidad</option>
                       <option value="pie">Pie (pie)</option>
@@ -723,11 +752,11 @@ export default function ProductsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Estado</label>
+                    <label className="text-sm font-semibold text-[#001e40]">Estado</label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
@@ -735,22 +764,27 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowModal(false)}
-                    className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    className="text-xs cursor-pointer"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="secondary"
+                    size="sm"
+                    animated
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                    className="text-xs cursor-pointer"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -934,7 +968,7 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#0b1120]">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -996,10 +1030,10 @@ export default function ProductsPage() {
                               <div className="flex items-center gap-2 justify-end">
                                 <input
                                   type="number"
-                                  step="0.01"
+                                  step="1"
                                   value={inlineAdjustForm[w.id] !== undefined ? inlineAdjustForm[w.id] : currentQuantity}
                                   onChange={(e) => setInlineAdjustForm({ ...inlineAdjustForm, [w.id]: e.target.value })}
-                                  className="w-20 bg-[#0b1120] border border-outline/50 rounded-lg px-2 py-1.5 text-xs text-primary focus:border-[#c5a059] outline-none text-right font-mono"
+                                  className="w-24 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
                                 />
                                 <button
                                   onClick={() => handleInlineAdjust(w.id)}

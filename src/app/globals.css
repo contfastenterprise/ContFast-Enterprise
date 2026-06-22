@@ -151,3 +151,37 @@ html {
 .gradient-border-stop-hover:hover {
   animation-play-state: paused;
 }
+
+/* Global button styles for animated gradient borders */
+.btn-animated {
+  position: relative !important;
+  border: var(--border-width, 2px) solid transparent !important;
+  background-image: 
+    linear-gradient(var(--bg-color, #003366), var(--bg-color, #003366)),
+    conic-gradient(
+      from var(--gradient-angle, 0deg),
+      var(--gradient-primary, #003366) 0%,
+      var(--gradient-secondary, #C5A059) 37%,
+      var(--gradient-accent, #3b6998) 30%,
+      var(--gradient-secondary, #C5A059) 33%,
+      var(--gradient-primary, #003366) 40%,
+      var(--gradient-primary, #003366) 50%,
+      var(--gradient-secondary, #C5A059) 77%,
+      var(--gradient-accent, #3b6998) 80%,
+      var(--gradient-secondary, #C5A059) 83%,
+      var(--gradient-primary, #003366) 90%
+    ) !important;
+  background-clip: padding-box, border-box !important;
+  background-origin: padding-box, border-box !important;
+  animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+  box-shadow: none !important;
+}
+
+.btn-animated:hover {
+  animation-duration: var(--animation-duration-hover, 3s);
+}
+
+.btn-animated:disabled {
+  opacity: 0.5 !important;
+  pointer-events: none !important;
+}

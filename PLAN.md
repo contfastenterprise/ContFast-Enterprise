@@ -147,11 +147,16 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Configuración CSS**: Añadida la animación y la propiedad `@property --gradient-angle` a `src/app/globals.css` para soportar rotación de color cónica fluida en Tailwind CSS v4.
 - **Integración**: Se envolvieron las tarjetas principales de resumen del Dashboard con el componente `BorderRotate`, aplicando una paleta de colores degradados que complementan el tema corporativo de Latin Doors.
 
-### 25. Gmail SMTP Delivery & Google Contacts Sync
-- **Gmail SMTP Configuration**: Configured nodemailer to use Google's Gmail SMTP with App Passwords (`smtp.gmail.com:465`) to allow sending invoice emails to arbitrary client domains, bypassing the Sandbox restrictions of the previous email service provider.
-- **Google Contacts Sync**: Fully operational Google Contacts integration to synchronize customer details with the `contfastenterprise@gmail.com` Google account when customer details are created or edited.
+### 26. Botones Premium con Bordes Degradados Animados (Custom Button Component)
+- **Componente Centralizado Reutilizable**: Creado en `src/components/ui/button.tsx` utilizando la utilidad `cn` de clase de Tailwind para unificar el estilo de los botones del sistema con soporte para animaciones de bordes degradados (`BorderRotate`).
+- **Clase CSS de Integración Directa**: Se implementó la clase global `.btn-animated` en `src/app/globals.css` para permitir añadir dinámicamente bordes animados degradados con conic-gradient a cualquier botón o enlace sin alterar su JSX estructural.
+- **Implementación en Vistas Clave**:
+  - **Detalle de Factura**: Aplicado a los botones de acción (Cerrar, Imprimir, Nota de Crédito, Nota de Débito, Reenviar Correo) con temas de color adaptados (Navy/Gold para marca, Rosa/Rojo para Crédito, Naranja/Ámbar para Débito).
+  - **Catálogo de Productos**: Reemplazados los botones primarios y de guardado/creación por el componente `<Button animated>`.
+  - **Gestión de Clientes**: Actualizado el formulario de registro y creación con botones de borde dinámico.
 
 **Status**: Verified & Polished (Score 10/10)
+
 
 
 
