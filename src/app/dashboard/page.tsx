@@ -195,16 +195,8 @@ export default function DashboardPage() {
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgba(239, 246, 255, 0.85)"
-          gradientColors={{
-            primary: '#93c5fd',
-            secondary: '#3b82f6',
-            accent: '#1d4ed8'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <div
+          className="border-2 border-blue-200 bg-blue-50/80 rounded-[24px] shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
@@ -222,18 +214,10 @@ export default function DashboardPage() {
             <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.invoicesToday}</h3>
             <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
           </div>
-        </BorderRotate>
+        </div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgba(254, 243, 199, 0.85)"
-          gradientColors={{
-            primary: '#fde047',
-            secondary: '#f59e0b',
-            accent: '#b45309'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <div
+          className="border-2 border-amber-200 bg-amber-50/80 rounded-[24px] shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
@@ -248,18 +232,10 @@ export default function DashboardPage() {
             <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.pendingDgii}</h3>
             <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
           </div>
-        </BorderRotate>
+        </div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgba(209, 250, 229, 0.85)"
-          gradientColors={{
-            primary: '#6ee7b7',
-            secondary: '#10b981',
-            accent: '#047857'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <div
+          className="border-2 border-emerald-200 bg-emerald-50/80 rounded-[24px] shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
@@ -270,22 +246,14 @@ export default function DashboardPage() {
             <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
             <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{fmt(stats.monthlySales, true)}</h3>
             <div className="w-full bg-surface-container h-2 rounded-full mt-5 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary to-surface-tint h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
+              <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
             </div>
             <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">{salesPct}% de la meta mensual</p>
           </div>
-        </BorderRotate>
+        </div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgba(254, 226, 226, 0.85)"
-          gradientColors={{
-            primary: '#fca5a5',
-            secondary: '#ef4444',
-            accent: '#b91c1c'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <div
+          className="border-2 border-red-200 bg-red-50/80 rounded-[24px] shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
@@ -298,7 +266,7 @@ export default function DashboardPage() {
             <h3 className="font-display-lg text-3xl font-extrabold text-error mt-1">{stats.alertCount}</h3>
             <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Acción requerida inmediata' : 'Sistema en óptimas condiciones'}</p>
           </div>
-        </BorderRotate>
+        </div>
       </section>
 
       {/* ── Period Selector ──────────────────────────────────────── */}
