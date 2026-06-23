@@ -836,5 +836,253 @@ export class PdfGenerator {
   private static formatCurrency(val: number): string {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   }
+
+  static generatePayrollReceipts(
+    company: CompanyInfo,
+    payroll: { periodStart: string; periodEnd: string; paymentDate: string },
+    details: any[]
+  ): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: 'LETTER', margin: 40 });
+        const buffers: Buffer[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
+        doc.on('error', (err) => reject(err));
+
+        const logoBuffer = await this.getLogoBuffer(company.logoUrl);
+
+        details.forEach((detail, index) => {
+          if (index > 0) doc.addPage();
+
+          // Title & Header Block
+          doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company?.name || 'Latin Doors SRL', { align: 'center' });
+          doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company?.rnc || 'N/A'}`, { align: 'center' });
+          if (company?.address) {
+            doc.text(company.address, { align: 'center' });
+          }
+          doc.moveDown(0.5);
+          
+          doc.strokeColor('#cccccc').lineWidth(1).moveTo(40, doc.y).lineTo(570, doc.y).stroke();
+          doc.moveDown(0.8);
+
+          // Receipt Subtitle
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#333333').text('VOLANTE DE PAGO DE NÓMINA', { align: 'center' });
+          doc.font('Helvetica').fontSize(9).text(`Período: Desde ${new Date(payroll.periodStart).toLocaleDateString('es-DO')} Hasta ${new Date(payroll.periodEnd).toLocaleDateString('es-DO')}`, { align: 'center' });
+          doc.text(`Fecha de Pago: ${new Date(payroll.paymentDate).toLocaleDateString('es-DO')}`, { align: 'center' });
+          doc.moveDown(1);
+
+          // Employee Information Block (Two Columns)
+          const topY = doc.y;
+          doc.font('Helvetica-Bold').text('INFORMACIÓN DEL EMPLEADO', 40, topY);
+          doc.font('Helvetica').fontSize(9);
+          doc.text(`Código: ${detail.employeeCode}`, 40, topY + 15);
+          doc.text(`Nombre: ${detail.firstName} ${detail.lastName}`, 40, topY + 30);
+          doc.text(`Cédula: ${detail.cedula}`, 40, topY + 45);
+
+          doc.font('Helvetica-Bold').text('INFORMACIÓN LABORAL', 320, topY);
+          doc.font('Helvetica').fontSize(9);
+          doc.text(`Cargo / Puesto: ${detail.positionName || 'Personal Administrativo'}`, 320, topY + 15);
+          doc.text(`Salario Base: RD$ ${Number(detail.baseSalary).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 320, topY + 30);
+          doc.moveDown(2);
+
+          doc.strokeColor('#cccccc').lineWidth(0.5).moveTo(40, doc.y).lineTo(570, doc.y).stroke();
+          doc.moveDown(1);
+
+          // Details Table Layout: Incomes vs Deductions
+          const tableY = doc.y;
+          doc.font('Helvetica-Bold').fontSize(10).fillColor('#005E6A').text('INGRESOS (INCOMES)', 40, tableY);
+          doc.font('Helvetica-Bold').fillColor('#b91c1c').text('DESCUENTOS (DEDUCTIONS)', 320, tableY);
+          doc.moveDown(0.5);
+
+          // Entries row-by-row
+          doc.font('Helvetica').fontSize(9).fillColor('#333333');
+          let currentY = doc.y;
+
+          // Incomes list
+          doc.text('Salario Base ordinario', 40, currentY);
+          doc.text(`RD$ ${Number(detail.baseSalary).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 200, currentY, { align: 'right', width: 90 });
+          currentY += 15;
+
+          if (parseFloat(detail.overtimeAmount) > 0) {
+            doc.text('Horas Extras Trabajadas', 40, currentY);
+            doc.text(`RD$ ${Number(detail.overtimeAmount).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 200, currentY, { align: 'right', width: 90 });
+            currentY += 15;
+          }
+          if (parseFloat(detail.commissionAmount) > 0) {
+            doc.text('Comisiones sobre Ventas', 40, currentY);
+            doc.text(`RD$ ${Number(detail.commissionAmount).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 200, currentY, { align: 'right', width: 90 });
+            currentY += 15;
+          }
+          if (parseFloat(detail.bonusAmount) > 0) {
+            doc.text('Bonificaciones / Incentivos', 40, currentY);
+            doc.text(`RD$ ${Number(detail.bonusAmount).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 200, currentY, { align: 'right', width: 90 });
+            currentY += 15;
+          }
+
+          const totalIncomesY = currentY;
+
+          // Deductions list
+          currentY = tableY + 20;
+          doc.text('Seguro AFP (Jubilación) - 2.87%', 320, currentY);
+          doc.text(`RD$ ${Number(detail.afp).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+          currentY += 15;
+
+          doc.text('Seguro SFS (Salud) - 3.04%', 320, currentY);
+          doc.text(`RD$ ${Number(detail.sfs).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+          currentY += 15;
+
+          if (parseFloat(detail.isr) > 0) {
+            doc.text('Impuesto sobre la Renta (ISR)', 320, currentY);
+            doc.text(`RD$ ${Number(detail.isr).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+            currentY += 15;
+          }
+          if (parseFloat(detail.otherDeductions) > 0) {
+            doc.text('Otros Descuentos (Préstamos/Coop)', 320, currentY);
+            doc.text(`RD$ ${Number(detail.otherDeductions).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+            currentY += 15;
+          }
+
+          const totalDeductionsY = currentY;
+
+          // Bottom Totals Row
+          const endY = Math.max(totalIncomesY, totalDeductionsY) + 20;
+          doc.strokeColor('#dddddd').lineWidth(1).moveTo(40, endY).lineTo(570, endY).stroke();
+          
+          const summaryY = endY + 10;
+          doc.font('Helvetica-Bold');
+          doc.text('TOTAL INGRESOS', 40, summaryY);
+          doc.text(`RD$ ${Number(detail.grossSalary).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 200, summaryY, { align: 'right', width: 90 });
+
+          const totalDeductionsSum = parseFloat(detail.afp) + parseFloat(detail.sfs) + parseFloat(detail.isr) + parseFloat(detail.otherDeductions);
+          doc.text('TOTAL DESCUENTOS', 320, summaryY);
+          doc.text(`RD$ ${totalDeductionsSum.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, summaryY, { align: 'right', width: 90 });
+
+          const netY = summaryY + 25;
+          doc.rect(40, netY - 5, 530, 30).fillColor('#005E6A').fill();
+          doc.fillColor('#ffffff').fontSize(11).text('NETO RECIBIDO (NET PAY):', 50, netY);
+          doc.text(`RD$ ${Number(detail.netSalary).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 470, netY, { align: 'right', width: 90 });
+
+          // Signatures
+          const sigY = netY + 80;
+          doc.fillColor('#333333').font('Helvetica').fontSize(9);
+          doc.strokeColor('#999999').lineWidth(0.5).moveTo(80, sigY).lineTo(250, sigY).stroke();
+          doc.text('Firma del Empleado', 80, sigY + 5, { width: 170, align: 'center' });
+
+          doc.strokeColor('#999999').lineWidth(0.5).moveTo(360, sigY).lineTo(530, sigY).stroke();
+          doc.text('Entregado por (Firma Autorizada)', 360, sigY + 5, { width: 170, align: 'center' });
+        });
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  static generateSettlementReceipt(
+    company: CompanyInfo,
+    employee: any,
+    calculation: any,
+    settlementDate: string,
+    otrosAmount: number
+  ): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ size: 'LETTER', margin: 40 });
+        const buffers: Buffer[] = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => resolve(Buffer.concat(buffers)));
+        doc.on('error', (err) => reject(err));
+
+        const logoBuffer = await this.getLogoBuffer(company.logoUrl);
+
+        // Title & Header Block
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company?.name || 'Latin Doors SRL', { align: 'center' });
+        doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company?.rnc || 'N/A'}`, { align: 'center' });
+        if (company?.address) {
+          doc.text(company.address, { align: 'center' });
+        }
+        doc.moveDown(0.5);
+        
+        doc.strokeColor('#cccccc').lineWidth(1).moveTo(40, doc.y).lineTo(570, doc.y).stroke();
+        doc.moveDown(0.8);
+
+        // Subtitle
+        doc.font('Helvetica-Bold').fontSize(11).fillColor('#333333').text('RECIBO DESCARGO DE PRESTACIONES LABORALES', { align: 'center' });
+        doc.font('Helvetica').fontSize(9).text(`Fecha de Liquidación: ${new Date(settlementDate).toLocaleDateString('es-DO')}`, { align: 'center' });
+        doc.moveDown(1);
+
+        // Employee Info
+        const topY = doc.y;
+        doc.font('Helvetica-Bold').text('DATOS DEL EMPLEADO', 40, topY);
+        doc.font('Helvetica').fontSize(9);
+        doc.text(`Código: ${employee.employeeCode}`, 40, topY + 15);
+        doc.text(`Nombre: ${employee.firstName} ${employee.lastName}`, 40, topY + 30);
+        doc.text(`Cédula: ${employee.cedula}`, 40, topY + 45);
+
+        doc.font('Helvetica-Bold').text('DATOS LABORALES', 320, topY);
+        doc.font('Helvetica').fontSize(9);
+        doc.text(`Fecha Ingreso: ${new Date(employee.hireDate).toLocaleDateString('es-DO')}`, 320, topY + 15);
+        doc.text(`Antigüedad: ${calculation.yearsOfService} años, ${calculation.monthsOfService} meses`, 320, topY + 30);
+        doc.text(`Salario Promedio Diario: RD$ ${calculation.dailyRate.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`, 320, topY + 45);
+        doc.moveDown(2);
+
+        doc.strokeColor('#cccccc').lineWidth(0.5).moveTo(40, doc.y).lineTo(570, doc.y).stroke();
+        doc.moveDown(1);
+
+        // Table breakdown
+        const tableY = doc.y;
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#005E6A').text('CONCEPTO', 40, tableY);
+        doc.text('CANTIDAD / DÍAS', 320, tableY);
+        doc.text('IMPORTE', 480, tableY, { align: 'right', width: 90 });
+        doc.moveDown(0.5);
+
+        doc.font('Helvetica').fontSize(9).fillColor('#333333');
+        let currentY = doc.y;
+
+        const addRow = (concept: string, qty: string, amt: number) => {
+          doc.text(concept, 40, currentY);
+          doc.text(qty, 320, currentY);
+          doc.text(`RD$ ${amt.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+          currentY += 20;
+        };
+
+        addRow(`Preaviso de Ley`, `${calculation.preavisoDays} días`, calculation.preaviso);
+        addRow(`Cesantía de Ley`, `${calculation.cesantiaDays} días`, calculation.cesantia);
+        addRow(`Vacaciones Pendientes`, `${calculation.vacacionesDays} días`, calculation.vacaciones);
+        addRow(`Salario de Navidad Proporcional`, `1/12 parte`, calculation.navidad);
+        if (otrosAmount !== 0) {
+          addRow(`Otros Conceptos / Ajustes`, `Ajuste`, otrosAmount);
+        }
+
+        const totalNet = calculation.preaviso + calculation.cesantia + calculation.vacaciones + calculation.navidad + otrosAmount;
+
+        doc.strokeColor('#dddddd').lineWidth(1).moveTo(40, currentY).lineTo(570, currentY).stroke();
+        currentY += 10;
+
+        doc.font('Helvetica-Bold').fontSize(11);
+        doc.text('TOTAL NETO A RECIBIR:', 40, currentY);
+        doc.text(`RD$ ${totalNet.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 480, currentY, { align: 'right', width: 90 });
+
+        currentY += 40;
+        doc.font('Helvetica').fontSize(8.5).fillColor('#555555');
+        const descText = `Recibí a mi entera satisfacción de la empresa ${company.name || 'Latin Doors SRL'}, la suma descrita anteriormente por concepto de pago de mis prestaciones laborales y derechos adquiridos. Al firmar este documento, declaro que no me queda ninguna reclamación pendiente de realizar por salarios, horas extras, ni ningún otro concepto derivado del contrato de trabajo que nos unía, el cual queda formalmente terminado en la fecha señalada.`;
+        doc.text(descText, 40, currentY, { width: 530, align: 'justify' });
+
+        currentY += 70;
+        doc.font('Helvetica').fontSize(9).fillColor('#333333');
+        doc.strokeColor('#999999').lineWidth(0.5).moveTo(80, currentY).lineTo(250, currentY).stroke();
+        doc.text('Firma del Empleado (Recibí conforme)', 80, currentY + 5, { width: 170, align: 'center' });
+
+        doc.strokeColor('#999999').lineWidth(0.5).moveTo(360, currentY).lineTo(530, currentY).stroke();
+        doc.text('Entregado por (Firma Autorizada)', 360, currentY + 5, { width: 170, align: 'center' });
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
 }
 

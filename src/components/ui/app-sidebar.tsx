@@ -104,6 +104,19 @@ export const NAV_GROUPS: NavGroupDef[] = [
     ],
   },
   {
+    title: 'Recursos Humanos',
+    icon: Users,
+    items: [
+      { name: 'Dashboard RRHH', href: '/dashboard/hr', icon: LayoutDashboard, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+      { name: 'Empleados', href: '/dashboard/hr/employees', icon: Users, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+      { name: 'Departamentos', href: '/dashboard/hr/departments', icon: Building2, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+      { name: 'Nóminas', href: '/dashboard/hr/payroll', icon: Banknote, roles: ['sistemas', 'administracion', 'recursos_humanos', 'contabilidad'] },
+      { name: 'Horas Extras y Adicionales', href: '/dashboard/hr/overtime', icon: Calculator, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+      { name: 'Liquidación y Prestaciones', href: '/dashboard/hr/settlements', icon: ShieldAlert, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+      { name: 'Configuración de Ley', href: '/dashboard/hr/config', icon: Settings, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
+    ],
+  },
+  {
     title: 'Herramientas',
     icon: Calculator,
     items: [

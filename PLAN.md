@@ -161,6 +161,21 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Endpoints de Sesión**: Se modificaron los endpoints `/api/v1/auth/me` y `/api/v1/auth/refresh` para retornar la propiedad `companyId` basada en el valor activo del token/sesión (`auth.companyId` / `authPayload.companyId`) en lugar del valor estático de la tabla `users` en la base de datos.
 - **Resultado**: Al cambiar de empresa en el selector, el estado de la empresa seleccionada se mantiene de manera consistente a través de recargas de página y rotaciones de token de sesión.
 
+
+### 28. Módulo de Nómina y Recursos Humanos (Dominicana)
+- **Base de Datos & Migraciones**: Diseñado esquema de datos multi-tenant para `departments`, `positions`, `employees`, `payrolls`, `payroll_details`, `overtime_records`, `employee_income`, `employee_deductions`, `employee_vacations`, `employee_leaves`, `employee_settlements`, `isr_brackets`, `payroll_configs`.
+- **Motor de Cálculo (`PayrollCalculationService`)**: Implementado en TypeScript para calcular retenciones de TSS (AFP/SFS con topes de salarios mínimos dominicanos), ISR progresivo anualizado de la DGII, horas extras (diurnas, nocturnas, festivas, dobles con recargos del 35%, 85%, 100%), salario de Navidad proporcional (1/12) y liquidaciones/prestaciones (preaviso, cesantía, vacaciones acumuladas).
+- **Control de Transacciones (`HRRepository`)**: Diseñada capa de repositorio para aislamiento de datos transaccionales por `companyId`, cálculo por lote de nóminas y generación de registros de auditoría en cada operación.
+- **Rutas de API Backend**: Habilitados endpoints REST para departamentos, cargos, empleados (con validación de cédula dominicana), configuración, nóminas, recibos en PDF (vía `pdfkit` / `PdfGenerator` stream), registros de horas extras, ingresos adicionales, deducciones y liquidaciones.
+- **Vistas del Frontend (Dashboard e Interfaz)**:
+  - `/dashboard/hr`: Dashboard general con métricas e históricos.
+  - `/dashboard/hr/employees`: Gestión completa del ciclo de vida del personal.
+  - `/dashboard/hr/departments`: Configuración de la estructura organizativa.
+  - `/dashboard/hr/payroll`: Generación, previsualización, cálculo y aprobación de nóminas periódicas con descarga directa de recibos de pago individuales.
+  - `/dashboard/hr/overtime`: Carga masiva de horas extras y bonos/deducciones pendientes.
+  - `/dashboard/hr/settlements`: Cálculo exacto de prestaciones (preaviso, cesantía) y proyección anual del Doble Sueldo.
+  - `/dashboard/hr/config`: Ajustes locales de tasas de TSS e indicador de tramos progresivos del ISR de la DGII.
+
 **Status**: Verified & Polished (Score 10/10)
 
 

@@ -2,21 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, ShieldAlert, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers, ChevronDown, Loader2 } from 'lucide-react';
+import { Shield, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
+import AppSidebar from '@/components/ui/app-sidebar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string>('Latin Doors e-CF');
+  const [companyName, setCompanyName] = useState<string>('');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
   const [companies, setCompanies] = useState<any[]>([]);
-  const [showCompanyMenu, setShowCompanyMenu] = useState(false);
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (data.success) {
           if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
           if (data.data?.companyName) setCompanyName(data.data.companyName);
-          
           const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
           if (env === 'production') setEntorno('PROD');
           else if (env === 'cert') setEntorno('CERT');
@@ -59,24 +59,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (user?.role === 'sistemas') {
       fetch('/api/v1/admin/companies')
         .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            setCompanies(data.data);
-          }
-        })
+        .then(data => { if (data.success) setCompanies(data.data); })
         .catch(console.error);
     }
   }, [user]);
 
+  // Role-based redirect from /dashboard root
+  useEffect(() => {
+    if (user && pathname === '/dashboard') {
+      const normalized = (user.role || '').toLowerCase();
+      const isAdminOrSys = normalized.includes('admin') || normalized.includes('sistema');
+      if (!isAdminOrSys) {
+        const roleRedirectMap: Record<string, string> = {
+          factura: '/dashboard/invoices',
+          cajero: '/dashboard/cash',
+          contab: '/dashboard/accounting',
+          banco: '/dashboard/bank',
+        };
+        const match = Object.entries(roleRedirectMap).find(([r]) => normalized.includes(r));
+        if (match) {
+          router.replace(match[1]);
+        } else {
+          router.replace('/auth/login');
+        }
+      }
+    }
+  }, [user, pathname, router]);
+
   const handleSwitchCompany = async (newCompanyId: string) => {
     if (newCompanyId === user.companyId) return;
     setSwitching(true);
-    setShowCompanyMenu(false);
     try {
       const res = await fetch('/api/v1/auth/switch-company', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newCompanyId })
+        body: JSON.stringify({ newCompanyId }),
       });
       if (res.ok) {
         toast.success('Cambiando de empresa...');
@@ -86,54 +103,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         toast.error(data.error?.message || 'Error al cambiar de empresa');
         setSwitching(false);
       }
-    } catch (err) {
+    } catch {
       toast.error('Error de red al cambiar de empresa');
       setSwitching(false);
     }
   };
 
-  useEffect(() => {
-    if (user && pathname === '/dashboard') {
-      const normalized = (user.role || '').toLowerCase();
-      const isAdminOrSys = normalized.includes('admin') || normalized.includes('sistema');
-      if (!isAdminOrSys) {
-        if (normalized.includes('factura')) {
-          router.replace('/dashboard/invoices');
-          return;
-        }
-        // Find first allowed navigation item
-        let firstAllowedHref = '';
-        for (const group of navGroups) {
-          for (const item of group.items) {
-            if (item.href && item.href !== '/dashboard') {
-              if (!item.roles || item.roles.some((r: string) => normalized.includes(r))) {
-                firstAllowedHref = item.href;
-                break;
-              }
-            }
-          }
-          if (firstAllowedHref) break;
-        }
-        if (firstAllowedHref) {
-          router.replace(firstAllowedHref);
-        } else {
-          router.replace('/auth/login');
-        }
-      }
-    }
-  }, [user, pathname, router]);
-
   const handleLogout = async () => {
     try {
       const response = await fetch('/api/v1/auth/logout', { method: 'POST' });
       if (response.ok) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('cf_user');
-        }
+        if (typeof window !== 'undefined') localStorage.removeItem('cf_user');
         toast.success('Sesión cerrada correctamente.');
-        setTimeout(() => {
-          router.push('/auth/login');
-        }, 800);
+        setTimeout(() => router.push('/auth/login'), 800);
       } else {
         throw new Error('No se pudo cerrar la sesión.');
       }
@@ -142,83 +124,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
-  const navGroups = [
-    {
-      title: 'Principal',
-      items: [
-        { name: 'Inicio', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-        { name: 'Módulo de Caja', href: '/dashboard/cash', icon: <Wallet className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'cajero'] },
-      ]
-    },
-    {
-      title: 'Contactos',
-      items: [
-        { name: 'Clientes', href: '/dashboard/customers', icon: <Users className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab', 'cajero'] },
-        { name: 'Suplidores', href: '/dashboard/suppliers', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
-      ]
-    },
-    {
-      title: 'Inventario',
-      items: [
-        { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'cajero'] },
-        { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: <HistoryIcon className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-      ]
-    },
-    {
-      title: 'Ingresos',
-      items: [
-        { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Cotizaciones', href: '/dashboard/quotes', icon: <FileText className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: <FileMinus className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: <HandCoins className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura', 'contab'] },
-        { name: 'Retenciones', href: '/dashboard/retentions', icon: <ShieldAlert className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-      ]
-    },
-    {
-      title: 'Egresos',
-      items: [
-        { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: <Banknote className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
-        { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: <Receipt className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
-      ]
-    },
-    {
-      title: 'Finanzas Y Reportes',
-      items: [
-        { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: <Landmark className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
-        { name: 'Contabilidad General', href: '/dashboard/accounting', icon: <BookOpen className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab'] },
-        { name: 'Reportes', href: '/dashboard/reports', icon: <PieChart className="h-5 w-5" />, roles: ['sistema', 'admin', 'contab', 'banco'] },
-      ]
-    },
-    {
-      title: 'Herramientas',
-      items: [
-        { name: 'Desglose Ventanas', href: '/dashboard/tools/desglose/ventanas', icon: <Calculator className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-        { name: 'Corte de Vidrio', href: '/dashboard/tools/glass-cutting', icon: <Layers className="h-5 w-5" />, roles: ['sistema', 'admin', 'factura'] },
-      ]
-    },
-    {
-      title: 'Sistemas',
-      items: [
-        { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-        { name: 'Empresas', href: '/dashboard/admin/companies', icon: <Building2 className="h-5 w-5" />, roles: ['sistema'] },
-        { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" />, roles: ['sistema', 'admin'] },
-      ]
-    }
-  ];
-
   return (
     <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
       <Toaster position="top-right" richColors />
 
-      {/* Environment Indicator */}
+      {/* Environment Stripe */}
       {entorno !== 'PROD' && (
-        <div className={`environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md ${entorno === 'TEST' ? 'bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]' : 'bg-[repeating-linear-gradient(45deg,#bfdbfe,#bfdbfe_20px,#93c5fd_20px,#93c5fd_40px)]'}`}>
+        <div
+          className={`environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md ${
+            entorno === 'TEST'
+              ? 'bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]'
+              : 'bg-[repeating-linear-gradient(45deg,#bfdbfe,#bfdbfe_20px,#93c5fd_20px,#93c5fd_40px)]'
+          }`}
+        >
           <span className="font-label-md text-on-secondary-fixed flex items-center gap-2 uppercase tracking-widest font-bold text-gray-800">
             <Shield className="h-4 w-4" />
             {entorno === 'TEST' ? 'ENTORNO DE PRUEBAS - SIN VALOR FISCAL' : 'ENTORNO DE CERTIFICACIÓN'}
@@ -226,72 +144,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
 
-      {/* TopNavBar Shell */}
-      <nav className="bg-primary/95 backdrop-blur-md text-on-primary flex justify-between items-center w-full px-8 h-14 fixed top-10 left-0 z-50 border-b border-white/10">
-        <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-white/10 rounded-full transition-all md:hidden" onClick={() => setSidebarOpen(true)}>
-            <Menu className="h-5 w-5" />
+      {/* TopNavBar */}
+      <nav className="bg-primary/95 backdrop-blur-md text-on-primary flex justify-between items-center w-full px-4 md:px-6 h-14 fixed top-10 left-0 z-50 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-all"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" strokeWidth={1.5} />
           </button>
-          
-          {user?.role === 'sistemas' ? (
-            <div className="relative">
-              <button 
-                onClick={() => setShowCompanyMenu(!showCompanyMenu)}
-                disabled={switching}
-                className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1 gap-2 hover:opacity-80 transition-opacity"
-              >
-                {switching ? <Loader2 className="h-5 w-5 animate-spin" /> : companyName}
-                <ChevronDown className="h-4 w-4 opacity-70" />
-              </button>
-              
-              <AnimatePresence>
-                {showCompanyMenu && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowCompanyMenu(false)}></div>
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-slate-800"
-                    >
-                      <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-slate-500" />
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cambiar Empresa</span>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                        {companies.map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => handleSwitchCompany(c.id)}
-                            className={clsx(
-                              "w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors flex flex-col gap-0.5",
-                              user.companyId === c.id && "bg-blue-50/50"
-                            )}
-                          >
-                            <span className="font-bold text-sm truncate w-full flex items-center gap-2">
-                              {c.name}
-                              {user.companyId === c.id && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
-                            </span>
-                            <span className="text-xs text-slate-500 font-mono">RNC: {c.rnc}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1">
-              {companyName}
-            </span>
-          )}
+
+          {/* Desktop sidebar toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(prev => !prev)}
+            className="hidden md:flex p-2 hover:bg-white/10 rounded-lg transition-all"
+            title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+          >
+            {sidebarCollapsed
+              ? <PanelLeftOpen className="h-5 w-5" strokeWidth={1.5} />
+              : <PanelLeftClose className="h-5 w-5" strokeWidth={1.5} />
+            }
+          </button>
+
+          {/* Company name — suppressHydrationWarning allows SSR/client content to differ */}
+          <span
+            suppressHydrationWarning
+            className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight min-w-[80px]"
+          >
+            {switching ? '' : companyName}
+          </span>
         </div>
+
         <div className="flex items-center gap-4">
+          {/* User avatar */}
           <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer text-primary font-bold text-sm">
             {user?.name?.substring(0, 2) || 'CF'}
           </div>
-          {/* ContFast System Logo - Top Right */}
+          {/* ContFast logo */}
           <div className="flex items-center gap-2 pl-3 border-l border-white/20">
             <img
               src="/contfast-logo.png"
@@ -306,176 +197,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </nav>
 
-      <div className="flex min-h-screen pt-24">
-        {/* SideNavBar Shell (Desktop) */}
-        <aside className="hidden md:flex bg-surface-bright/50 backdrop-blur-xl fixed left-0 top-0 h-full w-72 flex-col pt-28 z-40 border-r border-outline-variant/30">
-          <div className="px-4 mb-8">
-            <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40 backdrop-blur-md">
-              <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                <Shield className="text-secondary-fixed h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 title={user?.name} className="font-headline-xs text-base font-bold text-primary leading-tight truncate w-full">{user?.name || 'Latin Doors'}</h3>
-                <p title={user?.email} className="font-body-xs text-on-surface-variant/80 truncate w-full">{user?.email || 'RNC: 131-XXXXX-X'}</p>
-              </div>
-            </div>
+      {/* AppSidebar */}
+      <AppSidebar
+        user={user}
+        companies={companies}
+        companyName={companyName}
+        entorno={entorno}
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+        onLogout={handleLogout}
+        onSwitchCompany={handleSwitchCompany}
+        switching={switching}
+      />
 
-          </div>
-          <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
-            {navGroups.map((group, gIdx) => {
-              const ur = (user?.role || '').toLowerCase();
-              const visibleItems = group.items.filter((item: any) => {
-                if (!item.roles) return true;
-                return item.roles.some((r: string) => ur.includes(r));
-              });
-              if (visibleItems.length === 0) return null;
-              return (
-              <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
-                <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
-                  {group.title}
-                </div>
-                <div className="space-y-1.5">
-                  {visibleItems.map((item: any) => {
-                    const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-                    return (
-                      <a
-                        key={item.name}
-                        href={item.href}
-                        className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
-                          ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                          : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                          }`}
-                      >
-                        <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
-                          {item.icon}
-                        </div>
-                        <span className="font-label-md">{item.name}</span>
-                      </a>
-                    );
-                  })}
-                </div>
-                {gIdx < navGroups.length - 1 && (
-                  <div className="mt-6 border-b border-outline-variant/30 w-full" />
-                )}
-              </div>
-              );
-            })}
-          </nav>
-          <div className="p-6 mt-auto border-t border-outline-variant/20 space-y-3">
-            <div className="flex items-center gap-3 text-on-surface-variant/70 px-2 py-1 text-xs font-semibold">
-              <span className={`h-2 w-2 rounded-full ${entorno === 'PROD' ? 'bg-green-500' : entorno === 'CERT' ? 'bg-blue-500' : 'bg-yellow-500'}`}></span>
-              Entorno: {entorno === 'PROD' ? 'Producción' : entorno === 'CERT' ? 'Certificación' : 'Pruebas'}
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 text-error/80 px-2 py-2 hover:bg-error/5 hover:text-error rounded-xl transition-all text-xs font-bold"
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar Sesión
-            </button>
-          </div>
-        </aside>
-
-        {/* Mobile Drawer */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <div className="fixed inset-0 z-[70] md:hidden flex">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSidebarOpen(false)}
-                className="fixed inset-0 bg-black/50"
-              />
-              <motion.aside
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="relative bg-surface-bright/95 backdrop-blur-xl h-full w-72 flex flex-col pt-6 z-[80] border-r border-outline-variant/30 shadow-2xl"
-              >
-                <button onClick={() => setSidebarOpen(false)} className="absolute top-4 right-4 p-2 text-on-surface-variant">
-                  <X className="h-5 w-5" />
-                </button>
-                <div className="px-6 mb-8 mt-4">
-                  <div className="flex items-center gap-4 p-4 glass-card rounded-2xl bg-white/70 shadow-sm border border-white/40">
-                    <div className="w-10 h-10 bg-primary-container rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Shield className="text-secondary-fixed h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h2 title={user?.name} className="font-headline-sm text-sm font-bold text-primary leading-tight truncate w-full">{user?.name || 'Latin Doors'}</h2>
-                      <p title={user?.email} className="font-body-xs text-on-surface-variant/80 truncate w-full">{user?.email}</p>
-                    </div>
-                  </div>
-                </div>
-                <nav className="flex-1 px-4 pb-6 overflow-y-auto custom-scrollbar">
-                  {navGroups.map((group, gIdx) => {
-                    const ur = (user?.role || '').toLowerCase();
-                    const visibleItems = group.items.filter((item: any) => {
-                      if (!item.roles) return true;
-                      return item.roles.some((r: string) => ur.includes(r));
-                    });
-                    if (visibleItems.length === 0) return null;
-                    return (
-                    <div key={group.title} className={gIdx > 0 ? "mt-6" : ""}>
-                      <div className="px-4 mb-2 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
-                        {group.title}
-                      </div>
-                      <div className="space-y-1.5">
-                        {visibleItems.map((item: any) => {
-                          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-                          return (
-                            <a
-                              key={item.name}
-                              href={item.href}
-                              onClick={() => setSidebarOpen(false)}
-                              className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all group ${active
-                                ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                                : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high font-medium'
-                                }`}
-                            >
-                              <div className={`transition-transform ${active ? '' : 'group-hover:scale-110'}`}>
-                                {item.icon}
-                              </div>
-                              <span className="font-label-md">{item.name}</span>
-                            </a>
-                          );
-                        })}
-                      </div>
-                      {gIdx < navGroups.length - 1 && (
-                        <div className="mt-6 border-b border-outline-variant/30 w-full" />
-                      )}
-                    </div>
-                    );
-                  })}
-                </nav>
-                <div className="p-6 mt-auto border-t border-outline-variant/20">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 text-error/80 px-2 py-2 hover:bg-error/5 hover:text-error rounded-xl transition-all text-xs font-bold"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Cerrar Sesión
-                  </button>
-                </div>
-              </motion.aside>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* Main Content Area */}
-        <main className="flex-1 md:ml-72 p-4 md:p-8 w-full md:w-[calc(100%-18rem)] min-w-0">
+      {/* Main Content Wrapper */}
+      <div
+        className={clsx(
+          'flex flex-col min-h-screen pt-24 transition-[margin] duration-300 ease-in-out',
+          sidebarCollapsed ? 'md:ml-[64px]' : 'md:ml-[260px]'
+        )}
+      >
+        <main className="flex-1 p-4 md:p-8 w-full min-w-0">
           {children}
         </main>
-      </div>
 
-      {/* Footer Shell */}
-      <footer className="bg-surface-bright/80 backdrop-blur-md border-t border-outline-variant/20 md:ml-72 flex flex-col md:flex-row justify-between items-center px-8 py-6 z-40 gap-4 mt-auto">
-        <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
-          <span className="hidden md:block w-px h-6 bg-outline-variant/30"></span>
-          <span className="font-body-sm text-on-surface-variant/70">© 2026 ContFast Enterprise- Proveedor Autorizado DGII</span>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="bg-surface-bright/80 backdrop-blur-md border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center px-8 py-6 z-40 gap-4 mt-auto">
+          <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+            <span className="hidden md:block w-px h-6 bg-outline-variant/30" />
+            <span className="font-body-sm text-on-surface-variant/70">© 2026 ContFast Enterprise - Proveedor Autorizado DGII</span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

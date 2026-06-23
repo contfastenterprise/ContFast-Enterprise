@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: false
+  msgpackr-extract: false
+  puppeteer: false
+  sharp: false
+  unrs-resolver: false

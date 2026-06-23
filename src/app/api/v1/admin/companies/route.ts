@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings, roles, chartOfAccounts } from '@/db';
+import { db, companies, companySettings, roles, chartOfAccounts, payrollConfigs } from '@/db';
 import { z } from 'zod';
 import { desc, eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -82,6 +82,29 @@ export async function POST(req: NextRequest) {
       name: 'administracion',
       description: 'Rol de administrador del sistema para ' + newCompany.name,
       isFixed: true,
+    });
+
+    // Generate Default HR/Payroll Role for the new company
+    await db.insert(roles).values({
+      companyId: newCompany.id,
+      name: 'recursos_humanos',
+      description: 'Rol de Gestión de Recursos Humanos y Nómina para ' + newCompany.name,
+      isFixed: true,
+    });
+
+    // Generate Default Payroll Config for the new company
+    await db.insert(payrollConfigs).values({
+      companyId: newCompany.id,
+      afpEmployee: '0.0287',
+      sfsEmployee: '0.0304',
+      afpEmployer: '0.0710',
+      sfsEmployer: '0.0709',
+      infotepEmployer: '0.0100',
+      riskEmployer: '0.0110', // 1.10% standard risk rate
+      overtimeDiurnaRate: '1.35',
+      overtimeNocturnaRate: '1.85',
+      overtimeFestivaRate: '2.00',
+      overtimeDobleRate: '2.00',
     });
 
     // Generate Default Chart of Accounts for the new company

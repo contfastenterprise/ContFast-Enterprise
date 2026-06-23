@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 

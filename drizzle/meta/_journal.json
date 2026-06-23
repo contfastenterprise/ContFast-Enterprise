@@ -99,6 +99,13 @@
       "when": 1782144592358,
       "tag": "0013_next_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782227039285,
+      "tag": "0014_spotty_king_bedlam",
+      "breakpoints": true
     }
   ]
 }
