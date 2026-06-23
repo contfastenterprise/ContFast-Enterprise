@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ark-ui/react": "^5.37.2",
     "@heroui/react": "^3.2.1",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.107.0",

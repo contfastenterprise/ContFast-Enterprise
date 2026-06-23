@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
+import DateRangePicker from '@/components/ui/date-range-picker';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -727,9 +728,9 @@ function ComprobantesTab() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-          <div className="flex-1 min-w-[200px]">
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+        <div className="flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center flex-1">
+          <div className="min-w-[200px] flex-1">
             <SearchBar
               placeholder="Buscar por NCF o RNC..."
               value={filters.q}
@@ -739,7 +740,7 @@ function ComprobantesTab() {
           <select
             value={filters.ecfType}
             onChange={(e) => { setFilters((f) => ({ ...f, ecfType: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none cursor-pointer"
           >
             <option value="">Todos los tipos</option>
             <option value="31">e-31 Crédito Fiscal</option>
@@ -756,7 +757,7 @@ function ComprobantesTab() {
           <select
             value={filters.status}
             onChange={(e) => { setFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none"
+            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none cursor-pointer"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -765,34 +766,29 @@ function ComprobantesTab() {
             <option value="rejected">Rechazado</option>
             <option value="failed">Fallido</option>
           </select>
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) => { setFilters((f) => ({ ...f, from: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all"
-          />
-          <span className="text-on-surface-variant text-sm flex items-center">–</span>
-          <input
-            type="date"
-            value={filters.to}
-            onChange={(e) => { setFilters((f) => ({ ...f, to: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all"
+          <DateRangePicker
+            from={filters.from}
+            to={filters.to}
+            onChange={(range) => {
+              setFilters((f) => ({ ...f, from: range.from, to: range.to }));
+              setPage(1);
+            }}
           />
           {(filters.q || filters.ecfType || filters.status || filters.from || filters.to) && (
             <button
               onClick={() => { setFilters({ status: '', ecfType: '', from: '', to: '', q: '' }); setPage(1); }}
-              className="flex items-center gap-1 px-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors"
+              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" /> Limpiar
             </button>
           )}
         </div>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex flex-col gap-2 min-w-[200px] justify-center">
           <button
             onClick={handleSyncFilteredStatus}
             disabled={syncingBatch || invoiceList.length === 0}
-            className="flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap animate-fade-in"
+            className="flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
           >
             {syncingBatch ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -803,7 +799,7 @@ function ComprobantesTab() {
           </button>
           <button
             onClick={fetchInvoices}
-            className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap"
+            className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             <span>ACTUALIZAR DATOS</span>
