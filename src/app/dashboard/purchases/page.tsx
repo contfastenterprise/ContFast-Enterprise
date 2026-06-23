@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { roundMoney } from '@/utils/calculos';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -272,7 +273,7 @@ export default function PurchasesPage() {
   const grandTotal = totalSubtotal + totalItbis + globalIsc + globalOtherTaxes;
 
   useEffect(() => {
-    setGcAmount(grandTotal);
+    setGcAmount(roundMoney(grandTotal));
   }, [grandTotal]);
 
   const saveExpense = async () => {
@@ -977,9 +978,16 @@ export default function PurchasesPage() {
                           <div>
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 font-bold text-primary">Monto Cheque</label>
                             <input 
-                              type="number" 
+                              type="number"
                               step="0.01"
-                              value={gcAmount || ''} onChange={e => setGcAmount(parseFloat(e.target.value) || 0)}
+                              value={gcAmount || ''} 
+                              onChange={e => setGcAmount(parseFloat(e.target.value) || 0)}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) {
+                                  setGcAmount(roundMoney(val));
+                                }
+                              }}
                               className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-bold font-mono"
                             />
                           </div>
