@@ -51,7 +51,6 @@ export const NAV_GROUPS: NavGroupDef[] = [
     icon: LayoutDashboard,
     items: [
       { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Módulo de Caja', href: '/dashboard/cash', icon: Wallet, roles: ['sistema', 'admin', 'factura', 'cajero'] },
     ],
   },
   {
@@ -82,7 +81,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: FileText, roles: ['sistema', 'admin', 'factura'] },
       { name: 'Cotizaciones', href: '/dashboard/quotes', icon: FileText, roles: ['sistema', 'admin', 'factura'] },
       { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: FileMinus, roles: ['sistema', 'admin', 'factura'] },
-      { name: 'Cuentas por Cobrar', href: '/dashboard/receivables', icon: HandCoins, roles: ['sistema', 'admin', 'factura', 'contab'] },
+      { name: 'Módulo de Caja', href: '/dashboard/cash', icon: Wallet, roles: ['sistema', 'admin', 'factura', 'cajero'] },
+      { name: 'Pagos y Abonos', href: '/dashboard/receivables', icon: HandCoins, roles: ['sistema', 'admin', 'factura', 'contab'] },
       { name: 'Retenciones', href: '/dashboard/retentions', icon: ShieldAlert, roles: ['sistema', 'admin'] },
     ],
   },
