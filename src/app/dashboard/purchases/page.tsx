@@ -1006,12 +1006,13 @@ export default function PurchasesPage() {
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Beneficiario</label>
+                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Beneficiario (Autocompletado)</label>
                           <input 
                             type="text" 
-                            value={gcPayee} onChange={e => setGcPayee(e.target.value)}
-                            className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                            placeholder="Beneficiario"
+                            value={gcPayee}
+                            disabled
+                            className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-3 py-2 text-xs text-on-surface-variant/70 outline-none cursor-not-allowed font-medium"
+                            placeholder="Selecciona un suplidor para autocompletar"
                           />
                         </div>
                       </motion.div>
