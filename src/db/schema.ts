@@ -489,6 +489,7 @@ export const invoices = pgTable('invoices', {
   transactionNumber: varchar('transaction_number', { length: 100 }),
   modifiedNcf: varchar('modified_ncf', { length: 13 }),
   modifiedInvoiceId: uuid('modified_invoice_id'),
+  indicadorNotaCredito: integer('indicador_nota_credito'),
   codigoFactura: varchar('codigo_factura', { length: 50 }),
   deliveryStatus: varchar('delivery_status', { length: 50 }).default('pending').notNull(),
   totalRetained: decimal('total_retained', { precision: 15, scale: 2 }).default('0.00').notNull(),

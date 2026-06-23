@@ -55,7 +55,7 @@ function InvoicesList() {
   const [notes, setNotes] = useState('');
   const [modifiedNcf, setModifiedNcf] = useState('');
   const [modifiedInvoiceId, setModifiedInvoiceId] = useState('');
-  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(1); // 1=Anulación, 2=Texto, 3=Montos
+  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(0); // 0=sin seleccionar, 1=Anulación, 2=Texto, 3=Montos
   const [retentions, setRetentions] = useState<any[]>([]);
   const [retentionsEnabled, setRetentionsEnabled] = useState(false);
   const [lines, setLines] = useState<any[]>([
@@ -580,7 +580,7 @@ function InvoicesList() {
     setBankName(''); setTransactionNumber('');
     setNotes('');
     setModifiedNcf(''); setModifiedInvoiceId('');
-    setIndicadorNotaCredito(1);
+    setIndicadorNotaCredito(0); // Reset to force explicit selection
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'consumidor', imageUrl: '' }]);
     setQuoteId('');
   };
@@ -664,6 +664,12 @@ function InvoicesList() {
       }
 
       const isNote = ecfType === '33' || ecfType === '34';
+      if (isNote) {
+        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [1, 2, 3, 4];
+        if (!validIndicadores.includes(indicadorNotaCredito)) {
+          throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
+        }
+      }
       const linesToSubmit = lines.map((l: any) => ({
         productId: l.productId,
         productName: l.productName,
@@ -966,14 +972,21 @@ function InvoicesList() {
 
                      {(ecfType === '33' || ecfType === '34') && (
                         <div className="max-w-xs pt-2 border-t border-amber-200">
-                          <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Motivo / Tipo de Ajuste</label>
+                          <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            Motivo / Tipo de Ajuste
+                            <span className="text-rose-500 font-bold">*</span>
+                          </label>
                           {ecfType === '34' ? (
                             <select
                               value={indicadorNotaCredito}
                               onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                              className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                              required
+                              className={clsx(
+                                'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                                indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                              )}
                             >
-                              <option value={0}>0 - No aplica (Consumo / Ajuste general)</option>
+                              <option value={0} disabled>— Seleccione el motivo —</option>
                               <option value={1}>1 - Anulación completa</option>
                               <option value={2}>2 - Corrección de texto</option>
                               <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
@@ -982,13 +995,23 @@ function InvoicesList() {
                             <select
                               value={indicadorNotaCredito}
                               onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                              className="w-full rounded-lg bg-white border border-amber-300 py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                              required
+                              className={clsx(
+                                'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                                indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                              )}
                             >
+                              <option value={0} disabled>— Seleccione el motivo —</option>
                               <option value={1}>1 - Intereses</option>
                               <option value={2}>2 - Gastos de cobranzas</option>
                               <option value={3}>3 - Gastos de facturación</option>
                               <option value={4}>4 - Otros</option>
                             </select>
+                          )}
+                          {indicadorNotaCredito === 0 && (
+                            <p className="mt-1 text-[10px] text-rose-500 font-semibold flex items-center gap-1">
+                              <span>⚠</span> Campo obligatorio
+                            </p>
                           )}
                         </div>
                       )}

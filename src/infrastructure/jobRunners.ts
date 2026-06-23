@@ -134,6 +134,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     totalTaxes,
     total,
     modifiedNcf: (invoice as any).modifiedNcf || undefined,
+    indicadorNotaCredito: (invoice as any).indicadorNotaCredito ?? undefined,
     lines: (invoice.lines || []).map((line: any, idx: number) => ({
       index: idx + 1,
       name: line.productId, // fallback; ideally fetch product name

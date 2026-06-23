@@ -518,6 +518,7 @@ export class InvoiceService {
         notes: data.notes,
         modifiedNcf: data.modifiedNcf,
         modifiedInvoiceId: data.modifiedInvoiceId,
+        indicadorNotaCredito: data.indicadorNotaCredito,
         codigoFactura,
         lines: itemLines,
         taxes: taxesList,

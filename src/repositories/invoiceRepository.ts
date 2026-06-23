@@ -30,6 +30,7 @@ export interface CreateInvoiceInput {
   notes?: string;
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
+  indicadorNotaCredito?: number;
   codigoFactura?: string;
   deliveryStatus?: string;
   quoteId?: string;
@@ -95,6 +96,7 @@ export class InvoiceRepository {
           transactionNumber: data.transactionNumber,
           modifiedNcf: data.modifiedNcf,
           modifiedInvoiceId: data.modifiedInvoiceId,
+          indicadorNotaCredito: data.indicadorNotaCredito ?? null,
           codigoFactura: data.codigoFactura,
         })
         .returning();
