@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url);
     const period = url.searchParams.get('period') || 'semana';
-    const days = period === 'mes' ? 30 : 7;
+    const days = period === 'mes' ? 28 : 7;
 
     const [stats, chart, recent, comparisonChart, topCustomers] = await Promise.all([
       DashboardRepository.getStats(session.companyId),

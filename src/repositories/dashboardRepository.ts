@@ -97,9 +97,40 @@ export class DashboardRepository {
       gte(invoices.createdAt, startOfRange)
     ));
 
+    if (days === 28) {
+      const chartData = [];
+      for (let w = 0; w < 4; w++) {
+        const weekStart = new Date(startOfRange);
+        weekStart.setUTCDate(weekStart.getUTCDate() + (w * 7));
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+        weekEnd.setUTCHours(23, 59, 59, 999);
+
+        let amount = 0;
+        for (const inv of weekInvoices) {
+          const invDate = new Date(inv.createdAt);
+          if (invDate >= weekStart && invDate <= weekEnd) {
+            amount += (parseFloat(inv.total) || 0);
+          }
+        }
+
+        chartData.push({
+          day: `${w + 1} semana`,
+          amount
+        });
+      }
+      
+      const maxAmount = Math.max(...chartData.map(c => c.amount), 1);
+      return chartData.map(c => ({
+        day: c.day,
+        amount: c.amount,
+        pct: Math.round((c.amount / maxAmount) * 100)
+      }));
+    }
+
     const dayObjects = [];
     const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(startOfToday);
@@ -120,15 +151,8 @@ export class DashboardRepository {
         }
       }
 
-      let label = '';
-      if (days <= 7) {
-        label = mapDayName[d.getUTCDay() as keyof typeof mapDayName];
-      } else {
-        label = `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
-      }
-
       return {
-        day: label,
+        day: mapDayName[d.getUTCDay() as keyof typeof mapDayName],
         amount
       };
     });
@@ -184,9 +208,42 @@ export class DashboardRepository {
       gte(expenses.createdAt, startOfRange)
     ));
 
+    if (days === 28) {
+      const chartData = [];
+      for (let w = 0; w < 4; w++) {
+        const weekStart = new Date(startOfRange);
+        weekStart.setUTCDate(weekStart.getUTCDate() + (w * 7));
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+        weekEnd.setUTCHours(23, 59, 59, 999);
+
+        let sales = 0;
+        let purchases = 0;
+        for (const inv of weekInvoices) {
+          const invDate = new Date(inv.createdAt);
+          if (invDate >= weekStart && invDate <= weekEnd) {
+            sales += parseFloat(inv.total) || 0;
+          }
+        }
+        for (const exp of weekExpenses) {
+          const expDate = new Date(exp.createdAt);
+          if (expDate >= weekStart && expDate <= weekEnd) {
+            purchases += parseFloat(exp.amount) || 0;
+          }
+        }
+
+        chartData.push({
+          day: `${w + 1} semana`,
+          sales,
+          purchases
+        });
+      }
+      return chartData;
+    }
+
     const dayObjects = [];
     const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(startOfToday);
@@ -218,15 +275,8 @@ export class DashboardRepository {
         }
       }
 
-      let label = '';
-      if (days <= 7) {
-        label = mapDayName[d.getUTCDay() as keyof typeof mapDayName];
-      } else {
-        label = `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
-      }
-
       return {
-        day: label,
+        day: mapDayName[d.getUTCDay() as keyof typeof mapDayName],
         sales,
         purchases
       };
