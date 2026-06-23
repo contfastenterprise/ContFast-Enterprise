@@ -482,45 +482,55 @@ export class MSellerClient {
 
     const itbisRate = 18;
 
-    const idDoc: any = {
-      TipoeCF: params.ecfType,
-      eNCF: params.ncf,
-    };
+    // Build idDoc in the EXACT field order required by DGII's XSD schema.
+    // For e-34 (Nota de Crédito), IndicadorNotaCredito MUST come right after eNCF
+    // and MUST be sent as an integer (not a string).
+    let idDoc: any;
 
-    // FechaVencimientoSecuencia is NOT allowed for credit/debit notes (types 33, 34)
-    if (!['33', '34'].includes(params.ecfType)) {
-      idDoc.FechaVencimientoSecuencia = params.sequenceExpiry;
-    }
-
-    // IndicadorNotaCredito is required for credit notes (type 34) and must be placed before IndicadorMontoGravado
     if (params.ecfType === '34') {
-      if (params.indicadorNotaCredito !== undefined) {
-        idDoc.IndicadorNotaCredito = String(params.indicadorNotaCredito);
-      } else {
-        let isAnnulment = false;
-        if (params.originalInvoiceTotal !== undefined) {
-          // Compare new credit note total with original invoice total (accounting for rounding precision)
-          isAnnulment = Math.abs(params.total - params.originalInvoiceTotal) < 0.05;
-        }
-        idDoc.IndicadorNotaCredito = isAnnulment ? '1' : '3'; // Send as string
-      }
+      // Determine the indicator value — default to 1 (anulación) if somehow not provided
+      const indicador: number =
+        params.indicadorNotaCredito !== undefined && params.indicadorNotaCredito > 0
+          ? params.indicadorNotaCredito
+          : (() => {
+              if (params.originalInvoiceTotal !== undefined) {
+                return Math.abs(params.total - params.originalInvoiceTotal) < 0.05 ? 1 : 3;
+              }
+              return 1;
+            })();
+
+      idDoc = {
+        TipoeCF: params.ecfType,
+        eNCF: params.ncf,
+        IndicadorNotaCredito: indicador, // integer, required position 3 for e-34
+        IndicadorMontoGravado: '0',
+        TipoIngresos: '05',
+        TipoPago: params.paymentType,
+      };
+    } else {
+      idDoc = {
+        TipoeCF: params.ecfType,
+        eNCF: params.ncf,
+        FechaVencimientoSecuencia: params.sequenceExpiry,
+        IndicadorMontoGravado: '0',
+        TipoIngresos: '05',
+        TipoPago: params.paymentType,
+      };
     }
 
-    idDoc.IndicadorMontoGravado = '0';
-    idDoc.TipoIngresos = '05';
-    idDoc.TipoPago = params.paymentType;
+    // Nota de Débito (e-33) doesn't use IndicadorNotaCredito
 
     if (params.paymentType === '2') {
       let dueDateStr = params.paymentDueDate;
       if (!dueDateStr) {
         const defaultDueDate = new Date(params.issueDate);
-        defaultDueDate.setDate(defaultDueDate.getDate() + 30); // Default to 30 days credit
+        defaultDueDate.setDate(defaultDueDate.getDate() + 30);
         dueDateStr = formatDate(defaultDueDate);
       }
       idDoc.FechaLimitePago = dueDateStr;
     }
 
-    // TotalPaginas is only added for standard invoices (31, 32, 45)
+    // TotalPaginas only for standard invoices
     if (!['33', '34'].includes(params.ecfType)) {
       idDoc.TotalPaginas = 1;
     }
