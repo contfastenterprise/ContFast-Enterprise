@@ -20,17 +20,28 @@ const postgres = require('postgres');
 const sql = postgres(process.env.DATABASE_URL);
 
 async function run() {
-  console.log('Applying migration: add indicador_nota_credito column...');
-  await sql`ALTER TABLE invoices ADD COLUMN IF NOT EXISTS indicador_nota_credito integer`;
-  console.log('Migration applied successfully!');
-
-  // Verify column exists
-  const cols = await sql`
-    SELECT column_name, data_type 
-    FROM information_schema.columns 
-    WHERE table_name = 'invoices' AND column_name = 'indicador_nota_credito'
+  const invs = await sql`
+    SELECT id, ncf, ecf_type, status, indicador_nota_credito, dgii_message, modified_ncf, created_at
+    FROM invoices
+    WHERE ncf = 'E340000000016';
   `;
-  console.log('Column check:', cols);
+  console.log("INVOICE E340000000016:", JSON.stringify(invs, null, 2));
+
+  if (invs.length > 0) {
+    const subs = await sql`
+      SELECT response_payload
+      FROM dgii_submissions
+      WHERE invoice_id = ${invs[0].id}
+      ORDER BY updated_at DESC LIMIT 1;
+    `;
+    if (subs.length > 0) {
+      const payload = JSON.parse(subs[0].response_payload || '{}');
+      // Print key info from the submission payload to understand what was sent
+      console.log("indicadorNotaCredito sent:", payload.indicadorNotaCredito);
+      console.log("status:", payload.status);
+      console.log("dgiiResponse:", JSON.stringify(payload.dgiiResponse, null, 2));
+    }
+  }
   await sql.end();
 }
 

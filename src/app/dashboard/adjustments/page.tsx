@@ -44,7 +44,7 @@ export default function AdjustmentsPage() {
 
   // Line adjustments
   const [adjustedLines, setAdjustedLines] = useState<any[]>([]);
-  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(0); // 0=sin seleccionar, 1=Anulación, 2=Texto, 3=Montos
+  const [indicadorNotaCredito, setIndicadorNotaCredito] = useState<number>(-1); // -1=sin seleccionar (placeholder)
 
   // Load adjustments list
   const loadAdjustments = useCallback(async () => {
@@ -167,7 +167,7 @@ export default function AdjustmentsPage() {
           taxRate: Number(l.taxRate || 0.18),
         }));
         setAdjustedLines(linesMap);
-        setIndicadorNotaCredito(0); // Force explicit selection each time
+        setIndicadorNotaCredito(-1); // Force explicit selection each time
         setShowInvoiceSearch(false);
         toast.success(`e-CF ${inv.ncf} seleccionado como referencia.`);
       }
@@ -210,9 +210,13 @@ export default function AdjustmentsPage() {
       toast.error('Debe ingresar un motivo / observación para la auditoría contable.');
       return;
     }
-    // Validate indicadorNotaCredito is explicitly selected
-    const validIndicadores = noteType === '34' ? [1, 2, 3] : [1, 2, 3, 4];
-    if (!validIndicadores.includes(indicadorNotaCredito)) {
+    // Validate indicadorNotaCredito is explicitly selected (placeholder = -1)
+    // Note: 0 IS a valid DGII value (No aplica) per reference XML
+    if (noteType === '33' && indicadorNotaCredito < 1) {
+      toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
+      return;
+    }
+    if (indicadorNotaCredito < 0) {
       toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
       return;
     }
@@ -515,7 +519,7 @@ export default function AdjustmentsPage() {
                       <div className="flex gap-4">
                         <button
                           type="button"
-                          onClick={() => { setNoteType('34'); setIndicadorNotaCredito(0); }}
+                          onClick={() => { setNoteType('34'); setIndicadorNotaCredito(-1); }}
                           className={clsx(
                             "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
                             noteType === '34' ? "bg-rose-50 border-rose-300 text-rose-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
@@ -525,7 +529,7 @@ export default function AdjustmentsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setNoteType('33'); setIndicadorNotaCredito(0); }}
+                          onClick={() => { setNoteType('33'); setIndicadorNotaCredito(-1); }}
                           className={clsx(
                             "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
                             noteType === '33' ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
@@ -568,7 +572,8 @@ export default function AdjustmentsPage() {
                                   indicadorNotaCredito === 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
                                 )}
                               >
-                                <option value={0} disabled>— Seleccione el motivo —</option>
+                                <option value={-1} disabled>— Seleccione el motivo —</option>
+                                <option value={0}>0 - No aplica (Ajuste general)</option>
                                 <option value={1}>1 - Anulación completa</option>
                                 <option value={2}>2 - Corrección de texto</option>
                                 <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
@@ -580,17 +585,17 @@ export default function AdjustmentsPage() {
                                 required
                                 className={clsx(
                                   "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all",
-                                  indicadorNotaCredito === 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
+                                  indicadorNotaCredito < 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
                                 )}
                               >
-                                <option value={0} disabled>— Seleccione el motivo —</option>
+                                <option value={-1} disabled>— Seleccione el motivo —</option>
                                 <option value={1}>1 - Intereses</option>
                                 <option value={2}>2 - Gastos de cobranzas</option>
                                 <option value={3}>3 - Gastos de facturación</option>
                                 <option value={4}>4 - Otros</option>
                               </select>
                             )}
-                            {indicadorNotaCredito === 0 && (
+                            {indicadorNotaCredito < 0 && (
                               <p className="mt-1 text-[10px] text-rose-500 font-semibold flex items-center gap-1">
                                 <span>⚠</span> Campo obligatorio
                               </p>

@@ -483,14 +483,15 @@ export class MSellerClient {
     const itbisRate = 18;
 
     // Build idDoc in the EXACT field order required by DGII's XSD schema.
-    // For e-34 (Nota de Crédito), IndicadorNotaCredito MUST come right after eNCF
-    // and MUST be sent as an integer (not a string).
+    // Reference XML (accepted by DGII) order for e-34:
+    // TipoeCF → eNCF → IndicadorNotaCredito → IndicadorEnvioDiferido → IndicadorMontoGravado → TipoIngresos → TipoPago
     let idDoc: any;
 
     if (params.ecfType === '34') {
-      // Determine the indicator value — default to 1 (anulación) if somehow not provided
+      // Use the explicitly provided value (0=No aplica is valid per DGII reference XML)
+      // Only auto-detect if not provided at all
       const indicador: number =
-        params.indicadorNotaCredito !== undefined && params.indicadorNotaCredito > 0
+        params.indicadorNotaCredito !== undefined
           ? params.indicadorNotaCredito
           : (() => {
               if (params.originalInvoiceTotal !== undefined) {
@@ -502,12 +503,24 @@ export class MSellerClient {
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        IndicadorNotaCredito: indicador, // integer, required position 3 for e-34
+        IndicadorNotaCredito: indicador,        // position 3 — integer required
+        IndicadorEnvioDiferido: 0,              // position 4 — required by XSD, always 0 (not deferred)
+        IndicadorMontoGravado: '0',             // position 5
+        TipoIngresos: '01',                    // '01' = Ingresos por operaciones (per reference XML)
+        TipoPago: params.paymentType,
+      };
+    } else if (params.ecfType === '33') {
+      // e-33 (Nota de Débito) — no IndicadorNotaCredito, but needs IndicadorEnvioDiferido
+      idDoc = {
+        TipoeCF: params.ecfType,
+        eNCF: params.ncf,
+        IndicadorEnvioDiferido: 0,
         IndicadorMontoGravado: '0',
-        TipoIngresos: '05',
+        TipoIngresos: '01',
         TipoPago: params.paymentType,
       };
     } else {
+      // Standard invoices (e-31, e-32, e-45)
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
@@ -517,8 +530,6 @@ export class MSellerClient {
         TipoPago: params.paymentType,
       };
     }
-
-    // Nota de Débito (e-33) doesn't use IndicadorNotaCredito
 
     if (params.paymentType === '2') {
       let dueDateStr = params.paymentDueDate;
@@ -602,8 +613,8 @@ export class MSellerClient {
       },
     };
 
-    // If it is an adjustment note, InformacionReferencia (referencing the modified e-CF) MUST be serialized
-    // before FechaHoraFirma.
+    // If it is an adjustment note, InformacionReferencia (referencing the modified e-CF) MUST be
+    // a plain object (NOT an array) — confirmed by reference XML accepted by DGII.
     if (params.modifiedNcf) {
       const refItem: any = {
         NCFModificado: params.modifiedNcf,
@@ -611,9 +622,11 @@ export class MSellerClient {
       if (params.modifiedNcfDate) {
         refItem.FechaNCFModificado = formatDate(params.modifiedNcfDate);
       }
-      refItem.CodigoModificacion = params.indicadorNotaCredito || 1;
+      // CodigoModificacion matches IndicadorNotaCredito value
+      refItem.CodigoModificacion = params.indicadorNotaCredito ?? 1;
 
-      ecfObj.InformacionReferencia = [refItem];
+      // Plain object — not an array — so MSeller generates a single <InformacionReferencia> element
+      ecfObj.InformacionReferencia = refItem;
     }
 
     // Paginacion is only added for standard invoices (31, 32, 45)
