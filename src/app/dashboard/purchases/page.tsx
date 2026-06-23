@@ -277,7 +277,10 @@ export default function PurchasesPage() {
   }, [grandTotal]);
 
   const saveExpense = async () => {
-    if (!isMinorExpense && !supplierId) return toast.error('Selecciona un suplidor');
+    if (!isMinorExpense) {
+      if (!supplierId) return toast.error('Selecciona un suplidor');
+      if (!ncf) return toast.error('Ingresa el NCF de la factura');
+    }
     if (!issueDate) return toast.error('Selecciona fecha de factura');
     if (lines.length === 0) return toast.error('Agrega al menos una línea');
 
@@ -294,7 +297,7 @@ export default function PurchasesPage() {
         supplierId: isMinorExpense ? null : supplierId,
         isMinorExpense,
         expenseType,
-        ncf,
+        ncf: ncf ? ncf.toUpperCase().trim() : null,
         issueDate,
         paymentMethod,
         warehouseId: warehouseId || null,

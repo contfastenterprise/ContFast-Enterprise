@@ -63,8 +63,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'Faltan campos requeridos.' } }, { status: 400 });
     }
 
-    if (!isMinorExpense && !supplierId) {
-      return NextResponse.json({ success: false, error: { message: 'Suplidor es requerido para compras formales.' } }, { status: 400 });
+    if (!isMinorExpense) {
+      if (!supplierId) {
+        return NextResponse.json({ success: false, error: { message: 'Suplidor es requerido para compras formales.' } }, { status: 400 });
+      }
+      if (!ncf) {
+        return NextResponse.json({ success: false, error: { message: 'El NCF es requerido para compras formales.' } }, { status: 400 });
+      }
     }
 
     const result = await db.transaction(async (tx) => {
@@ -78,7 +83,7 @@ export async function POST(req: NextRequest) {
         supplierId: supplierId || null,
         expenseType,
         isMinorExpense: isMinorExpense || false,
-        ncf: ncf || null,
+        ncf: ncf ? ncf.toUpperCase().trim() : null,
         ncfModified: ncfModified || null,
         issueDate: new Date(issueDate).toISOString().split('T')[0],
         paymentDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : null,

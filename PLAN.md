@@ -186,6 +186,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - **Pestaña de Cheques en Garantía**: Creada una nueva sección de visualización dentro del módulo de compras que clasifica cheques pendientes y aplicados, con un botón dinámico de acción "Aplicar" para liquidación manual individualizada con confirmación de usuario.
   - **Alertas de Dashboard**: Sistema de alertas que notifica en el Dashboard principal si existen cheques en garantía cuya fecha de cobro haya sido alcanzada, integrando el indicador al widget de "Alertas" general.
 
+### 30. Corrección de Restricción NCF en Compras y Validación de Formulario
+- **Corrección de la Base de Datos:** Se eliminó la restricción `NOT NULL` en las columnas `ncf` y `supplier_id` de la tabla `expenses` en la base de datos (PostgreSQL), alineándola con el esquema de Drizzle. Esto soluciona los fallos de inserción de compras informales (Caja Chica / Gasto Menor) que no requieren suplidores ni comprobantes NCF.
+- **Validaciones en el Frontend y Backend:**
+  - Se agregó una validación estricta en el cliente para requerir de forma obligatoria el NCF y el suplidor al registrar compras formales (`isMinorExpense` es `false`).
+  - Se replicaron las mismas validaciones en la ruta API del backend (`/api/v1/expenses`), retornando un error controlado de HTTP 400 en lugar de provocar excepciones o caídas de base de datos.
+- **Normalización de Formato:** Se forzó la conversión del campo `ncf` a mayúsculas y la eliminación de espacios en blanco en los extremos (`toUpperCase().trim()`) antes de guardarlo en base de datos.
+
 **Status**: Verified & Polished (Score 10/10)
 
 
