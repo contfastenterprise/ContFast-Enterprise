@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
       description,
       warehouseId,
       lines, // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
-      guaranteeCheck
+      guaranteeCheck,
+      debitAccountId
     } = body;
 
     // Validation
@@ -230,9 +231,20 @@ export async function POST(req: NextRequest) {
       if (netAmount > 0) {
         const isCredit = paymentMethod === '04';
 
-        const accDebit = hasInventory
-          ? await getOrCreateAccount(tx, session.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-          : await getOrCreateAccount(tx, session.companyId, '5.1.01', 'Costo de Ventas', 'expense');
+        let accDebit;
+        if (debitAccountId) {
+          const [customAcc] = await tx
+            .select()
+            .from(chartOfAccounts)
+            .where(and(eq(chartOfAccounts.id, debitAccountId), eq(chartOfAccounts.companyId, session.companyId)));
+          accDebit = customAcc;
+        }
+
+        if (!accDebit) {
+          accDebit = hasInventory
+            ? await getOrCreateAccount(tx, session.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
+            : await getOrCreateAccount(tx, session.companyId, '5.1.01', 'Costo de Ventas', 'expense');
+        }
 
         const accCredit = isCredit
           ? await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')

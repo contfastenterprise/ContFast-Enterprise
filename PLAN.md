@@ -195,6 +195,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 **Status**: Verified & Polished (Score 10/10)
 
-
-
-
+### 31. Registro de Compras por Monto General (Sin Detalle de Ítems)
+- **Modalidad General en la UI:** Integración de un switch toggle interactivo "Compra por Monto General" en el formulario de compras. Al activarse, se oculta el desglose de productos/servicios y se deshabilita la selección de "Almacén Destino" (forzando valor nulo/vacío), indicando que la compra no sumará existencias físicas al stock de inventario.
+- **Autocalculo Reactivo de ITBIS:** Implementación de un campo para "Total de la Compra" que de-agrega de forma reactiva e inmediata el ITBIS (18%) y el Subtotal (Monto sin ITBIS = Total / 1.18) utilizando redondeo decimal preciso (`roundMoney`). Ambos campos de desglose quedan editables para permitir ajustes personalizados.
+- **Selector de Cuentas Contables:** Incorporación de un selector dinámico que lista las cuentas del catálogo del tipo `expense` (gasto) y `asset` (activo) de la empresa, preseleccionando por defecto "Costo de Ventas (5.1.01)".
+- **Contabilización Adaptativa Backend:** Modificación del endpoint de API y del servicio de creación de compras para aceptar un `debitAccountId` opcional. En el motor de generación de asientos contables de diario, si se proporciona dicho ID, se realiza la partida doble debitando directamente a la cuenta seleccionada en lugar del valor predeterminado, permitiendo flexibilizar el asiento contable del gasto según las necesidades contables.
+- **Visualización en Detalles:** Adaptación del modal de detalles para renderizar una fila virtual descriptiva (con concepto general, cantidad 1 y montos) si la compra fue registrada en la modalidad de monto general (sin líneas de artículos físicas), manteniendo la consistencia de la visualización.

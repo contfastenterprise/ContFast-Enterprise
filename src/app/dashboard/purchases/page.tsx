@@ -74,6 +74,14 @@ export default function PurchasesPage() {
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
   
+  // General Amount mode state
+  const [isGeneralAmount, setIsGeneralAmount] = useState(false);
+  const [generalTotal, setGeneralTotal] = useState<string>('');
+  const [generalSubtotal, setGeneralSubtotal] = useState<number>(0);
+  const [generalItbis, setGeneralItbis] = useState<number>(0);
+  const [accountsList, setAccountsList] = useState<{ id: string; code: string; name: string; type: string }[]>([]);
+  const [debitAccountId, setDebitAccountId] = useState('');
+  
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
 
@@ -127,14 +135,22 @@ export default function PurchasesPage() {
     Promise.all([
       fetch('/api/v1/products?limit=1000').then(r => r.json()),
       fetch('/api/v1/suppliers').then(r => r.json()),
-      fetch('/api/v1/warehouses').then(r => r.json())
-    ]).then(([pr, sp, wh]) => {
+      fetch('/api/v1/warehouses').then(r => r.json()),
+      fetch('/api/v1/accounting/accounts').then(r => r.json())
+    ]).then(([pr, sp, wh, ac]) => {
       if (pr.success) setProducts(pr.data.items || pr.data || []);
       if (sp.success) setSuppliers(sp.data || []);
       if (wh.success || wh.data) {
         const whList = wh.data || [];
         setWarehouses(whList);
         if (whList.length > 0) setWarehouseId(whList[0].id);
+      }
+      if (ac.success) {
+        setAccountsList(ac.data || []);
+        const defaultAcc = (ac.data || []).find((a: any) => a.code.startsWith('5.1.01') || a.name.toLowerCase().includes('costo de ventas'));
+        if (defaultAcc) {
+          setDebitAccountId(defaultAcc.id);
+        }
       }
     }).catch(err => console.error("Error loading lookup data", err));
   }, []);
@@ -268,8 +284,8 @@ export default function PurchasesPage() {
 
   const removeLine = (id: string) => setLines(lines.filter(l => l.id !== id));
 
-  const totalSubtotal = lines.reduce((acc, l) => acc + l.subtotal, 0);
-  const totalItbis = lines.reduce((acc, l) => acc + l.itbis, 0);
+  const totalSubtotal = isGeneralAmount ? generalSubtotal : lines.reduce((acc, l) => acc + l.subtotal, 0);
+  const totalItbis = isGeneralAmount ? generalItbis : lines.reduce((acc, l) => acc + l.itbis, 0);
   const grandTotal = totalSubtotal + totalItbis + globalIsc + globalOtherTaxes;
 
   useEffect(() => {
@@ -282,7 +298,14 @@ export default function PurchasesPage() {
       if (!ncf) return toast.error('Ingresa el NCF de la factura');
     }
     if (!issueDate) return toast.error('Selecciona fecha de factura');
-    if (lines.length === 0) return toast.error('Agrega al menos una línea');
+    
+    if (isGeneralAmount) {
+      if (generalSubtotal <= 0) return toast.error('El subtotal de la compra debe ser mayor a 0');
+      if (!description.trim()) return toast.error('El concepto general (descripción) es obligatorio');
+      if (!debitAccountId) return toast.error('Selecciona la cuenta contable de costo/gasto');
+    } else {
+      if (lines.length === 0) return toast.error('Agrega al menos una línea');
+    }
 
     if (paymentMethod === '04' && hasGuaranteeCheck) {
       if (!gcBankAccountId) return toast.error('Selecciona la cuenta bancaria del cheque');
@@ -300,13 +323,13 @@ export default function PurchasesPage() {
         ncf: ncf ? ncf.toUpperCase().trim() : null,
         issueDate,
         paymentMethod,
-        warehouseId: warehouseId || null,
+        warehouseId: isGeneralAmount ? null : (warehouseId || null),
         description,
-        amount: totalSubtotal,
-        itbis: totalItbis,
+        amount: isGeneralAmount ? generalSubtotal : totalSubtotal,
+        itbis: isGeneralAmount ? generalItbis : totalItbis,
         isc: globalIsc,
         otherTaxes: globalOtherTaxes,
-        lines: lines.map(l => ({
+        lines: isGeneralAmount ? [] : lines.map(l => ({
           productId: l.productId || null,
           description: l.desc,
           quantity: l.quantity,
@@ -315,6 +338,7 @@ export default function PurchasesPage() {
           itbis: l.itbis,
           total: l.total
         })),
+        debitAccountId: isGeneralAmount ? debitAccountId : null,
         guaranteeCheck: (paymentMethod === '04' && hasGuaranteeCheck) ? {
           bankAccountId: gcBankAccountId,
           checkNumber: gcCheckNumber,
@@ -343,6 +367,10 @@ export default function PurchasesPage() {
         setHasGuaranteeCheck(false);
         setGcCheckNumber('');
         setGcDueDate('');
+        setIsGeneralAmount(false);
+        setGeneralTotal('');
+        setGeneralSubtotal(0);
+        setGeneralItbis(0);
         setActiveTab('historial');
         handleSearch(); // Refresh list if searched before
       } else {
@@ -816,87 +844,176 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-              <div className="flex justify-between items-center mb-4">
+            {isGeneralAmount ? (
+              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6 space-y-5">
                 <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
-                  <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+                  <Tag className="h-4 w-4" /> Desglose de Montos Generales
                 </h3>
-                <button 
-                  onClick={addLine}
-                  className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
-                >
-                  <Plus className="h-4 w-4" /> Añadir Línea
-                </button>
-              </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-surface-container-high text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider">
-                      <th className="py-3 px-2">Producto / Descripción</th>
-                      <th className="py-3 px-2 w-20">Cant.</th>
-                      <th className="py-3 px-2 w-32">Costo U.</th>
-                      <th className="py-3 px-2 w-28">ITBIS (18%)</th>
-                      <th className="py-3 px-2 w-32 text-right">Total Fila</th>
-                      <th className="py-3 px-2 w-12 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lines.map(l => (
-                      <tr key={l.id} className="border-b border-surface-container-low align-middle">
-                        <td className="py-3 px-2 space-y-1.5 min-w-[200px]">
-                          <select 
-                            value={l.productId} onChange={e => updateLine(l.id, 'productId', e.target.value)}
-                            className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                          >
-                            <option value="">-- Servicio o ítem manual --</option>
-                            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                          <input 
-                            type="text" placeholder="Descripción de la línea..."
-                            value={l.desc} onChange={e => updateLine(l.id, 'desc', e.target.value)}
-                            className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-medium text-on-surface"
-                          />
-                        </td>
-                        <td className="py-3 px-2">
-                          <input 
-                            type="number" min="1" value={l.quantity} onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs text-center font-bold focus:ring-1 focus:ring-primary outline-none"
-                          />
-                        </td>
-                        <td className="py-3 px-2">
-                          <input 
-                            type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none font-mono-data"
-                          />
-                        </td>
-                        <td className="py-3 px-2">
-                          <input 
-                            type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
-                            className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data"
-                          />
-                        </td>
-                        <td className="py-3 px-2 text-right">
-                          <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
-                        </td>
-                        <td className="py-3 px-2 text-center">
-                          <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {lines.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="py-8 text-center text-sm font-medium text-on-surface-variant/60">
-                          Aún no has agregado productos o servicios a esta compra.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                      Total de la Compra (RD$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ej: 1180.00"
+                      value={generalTotal}
+                      onChange={e => {
+                        const valStr = e.target.value;
+                        setGeneralTotal(valStr);
+                        const val = parseFloat(valStr) || 0;
+                        if (val > 0) {
+                          const sub = roundMoney(val / 1.18);
+                          const itb = roundMoney(val - sub);
+                          setGeneralSubtotal(sub);
+                          setGeneralItbis(itb);
+                        } else {
+                          setGeneralSubtotal(0);
+                          setGeneralItbis(0);
+                        }
+                      }}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                    />
+                    <p className="text-[10px] text-on-surface-variant mt-1 ml-1 leading-tight">
+                      Ingrese el total para autocalcular el ITBIS y Subtotal.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                      Monto sin ITBIS (Subtotal)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={generalSubtotal || ''}
+                      onChange={e => setGeneralSubtotal(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                      ITBIS (18%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={generalItbis || ''}
+                      onChange={e => setGeneralItbis(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                    Cuenta de Costo / Gasto <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <select
+                    value={debitAccountId}
+                    onChange={e => setDebitAccountId(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="">-- Selecciona una cuenta contable --</option>
+                    {accountsList
+                      .filter(acc => acc.type === 'expense' || acc.type === 'asset')
+                      .map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.code} - {acc.name} ({acc.type === 'expense' ? 'Gasto' : 'Activo'})
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1 leading-tight">
+                    Cuenta contable donde se registrará el gasto en el libro mayor.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+                    <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+                  </h3>
+                  <button 
+                    onClick={addLine}
+                    className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
+                  >
+                    <Plus className="h-4 w-4" /> Añadir Línea
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-surface-container-high text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider">
+                        <th className="py-3 px-2">Producto / Descripción</th>
+                        <th className="py-3 px-2 w-20">Cant.</th>
+                        <th className="py-3 px-2 w-32">Costo U.</th>
+                        <th className="py-3 px-2 w-28">ITBIS (18%)</th>
+                        <th className="py-3 px-2 w-32 text-right">Total Fila</th>
+                        <th className="py-3 px-2 w-12 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lines.map(l => (
+                        <tr key={l.id} className="border-b border-surface-container-low align-middle">
+                          <td className="py-3 px-2 space-y-1.5 min-w-[200px]">
+                            <select 
+                              value={l.productId} onChange={e => updateLine(l.id, 'productId', e.target.value)}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                            >
+                              <option value="">-- Servicio o ítem manual --</option>
+                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <input 
+                              type="text" placeholder="Descripción de la línea..."
+                              value={l.desc} onChange={e => updateLine(l.id, 'desc', e.target.value)}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-medium text-on-surface"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input 
+                              type="number" min="1" value={l.quantity} onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs text-center font-bold focus:ring-1 focus:ring-primary outline-none"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input 
+                              type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input 
+                              type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                            />
+                          </td>
+                          <td className="py-3 px-2 text-right">
+                            <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {lines.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-sm font-medium text-on-surface-variant/60">
+                            Aún no has agregado productos o servicios a esta compra.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Resumen y Config */}
@@ -907,16 +1024,38 @@ export default function PurchasesPage() {
               </h3>
               
               <div className="space-y-4">
+                <div className="flex items-center justify-between p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/15 select-none mb-2">
+                  <div>
+                    <p className="text-xs font-bold text-primary">Compra por Monto General</p>
+                    <p className="text-[10px] text-on-surface-variant leading-normal">Registra un valor único de gasto sin detalle de ítems.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsGeneralAmount(!isGeneralAmount);
+                      if (!isGeneralAmount) {
+                        setWarehouseId('');
+                      }
+                    }}
+                    type="button"
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGeneralAmount ? 'bg-primary' : 'bg-on-surface-variant/20'}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${isGeneralAmount ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
                   <select 
                     value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                    disabled={isGeneralAmount}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">No afecta inventario</option>
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
-                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1">Los productos con registro sumarán stock a este almacén.</p>
+                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1">
+                    {isGeneralAmount ? 'Inhabilitado en registro de monto general.' : 'Los productos con registro sumarán stock a este almacén.'}
+                  </p>
                 </div>
 
                 <div>
@@ -1176,15 +1315,25 @@ export default function PurchasesPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedExpense.lines.map(line => (
-                          <tr key={line.id} className="border-b border-surface-container-low">
-                            <td className="p-3 font-semibold text-primary">{line.description}</td>
-                            <td className="p-3 text-center font-bold">{parseFloat(line.quantity)}</td>
-                            <td className="p-3 text-right font-mono-data">RD${parseFloat(line.unitCost).toFixed(2)}</td>
-                            <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(line.itbis).toFixed(2)}</td>
-                            <td className="p-3 text-right font-mono-data font-bold">RD${parseFloat(line.total).toFixed(2)}</td>
+                        {selectedExpense.lines.length === 0 ? (
+                          <tr className="border-b border-surface-container-low">
+                            <td className="p-3 font-semibold text-primary">{selectedExpense.description || 'Gasto General / Materia Prima'}</td>
+                            <td className="p-3 text-center font-bold">1</td>
+                            <td className="p-3 text-right font-mono-data">RD${parseFloat(selectedExpense.amount).toFixed(2)}</td>
+                            <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(selectedExpense.itbis).toFixed(2)}</td>
+                            <td className="p-3 text-right font-mono-data font-bold">RD${(parseFloat(selectedExpense.amount) + parseFloat(selectedExpense.itbis)).toFixed(2)}</td>
                           </tr>
-                        ))}
+                        ) : (
+                          selectedExpense.lines.map(line => (
+                            <tr key={line.id} className="border-b border-surface-container-low">
+                              <td className="p-3 font-semibold text-primary">{line.description}</td>
+                              <td className="p-3 text-center font-bold">{parseFloat(line.quantity)}</td>
+                              <td className="p-3 text-right font-mono-data">RD${parseFloat(line.unitCost).toFixed(2)}</td>
+                              <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(line.itbis).toFixed(2)}</td>
+                              <td className="p-3 text-right font-mono-data font-bold">RD${parseFloat(line.total).toFixed(2)}</td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>

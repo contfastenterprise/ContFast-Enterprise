@@ -57,6 +57,7 @@ export async function createExpense(expenseData: {
     quantity: number;
     unitPrice: number;
   }[];
+  debitAccountId?: string;
 }) {
   return await db.transaction(async (tx) => {
     // Insert expense
@@ -111,9 +112,11 @@ export async function createExpense(expenseData: {
     if (netAmount > 0) {
       // 1. Get/create accounts
       const hasInventory = !!(expenseData.warehouseId && expenseData.lines && expenseData.lines.length > 0);
-      const accDebit = hasInventory 
-        ? await getOrCreateAccount(tx, expenseData.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-        : await getOrCreateAccount(tx, expenseData.companyId, '5.1.01', 'Costo de Ventas', 'expense');
+      const accDebit = expenseData.debitAccountId
+        ? { id: expenseData.debitAccountId }
+        : (hasInventory 
+          ? await getOrCreateAccount(tx, expenseData.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
+          : await getOrCreateAccount(tx, expenseData.companyId, '5.1.01', 'Costo de Ventas', 'expense'));
 
       const accCredit = isCredit
         ? await getOrCreateAccount(tx, expenseData.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')
