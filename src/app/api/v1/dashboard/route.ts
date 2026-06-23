@@ -17,11 +17,15 @@ export async function GET(req: NextRequest) {
       }, { status: 403 });
     }
 
+    const url = new URL(req.url);
+    const period = url.searchParams.get('period') || 'semana';
+    const days = period === 'mes' ? 30 : 7;
+
     const [stats, chart, recent, comparisonChart, topCustomers] = await Promise.all([
       DashboardRepository.getStats(session.companyId),
-      DashboardRepository.getWeeklyChart(session.companyId),
+      DashboardRepository.getWeeklyChart(session.companyId, days),
       DashboardRepository.getRecentActivity(session.companyId),
-      DashboardRepository.getComparisonChart(session.companyId),
+      DashboardRepository.getComparisonChart(session.companyId, days),
       DashboardRepository.getTopCustomers(session.companyId)
     ]);
 

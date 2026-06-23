@@ -19,6 +19,7 @@ interface ComparisonDataPoint {
 interface DashboardChartsProps {
   chartData: ChartDataPoint[];
   comparisonChart: ComparisonDataPoint[];
+  period?: 'semana' | 'mes';
 }
 
 const fmt = (val: number, compact = false) => {
@@ -27,7 +28,9 @@ const fmt = (val: number, compact = false) => {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', minimumFractionDigits: 2 }).format(val);
 };
 
-export default function DashboardCharts({ chartData, comparisonChart }: DashboardChartsProps) {
+export default function DashboardCharts({ chartData, comparisonChart, period = 'semana' }: DashboardChartsProps) {
+  const isWeekly = period === 'semana';
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Line Chart for Sales Trend */}
@@ -35,7 +38,9 @@ export default function DashboardCharts({ chartData, comparisonChart }: Dashboar
         <div className="flex justify-between items-center mb-8">
           <div>
             <h4 className="font-headline-md text-xl font-bold text-primary">Flujo de Ventas (Lineal)</h4>
-            <p className="text-body-sm text-on-surface-variant/60 font-medium">Tendencia semanal</p>
+            <p className="text-body-sm text-on-surface-variant/60 font-medium">
+              {isWeekly ? 'Tendencia de los últimos 7 días' : 'Tendencia de los últimos 30 días'}
+            </p>
           </div>
         </div>
         <div className="h-72">
@@ -59,7 +64,9 @@ export default function DashboardCharts({ chartData, comparisonChart }: Dashboar
         <div className="flex justify-between items-center mb-8">
           <div>
             <h4 className="font-headline-md text-xl font-bold text-primary">Ventas vs Compras</h4>
-            <p className="text-body-sm text-on-surface-variant/60 font-medium">Comparativa semanal</p>
+            <p className="text-body-sm text-on-surface-variant/60 font-medium">
+              {isWeekly ? 'Comparativa de los últimos 7 días' : 'Comparativa de los últimos 30 días'}
+            </p>
           </div>
         </div>
         <div className="h-72">

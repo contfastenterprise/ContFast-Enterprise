@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import SkeletonBasic from '@/components/ui/skeleton';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
+import { SearchBar } from '@/components/ui/search-bar';
 import dynamic from 'next/dynamic';
 
 const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
@@ -104,7 +105,7 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/dashboard');
+      const res = await fetch(`/api/v1/dashboard?period=${chartPeriod}`);
       const data = await res.json();
 
       if (data.success && data.data) {
@@ -143,7 +144,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [chartPeriod]);
 
   useEffect(() => {
     loadDashboardData();
@@ -300,8 +301,36 @@ export default function DashboardPage() {
         </BorderRotate>
       </section>
 
+      {/* ── Period Selector ──────────────────────────────────────── */}
+      <div className="flex justify-end items-center gap-2">
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-1.5 rounded-2xl flex gap-1.5">
+          <button
+            onClick={() => setChartPeriod('semana')}
+            className={clsx(
+              "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
+              chartPeriod === 'semana'
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-primary"
+            )}
+          >
+            Vista Semanal
+          </button>
+          <button
+            onClick={() => setChartPeriod('mes')}
+            className={clsx(
+              "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
+              chartPeriod === 'mes'
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-primary"
+            )}
+          >
+            Vista Mensual
+          </button>
+        </div>
+      </div>
+
       {/* ── Charts and Activity Section ─────────────────────────────────────── */}
-      <DashboardCharts chartData={chartData} comparisonChart={comparisonChart} />
+      <DashboardCharts chartData={chartData} comparisonChart={comparisonChart} period={chartPeriod} />
 
       {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -367,14 +396,11 @@ export default function DashboardPage() {
             <h4 className="font-headline-md text-xl font-bold text-primary">Últimos Comprobantes Emitidos</h4>
             <p className="text-body-sm text-on-surface-variant/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
           </div>
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/60" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+          <div className="w-full md:w-80">
+            <SearchBar
               placeholder="Buscar por RNC o Folio..."
-              className="pl-12 pr-6 py-3 bg-surface-container-high border-none rounded-2xl text-body-sm font-medium w-full focus:ring-2 focus:ring-primary focus:bg-white transition-all shadow-inner outline-none"
+              value={searchQuery}
+              onChange={(val) => setSearchQuery(val)}
             />
           </div>
         </div>

@@ -81,13 +81,12 @@ export class DashboardRepository {
     };
   }
 
-  static async getWeeklyChart(companyId: string) {
-    const today = new Date();
-    // Start of the week (Monday)
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-    const startOfWeek = new Date(today.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
+  static async getWeeklyChart(companyId: string, days: number = 7) {
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const startOfRange = new Date(startOfToday);
+    startOfRange.setUTCDate(startOfRange.getUTCDate() - (days - 1));
 
     const weekInvoices = await db.select({
       total: invoices.total,
@@ -95,31 +94,51 @@ export class DashboardRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
-      gte(invoices.createdAt, startOfWeek)
+      gte(invoices.createdAt, startOfRange)
     ));
 
-    const dayAmounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 0: 0 }; // 1: Mon ... 0: Sun
+    const dayObjects = [];
+    const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-    for (const inv of weekInvoices) {
-      const invDay = new Date(inv.createdAt).getDay();
-      dayAmounts[invDay as keyof typeof dayAmounts] += (parseFloat(inv.total) || 0);
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(startOfToday);
+      d.setUTCDate(d.getUTCDate() - i);
+      dayObjects.push(d);
     }
 
-    // Find max for percentage
-    const maxAmount = Math.max(...Object.values(dayAmounts), 1); // Avoid div by 0
+    const chartData = dayObjects.map(d => {
+      let amount = 0;
+      for (const inv of weekInvoices) {
+        const invDate = new Date(inv.createdAt);
+        if (
+          invDate.getUTCDate() === d.getUTCDate() &&
+          invDate.getUTCMonth() === d.getUTCMonth() &&
+          invDate.getUTCFullYear() === d.getUTCFullYear()
+        ) {
+          amount += (parseFloat(inv.total) || 0);
+        }
+      }
 
-    const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
+      let label = '';
+      if (days <= 7) {
+        label = mapDayName[d.getUTCDay() as keyof typeof mapDayName];
+      } else {
+        label = `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+      }
 
-    const chartData = [1, 2, 3, 4, 5, 6, 0].map(d => {
-      const amt = dayAmounts[d as keyof typeof dayAmounts];
       return {
-        day: mapDayName[d as keyof typeof mapDayName],
-        amount: amt,
-        pct: Math.round((amt / maxAmount) * 100)
+        day: label,
+        amount
       };
     });
 
-    return chartData;
+    const maxAmount = Math.max(...chartData.map(c => c.amount), 1);
+    return chartData.map(c => ({
+      day: c.day,
+      amount: c.amount,
+      pct: Math.round((c.amount / maxAmount) * 100)
+    }));
   }
 
   static async getRecentActivity(companyId: string) {
@@ -139,13 +158,12 @@ export class DashboardRepository {
     .limit(10);
   }
 
-  static async getComparisonChart(companyId: string) {
-    // Same week logic
-    const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-    const startOfWeek = new Date(today.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
+  static async getComparisonChart(companyId: string, days: number = 7) {
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const startOfRange = new Date(startOfToday);
+    startOfRange.setUTCDate(startOfRange.getUTCDate() - (days - 1));
 
     const weekInvoices = await db.select({
       total: invoices.total,
@@ -153,7 +171,7 @@ export class DashboardRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
-      gte(invoices.createdAt, startOfWeek)
+      gte(invoices.createdAt, startOfRange)
     ));
 
     const { expenses } = await import('@/db');
@@ -163,23 +181,52 @@ export class DashboardRepository {
     }).from(expenses)
     .where(and(
       eq(expenses.companyId, companyId),
-      gte(expenses.createdAt, startOfWeek)
+      gte(expenses.createdAt, startOfRange)
     ));
 
-    const days = [1, 2, 3, 4, 5, 6, 0];
+    const dayObjects = [];
     const mapDayName = { 1: 'LUN', 2: 'MAR', 3: 'MIE', 4: 'JUE', 5: 'VIE', 6: 'SAB', 0: 'DOM' };
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-    const chartData = days.map(d => {
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(startOfToday);
+      d.setUTCDate(d.getUTCDate() - i);
+      dayObjects.push(d);
+    }
+
+    const chartData = dayObjects.map(d => {
       let sales = 0;
       let purchases = 0;
       for (const inv of weekInvoices) {
-        if (new Date(inv.createdAt).getDay() === d) sales += parseFloat(inv.total) || 0;
+        const invDate = new Date(inv.createdAt);
+        if (
+          invDate.getUTCDate() === d.getUTCDate() &&
+          invDate.getUTCMonth() === d.getUTCMonth() &&
+          invDate.getUTCFullYear() === d.getUTCFullYear()
+        ) {
+          sales += parseFloat(inv.total) || 0;
+        }
       }
       for (const exp of weekExpenses) {
-        if (new Date(exp.createdAt).getDay() === d) purchases += parseFloat(exp.amount) || 0;
+        const expDate = new Date(exp.createdAt);
+        if (
+          expDate.getUTCDate() === d.getUTCDate() &&
+          expDate.getUTCMonth() === d.getUTCMonth() &&
+          expDate.getUTCFullYear() === d.getUTCFullYear()
+        ) {
+          purchases += parseFloat(exp.amount) || 0;
+        }
       }
+
+      let label = '';
+      if (days <= 7) {
+        label = mapDayName[d.getUTCDay() as keyof typeof mapDayName];
+      } else {
+        label = `${d.getUTCDate()} ${months[d.getUTCMonth()]}`;
+      }
+
       return {
-        day: mapDayName[d as keyof typeof mapDayName],
+        day: label,
         sales,
         purchases
       };
