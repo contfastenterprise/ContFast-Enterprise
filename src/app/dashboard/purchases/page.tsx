@@ -919,10 +919,10 @@ export default function PurchasesPage() {
                   >
                     <option value="">-- Selecciona una cuenta contable --</option>
                     {accountsList
-                      .filter(acc => acc.type === 'expense' || acc.type === 'asset')
+                      .filter(acc => acc.type === 'expense')
                       .map(acc => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.code} - {acc.name} ({acc.type === 'expense' ? 'Gasto' : 'Activo'})
+                          {acc.code} - {acc.name} (Gasto/Costo)
                         </option>
                       ))}
                   </select>
