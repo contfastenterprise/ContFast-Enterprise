@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
-import { db, dgiiSubmissions, companySettings, companies } from '@/db';
+import { db, dgiiSubmissions, companySettings, companies, invoices } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decrypt } from '@/utils/encryption';
 import { eq, and, isNull } from 'drizzle-orm';
@@ -114,7 +114,14 @@ export async function GET(
 
       // Update invoice if status changed
       if (newStatus !== invoice.status) {
-        await InvoiceRepository.updateStatus(invoice.id, auth.companyId, newStatus);
+        await db
+          .update(invoices)
+          .set({
+            status: newStatus as any,
+            dgiiMessage: statusResult.message || null,
+            updatedAt: new Date()
+          })
+          .where(and(eq(invoices.id, invoice.id), eq(invoices.companyId, auth.companyId)));
 
         // Update latest dgii_submission
         await db

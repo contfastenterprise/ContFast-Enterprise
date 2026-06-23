@@ -146,7 +146,14 @@ export async function POST(req: NextRequest) {
         }
 
         if (newStatus !== inv.status) {
-          await InvoiceRepository.updateStatus(inv.id, auth.companyId, newStatus);
+          await db
+            .update(invoices)
+            .set({
+              status: newStatus as any,
+              dgiiMessage: `Consulta batch - Estado: ${result.status}`,
+              updatedAt: new Date()
+            })
+            .where(and(eq(invoices.id, inv.id), eq(invoices.companyId, auth.companyId)));
           
           await db
             .update(dgiiSubmissions)

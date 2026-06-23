@@ -156,7 +156,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   if (result.success) {
     console.log(`[JobRunner] ✓ DGII submission accepted for invoice ${invoiceId}, trackId: ${result.trackId}`);
 
-    const resEstado = (result.rawResponse?.estado || 'Aceptado').toLowerCase();
+    const resEstado = (result.rawResponse?.status || result.rawResponse?.estado || 'Aceptado').toLowerCase();
     let newStatus = 'accepted';
     if (resEstado.includes('acept') || resEstado === 'accepted') {
       newStatus = 'accepted';

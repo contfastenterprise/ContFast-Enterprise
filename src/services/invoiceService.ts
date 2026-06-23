@@ -321,7 +321,7 @@ export class InvoiceService {
           securityHash = msellerRes.securityCode || '';
           qrCode = msellerRes.qrCode || null;
           
-          const resEstado = (msellerRes.rawResponse?.estado || 'Aceptado').toLowerCase();
+          const resEstado = (msellerRes.rawResponse?.status || msellerRes.rawResponse?.estado || 'Aceptado').toLowerCase();
           if (resEstado.includes('acept') || resEstado === 'accepted') {
             finalStatus = 'accepted';
           } else if (resEstado.includes('rechaz') || resEstado === 'rejected') {

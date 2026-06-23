@@ -227,10 +227,25 @@ export class MSellerClient {
         };
       }
 
+      const finalStatus = raw?.status || raw?.estado;
+
+      // Extract messages from dgiiResponse if it exists (mSeller structure)
+      let dgiiMessages = raw?.mensajes;
+      if (!dgiiMessages && raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
+        for (const respStr of raw.dgiiResponse) {
+          try {
+            const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
+            if (parsed?.mensajes && Array.isArray(parsed.mensajes)) {
+              dgiiMessages = parsed.mensajes;
+            }
+          } catch (e) {}
+        }
+      }
+
       // Check if DGII rejected the document (even with HTTP 200)
-      if (raw?.estado === 'Rechazado') {
-        const rejectionMsg = raw.mensajes && Array.isArray(raw.mensajes) && raw.mensajes.length > 0
-          ? raw.mensajes.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
+      if (finalStatus === 'Rechazado') {
+        const rejectionMsg = dgiiMessages && Array.isArray(dgiiMessages) && dgiiMessages.length > 0
+          ? dgiiMessages.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
           : (raw.message || 'Rechazado por la DGII');
         return {
           success: false,
@@ -241,10 +256,10 @@ export class MSellerClient {
 
       // If accepted or has warning messages, build success message
       let successMsg = 'Aceptado por la DGII';
-      if (raw?.estado) {
-        successMsg = raw.estado;
-        const validMsgs = raw.mensajes && Array.isArray(raw.mensajes)
-          ? raw.mensajes.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
+      if (finalStatus) {
+        successMsg = finalStatus;
+        const validMsgs = dgiiMessages && Array.isArray(dgiiMessages)
+          ? dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
           : [];
         if (validMsgs.length > 0) {
           successMsg += `: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
