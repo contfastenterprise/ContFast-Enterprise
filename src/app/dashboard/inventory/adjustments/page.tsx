@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchBar } from '@/components/ui/search-bar';
 
 interface Product { id: string; name: string; sku: string; }
 interface Warehouse { id: string; name: string; }
@@ -244,15 +245,13 @@ export default function InventoryAdjustmentsPage() {
           <div>
             <label className="block text-xs font-bold text-on-surface-variant/70 mb-2 uppercase tracking-wider">2. Buscar Producto</label>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/50" />
-              <input 
-                type="text" placeholder="Escribe el nombre o SKU..."
-                value={searchQuery} 
-                onChange={e => {
-                  setSearchQuery(e.target.value);
-                  setSelectedProduct(null); // Clear selected if typing again
+              <SearchBar
+                placeholder="Escribe el nombre o SKU..."
+                value={searchQuery}
+                onChange={(val) => {
+                  setSearchQuery(val);
+                  setSelectedProduct(null);
                 }}
-                className="w-full bg-surface-container-high border-none rounded-xl pl-11 pr-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
               />
               {searching && <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />}
               

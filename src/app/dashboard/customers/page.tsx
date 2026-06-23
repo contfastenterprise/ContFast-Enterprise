@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SearchBar } from '@/components/ui/search-bar';
 
 
 interface Customer {
@@ -284,25 +285,21 @@ export default function CustomersPage() {
       </div>
 
       {/* SEARCH BAR */}
-      <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl p-2 flex items-center shadow-sm">
-        <div className="pl-3 pr-2 text-on-surface-variant/70">
-          <Search className="h-5 w-5" />
-        </div>
-        <input
-          type="text"
+      <div className="flex items-center gap-2">
+        <SearchBar
           placeholder="Buscar por nombre, RNC o Cédula..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-transparent border-none text-primary focus:ring-0 text-sm py-2 px-2 outline-none"
+          onChange={setSearch}
+          className="flex-1"
         />
         {loading && search && (
-          <div className="pr-3 text-amber-500">
+          <div className="text-amber-500 shrink-0">
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
         <button
           onClick={handlePrintList}
-          className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-350 px-4 py-2.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ml-2 mr-1 shadow-sm"
+          className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shrink-0"
         >
           <Printer className="w-4 h-4 text-amber-500" />
           <span>Imprimir</span>

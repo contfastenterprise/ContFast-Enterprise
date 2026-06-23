@@ -21,6 +21,7 @@ const createInvoiceSchema = z.object({
   ignoreCommunicationError: z.boolean().optional(),
   modifiedNcf: z.string().length(13, 'El NCF modificado debe tener exactamente 13 caracteres').optional(),
   modifiedInvoiceId: z.string().uuid().optional(),
+  indicadorNotaCredito: z.number().optional(),
   lines: z.array(
     z.object({
       productId: z.string().uuid(),

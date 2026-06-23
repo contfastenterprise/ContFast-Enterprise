@@ -92,6 +92,13 @@
       "when": 1781799867056,
       "tag": "0012_ambiguous_texas_twister",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782144592358,
+      "tag": "0013_next_gauntlet",
+      "breakpoints": true
     }
   ]
 }

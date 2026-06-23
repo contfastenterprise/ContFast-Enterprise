@@ -101,4 +101,3 @@ const BorderRotate: React.FC<BorderRotateProps> = ({
 };
 
 export { BorderRotate };
-export default BorderRotate;

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Shield, ShieldCheck, ShieldAlert, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, LayoutDashboard, FileText, Wallet, Landmark, BookOpen, Settings, LogOut, Menu, X, Users, Truck, Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft, History as HistoryIcon, Banknote, PackageMinus, Tag, ShoppingCart, FileMinus, Calculator, Layers, ChevronDown, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
+import clsx from 'clsx';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,6 +15,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>('Latin Doors e-CF');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [showCompanyMenu, setShowCompanyMenu] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -50,6 +54,43 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'sistemas') {
+      fetch('/api/v1/admin/companies')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setCompanies(data.data);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [user]);
+
+  const handleSwitchCompany = async (newCompanyId: string) => {
+    if (newCompanyId === user.companyId) return;
+    setSwitching(true);
+    setShowCompanyMenu(false);
+    try {
+      const res = await fetch('/api/v1/auth/switch-company', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newCompanyId })
+      });
+      if (res.ok) {
+        toast.success('Cambiando de empresa...');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        const data = await res.json();
+        toast.error(data.error?.message || 'Error al cambiar de empresa');
+        setSwitching(false);
+      }
+    } catch (err) {
+      toast.error('Error de red al cambiar de empresa');
+      setSwitching(false);
+    }
+  };
 
   useEffect(() => {
     if (user && pathname === '/dashboard') {
@@ -119,9 +160,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     {
       title: 'Inventario',
       items: [
-        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'cajero'] },
-        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin'] },
         { name: 'Almacenes', href: '/dashboard/warehouses', icon: <Building2 className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Categorías', href: '/dashboard/inventory/categories', icon: <Tag className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Productos', href: '/dashboard/products', icon: <Package className="h-5 w-5" />, roles: ['sistema', 'admin', 'cajero'] },
         { name: 'Conduces', href: '/dashboard/delivery-notes', icon: <Truck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
         { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: <ArrowRightLeft className="h-5 w-5" />, roles: ['sistema', 'admin'] },
         { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: <PackageMinus className="h-5 w-5" />, roles: ['sistema', 'admin'] },
@@ -165,6 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       items: [
         { name: 'Ajustes del Sistema', href: '/dashboard/settings', icon: <Settings className="h-5 w-5" />, roles: ['sistema', 'admin'] },
         { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: <ShieldCheck className="h-5 w-5" />, roles: ['sistema', 'admin'] },
+        { name: 'Empresas', href: '/dashboard/admin/companies', icon: <Building2 className="h-5 w-5" />, roles: ['sistema'] },
         { name: 'Administración', href: '/dashboard/admin', icon: <Shield className="h-5 w-5" />, roles: ['sistema', 'admin'] },
       ]
     }
@@ -190,9 +232,60 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button className="p-2 hover:bg-white/10 rounded-full transition-all md:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
-          <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1">
-            {companyName}
-          </span>
+          
+          {user?.role === 'sistemas' ? (
+            <div className="relative">
+              <button 
+                onClick={() => setShowCompanyMenu(!showCompanyMenu)}
+                disabled={switching}
+                className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1 gap-2 hover:opacity-80 transition-opacity"
+              >
+                {switching ? <Loader2 className="h-5 w-5 animate-spin" /> : companyName}
+                <ChevronDown className="h-4 w-4 opacity-70" />
+              </button>
+              
+              <AnimatePresence>
+                {showCompanyMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowCompanyMenu(false)}></div>
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 text-slate-800"
+                    >
+                      <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-slate-500" />
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cambiar Empresa</span>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                        {companies.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => handleSwitchCompany(c.id)}
+                            className={clsx(
+                              "w-full text-left px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors flex flex-col gap-0.5",
+                              user.companyId === c.id && "bg-blue-50/50"
+                            )}
+                          >
+                            <span className="font-bold text-sm truncate w-full flex items-center gap-2">
+                              {c.name}
+                              {user.companyId === c.id && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">RNC: {c.rnc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <span className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight flex items-center h-full py-1">
+              {companyName}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer text-primary font-bold text-sm">

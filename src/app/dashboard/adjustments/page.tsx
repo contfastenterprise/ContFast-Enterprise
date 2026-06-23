@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { SearchBar } from '@/components/ui/search-bar';
 
 export default function AdjustmentsPage() {
   const [loading, setLoading] = useState(true);
@@ -290,14 +291,11 @@ export default function AdjustmentsPage() {
                       <option value="34">Nota de Crédito (34)</option>
                     </select>
                   </div>
-                  <div className="relative w-full max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/60" />
-                    <input
-                      type="text"
+                  <div className="w-full max-w-xs">
+                    <SearchBar
                       placeholder="Buscar por NCF..."
                       value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-sm outline-none"
+                      onChange={(val) => { setSearchTerm(val); setPage(1); }}
                     />
                   </div>
                 </div>

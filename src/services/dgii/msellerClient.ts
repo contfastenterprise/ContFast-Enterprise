@@ -55,7 +55,7 @@ export interface ECFPayload {
         MontoItem: number;
       }>;
     };
-    Paginacion: {
+    Paginacion?: {
       Pagina: Array<{
         PaginaNo: number;
         NoLineaDesde: number;
@@ -345,7 +345,10 @@ export class MSellerClient {
     subtotal: number;
     totalTaxes: number;
     total: number;
+    originalInvoiceTotal?: number;
     modifiedNcf?: string;
+    modifiedNcfDate?: Date;
+    indicadorNotaCredito?: number;
     lines: Array<{
       index: number;
       name: string;
@@ -367,11 +370,30 @@ export class MSellerClient {
     const idDoc: any = {
       TipoeCF: params.ecfType,
       eNCF: params.ncf,
-      FechaVencimientoSecuencia: params.sequenceExpiry,
-      IndicadorMontoGravado: '0',
-      TipoIngresos: '05',
-      TipoPago: params.paymentType,
     };
+
+    // FechaVencimientoSecuencia is NOT allowed for credit/debit notes (types 33, 34)
+    if (!['33', '34'].includes(params.ecfType)) {
+      idDoc.FechaVencimientoSecuencia = params.sequenceExpiry;
+    }
+
+    // IndicadorNotaCredito is required for credit notes (type 34) and must be placed before IndicadorMontoGravado
+    if (params.ecfType === '34') {
+      if (params.indicadorNotaCredito !== undefined) {
+        idDoc.IndicadorNotaCredito = String(params.indicadorNotaCredito);
+      } else {
+        let isAnnulment = false;
+        if (params.originalInvoiceTotal !== undefined) {
+          // Compare new credit note total with original invoice total (accounting for rounding precision)
+          isAnnulment = Math.abs(params.total - params.originalInvoiceTotal) < 0.05;
+        }
+        idDoc.IndicadorNotaCredito = isAnnulment ? '1' : '3'; // Send as string
+      }
+    }
+
+    idDoc.IndicadorMontoGravado = '0';
+    idDoc.TipoIngresos = '05';
+    idDoc.TipoPago = params.paymentType;
 
     if (params.paymentType === '2') {
       let dueDateStr = params.paymentDueDate;
@@ -383,7 +405,10 @@ export class MSellerClient {
       idDoc.FechaLimitePago = dueDateStr;
     }
 
-    idDoc.TotalPaginas = 1;
+    // TotalPaginas is only added for standard invoices (31, 32, 45)
+    if (!['33', '34'].includes(params.ecfType)) {
+      idDoc.TotalPaginas = 1;
+    }
 
     const encabezado: any = {
       Version: '1.0',
@@ -397,7 +422,7 @@ export class MSellerClient {
     };
 
     // Comprador must be serialized BEFORE Totales
-    if (params.buyerRnc || ['31', '44', '45', '46'].includes(params.ecfType)) {
+    if (params.buyerRnc || ['31', '33', '34', '44', '45', '46'].includes(params.ecfType)) {
       encabezado.Comprador = {
         RNCComprador: params.buyerRnc || '222222222',
         RazonSocialComprador: params.buyerName || 'CONSUMIDOR FINAL',
@@ -415,72 +440,82 @@ export class MSellerClient {
       MontoNoFacturable: 0,
     };
 
-    const payload: any = {
-      ECF: {
-        Encabezado: encabezado,
-        DetallesItems: {
-          Item: params.lines.map((line, idx) => {
-            const subtotal = line.quantity * line.unitPrice;
-            const discount = line.discount || 0;
-            const montoItem = Number((subtotal - discount).toFixed(2));
-            const item: any = {
-              NumeroLinea: String(idx + 1),
-              IndicadorFacturacion: '1',
-              NombreItem: line.name,
-              IndicadorBienoServicio: '1',
-              CantidadItem: Number(line.quantity.toFixed(2)),
-              UnidadMedida: '43',
-              PrecioUnitarioItem: Number(line.unitPrice.toFixed(2)),
+    // Construct ECF object elements in the strict sequential order required by DGII XML Schema
+    const ecfObj: any = {
+      Encabezado: encabezado,
+      DetallesItems: {
+        Item: params.lines.map((line, idx) => {
+          const subtotal = line.quantity * line.unitPrice;
+          const discount = line.discount || 0;
+          const montoItem = Number((subtotal - discount).toFixed(2));
+          const item: any = {
+            NumeroLinea: String(idx + 1),
+            IndicadorFacturacion: '1',
+            NombreItem: line.name,
+            IndicadorBienoServicio: '1',
+            CantidadItem: Number(line.quantity.toFixed(2)),
+            UnidadMedida: '43',
+            PrecioUnitarioItem: Number(line.unitPrice.toFixed(2)),
+          };
+
+          if (discount > 0) {
+            item.DescuentoMonto = Number(discount.toFixed(2));
+            item.TablaSubDescuento = {
+              SubDescuento: [
+                {
+                  TipoSubDescuento: '$',
+                  MontoSubDescuento: Number(discount.toFixed(2)),
+                },
+              ],
             };
+          }
 
-            if (discount > 0) {
-              item.DescuentoMonto = Number(discount.toFixed(2));
-              item.TablaSubDescuento = {
-                SubDescuento: [
-                  {
-                    TipoSubDescuento: '$',
-                    MontoSubDescuento: Number(discount.toFixed(2)),
-                  },
-                ],
-              };
-            }
+          item.MontoItem = montoItem;
 
-            item.MontoItem = montoItem;
-
-            return item;
-          }),
-        },
-        Paginacion: {
-          Pagina: [
-            {
-              PaginaNo: 1,
-              NoLineaDesde: 1,
-              NoLineaHasta: params.lines.length || 1,
-              SubtotalMontoGravadoPagina: Number(params.subtotal.toFixed(2)),
-              SubtotalMontoGravado1Pagina: Number(params.subtotal.toFixed(2)),
-              SubtotalExentoPagina: 0,
-              SubtotalItbisPagina: Number(params.totalTaxes.toFixed(2)),
-              SubtotalItbis1Pagina: Number(params.totalTaxes.toFixed(2)),
-              MontoSubtotalPagina: Number(params.total.toFixed(2)),
-              SubtotalMontoNoFacturablePagina: 0,
-            },
-          ],
-        },
-        FechaHoraFirma: '',
+          return item;
+        }),
       },
     };
 
+    // If it is an adjustment note, InformacionReferencia (referencing the modified e-CF) MUST be serialized
+    // before FechaHoraFirma.
     if (params.modifiedNcf) {
-      payload.ECF.TablaReferencia = {
-        Referencia: [
+      const refItem: any = {
+        NCFModificado: params.modifiedNcf,
+      };
+      if (params.modifiedNcfDate) {
+        refItem.FechaNCFModificado = formatDate(params.modifiedNcfDate);
+      }
+      refItem.CodigoModificacion = params.indicadorNotaCredito || 1;
+
+      ecfObj.InformacionReferencia = [refItem];
+    }
+
+    // Paginacion is only added for standard invoices (31, 32, 45)
+    if (!['33', '34'].includes(params.ecfType)) {
+      ecfObj.Paginacion = {
+        Pagina: [
           {
-            NumeroLinea: '1',
-            NCFModificado: params.modifiedNcf,
-            CodigoModificacion: '1',
+            PaginaNo: 1,
+            NoLineaDesde: 1,
+            NoLineaHasta: params.lines.length || 1,
+            SubtotalMontoGravadoPagina: Number(params.subtotal.toFixed(2)),
+            SubtotalMontoGravado1Pagina: Number(params.subtotal.toFixed(2)),
+            SubtotalExentoPagina: 0,
+            SubtotalItbisPagina: Number(params.totalTaxes.toFixed(2)),
+            SubtotalItbis1Pagina: Number(params.totalTaxes.toFixed(2)),
+            MontoSubtotalPagina: Number(params.total.toFixed(2)),
+            SubtotalMontoNoFacturablePagina: 0,
           },
         ],
       };
     }
+
+    ecfObj.FechaHoraFirma = '';
+
+    const payload: any = {
+      ECF: ecfObj,
+    };
 
     return payload as ECFPayload;
   }

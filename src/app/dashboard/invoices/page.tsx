@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
+import { SearchBar } from '@/components/ui/search-bar';
 
 function InvoicesList() {
   const router = useRouter();
@@ -1519,16 +1520,11 @@ function InvoicesList() {
 
               <div className="flex-1 min-w-[240px] w-full">
                 <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Buscar Cliente / NCF</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Ej: E3100... o RNC"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#003366] placeholder:text-on-surface-variant/80 focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all"
-                  />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/70" />
-                </div>
+                <SearchBar
+                  placeholder="Ej: E3100... o RNC"
+                  value={searchTerm}
+                  onChange={(val) => setSearchTerm(val)}
+                />
               </div>
 
               <button

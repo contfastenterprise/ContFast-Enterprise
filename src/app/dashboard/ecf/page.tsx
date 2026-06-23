@@ -27,6 +27,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchBar } from '@/components/ui/search-bar';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -643,14 +644,11 @@ function ComprobantesTab() {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-            <input
-              type="text"
+          <div className="flex-1 min-w-[200px]">
+            <SearchBar
               placeholder="Buscar por NCF o RNC..."
               value={filters.q}
-              onChange={(e) => { setFilters((f) => ({ ...f, q: e.target.value })); setPage(1); }}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-outline-variant bg-white text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-on-surface-variant/50"
+              onChange={(val) => { setFilters((f) => ({ ...f, q: val })); setPage(1); }}
             />
           </div>
           <select

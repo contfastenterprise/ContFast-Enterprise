@@ -226,12 +226,24 @@ export async function POST(
       }
     }
 
+    let docName = 'Factura';
+    let typeStr = invoice.paymentType === 'credit' ? ' a crédito' : '';
+    if (invoice.ecfType === '33') {
+      docName = 'Nota de Débito';
+      typeStr = '';
+    } else if (invoice.ecfType === '34') {
+      docName = 'Nota de Crédito';
+      typeStr = '';
+    }
+
+    const subject = `Reenvío de ${docName}${typeStr} - NCF: ${invoice.ncf}`;
+
     // Queue resending the email
     await addJob('emails-sending', 'send-email', {
       to: customer.email,
-      subject: `Reenvío de Factura - NCF: ${invoice.ncf}`,
-      text: `Estimado(a) ${customer.name},\n\nLe reenviamos su factura NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\n${companyName}`,
-      html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le reenviamos su factura NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
+      subject,
+      text: `Estimado(a) ${customer.name},\n\nLe reenviamos su ${docName.toLowerCase()}${typeStr} NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\n${companyName}`,
+      html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le reenviamos su ${docName.toLowerCase()}${typeStr} NCF: <strong>${invoice.ncf}</strong> por un valor total de <strong>RD$ ${invoice.total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
       pdfPath: pdfPath || undefined,
     });
 

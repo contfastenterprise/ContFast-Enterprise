@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { SearchBar } from '@/components/ui/search-bar';
 
 // -- Types --
 interface BillAP {
@@ -392,20 +393,11 @@ export default function AccountsPayablePage() {
               className="space-y-6"
             >
               {/* Search Bar */}
-              <div className="bg-surface-container-low p-4 rounded-xl shadow-lg border border-outline-variant/30 flex items-center">
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-on-surface-variant/70" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Buscar por proveedor..."
-                    className="block w-full pl-10 pr-3 py-2.5 bg-background border border-outline-variant/30 rounded-lg text-sm text-primary focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
+              <SearchBar
+                placeholder="Buscar por proveedor..."
+                value={searchTerm}
+                onChange={(val) => setSearchTerm(val)}
+              />
 
               {/* Bills Table */}
               {loading ? (

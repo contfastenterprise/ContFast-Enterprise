@@ -47,13 +47,13 @@ export default function DashboardCharts({ chartData, comparisonChart, period = '
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} minTickGap={20} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
               <RechartsTooltip 
                 formatter={(value: any) => [fmt(Number(value) || 0), 'Ventas']}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
               />
-              <Line type="monotone" dataKey="amount" stroke="#003366" strokeWidth={4} dot={{ r: 4, fill: '#003366', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="amount" stroke="#003366" strokeWidth={4} dot={isWeekly ? { r: 4, fill: '#003366', strokeWidth: 2, stroke: '#fff' } : false} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -73,15 +73,15 @@ export default function DashboardCharts({ chartData, comparisonChart, period = '
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={comparisonChart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} />
+              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} minTickGap={20} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
               <RechartsTooltip 
                 formatter={(value: any, name: any) => [fmt(Number(value) || 0), name === 'sales' ? 'Ventas' : 'Compras']}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '10px' }} />
-              <Bar dataKey="sales" name="Ventas" fill="#003366" radius={[4, 4, 0, 0]} barSize={20} />
-              <Bar dataKey="purchases" name="Compras" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+              <Bar dataKey="sales" name="Ventas" fill="#003366" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="purchases" name="Compras" fill="#ef4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

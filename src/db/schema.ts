@@ -11,6 +11,7 @@ export const companies = pgTable('companies', {
   rnc: varchar('rnc', { length: 11 }).notNull(), // RNC is 9 or 11 digits in DR
   businessActivity: varchar('business_activity', { length: 255 }),
   address: varchar('address', { length: 255 }),
+  email: varchar('email', { length: 255 }),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

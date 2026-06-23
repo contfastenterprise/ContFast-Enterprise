@@ -6,6 +6,7 @@ import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Arch
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { SearchBar } from '@/components/ui/search-bar';
 
 
 interface Product {
@@ -467,14 +468,14 @@ export default function ProductsPage() {
         {/* Toolbar */}
         <div className="p-4 border-b border-outline-variant/30 flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface-container-low/50">
           <div className="flex gap-4 flex-1">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-on-surface-variant/50" />
-              <input
-                type="text"
+            <div className="flex-1">
+              <SearchBar
                 placeholder="Buscar por código, nombre o código de barras..."
                 value={search}
-                onChange={handleSearch}
-                className="w-full bg-white border-none rounded-2xl pl-12 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none transition-shadow"
+                onChange={(val) => {
+                  setSearch(val);
+                  fetchProducts(val, selectedCategory);
+                }}
               />
             </div>
             <div className="w-48 hidden md:block">

@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
     const q = searchParams.get('q');
+    const excludeAdjusted = searchParams.get('excludeAdjusted') === 'true';
 
     const offset = (page - 1) * perPage;
 
@@ -45,6 +46,22 @@ export async function GET(req: NextRequest) {
     }
     if (q) {
       conditions.push(ilike(invoices.ncf, `%${q}%`));
+    }
+    if (excludeAdjusted) {
+      // Find all invoice IDs that have been modified (i.e. have a note pointing to them)
+      const adjustedSubquery = db
+        .select({ id: invoices.modifiedInvoiceId })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, auth.companyId),
+            isNull(invoices.deletedAt),
+            sql`${invoices.modifiedInvoiceId} IS NOT NULL`
+          )
+        );
+      
+      // Filter out invoices whose ID is in the adjusted subquery
+      conditions.push(sql`${invoices.id} NOT IN (${adjustedSubquery})`);
     }
 
     const whereClause = and(...conditions);
@@ -70,6 +87,8 @@ export async function GET(req: NextRequest) {
         dgiiMessage: invoices.dgiiMessage,
         customerId: invoices.customerId,
         deliveryStatus: invoices.deliveryStatus,
+        modifiedNcf: invoices.modifiedNcf,
+        modifiedInvoiceId: invoices.modifiedInvoiceId,
         createdAt: invoices.createdAt,
       })
       .from(invoices)
