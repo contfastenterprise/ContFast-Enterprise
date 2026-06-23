@@ -22,11 +22,12 @@ export async function GET(
     }
 
     const company = await CompanyRepository.getProfile(session.companyId);
+    const settings = await CompanyRepository.getSettings(session.companyId);
     const companyInfo = {
       name: company?.name || 'Latin Doors SRL',
       rnc: company?.rnc || 'N/A',
-      logoUrl: company?.logoUrl || undefined,
-      phone: company?.phone || undefined,
+      logoUrl: settings?.logoUrl || undefined,
+      phone: undefined,
       email: company?.email || undefined,
       address: company?.address || undefined,
     };
