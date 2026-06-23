@@ -318,12 +318,42 @@ export class MSellerClient {
         };
       }
 
+      // Extract detailed messages from dgiiResponse if it exists
+      let dgiiMessages = raw?.mensajes || [];
+      let dgiiEstado = raw?.dgiiStatus || raw?.estadoDGII || null;
+
+      if (raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
+        for (const respStr of raw.dgiiResponse) {
+          try {
+            const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
+            if (parsed) {
+              if (parsed.estado) {
+                dgiiEstado = parsed.estado;
+              }
+              if (parsed.mensajes && Array.isArray(parsed.mensajes)) {
+                dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
+              }
+            }
+          } catch (e) {}
+        }
+      }
+
+      const finalDGIIStatus = dgiiEstado || raw?.status || raw?.estado || 'Aceptado';
+      
+      let customMessage = finalDGIIStatus;
+      const validMsgs = dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
+      if (validMsgs.length > 0) {
+        customMessage += `: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
+      } else if (raw?.message) {
+        customMessage += `: ${raw.message}`;
+      }
+
       return {
         success: true,
         ncf: raw?.ncf || ncf,
         status: raw?.status,
-        dgiiStatus: raw?.dgiiStatus || raw?.estadoDGII,
-        message: raw?.message,
+        dgiiStatus: finalDGIIStatus,
+        message: customMessage,
         rawResponse: raw,
       };
     } catch (err: any) {

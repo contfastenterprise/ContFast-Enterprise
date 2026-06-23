@@ -104,39 +104,47 @@ export async function GET(
     let newStatus = invoice.status;
     if (statusResult.success) {
       const dgiiStatus = (statusResult.dgiiStatus || statusResult.status || '').toLowerCase();
-      if (dgiiStatus.includes('acept') || dgiiStatus === 'accepted') {
+      if (
+        dgiiStatus.includes('acept') || 
+        dgiiStatus.includes('aprob') || 
+        dgiiStatus === 'accepted' || 
+        dgiiStatus === 'approved'
+      ) {
         newStatus = 'accepted';
       } else if (dgiiStatus.includes('rechaz') || dgiiStatus === 'rejected') {
         newStatus = 'rejected';
-      } else if (dgiiStatus.includes('envi') || dgiiStatus === 'submitted') {
+      } else if (
+        dgiiStatus.includes('envi') || 
+        dgiiStatus.includes('recib') || 
+        dgiiStatus === 'submitted' || 
+        dgiiStatus === 'received'
+      ) {
         newStatus = 'submitted';
       }
 
-      // Update invoice if status changed
-      if (newStatus !== invoice.status) {
-        await db
-          .update(invoices)
-          .set({
-            status: newStatus as any,
-            dgiiMessage: statusResult.message || null,
-            updatedAt: new Date()
-          })
-          .where(and(eq(invoices.id, invoice.id), eq(invoices.companyId, auth.companyId)));
+      // Always update invoice status and dgiiMessage on sync
+      await db
+        .update(invoices)
+        .set({
+          status: newStatus as any,
+          dgiiMessage: statusResult.message || null,
+          updatedAt: new Date()
+        })
+        .where(and(eq(invoices.id, invoice.id), eq(invoices.companyId, auth.companyId)));
 
-        // Update latest dgii_submission
-        await db
-          .update(dgiiSubmissions)
-          .set({
-            status: newStatus as any,
-            responseMessage: statusResult.message,
-            responsePayload: JSON.stringify(statusResult.rawResponse),
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(dgiiSubmissions.invoiceId, id),
-            eq(dgiiSubmissions.companyId, auth.companyId)
-          ));
-      }
+      // Update latest dgii_submission
+      await db
+        .update(dgiiSubmissions)
+        .set({
+          status: newStatus as any,
+          responseMessage: statusResult.message,
+          responsePayload: JSON.stringify(statusResult.rawResponse),
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(dgiiSubmissions.invoiceId, id),
+          eq(dgiiSubmissions.companyId, auth.companyId)
+        ));
     }
 
     return NextResponse.json(

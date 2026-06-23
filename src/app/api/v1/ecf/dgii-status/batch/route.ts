@@ -136,40 +136,84 @@ export async function POST(req: NextRequest) {
       let updatePerformed = false;
 
       if (result.found) {
-        const rawDgiiStatus = (result.status || '').toLowerCase();
-        if (rawDgiiStatus.includes('acept') || rawDgiiStatus === 'accepted') {
+        let dgiiStatus = (result.status || '').toLowerCase();
+        let dgiiMessages: any[] = [];
+        
+        if (result.data) {
+          const rawDoc = result.data;
+          let dgiiEstado = rawDoc.dgiiStatus || rawDoc.estadoDGII || null;
+          
+          if (rawDoc.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
+            for (const respStr of rawDoc.dgiiResponse) {
+              try {
+                const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
+                if (parsed) {
+                  if (parsed.estado) {
+                    dgiiEstado = parsed.estado;
+                  }
+                  if (parsed.mensajes && Array.isArray(parsed.mensajes)) {
+                    dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+          if (dgiiEstado) {
+            dgiiStatus = dgiiEstado.toLowerCase();
+          }
+        }
+
+        if (
+          dgiiStatus.includes('acept') || 
+          dgiiStatus.includes('aprob') || 
+          dgiiStatus === 'accepted' || 
+          dgiiStatus === 'approved'
+        ) {
           newStatus = 'accepted';
-        } else if (rawDgiiStatus.includes('rechaz') || rawDgiiStatus === 'rejected') {
+        } else if (dgiiStatus.includes('rechaz') || dgiiStatus === 'rejected') {
           newStatus = 'rejected';
-        } else if (rawDgiiStatus.includes('envi') || rawDgiiStatus === 'submitted') {
+        } else if (
+          dgiiStatus.includes('envi') || 
+          dgiiStatus.includes('recib') || 
+          dgiiStatus === 'submitted' || 
+          dgiiStatus === 'received'
+        ) {
           newStatus = 'submitted';
         }
 
-        if (newStatus !== inv.status) {
-          await db
-            .update(invoices)
-            .set({
-              status: newStatus as any,
-              dgiiMessage: `Consulta batch - Estado: ${result.status}`,
-              updatedAt: new Date()
-            })
-            .where(and(eq(invoices.id, inv.id), eq(invoices.companyId, auth.companyId)));
-          
-          await db
-            .update(dgiiSubmissions)
-            .set({
-              status: newStatus as any,
-              responseMessage: `Consulta batch - Estado: ${result.status}`,
-              responsePayload: JSON.stringify(result.data || {}),
-              updatedAt: new Date(),
-            })
-            .where(and(
-              eq(dgiiSubmissions.invoiceId, inv.id),
-              eq(dgiiSubmissions.companyId, auth.companyId)
-            ));
-
-          updatePerformed = true;
+        // Construct detailed message for batch status update
+        let displayMessage = `Consulta batch - Estado: ${result.status}`;
+        if (dgiiMessages.length > 0) {
+          const validMsgs = dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
+          if (validMsgs.length > 0) {
+            displayMessage = `Consulta batch - ${result.status}: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
+          }
         }
+
+        // Always update database on sync to ensure fresh status and messages
+        await db
+          .update(invoices)
+          .set({
+            status: newStatus as any,
+            dgiiMessage: displayMessage,
+            updatedAt: new Date()
+          })
+          .where(and(eq(invoices.id, inv.id), eq(invoices.companyId, auth.companyId)));
+        
+        await db
+          .update(dgiiSubmissions)
+          .set({
+            status: newStatus as any,
+            responseMessage: displayMessage,
+            responsePayload: JSON.stringify(result.data || {}),
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(dgiiSubmissions.invoiceId, inv.id),
+            eq(dgiiSubmissions.companyId, auth.companyId)
+          ));
+
+        updatePerformed = true;
       }
 
       updatedResults.push({
