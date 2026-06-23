@@ -198,7 +198,7 @@ export default function DashboardPage() {
         <BorderRotate
           borderRadius={24}
           borderWidth={2}
-          backgroundColor="rgba(239, 246, 255, 0.85)"
+          backgroundColor="rgb(239, 246, 255)"
           gradientColors={{
             primary: '#93c5fd',
             secondary: '#3b82f6',
@@ -227,7 +227,7 @@ export default function DashboardPage() {
         <BorderRotate
           borderRadius={24}
           borderWidth={2}
-          backgroundColor="rgba(254, 243, 199, 0.85)"
+          backgroundColor="rgb(254, 243, 199)"
           gradientColors={{
             primary: '#fde047',
             secondary: '#f59e0b',
@@ -253,7 +253,7 @@ export default function DashboardPage() {
         <BorderRotate
           borderRadius={24}
           borderWidth={2}
-          backgroundColor="rgba(209, 250, 229, 0.85)"
+          backgroundColor="rgb(209, 250, 229)"
           gradientColors={{
             primary: '#6ee7b7',
             secondary: '#10b981',
@@ -279,7 +279,7 @@ export default function DashboardPage() {
         <BorderRotate
           borderRadius={24}
           borderWidth={2}
-          backgroundColor="rgba(254, 226, 226, 0.85)"
+          backgroundColor="rgb(254, 226, 226)"
           gradientColors={{
             primary: '#fca5a5',
             secondary: '#ef4444',
