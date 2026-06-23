@@ -7,7 +7,7 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users, FileMinus, FilePlus, ArrowUpRight, ArrowDownLeft
+  Package, Users, FileMinus, FilePlus, ArrowUpRight, ArrowDownLeft, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -25,6 +25,8 @@ export default function AdjustmentsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [resubmittingId, setResubmittingId] = useState<string | null>(null);
 
   // New Note Form Flow
   const [showForm, setShowForm] = useState(false);
@@ -73,6 +75,42 @@ export default function AdjustmentsPage() {
   useEffect(() => {
     loadAdjustments();
   }, [loadAdjustments]);
+
+  const handleRefreshStatus = async (note: any) => {
+    setRefreshingId(note.id);
+    try {
+      const res = await fetch(`/api/v1/ecf/${note.id}/dgii-status`);
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Estado actualizado: ${data.data.dgiiStatus || data.data.status}`);
+        loadAdjustments();
+      } else {
+        toast.error(data.error?.message || 'Error al consultar estado');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setRefreshingId(null);
+    }
+  };
+
+  const handleResubmit = async (note: any) => {
+    setResubmittingId(note.id);
+    try {
+      const res = await fetch(`/api/v1/ecf/${note.id}/resubmit`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Reenvío encolado exitosamente.');
+        loadAdjustments();
+      } else {
+        toast.error(data.error?.message || 'Error al reenviar');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setResubmittingId(null);
+    }
+  };
 
   // Load warehouses for creation
   useEffect(() => {
@@ -359,24 +397,54 @@ export default function AdjustmentsPage() {
                               RD$ {Number(note.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className={clsx(
-                                "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border",
-                                note.status === 'accepted' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                                note.status === 'rejected' && "bg-rose-50 text-rose-700 border-rose-100",
-                                note.status === 'signed' && "bg-amber-50 text-amber-700 border-amber-100"
-                              )}>
-                                {note.status === 'accepted' ? 'Aceptado DGII' : note.status.toUpperCase()}
-                              </span>
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={clsx(
+                                  "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border",
+                                  note.status === 'accepted' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                                  note.status === 'rejected' && "bg-rose-50 text-rose-700 border-rose-100",
+                                  note.status === 'signed' && "bg-amber-50 text-amber-700 border-amber-100"
+                                )}>
+                                  {note.status === 'accepted' ? 'Aceptado DGII' : note.status.toUpperCase()}
+                                </span>
+                                {note.dgiiMessage && (
+                                  <span className={clsx(
+                                    "text-[10px] font-semibold max-w-[150px] truncate",
+                                    note.status === 'rejected' ? "text-rose-600" : "text-emerald-600"
+                                  )} title={note.dgiiMessage}>
+                                    {note.dgiiMessage}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => handleDownloadPdf(note)}
-                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors animate-fade-in"
                                   title="Imprimir PDF"
                                 >
                                   <Printer className="h-4 w-4" />
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRefreshStatus(note)}
+                                  disabled={refreshingId === note.id}
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors disabled:opacity-40"
+                                  title="Consultar estado DGII"
+                                >
+                                  <RefreshCw className={clsx("h-4 w-4", refreshingId === note.id && "animate-spin")} />
+                                </button>
+                                {['rejected', 'failed'].includes(note.status) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResubmit(note)}
+                                    disabled={resubmittingId === note.id}
+                                    className="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors disabled:opacity-40"
+                                    title="Reenviar a DGII"
+                                  >
+                                    <ArrowRight className={clsx("h-4 w-4", resubmittingId === note.id && "animate-pulse")} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
