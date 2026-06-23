@@ -224,7 +224,7 @@ export default function PayrollPage() {
                       <td className="p-3">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                           pr.status === 'approved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300' :
-                          pr.status === 'calculated' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/35 dark:text-indigo-300' :
+                          pr.status === 'calculated' ? 'bg-[#003366]/10 text-[#003366] dark:bg-[#003366]/30 dark:text-[#a7c8ff]' :
                           'bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-300'
                         }`}>
                           {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}

@@ -168,7 +168,7 @@ export default function HRDashboard() {
           <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-on-surface-variant/70 uppercase">Costo Mensual Nómina</span>
-              <div className="rounded-lg bg-indigo-500/10 p-2 text-indigo-500">
+              <div className="rounded-lg bg-[#003366]/10 p-2 text-[#003366]">
                 <Banknote className="h-5 w-5" />
               </div>
             </div>
@@ -178,7 +178,7 @@ export default function HRDashboard() {
                 Proyección anual: {formatCurrency(metrics.annualPayroll)}
               </p>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
+             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#003366] to-[#005E6A]" />
           </div>
 
           <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
@@ -246,7 +246,7 @@ export default function HRDashboard() {
           {/* Audit Logs / Activity */}
           <div className="rounded-xl border border-outline bg-surface p-5 shadow-sm">
             <h3 className="text-sm font-semibold text-on-surface mb-4 flex items-center gap-1.5">
-              <Award className="h-4 w-4 text-indigo-500" /> Recientes de Auditoría RRHH
+              <Award className="h-4 w-4 text-[#003366]" /> Recientes de Auditoría RRHH
             </h3>
             <div className="flow-root">
               <ul className="-mb-8">

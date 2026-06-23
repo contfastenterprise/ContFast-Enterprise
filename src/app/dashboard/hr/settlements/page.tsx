@@ -227,7 +227,7 @@ export default function SettlementsPage() {
           <div className="flex gap-2">
             <button
               onClick={fetchData}
-              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+              className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -235,13 +235,13 @@ export default function SettlementsPage() {
         </div>
 
         {/* Tab Buttons */}
-        <div className="border-b border-slate-200 dark:border-slate-800">
+        <div className="border-b border-outline/30">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('settlements')}
               className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${
                 activeTab === 'settlements'
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                  ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
                   : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
               }`}
             >
@@ -251,7 +251,7 @@ export default function SettlementsPage() {
               onClick={() => setActiveTab('doblesueldo')}
               className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${
                 activeTab === 'doblesueldo'
-                  ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                  ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
                   : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
               }`}
             >
@@ -263,14 +263,14 @@ export default function SettlementsPage() {
         {/* Loading state */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+            <RefreshCw className="h-8 w-8 animate-spin text-[#003366] dark:text-[#799dd6]" />
           </div>
         ) : activeTab === 'settlements' ? (
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Form Column */}
             <div className="space-y-6 lg:col-span-1">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Nueva Liquidación</h3>
+              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+                <h3 className="text-base font-semibold text-on-surface mb-4">Nueva Liquidación</h3>
                 <form onSubmit={handleSimulate} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
@@ -283,7 +283,7 @@ export default function SettlementsPage() {
                         setCalculation(null);
                       }}
                       required
-                      className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                     >
                       <option value="">Seleccione un empleado...</option>
                       {employees
@@ -308,7 +308,7 @@ export default function SettlementsPage() {
                         setCalculation(null);
                       }}
                       required
-                      className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                     />
                   </div>
 
@@ -325,7 +325,7 @@ export default function SettlementsPage() {
                           setIncludePreaviso(e.target.checked);
                           setCalculation(null);
                         }}
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
                       />
                       <span>Preaviso de Ley</span>
                     </label>
@@ -338,7 +338,7 @@ export default function SettlementsPage() {
                           setIncludeCesantia(e.target.checked);
                           setCalculation(null);
                         }}
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
                       />
                       <span>Cesantía de Ley</span>
                     </label>
@@ -358,7 +358,7 @@ export default function SettlementsPage() {
                           setCalculation(null);
                         }}
                         placeholder="Ej. 14"
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -373,7 +373,7 @@ export default function SettlementsPage() {
                           setOtrosAmount(parseFloat(e.target.value) || 0);
                         }}
                         placeholder="Opcional. Ej. -2000"
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   </div>
@@ -381,7 +381,7 @@ export default function SettlementsPage() {
                   <button
                     type="submit"
                     disabled={calculating}
-                    className="w-full inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                   >
                     {calculating ? 'Calculando...' : 'Calcular Previsualización'}
                   </button>
@@ -392,20 +392,20 @@ export default function SettlementsPage() {
             {/* Calculations Breakdown Column */}
             <div className="space-y-6 lg:col-span-2">
               {calculation ? (
-                <div className="rounded-xl border border-indigo-200 bg-indigo-50/20 p-6 shadow-sm dark:border-indigo-950 dark:bg-indigo-950/10 space-y-6">
-                  <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900 pb-4">
+                <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between border-b border-outline/30 pb-4">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-lg font-bold text-on-surface">
                         {calculation.employee.firstName} {calculation.employee.lastName}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Código: {calculation.employee.employeeCode} | Ingreso: {new Date(calculation.employee.hireDate).toLocaleDateString('es-DO')}
                       </p>
                     </div>
-                    <Sparkles className="h-6 w-6 text-indigo-500" />
+                    <Sparkles className="h-6 w-6 text-[#003366]" />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
+                  <div className="grid grid-cols-3 gap-4 bg-surface p-4 rounded-lg border border-outline/30 text-center">
                     <div>
                       <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Antigüedad</span>
                       <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -429,7 +429,7 @@ export default function SettlementsPage() {
                   {/* Table Breakdown */}
                   <div className="space-y-2">
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Desglose de Pago</h4>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 text-sm">
+                    <div className="divide-y divide-outline/30 rounded-lg border border-outline bg-surface text-sm">
                       <div className="flex justify-between p-3.5">
                         <span className="text-slate-600 dark:text-slate-400">Preaviso ({calculation.calculation.preavisoDays} días)</span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.preaviso)}</span>
@@ -454,7 +454,7 @@ export default function SettlementsPage() {
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-b-lg font-bold text-base text-slate-900 dark:text-slate-100">
+                      <div className="flex justify-between p-4 bg-surface-variant/20 rounded-b-lg font-bold text-base text-on-surface">
                         <span>Total Neto a Recibir</span>
                         <span>{formatCurrency(calculation.calculation.preaviso + calculation.calculation.cesantia + calculation.calculation.vacaciones + calculation.calculation.navidad + otrosAmount)}</span>
                       </div>
@@ -477,22 +477,22 @@ export default function SettlementsPage() {
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={() => setCalculation(null)}
-                      className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                      className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition-all"
                     >
                       Descartar
                     </button>
                     <button
                       onClick={handleSaveSettlement}
                       disabled={saving}
-                      className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-50"
+                      className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                     >
                       {saving ? 'Guardando...' : 'Registrar y Pagar Liquidación'}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950 space-y-4">
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Histórico de Liquidaciones</h3>
+                <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-4">
+                  <h3 className="text-base font-semibold text-on-surface">Histórico de Liquidaciones</h3>
                   
                   {settlements.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
@@ -502,7 +502,7 @@ export default function SettlementsPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse text-sm">
                         <thead>
-                          <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold">
+                          <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
                             <th className="p-3">Empleado</th>
                             <th className="p-3">Código</th>
                             <th className="p-3">Fecha Salida</th>
@@ -514,7 +514,7 @@ export default function SettlementsPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                           {settlements.map((set) => (
-                            <tr key={set.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 text-slate-800 dark:text-slate-200">
+                            <tr key={set.id} className="hover:bg-surface-variant/10 text-on-surface">
                               <td className="p-3 font-medium">{set.firstName} {set.lastName}</td>
                               <td className="p-3">{set.employeeCode}</td>
                               <td className="p-3">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
@@ -534,7 +534,7 @@ export default function SettlementsPage() {
                               <td className="p-3 text-right">
                                 <button
                                   onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
-                                  className="inline-flex items-center justify-center text-indigo-600 hover:text-indigo-900 dark:hover:text-indigo-400 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/20 mr-2"
+                                  className="inline-flex items-center justify-center text-[#003366] hover:text-[#001e40] p-1 rounded hover:bg-slate-55 mr-2"
                                   title="Imprimir Liquidación"
                                 >
                                   <FileText className="h-4 w-4" />
@@ -559,10 +559,10 @@ export default function SettlementsPage() {
         ) : (
           /* Doble Sueldo Tab */
           <div className="space-y-6">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+            <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                  <h3 className="text-base font-semibold text-on-surface">
                     Proyección de Salario de Navidad ({dobleYear})
                   </h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -574,7 +574,7 @@ export default function SettlementsPage() {
                   <select
                     value={dobleYear}
                     onChange={(e) => setDobleYear(parseInt(e.target.value) || new Date().getFullYear())}
-                    className="rounded-md border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="rounded-md border border-outline bg-surface p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                   >
                     {[2025, 2026, 2027, 2028].map((y) => (
                       <option key={y} value={y}>
@@ -605,7 +605,7 @@ export default function SettlementsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold">
+                    <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
                       <th className="p-3">Empleado</th>
                       <th className="p-3">Código</th>
                       <th className="p-3">Fecha de Ingreso</th>
@@ -616,13 +616,13 @@ export default function SettlementsPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {dobleCalculations.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 text-slate-800 dark:text-slate-200">
+                      <tr key={item.id} className="hover:bg-surface-variant/10 text-on-surface">
                         <td className="p-3 font-medium">{item.firstName} {item.lastName}</td>
                         <td className="p-3">{item.employeeCode}</td>
                         <td className="p-3">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
                         <td className="p-3 text-right">{formatCurrency(item.salary)}</td>
                         <td className="p-3 text-center">{item.monthsWorked} meses</td>
-                        <td className="p-3 text-right font-bold text-indigo-600 dark:text-indigo-400">
+                        <td className="p-3 text-right font-bold text-primary">
                           {formatCurrency(item.amount)}
                         </td>
                       </tr>

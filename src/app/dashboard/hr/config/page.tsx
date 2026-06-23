@@ -124,7 +124,7 @@ export default function ConfigPage() {
           <div className="flex gap-2">
             <button
               onClick={fetchConfig}
-              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+              className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
@@ -133,15 +133,15 @@ export default function ConfigPage() {
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* TSS and Overtime Card */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
-                <Settings className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+            <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+              <div className="flex items-center gap-2 border-b border-outline/30 pb-4 mb-4">
+                <Settings className="h-5 w-5 text-primary" />
+                <h3 className="text-base font-semibold text-on-surface">
                   Porcentajes de TSS y Horas Extras
                 </h3>
               </div>
@@ -163,7 +163,7 @@ export default function ConfigPage() {
                         value={config.afpEmployee}
                         onChange={(e) => handleInputChange('afpEmployee', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -177,7 +177,7 @@ export default function ConfigPage() {
                         value={config.sfsEmployee}
                         onChange={(e) => handleInputChange('sfsEmployee', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export default function ConfigPage() {
                         value={config.afpEmployer}
                         onChange={(e) => handleInputChange('afpEmployer', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -212,7 +212,7 @@ export default function ConfigPage() {
                         value={config.sfsEmployer}
                         onChange={(e) => handleInputChange('sfsEmployer', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -226,7 +226,7 @@ export default function ConfigPage() {
                         value={config.riskEmployer}
                         onChange={(e) => handleInputChange('riskEmployer', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -240,7 +240,7 @@ export default function ConfigPage() {
                         value={config.infotepEmployer}
                         onChange={(e) => handleInputChange('infotepEmployer', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   </div>
@@ -262,7 +262,7 @@ export default function ConfigPage() {
                         value={config.overtimeDiurnaRate}
                         onChange={(e) => handleInputChange('overtimeDiurnaRate', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -276,7 +276,7 @@ export default function ConfigPage() {
                         value={config.overtimeNocturnaRate}
                         onChange={(e) => handleInputChange('overtimeNocturnaRate', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -290,7 +290,7 @@ export default function ConfigPage() {
                         value={config.overtimeFestivaRate}
                         onChange={(e) => handleInputChange('overtimeFestivaRate', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
 
@@ -304,17 +304,17 @@ export default function ConfigPage() {
                         value={config.overtimeDobleRate}
                         onChange={(e) => handleInputChange('overtimeDobleRate', e.target.value)}
                         required
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex justify-end pt-4 border-t border-outline/30">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-50"
+                    className="inline-flex items-center justify-center rounded-md bg-[#003366] hover:bg-[#001e40] px-4 py-2.5 text-sm font-semibold text-white shadow disabled:opacity-50 transition-all"
                   >
                     <Save className="mr-2 h-4 w-4" />
                     {saving ? 'Guardando...' : 'Guardar Cambios'}
@@ -325,10 +325,10 @@ export default function ConfigPage() {
 
             {/* ISR Brackets Card */}
             <div className="space-y-6">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
-                  <Scale className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-outline/30 pb-4 mb-4">
+                  <Scale className="h-5 w-5 text-primary" />
+                  <h3 className="text-base font-semibold text-on-surface">
                     Escala de ISR Anual (DGII)
                   </h3>
                 </div>
@@ -338,10 +338,10 @@ export default function ConfigPage() {
                 </p>
 
                 {/* Table of Brackets */}
-                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                <div className="overflow-hidden rounded-lg border border-outline bg-surface">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold">
+                      <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
                         <th className="p-3">Desde Anual</th>
                         <th className="p-3">Hasta Anual</th>
                         <th className="p-3 text-right">Tasa de Impuesto</th>
@@ -356,10 +356,10 @@ export default function ConfigPage() {
                         const fixed = parseFloat(b.fixedAmount) > 0 ? formatCurrency(b.fixedAmount) : 'RD$ 0.00';
 
                         return (
-                          <tr key={b.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                          <tr key={b.id} className="hover:bg-surface-variant/10 text-on-surface">
                             <td className="p-3 font-medium">{fromAmt}</td>
                             <td className="p-3">{toAmt}</td>
-                            <td className="p-3 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+                            <td className="p-3 text-right font-semibold text-[#003366]">
                               {rate}
                             </td>
                             <td className="p-3 text-right">
@@ -378,8 +378,8 @@ export default function ConfigPage() {
                   </table>
                 </div>
 
-                <div className="flex gap-2 rounded-lg border border-indigo-100 bg-indigo-50/20 p-4 dark:border-indigo-900/40 dark:bg-indigo-950/10 text-xs text-slate-500 dark:text-slate-400 mt-4">
-                  <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                <div className="flex gap-2 rounded-lg border border-outline bg-surface-variant/10 p-4 text-xs text-on-surface-variant mt-4">
+                  <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold text-slate-800 dark:text-slate-200">Exención de Impuestos (Ley RD)</p>
                     <p className="mt-0.5">
@@ -390,10 +390,10 @@ export default function ConfigPage() {
               </div>
 
               {/* TSS Threshold info */}
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+                <div className="flex items-center gap-2 border-b border-outline/30 pb-4 mb-4">
                   <AlertCircle className="h-5 w-5 text-amber-500" />
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                  <h3 className="text-base font-semibold text-on-surface">
                     Límites y Topes de Cotización (TSS)
                   </h3>
                 </div>

@@ -191,13 +191,13 @@ export default function OvertimeAndEntriesPage() {
           <div className="flex gap-2">
             <button
               onClick={fetchData}
-              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+              className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
             >
               <RefreshCw className="h-4 w-4" />
             </button>
             <button
               onClick={handleOpenModal}
-              className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] focus:outline-none focus:ring-2 focus:ring-[#003366] focus:ring-offset-2"
             >
               <Plus className="mr-2 h-4 w-4" />
               Nuevo Registro
@@ -207,46 +207,46 @@ export default function OvertimeAndEntriesPage() {
 
         {/* Stats Cards */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm text-on-surface">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Horas Extras Pendientes</span>
+              <span className="text-sm font-medium text-on-surface-variant/80">Horas Extras Pendientes</span>
               <Clock className="h-5 w-5 text-amber-500" />
             </div>
             <div className="mt-2">
-              <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="text-2xl font-bold tracking-tight text-on-surface">
                 {formatCurrency(totalPendingOvertimeCost)}
               </span>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-on-surface-variant/60 mt-1">
                 {records.overtime.filter(r => r.status === 'pending').length} registros listos para procesar
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm text-on-surface">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Ingresos Adicionales Pendientes</span>
+              <span className="text-sm font-medium text-on-surface-variant/80">Ingresos Adicionales Pendientes</span>
               <Coins className="h-5 w-5 text-emerald-500" />
             </div>
             <div className="mt-2">
-              <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="text-2xl font-bold tracking-tight text-on-surface">
                 {formatCurrency(totalPendingIncome)}
               </span>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-on-surface-variant/60 mt-1">
                 Comisiones, incentivos y bonos a pagar
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm text-on-surface">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Deducciones Adicionales Pendientes</span>
+              <span className="text-sm font-medium text-on-surface-variant/80">Deducciones Adicionales Pendientes</span>
               <Percent className="h-5 w-5 text-rose-500" />
             </div>
             <div className="mt-2">
-              <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              <span className="text-2xl font-bold tracking-tight text-on-surface">
                 {formatCurrency(totalPendingDeductions)}
               </span>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-on-surface-variant/60 mt-1">
                 Préstamos y descuentos extraordinarios
               </p>
             </div>
@@ -254,7 +254,7 @@ export default function OvertimeAndEntriesPage() {
         </div>
 
         {/* Tab Buttons */}
-        <div className="border-b border-slate-200 dark:border-slate-800">
+        <div className="border-b border-outline/30">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
             {(['overtime', 'income', 'deduction'] as const).map((tab) => {
               const label =
@@ -270,7 +270,7 @@ export default function OvertimeAndEntriesPage() {
                   onClick={() => setActiveTab(tab)}
                   className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${
                     active
-                      ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                      ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
                       : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                   }`}
                 >
@@ -284,29 +284,29 @@ export default function OvertimeAndEntriesPage() {
         {/* Table & Content */}
         {loading ? (
           <div className="flex h-64 items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
+            <RefreshCw className="h-8 w-8 animate-spin text-[#003366] dark:text-[#799dd6]" />
           </div>
         ) : activeList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white py-16 dark:border-slate-800 dark:bg-slate-950">
-            <AlertCircle className="h-10 w-10 text-slate-400" />
-            <h3 className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">No hay registros</h3>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline bg-surface py-16 text-on-surface">
+            <AlertCircle className="h-10 w-10 text-on-surface-variant/40" />
+            <h3 className="mt-2 text-sm font-semibold">No hay registros</h3>
+            <p className="mt-1 text-sm text-on-surface-variant/70">
               Comience agregando un nuevo registro para este periodo.
             </p>
             <button
               onClick={handleOpenModal}
-              className="mt-4 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="mt-4 inline-flex items-center rounded-md bg-[#003366] px-3 py-2 text-sm font-semibold text-white shadow hover:bg-[#001e40] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#003366]"
             >
               <Plus className="-ml-0.5 mr-1.5 h-4 w-4" />
               Agregar Registro
             </button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+          <div className="overflow-hidden rounded-xl border border-outline bg-surface shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+              <table className="w-full text-left border-collapse text-sm text-on-surface">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-semibold">
+                  <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
                     <th className="p-4">Empleado</th>
                     <th className="p-4">Código</th>
                     <th className="p-4">Tipo</th>
@@ -385,7 +385,7 @@ export default function OvertimeAndEntriesPage() {
         {/* Create Modal Dialog */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-            <div className="relative w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-800 dark:bg-slate-950">
+            <div className="relative w-full max-w-lg rounded-xl border border-outline bg-surface p-6 shadow-lg text-on-surface">
               {/* Close Button */}
               <button
                 onClick={() => setShowModal(false)}
@@ -416,7 +416,7 @@ export default function OvertimeAndEntriesPage() {
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
                     required
-                    className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                   >
                     <option value="">Seleccione un empleado...</option>
                     {employees.map((emp) => (
@@ -436,7 +436,7 @@ export default function OvertimeAndEntriesPage() {
                     value={subType}
                     onChange={(e) => setSubType(e.target.value)}
                     required
-                    className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                   >
                     {activeTab === 'overtime' ? (
                       <>
@@ -480,7 +480,7 @@ export default function OvertimeAndEntriesPage() {
                         onChange={(e) => setHours(e.target.value)}
                         required
                         placeholder="Ej. 5.5"
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   ) : (
@@ -495,7 +495,7 @@ export default function OvertimeAndEntriesPage() {
                         onChange={(e) => setAmount(e.target.value)}
                         required
                         placeholder="Ej. 1500"
-                        className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                       />
                     </div>
                   )}
@@ -509,7 +509,7 @@ export default function OvertimeAndEntriesPage() {
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       required
-                      className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                     />
                   </div>
                 </div>
@@ -525,7 +525,7 @@ export default function OvertimeAndEntriesPage() {
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Escriba un detalle..."
                       rows={2}
-                      className="w-full rounded-md border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                     />
                   </div>
                 )}
@@ -535,14 +535,14 @@ export default function OvertimeAndEntriesPage() {
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900"
+                    className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-indigo-700 disabled:opacity-50"
+                    className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                   >
                     {submitting ? 'Guardando...' : 'Guardar Registro'}
                   </button>
