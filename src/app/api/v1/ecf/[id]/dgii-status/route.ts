@@ -108,6 +108,8 @@ export async function GET(
         newStatus = 'accepted';
       } else if (dgiiStatus.includes('rechaz') || dgiiStatus === 'rejected') {
         newStatus = 'rejected';
+      } else if (dgiiStatus.includes('envi') || dgiiStatus === 'submitted') {
+        newStatus = 'submitted';
       }
 
       // Update invoice if status changed

@@ -162,6 +162,7 @@ export async function POST(
           totalRetained: Number(invoice.totalRetained || 0),
           totalNet: Number(invoice.totalNet || invoice.total),
           notes: invoice.notes || '',
+          codigoFactura: invoice.codigoFactura,
           securityCode,
           signatureDate: signedDate || invoice.createdAt.toISOString(),
           ncfExpiryDate: ncfExpiry,

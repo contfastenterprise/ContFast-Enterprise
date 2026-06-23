@@ -141,6 +141,8 @@ export async function POST(req: NextRequest) {
           newStatus = 'accepted';
         } else if (rawDgiiStatus.includes('rechaz') || rawDgiiStatus === 'rejected') {
           newStatus = 'rejected';
+        } else if (rawDgiiStatus.includes('envi') || rawDgiiStatus === 'submitted') {
+          newStatus = 'submitted';
         }
 
         if (newStatus !== inv.status) {

@@ -304,7 +304,7 @@ export class DocumentTemplates {
   ${padDots('Dirección', 18)} ${customer.address || ''}
             </div>
             <div class="invoice-num">
-              Factura N°: FAC-${inv.ncf.substring(3)}
+              Factura N°: ${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}
             </div>
           </div>
 

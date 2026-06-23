@@ -4,6 +4,26 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices } from '@/db';
 import { eq, and, isNull, gte, lte, sum, count, sql } from 'drizzle-orm';
 
+function getDRCurrentDateParts() {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(new Date());
+  const partMap = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return {
+    year: parseInt(partMap.year, 10),
+    month: parseInt(partMap.month, 10),
+    day: parseInt(partMap.day, 10)
+  };
+}
+
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
@@ -20,14 +40,20 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
-    // Default: current month
-    const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    // Default: current month in Dominican Republic timezone
+    const drDate = getDRCurrentDateParts();
+    const defaultFrom = new Date(`${drDate.year}-${String(drDate.month).padStart(2, '0')}-01T00:00:00-04:00`);
+    const lastDayOfMonth = new Date(drDate.year, drDate.month, 0).getDate();
+    const defaultTo = new Date(`${drDate.year}-${String(drDate.month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}T23:59:59.999-04:00`);
 
-    const from = searchParams.get('from') ? new Date(searchParams.get('from')!) : defaultFrom;
-    const to = searchParams.get('to')
-      ? (() => { const d = new Date(searchParams.get('to')!); d.setHours(23, 59, 59, 999); return d; })()
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
+
+    const from = fromParam
+      ? (fromParam.includes('T') ? new Date(fromParam) : new Date(`${fromParam}T00:00:00-04:00`))
+      : defaultFrom;
+    const to = toParam
+      ? (toParam.includes('T') ? new Date(toParam) : new Date(`${toParam}T23:59:59.999-04:00`))
       : defaultTo;
 
     const baseConditions = and(

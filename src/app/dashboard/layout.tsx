@@ -94,6 +94,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, pathname, router]);
 
+  // Inactividad / Auto-logout automático al expirar el tiempo de inactividad
+  useEffect(() => {
+    // Configuración del tiempo máximo de inactividad (15 minutos)
+    const TIEMPO_INACTIVIDAD_MS = 15 * 60 * 1000;
+    let ultimoAcceso = Date.now();
+    let timerId: NodeJS.Timeout;
+
+    const verificarInactividad = () => {
+      const tiempoTranscurrido = Date.now() - ultimoAcceso;
+      if (tiempoTranscurrido >= TIEMPO_INACTIVIDAD_MS) {
+        toast.warning('Su sesión ha expirado por inactividad.');
+        fetch('/api/v1/auth/logout', { method: 'POST' }).finally(() => {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('cf_user');
+          }
+          router.push('/auth/login');
+        });
+      } else {
+        clearTimeout(timerId);
+        timerId = setTimeout(verificarInactividad, TIEMPO_INACTIVIDAD_MS - tiempoTranscurrido);
+      }
+    };
+
+    const registrarActividad = () => {
+      ultimoAcceso = Date.now();
+      clearTimeout(timerId);
+      timerId = setTimeout(verificarInactividad, TIEMPO_INACTIVIDAD_MS);
+    };
+
+    const manejarEnfoquePestana = () => {
+      if (document.visibilityState === 'visible') {
+        verificarInactividad();
+      }
+    };
+
+    const eventos = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    eventos.forEach((evento) => {
+      window.addEventListener(evento, registrarActividad);
+    });
+
+    window.addEventListener('visibilitychange', manejarEnfoquePestana);
+    window.addEventListener('focus', manejarEnfoquePestana);
+
+    registrarActividad();
+
+    return () => {
+      clearTimeout(timerId);
+      eventos.forEach((evento) => {
+        window.removeEventListener(evento, registrarActividad);
+      });
+      window.removeEventListener('visibilitychange', manejarEnfoquePestana);
+      window.removeEventListener('focus', manejarEnfoquePestana);
+    };
+  }, [router]);
+
   const handleSwitchCompany = async (newCompanyId: string) => {
     if (newCompanyId === user.companyId) return;
     setSwitching(true);

@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
         and(
           eq(invoices.companyId, auth.companyId),
           isNull(invoices.deletedAt),
-          gte(invoices.createdAt, new Date(startDateStr + 'T00:00:00Z')),
-          lte(invoices.createdAt, new Date(endDateStr + 'T23:59:59Z')),
+          gte(invoices.createdAt, new Date(startDateStr + 'T00:00:00-04:00')),
+          lte(invoices.createdAt, new Date(endDateStr + 'T23:59:59.999-04:00')),
           ne(invoices.status, 'draft'),
           ne(invoices.status, 'void')
         )

@@ -498,7 +498,14 @@ function ComprobantesTab() {
   const [stats, setStats] = useState<ECFStats | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [filters, setFilters] = useState({ status: '', ecfType: '', from: '', to: '', q: '' });
+  const [filters, setFilters] = useState(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    return { status: '', ecfType: '', from: todayStr, to: todayStr, q: '' };
+  });
   const [page, setPage] = useState(1);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -540,6 +547,35 @@ function ComprobantesTab() {
         const totalChecked = data.data.length;
         toast.success(`Sincronización completada: ${updatedCount} facturas actualizadas de ${totalChecked} consultadas.`);
         setSelectedIds([]);
+        fetchInvoices();
+        fetchStats();
+      } else {
+        toast.error(data.error?.message || 'Error en la sincronización en lote');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSyncingBatch(false);
+    }
+  };
+
+  const handleSyncFilteredStatus = async () => {
+    if (invoiceList.length === 0) return;
+    setSyncingBatch(true);
+    try {
+      const invoiceIds = invoiceList.map(inv => inv.id);
+      const res = await fetch('/api/v1/ecf/dgii-status/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ invoiceIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updatedCount = data.data.filter((item: any) => item.updated).length;
+        const totalChecked = data.data.length;
+        toast.success(`Sincronización completada: ${updatedCount} facturas actualizadas de ${totalChecked} consultadas.`);
         fetchInvoices();
         fetchStats();
       } else {
@@ -752,13 +788,27 @@ function ComprobantesTab() {
           )}
         </div>
 
-        <button
-          onClick={fetchInvoices}
-          className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap"
-        >
-          <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-          <span>ACTUALIZAR DATOS</span>
-        </button>
+        <div className="flex gap-2 w-full md:w-auto">
+          <button
+            onClick={handleSyncFilteredStatus}
+            disabled={syncingBatch || invoiceList.length === 0}
+            className="flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap animate-fade-in"
+          >
+            {syncingBatch ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span>SINCRONIZAR DGII</span>
+          </button>
+          <button
+            onClick={fetchInvoices}
+            className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap"
+          >
+            <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+            <span>ACTUALIZAR DATOS</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">

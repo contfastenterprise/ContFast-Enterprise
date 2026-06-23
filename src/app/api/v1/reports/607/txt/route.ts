@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
     }
 
     const [year, month] = period.split('-');
-    const start = new Date(`${year}-${month}-01T00:00:00Z`);
-    const end = new Date(new Date(Number(year), Number(month), 1).getTime() - 1); // Last day of month
+    const start = new Date(`${year}-${month}-01T00:00:00-04:00`);
+    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    const end = new Date(`${year}-${month}-${String(lastDay).padStart(2, '0')}T23:59:59.999-04:00`);
 
     const list = await db
       .select({

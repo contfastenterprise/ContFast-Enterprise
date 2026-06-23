@@ -156,22 +156,32 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   if (result.success) {
     console.log(`[JobRunner] ✓ DGII submission accepted for invoice ${invoiceId}, trackId: ${result.trackId}`);
 
-    // Update invoice status to accepted
+    const resEstado = (result.rawResponse?.estado || 'Aceptado').toLowerCase();
+    let newStatus = 'accepted';
+    if (resEstado.includes('acept') || resEstado === 'accepted') {
+      newStatus = 'accepted';
+    } else if (resEstado.includes('rechaz') || resEstado === 'rejected') {
+      newStatus = 'rejected';
+    } else if (resEstado.includes('envi') || resEstado === 'submitted') {
+      newStatus = 'submitted';
+    }
+
+    // Update invoice status to accepted/submitted/rejected
     await db
       .update(invoices)
       .set({
-        status: 'accepted',
+        status: newStatus as any,
         msellerTrackId: result.trackId || null,
         dgiiMessage: result.message || 'Aceptado por la DGII',
         updatedAt: new Date(),
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));
 
-    // Update dgii_submissions to accepted
+    // Update dgii_submissions to accepted/submitted/rejected
     await db
       .update(dgiiSubmissions)
       .set({
-        status: 'accepted',
+        status: newStatus as any,
         trackId: result.trackId,
         responseMessage: result.message || 'Aceptado',
         responsePayload: JSON.stringify(result.rawResponse),

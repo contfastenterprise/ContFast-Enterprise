@@ -38,10 +38,12 @@ export async function GET(req: NextRequest) {
 
     if (status) conditions.push(eq(invoices.status, status as any));
     if (ecfType) conditions.push(eq(invoices.ecfType, ecfType));
-    if (from) conditions.push(gte(invoices.createdAt, new Date(from)));
+    if (from) {
+      const fromDate = from.includes('T') ? new Date(from) : new Date(`${from}T00:00:00-04:00`);
+      conditions.push(gte(invoices.createdAt, fromDate));
+    }
     if (to) {
-      const toDate = new Date(to);
-      toDate.setHours(23, 59, 59, 999);
+      const toDate = to.includes('T') ? new Date(to) : new Date(`${to}T23:59:59.999-04:00`);
       conditions.push(lte(invoices.createdAt, toDate));
     }
     if (q) {

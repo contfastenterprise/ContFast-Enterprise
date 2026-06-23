@@ -320,7 +320,18 @@ export class InvoiceService {
           msellerTrackId = msellerRes.trackId || null;
           securityHash = msellerRes.securityCode || '';
           qrCode = msellerRes.qrCode || null;
-          finalStatus = 'accepted';
+          
+          const resEstado = (msellerRes.rawResponse?.estado || 'Aceptado').toLowerCase();
+          if (resEstado.includes('acept') || resEstado === 'accepted') {
+            finalStatus = 'accepted';
+          } else if (resEstado.includes('rechaz') || resEstado === 'rejected') {
+            finalStatus = 'rejected';
+          } else if (resEstado.includes('envi') || resEstado === 'submitted') {
+            finalStatus = 'submitted';
+          } else {
+            finalStatus = 'accepted';
+          }
+
           dgiiMessage = msellerRes.message || 'Aceptado por DGII';
           msellerResponsePayload = msellerRes.rawResponse;
         } else {
@@ -731,6 +742,7 @@ export class InvoiceService {
         totalTaxes,
         total,
         notes: data.notes || '',
+        codigoFactura: result.invoice.codigoFactura,
         securityCode: securityHash,
         signatureDate: new Date().toISOString(),
         lines: itemLines.map(l => {

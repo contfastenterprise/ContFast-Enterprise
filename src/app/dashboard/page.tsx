@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart
 } from 'lucide-react';
@@ -153,6 +154,33 @@ export default function DashboardPage() {
   useEffect(() => {
     loadDashboardData();
   }, [loadDashboardData]);
+
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleViewPdf = (invoiceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+  };
+
+  const handleResendEmail = async (invoiceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setResendingId(invoiceId);
+    try {
+      const res = await fetch(`/api/v1/invoices/${invoiceId}/email`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success('Correo enviado', { description: data.message || 'El comprobante ha sido reenviado por correo.' });
+      } else {
+        toast.error('Error al enviar correo', { description: data.error?.message || 'No se pudo reenviar el comprobante.' });
+      }
+    } catch (error: any) {
+      toast.error('Error de red', { description: error.message || 'Ocurrió un error al intentar conectar con el servidor.' });
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const filteredInvoices = recentInvoices.filter(inv =>
     !searchQuery ||
@@ -471,8 +499,25 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-primary rounded-xl transition-all shadow-sm" title="Ver PDF"><Eye className="h-4 w-4" /></button>
-                          <button className="p-2 bg-surface-variant/60 hover:bg-primary hover:text-primary rounded-xl transition-all shadow-sm" title="Reenviar"><Send className="h-4 w-4" /></button>
+                          <button
+                            onClick={(e) => handleViewPdf(inv.id, e)}
+                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
+                            title="Ver PDF"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => handleResendEmail(inv.id, e)}
+                            disabled={resendingId === inv.id}
+                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Reenviar por Correo"
+                          >
+                            {resendingId === inv.id ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
                       </td>
                     </tr>

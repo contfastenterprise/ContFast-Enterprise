@@ -143,6 +143,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     totalRetained: Number(invoiceRecordDb.totalRetained || 0),
     totalNet: Number(invoiceRecordDb.totalNet || invoiceRecordDb.total),
     notes: invoiceRecordDb.notes || '',
+    codigoFactura: invoiceRecordDb.codigoFactura,
     securityCode,
     signatureDate: signedDate || invoiceRecordDb.createdAt.toISOString(),
     ncfExpiryDate: ncfExpiry,
