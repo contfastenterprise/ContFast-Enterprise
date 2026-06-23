@@ -326,6 +326,76 @@ export class MSellerClient {
     }
   }
 
+  async getDocumentsStatusBatch(ncfs: string[]): Promise<{
+    success: boolean;
+    total: number;
+    results: Array<{
+      ecf: string;
+      status: string;
+      found: boolean;
+      data?: any;
+    }>;
+    rawResponse?: any;
+    message?: string;
+  }> {
+    const idToken = await this.authenticate();
+    const apiKey = this.getApiKey();
+
+    const url = `${this.baseUrl}/${this.entorno}/documentos-ecf/status/batch`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'X-API-KEY': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ecfs: ncfs }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const raw = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          success: false,
+          total: 0,
+          results: [],
+          message: raw?.message || `Error ${response.status}`,
+          rawResponse: raw,
+        };
+      }
+
+      return {
+        success: true,
+        total: raw?.total || 0,
+        results: raw?.results || [],
+        rawResponse: raw,
+      };
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return {
+          success: false,
+          total: 0,
+          results: [],
+          message: 'timeout - Excedido el tiempo límite para obtener el estatus en lote.',
+        };
+      }
+      return {
+        success: false,
+        total: 0,
+        results: [],
+        message: err.message || 'FetchError - Error al obtener el estatus en lote.',
+      };
+    }
+  }
+
+
   /**
    * Construye el payload ECF completo a partir de datos de la factura.
    * Formato de fecha DGII: dd-MM-yyyy
