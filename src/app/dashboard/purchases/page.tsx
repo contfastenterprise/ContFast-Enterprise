@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
-  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock
+  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -967,16 +967,19 @@ export default function PurchasesPage() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Número de Cheque</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
+                              Número de Cheque <span className="text-red-500 font-bold">* (Obligatorio)</span>
+                            </label>
                             <input 
                               type="text" 
                               value={gcCheckNumber} onChange={e => setGcCheckNumber(e.target.value)}
-                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                               placeholder="Ej: 10023"
+                              required
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 font-bold text-primary">Monto Cheque</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 text-primary">Monto Cheque</label>
                             <input 
                               type="number"
                               step="0.01"
@@ -990,6 +993,15 @@ export default function PurchasesPage() {
                               }}
                               className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-bold font-mono"
                             />
+                            {Math.abs(gcAmount - grandTotal) > 0.01 && (
+                              <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-[10px] text-amber-800 dark:text-amber-300 flex items-start gap-2 leading-relaxed shadow-sm">
+                                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                <div>
+                                  <span className="font-bold block mb-0.5">Monto Modificado</span>
+                                  El monto del cheque difiere del total de la compra (RD$ {roundMoney(grandTotal).toLocaleString(undefined, {minimumFractionDigits: 2})}). Asegúrese de que esta diferencia sea intencional.
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1003,11 +1015,13 @@ export default function PurchasesPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-amber-700 mb-1">Fecha de Cobro *</label>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
+                              Fecha de Cobro <span className="text-red-500 font-bold">* (Obligatorio)</span>
+                            </label>
                             <input 
                               type="date" 
                               value={gcDueDate} onChange={e => setGcDueDate(e.target.value)}
-                              className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                              className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                               required
                             />
                           </div>
