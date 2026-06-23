@@ -501,7 +501,56 @@ function ComprobantesTab() {
   const [filters, setFilters] = useState({ status: '', ecfType: '', from: '', to: '', q: '' });
   const [page, setPage] = useState(1);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [syncingBatch, setSyncingBatch] = useState(false);
   const [resubmittingId, setResubmittingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [page, filters]);
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === invoiceList.length && invoiceList.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(invoiceList.map(inv => inv.id));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchSyncStatus = async () => {
+    if (selectedIds.length === 0) return;
+    setSyncingBatch(true);
+    try {
+      const res = await fetch('/api/v1/ecf/dgii-status/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ invoiceIds: selectedIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const updatedCount = data.data.filter((item: any) => item.updated).length;
+        const totalChecked = data.data.length;
+        toast.success(`Sincronización completada: ${updatedCount} facturas actualizadas de ${totalChecked} consultadas.`);
+        setSelectedIds([]);
+        fetchInvoices();
+        fetchStats();
+      } else {
+        toast.error(data.error?.message || 'Error en la sincronización en lote');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSyncingBatch(false);
+    }
+  };
 
   const fetchStats = useCallback(async () => {
     setLoadingStats(true);
@@ -725,6 +774,14 @@ function ComprobantesTab() {
             <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead className="bg-surface-container-low border-b border-outline-variant">
                 <tr>
+                  <th className="py-4 px-6 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer h-4 w-4"
+                      checked={invoiceList.length > 0 && selectedIds.length === invoiceList.length}
+                      onChange={handleToggleSelectAll}
+                    />
+                  </th>
                   <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
                   <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">NCF</th>
                   <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Tipo</th>
@@ -735,7 +792,15 @@ function ComprobantesTab() {
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {invoiceList.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-surface-container-low/50 transition-colors group">
+                  <tr key={inv.id} className={`hover:bg-surface-container-low/50 transition-colors group ${selectedIds.includes(inv.id) ? 'bg-primary/5 hover:bg-primary/10' : ''}`}>
+                    <td className="py-4 px-6 text-center w-12">
+                      <input
+                        type="checkbox"
+                        className="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer h-4 w-4"
+                        checked={selectedIds.includes(inv.id)}
+                        onChange={() => handleToggleSelectOne(inv.id)}
+                      />
+                    </td>
                     <td className="py-4 px-6 font-body-sm text-on-surface-variant">{formatDate(inv.createdAt)}</td>
                     <td className="py-4 px-6 font-body-sm text-primary font-medium">{inv.ncf}</td>
                     <td className="py-4 px-6"><ECFTypeBadge type={inv.ecfType} /></td>
@@ -774,6 +839,39 @@ function ComprobantesTab() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-white border border-outline-variant shadow-xl p-4 rounded-xl flex items-center gap-6"
+          >
+            <span className="text-sm font-bold text-secondary">
+              {selectedIds.length} seleccionado(s)
+            </span>
+            <button
+              onClick={handleBatchSyncStatus}
+              disabled={syncingBatch}
+              className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-bold text-xs hover:brightness-110 active:scale-95 transition-all"
+            >
+              {syncingBatch ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              Sincronizar Lote DGII
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
