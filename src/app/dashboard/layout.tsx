@@ -11,8 +11,16 @@ import AppSidebar from '@/components/ui/app-sidebar';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Load sidebar collapsed state preference from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('sidebarCollapsed');
+    if (stored !== null) {
+      setSidebarCollapsed(JSON.parse(stored));
+    }
+  }, []);
   const [user, setUser] = useState<any>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
@@ -156,9 +164,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-5 w-5" strokeWidth={1.5} />
           </button>
 
-          {/* Desktop sidebar toggle */}
           <button
-            onClick={() => setSidebarCollapsed(prev => !prev)}
+            onClick={() => setSidebarCollapsed(prev => {
+              const next = !prev;
+              localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
+              return next;
+            })}
             className="hidden md:flex p-2 hover:bg-white/10 rounded-lg transition-all"
             title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
           >
