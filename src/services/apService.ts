@@ -1,8 +1,9 @@
 import { db } from '@/db';
 import { ApRepository } from '@/repositories/apRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
-import { apPayments, checks, accountsPayable } from '@/db/schema';
+import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface RegisterPaymentInput {
   companyId: string;
@@ -203,7 +204,38 @@ export class ApService {
         // 3. Update accounts payable balance
         await ApRepository.updateApBalance(tx, ap.id, companyId, newBalance);
 
-        // 4. Create Ledger entry
+        // 4. Update bank account balance and create bank transaction
+        if (check.bankAccountId) {
+          const [bankAcc] = await tx
+            .select()
+            .from(bankAccounts)
+            .where(and(eq(bankAccounts.id, check.bankAccountId), eq(bankAccounts.companyId, companyId)));
+
+          if (bankAcc) {
+            const currentBankBalance = parseFloat(bankAcc.balance);
+            const newBankBalance = currentBankBalance - amountNum;
+
+            await tx.update(bankAccounts)
+              .set({ balance: newBankBalance.toString(), updatedAt: new Date() })
+              .where(eq(bankAccounts.id, check.bankAccountId));
+
+            await tx.insert(bankTransactions).values({
+              id: uuidv4(),
+              companyId,
+              bankAccountId: check.bankAccountId,
+              date: today.toISOString().split('T')[0],
+              type: 'withdrawal',
+              amount: amountNum.toString(),
+              reference: check.checkNumber,
+              description: `Aplicación Automática de Cheque en Garantía #${check.checkNumber} - Beneficiario: ${check.payee}`,
+              status: 'reconciled',
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          }
+        }
+
+        // 5. Create Ledger entry
         const description = `Aplicación de Cheque en Garantía Vencido #${check.checkNumber} - Proveedor ${item.supplierName}`;
         
         await AccountRepository.createJournalEntry(tx, {
@@ -232,6 +264,129 @@ export class ApService {
       return {
         appliedCount,
         totalAppliedAmount,
+      };
+    });
+  }
+
+  /**
+   * Applies/Clears a single guarantee check.
+   */
+  static async applySingleGuaranteeCheck(companyId: string, checkId: string) {
+    const today = new Date();
+
+    return await db.transaction(async (tx) => {
+      // 1. Get the check
+      const [check] = await tx
+        .select()
+        .from(checks)
+        .where(and(eq(checks.id, checkId), eq(checks.companyId, companyId)));
+
+      if (!check) {
+        throw new Error('Cheque en garantía no encontrado.');
+      }
+
+      if (check.status !== 'pending' || !check.isGuarantee) {
+        throw new Error('El cheque no es un cheque en garantía pendiente o ya ha sido procesado.');
+      }
+
+      if (!check.apId) {
+        throw new Error('El cheque en garantía no está asociado a una cuenta por pagar.');
+      }
+
+      // 2. Get the payment
+      const [payment] = await tx
+        .select()
+        .from(apPayments)
+        .where(and(eq(apPayments.checkId, checkId), eq(apPayments.companyId, companyId)));
+
+      if (!payment) {
+        throw new Error('Registro de pago asociado al cheque no encontrado.');
+      }
+
+      // 3. Get the accounts payable
+      const [ap] = await tx
+        .select()
+        .from(accountsPayable)
+        .where(and(eq(accountsPayable.id, check.apId), eq(accountsPayable.companyId, companyId)));
+
+      if (!ap) {
+        throw new Error('Cuenta por pagar asociada no encontrada.');
+      }
+
+      const amountNum = parseFloat(payment.amount);
+      const apBalance = parseFloat(ap.balance);
+
+      const newBalance = Math.max(0, apBalance - amountNum);
+
+      // 4. Update check status to cleared
+      await tx.update(checks)
+        .set({ status: 'cleared', updatedAt: new Date() })
+        .where(eq(checks.id, check.id));
+
+      // 5. Update payment status to applied
+      await tx.update(apPayments)
+        .set({ status: 'applied', updatedAt: new Date() })
+        .where(eq(apPayments.id, payment.id));
+
+      // 6. Update accounts payable balance
+      await ApRepository.updateApBalance(tx, ap.id, companyId, newBalance);
+
+      // 7. Update bank account balance and create bank transaction
+      if (check.bankAccountId) {
+        const [bankAcc] = await tx
+          .select()
+          .from(bankAccounts)
+          .where(and(eq(bankAccounts.id, check.bankAccountId), eq(bankAccounts.companyId, companyId)));
+
+        if (bankAcc) {
+          const currentBankBalance = parseFloat(bankAcc.balance);
+          const newBankBalance = currentBankBalance - amountNum;
+
+          await tx.update(bankAccounts)
+            .set({ balance: newBankBalance.toString(), updatedAt: new Date() })
+            .where(eq(bankAccounts.id, check.bankAccountId));
+
+          await tx.insert(bankTransactions).values({
+            id: uuidv4(),
+            companyId,
+            bankAccountId: check.bankAccountId,
+            date: today.toISOString().split('T')[0],
+            type: 'withdrawal',
+            amount: amountNum.toString(),
+            reference: check.checkNumber,
+            description: `Aplicación de Cheque en Garantía #${check.checkNumber} - Beneficiario: ${check.payee}`,
+            status: 'reconciled',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        }
+      }
+
+      // 8. Create Ledger entry
+      const description = `Aplicación de Cheque en Garantía #${check.checkNumber} - Beneficiario: ${check.payee}`;
+      
+      await AccountRepository.createJournalEntry(tx, {
+        companyId,
+        reference: payment.id,
+        date: today,
+        description,
+        lines: [
+          {
+            accountId: payment.debitAccountId,
+            debit: amountNum,
+            credit: 0,
+          },
+          {
+            accountId: payment.creditAccountId,
+            debit: 0,
+            credit: amountNum,
+          }
+        ]
+      });
+
+      return {
+        appliedCount: 1,
+        totalAppliedAmount: amountNum,
       };
     });
   }

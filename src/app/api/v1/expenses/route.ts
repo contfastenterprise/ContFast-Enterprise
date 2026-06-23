@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, chartOfAccounts } from '@/db';
+import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, chartOfAccounts, checks, apPayments } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { eq, sql, and, between } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
       paymentMethod, 
       description,
       warehouseId,
-      lines // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
+      lines, // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
+      guaranteeCheck
     } = body;
 
     // Validation
@@ -161,15 +162,54 @@ export async function POST(req: NextRequest) {
 
       // 4. Accounts Payable (if Credit -> Payment Method '04')
       if (paymentMethod === '04' && supplierId) {
+        const apId = uuidv4();
+        const apBalanceVal = (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0));
+        
         await tx.insert(accountsPayable).values({
-          id: uuidv4(),
+          id: apId,
           companyId: session.companyId,
           supplierId: supplierId,
           amount: amount.toString(), // Total with taxes ideally, but using amount + taxes
-          balance: (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0)).toString(),
+          balance: apBalanceVal.toString(),
           dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           status: 'pending',
         });
+
+        // 4b. Create Guarantee Check & Pending Payment if present
+        if (guaranteeCheck) {
+          const checkId = uuidv4();
+          const checkAmount = parseFloat(guaranteeCheck.amount) || apBalanceVal;
+
+          await tx.insert(checks).values({
+            id: checkId,
+            companyId: session.companyId,
+            bankAccountId: guaranteeCheck.bankAccountId,
+            checkNumber: guaranteeCheck.checkNumber,
+            payee: guaranteeCheck.payee || 'Proveedor',
+            amount: checkAmount.toString(),
+            issueDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+            dueDate: new Date(guaranteeCheck.dueDate).toISOString().split('T')[0],
+            isGuarantee: true,
+            apId: apId,
+            status: 'pending',
+          });
+
+          const accAp = await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability');
+          const accBank = await getOrCreateAccount(tx, session.companyId, '1.1.02', 'Efectivo en Bancos', 'asset');
+
+          await tx.insert(apPayments).values({
+            id: uuidv4(),
+            companyId: session.companyId,
+            apId: apId,
+            amount: checkAmount.toString(),
+            paymentMethod: 'check',
+            checkId: checkId,
+            debitAccountId: accAp.id,
+            creditAccountId: accBank.id,
+            paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+            status: 'pending_guarantee',
+          });
+        }
       }
 
       // 5. Journal Entry Generation (Asiento Contable)

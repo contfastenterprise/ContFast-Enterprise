@@ -186,6 +186,8 @@ export class ApRepository {
       creditAccountCode: r.credit.code,
       checkNumber: r.check?.checkNumber,
       dueDate: r.check?.dueDate,
+      checkStatus: r.check?.status,
+      checkBankAccountId: r.check?.bankAccountId,
     }));
   }
 

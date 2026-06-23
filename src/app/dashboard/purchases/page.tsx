@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
-  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer
+  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -50,9 +50,19 @@ interface ExpenseDetail extends Expense {
 }
 
 export default function PurchasesPage() {
-  const [activeTab, setActiveTab] = useState<'historial' | 'nuevo'>('historial');
+  const [activeTab, setActiveTab] = useState<'historial' | 'nuevo' | 'cheques'>('historial');
   const [loading, setLoading] = useState(false);
   const [isMinorExpense, setIsMinorExpense] = useState(false);
+
+  // Guarantee Check Form State
+  const [hasGuaranteeCheck, setHasGuaranteeCheck] = useState(false);
+  const [gcBankAccountId, setGcBankAccountId] = useState('');
+  const [gcCheckNumber, setGcCheckNumber] = useState('');
+  const [gcAmount, setGcAmount] = useState<number>(0);
+  const [gcPayee, setGcPayee] = useState('');
+  const [gcIssueDate, setGcIssueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [gcDueDate, setGcDueDate] = useState('');
+  const [bankAccountsList, setBankAccountsList] = useState<{ id: string; bankName: string; accountNumber: string; currency: string }[]>([]);
 
   // Form State
   const [supplierId, setSupplierId] = useState('');
@@ -100,6 +110,19 @@ export default function PurchasesPage() {
       })
       .catch(err => console.error('Error fetching user info:', err));
 
+    // Load bank accounts
+    fetch('/api/v1/bank/accounts')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setBankAccountsList(data.data || []);
+          if (data.data && data.data.length > 0) {
+            setGcBankAccountId(data.data[0].id);
+          }
+        }
+      })
+      .catch(err => console.error("Error loading bank accounts", err));
+
     Promise.all([
       fetch('/api/v1/products?limit=1000').then(r => r.json()),
       fetch('/api/v1/suppliers').then(r => r.json()),
@@ -112,8 +135,27 @@ export default function PurchasesPage() {
         setWarehouses(whList);
         if (whList.length > 0) setWarehouseId(whList[0].id);
       }
-    });
+    }).catch(err => console.error("Error loading lookup data", err));
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam === 'cheques') {
+        setActiveTab('cheques');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (supplierId && suppliers.length > 0) {
+      const selected = suppliers.find(s => s.id === supplierId);
+      if (selected) {
+        setGcPayee(selected.name);
+      }
+    }
+  }, [supplierId, suppliers]);
 
   // Filter and search action
   const handleSearch = async () => {
@@ -229,10 +271,21 @@ export default function PurchasesPage() {
   const totalItbis = lines.reduce((acc, l) => acc + l.itbis, 0);
   const grandTotal = totalSubtotal + totalItbis + globalIsc + globalOtherTaxes;
 
+  useEffect(() => {
+    setGcAmount(grandTotal);
+  }, [grandTotal]);
+
   const saveExpense = async () => {
     if (!isMinorExpense && !supplierId) return toast.error('Selecciona un suplidor');
     if (!issueDate) return toast.error('Selecciona fecha de factura');
     if (lines.length === 0) return toast.error('Agrega al menos una línea');
+
+    if (paymentMethod === '04' && hasGuaranteeCheck) {
+      if (!gcBankAccountId) return toast.error('Selecciona la cuenta bancaria del cheque');
+      if (!gcCheckNumber) return toast.error('Ingresa el número de cheque');
+      if (!gcDueDate) return toast.error('Selecciona la fecha de cobro del cheque');
+      if (gcAmount <= 0) return toast.error('El monto del cheque debe ser mayor a 0');
+    }
 
     setLoading(true);
     try {
@@ -257,7 +310,15 @@ export default function PurchasesPage() {
           subtotal: l.subtotal,
           itbis: l.itbis,
           total: l.total
-        }))
+        })),
+        guaranteeCheck: (paymentMethod === '04' && hasGuaranteeCheck) ? {
+          bankAccountId: gcBankAccountId,
+          checkNumber: gcCheckNumber,
+          payee: gcPayee,
+          amount: gcAmount,
+          issueDate: gcIssueDate,
+          dueDate: gcDueDate
+        } : null
       };
 
       const res = await fetch('/api/v1/expenses', {
@@ -275,6 +336,9 @@ export default function PurchasesPage() {
         setDescription('');
         setGlobalIsc(0);
         setGlobalOtherTaxes(0);
+        setHasGuaranteeCheck(false);
+        setGcCheckNumber('');
+        setGcDueDate('');
         setActiveTab('historial');
         handleSearch(); // Refresh list if searched before
       } else {
@@ -330,6 +394,16 @@ export default function PurchasesPage() {
               }`}
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
+            </button>
+            <button
+              onClick={() => setActiveTab('cheques')}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'cheques'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              }`}
+            >
+              <Banknote className="h-4 w-4 inline mr-1.5" /> Cheques
             </button>
           </div>
         </div>
@@ -662,7 +736,7 @@ export default function PurchasesPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'nuevo' ? (
         /* Create Form (Original register purchase screen) */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cabecera del Gasto */}
@@ -844,7 +918,12 @@ export default function PurchasesPage() {
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Método de Pago</label>
                   <select 
-                    value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}
+                    value={paymentMethod} onChange={e => {
+                      setPaymentMethod(e.target.value);
+                      if (e.target.value !== '04') {
+                        setHasGuaranteeCheck(false);
+                      }
+                    }}
                     className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
                   >
                     <option value="01">Efectivo</option>
@@ -853,6 +932,92 @@ export default function PurchasesPage() {
                     <option value="04">A Crédito (CXP)</option>
                   </select>
                 </div>
+
+                {paymentMethod === '04' && (
+                  <div className="mt-4 border-t border-dashed border-outline-variant/35 pt-4 space-y-4">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={hasGuaranteeCheck} 
+                        onChange={e => setHasGuaranteeCheck(e.target.checked)}
+                        className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <span className="text-xs font-bold text-on-surface-variant/80">Dejar Cheque en Garantía</span>
+                    </label>
+
+                    {hasGuaranteeCheck && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-4 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/20"
+                      >
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Banco / Cuenta de Origen</label>
+                          <select 
+                            value={gcBankAccountId} onChange={e => setGcBankAccountId(e.target.value)}
+                            className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                          >
+                            <option value="">Selecciona una cuenta</option>
+                            {bankAccountsList.map(b => (
+                              <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber} ({b.currency})</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Número de Cheque</label>
+                            <input 
+                              type="text" 
+                              value={gcCheckNumber} onChange={e => setGcCheckNumber(e.target.value)}
+                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              placeholder="Ej: 10023"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 font-bold text-primary">Monto Cheque</label>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              value={gcAmount || ''} onChange={e => setGcAmount(parseFloat(e.target.value) || 0)}
+                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-bold font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Fecha Emisión</label>
+                            <input 
+                              type="date" 
+                              value={gcIssueDate} onChange={e => setGcIssueDate(e.target.value)}
+                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-amber-700 mb-1">Fecha de Cobro *</label>
+                            <input 
+                              type="date" 
+                              value={gcDueDate} onChange={e => setGcDueDate(e.target.value)}
+                              className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Beneficiario</label>
+                          <input 
+                            type="text" 
+                            value={gcPayee} onChange={e => setGcPayee(e.target.value)}
+                            className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                            placeholder="Beneficiario"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -900,9 +1065,11 @@ export default function PurchasesPage() {
                 <span>Guardar Compra / Gasto</span>
               </button>
             </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>
+        ) : (
+          <GuaranteeChecksView />
+        )}
 
       {/* Premium Detail Modal for Expense/Purchase */}
       <AnimatePresence>
@@ -1067,6 +1234,190 @@ export default function PurchasesPage() {
           </div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function GuaranteeChecksView() {
+  const [loading, setLoading] = useState(true);
+  const [paymentsList, setPaymentsList] = useState<any[]>([]);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+
+  const fetchChecks = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/ap?payments=true');
+      const data = await res.json();
+      if (data.success) {
+        setPaymentsList(data.data || []);
+      } else {
+        toast.error('Error al obtener cheques en garantía');
+      }
+    } catch (e) {
+      toast.error('Error de red al cargar cheques en garantía');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChecks();
+  }, []);
+
+  const handleApplyCheck = async (paymentId: string, checkId: string, checkNumber: string) => {
+    if (!confirm(`¿Estás seguro de que deseas aplicar contablemente el cheque #${checkNumber}? Esta operación deducirá el balance de CXP y registrará la salida del banco.`)) return;
+
+    setApplyingId(checkId);
+    try {
+      const res = await fetch('/api/v1/ap/payments/apply-guarantees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Cheque #${checkNumber} aplicado exitosamente.`);
+        fetchChecks();
+      } else {
+        toast.error(data.error?.message || 'Error al aplicar el cheque');
+      }
+    } catch (e) {
+      toast.error('Error de red al procesar cheque');
+    } finally {
+      setApplyingId(null);
+    }
+  };
+
+  // Filter guarantee checks: checkStatus is mapped from r.check?.status, so if it is not undefined/null, it's a guarantee check.
+  const guaranteePayments = paymentsList.filter(p => p.checkStatus !== undefined && p.checkStatus !== null);
+
+  const pendingChecks = guaranteePayments.filter(p => p.status === 'pending_guarantee');
+  const appliedChecks = guaranteePayments.filter(p => p.status === 'applied');
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+        <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+          <Banknote className="h-5 w-5 text-amber-500" /> Control de Cheques en Garantía
+        </h3>
+        <p className="text-xs text-on-surface-variant/80 mb-6">
+          Aquí se listan todos los cheques dejados en garantía de compras a crédito. Puedes aplicarlos contablemente de manera manual cuando el suplidor confirme su cobro.
+        </p>
+
+        {loading ? (
+          <div className="py-12 flex justify-center items-center">
+            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {/* Pendientes */}
+            <div>
+              <h4 className="font-bold text-primary mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                Cheques Pendientes por Cobrar ({pendingChecks.length})
+              </h4>
+              <div className="bg-white/50 border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-outline-variant/30 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
+                      <th className="px-6 py-3">Suplidor</th>
+                      <th className="px-6 py-3">Cheque #</th>
+                      <th className="px-6 py-3">Fecha Emisión</th>
+                      <th className="px-6 py-3 text-amber-700">Fecha de Cobro</th>
+                      <th className="px-6 py-3 text-right">Monto</th>
+                      <th className="px-6 py-3 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10 text-xs">
+                    {pendingChecks.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-on-surface-variant/70 italic">
+                          No hay cheques en garantía pendientes.
+                        </td>
+                      </tr>
+                    ) : (
+                      pendingChecks.map(p => {
+                        const isDue = new Date(p.dueDate).toISOString().split('T')[0] <= new Date().toISOString().split('T')[0];
+                        return (
+                          <tr key={p.id} className={isDue ? "bg-amber-50/30" : ""}>
+                            <td className="px-6 py-4 font-bold text-primary">{p.supplierName}</td>
+                            <td className="px-6 py-4 font-mono font-bold">{p.checkNumber || 'S/N'}</td>
+                            <td className="px-6 py-4 font-mono">{p.paymentDate}</td>
+                            <td className="px-6 py-4 font-mono font-bold text-amber-600 flex items-center gap-1">
+                              {isDue && <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>}
+                              {p.dueDate}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-primary">
+                              RD$ {parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <button
+                                onClick={() => handleApplyCheck(p.id, p.checkId, p.checkNumber)}
+                                disabled={applyingId === p.checkId}
+                                className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm shadow-amber-600/10 hover:shadow-md hover:shadow-amber-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                              >
+                                {applyingId === p.checkId ? 'Procesando...' : 'Aplicar'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Aplicados */}
+            <div>
+              <h4 className="font-bold text-primary mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                Historial de Cheques Aplicados ({appliedChecks.length})
+              </h4>
+              <div className="bg-white/50 border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-outline-variant/30 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
+                      <th className="px-6 py-3">Suplidor</th>
+                      <th className="px-6 py-3">Cheque #</th>
+                      <th className="px-6 py-3">Fecha Emisión</th>
+                      <th className="px-6 py-3">Fecha Cobrado</th>
+                      <th className="px-6 py-3 text-right">Monto</th>
+                      <th className="px-6 py-3 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10 text-xs">
+                    {appliedChecks.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-on-surface-variant/70 italic">
+                          No hay historial de cheques aplicados.
+                        </td>
+                      </tr>
+                    ) : (
+                      appliedChecks.map(p => (
+                        <tr key={p.id}>
+                          <td className="px-6 py-4 font-bold text-on-surface-variant">{p.supplierName}</td>
+                          <td className="px-6 py-4 font-mono font-medium">{p.checkNumber || 'S/N'}</td>
+                          <td className="px-6 py-4 font-mono text-on-surface-variant/70">{p.paymentDate}</td>
+                          <td className="px-6 py-4 font-mono font-medium">{p.dueDate}</td>
+                          <td className="px-6 py-4 text-right font-mono font-bold text-on-surface-variant">
+                            RD$ {parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-250">
+                              ACEPTADO
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

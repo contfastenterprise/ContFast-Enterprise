@@ -20,12 +20,24 @@ export async function POST(req: NextRequest) {
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'write');
 
-    const result = await ApService.applyDueGuaranteeChecks(auth.companyId);
+    let checkId: string | undefined;
+    try {
+      const body = await req.json();
+      checkId = body?.checkId;
+    } catch (e) {
+      // Empty body is allowed for bulk apply
+    }
+
+    const result = checkId
+      ? await ApService.applySingleGuaranteeCheck(auth.companyId, checkId)
+      : await ApService.applyDueGuaranteeChecks(auth.companyId);
 
     return NextResponse.json(
       { 
         success: true, 
-        message: `Se aplicaron contablemente ${result.appliedCount} cheque(s) en garantía con un total de $${result.totalAppliedAmount.toFixed(2)}.`,
+        message: checkId
+          ? `Se aplicó contablemente el cheque en garantía con éxito.`
+          : `Se aplicaron contablemente ${result.appliedCount} cheque(s) en garantía con un total de $${result.totalAppliedAmount.toFixed(2)}.`,
         data: result 
       },
       { headers: resHeaders }

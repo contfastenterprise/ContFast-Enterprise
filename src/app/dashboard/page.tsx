@@ -49,6 +49,7 @@ interface DashboardStats {
   monthlyGoal: number;
   alertCount: number;
   totalInvoices: number;
+  dueGuaranteeChecksCount?: number;
 }
 
 // ─── Currency formatter ────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ export default function DashboardPage() {
     monthlyGoal: 2_000_000,
     alertCount: 0,
     totalInvoices: 0,
+    dueGuaranteeChecksCount: 0,
   });
   const [chartPeriod, setChartPeriod] = useState<'semana' | 'mes'>('semana');
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +121,7 @@ export default function DashboardPage() {
           monthlyGoal: 2_000_000,
           alertCount: 0,
           totalInvoices: 0,
+          dueGuaranteeChecksCount: 0,
         });
         setChartData(data.data.chart || []);
         setComparisonChart(data.data.comparisonChart || []);
@@ -136,6 +139,7 @@ export default function DashboardPage() {
         monthlyGoal: 2_000_000,
         alertCount: 0,
         totalInvoices: 0,
+        dueGuaranteeChecksCount: 0,
       });
       setChartData([]);
       setComparisonChart([]);
@@ -192,6 +196,33 @@ export default function DashboardPage() {
           <span className="font-label-md text-sm font-bold">Nueva Factura</span>
         </button>
       </header>
+
+      {/* ── Warning Banner for Due Guarantee Checks ────────────────────────── */}
+      {stats.dueGuaranteeChecksCount !== undefined && stats.dueGuaranteeChecksCount > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 border border-amber-250 rounded-3xl p-5 flex items-center justify-between shadow-sm"
+        >
+          <div className="flex items-center gap-4">
+            <div className="bg-amber-100 p-3 rounded-2xl">
+              <Clock className="h-6 w-6 text-amber-700 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="font-bold text-amber-900 text-sm">Cheques en Garantía Listos para Cobro</h4>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Tienes {stats.dueGuaranteeChecksCount} cheque(s) en garantía cuya fecha de cobro se ha cumplido. Debes aplicarlos para procesar el pago correspondiente.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/dashboard/purchases?tab=cheques')}
+            className="bg-amber-600 hover:bg-amber-750 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
+          >
+            Ver y Aplicar
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">

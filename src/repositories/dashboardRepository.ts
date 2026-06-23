@@ -1,4 +1,4 @@
-import { db, invoices } from '@/db';
+import { db, invoices, checks } from '@/db';
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 
 export class DashboardRepository {
@@ -69,15 +69,29 @@ export class DashboardRepository {
       invoicesTodayChangePct = 100;
     }
 
+    // Query due guarantee checks count
+    const formattedToday = today.toISOString().split('T')[0];
+    const [dueChecksResult] = await db.select({
+      count: sql<number>`count(*)::int`
+    }).from(checks)
+    .where(and(
+      eq(checks.companyId, companyId),
+      eq(checks.isGuarantee, true),
+      eq(checks.status, 'pending'),
+      lte(checks.dueDate, formattedToday)
+    ));
+    const dueGuaranteeChecksCount = dueChecksResult?.count || 0;
+
     return {
       invoicesToday,
       invoicesTodayAmount,
       invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
-      alertCount,
+      alertCount: alertCount + dueGuaranteeChecksCount,
       totalInvoices,
-      monthlyGoal: 2000000 // Fixed for now
+      monthlyGoal: 2000000, // Fixed for now
+      dueGuaranteeChecksCount
     };
   }
 

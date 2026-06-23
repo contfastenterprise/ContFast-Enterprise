@@ -176,6 +176,14 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
   - `/dashboard/hr/settlements`: Cálculo exacto de prestaciones (preaviso, cesantía) y proyección anual del Doble Sueldo.
   - `/dashboard/hr/config`: Ajustes locales de tasas de TSS e indicador de tramos progresivos del ISR de la DGII.
 
+### 29. Gestión de Cheques en Garantía y Compras a Crédito (República Dominicana)
+- **Cumplimiento Contable y de DGII**: Los cheques en garantía se registran a nivel contable auxiliar sin afectar la disponibilidad bancaria en el balance general. La compra a crédito se reporta en el 606 DGII bajo el método "04 (A Crédito)" reconociendo el NCF original y el ITBIS. Las retenciones fiscales se registran contablemente al instante del devengo de la factura, y el cheque se emite por el importe neto a pagar.
+- **Sincronización Bancaria Automática**: Al aplicar/confirmar un cheque en garantía de manera individual (o en lote por fecha de vencimiento), el sistema actualiza el estado del cheque a `cleared`, el pago de cuentas por pagar a `applied`, resta el importe del balance de la cuenta bancaria física en `bank_accounts`, registra una transacción contable de retiro en `bank_transactions` y genera el asiento contable (Débito a Cuentas por Pagar, Crédito a Efectivo en Bancos).
+- **Control e Interfaz UI Premium**:
+  - **Formulario de Compras**: Añadido el checkbox reactivo "Dejar Cheque en Garantía" cuando el método de pago es "A Crédito (CXP)" con campos dinámicos para Banco (select), número de cheque, beneficiario, fecha de emisión y fecha de cobro (requerido).
+  - **Pestaña de Cheques en Garantía**: Creada una nueva sección de visualización dentro del módulo de compras que clasifica cheques pendientes y aplicados, con un botón dinámico de acción "Aplicar" para liquidación manual individualizada con confirmación de usuario.
+  - **Alertas de Dashboard**: Sistema de alertas que notifica en el Dashboard principal si existen cheques en garantía cuya fecha de cobro haya sido alcanzada, integrando el indicador al widget de "Alertas" general.
+
 **Status**: Verified & Polished (Score 10/10)
 
 
