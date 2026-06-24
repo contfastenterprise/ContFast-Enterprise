@@ -99,6 +99,7 @@ export default function PurchasesPage() {
   const [accountsList, setAccountsList] = useState<{ id: string; code: string; name: string; type: string }[]>([]);
   const [debitAccountId, setDebitAccountId] = useState('');
   const [showOcrModal, setShowOcrModal] = useState(false);
+  const [noItbis, setNoItbis] = useState(false);
 
   const handleOcrComplete = (data: OcrInvoiceData) => {
     setIsMinorExpense(false);
@@ -224,6 +225,42 @@ export default function PurchasesPage() {
     handleSearch();
   }, []);
 
+  // Recalculate ITBIS / Subtotal when noItbis changes
+  useEffect(() => {
+    if (noItbis) {
+      if (isGeneralAmount) {
+        const val = parseFloat(generalTotal) || 0;
+        setGeneralSubtotal(val);
+        setGeneralItbis(0);
+      } else {
+        setLines(prev => prev.map(l => ({
+          ...l,
+          itbis: 0,
+          total: l.subtotal
+        })));
+      }
+    } else {
+      if (isGeneralAmount) {
+        const val = parseFloat(generalTotal) || 0;
+        if (val > 0) {
+          const sub = roundMoney(val / 1.18);
+          const itb = roundMoney(val - sub);
+          setGeneralSubtotal(sub);
+          setGeneralItbis(itb);
+        }
+      } else {
+        setLines(prev => prev.map(l => {
+          const itb = l.subtotal * 0.18;
+          return {
+            ...l,
+            itbis: itb,
+            total: l.subtotal + itb
+          };
+        }));
+      }
+    }
+  }, [noItbis, isGeneralAmount]);
+
   // Filter and search action
   const handleSearch = async () => {
     setSearchLoading(true);
@@ -316,10 +353,16 @@ export default function PurchasesPage() {
           }
         }
 
-        if (field === 'productId' || field === 'quantity' || field === 'unitCost') {
+        if (field === 'productId' || field === 'quantity' || field === 'unitCost' || field === 'itbis') {
           newLine.subtotal = newLine.quantity * newLine.unitCost;
-          if (field === 'productId') {
-            newLine.itbis = newLine.subtotal * 0.18;
+          if (noItbis) {
+            newLine.itbis = 0;
+          } else {
+            if (field === 'productId' || field === 'quantity' || field === 'unitCost') {
+              newLine.itbis = newLine.subtotal * 0.18;
+            } else if (field === 'itbis') {
+              newLine.itbis = value;
+            }
           }
         }
         newLine.total = newLine.subtotal + newLine.itbis;
@@ -421,6 +464,7 @@ export default function PurchasesPage() {
         setGeneralTotal('');
         setGeneralSubtotal(0);
         setGeneralItbis(0);
+        setNoItbis(false);
         setActiveTab('historial');
         handleSearch(); // Refresh list if searched before
       } else {
@@ -903,6 +947,20 @@ export default function PurchasesPage() {
               </div>
             </div>
 
+            {/* Checkbox to Exempt ITBIS */}
+            <div className="flex items-center gap-2 mt-4 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-2xl max-w-md">
+              <input
+                type="checkbox"
+                id="noItbis"
+                checked={noItbis}
+                onChange={e => setNoItbis(e.target.checked)}
+                className="w-4 h-4 text-primary bg-surface-container-high border-none rounded-xl focus:ring-2 focus:ring-primary cursor-pointer"
+              />
+              <label htmlFor="noItbis" className="text-xs font-extrabold text-yellow-900 cursor-pointer select-none">
+                Gasto Exento de ITBIS (No posee ITBIS)
+              </label>
+            </div>
+
             {isGeneralAmount ? (
               <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6 space-y-5">
                 <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
@@ -924,10 +982,15 @@ export default function PurchasesPage() {
                         setGeneralTotal(valStr);
                         const val = parseFloat(valStr) || 0;
                         if (val > 0) {
-                          const sub = roundMoney(val / 1.18);
-                          const itb = roundMoney(val - sub);
-                          setGeneralSubtotal(sub);
-                          setGeneralItbis(itb);
+                          if (noItbis) {
+                            setGeneralSubtotal(val);
+                            setGeneralItbis(0);
+                          } else {
+                            const sub = roundMoney(val / 1.18);
+                            const itb = roundMoney(val - sub);
+                            setGeneralSubtotal(sub);
+                            setGeneralItbis(itb);
+                          }
                         } else {
                           setGeneralSubtotal(0);
                           setGeneralItbis(0);
@@ -962,7 +1025,8 @@ export default function PurchasesPage() {
                       step="0.01"
                       value={generalItbis || ''}
                       onChange={e => setGeneralItbis(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                      disabled={noItbis}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
                     />
                   </div>
                 </div>
@@ -1048,7 +1112,8 @@ export default function PurchasesPage() {
                           <td className="py-3 px-2">
                             <input 
                               type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                              disabled={noItbis}
+                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data disabled:opacity-50"
                             />
                           </td>
                           <td className="py-3 px-2 text-right">
