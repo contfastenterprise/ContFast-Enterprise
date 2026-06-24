@@ -488,22 +488,10 @@ export class MSellerClient {
     let idDoc: any;
 
     if (params.ecfType === '34') {
-      // Use the explicitly provided value (0=No aplica is valid per DGII reference XML)
-      // Only auto-detect if not provided at all
-      const indicador: number =
-        params.indicadorNotaCredito !== undefined
-          ? params.indicadorNotaCredito
-          : (() => {
-              if (params.originalInvoiceTotal !== undefined) {
-                return Math.abs(params.total - params.originalInvoiceTotal) < 0.05 ? 1 : 3;
-              }
-              return 1;
-            })();
-
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        IndicadorNotaCredito: indicador,        // position 3 — integer required
+        IndicadorNotaCredito: 0,                // position 3 — integer required, MUST be 0 for e-34
         IndicadorEnvioDiferido: 0,              // position 4 — required by XSD, always 0 (not deferred)
         IndicadorMontoGravado: '0',             // position 5
         TipoIngresos: '01',                    // '01' = Ingresos por operaciones (per reference XML)

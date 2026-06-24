@@ -210,13 +210,10 @@ export default function AdjustmentsPage() {
       toast.error('Debe ingresar un motivo / observación para la auditoría contable.');
       return;
     }
-    // Validate indicadorNotaCredito is explicitly selected (placeholder = -1)
-    // Note: 0 IS a valid DGII value (No aplica) per reference XML
-    if (noteType === '33' && indicadorNotaCredito < 1) {
-      toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
-      return;
-    }
-    if (indicadorNotaCredito < 0) {
+    // Validate indicadorNotaCredito is explicitly selected (must not be the placeholder state)
+    // Note: 1, 2, 3, 4 are valid Codigos de Modificacion
+    const validIndicadores = noteType === '34' ? [1, 2, 3] : [1, 2, 3, 4];
+    if (!validIndicadores.includes(indicadorNotaCredito)) {
       toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
       return;
     }
@@ -569,11 +566,10 @@ export default function AdjustmentsPage() {
                                 required
                                 className={clsx(
                                   "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all",
-                                  indicadorNotaCredito === 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
+                                  indicadorNotaCredito < 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
                                 )}
                               >
                                 <option value={-1} disabled>— Seleccione el motivo —</option>
-                                <option value={0}>0 - No aplica (Ajuste general)</option>
                                 <option value={1}>1 - Anulación completa</option>
                                 <option value={2}>2 - Corrección de texto</option>
                                 <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
