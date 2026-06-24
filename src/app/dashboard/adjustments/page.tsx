@@ -61,7 +61,7 @@ export default function AdjustmentsPage() {
       const data = await res.json();
       if (data.success) {
         // Filter list for only 33 and 34 to be secure
-        const filtered = data.data.filter((d: any) => d.ecfType === '33' || d.ecfType === '34');
+        const filtered = data.data.filter((d: any) => ['33', '34', '03', '04'].includes(d.ecfType));
         setNotes(filtered);
         setTotalPages(data.meta?.total_pages || 1);
       }

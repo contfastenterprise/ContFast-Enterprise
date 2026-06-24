@@ -367,7 +367,7 @@ function InvoicesList() {
       if (statusFilter) queryParams.append('status', statusFilter);
       if (searchTerm) queryParams.append('ncf', searchTerm);
       if (typeFilter) queryParams.append('ecfType', typeFilter);
-      queryParams.append('excludeTypes', '33,34');
+      queryParams.append('excludeTypes', '33,34,03,04');
 
       const res = await fetch(`/api/v1/invoices?${queryParams.toString()}`);
       const data = await res.json();
