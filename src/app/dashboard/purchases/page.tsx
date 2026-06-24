@@ -138,7 +138,7 @@ export default function PurchasesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // Filters State
-  const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonthString());
+  const [filterStartDate, setFilterStartDate] = useState(getLocalDateString());
   const [filterEndDate, setFilterEndDate] = useState(getLocalDateString());
   const [filterType, setFilterType] = useState<'all' | 'purchases' | 'expenses'>('all');
   const [filterSupplier, setFilterSupplier] = useState('');
@@ -218,6 +218,11 @@ export default function PurchasesPage() {
       }
     }
   }, [supplierId, suppliers]);
+
+  // Load initial search results automatically on mount
+  useEffect(() => {
+    handleSearch();
+  }, []);
 
   // Filter and search action
   const handleSearch = async () => {
