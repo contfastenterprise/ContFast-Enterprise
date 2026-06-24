@@ -220,3 +220,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Visualización de Mensajes de la DGII:** Modificada la tabla de visualización del listado en `/dashboard/adjustments` para renderizar el mensaje detallado de respuesta de la DGII (`dgiiMessage`) debajo del badge de estado. Se configuraron colores semánticos (verde/esmeralda para notas aceptadas y rojo/rosa para notas rechazadas), mejorando la claridad de los diagnósticos fiscales directamente desde la página de Ajustes.
 - **Acción de Consulta Individual del Estatus DGII:** Se agregó un botón de sincronización de estado de la DGII (ícono `RefreshCw` con animación de carga) en la columna de acciones para cada fila de nota de crédito o débito, permitiendo invocar individualmente `/api/v1/ecf/[id]/dgii-status` sin tener que ir a la pantalla principal de e-CF.
 - **Reenvío de Ajustes a la DGII:** Se implementó un botón de acción rápida de reenvío (ícono `ArrowRight`) visible para notas en estado de error o rechazo (`rejected`/`failed`), enlazado al endpoint de reenvío `/api/v1/ecf/[id]/resubmit` para reencolar el e-CF al motor de transmisión BullMQ en caso de problemas de transmisión o secuencia.
+* * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *  
+ 

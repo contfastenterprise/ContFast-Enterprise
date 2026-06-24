@@ -20,28 +20,27 @@ const postgres = require('postgres');
 const sql = postgres(process.env.DATABASE_URL);
 
 async function run() {
-  const invs = await sql`
-    SELECT id, ncf, ecf_type, status, indicador_nota_credito, dgii_message, modified_ncf, created_at
+  // Check E340000000019
+  const inv = await sql`
+    SELECT id, ncf, ecf_type, status, indicador_nota_credito, dgii_message, modified_ncf, mseller_track_id, created_at
     FROM invoices
-    WHERE ncf = 'E340000000016';
+    WHERE ncf = 'E340000000019'
+    LIMIT 1;
   `;
-  console.log("INVOICE E340000000016:", JSON.stringify(invs, null, 2));
+  console.log("=== E340000000019 ===");
+  console.log(JSON.stringify(inv[0] || "NOT FOUND", null, 2));
 
-  if (invs.length > 0) {
-    const subs = await sql`
-      SELECT response_payload
-      FROM dgii_submissions
-      WHERE invoice_id = ${invs[0].id}
-      ORDER BY updated_at DESC LIMIT 1;
-    `;
-    if (subs.length > 0) {
-      const payload = JSON.parse(subs[0].response_payload || '{}');
-      // Print key info from the submission payload to understand what was sent
-      console.log("indicadorNotaCredito sent:", payload.indicadorNotaCredito);
-      console.log("status:", payload.status);
-      console.log("dgiiResponse:", JSON.stringify(payload.dgiiResponse, null, 2));
-    }
-  }
+  // Also check E340000000018 and E340000000017 to see the pattern
+  const recent = await sql`
+    SELECT ncf, ecf_type, status, indicador_nota_credito, dgii_message, modified_ncf, created_at
+    FROM invoices
+    WHERE ecf_type = '34'
+    ORDER BY created_at DESC
+    LIMIT 5;
+  `;
+  console.log("\n=== Recent e-34 notes ===");
+  recent.forEach(r => console.log(JSON.stringify(r)));
+  
   await sql.end();
 }
 
