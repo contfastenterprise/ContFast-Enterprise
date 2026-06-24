@@ -492,7 +492,7 @@ export class MSellerClient {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
         IndicadorNotaCredito: 0,                // position 3 — integer required, MUST be 0 for e-34
-        IndicadorEnvioDiferido: 0,              // position 4 — required by XSD, always 0 (not deferred)
+        IndicadorEnvioDiferido: 1,              // position 4 — MUST be 1 (AUTORIZADO) per DGII error 164
         IndicadorMontoGravado: '0',             // position 5
         TipoIngresos: '01',                    // '01' = Ingresos por operaciones (per reference XML)
         TipoPago: params.paymentType,
@@ -502,7 +502,7 @@ export class MSellerClient {
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        IndicadorEnvioDiferido: 0,
+        IndicadorEnvioDiferido: 1,
         IndicadorMontoGravado: '0',
         TipoIngresos: '01',
         TipoPago: params.paymentType,
