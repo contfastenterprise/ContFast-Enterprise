@@ -1,5 +1,5 @@
 import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions } from '@/db';
-import { eq, and, isNull, desc, count } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, notInArray } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
   companyId: string;
@@ -244,18 +244,27 @@ export class InvoiceRepository {
   /**
    * Paginated invoice list with tenancy check.
    */
-  static async list(companyId: string, page = 1, perPage = 20) {
+  static async list(companyId: string, page = 1, perPage = 20, options?: { excludeTypes?: string[] }) {
     const offset = (page - 1) * perPage;
+
+    const baseConditions = [
+      eq(invoices.companyId, companyId),
+      isNull(invoices.deletedAt),
+    ];
+
+    if (options?.excludeTypes && options.excludeTypes.length > 0) {
+      baseConditions.push(notInArray(invoices.ecfType, options.excludeTypes));
+    }
 
     const [totalResult] = await db
       .select({ value: count() })
       .from(invoices)
-      .where(and(eq(invoices.companyId, companyId), isNull(invoices.deletedAt)));
+      .where(and(...baseConditions));
 
     const data = await db
       .select()
       .from(invoices)
-      .where(and(eq(invoices.companyId, companyId), isNull(invoices.deletedAt)))
+      .where(and(...baseConditions))
       .orderBy(desc(invoices.createdAt))
       .limit(perPage)
       .offset(offset);

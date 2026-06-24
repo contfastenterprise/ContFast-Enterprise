@@ -84,8 +84,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
+    const excludeTypesParam = searchParams.get('excludeTypes');
+    const excludeTypes = excludeTypesParam ? excludeTypesParam.split(',') : undefined;
 
-    const result = await InvoiceRepository.list(auth.companyId, page, perPage);
+    const result = await InvoiceRepository.list(auth.companyId, page, perPage, { excludeTypes });
 
     return NextResponse.json(
       { success: true, data: result.data, meta: result.meta },

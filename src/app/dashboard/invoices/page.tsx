@@ -367,6 +367,7 @@ function InvoicesList() {
       if (statusFilter) queryParams.append('status', statusFilter);
       if (searchTerm) queryParams.append('ncf', searchTerm);
       if (typeFilter) queryParams.append('ecfType', typeFilter);
+      queryParams.append('excludeTypes', '33,34');
 
       const res = await fetch(`/api/v1/invoices?${queryParams.toString()}`);
       const data = await res.json();
@@ -1520,8 +1521,6 @@ function InvoicesList() {
                   <option value="">Todos los Tipos</option>
                   <option value="31">Factura Crédito Fiscal (31)</option>
                   <option value="32">Factura Consumo (32)</option>
-                  <option value="33">Nota Débito (33)</option>
-                  <option value="34">Nota Crédito (34)</option>
                   <option value="45">Gubernamental (45)</option>
                 </select>
               </div>
