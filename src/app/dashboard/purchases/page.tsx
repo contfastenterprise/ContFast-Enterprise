@@ -1012,7 +1012,8 @@ export default function PurchasesPage() {
                       step="0.01"
                       value={generalSubtotal || ''}
                       onChange={e => setGeneralSubtotal(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                      disabled={noItbis}
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
                     />
                   </div>
 
