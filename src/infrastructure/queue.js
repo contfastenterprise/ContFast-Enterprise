@@ -6,10 +6,11 @@ const bullmq_1 = require("bullmq");
 const redis_1 = require("./redis");
 const jobRunners_1 = require("./jobRunners");
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
 // Define Queues
-exports.dgiiQueue = redis_1.redis ? new bullmq_1.Queue('dgii-submissions', { connection: redis_1.redis }) : null;
-exports.reportQueue = redis_1.redis ? new bullmq_1.Queue('reports-generation', { connection: redis_1.redis }) : null;
-exports.emailQueue = redis_1.redis ? new bullmq_1.Queue('emails-sending', { connection: redis_1.redis }) : null;
+exports.dgiiQueue = (redis_1.redis && !isBuildPhase) ? new bullmq_1.Queue('dgii-submissions', { connection: redis_1.redis }) : null;
+exports.reportQueue = (redis_1.redis && !isBuildPhase) ? new bullmq_1.Queue('reports-generation', { connection: redis_1.redis }) : null;
+exports.emailQueue = (redis_1.redis && !isBuildPhase) ? new bullmq_1.Queue('emails-sending', { connection: redis_1.redis }) : null;
 /**
  * Triggers in-process fallback execution for queues when Redis is offline.
  */

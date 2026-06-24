@@ -5,7 +5,9 @@ import path from 'path';
 
 const PDF_TEMP_DIR = process.env.PDF_TEMP_DIR || './storage/temp-docs';
 
-export const reportQueue = redis ? new Queue('reports', { connection: redis as any }) : null;
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
+
+export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports', { connection: redis as any }) : null;
 
 // Define job types
 export interface ReportJobData {
@@ -17,7 +19,7 @@ export interface ReportJobData {
 }
 
 // Background Worker
-export const reportWorker = redis ? new Worker('reports', async (job: Job<ReportJobData>) => {
+export const reportWorker = (redis && !isBuildPhase) ? new Worker('reports', async (job: Job<ReportJobData>) => {
   console.log(`Processing report job ${job.id} of type ${job.data.reportType}`);
   // Here we would delegate to specific report generation logic based on job.data.reportType
   // For demonstration, simulating a delay and returning a fake DocumentService generated URL
@@ -30,17 +32,17 @@ export const reportWorker = redis ? new Worker('reports', async (job: Job<Report
 }, { connection: redis as any }) : null;
 
 // Recurring Cleanup Job Setup
-export const cleanupQueue = redis ? new Queue('cleanup', { connection: redis as any }) : null;
+export const cleanupQueue = (redis && !isBuildPhase) ? new Queue('cleanup', { connection: redis as any }) : null;
 
-export const cleanupWorker = redis ? new Worker('cleanup', async () => {
+export const cleanupWorker = (redis && !isBuildPhase) ? new Worker('cleanup', async () => {
   console.log('Running temporary file cleanup job');
   try {
-    const files = await fs.readdir(PDF_TEMP_DIR);
+    const files = await fs.readdir(/*turbopackIgnore: true*/ PDF_TEMP_DIR);
     const now = Date.now();
     const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
     for (const file of files) {
-      const filePath = path.join(PDF_TEMP_DIR, file);
+      const filePath = path.join(/*turbopackIgnore: true*/ PDF_TEMP_DIR, file);
       const stats = await fs.stat(filePath);
       
       if (now - stats.mtimeMs > FIFTEEN_MINUTES) {

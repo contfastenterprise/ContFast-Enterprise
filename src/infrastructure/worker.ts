@@ -6,7 +6,9 @@ import { processDgiiSubmissionJob, sendEmailJob } from './jobRunners';
 
 const CONCURRENCY = parseInt(process.env.QUEUE_CONCURRENCY || '5', 10);
 
-if (redis) {
+const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
+
+if (redis && !isBuildPhase) {
   console.log('Initializing BullMQ Workers...');
 
   // 1. DGII Submissions Worker

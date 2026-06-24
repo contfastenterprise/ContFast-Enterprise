@@ -1,29 +1,34 @@
 import Redis from 'ioredis';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
 
 let redis: Redis | null = null;
 
-try {
-  console.log('Initializing Redis client...');
-  redis = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: null, // Required by BullMQ
-    lazyConnect: true, // Connect lazily so we can catch initial connect errors
-    retryStrategy(times) {
-      // Retry every 5 seconds to prevent event loop flooding
-      return 5000;
-    }
-  });
+if (REDIS_URL || process.env.NODE_ENV !== 'production') {
+  const finalRedisUrl = REDIS_URL || 'redis://localhost:6379';
+  try {
+    console.log('Initializing Redis client...');
+    redis = new Redis(finalRedisUrl, {
+      maxRetriesPerRequest: null, // Required by BullMQ
+      lazyConnect: true, // Connect lazily so we can catch initial connect errors
+      retryStrategy(times) {
+        // Retry every 5 seconds to prevent event loop flooding
+        return 5000;
+      }
+    });
 
-  redis.on('connect', () => {
-    console.log('Successfully connected to Redis.');
-  });
+    redis.on('connect', () => {
+      console.log('Successfully connected to Redis.');
+    });
 
-  redis.on('error', (err) => {
-    console.error('Redis Connection Error:', err.message);
-  });
-} catch (error: any) {
-  console.error('Failed to initialize Redis client:', error.message);
+    redis.on('error', (err) => {
+      console.error('Redis Connection Error:', err.message);
+    });
+  } catch (error: any) {
+    console.error('Failed to initialize Redis client:', error.message);
+  }
+} else {
+  console.log('Redis URL not provided. Redis is disabled (running in fallback mode).');
 }
 
 export { redis };

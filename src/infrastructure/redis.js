@@ -6,28 +6,34 @@ exports.setCache = setCache;
 exports.delCache = delCache;
 exports.clearCachePattern = clearCachePattern;
 const ioredis_1 = require("ioredis");
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
 let redis = null;
 exports.redis = redis;
-try {
-    console.log('Initializing Redis client...');
-    exports.redis = redis = new ioredis_1.default(REDIS_URL, {
-        maxRetriesPerRequest: null, // Required by BullMQ
-        lazyConnect: true, // Connect lazily so we can catch initial connect errors
-        retryStrategy(times) {
-            // Retry every 5 seconds to prevent event loop flooding
-            return 5000;
-        }
-    });
-    redis.on('connect', () => {
-        console.log('Successfully connected to Redis.');
-    });
-    redis.on('error', (err) => {
-        console.error('Redis Connection Error:', err.message);
-    });
+if (REDIS_URL || process.env.NODE_ENV !== 'production') {
+    const finalRedisUrl = REDIS_URL || 'redis://localhost:6379';
+    try {
+        console.log('Initializing Redis client...');
+        exports.redis = redis = new ioredis_1.default(finalRedisUrl, {
+            maxRetriesPerRequest: null, // Required by BullMQ
+            lazyConnect: true, // Connect lazily so we can catch initial connect errors
+            retryStrategy(times) {
+                // Retry every 5 seconds to prevent event loop flooding
+                return 5000;
+            }
+        });
+        redis.on('connect', () => {
+            console.log('Successfully connected to Redis.');
+        });
+        redis.on('error', (err) => {
+            console.error('Redis Connection Error:', err.message);
+        });
+    }
+    catch (error) {
+        console.error('Failed to initialize Redis client:', error.message);
+    }
 }
-catch (error) {
-    console.error('Failed to initialize Redis client:', error.message);
+else {
+    console.log('Redis URL not provided. Redis is disabled (running in fallback mode).');
 }
 // Caching Helpers
 async function getCache(key) {

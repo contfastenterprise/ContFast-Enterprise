@@ -59,7 +59,7 @@ export class DocumentService {
     // Ensure directory exists
     await fs.mkdir(PDF_TEMP_DIR, { recursive: true });
     
-    const filePath = path.join(PDF_TEMP_DIR, fileName);
+    const filePath = path.join(/*turbopackIgnore: true*/ PDF_TEMP_DIR, fileName);
     await fs.writeFile(filePath, buffer);
     
     return documentId;
@@ -71,7 +71,7 @@ export class DocumentService {
   static getFilePath(documentId: string, extension: 'pdf' | 'xlsx'): string {
     // Prevent path traversal
     const safeDocId = path.basename(documentId);
-    return path.join(PDF_TEMP_DIR, `${safeDocId}.${extension}`);
+    return path.join(/*turbopackIgnore: true*/ PDF_TEMP_DIR, `${safeDocId}.${extension}`);
   }
 
   /**

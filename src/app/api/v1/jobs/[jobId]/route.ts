@@ -10,6 +10,13 @@ export async function GET(
     const { jobId } = await params;
     
     if (!reportQueue) {
+      if (jobId.startsWith('fallback-')) {
+        return NextResponse.json({
+          status: 'ready',
+          url: `/api/v1/reports/pdf?fallback=true&id=${jobId}`,
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        });
+      }
       return NextResponse.json({ error: 'Queue not available' }, { status: 500 });
     }
     

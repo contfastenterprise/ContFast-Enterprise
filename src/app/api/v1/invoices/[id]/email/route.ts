@@ -215,7 +215,7 @@ export async function POST(
         const html = DocumentTemplates.renderInvoice(invoiceRecord, layout, qrBase64);
         const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
         
-        const resolvedPath = path.isAbsolute(pdfPath) ? pdfPath : path.join(process.cwd(), pdfPath);
+        const resolvedPath = path.isAbsolute(pdfPath) ? pdfPath : path.join(/*turbopackIgnore: true*/ process.cwd(), pdfPath);
         const pdfDir = path.dirname(resolvedPath);
         if (!fs.existsSync(pdfDir)) {
           fs.mkdirSync(pdfDir, { recursive: true });

@@ -214,14 +214,17 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Sincronización de Estado e Historial Contable en Emisión:** Se corrigió en `src/services/invoiceService.ts` y en el worker de colas `src/infrastructure/jobRunners.ts` la comprobación del estatus de la respuesta mSeller usando tanto `status` como `estado`. Esto previene que comprobantes de ajuste (como notas de crédito e-34) rechazadas por duplicación de secuencia sean grabadas erróneamente en estado aceptado.
 - **Actualización de Mensajes de Diagnóstico en el Dashboard:** Se modificaron los endpoints de consulta de estatus individual (`GET /api/v1/ecf/[id]/dgii-status`) y por lote (`POST /api/v1/ecf/dgii-status/batch`) para actualizar directamente la columna `dgiiMessage` en la tabla `invoices`. Se agregaron validaciones de expresiones para mapear los 3 estados de la DGII de manera exhaustiva (abarcando `aprob`, `approved`, `acept`, `accepted` para `accepted`; `rechaz`, `rejected` para `rejected`; y `envi`, `recib`, `submitted`, `received` para `submitted`) y se eliminó la restricción de cambio de estado para que los mensajes y estados siempre se actualicen y se reflejen en la UI al sincronizar.
 
-**Status**: Verified & Polished (Score 10/10)
-
 ### 34. Integración del Estatus y Consultas DGII en la Vista de Ajustes (Notas de Crédito/Débito)
 - **Visualización de Mensajes de la DGII:** Modificada la tabla de visualización del listado en `/dashboard/adjustments` para renderizar el mensaje detallado de respuesta de la DGII (`dgiiMessage`) debajo del badge de estado. Se configuraron colores semánticos (verde/esmeralda para notas aceptadas y rojo/rosa para notas rechazadas), mejorando la claridad de los diagnósticos fiscales directamente desde la página de Ajustes.
 - **Acción de Consulta Individual del Estatus DGII:** Se agregó un botón de sincronización de estado de la DGII (ícono `RefreshCw` con animación de carga) en la columna de acciones para cada fila de nota de crédito o débito, permitiendo invocar individualmente `/api/v1/ecf/[id]/dgii-status` sin tener que ir a la pantalla principal de e-CF.
 - **Reenvío de Ajustes a la DGII:** Se implementó un botón de acción rápida de reenvío (ícono `ArrowRight`) visible para notas en estado de error o rechazo (`rejected`/`failed`), enlazado al endpoint de reenvío `/api/v1/ecf/[id]/resubmit` para reencolar el e-CF al motor de transmisión BullMQ en caso de problemas de transmisión o secuencia.
-* * V e r i f i e d   &   P o l i s h e d * *  
- * * V e r i f i e d   &   P o l i s h e d * *  
- * * V e r i f i e d   &   P o l i s h e d * *  
- * * V e r i f i e d   &   P o l i s h e d * *  
- 
+
+### 35. Corrección de Despliegue en Vercel (Configuración de Redis y Middleware)
+- **Desactivación de Redis en el Build**: Configurada la inicialización de Redis para omitirse durante el proceso de build de Next.js y cuando falte la variable de entorno `REDIS_URL` en producción, habilitando el fallback in-process de colas de forma de evitar el error de conexión.
+- **Migración a Proxy**: Renombrado el archivo `src/middleware.ts` a `src/proxy.ts` y exportada la función como `proxy` para cumplir con la nueva especificación de Next.js 16, eliminando la advertencia de deprecación.
+- **Evitado de Tracing Excesivo**: Añadidas directivas `/*turbopackIgnore: true*/` en las operaciones `path.join` de `documentService.ts` y `jobRunners.ts` para evitar que Turbopack trace recursivamente todo el proyecto.
+
+* * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *  
+ * * V e r i f i e d   &   P o l i s h e d * *
