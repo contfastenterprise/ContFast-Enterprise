@@ -3,4 +3,5 @@ allowBuilds:
   msgpackr-extract: false
   puppeteer: false
   sharp: false
+  tesseract.js: true
   unrs-resolver: false

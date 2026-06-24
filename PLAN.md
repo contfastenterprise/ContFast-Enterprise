@@ -224,6 +224,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Migración a Proxy**: Renombrado el archivo `src/middleware.ts` a `src/proxy.ts` y exportada la función como `proxy` para cumplir con la nueva especificación de Next.js 16, eliminando la advertencia de deprecación.
 - **Evitado de Tracing Excesivo**: Añadidas directivas `/*turbopackIgnore: true*/` en las operaciones `path.join` de `documentService.ts` y `jobRunners.ts` para evitar que Turbopack trace recursivamente todo el proyecto.
 
+### 36. Corrección de Fechas y OCR en la Página de Compras
+- **Robusted en OCR de Facturas**: Modificada la expresión regular de extracción de fecha en `src/utils/ocrParser.ts` para tolerar espacios alrededor de separadores (ej. `/` o `-`), soportar años con 2 dígitos (ej. `26` a `2026`) y soportar formatos con meses escritos/abreviados en español (ej. `24 de junio de 2026`, `24-jun-26`).
+- **Eliminación de Timezone Mismatch en Contabilidad y CXP**: Actualizada la función `formatLocalDate` en `src/repositories/apRepository.ts` y `src/repositories/accountRepository.ts` para detectar strings con formato `YYYY-MM-DD` y retornarlos directamente sin parsear como objetos `Date`, evitando desplazamientos de fecha a un día previo debido a la diferencia horaria local y UTC.
+- **Sincronización de Fechas de Filtro e Inicialización en el Dashboard**: Corregida la inicialización de fecha en `src/app/dashboard/purchases/page.tsx` usando una función local que calcula la fecha actual en la zona horaria del cliente en lugar de utilizar `.toISOString().split('T')[0]`, previniendo que al usarse la aplicación por la noche la fecha por defecto se desplace al día siguiente.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

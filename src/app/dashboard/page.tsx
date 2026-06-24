@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart
+  FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -51,6 +51,14 @@ interface DashboardStats {
   alertCount: number;
   totalInvoices: number;
   dueGuaranteeChecksCount?: number;
+  alertsDetails?: {
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    actionText: string;
+    actionLink: string;
+  }[];
 }
 
 // ─── Currency formatter ────────────────────────────────────────────────────────
@@ -104,6 +112,7 @@ export default function DashboardPage() {
   const [comparisonChart, setComparisonChart] = useState<{ day: string, sales: number, purchases: number }[]>([]);
   const [topCustomers, setTopCustomers] = useState<{ name: string, total: number }[]>([]);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -123,6 +132,7 @@ export default function DashboardPage() {
           alertCount: 0,
           totalInvoices: 0,
           dueGuaranteeChecksCount: 0,
+          alertsDetails: [],
         });
         setChartData(data.data.chart || []);
         setComparisonChart(data.data.comparisonChart || []);
@@ -141,6 +151,7 @@ export default function DashboardPage() {
         alertCount: 0,
         totalInvoices: 0,
         dueGuaranteeChecksCount: 0,
+        alertsDetails: [],
       });
       setChartData([]);
       setComparisonChart([]);
@@ -344,9 +355,9 @@ export default function DashboardPage() {
             secondary: '#ef4444',
             accent: '#b91c1c'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
         >
-          <div className="p-6">
+          <div className="p-6 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
             <div className="flex justify-between items-start mb-6">
               <div className="bg-red-100 p-3 rounded-2xl group-hover:bg-red-600 transition-colors">
                 <AlertCircle className="h-6 w-6 text-red-600 group-hover:text-white transition-colors" />
@@ -355,7 +366,7 @@ export default function DashboardPage() {
             </div>
             <p className="font-label-md text-error/70 uppercase tracking-[0.1em] text-[10px] font-bold">Alertas</p>
             <h3 className="font-display-lg text-3xl font-extrabold text-error mt-1">{stats.alertCount}</h3>
-            <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Acción requerida inmediata' : 'Sistema en óptimas condiciones'}</p>
+            <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema en óptimas condiciones'}</p>
           </div>
         </BorderRotate>
       </section>
@@ -542,6 +553,82 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Alerts Modal ────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showAlertsModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="px-6 py-5 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest">
+                <div className="flex items-center gap-3">
+                  <div className="bg-error/10 p-2.5 rounded-xl text-error">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-headline-md text-xl font-bold text-primary">Alertas del Sistema</h3>
+                    <p className="text-sm font-medium text-on-surface-variant/70 mt-0.5">Atiende estos {stats.alertCount} avisos para mantener el sistema al día</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAlertsModal(false)}
+                  className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                {stats.alertsDetails && stats.alertsDetails.length > 0 ? (
+                  stats.alertsDetails.map((alert) => (
+                    <div key={alert.id} className="border border-outline-variant/30 rounded-2xl p-5 hover:bg-surface-container-lowest transition-colors flex flex-col sm:flex-row gap-5 items-start">
+                      <div className={clsx("p-3 rounded-2xl shrink-0 mt-1", alert.type === 'invoice_rejected' ? 'bg-error/10 text-error' : 'bg-amber-100 text-amber-700')}>
+                        {alert.type === 'invoice_rejected' ? <AlertCircle className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className={clsx("font-bold text-lg", alert.type === 'invoice_rejected' ? 'text-error' : 'text-amber-900')}>{alert.title}</h4>
+                        <p className="text-sm font-medium text-on-surface-variant/80 mt-1.5 leading-relaxed">{alert.description}</p>
+                        
+                        <div className="mt-4">
+                          <button
+                            onClick={() => router.push(alert.actionLink)}
+                            className={clsx("inline-flex items-center gap-1 text-sm font-bold transition-colors underline-offset-4 hover:underline", 
+                              alert.type === 'invoice_rejected' 
+                                ? "text-error hover:text-red-800" 
+                                : "text-amber-700 hover:text-amber-900"
+                            )}
+                          >
+                            {alert.actionText}
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-bold text-on-surface-variant/70">Todo en orden</p>
+                    <p className="text-sm text-on-surface-variant/50">No hay alertas activas en este momento.</p>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 border-t border-outline-variant/20 bg-surface-container-low text-right">
+                <button
+                  onClick={() => setShowAlertsModal(false)}
+                  className="px-6 py-2.5 rounded-xl font-bold text-sm bg-white border border-outline-variant/30 hover:bg-surface-container transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

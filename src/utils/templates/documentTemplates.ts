@@ -1310,7 +1310,7 @@ export class DocumentTemplates {
         <tr>
           <td class="font-mono text-slate-500">${acc.code}</td>
           <td>${acc.name}</td>
-          <td class="text-right font-mono">$${formatNum(Number(acc.balance))}</td>
+          <td class="text-right font-mono">$${formatNum(Number(acc.balance ?? acc.net ?? 0))}</td>
         </tr>
       `).join('');
     };
@@ -1457,7 +1457,7 @@ export class DocumentTemplates {
         <tr>
           <td class="font-mono text-slate-500">${acc.code}</td>
           <td>${acc.name}</td>
-          <td class="text-right font-mono">$${formatNum(Number(acc.balance))}</td>
+          <td class="text-right font-mono">$${formatNum(Number(acc.balance ?? acc.net ?? 0))}</td>
         </tr>
       `).join('');
     };
@@ -2389,6 +2389,113 @@ export class DocumentTemplates {
 
         <div class="footer" style="margin-top: 60px;">
           Reporte de Compras - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderSalesVsPurchases(data: any, startDate: string, endDate: string) {
+    const { company, totalSales, totalPurchases, margin } = data;
+    const formatNum = (num: any) => new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(num) || 0);
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const marginColor = margin >= 0 ? '#10b981' : '#ef4444';
+    const marginLabel = margin >= 0 ? 'Utilidad Bruta' : 'Déficit (Pérdida)';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte Compras vs Ventas</title>
+        <style>
+          ${css}
+          body { padding: 20px; }
+          .summary-cards { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 40px; }
+          .card { flex: 1; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
+          .card-sales { background-color: #f0f9ff; border-color: #bae6fd; }
+          .card-purchases { background-color: #fef2f2; border-color: #fecaca; }
+          .card-margin { background-color: #f0fdf4; border-color: #bbf7d0; }
+          .card-title { font-size: 12pt; font-weight: bold; margin-bottom: 10px; color: #475569; text-transform: uppercase; letter-spacing: 1px; }
+          .card-value { font-size: 24pt; font-weight: 900; }
+          .val-sales { color: #0369a1; }
+          .val-purchases { color: #b91c1c; }
+          .table-container { margin-top: 30px; }
+          .footer { margin-top: 50px; text-align: center; font-size: 8.5pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">COMPRAS VS VENTAS</div>
+            <div><strong>Periodo:</strong> Desde ${startDate} Hasta ${endDate}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <div class="summary-cards">
+          <div class="card card-sales">
+            <div class="card-title">Total Ventas</div>
+            <div class="card-value val-sales">RD$ ${formatNum(totalSales)}</div>
+          </div>
+          <div class="card card-purchases">
+            <div class="card-title">Total Compras / Gastos</div>
+            <div class="card-value val-purchases">RD$ ${formatNum(totalPurchases)}</div>
+          </div>
+        </div>
+
+        <div class="summary-cards" style="margin-top: -20px;">
+          <div class="card card-margin" style="border-color: ${marginColor}40; background-color: ${marginColor}10;">
+            <div class="card-title" style="color: ${marginColor}">${marginLabel}</div>
+            <div class="card-value" style="color: ${marginColor}">RD$ ${formatNum(margin)}</div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th class="text-right">Monto (RD$)</th>
+                <th class="text-right">% del Total de Ventas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Ingresos por Ventas</strong></td>
+                <td class="text-right"><strong>${formatNum(totalSales)}</strong></td>
+                <td class="text-right">100.00%</td>
+              </tr>
+              <tr>
+                <td>Compras y Gastos</td>
+                <td class="text-right" style="color: #ef4444;">- ${formatNum(totalPurchases)}</td>
+                <td class="text-right">${totalSales > 0 ? ((totalPurchases / totalSales) * 100).toFixed(2) : '0.00'}%</td>
+              </tr>
+              <tr style="background-color: #f8fafc;">
+                <td style="padding-top: 20px;"><strong>${marginLabel}</strong></td>
+                <td class="text-right" style="padding-top: 20px; color: ${marginColor};"><strong>${formatNum(margin)}</strong></td>
+                <td class="text-right" style="padding-top: 20px;"><strong>${totalSales > 0 ? ((margin / totalSales) * 100).toFixed(2) : '0.00'}%</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          Reporte de Análisis Comparativo - Generado por ContFast Enterprise
         </div>
       </body>
       </html>

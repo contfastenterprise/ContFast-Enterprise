@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PieChart, Download, FileText, Calendar, Building, BookOpen, Loader2, Building2 } from 'lucide-react';
+import { PieChart, Download, FileText, Calendar, Building, BookOpen, Loader2, Building2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ReportsPage() {
@@ -206,6 +206,29 @@ export default function ReportsPage() {
               className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'ar_statement' ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
+              ) : (
+                <><Download className="w-4 h-4" /> Generar PDF</>
+              )}
+            </button>
+          </div>
+
+          {/* Sales vs Purchases Card */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 left-0 w-1 h-full bg-violet-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <TrendingUp className="w-6 h-6 text-violet-500" />
+              <h3 className="font-bold text-lg text-primary">Compras vs Ventas</h3>
+            </div>
+            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+              Reporte comparativo para analizar la utilidad bruta, calculando el total de ingresos por ventas menos los gastos y compras del período.
+            </p>
+            <button
+              onClick={() => handleGeneratePdf('sales_vs_purchases')}
+              disabled={loadingType !== null}
+              className="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loadingType === 'sales_vs_purchases' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
               ) : (
                 <><Download className="w-4 h-4" /> Generar PDF</>

@@ -98,9 +98,9 @@ export const NAV_GROUPS: NavGroupDef[] = [
     title: 'Finanzas',
     icon: Landmark,
     items: [
-      { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: Landmark, roles: ['sistema', 'admin', 'contab', 'banco'] },
-      { name: 'Contabilidad', href: '/dashboard/accounting', icon: BookOpen, roles: ['sistema', 'admin', 'contab'] },
-      { name: 'Reportes', href: '/dashboard/reports', icon: PieChart, roles: ['sistema', 'admin', 'contab', 'banco'] },
+      { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: Landmark, roles: ['sistema', 'sistemas', 'admin', 'contab', 'banco'] },
+      { name: 'Contabilidad', href: '/dashboard/accounting', icon: BookOpen, roles: ['sistema', 'sistemas', 'admin', 'contab'] },
+      { name: 'Reportes', href: '/dashboard/reports', icon: PieChart, roles: ['sistema', 'sistemas', 'admin', 'contab', 'banco'] },
     ],
   },
   {
@@ -141,7 +141,7 @@ export const NAV_GROUPS: NavGroupDef[] = [
 function getVisibleItems(group: NavGroupDef, userRole: string): NavItemDef[] {
   return group.items.filter(item => {
     if (!item.roles) return true;
-    return item.roles.some(r => userRole.includes(r));
+    return item.roles.some(r => userRole?.toLowerCase().includes(r.toLowerCase()));
   });
 }
 

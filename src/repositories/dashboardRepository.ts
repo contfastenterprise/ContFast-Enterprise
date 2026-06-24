@@ -14,9 +14,12 @@ export class DashboardRepository {
     
     const allInvoices = await db.select({
       id: invoices.id,
+      ncf: invoices.ncf,
+      ecfType: invoices.ecfType,
       status: invoices.status,
       total: invoices.total,
-      createdAt: invoices.createdAt
+      createdAt: invoices.createdAt,
+      dgiiMessage: invoices.dgiiMessage
     }).from(invoices)
     .where(eq(invoices.companyId, companyId));
 
@@ -28,6 +31,7 @@ export class DashboardRepository {
     let monthlySales = 0;
     let alertCount = 0;
     let totalInvoices = allInvoices.length;
+    let alertsDetails: any[] = [];
 
     for (const inv of allInvoices) {
       const invDate = new Date(inv.createdAt);
@@ -59,6 +63,14 @@ export class DashboardRepository {
       // Alerts
       if (inv.status === 'rejected') {
         alertCount++;
+        alertsDetails.push({
+          id: inv.id,
+          type: 'invoice_rejected',
+          title: `Factura ${inv.ncf || 'sin NCF'} rechazada`,
+          description: inv.dgiiMessage || 'Error de validación en la DGII',
+          actionText: 'Revisar Factura',
+          actionLink: `/dashboard/invoices/${inv.id}`
+        });
       }
     }
 
@@ -69,10 +81,13 @@ export class DashboardRepository {
       invoicesTodayChangePct = 100;
     }
 
-    // Query due guarantee checks count
+    // Query due guarantee checks count and details
     const formattedToday = today.toISOString().split('T')[0];
-    const [dueChecksResult] = await db.select({
-      count: sql<number>`count(*)::int`
+    const dueChecks = await db.select({
+      id: checks.id,
+      checkNumber: checks.checkNumber,
+      payee: checks.payee,
+      amount: checks.amount
     }).from(checks)
     .where(and(
       eq(checks.companyId, companyId),
@@ -80,7 +95,18 @@ export class DashboardRepository {
       eq(checks.status, 'pending'),
       lte(checks.dueDate, formattedToday)
     ));
-    const dueGuaranteeChecksCount = dueChecksResult?.count || 0;
+    const dueGuaranteeChecksCount = dueChecks.length;
+    
+    for (const check of dueChecks) {
+      alertsDetails.push({
+        id: check.id,
+        type: 'check_due',
+        title: `Cheque en Garantía Vencido (#${check.checkNumber})`,
+        description: `Cheque a nombre de ${check.payee} por RD$ ${parseFloat(check.amount).toLocaleString('es-DO')} listo para cobro.`,
+        actionText: 'Ir a Compras',
+        actionLink: '/dashboard/purchases?tab=cheques'
+      });
+    }
 
     return {
       invoicesToday,
@@ -91,7 +117,8 @@ export class DashboardRepository {
       alertCount: alertCount + dueGuaranteeChecksCount,
       totalInvoices,
       monthlyGoal: 2000000, // Fixed for now
-      dueGuaranteeChecksCount
+      dueGuaranteeChecksCount,
+      alertsDetails
     };
   }
 

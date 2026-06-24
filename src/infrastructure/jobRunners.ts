@@ -251,7 +251,7 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
   if (pdfPath) {
     const resolvedPath = path.isAbsolute(pdfPath) 
       ? pdfPath 
-      : path.join(process.cwd(), pdfPath);
+      : path.join(/*turbopackIgnore: true*/ process.cwd(), pdfPath);
 
     if (fs.existsSync(resolvedPath)) {
       attachments.push({

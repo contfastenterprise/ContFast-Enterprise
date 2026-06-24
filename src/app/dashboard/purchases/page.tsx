@@ -4,11 +4,28 @@ import { useState, useEffect } from 'react';
 import { 
   RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
-  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle
+  DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
+  Camera, Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { roundMoney } from '@/utils/calculos';
+import InvoiceImageUploader from '@/components/InvoiceImageUploader';
+import { OcrInvoiceData } from '@/utils/ocrParser';
+
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getFirstDayOfMonthString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -61,7 +78,7 @@ export default function PurchasesPage() {
   const [gcCheckNumber, setGcCheckNumber] = useState('');
   const [gcAmount, setGcAmount] = useState<number>(0);
   const [gcPayee, setGcPayee] = useState('');
-  const [gcIssueDate, setGcIssueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [gcIssueDate, setGcIssueDate] = useState(getLocalDateString());
   const [gcDueDate, setGcDueDate] = useState('');
   const [bankAccountsList, setBankAccountsList] = useState<{ id: string; bankName: string; accountNumber: string; currency: string }[]>([]);
 
@@ -69,7 +86,7 @@ export default function PurchasesPage() {
   const [supplierId, setSupplierId] = useState('');
   const [ncf, setNcf] = useState('');
   const [expenseType, setExpenseType] = useState('02'); // Gastos por Trabajos, Suministros y Servicios
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [issueDate, setIssueDate] = useState(getLocalDateString());
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
@@ -81,6 +98,36 @@ export default function PurchasesPage() {
   const [generalItbis, setGeneralItbis] = useState<number>(0);
   const [accountsList, setAccountsList] = useState<{ id: string; code: string; name: string; type: string }[]>([]);
   const [debitAccountId, setDebitAccountId] = useState('');
+  const [showOcrModal, setShowOcrModal] = useState(false);
+
+  const handleOcrComplete = (data: OcrInvoiceData) => {
+    setIsMinorExpense(false);
+    
+    if (data.rnc) {
+      const matched = suppliers.find(s => s.rnc.replace(/[\s-]/g, '') === data.rnc.replace(/[\s-]/g, ''));
+      if (matched) {
+        setSupplierId(matched.id);
+        toast.success(`Proveedor auto-detectado: ${matched.name}`);
+      } else {
+        toast.warning(`No se encontró proveedor con RNC: ${data.rnc}`);
+      }
+    }
+    
+    if (data.ncf) setNcf(data.ncf);
+    if (data.date) setIssueDate(data.date);
+    
+    setIsGeneralAmount(true);
+    setGeneralTotal(data.total.toString());
+    setGeneralSubtotal(data.subtotal);
+    setGeneralItbis(data.itbis);
+    
+    if (data.supplier) {
+      setDescription(`Compra / Gasto importado automáticamente vía OCR del proveedor: ${data.supplier}`);
+    }
+    
+    setShowOcrModal(false);
+    toast.success('Datos cargados al formulario.');
+  };
   
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
@@ -91,10 +138,8 @@ export default function PurchasesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // Filters State
-  const [filterStartDate, setFilterStartDate] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
-  );
-  const [filterEndDate, setFilterEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonthString());
+  const [filterEndDate, setFilterEndDate] = useState(getLocalDateString());
   const [filterType, setFilterType] = useState<'all' | 'purchases' | 'expenses'>('all');
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterWarehouse, setFilterWarehouse] = useState('');
@@ -774,9 +819,18 @@ export default function PurchasesPage() {
           {/* Cabecera del Gasto */}
           <section className="lg:col-span-2 space-y-6">
             <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-              <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4" /> Datos del Comprobante
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4" /> Datos del Comprobante
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowOcrModal(true)}
+                  className="bg-[#005E63] text-white hover:bg-[#004d52] transition-all px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
+                >
+                  <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
+                </button>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div 
@@ -1046,7 +1100,7 @@ export default function PurchasesPage() {
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
                   <select 
-                    value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
+                    value={isGeneralAmount ? "" : warehouseId} onChange={e => setWarehouseId(e.target.value)}
                     disabled={isGeneralAmount}
                     className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -1235,6 +1289,23 @@ export default function PurchasesPage() {
         ) : (
           <GuaranteeChecksView />
         )}
+
+      {/* OCR Lector Modal */}
+      {showOcrModal && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 border border-slate-200">
+            <button
+              onClick={() => setShowOcrModal(false)}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-750 text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl active:scale-95 z-50 transition-colors"
+            >
+              Cerrar
+            </button>
+            <div className="pt-4">
+              <InvoiceImageUploader onOcrComplete={handleOcrComplete} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Premium Detail Modal for Expense/Purchase */}
       <AnimatePresence>
@@ -1512,7 +1583,7 @@ function GuaranteeChecksView() {
                       </tr>
                     ) : (
                       pendingChecks.map(p => {
-                        const isDue = new Date(p.dueDate).toISOString().split('T')[0] <= new Date().toISOString().split('T')[0];
+                        const isDue = p.dueDate <= getLocalDateString();
                         return (
                           <tr key={p.id} className={isDue ? "bg-amber-50/30" : ""}>
                             <td className="px-6 py-4 font-bold text-primary">{p.supplierName}</td>

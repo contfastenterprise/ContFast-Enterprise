@@ -76,7 +76,7 @@ export default function DashboardCharts({ chartData, comparisonChart, period = '
               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} dy={10} minTickGap={20} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />
               <RechartsTooltip 
-                formatter={(value: any, name: any) => [fmt(Number(value) || 0), name === 'sales' ? 'Ventas' : 'Compras']}
+                formatter={(value: any, name: any) => [fmt(Number(value) || 0), name]}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingTop: '10px' }} />

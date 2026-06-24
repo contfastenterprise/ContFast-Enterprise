@@ -210,7 +210,7 @@ async function sendEmailJob(data) {
     if (pdfPath) {
         const resolvedPath = path_1.default.isAbsolute(pdfPath)
             ? pdfPath
-            : path_1.default.join(process.cwd(), pdfPath);
+            : path_1.default.join(/*turbopackIgnore: true*/ process.cwd(), pdfPath);
         if (fs_1.default.existsSync(resolvedPath)) {
             attachments.push({
                 filename: path_1.default.basename(resolvedPath),

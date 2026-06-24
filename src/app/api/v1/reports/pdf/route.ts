@@ -131,6 +131,34 @@ export async function GET(req: NextRequest) {
       pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
       filename = `Estado_Cuentas_${data.customer.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     }
+    else if (type === 'sales_vs_purchases') {
+      if (!start || !end) {
+        return NextResponse.json({ success: false, error: { message: 'Fechas requeridas' } }, { status: 400 });
+      }
+      const warehouseId = searchParams.get('warehouseId');
+      const data = await ReportRepository.getSalesVsPurchases(session.companyId, start, end, warehouseId || undefined);
+
+      const [settings] = await db
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, session.companyId))
+        .limit(1);
+
+      const html = DocumentTemplates.renderSalesVsPurchases({
+        company: {
+          name: companyInfo.name,
+          rnc: companyInfo.rnc,
+          address: companyInfo.address || 'República Dominicana',
+          logoUrl: settings?.logoUrl || undefined
+        },
+        totalSales: data.totalSales,
+        totalPurchases: data.totalPurchases,
+        margin: data.margin
+      }, start, end);
+      
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
+      filename = `Compras_vs_Ventas_${start}_${end}.pdf`;
+    }
     else {
       return NextResponse.json({ success: false, error: { message: 'Tipo de reporte no soportado' } }, { status: 400 });
     }

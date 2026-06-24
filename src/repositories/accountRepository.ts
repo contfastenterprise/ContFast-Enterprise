@@ -14,6 +14,9 @@ export interface CreateJournalEntryInput {
 }
 
 function formatLocalDate(date: Date | string): string {
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
   const d = typeof date === 'string' ? new Date(date) : date;
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');

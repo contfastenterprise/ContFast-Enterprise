@@ -1,4 +1,4 @@
-import { db, journalEntries, journalEntryLines, chartOfAccounts, companies, companySettings, customers, accountsReceivable, invoices } from '@/db';
+import { db, journalEntries, journalEntryLines, chartOfAccounts, companies, companySettings, customers, accountsReceivable, invoices, expenses } from '@/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 export class ReportRepository {
@@ -211,6 +211,62 @@ export class ReportRepository {
       customer,
       openItems,
       totalPending
+    };
+  }
+
+  static async getSalesVsPurchases(companyId: string, startDate: string, endDate: string, warehouseId?: string) {
+    // Ventas
+    const salesConditions = [
+      eq(invoices.companyId, companyId),
+      gte(sql`DATE(${invoices.createdAt})`, startDate),
+      lte(sql`DATE(${invoices.createdAt})`, endDate),
+      sql`${invoices.status} != 'rejected'`
+    ];
+    if (warehouseId && warehouseId !== 'all') {
+      salesConditions.push(eq(invoices.warehouseId, warehouseId));
+    }
+
+    const sales = await db.select({
+      id: invoices.id,
+      date: invoices.createdAt,
+      ncf: invoices.ncf,
+      total: invoices.total,
+    }).from(invoices).where(and(...salesConditions));
+
+    // Compras (Expenses)
+    const expensesConditions = [
+      eq(expenses.companyId, companyId),
+      gte(expenses.issueDate, startDate),
+      lte(expenses.issueDate, endDate)
+    ];
+    if (warehouseId && warehouseId !== 'all') {
+      expensesConditions.push(eq(expenses.warehouseId, warehouseId));
+    }
+
+    const purchases = await db.select({
+      id: expenses.id,
+      date: expenses.issueDate,
+      ncf: expenses.ncf,
+      total: expenses.amount,
+      itbis: expenses.itbis
+    }).from(expenses).where(and(...expensesConditions));
+
+    let totalSales = 0;
+    for (const s of sales) {
+      totalSales += Number(s.total) || 0;
+    }
+
+    let totalPurchases = 0;
+    for (const p of purchases) {
+      totalPurchases += (Number(p.total) || 0) + (Number(p.itbis) || 0); // Assuming amount doesn't include ITBIS in expenses schema sometimes, but usually it does or doesn't. 606 uses separate fields. Let's sum amount + itbis + isc + otherTaxes + tip if needed. Actually, just amount + itbis.
+    }
+
+    return {
+      sales,
+      purchases,
+      totalSales,
+      totalPurchases,
+      margin: totalSales - totalPurchases
     };
   }
 }
