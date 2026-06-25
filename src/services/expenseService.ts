@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { addStock } from './inventoryService';
 import { AccountRepository } from '../repositories/accountRepository';
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
   const [acc] = await tx
     .select()
     .from(chartOfAccounts)
@@ -116,7 +116,7 @@ export async function createExpense(expenseData: {
         ? { id: expenseData.debitAccountId }
         : (hasInventory 
           ? await getOrCreateAccount(tx, expenseData.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-          : await getOrCreateAccount(tx, expenseData.companyId, '5.1.01', 'Costo de Ventas', 'expense'));
+          : await getOrCreateAccount(tx, expenseData.companyId, '5.1.01', 'Costo de Ventas', 'cost'));
 
       const accCredit = isCredit
         ? await getOrCreateAccount(tx, expenseData.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')

@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
-    const dateStr = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const getDRLocalDateString = () => {
+      const d = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      return d.toISOString().split('T')[0];
+    };
+    const dateStr = searchParams.get('date') || getDRLocalDateString();
 
     // 1. Fetch sum of debits/credits grouped by accountId up to date
     const linesSum = await db

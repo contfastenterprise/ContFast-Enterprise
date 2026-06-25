@@ -164,8 +164,8 @@ export async function POST(req: NextRequest) {
       { code: '4.2.02', name: 'Otros Ingresos', type: 'revenue' },
 
       // 5. Costos
-      { code: '5', name: 'Costos de Ventas', type: 'expense' },
-      { code: '5.1.01', name: 'Costo de Ventas (Mercancías)', type: 'expense' },
+      { code: '5', name: 'Costos de Ventas', type: 'cost' },
+      { code: '5.1.01', name: 'Costo de Ventas (Mercancías)', type: 'cost' },
 
       // 6. Gastos
       { code: '6', name: 'Gastos Operacionales', type: 'expense' },

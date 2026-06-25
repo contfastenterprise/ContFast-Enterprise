@@ -68,9 +68,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // 3. Process Income Statement accounts (Revenues, Expenses)
+    // 3. Process Income Statement accounts (Revenues, Costs, Expenses)
     const incomeStatementAccounts = accounts
-      .filter((acc) => acc.type === 'revenue' || acc.type === 'expense')
+      .filter((acc) => acc.type === 'revenue' || acc.type === 'expense' || acc.type === 'cost')
       .map((acc) => {
         const sum = sumsMap[acc.id] || { debit: 0, credit: 0 };
         let balance = 0;
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         if (acc.type === 'revenue') {
           balance = sum.credit - sum.debit;
         } else {
-          // Expenses
+          // Expenses & Cost (debit-normal accounts)
           balance = sum.debit - sum.credit;
         }
 
@@ -96,14 +96,21 @@ export async function GET(req: NextRequest) {
 
     // 4. Calculate category totals
     let totalRevenues = 0;
+    let totalCosts = 0;
     let totalExpenses = 0;
 
     incomeStatementAccounts.forEach((acc) => {
       if (acc.type === 'revenue') totalRevenues += acc.balance;
+      else if (acc.type === 'cost') totalCosts += acc.balance;
       else if (acc.type === 'expense') totalExpenses += acc.balance;
     });
 
-    const netIncome = totalRevenues - totalExpenses;
+    const grossProfit = totalRevenues - totalCosts;
+    const netIncome = grossProfit - totalExpenses;
+
+    const revenueAccounts  = incomeStatementAccounts.filter(a => a.type === 'revenue');
+    const costAccounts     = incomeStatementAccounts.filter(a => a.type === 'cost');
+    const expenseAccounts  = incomeStatementAccounts.filter(a => a.type === 'expense');
 
     return NextResponse.json(
       {
@@ -113,10 +120,15 @@ export async function GET(req: NextRequest) {
           end_date: endDateStr,
           summary: {
             total_revenues: totalRevenues,
+            total_costs: totalCosts,
             total_expenses: totalExpenses,
+            gross_profit: grossProfit,
             net_income: netIncome,
           },
           accounts: incomeStatementAccounts,
+          revenueAccounts,
+          costAccounts,
+          expenseAccounts,
         },
       },
       { headers: resHeaders }

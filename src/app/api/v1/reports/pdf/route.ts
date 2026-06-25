@@ -23,6 +23,11 @@ export async function GET(req: NextRequest) {
     const start = searchParams.get('start');
     const end = searchParams.get('end');
 
+    const getDRLocalDateString = () => {
+      const d = new Date(Date.now() - 4 * 60 * 60 * 1000);
+      return d.toISOString().split('T')[0];
+    };
+
     if (!type) {
       return NextResponse.json({ success: false, error: { message: 'Tipo de reporte requerido' } }, { status: 400 });
     }
@@ -69,7 +74,7 @@ export async function GET(req: NextRequest) {
       filename = `Estado_Resultados_${start}_${end}.pdf`;
     } 
     else if (type === 'balance_sheet') {
-      const asOf = end || new Date().toISOString().split('T')[0];
+      const asOf = end || getDRLocalDateString();
       const data = await ReportRepository.getBalanceSheet(session.companyId, asOf);
 
       const [settings] = await db
@@ -102,7 +107,7 @@ export async function GET(req: NextRequest) {
       if (!customerId) {
         return NextResponse.json({ success: false, error: { message: 'Cliente requerido' } }, { status: 400 });
       }
-      const asOf = end || new Date().toISOString().split('T')[0];
+      const asOf = end || getDRLocalDateString();
       const data = await ReportRepository.getARStatement(session.companyId, customerId);
 
       const [settings] = await db
