@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from 'puppeteer';
+import type { Browser } from 'puppeteer';
 import QRCode from 'qrcode';
 
 export class PdfGenerator {
@@ -22,17 +22,35 @@ export class PdfGenerator {
       }
     }
 
-    this.browserInstance = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Prevents crashing in memory-constrained environments like VPS/containers
-        '--disable-gpu',           // Saves GPU memory
-        '--no-zygote',             // Disables zygote process creation for extra savings
-        '--no-first-run',
-      ]
-    });
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+
+    if (isProduction) {
+      const puppeteerCore = await import('puppeteer-core');
+      const chromium = await import('@sparticuz/chromium');
+      
+      const chromiumInstance = chromium.default;
+      const execPath = await chromiumInstance.executablePath();
+      
+      this.browserInstance = await puppeteerCore.launch({
+        args: chromiumInstance.args,
+        defaultViewport: { width: 800, height: 600 },
+        executablePath: execPath,
+        headless: true,
+      }) as unknown as Browser;
+    } else {
+      const puppeteerLocal = await import('puppeteer');
+      this.browserInstance = await puppeteerLocal.default.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage', // Prevents crashing in memory-constrained environments like VPS/containers
+          '--disable-gpu',           // Saves GPU memory
+          '--no-zygote',             // Disables zygote process creation for extra savings
+          '--no-first-run',
+        ]
+      }) as unknown as Browser;
+    }
 
     return this.browserInstance;
   }
