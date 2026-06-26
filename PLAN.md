@@ -236,6 +236,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Upsert del Catálogo de Permisos:** Se autogeneran y cargan dinámicamente los 55 permisos posibles en el sistema (`11 módulos * 5 acciones`) usando `.onConflictDoNothing()`.
 - **Siembra Completa de `role_permissions`:** Una vez creados los 6 roles de la empresa, se asocian sus respectivos permisos por defecto basándose en la matriz `DEFAULT_ROLE_PERMISSIONS` de `src/middleware/permissions.ts` (habilitando acceso total para `sistemas`, acceso restringido/de lectura técnica para `administracion`, y los privilegios operativos correspondientes para `contabilidad`, `facturacion`, `banco` y `cajero`), grabándolos físicamente en la tabla `role_permissions`.
 
+### 38. Validaciones de Permisos Estrictas en APIs GET/POST/PUT
+- **Auditoría de Acceso en Endpoints:** Se implementaron validaciones de privilegios obligatorias utilizando `enforcePermission` en 14 endpoints clave del sistema (Reportes, Contabilidad, Inventarios, Compras, Suplidores y Clientes).
+- **Prevención de Fugas de Información:** Esto asegura que roles limitados (como `cajero`) no puedan consultar balances generales, catálogos de cuentas o realizar traslados/ajustes manuales de stock de manera directa vía HTTP.
+- **Soporte de Refresh Token Headers:** Se adaptaron todos los endpoints modificados para propagar y retornar correctamente las cabeceras actualizadas de cookies (`resHeaders`) generadas por el middleware.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

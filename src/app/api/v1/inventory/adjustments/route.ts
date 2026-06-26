@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, inventoryLevels, inventoryMovements } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'catalogo', 'write');
 
     const { warehouseId, productId, newQuantity, reason } = await req.json();
 
@@ -81,9 +85,10 @@ export async function POST(req: NextRequest) {
       return { moveId, currentBalance, newQuantity: newQtyNum, difference };
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
   } catch (err: any) {
     console.error('Error in inventory adjustment:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    const status = err.status || 500;
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
   }
 }

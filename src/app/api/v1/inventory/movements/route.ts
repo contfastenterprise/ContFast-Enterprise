@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, inventoryMovements, products, warehouses, users } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { eq, and, desc, asc, sql, ilike, or, gte, lte } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'catalogo', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -106,10 +110,11 @@ export async function GET(req: NextRequest) {
           netChange: totalIn - totalOut
         }
       }
-    });
+    }, { headers: resHeaders });
 
   } catch (error: any) {
     console.error('Error fetching inventory movements:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+    const status = error.status || 500;
+    return NextResponse.json({ success: false, error: { message: error.message } }, { status });
   }
 }

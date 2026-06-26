@@ -3,12 +3,16 @@ import { db } from '@/db';
 import { inventoryLevels, warehouses } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { getProvisionalStock } from '@/services/inventoryService';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const auth = await verifyAuth(req, resHeaders);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'read');
 
     const { id: productId } = await params;
 
@@ -36,9 +40,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       })
     );
 
-    return NextResponse.json({ success: true, data: detailedLevels });
-  } catch (error) {
+    return NextResponse.json({ success: true, data: detailedLevels }, { headers: resHeaders });
+  } catch (error: any) {
     console.error('Error fetching inventory levels:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch inventory levels' }, { status: 500 });
+    const status = error.status || 500;
+    return NextResponse.json({ success: false, error: error.message || 'Failed to fetch inventory levels' }, { status });
   }
 }

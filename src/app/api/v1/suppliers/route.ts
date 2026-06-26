@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { SupplierRepository } from '@/repositories/supplierRepository';
+import { enforcePermission } from '@/middleware/permissions';
 import { z } from 'zod';
 
 const createSupplierSchema = z.object({
@@ -24,10 +25,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'read');
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || undefined;
@@ -44,12 +48,13 @@ export async function GET(req: NextRequest) {
         limit,
         offset
       }
-    });
+    }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching suppliers:', error);
+    const status = error.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
+      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { status }
     );
   }
 }
@@ -65,10 +70,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
 
     const body = await req.json();
     const parsed = createSupplierSchema.safeParse(body);
@@ -85,13 +93,14 @@ export async function POST(req: NextRequest) {
       companyId: session.companyId,
     });
 
-    return NextResponse.json({ success: true, data: newSupplier }, { status: 201 });
+    return NextResponse.json({ success: true, data: newSupplier }, { status: 201, headers: resHeaders });
   } catch (error: any) {
     console.error('Error creating supplier:', error);
     const isDuplicate = error.message.includes('ya existe');
+    const status = error.status || (isDuplicate ? 409 : 500);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : 'SERVER_ERROR', message: error.message } },
-      { status: isDuplicate ? 409 : 500 }
+      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
+      { status }
     );
   }
 }

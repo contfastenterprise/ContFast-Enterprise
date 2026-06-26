@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { CustomerRepository } from '@/repositories/customerRepository';
+import { enforcePermission } from '@/middleware/permissions';
 import { z } from 'zod';
 import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
 
@@ -25,10 +26,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'read');
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || undefined;
@@ -45,12 +49,13 @@ export async function GET(req: NextRequest) {
         limit,
         offset
       }
-    });
+    }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching customers:', error);
+    const status = error.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
+      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { status }
     );
   }
 }
@@ -66,10 +71,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'write');
 
     const body = await req.json();
     const parsed = createCustomerSchema.safeParse(body);
@@ -95,13 +103,14 @@ export async function POST(req: NextRequest) {
       address: newCustomer.address,
     }).catch(err => console.error('[CustomersRoute] Google Contacts sync failed:', err.message));
 
-    return NextResponse.json({ success: true, data: newCustomer }, { status: 201 });
+    return NextResponse.json({ success: true, data: newCustomer }, { status: 201, headers: resHeaders });
   } catch (error: any) {
     console.error('Error creating customer:', error);
     const isDuplicate = error.message.includes('ya existe') || error.message.includes('duplicate');
+    const status = error.status || (isDuplicate ? 409 : 500);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : 'SERVER_ERROR', message: error.message } },
-      { status: isDuplicate ? 409 : 500 }
+      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
+      { status }
     );
   }
 }

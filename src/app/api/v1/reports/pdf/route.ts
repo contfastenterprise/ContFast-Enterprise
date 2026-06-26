@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { ReportRepository } from '@/repositories/reportRepository';
 import { PdfGenerator } from '@/services/pdfGenerator';
 import { db, companySettings } from '@/db';
@@ -13,10 +14,13 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
@@ -168,7 +172,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'Tipo de reporte no soportado' } }, { status: 400 });
     }
 
-    const headers = new Headers();
+    const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');
     headers.set('Content-Disposition', `inline; filename="${filename}"`);
     headers.set('Content-Length', String(pdfBuffer.length));

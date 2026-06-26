@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, chartOfAccounts, checks, apPayments } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { enforcePermission } from '@/middleware/permissions';
 import { eq, sql, and, between } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -29,10 +30,13 @@ async function getOrCreateAccount(tx: any, companyId: string, code: string, name
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
 
     const body = await req.json();
     const { 
@@ -288,19 +292,23 @@ export async function POST(req: NextRequest) {
       return { id: newExpenseId };
     });
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
   } catch (err: any) {
     console.error('Error creating expense:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    const status = err.status || 500;
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'read');
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate');
@@ -374,10 +382,11 @@ export async function GET(req: NextRequest) {
       .where(and(...filters))
       .orderBy(sql`${expenses.issueDate} DESC, ${expenses.createdAt} DESC`);
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data }, { headers: resHeaders });
   } catch (err: any) {
     console.error('Error fetching expenses:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    const status = err.status || 500;
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
   }
 }
 

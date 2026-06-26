@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { isAdminOrSistemas } from '@/middleware/permissions';
+import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { SupplierRepository } from '@/repositories/supplierRepository';
 import { z } from 'zod';
@@ -26,22 +26,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'read');
 
     const supplier = await SupplierRepository.findById(id, session.companyId);
     if (!supplier) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Proveedor no encontrado' } }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: supplier });
+    return NextResponse.json({ success: true, data: supplier }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching supplier:', error);
+    const status = error.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
+      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { status }
     );
   }
 }
@@ -58,10 +62,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
 
     const body = await req.json();
     const parsed = updateSupplierSchema.safeParse(body);
@@ -78,13 +85,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Proveedor no encontrado' } }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, data: updated }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error updating supplier:', error);
     const isDuplicate = error.message.includes('en uso');
+    const status = error.status || (isDuplicate ? 409 : 500);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : 'SERVER_ERROR', message: error.message } },
-      { status: isDuplicate ? 409 : 500 }
+      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
+      { status }
     );
   }
 }
@@ -101,29 +109,26 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    if (!isAdminOrSistemas(session.role)) {
-      return NextResponse.json({
-        success: false,
-        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden eliminar o anular registros.' }
-      }, { status: 403 });
-    }
+    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'delete');
 
     const deleted = await SupplierRepository.softDelete(id, session.companyId);
     if (!deleted) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Proveedor no encontrado' } }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, message: 'Proveedor eliminado correctamente' });
+    return NextResponse.json({ success: true, message: 'Proveedor eliminado correctamente' }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error deleting supplier:', error);
+    const status = error.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
+      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { status }
     );
   }
 }

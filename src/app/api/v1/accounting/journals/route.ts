@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountingRepository } from '@/repositories/accountingRepository';
+import { enforcePermission } from '@/middleware/permissions';
 import { z } from 'zod';
 
 const createJournalSchema = z.object({
@@ -26,19 +27,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
+    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
+
     const journals = await AccountingRepository.getJournalEntries(session.companyId);
 
-    return NextResponse.json({ success: true, data: journals });
+    return NextResponse.json({ success: true, data: journals }, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching journals:', error);
+    const status = error.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
-      { status: 500 }
+      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { status }
     );
   }
 }
@@ -54,10 +59,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await verifyAuth(req);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(req, resHeaders);
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
 
     const body = await req.json();
     const parsed = createJournalSchema.safeParse(body);
@@ -75,12 +83,13 @@ export async function POST(req: NextRequest) {
       reference: parsed.data.reference || undefined
     });
 
-    return NextResponse.json({ success: true, data: newJournal }, { status: 201 });
+    return NextResponse.json({ success: true, data: newJournal }, { status: 201, headers: resHeaders });
   } catch (error: any) {
     console.error('Error creating journal entry:', error);
+    const status = error.status || 400;
     return NextResponse.json(
-      { success: false, error: { code: 'BAD_REQUEST', message: error.message } },
-      { status: 400 }
+      { success: false, error: { code: error.code || 'BAD_REQUEST', message: error.message } },
+      { status }
     );
   }
 }
