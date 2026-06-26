@@ -35,7 +35,11 @@ export async function GET(req: NextRequest) {
 
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
 
-    const journals = await AccountingRepository.getJournalEntries(session.companyId);
+    const { searchParams } = new URL(req.url);
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+
+    const journals = await AccountingRepository.getJournalEntries(session.companyId, 100, startDate, endDate);
 
     return NextResponse.json({ success: true, data: journals }, { headers: resHeaders });
   } catch (error: any) {

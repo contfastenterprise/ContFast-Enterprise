@@ -16,6 +16,9 @@ interface Account {
   name: string;
   type: AccountType;
   status: string;
+  isTransactional: boolean;
+  level: number;
+  nature: 'debit' | 'credit';
 }
 
 interface JournalLine {
@@ -53,7 +56,7 @@ const fmt = (val: number | string) => {
 };
 
 export default function AccountingPage() {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'journals'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods' | 'mappings'>('catalog');
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -64,6 +67,27 @@ export default function AccountingPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [expandedJournals, setExpandedJournals] = useState<Record<string, boolean>>({});
+
+  // Ledger Tab States
+  const [selectedLedgerAccount, setSelectedLedgerAccount] = useState('');
+  const [ledgerData, setLedgerData] = useState<any>(null);
+
+  // Trial Balance Tab States
+  const [trialBalanceData, setTrialBalanceData] = useState<any[]>([]);
+
+  // Financials Tab States
+  const [activeFinancialTab, setActiveFinancialTab] = useState<'income-statement' | 'balance-sheet'>('income-statement');
+  const [financialsData, setFinancialsData] = useState<any>(null);
+
+  // Periods Tab States
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [periodForm, setPeriodForm] = useState({ name: '', startDate: '', endDate: '' });
+  const [periodSubmitting, setPeriodSubmitting] = useState(false);
+
+  // Mappings Tab States
+  const [mappings, setMappings] = useState<any[]>([]);
+  const [mappingSubmitting, setMappingSubmitting] = useState(false);
 
   // Modals
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -77,16 +101,24 @@ export default function AccountingPage() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab, startDate, endDate]);
+  }, [activeTab, startDate, endDate, selectedLedgerAccount]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Pre-load accounts for dropdowns
+      const accRes = await fetch('/api/v1/accounting/accounts');
+      const accData = await accRes.json();
+      if (accData.success) {
+        setAccounts(accData.data);
+      }
+
+      const formattedStart = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+      const formattedEnd = endDate || new Date().toISOString().split('T')[0];
+
       if (activeTab === 'catalog') {
-        const res = await fetch('/api/v1/accounting/accounts');
-        const data = await res.json();
-        if (data.success) setAccounts(data.data);
-      } else {
+        // accounts already loaded
+      } else if (activeTab === 'journals') {
         let url = '/api/v1/accounting/journals';
         const params = [];
         if (startDate) params.push(`startDate=${startDate}`);
@@ -96,6 +128,30 @@ export default function AccountingPage() {
         const res = await fetch(url);
         const data = await res.json();
         if (data.success) setJournals(data.data);
+      } else if (activeTab === 'ledger') {
+        if (selectedLedgerAccount) {
+          const res = await fetch(`/api/v1/accounting/reports/ledger?accountId=${selectedLedgerAccount}&startDate=${formattedStart}&endDate=${formattedEnd}`);
+          const data = await res.json();
+          if (data.success) setLedgerData(data.data);
+        } else {
+          setLedgerData(null);
+        }
+      } else if (activeTab === 'trial-balance') {
+        const res = await fetch(`/api/v1/accounting/reports/trial-balance?startDate=${formattedStart}&endDate=${formattedEnd}`);
+        const data = await res.json();
+        if (data.success) setTrialBalanceData(data.data);
+      } else if (activeTab === 'financials') {
+        const res = await fetch(`/api/v1/accounting/reports/financials?startDate=${formattedStart}&endDate=${formattedEnd}`);
+        const data = await res.json();
+        if (data.success) setFinancialsData(data.data);
+      } else if (activeTab === 'periods') {
+        const res = await fetch('/api/v1/accounting/periods');
+        const data = await res.json();
+        if (data.success) setPeriods(data.data);
+      } else if (activeTab === 'mappings') {
+        const res = await fetch('/api/v1/accounting/mappings');
+        const data = await res.json();
+        if (data.success) setMappings(data.data);
       }
     } catch (err) {
       toast.error('Error cargando datos de contabilidad.');
@@ -299,6 +355,76 @@ export default function AccountingPage() {
     }
   };
 
+  const handleCreatePeriod = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPeriodSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/accounting/periods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(periodForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Período contable abierto con éxito.');
+        setShowPeriodModal(false);
+        setPeriodForm({ name: '', startDate: '', endDate: '' });
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al abrir período.');
+      }
+    } catch (err) {
+      toast.error('Error de red');
+    } finally {
+      setPeriodSubmitting(false);
+    }
+  };
+
+  const handleTogglePeriodStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'open' ? 'closed' : 'open';
+    const label = nextStatus === 'open' ? 'reabrir' : 'cerrar';
+    if (!confirm(`¿Estás seguro que deseas ${label} este período contable?`)) return;
+
+    try {
+      const res = await fetch(`/api/v1/accounting/periods/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Período ${nextStatus === 'open' ? 'reabierto' : 'cerrado'} exitosamente.`);
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al cambiar estado.');
+      }
+    } catch (err) {
+      toast.error('Error de red');
+    }
+  };
+
+  const handleUpdateMapping = async (mappingKey: string, accountId: string) => {
+    setMappingSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/accounting/mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappingKey, accountId })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Cuenta puente actualizada correctamente.');
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al actualizar cuenta puente.');
+      }
+    } catch (err) {
+      toast.error('Error de red');
+    } finally {
+      setMappingSubmitting(false);
+    }
+  };
+
   const totalDebits = journalLines.reduce((s, l) => s + l.debit, 0);
   const totalCredits = journalLines.reduce((s, l) => s + l.credit, 0);
   const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01 && totalDebits > 0;
@@ -350,25 +476,27 @@ export default function AccountingPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white p-1 rounded-xl border border-gray-200 inline-flex shadow-sm">
-          <button
-            onClick={() => setActiveTab('catalog')}
-            className={clsx(
-              'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              activeTab === 'catalog' ? 'bg-[#003366] text-white shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
-            )}
-          >
-            Catálogo de Cuentas
-          </button>
-          <button
-            onClick={() => setActiveTab('journals')}
-            className={clsx(
-              'px-6 py-2.5 rounded-lg text-sm font-semibold transition-all',
-              activeTab === 'journals' ? 'bg-[#003366] text-white shadow' : 'text-on-surface-variant/70 hover:text-slate-700'
-            )}
-          >
-            Asientos Contables
-          </button>
+        <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl border border-gray-200 inline-flex shadow-sm">
+          {[
+            { id: 'catalog', label: 'Catálogo de Cuentas' },
+            { id: 'journals', label: 'Asientos Contables' },
+            { id: 'ledger', label: 'Libro Mayor' },
+            { id: 'trial-balance', label: 'Balanza de Comprobación' },
+            { id: 'financials', label: 'Estados Financieros' },
+            { id: 'periods', label: 'Períodos Fiscales' },
+            { id: 'mappings', label: 'Configuración Puente' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={clsx(
+                'px-4 py-2.5 rounded-lg text-xs md:text-sm font-semibold transition-all',
+                activeTab === tab.id ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:text-slate-800'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* CATALOG TAB */}
@@ -547,6 +675,400 @@ export default function AccountingPage() {
                         })}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* LEDGER TAB */}
+          {activeTab === 'ledger' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[250px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Seleccionar Cuenta Contable</label>
+                  <select 
+                    value={selectedLedgerAccount} 
+                    onChange={e => setSelectedLedgerAccount(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                  >
+                    <option value="">-- Seleccione una cuenta --</option>
+                    {accounts.filter(a => a.status === 'active').map(acc => (
+                      <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-full sm:w-auto flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Desde</label>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hasta</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : !ledgerData ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+                  <BookOpen className="h-12 w-12 text-on-surface-variant mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-[#003366]">Consulta de Auxiliar</h3>
+                  <p className="text-on-surface-variant/70 text-sm mt-2">Seleccione una cuenta contable para visualizar sus movimientos y saldos acumulados.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Ledger Header Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Saldo Inicial</p>
+                      <p className="text-2xl font-bold font-mono mt-1 text-[#003366]">{fmt(ledgerData.beginningBalance)}</p>
+                    </div>
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Naturaleza Cuenta</p>
+                      <p className="text-2xl font-bold capitalize mt-1 text-slate-800">{ledgerData.account.nature === 'debit' ? 'Deudora' : 'Acreedora'}</p>
+                    </div>
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Saldo Final</p>
+                      <p className="text-2xl font-bold font-mono mt-1 text-emerald-600">{fmt(ledgerData.endingBalance)}</p>
+                    </div>
+                  </div>
+
+                  {/* Movements list */}
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                          <th className="p-4 w-32">Fecha</th>
+                          <th className="p-4">Detalle / Concepto</th>
+                          <th className="p-4 w-36">Referencia</th>
+                          <th className="p-4 text-right w-36">Débito</th>
+                          <th className="p-4 text-right w-36">Crédito</th>
+                          <th className="p-4 text-right w-36">Balance Acum.</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {ledgerData.movements.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-500">No se encontraron movimientos en el rango seleccionado.</td>
+                          </tr>
+                        ) : (
+                          ledgerData.movements.map((mov: any) => (
+                            <tr key={mov.id} className="hover:bg-slate-50/50">
+                              <td className="p-4 font-mono text-xs">{new Date(mov.date).toLocaleDateString('es-DO')}</td>
+                              <td className="p-4 font-semibold text-slate-800">{mov.description}</td>
+                              <td className="p-4 font-mono text-xs text-slate-500">{mov.reference || '-'}</td>
+                              <td className="p-4 text-right font-mono text-slate-700">{mov.debit > 0 ? fmt(mov.debit) : ''}</td>
+                              <td className="p-4 text-right font-mono text-slate-700">{mov.credit > 0 ? fmt(mov.credit) : ''}</td>
+                              <td className="p-4 text-right font-mono font-bold text-[#003366]">{fmt(mov.balance)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* TRIAL BALANCE TAB */}
+          {activeTab === 'trial-balance' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Desde</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm" />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Hasta</label>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm" />
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-[#003366] text-white text-xs uppercase tracking-wider font-semibold">
+                          <th className="p-4 w-36">Código</th>
+                          <th className="p-4">Nombre de la Cuenta</th>
+                          <th className="p-4 text-right w-36">Saldo Inicial</th>
+                          <th className="p-4 text-right w-36">Débito</th>
+                          <th className="p-4 text-right w-36">Crédito</th>
+                          <th className="p-4 text-right w-36">Saldo Final</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {trialBalanceData.map((row) => (
+                          <tr key={row.id} className={clsx("hover:bg-slate-50/50", row.level === 1 && "bg-slate-50 font-bold")}>
+                            <td className="p-4 font-mono">{row.code}</td>
+                            <td className={clsx("p-4", row.level === 2 && "pl-8", row.level === 3 && "pl-12", row.level >= 4 && "pl-16")}>
+                              {row.name}
+                            </td>
+                            <td className="p-4 text-right font-mono">{fmt(row.beginningBalance)}</td>
+                            <td className="p-4 text-right font-mono text-emerald-600">{row.debit > 0 ? fmt(row.debit) : '-'}</td>
+                            <td className="p-4 text-right font-mono text-rose-600">{row.credit > 0 ? fmt(row.credit) : '-'}</td>
+                            <td className="p-4 text-right font-mono font-bold text-[#003366]">{fmt(row.endingBalance)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* FINANCIALS TAB */}
+          {activeTab === 'financials' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex-wrap gap-4">
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setActiveFinancialTab('income-statement')}
+                    className={clsx("px-4 py-2 rounded-lg text-sm font-semibold transition-all", activeFinancialTab === 'income-statement' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                  >
+                    Estado de Resultados
+                  </button>
+                  <button 
+                    onClick={() => setActiveFinancialTab('balance-sheet')}
+                    className={clsx("px-4 py-2 rounded-lg text-sm font-semibold transition-all", activeFinancialTab === 'balance-sheet' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                  >
+                    Balance General
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs" />
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs" />
+                </div>
+              </div>
+
+              {loading || !financialsData ? (
+                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : activeFinancialTab === 'income-statement' ? (
+                /* Income Statement Render */
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+                  <h3 className="text-lg font-bold text-center text-[#003366] uppercase">Estado de Resultados</h3>
+                  <p className="text-center text-xs text-slate-500">Rango: {startDate || '-'} al {endDate || '-'}</p>
+                  
+                  <div className="space-y-4 max-w-2xl mx-auto divide-y divide-slate-100">
+                    <div className="pt-2">
+                      <h4 className="font-bold text-slate-800 uppercase text-xs mb-2">Ingresos Operacionales</h4>
+                      {financialsData.incomeStatement.rows.filter((r: any) => r.type === 'revenue').map((row: any) => (
+                        <div key={row.id} className="flex justify-between py-1 text-sm pl-4">
+                          <span>{row.code} - {row.name}</span>
+                          <span className="font-mono">{fmt(row.endingBalance)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-800 text-sm">
+                        <span>Total Ingresos</span>
+                        <span className="font-mono">{fmt(financialsData.incomeStatement.totals.revenues)}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <h4 className="font-bold text-slate-800 uppercase text-xs mb-2">Costos y Gastos</h4>
+                      {financialsData.incomeStatement.rows.filter((r: any) => r.type === 'expense').map((row: any) => (
+                        <div key={row.id} className="flex justify-between py-1 text-sm pl-4">
+                          <span>{row.code} - {row.name}</span>
+                          <span className="font-mono text-rose-600">{fmt(row.endingBalance)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-slate-800 text-sm">
+                        <span>Total Gastos</span>
+                        <span className="font-mono text-rose-600">{fmt(financialsData.incomeStatement.totals.expenses)}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex justify-between font-bold text-lg text-emerald-600 border-t-2 border-double border-slate-350">
+                      <span>UTILIDAD NETA DEL PERIODO</span>
+                      <span className="font-mono">{fmt(financialsData.incomeStatement.totals.netIncome)}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Balance Sheet Render */
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+                  <h3 className="text-lg font-bold text-center text-[#003366] uppercase">Balance General</h3>
+                  <p className="text-center text-xs text-slate-500">Al: {endDate || new Date().toISOString().split('T')[0]}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {/* Assets Side */}
+                    <div className="space-y-4">
+                      <h4 className="font-bold text-[#003366] border-b pb-2 uppercase text-sm">Activos</h4>
+                      {financialsData.balanceSheet.rows.filter((r: any) => r.type === 'asset').map((row: any) => (
+                        <div key={row.id} className={clsx("flex justify-between py-1 text-xs", row.level === 1 && "font-bold border-t pt-2")}>
+                          <span className={clsx(row.level === 2 && "pl-4", row.level === 3 && "pl-8", row.level >= 4 && "pl-12")}>{row.name}</span>
+                          <span className="font-mono">{fmt(row.endingBalance)}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t-2 pt-2 font-bold text-[#003366] text-sm">
+                        <span>TOTAL ACTIVOS</span>
+                        <span className="font-mono">{fmt(financialsData.balanceSheet.totals.assets)}</span>
+                      </div>
+                    </div>
+
+                    {/* Liabilities & Equity Side */}
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-[#003366] border-b pb-2 uppercase text-sm">Pasivos</h4>
+                        {financialsData.balanceSheet.rows.filter((r: any) => r.type === 'liability').map((row: any) => (
+                          <div key={row.id} className={clsx("flex justify-between py-1 text-xs", row.level === 1 && "font-bold border-t pt-2")}>
+                            <span className={clsx(row.level === 2 && "pl-4", row.level === 3 && "pl-8", row.level >= 4 && "pl-12")}>{row.name}</span>
+                            <span className="font-mono">{fmt(row.endingBalance)}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between border-t-2 pt-2 font-bold text-slate-800 text-xs">
+                          <span>Total Pasivos</span>
+                          <span className="font-mono">{fmt(financialsData.balanceSheet.totals.liabilities)}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-[#003366] border-b pb-2 uppercase text-sm">Capital / Patrimonio</h4>
+                        {financialsData.balanceSheet.rows.filter((r: any) => r.type === 'equity').map((row: any) => (
+                          <div key={row.id} className={clsx("flex justify-between py-1 text-xs", row.level === 1 && "font-bold border-t pt-2")}>
+                            <span className={clsx(row.level === 2 && "pl-4", row.level === 3 && "pl-8", row.level >= 4 && "pl-12")}>{row.name}</span>
+                            <span className="font-mono">{fmt(row.endingBalance)}</span>
+                          </div>
+                        ))}
+                        {/* Net Income from Income Statement needs to be integrated into Equity */}
+                        <div className="flex justify-between py-1 text-xs text-emerald-600 font-semibold italic">
+                          <span className="pl-4">Utilidad del Periodo Actual</span>
+                          <span className="font-mono">{fmt(financialsData.balanceSheet.totals.netIncome)}</span>
+                        </div>
+                        <div className="flex justify-between border-t-2 pt-2 font-bold text-slate-800 text-xs">
+                          <span>Total Capital</span>
+                          <span className="font-mono">{fmt(financialsData.balanceSheet.totals.equity + financialsData.balanceSheet.totals.netIncome)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between border-t-2 border-double pt-4 font-bold text-[#003366] text-sm">
+                        <span>TOTAL PASIVO Y CAPITAL</span>
+                        <span className="font-mono">{fmt(financialsData.balanceSheet.totals.liabilities + financialsData.balanceSheet.totals.equity + financialsData.balanceSheet.totals.netIncome)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* PERIODS TAB */}
+          {activeTab === 'periods' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-[#003366]">Períodos Contables</h3>
+                <button 
+                  onClick={() => setShowPeriodModal(true)}
+                  className="bg-[#003366] text-white font-bold py-2 px-4 rounded-lg flex items-center gap-1 hover:bg-[#002244]"
+                >
+                  <Plus className="w-4 h-4" /> Abrir Período
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                        <th className="p-4">Nombre Período</th>
+                        <th className="p-4">Fecha Inicio</th>
+                        <th className="p-4">Fecha Cierre</th>
+                        <th className="p-4 text-center">Estado</th>
+                        <th className="p-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {periods.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-slate-500">No hay períodos fiscales abiertos.</td>
+                        </tr>
+                      ) : (
+                        periods.map((p) => (
+                          <tr key={p.id} className="hover:bg-slate-50/50">
+                            <td className="p-4 font-bold text-slate-800">{p.name}</td>
+                            <td className="p-4 font-mono text-xs">{new Date(p.startDate).toLocaleDateString('es-DO')}</td>
+                            <td className="p-4 font-mono text-xs">{new Date(p.endDate).toLocaleDateString('es-DO')}</td>
+                            <td className="p-4 text-center">
+                              <span className={clsx(
+                                "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                p.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'
+                              )}>
+                                {p.status === 'open' ? 'Abierto' : 'Cerrado'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button 
+                                onClick={() => handleTogglePeriodStatus(p.id, p.status)}
+                                className={clsx(
+                                  "text-xs font-bold py-1 px-3 rounded-lg border transition-colors",
+                                  p.status === 'open' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-green-200 text-green-600 hover:bg-green-50'
+                                )}
+                              >
+                                {p.status === 'open' ? 'Cerrar Período' : 'Reabrir Período'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* MAPPINGS TAB */}
+          {activeTab === 'mappings' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-[#003366]">Parametrización de Cuentas Puente (Plantillas)</h3>
+                <p className="text-xs text-slate-500 mt-1">Configura las cuentas por defecto que recibirán débitos/créditos de transacciones automatizadas en facturas, cobros y almacén.</p>
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 max-w-4xl space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { key: 'sales_revenue', label: 'Ingresos por Ventas' },
+                      { key: 'accounts_receivable', label: 'Cuentas por Cobrar (Clientes)' },
+                      { key: 'cash', label: 'Caja General' },
+                      { key: 'bank', label: 'Bancos' },
+                      { key: 'itbis_sales', label: 'ITBIS Cobrado en Ventas' },
+                      { key: 'itbis_purchases', label: 'ITBIS Pagado en Compras' },
+                      { key: 'cost_of_goods_sold', label: 'Costo de Ventas' },
+                      { key: 'inventory', label: 'Inventario' },
+                      { key: 'supplier_payable', label: 'Cuentas por Pagar (Proveedores)' }
+                    ].map((mapItem) => {
+                      const activeMapping = mappings.find(m => m.mappingKey === mapItem.key);
+                      return (
+                        <div key={mapItem.key} className="space-y-1">
+                          <label className="block text-xs font-bold text-slate-700 uppercase">{mapItem.label}</label>
+                          <select 
+                            value={activeMapping?.accountId || ''} 
+                            onChange={e => handleUpdateMapping(mapItem.key, e.target.value)}
+                            disabled={mappingSubmitting}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:border-[#c5a059] outline-none"
+                          >
+                            <option value="" disabled>-- Seleccione cuenta puente --</option>
+                            {accounts.filter(acc => acc.isTransactional).map(acc => (
+                              <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
