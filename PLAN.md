@@ -37,6 +37,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Reportes Financieros**: `/reports` (Estadísticas y Métricas de Ventas, y Conciliación Bancaria activa)
 - **Soporte y Ayuda**: `/support` (Centro de Contacto)
 - **Recibos de Ingreso (Cuentas por Cobrar)**: Historial completo de cobros de facturas y descarga de recibos en formato PDF.
+- **Lector de Facturas Inteligente (OCR - Uploader Refactored)**: Refactorización completa del componente `InvoiceImageUploader.tsx` (reduciendo la lógica embebida en la UI) mediante la extracción de todo su estado, gestores de eventos de arrastrar y soltar, procesamiento canvas de optimización/compresión de imágenes de entrada, e invocación a la API OCR del backend en el hook desacoplado y reutilizable `useInvoiceOcr.ts`.
 
 ### 5. Módulos Removidos
 - **Punto de Venta (POS)**: Eliminado `/dashboard/pos` — página, enlace de sidebar y botón de acceso rápido en el módulo de Caja. El módulo de caja nativo (`/dashboard/cash`) cubre el flujo de cobro requerido.
