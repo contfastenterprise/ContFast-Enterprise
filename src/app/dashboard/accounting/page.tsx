@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft } from 'lucide-react';
+import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -60,6 +60,11 @@ export default function AccountingPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
 
+  // Filters & Row Expansion
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [expandedJournals, setExpandedJournals] = useState<Record<string, boolean>>({});
+
   // Modals
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showJournalModal, setShowJournalModal] = useState(false);
@@ -72,7 +77,7 @@ export default function AccountingPage() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, startDate, endDate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,7 +87,13 @@ export default function AccountingPage() {
         const data = await res.json();
         if (data.success) setAccounts(data.data);
       } else {
-        const res = await fetch('/api/v1/accounting/journals');
+        let url = '/api/v1/accounting/journals';
+        const params = [];
+        if (startDate) params.push(`startDate=${startDate}`);
+        if (endDate) params.push(`endDate=${endDate}`);
+        if (params.length > 0) url += `?${params.join('&')}`;
+
+        const res = await fetch(url);
         const data = await res.json();
         if (data.success) setJournals(data.data);
       }
@@ -91,6 +102,13 @@ export default function AccountingPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedJournals(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   // --- Handlers ---
@@ -298,72 +316,131 @@ export default function AccountingPage() {
           {/* JOURNALS TAB */}
           {activeTab === 'journals' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+              
+              {/* FILTROS DE FECHA */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Desde</label>
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Hasta</label>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                  />
+                </div>
+                {(startDate || endDate) && (
+                  <button 
+                    onClick={() => { setStartDate(''); setEndDate(''); }}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+                  >
+                    Limpiar Filtros
+                  </button>
+                )}
+              </div>
+
               {loading ? (
                 <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
               ) : journals.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
                   <FileText className="h-12 w-12 text-on-surface-variant mx-auto mb-4" />
                   <h3 className="text-lg font-bold text-[#003366]">Sin Asientos Contables</h3>
-                  <p className="text-on-surface-variant/70 text-sm mt-2">No se han registrado transacciones en el diario general.</p>
+                  <p className="text-on-surface-variant/70 text-sm mt-2">No se han registrado transacciones en el diario general para este rango.</p>
                 </div>
               ) : (
-                journals.map((journal) => (
-                  <div key={journal.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group">
-                    <div className="bg-slate-50 px-6 py-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-white border border-gray-200 rounded px-3 py-1.5 shadow-sm text-center">
-                          <p className="text-[10px] text-on-surface-variant font-bold uppercase">Fecha</p>
-                          <p className="font-mono text-sm font-semibold text-[#003366]">
-                            {new Date(journal.date).toLocaleDateString('es-DO')}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-800">{journal.description}</h4>
-                          {journal.reference && <p className="text-xs text-on-surface-variant/70 font-mono mt-0.5">Ref: {journal.reference}</p>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase rounded-full">
-                          Contabilizado
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-0">
-                      <table className="w-full text-sm">
-                        <thead className="bg-white border-b border-gray-100">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase">Cuenta</th>
-                            <th className="px-6 py-3 text-right text-xs font-semibold text-on-surface-variant uppercase w-32">Débito</th>
-                            <th className="px-6 py-3 text-right text-xs font-semibold text-on-surface-variant uppercase w-32">Crédito</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {journal.lines.map((line) => (
-                            <tr key={line.id} className="hover:bg-slate-50/50">
-                              <td className="px-6 py-3">
-                                <span className="font-mono font-semibold text-[#003366] mr-2">{line.accountCode}</span>
-                                <span className="text-on-surface-variant/80">{line.accountName}</span>
-                              </td>
-                              <td className="px-6 py-3 text-right font-mono text-slate-700">
-                                {parseFloat(line.debit) > 0 ? fmt(line.debit) : ''}
-                              </td>
-                              <td className="px-6 py-3 text-right font-mono text-slate-700">
-                                {parseFloat(line.credit) > 0 ? fmt(line.credit) : ''}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot className="bg-slate-50/80 border-t border-gray-200">
-                          <tr>
-                            <td className="px-6 py-3 text-right font-bold text-on-surface-variant/70 text-xs uppercase tracking-widest">Totales</td>
-                            <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalDebit)}</td>
-                            <td className="px-6 py-3 text-right font-mono font-bold text-[#003366]">{fmt(journal.totalCredit)}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                          <th className="p-4 w-10"></th>
+                          <th className="p-4 w-32">Fecha</th>
+                          <th className="p-4">Concepto / Descripción</th>
+                          <th className="p-4 w-40">Referencia</th>
+                          <th className="p-4 text-right w-36">Total Débito</th>
+                          <th className="p-4 text-right w-36">Total Crédito</th>
+                          <th className="p-4 text-center w-28">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {journals.map((journal) => {
+                          const isExpanded = !!expandedJournals[journal.id];
+                          return (
+                            <Fragment key={journal.id}>
+                              {/* Main Entry Row */}
+                              <tr 
+                                onClick={() => toggleExpand(journal.id)} 
+                                className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                              >
+                                <td className="p-4 text-center">
+                                  {isExpanded ? (
+                                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90 transition-transform" />
+                                  )}
+                                </td>
+                                <td className="p-4 font-mono text-sm font-semibold text-[#003366]">
+                                  {new Date(journal.date).toLocaleDateString('es-DO')}
+                                </td>
+                                <td className="p-4 font-semibold text-slate-800">{journal.description}</td>
+                                <td className="p-4 font-mono text-xs text-slate-500">{journal.reference || '-'}</td>
+                                <td className="p-4 text-right font-mono text-slate-700 font-bold">{fmt(journal.totalDebit)}</td>
+                                <td className="p-4 text-right font-mono text-slate-700 font-bold">{fmt(journal.totalCredit)}</td>
+                                <td className="p-4 text-center">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800">
+                                    Contabilizado
+                                  </span>
+                                </td>
+                              </tr>
+                              
+                              {/* Expanded Entry Details (Lines) */}
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={7} className="bg-slate-50/50 p-4 border-l-4 border-[#C5A059]">
+                                    <div className="pl-6 py-2">
+                                      <table className="w-full text-xs text-slate-600 border-collapse">
+                                        <thead>
+                                          <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                                            <th className="py-2 text-left">Código Cuenta</th>
+                                            <th className="py-2 text-left">Nombre Cuenta</th>
+                                            <th className="py-2 text-right w-36">Débito</th>
+                                            <th className="py-2 text-right w-36">Crédito</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                          {journal.lines.map((line) => (
+                                            <tr key={line.id} className="hover:bg-slate-100/50">
+                                              <td className="py-2.5 font-mono font-semibold text-[#003366]">{line.accountCode}</td>
+                                              <td className="py-2.5">{line.accountName}</td>
+                                              <td className="py-2.5 text-right font-mono text-slate-700">
+                                                {parseFloat(line.debit) > 0 ? fmt(line.debit) : ''}
+                                              </td>
+                                              <td className="py-2.5 text-right font-mono text-slate-700">
+                                                {parseFloat(line.credit) > 0 ? fmt(line.credit) : ''}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                ))
+                </div>
               )}
             </motion.div>
           )}
