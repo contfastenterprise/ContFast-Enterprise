@@ -69,10 +69,17 @@ export async function delCache(key: string): Promise<void> {
 export async function clearCachePattern(pattern: string): Promise<void> {
   if (!redis) return;
   try {
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
-      console.log(`Cleared ${keys.length} cached keys matching pattern: ${pattern}`);
+    let cursor = '0';
+    let allKeys: string[] = [];
+    do {
+      const res = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = res[0];
+      allKeys.push(...res[1]);
+    } while (cursor !== '0');
+
+    if (allKeys.length > 0) {
+      await redis.del(...allKeys);
+      console.log(`Cleared ${allKeys.length} cached keys matching pattern: ${pattern}`);
     }
   } catch (error) {
     console.error(`Cache clear pattern error for ${pattern}:`, error);

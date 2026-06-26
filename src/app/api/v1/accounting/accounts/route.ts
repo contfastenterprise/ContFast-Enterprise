@@ -3,6 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 import { enforcePermission } from '@/middleware/permissions';
+import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 import { z } from 'zod';
 
 const createAccountSchema = z.object({
@@ -31,7 +32,17 @@ export async function GET(req: NextRequest) {
 
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
 
+    // Caching layer
+    const cacheKey = `cache:accounts:${session.companyId}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return NextResponse.json({ success: true, data: JSON.parse(cached) }, { headers: resHeaders });
+    }
+
     const accounts = await AccountingRepository.getChartOfAccounts(session.companyId);
+
+    // Save to cache for 1 hour
+    await setCache(cacheKey, JSON.stringify(accounts), 3600);
 
     return NextResponse.json({ success: true, data: accounts }, { headers: resHeaders });
   } catch (error: any) {
@@ -78,6 +89,9 @@ export async function POST(req: NextRequest) {
       companyId: session.companyId,
       parentId: parsed.data.parentId || undefined
     });
+
+    // Invalidate cache
+    await clearCachePattern(`cache:accounts:${session.companyId}*`);
 
     return NextResponse.json({ success: true, data: newAccount }, { status: 201, headers: resHeaders });
   } catch (error: any) {

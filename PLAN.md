@@ -241,6 +241,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Prevención de Fugas de Información:** Esto asegura que roles limitados (como `cajero`) no puedan consultar balances generales, catálogos de cuentas o realizar traslados/ajustes manuales de stock de manera directa vía HTTP.
 - **Soporte de Refresh Token Headers:** Se adaptaron todos los endpoints modificados para propagar y retornar correctamente las cabeceras actualizadas de cookies (`resHeaders`) generadas por el middleware.
 
+### 39. Capa de Caching Layer con Redis en Catálogos Operativos
+- **Optimización de Consultas:** Se implementó almacenamiento en caché de Redis para acelerar la recuperación de catálogos contables (`GET /api/v1/accounting/accounts`) e inventarios (`GET /api/v1/products`), disminuyendo drásticamente la carga sobre PostgreSQL.
+- **Barrido No Bloqueante en Redis (SCAN):** Se reemplazó el uso del comando bloqueante `redis.keys` por un bucle iterativo no bloqueante basado en `redis.scan` con cursores para limpiar patrones de claves en `clearCachePattern` de forma segura.
+- **Invalidación Reactiva de Caché:** Se configuró el vaciado selectivo de las claves cacheables por empresa (`cache:products:${companyId}:*` y `cache:accounts:${companyId}*`) inmediatamente tras registrar modificaciones mediante operaciones de escritura (`POST`, `PUT`, `DELETE`).
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

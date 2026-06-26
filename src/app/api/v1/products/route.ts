@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
+import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 
 const createProductSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
@@ -42,19 +43,35 @@ export async function GET(req: NextRequest) {
     const barcode = searchParams.get('barcode') || undefined;
 
     if (barcode) {
+      const cacheKeyBarcode = `cache:products:${auth.companyId}:barcode_${barcode}`;
+      const cachedBarcode = await getCache(cacheKeyBarcode);
+      if (cachedBarcode) {
+        return NextResponse.json(JSON.parse(cachedBarcode), { headers: resHeaders });
+      }
+
       const product = await ProductRepository.getByBarcode(barcode, auth.companyId);
-      return NextResponse.json(
-        { success: true, data: product ? [product] : [], meta: { page: 1, per_page: 1, total: product ? 1 : 0, total_pages: product ? 1 : 0 } },
-        { headers: resHeaders }
-      );
+      const responseData = { 
+        success: true, 
+        data: product ? [product] : [], 
+        meta: { page: 1, per_page: 1, total: product ? 1 : 0, total_pages: product ? 1 : 0 } 
+      };
+
+      await setCache(cacheKeyBarcode, JSON.stringify(responseData), 3600);
+      return NextResponse.json(responseData, { headers: resHeaders });
+    }
+
+    const cacheKeyList = `cache:products:${auth.companyId}:page_${page}:perPage_${perPage}:search_${search || ''}:cat_${categoryId || ''}`;
+    const cachedList = await getCache(cacheKeyList);
+    if (cachedList) {
+      return NextResponse.json(JSON.parse(cachedList), { headers: resHeaders });
     }
 
     const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId);
+    const responseDataList = { success: true, data: result.data, meta: result.meta };
 
-    return NextResponse.json(
-      { success: true, data: result.data, meta: result.meta },
-      { headers: resHeaders }
-    );
+    await setCache(cacheKeyList, JSON.stringify(responseDataList), 3600);
+
+    return NextResponse.json(responseDataList, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error in GET /api/v1/products:', error);
     const status = error.status || 500;
@@ -102,6 +119,9 @@ export async function POST(req: NextRequest) {
       companyId: auth.companyId,
       ...data,
     });
+
+    // Invalidate product cache
+    await clearCachePattern(`cache:products:${auth.companyId}:*`);
 
     return NextResponse.json(
       { success: true, data: product },

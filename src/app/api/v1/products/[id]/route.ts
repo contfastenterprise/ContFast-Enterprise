@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
+import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 
 const updateProductSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
@@ -40,6 +41,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'read');
 
+    const cacheKey = `cache:products:${auth.companyId}:id_${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached), { headers: resHeaders });
+    }
+
     const product = await ProductRepository.getById(id, auth.companyId);
 
     if (!product) {
@@ -49,10 +56,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
       );
     }
 
-    return NextResponse.json(
-      { success: true, data: product },
-      { headers: resHeaders }
-    );
+    const responseData = { success: true, data: product };
+    await setCache(cacheKey, JSON.stringify(responseData), 3600);
+
+    return NextResponse.json(responseData, { headers: resHeaders });
   } catch (error: any) {
     console.error(`Error in GET /api/v1/products/${id}:`, error);
     const status = error.status || 500;
@@ -106,6 +113,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       );
     }
 
+    // Invalidate product cache
+    await clearCachePattern(`cache:products:${auth.companyId}:*`);
+
     return NextResponse.json(
       { success: true, data: product },
       { headers: resHeaders }
@@ -152,6 +162,9 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
         { status: 404, headers: resHeaders }
       );
     }
+
+    // Invalidate product cache
+    await clearCachePattern(`cache:products:${auth.companyId}:*`);
 
     return NextResponse.json(
       { success: true, message: 'Producto eliminado exitosamente.' },
