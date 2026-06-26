@@ -6,6 +6,7 @@ import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { AccountingRepository } from '@/repositories/accountingRepository';
 
 const createCompanySchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -105,89 +106,8 @@ export async function POST(req: NextRequest) {
         overtimeDobleRate: '2.00',
       });
 
-      // 5. Generate Default Chart of Accounts for the new company
-      const defaultAccounts = [
-        // 1. Activos
-        { code: '1', name: 'Activos', type: 'asset' },
-        { code: '1.1', name: 'Activos Corrientes', type: 'asset' },
-        { code: '1.1.01', name: 'Efectivo en Caja y Bancos', type: 'asset' },
-        { code: '1.1.01.01', name: 'Caja General', type: 'asset' },
-        { code: '1.1.01.02', name: 'Caja Chica', type: 'asset' },
-        { code: '1.1.01.03', name: 'Banco de Reservas', type: 'asset' },
-        { code: '1.1.01.04', name: 'Banco Popular', type: 'asset' },
-        { code: '1.1.01.05', name: 'Banco BHD', type: 'asset' },
-        { code: '1.1.02', name: 'Cuentas por Cobrar Clientes', type: 'asset' },
-        { code: '1.1.03', name: 'Anticipo de Impuestos - Retención ISR', type: 'asset' },
-        { code: '1.1.04', name: 'Anticipo de Impuestos - Retención ITBIS', type: 'asset' },
-        { code: '1.1.05', name: 'Anticipo de Impuestos - Otras Retenciones', type: 'asset' },
-        { code: '1.1.06', name: 'Inventario de Mercancía', type: 'asset' },
-        { code: '1.1.07', name: 'ITBIS Pagado en Compras (Adelantado)', type: 'asset' },
-        { code: '1.1.08', name: 'Gastos Pagados por Anticipado', type: 'asset' },
-        { code: '1.2', name: 'Activos No Corrientes (Propiedades, Planta y Equipo)', type: 'asset' },
-        { code: '1.2.01', name: 'Terrenos', type: 'asset' },
-        { code: '1.2.02', name: 'Edificios', type: 'asset' },
-        { code: '1.2.03', name: 'Equipos de Transporte', type: 'asset' },
-        { code: '1.2.04', name: 'Mobiliario y Equipos de Oficina', type: 'asset' },
-        { code: '1.2.05', name: 'Equipos de Computación', type: 'asset' },
-        { code: '1.2.06', name: 'Depreciación Acumulada', type: 'asset' },
-
-        // 2. Pasivos
-        { code: '2', name: 'Pasivos', type: 'liability' },
-        { code: '2.1', name: 'Pasivos Corrientes (A Corto Plazo)', type: 'liability' },
-        { code: '2.1.01', name: 'Cuentas por Pagar Proveedores', type: 'liability' },
-        { code: '2.1.02', name: 'Acumulaciones y Gastos por Pagar', type: 'liability' },
-        { code: '2.1.03', name: 'ITBIS por Pagar (Retenido en Ventas)', type: 'liability' },
-        { code: '2.1.04', name: 'Retenciones de Impuestos por Pagar (ISR, ITBIS)', type: 'liability' },
-        { code: '2.1.05', name: 'Retenciones TSS por Pagar', type: 'liability' },
-        { code: '2.1.06', name: 'Porción Corriente de Préstamos a Largo Plazo', type: 'liability' },
-        { code: '2.2', name: 'Pasivos No Corrientes (A Largo Plazo)', type: 'liability' },
-        { code: '2.2.01', name: 'Préstamos Bancarios a Largo Plazo', type: 'liability' },
-        { code: '2.2.02', name: 'Documentos por Pagar a Largo Plazo', type: 'liability' },
-
-        // 3. Capital / Patrimonio
-        { code: '3', name: 'Capital / Patrimonio', type: 'equity' },
-        { code: '3.1', name: 'Capital Social', type: 'equity' },
-        { code: '3.2', name: 'Resultados Acumulados (Años Anteriores)', type: 'equity' },
-        { code: '3.3', name: 'Resultado del Ejercicio (Año en Curso)', type: 'equity' },
-        { code: '3.4', name: 'Reservas Legales', type: 'equity' },
-
-        // 4. Ingresos
-        { code: '4', name: 'Ingresos', type: 'revenue' },
-        { code: '4.1', name: 'Ingresos Operacionales', type: 'revenue' },
-        { code: '4.1.01', name: 'Ingresos por Ventas', type: 'revenue' },
-        { code: '4.1.02', name: 'Ingresos por Servicios', type: 'revenue' },
-        { code: '4.1.03', name: 'Devoluciones y Descuentos en Ventas', type: 'revenue' },
-        { code: '4.2', name: 'Ingresos No Operacionales', type: 'revenue' },
-        { code: '4.2.01', name: 'Ingresos por Intereses', type: 'revenue' },
-        { code: '4.2.02', name: 'Otros Ingresos', type: 'revenue' },
-
-        // 5. Costos
-        { code: '5', name: 'Costos de Ventas', type: 'cost' },
-        { code: '5.1.01', name: 'Costo de Ventas (Mercancías)', type: 'cost' },
-
-        // 6. Gastos
-        { code: '6', name: 'Gastos Operacionales', type: 'expense' },
-        { code: '6.1.01', name: 'Sueldos y Salarios (Nómina)', type: 'expense' },
-        { code: '6.1.02', name: 'TSS (Aportes Patronales)', type: 'expense' },
-        { code: '6.1.03', name: 'Servicios Públicos (Agua, Luz, Teléfono)', type: 'expense' },
-        { code: '6.1.04', name: 'Alquileres / Arrendamientos', type: 'expense' },
-        { code: '6.1.05', name: 'Publicidad y Propaganda', type: 'expense' },
-        { code: '6.1.06', name: 'Gastos de Combustible y Transporte', type: 'expense' },
-        { code: '6.1.07', name: 'Reparación y Mantenimiento', type: 'expense' },
-        { code: '6.1.08', name: 'Depreciación de Activos Fijos', type: 'expense' },
-        { code: '6.1.09', name: 'Gastos Diversos', type: 'expense' }
-      ];
-
-      await tx.insert(chartOfAccounts).values(
-        defaultAccounts.map(account => ({
-          id: uuidv4(),
-          companyId: newComp.id,
-          code: account.code,
-          name: account.name,
-          type: account.type,
-          status: 'active',
-        }))
-      );
+      // 5. Generate Default Chart of Accounts & Bridge Mappings for the new company
+      await AccountingRepository.seedDefaultChartOfAccounts(newComp.id, tx);
 
       // 6. Seed system permissions dynamically (11 modules * 5 actions = 55 permissions)
       const modules = [

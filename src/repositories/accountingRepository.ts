@@ -153,14 +153,23 @@ export class AccountingRepository {
   // ==========================================
   // JOURNAL ENTRIES (WITH PERIOD CONTROLS)
   // ==========================================
-  static async getJournalEntries(companyId: string, limit = 50) {
+  static async getJournalEntries(companyId: string, limit = 100, startDate?: string, endDate?: string) {
+    const conditions = [
+      eq(journalEntries.companyId, companyId),
+      isNull(journalEntries.deletedAt)
+    ];
+
+    if (startDate) {
+      conditions.push(sql`${journalEntries.date} >= ${startDate}`);
+    }
+    if (endDate) {
+      conditions.push(sql`${journalEntries.date} <= ${endDate}`);
+    }
+
     const entries = await db.select()
       .from(journalEntries)
-      .where(and(
-        eq(journalEntries.companyId, companyId),
-        isNull(journalEntries.deletedAt)
-      ))
-      .orderBy(desc(journalEntries.createdAt))
+      .where(and(...conditions))
+      .orderBy(desc(journalEntries.date), desc(journalEntries.createdAt))
       .limit(limit);
 
     if (entries.length === 0) return [];
@@ -403,8 +412,8 @@ export class AccountingRepository {
   // ==========================================
   // SEEDER IMPLEMENTATION
   // ==========================================
-  private static async seedDefaultChartOfAccounts(companyId: string) {
-    await db.transaction(async (tx) => {
+  public static async seedDefaultChartOfAccounts(companyId: string, externalTx?: any) {
+    const execute = async (tx: any) => {
       // Standard Dominican Chart of Accounts
       const accountsList = [
         { code: '1', name: 'Activos', type: 'asset', nature: 'debit', isTransactional: false },
@@ -448,7 +457,7 @@ export class AccountingRepository {
         { code: '4.1.01', name: 'Ventas de Mercancías', type: 'revenue', nature: 'credit', isTransactional: true },
         { code: '4.1.02', name: 'Ventas de Servicios', type: 'revenue', nature: 'credit', isTransactional: true },
         
-        { code: '5', name: 'Costos', type: 'expense', nature: 'debit', isTransactional: false }, // mapping to type 'expense' for standard ledger
+        { code: '5', name: 'Costos', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '5.1', name: 'Costos de Ventas', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '5.1.01', name: 'Costo de Ventas Mercancías', type: 'expense', nature: 'debit', isTransactional: true },
         
@@ -518,6 +527,206 @@ export class AccountingRepository {
           });
         }
       }
+    };
+
+    if (externalTx) {
+      await execute(externalTx);
+    } else {
+      await db.transaction(execute);
+    }
+  }
+
+  // ==========================================
+  // REPORTS: LEDGER, TRIAL BALANCE, FINANCIALS
+  // ==========================================
+  static async getLedger(companyId: string, accountId: string, startDate: string, endDate: string) {
+    const formattedStart = formatLocalDate(startDate);
+    const formattedEnd = formatLocalDate(endDate);
+
+    // 1. Get Account details
+    const [account] = await db.select()
+      .from(chartOfAccounts)
+      .where(and(eq(chartOfAccounts.id, accountId), eq(chartOfAccounts.companyId, companyId)))
+      .limit(1);
+
+    if (!account) throw new Error('Cuenta no encontrada');
+
+    // 2. Calculate Beginning Balance (Sum of debits/credits before startDate)
+    const [prevTotals] = await db.select({
+      debitSum: sql<string>`coalesce(sum(debit), 0)`,
+      creditSum: sql<string>`coalesce(sum(credit), 0)`
+    })
+    .from(journalEntryLines)
+    .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
+    .where(and(
+      eq(journalEntryLines.companyId, companyId),
+      eq(journalEntryLines.accountId, accountId),
+      sql`${journalEntries.date} < ${formattedStart}`,
+      isNull(journalEntries.deletedAt)
+    ));
+
+    const prevDebits = parseFloat(prevTotals?.debitSum || '0');
+    const prevCredits = parseFloat(prevTotals?.creditSum || '0');
+    const beginningBalance = account.nature === 'debit' ? (prevDebits - prevCredits) : (prevCredits - prevDebits);
+
+    // 3. Get movements during range
+    const movements = await db.select({
+      id: journalEntryLines.id,
+      date: journalEntries.date,
+      reference: journalEntries.reference,
+      description: journalEntries.description,
+      debit: journalEntryLines.debit,
+      credit: journalEntryLines.credit
+    })
+    .from(journalEntryLines)
+    .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
+    .where(and(
+      eq(journalEntryLines.companyId, companyId),
+      eq(journalEntryLines.accountId, accountId),
+      sql`${journalEntries.date} >= ${formattedStart}`,
+      sql`${journalEntries.date} <= ${formattedEnd}`,
+      isNull(journalEntries.deletedAt)
+    ))
+    .orderBy(journalEntries.date, journalEntries.createdAt);
+
+    // 4. Project running balance
+    let runningBalance = beginningBalance;
+    const mappedMovements = movements.map(m => {
+      const debit = parseFloat(m.debit || '0');
+      const credit = parseFloat(m.credit || '0');
+      if (account.nature === 'debit') {
+        runningBalance += (debit - credit);
+      } else {
+        runningBalance += (credit - debit);
+      }
+      return {
+        ...m,
+        debit,
+        credit,
+        balance: runningBalance
+      };
     });
+
+    return {
+      account,
+      beginningBalance,
+      movements: mappedMovements,
+      endingBalance: runningBalance
+    };
+  }
+
+  static async getTrialBalance(companyId: string, startDate: string, endDate: string) {
+    const formattedStart = formatLocalDate(startDate);
+    const formattedEnd = formatLocalDate(endDate);
+
+    // Get all accounts
+    const accounts = await this.getChartOfAccounts(companyId);
+
+    // Get sums before startDate (Beginning balances)
+    const prevSums = await db.select({
+      accountId: journalEntryLines.accountId,
+      debitSum: sql<string>`coalesce(sum(debit), 0)`,
+      creditSum: sql<string>`coalesce(sum(credit), 0)`
+    })
+    .from(journalEntryLines)
+    .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
+    .where(and(
+      eq(journalEntryLines.companyId, companyId),
+      sql`${journalEntries.date} < ${formattedStart}`,
+      isNull(journalEntries.deletedAt)
+    ))
+    .groupBy(journalEntryLines.accountId);
+
+    // Get sums in range (Period movements)
+    const periodSums = await db.select({
+      accountId: journalEntryLines.accountId,
+      debitSum: sql<string>`coalesce(sum(debit), 0)`,
+      creditSum: sql<string>`coalesce(sum(credit), 0)`
+    })
+    .from(journalEntryLines)
+    .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
+    .where(and(
+      eq(journalEntryLines.companyId, companyId),
+      sql`${journalEntries.date} >= ${formattedStart}`,
+      sql`${journalEntries.date} <= ${formattedEnd}`,
+      isNull(journalEntries.deletedAt)
+    ))
+    .groupBy(journalEntryLines.accountId);
+
+    const prevMap = new Map(prevSums.map(s => [s.accountId, s]));
+    const periodMap = new Map(periodSums.map(s => [s.accountId, s]));
+
+    // Construct the trial balance rows
+    return accounts.map(acc => {
+      const prev = prevMap.get(acc.id);
+      const period = periodMap.get(acc.id);
+
+      const prevDeb = parseFloat(prev?.debitSum || '0');
+      const prevCred = parseFloat(prev?.creditSum || '0');
+      const begBal = acc.nature === 'debit' ? (prevDeb - prevCred) : (prevCred - prevDeb);
+
+      const deb = parseFloat(period?.debitSum || '0');
+      const cred = parseFloat(period?.creditSum || '0');
+      
+      const endBal = acc.nature === 'debit' ? (begBal + deb - cred) : (begBal + cred - deb);
+
+      return {
+        id: acc.id,
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
+        nature: acc.nature,
+        level: acc.level,
+        isTransactional: acc.isTransactional,
+        beginningBalance: begBal,
+        debit: deb,
+        credit: cred,
+        endingBalance: endBal
+      };
+    });
+  }
+
+  static async getFinancials(companyId: string, startDate: string, endDate: string) {
+    const trialBalance = await this.getTrialBalance(companyId, startDate, endDate);
+
+    // Filter and build Balance Sheet (Assets, Liabilities, Equity)
+    const balanceSheet = trialBalance.filter(row => ['asset', 'liability', 'equity'].includes(row.type));
+    
+    // Filter and build Income Statement (Revenue, Expense)
+    const incomeStatement = trialBalance.filter(row => ['revenue', 'expense'].includes(row.type));
+
+    // Calculate totals based on level 1 accounts (or aggregate sum ofTransactional level)
+    const calculateHierarchyTotal = (type: string) => {
+      return trialBalance.filter(row => row.type === type && row.level === 1)
+        .reduce((sum, row) => sum + row.endingBalance, 0);
+    };
+
+    const assets = calculateHierarchyTotal('asset');
+    const liabilities = calculateHierarchyTotal('liability');
+    const equity = calculateHierarchyTotal('equity');
+
+    const revenues = calculateHierarchyTotal('revenue');
+    const expenses = calculateHierarchyTotal('expense');
+    const netIncome = revenues - expenses;
+
+    return {
+      balanceSheet: {
+        rows: balanceSheet,
+        totals: {
+          assets,
+          liabilities,
+          equity,
+          netIncome
+        }
+      },
+      incomeStatement: {
+        rows: incomeStatement,
+        totals: {
+          revenues,
+          expenses,
+          netIncome
+        }
+      }
+    };
   }
 }
