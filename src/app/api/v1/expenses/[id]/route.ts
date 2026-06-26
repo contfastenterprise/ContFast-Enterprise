@@ -3,9 +3,19 @@ import { db, expenses, expenseLines, suppliers, warehouses } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { eq, and } from 'drizzle-orm';
+import { checkRateLimit } from '@/middleware/rateLimiter';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
+
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
@@ -70,6 +80,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
+
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });

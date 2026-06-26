@@ -3,11 +3,21 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, ecfSequences } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
+import { checkRateLimit } from '@/middleware/rateLimiter';
 
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<any> }
 ) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  const allowed = await checkRateLimit(ip, 'standard');
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+      { status: 429 }
+    );
+  }
+
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
 

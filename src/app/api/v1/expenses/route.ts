@@ -5,6 +5,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { eq, sql, and, between } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
+import { checkRateLimit } from '@/middleware/rateLimiter';
 
 async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
   const [acc] = await tx
@@ -30,6 +31,15 @@ async function getOrCreateAccount(tx: any, companyId: string, code: string, name
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
+
     const resHeaders = new Headers();
     const session = await verifyAuth(req, resHeaders);
     if (!session) {
@@ -302,6 +312,15 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
+
     const resHeaders = new Headers();
     const session = await verifyAuth(req, resHeaders);
     if (!session) {

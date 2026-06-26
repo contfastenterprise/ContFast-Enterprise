@@ -4,6 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
 import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
+import { checkRateLimit } from '@/middleware/rateLimiter';
 
 const createProductSchema = z.object({
   categoryId: z.string().uuid().nullable().optional(),
@@ -22,6 +23,15 @@ const createProductSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  const allowed = await checkRateLimit(ip, 'standard');
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+      { status: 429 }
+    );
+  }
+
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
 
@@ -84,6 +94,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  const allowed = await checkRateLimit(ip, 'standard');
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+      { status: 429 }
+    );
+  }
+
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
 

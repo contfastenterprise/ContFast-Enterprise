@@ -66,6 +66,15 @@ const createInvoiceSchema = z.object({
  * GET /api/v1/invoices - Paginated list of invoices
  */
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  const allowed = await checkRateLimit(ip, 'standard');
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+      { status: 429 }
+    );
+  }
+
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
 
