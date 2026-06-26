@@ -1,3 +1,5 @@
+import { roundMoney } from '@/utils/calculos';
+
 /**
  * Payroll Calculation Service for Dominican Republic Legislation (TSS, DGII, Labor Code)
  */
@@ -29,7 +31,7 @@ export class PayrollCalculationService {
    * Helper to round numbers to exactly 2 decimals
    */
   public static round(value: number): number {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
+    return roundMoney(value);
   }
 
   /**

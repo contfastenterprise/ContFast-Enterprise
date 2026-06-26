@@ -257,6 +257,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Migración y Sincronización**: Se generó el script de migración SQL correspondiente con Drizzle Kit (`0017_breezy_wolfpack.sql`) y se sincronizó el esquema directamente en la base de datos de producción mediante `drizzle-kit push` de forma exitosa.
 - **Validación**: Se verificó la compilación de tipos de TypeScript y se completó con éxito el build de producción.
 
+### 41. Refactorización y Consolidación de Código Duplicado
+- **Reutilización de Lógica de Redondeo**: Se extrajo la función duplicada de redondeo de dinero en la capa de servicios de nómina (`PayrollCalculationService.round`) para reutilizar la función centralizada `roundMoney` definida en `src/utils/calculos.ts`.
+- **Verificación**: Confirmado que todos los módulos y cálculos contables/laborales funcionan bajo el mismo comportamiento y precisión decimal, y el build de producción se genera sin errores.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
