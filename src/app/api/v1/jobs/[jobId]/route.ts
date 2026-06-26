@@ -4,7 +4,7 @@ import { DocumentService } from '@/services/print/documentService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ jobId: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const { jobId } = await params;

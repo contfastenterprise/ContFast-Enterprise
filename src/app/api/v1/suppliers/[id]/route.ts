@@ -14,7 +14,7 @@ const updateSupplierSchema = z.object({
   status: z.enum(['active', 'inactive']).optional(),
 });
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -97,7 +97,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';

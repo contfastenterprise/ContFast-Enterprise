@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ uuid: string }> } // In Next.js 15, params is a Promise
+  { params }: { params: Promise<any> } // In Next.js 15, params is a Promise
 ) {
   const { uuid } = await params;
   

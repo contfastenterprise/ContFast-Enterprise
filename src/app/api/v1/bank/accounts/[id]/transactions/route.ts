@@ -43,7 +43,7 @@ async function getOrCreateAccount(tx: any, companyId: string, code: string, name
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
@@ -124,7 +124,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

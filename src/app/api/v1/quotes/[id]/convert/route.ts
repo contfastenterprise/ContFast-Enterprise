@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { QuoteService } from '@/services/quoteService';
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<any> }) {
   const { id } = await params;
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const session = await verifyAuth(req);

@@ -5,7 +5,7 @@ import { DGIIService } from '@/services/dgii/rncLookup';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ rnc: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';

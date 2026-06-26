@@ -6,7 +6,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { getProvisionalStock } from '@/services/inventoryService';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const resHeaders = new Headers();
     const auth = await verifyAuth(req, resHeaders);

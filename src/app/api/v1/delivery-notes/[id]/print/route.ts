@@ -9,7 +9,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

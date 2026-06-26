@@ -22,7 +22,7 @@ const updateProductSchema = z.object({
 });
 
 type RouteContext = {
-  params: Promise<{ id: string }>;
+  params: Promise<any>;
 };
 
 export async function GET(req: NextRequest, context: RouteContext) {

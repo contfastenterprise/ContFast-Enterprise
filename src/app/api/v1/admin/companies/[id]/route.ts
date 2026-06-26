@@ -13,7 +13,7 @@ const updateCompanySchema = z.object({
   status: z.enum(['active', 'inactive']).default('active'),
 });
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<any> }) {
   try {
     const resolvedParams = await params;
     const { id } = resolvedParams;

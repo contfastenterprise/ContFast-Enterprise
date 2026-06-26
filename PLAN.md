@@ -221,7 +221,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 ### 35. Corrección de Despliegue en Vercel (Configuración de Redis y Middleware)
 - **Desactivación de Redis en el Build**: Configurada la inicialización de Redis para omitirse durante el proceso de build de Next.js y cuando falte la variable de entorno `REDIS_URL` en producción, habilitando el fallback in-process de colas de forma de evitar el error de conexión.
-- **Migración a Proxy**: Renombrado el archivo `src/middleware.ts` a `src/proxy.ts` y exportada la función como `proxy` para cumplir con la nueva especificación de Next.js 16, eliminando la advertencia de deprecación.
+- **Migración y Consolidación de Proxy**: Migrada y consolidada toda la lógica de autenticación JWT (Web Crypto HS256), rotación de Refresh Tokens vía API interna, exclusión de endpoints públicos/setup, e inyección de cabeceras de seguridad desde el antiguo `src/middleware.ts` hacia `src/proxy.ts` para cumplir con las directrices estrictas de Next.js 16. Se eliminó completamente `src/middleware.ts` para solucionar el conflicto de compilación del servidor Turbopack.
 - **Evitado de Tracing Excesivo**: Añadidas directivas `/*turbopackIgnore: true*/` en las operaciones `path.join` de `documentService.ts` y `jobRunners.ts` para evitar que Turbopack trace recursivamente todo el proyecto.
 
 ### 36. Corrección de Fechas y OCR en la Página de Compras

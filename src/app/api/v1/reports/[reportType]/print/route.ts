@@ -3,7 +3,7 @@ import { reportQueue } from '@/services/jobs/reportQueue';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ reportType: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const { reportType } = await params;

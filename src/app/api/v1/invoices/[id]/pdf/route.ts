@@ -12,7 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cf_v2_jwt_access_secret_2026_super
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const { id } = await params;

@@ -207,7 +207,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const { id: invoiceId } = await params;
@@ -231,7 +231,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const { id: invoiceId } = await params;

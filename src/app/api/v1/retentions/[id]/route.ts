@@ -13,7 +13,7 @@ const updateSchema = z.object({
 });
 
 // PUT — update a retention
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<any> }) {
   const { id } = await params;
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
@@ -67,7 +67,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // DELETE — soft delete (set active = false) or hard delete company retentions
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<any> }) {
   const { id } = await params;
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

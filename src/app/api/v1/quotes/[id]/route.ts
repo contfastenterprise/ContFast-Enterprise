@@ -19,7 +19,7 @@ const updateQuoteSchema = z.object({
   ).min(1, 'La cotización debe tener al menos una línea de producto').optional(),
 });
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
   const { id } = await params;
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<any> }) {
   const { id } = await params;
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

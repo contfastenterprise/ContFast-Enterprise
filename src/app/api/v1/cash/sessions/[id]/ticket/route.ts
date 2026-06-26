@@ -6,7 +6,7 @@ import { CompanyRepository } from '@/repositories/companyRepository';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

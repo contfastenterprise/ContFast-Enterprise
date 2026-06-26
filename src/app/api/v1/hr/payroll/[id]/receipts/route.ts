@@ -6,7 +6,7 @@ import { PdfGenerator } from '@/services/pdfGenerator';
 
 export async function GET(
   req: NextRequest,
-  segmentData: { params: Promise<{ id: string }> }
+  segmentData: { params: Promise<any> }
 ) {
   try {
     const session = await verifyAuth(req);

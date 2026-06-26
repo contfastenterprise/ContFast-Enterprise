@@ -8,7 +8,7 @@ import { DeliveryRepository } from '@/repositories/deliveryRepository';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   const resHeaders = new Headers();
   const auth = await verifyAuth(req, resHeaders);

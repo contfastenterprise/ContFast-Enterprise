@@ -11,7 +11,7 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<any> }
 ) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
