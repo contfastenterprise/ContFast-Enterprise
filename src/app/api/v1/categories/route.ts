@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, productCategories } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ilike } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,9 +9,20 @@ export async function GET(req: NextRequest) {
     const auth = await verifyAuth(req);
     if (!auth) return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
 
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get('search') || undefined;
+
+    const filters = [
+      eq(productCategories.companyId, auth.companyId)
+    ];
+
+    if (search) {
+      filters.push(ilike(productCategories.name, `%${search}%`));
+    }
+
     const categories = await db.select()
       .from(productCategories)
-      .where(eq(productCategories.companyId, auth.companyId));
+      .where(and(...filters));
 
     return NextResponse.json({ success: true, data: categories });
   } catch (error: any) {

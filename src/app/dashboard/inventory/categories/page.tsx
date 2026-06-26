@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchBar } from '@/components/ui/search-bar';
 
 interface Category {
   id: string;
@@ -14,6 +15,7 @@ interface Category {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -25,10 +27,10 @@ export default function CategoriesPage() {
     status: 'active'
   });
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (searchQuery = search) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/categories');
+      const res = await fetch(`/api/v1/categories?search=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
       if (data.success) {
         setCategories(data.data);
@@ -42,7 +44,7 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [search]);
 
   const handlePrintList = async () => {
     const toastId = toast.loading('Preparando plantilla de impresión...');
@@ -222,6 +224,21 @@ export default function CategoriesPage() {
           </button>
         </div>
       </header>
+
+      {/* SEARCH BAR */}
+      <div className="flex items-center gap-2">
+        <SearchBar
+          placeholder="Buscar por nombre..."
+          value={search}
+          onChange={setSearch}
+          className="flex-1"
+        />
+        {loading && search && (
+          <div className="text-primary shrink-0">
+            <RefreshCw className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden">
         {loading ? (
