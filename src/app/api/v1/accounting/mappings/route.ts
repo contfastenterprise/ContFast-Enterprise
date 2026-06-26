@@ -3,16 +3,11 @@ import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 import { enforcePermission } from '@/middleware/permissions';
-import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 import { z } from 'zod';
 
-const createAccountSchema = z.object({
-  code: z.string().min(1, 'El código es requerido'),
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  type: z.enum(['asset', 'liability', 'equity', 'revenue', 'expense']),
-  nature: z.enum(['debit', 'credit']).optional(),
-  isTransactional: z.boolean().default(true),
-  parentId: z.string().optional().nullable(),
+const updateMappingSchema = z.object({
+  mappingKey: z.string().min(1, 'El mapping_key es requerido'),
+  accountId: z.string().uuid('ID de cuenta contable inválido'),
 });
 
 export async function GET(req: NextRequest) {
@@ -34,25 +29,14 @@ export async function GET(req: NextRequest) {
 
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
 
-    // Caching layer
-    const cacheKey = `cache:accounts:${session.companyId}`;
-    const cached = await getCache(cacheKey);
-    if (cached) {
-      return NextResponse.json({ success: true, data: JSON.parse(cached) }, { headers: resHeaders });
-    }
+    const mappings = await AccountingRepository.getMappings(session.companyId);
 
-    const accounts = await AccountingRepository.getChartOfAccounts(session.companyId);
-
-    // Save to cache for 1 hour
-    await setCache(cacheKey, JSON.stringify(accounts), 3600);
-
-    return NextResponse.json({ success: true, data: accounts }, { headers: resHeaders });
+    return NextResponse.json({ success: true, data: mappings }, { headers: resHeaders });
   } catch (error: any) {
-    console.error('Error fetching accounts:', error);
-    const status = error.status || 500;
+    console.error('Error fetching mappings:', error);
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
-      { status }
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500 }
     );
   }
 }
@@ -77,7 +61,7 @@ export async function POST(req: NextRequest) {
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
 
     const body = await req.json();
-    const parsed = createAccountSchema.safeParse(body);
+    const parsed = updateMappingSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -86,23 +70,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newAccount = await AccountingRepository.createAccount({
-      ...parsed.data,
-      companyId: session.companyId,
-      parentId: parsed.data.parentId || undefined
-    });
+    const result = await AccountingRepository.updateMapping(
+      session.companyId,
+      parsed.data.mappingKey,
+      parsed.data.accountId
+    );
 
-    // Invalidate cache
-    await clearCachePattern(`cache:accounts:${session.companyId}*`);
-
-    return NextResponse.json({ success: true, data: newAccount }, { status: 201, headers: resHeaders });
+    return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
   } catch (error: any) {
-    console.error('Error creating account:', error);
-    const isDuplicate = error.message.includes('ya existe');
-    const status = error.status || (isDuplicate ? 409 : 500);
+    console.error('Error updating mapping:', error);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
-      { status }
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500 }
     );
   }
 }

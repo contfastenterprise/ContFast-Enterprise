@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, date, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, date, index, uniqueIndex, integer } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { customers, suppliers } from './contacts';
 import { invoices } from './invoices';
@@ -12,6 +12,9 @@ export const chartOfAccounts = pgTable('chart_of_accounts', {
   code: varchar('code', { length: 100 }).notNull(), // 1, 1.1, 1.1.01, etc.
   name: varchar('name', { length: 255 }).notNull(),
   type: varchar('type', { length: 50 }).notNull(), // asset | liability | equity | revenue | expense
+  nature: varchar('nature', { length: 20 }).default('debit').notNull(), // debit | credit
+  level: integer('level').default(1).notNull(),
+  isTransactional: boolean('is_transactional').default(true).notNull(),
   parentId: uuid('parent_id').references((): any => chartOfAccounts.id, { onDelete: 'restrict' }),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -232,4 +235,31 @@ export const expenseLines = pgTable('expense_lines', {
 }, (table) => ({
   expenseIdx: index('expense_line_exp_idx').on(table.expenseId),
   productIdx: index('expense_line_prod_idx').on(table.productId),
+}));
+
+export const accountingPeriods = pgTable('accounting_periods', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  name: varchar('name', { length: 100 }).notNull(), // e.g. "Junio 2026"
+  startDate: date('start_date').notNull(),
+  endDate: date('end_date').notNull(),
+  status: varchar('status', { length: 50 }).default('open').notNull(), // open | closed
+  closedAt: timestamp('closed_at'),
+  closedBy: uuid('closed_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('accounting_periods_company_idx').on(table.companyId),
+  statusIdx: index('accounting_periods_status_idx').on(table.status),
+}));
+
+export const accountingMappings = pgTable('accounting_mappings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  mappingKey: varchar('mapping_key', { length: 100 }).notNull(), // e.g. "sales_revenue", "accounts_receivable"
+  accountId: uuid('account_id').notNull().references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyKeyIdx: uniqueIndex('accounting_mappings_company_key_idx').on(table.companyId, table.mappingKey),
 }));

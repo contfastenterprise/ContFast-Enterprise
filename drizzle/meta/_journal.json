@@ -127,6 +127,13 @@
       "when": 1782444887858,
       "tag": "0017_breezy_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782506651089,
+      "tag": "0018_flashy_thor_girl",
+      "breakpoints": true
     }
   ]
 }

@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { AccountingRepository } from '@/repositories/accountingRepository';
+import { db, accountingPeriods } from '@/db';
+import { eq, and, desc } from 'drizzle-orm';
 import { enforcePermission } from '@/middleware/permissions';
-import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
+import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-const createAccountSchema = z.object({
-  code: z.string().min(1, 'El código es requerido'),
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  type: z.enum(['asset', 'liability', 'equity', 'revenue', 'expense']),
-  nature: z.enum(['debit', 'credit']).optional(),
-  isTransactional: z.boolean().default(true),
-  parentId: z.string().optional().nullable(),
+const createPeriodSchema = z.object({
+  name: z.string().min(1, 'El nombre del periodo es requerido (ej: MM/AAAA)'),
+  startDate: z.string().refine((val) => !isNaN(Date.parse(val)), 'Fecha de inicio inválida'),
+  endDate: z.string().refine((val) => !isNaN(Date.parse(val)), 'Fecha de fin inválida'),
 });
 
 export async function GET(req: NextRequest) {
@@ -34,25 +32,17 @@ export async function GET(req: NextRequest) {
 
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
 
-    // Caching layer
-    const cacheKey = `cache:accounts:${session.companyId}`;
-    const cached = await getCache(cacheKey);
-    if (cached) {
-      return NextResponse.json({ success: true, data: JSON.parse(cached) }, { headers: resHeaders });
-    }
+    const periods = await db.select()
+      .from(accountingPeriods)
+      .where(eq(accountingPeriods.companyId, session.companyId))
+      .orderBy(desc(accountingPeriods.startDate));
 
-    const accounts = await AccountingRepository.getChartOfAccounts(session.companyId);
-
-    // Save to cache for 1 hour
-    await setCache(cacheKey, JSON.stringify(accounts), 3600);
-
-    return NextResponse.json({ success: true, data: accounts }, { headers: resHeaders });
+    return NextResponse.json({ success: true, data: periods }, { headers: resHeaders });
   } catch (error: any) {
-    console.error('Error fetching accounts:', error);
-    const status = error.status || 500;
+    console.error('Error fetching periods:', error);
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
-      { status }
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500 }
     );
   }
 }
@@ -77,7 +67,7 @@ export async function POST(req: NextRequest) {
     await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
 
     const body = await req.json();
-    const parsed = createAccountSchema.safeParse(body);
+    const parsed = createPeriodSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -86,23 +76,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newAccount = await AccountingRepository.createAccount({
-      ...parsed.data,
+    // Check if period already exists
+    const existing = await db.select().from(accountingPeriods)
+      .where(and(
+        eq(accountingPeriods.companyId, session.companyId),
+        eq(accountingPeriods.name, parsed.data.name)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return NextResponse.json(
+        { success: false, error: { code: 'CONFLICT', message: 'Ya existe un período contable con este nombre.' } },
+        { status: 409 }
+      );
+    }
+
+    const [period] = await db.insert(accountingPeriods).values({
+      id: uuidv4(),
       companyId: session.companyId,
-      parentId: parsed.data.parentId || undefined
-    });
+      name: parsed.data.name,
+      startDate: parsed.data.startDate,
+      endDate: parsed.data.endDate,
+      status: 'open',
+    }).returning();
 
-    // Invalidate cache
-    await clearCachePattern(`cache:accounts:${session.companyId}*`);
-
-    return NextResponse.json({ success: true, data: newAccount }, { status: 201, headers: resHeaders });
+    return NextResponse.json({ success: true, data: period }, { status: 201, headers: resHeaders });
   } catch (error: any) {
-    console.error('Error creating account:', error);
-    const isDuplicate = error.message.includes('ya existe');
-    const status = error.status || (isDuplicate ? 409 : 500);
+    console.error('Error creating period:', error);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
-      { status }
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500 }
     );
   }
 }
