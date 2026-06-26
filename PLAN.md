@@ -9,6 +9,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Generador de PDF**: Generación de representaciones impresas en formatos Carta, 80mm y 58mm.
 - **Colas BullMQ & Redis**: Transmisión asíncrona de e-CF a los servidores web de la DGII.
 - **Refactorización Modular de Invoicing (`InvoiceService`)**: Desacoplamiento de la lógica de facturación electrónica en submódulos especializados (Calculator, Validator, Submitter, DB Booker, File Generator) bajo `/src/services/invoice/`, facilitando pruebas unitarias sobre cálculos fiscales aislados y aislando fallos de comunicación de red de las transacciones SQL de persistencia.
+- **Sistema de Logging Profesional (JSON)**: Implementación de intercepción global en `src/instrumentation.ts` para capturar llamadas de `console.log/warn/error` y formatearlas automáticamente en JSON estructurado (con timestamp, nivel, mensaje y contexto) en entornos de producción, serializando de manera robusta pilas de errores y objetos.
 
 ### 2. Base de Datos & Capa de Acceso (Repositories)
 - **Tenancy Isolation**: Aislamiento estricto de datos mediante `company_id`.
