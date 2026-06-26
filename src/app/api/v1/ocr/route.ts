@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { parseOcrText } from '@/utils/ocrParser';
 import { Logger } from '@/utils/logger';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
-const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
@@ -138,9 +138,8 @@ Nota: Si no encuentras algún campo, devuélvelo vacío o en 0 para montos.`;
     
     // Execute standalone Node script to run OCR outside Next.js webpack sandbox
     const scriptPath = path.join(process.cwd(), 'scripts', 'run-ocr.js');
-    const command = `node "${scriptPath}" "${tempFilePath}"`;
     
-    const { stdout, stderr } = await execPromise(command);
+    const { stdout, stderr } = await execFilePromise('node', [scriptPath, tempFilePath]);
 
     if (stderr && stderr.includes('ERROR:')) {
       throw new Error(stderr);
