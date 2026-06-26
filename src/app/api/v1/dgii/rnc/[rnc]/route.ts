@@ -9,7 +9,13 @@ export async function GET(
 ) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     // Comentar verifyAuth temporalmente si es necesario probar desde postman sin login
     const session = await verifyAuth(req);

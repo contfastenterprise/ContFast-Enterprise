@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db, users, roles, companies, auditLogs } from '@/db';
+import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { eq, and } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     // In our case, for signup/register we check if there is at least one company or we create a default one.
     let company = await db.select().from(companies).limit(1);
     let companyId: string;
+    let isNewCompany = false;
 
     if (company.length === 0) {
       const [newCompany] = await db
@@ -68,43 +70,31 @@ export async function POST(req: NextRequest) {
         })
         .returning();
       companyId = newCompany.id;
+      isNewCompany = true;
     } else {
       companyId = company[0].id;
     }
 
-    // Get a default role (like 'administracion' or 'sistemas' or create one)
-    let role = await db
+    // If new company was created, generate all 6 standard roles
+    if (isNewCompany) {
+      await db.insert(roles).values(
+        DEFAULT_COMPANY_ROLES.map((role) => ({
+          companyId,
+          name: role.name,
+          description: role.description,
+          isFixed: role.isFixed,
+        }))
+      );
+    }
+
+    // Get the 'administracion' role for the new user
+    const [adminRole] = await db
       .select()
       .from(roles)
       .where(and(eq(roles.companyId, companyId), eq(roles.name, 'administracion')))
       .limit(1);
 
-    let roleId: string;
-    if (role.length === 0) {
-      // Look for a system-wide null company role or create one
-      const systemRole = await db
-        .select()
-        .from(roles)
-        .where(eq(roles.name, 'administracion'))
-        .limit(1);
-
-      if (systemRole.length > 0) {
-        roleId = systemRole[0].id;
-      } else {
-        const [newRole] = await db
-          .insert(roles)
-          .values({
-            companyId,
-            name: 'administracion',
-            description: 'Rol de administrador del sistema',
-            isFixed: true,
-          })
-          .returning();
-        roleId = newRole.id;
-      }
-    } else {
-      roleId = role[0].id;
-    }
+    const roleId = adminRole.id;
 
     // Hash Password
     const salt = await bcrypt.genSalt(10);

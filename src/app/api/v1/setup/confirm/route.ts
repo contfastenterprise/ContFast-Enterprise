@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db, companies, companySettings, roles, users, permissions, auditLogs } from '@/db';
+import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { encrypt, encryptBuffer } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
 import { count, and, eq } from 'drizzle-orm';
@@ -126,36 +127,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2.5. Create standard roles
-      const [roleSistemas] = await tx
+      // 2.5. Create all standard roles for the new company
+      const insertedRoles = await tx
         .insert(roles)
-        .values({ companyId: newCompany.id, name: 'sistemas', description: 'Ingeniero de sistemas - Acceso Total técnico', isFixed: true })
+        .values(
+          DEFAULT_COMPANY_ROLES.map((role) => ({
+            companyId: newCompany.id,
+            name: role.name,
+            description: role.description,
+            isFixed: role.isFixed,
+          }))
+        )
         .returning({ id: roles.id, name: roles.name });
 
-      const [roleAdmin] = await tx
-        .insert(roles)
-        .values({ companyId: newCompany.id, name: 'administracion', description: 'Administración - Acceso completo operativo', isFixed: true })
-        .returning({ id: roles.id, name: roles.name });
-
-      const [roleContabilidad] = await tx
-        .insert(roles)
-        .values({ companyId: newCompany.id, name: 'contabilidad', description: 'Contabilidad y Finanzas', isFixed: false })
-        .returning({ id: roles.id });
-
-      const [roleFacturacion] = await tx
-        .insert(roles)
-        .values({ companyId: newCompany.id, name: 'facturacion', description: 'Facturación y Ventas', isFixed: false })
-        .returning({ id: roles.id });
-
-      const [roleBanco] = await tx
-        .insert(roles)
-        .values({ companyId: newCompany.id, name: 'banco', description: 'Gestión Bancaria', isFixed: false })
-        .returning({ id: roles.id });
-
-      const [roleCajero] = await tx
-        .insert(roles)
-        .values({ companyId: newCompany.id, name: 'cajero', description: 'Cajero Operador de Terminal', isFixed: false })
-        .returning({ id: roles.id });
+      // The initial user is assigned to the 'sistemas' role
+      const roleSistemas = insertedRoles.find((r) => r.name === 'sistemas')!;
 
       // 2.6. Create initial user (System Engineer)
       const salt = await bcrypt.genSalt(12);

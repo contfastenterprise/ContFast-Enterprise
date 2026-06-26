@@ -1,17 +1,17 @@
 import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, products, accountsReceivable } from '@/db';
 import { eq, and, isNull, sql } from 'drizzle-orm';
+import { Logger } from '@/utils/logger';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
-import { decrypt, decryptToBuffer } from '@/utils/encryption';
-import { generateInvoicePdf, PDFInvoiceData } from '@/utils/pdfGenerator';
+import { decrypt } from '@/utils/encryption';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { addJob } from '@/infrastructure/queue';
-import { MSellerClient, MSellerInvoicePayload } from '@/services/dgii/msellerClient';
+import { MSellerClient } from '@/services/dgii/msellerClient';
 import { EcfValidator } from '@/services/ecfValidator';
 import { checkStock, deductStock } from '@/services/inventoryService';
 import { roundMoney } from '@/utils/calculos';
@@ -55,24 +55,105 @@ export interface IssueInvoiceInput {
   }[];
 }
 
+interface CalculatedTotals {
+  subtotal: number;
+  totalDiscount: number;
+  totalTaxes: number;
+  total: number;
+  totalRetained: number;
+  totalNet: number;
+  itemLines: any[];
+  taxesList: any[];
+  calculatedRetentions: any[];
+}
+
+interface DgiiSubmissionResult {
+  msellerTrackId: string | null;
+  dgiiMessage: string | null;
+  securityHash: string;
+  qrCode: string | null;
+  finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected';
+  msellerResponsePayload: any;
+}
+
 export class InvoiceService {
   /**
    * Main service function to issue and sign a new electronic e-CF invoice.
    */
   static async issueInvoice(data: IssueInvoiceInput) {
     // ── 0. Pre-emission validations (before any DB transaction) ───────────────
-    // Fetch company profile to get the RNC needed for the DGII status check.
     const company = await CompanyRepository.getProfile(data.companyId);
     if (!company) {
       throw new Error('Compañía no encontrada.');
     }
 
-    const preCheck = await EcfValidator.runAll(
+    await this.validatePreEmission(data.companyId, data.ecfType, company.rnc);
+
+    // ── 1. Determine the active cash session ──────────────────────────────────
+    const activeCashSessionId = await this.determineActiveCashSession(
       data.companyId,
-      data.ecfType,
-      company.rnc
+      data.userId,
+      data.paymentType,
+      data.cashSessionId
     );
 
+    // ── 2. Calculate totals, taxes and retentions ─────────────────────────────
+    const totals = this.calculateTotalsAndRetentions(data);
+
+    // ── 3. Predict next NCF without incrementing database sequence yet ────────
+    const { ncf } = await this.predictNextNcf(data.companyId, data.ecfType);
+
+    // Load company settings
+    const settings = await CompanyRepository.getSettings(data.companyId);
+
+    // ── 4. Submit to DGII / MSeller ───────────────────────────────────────────
+    const submission = await this.submitToDgii(data, ncf, company, settings, totals, activeCashSessionId);
+
+    // Paths for file storage
+    const storageDir = process.env.STORAGE_PATH || './storage';
+    const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
+    const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
+    const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
+    const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
+
+    // ── 5. Perform main transactional operations (Fase 3) ──────────────────────
+    const dbResult = await this.executeDbTransaction(
+      data,
+      ncf,
+      activeCashSessionId,
+      totals,
+      submission,
+      xmlPath,
+      signedXmlPath,
+      pdfPath
+    );
+
+    // ── 6. File generation outside the transaction block to avoid lockups ──────
+    await this.generateFilesAndSendEmail(
+      data,
+      ncf,
+      company,
+      settings,
+      totals,
+      submission,
+      dbResult.invoice.codigoFactura,
+      invoicesDir,
+      xmlPath,
+      signedXmlPath,
+      pdfPath
+    );
+
+    // ── 7. Post-emission tasks (conduces, quotes) ──────────────────────────────
+    await this.processPostEmission(data, dbResult.invoice.id, settings, totals.itemLines);
+
+    return dbResult;
+  }
+
+  /**
+   * Helper to run pre-emission validation via EcfValidator.
+   */
+  private static async validatePreEmission(companyId: string, ecfType: string, rnc: string) {
+    const preCheck = await EcfValidator.runAll(companyId, ecfType, rnc);
     if (!preCheck.valid) {
       const messages = preCheck.errors.map((e) => e.message).join(' | ');
       const err: any = new Error(`No se puede emitir el e-CF: ${messages}`);
@@ -81,19 +162,27 @@ export class InvoiceService {
       err.validationErrors = preCheck.errors;
       throw err;
     }
+  }
 
-    // ── 1. Determine the active cash session ──────────────────────────────────
-    let activeCashSessionId = data.cashSessionId;
+  /**
+   * Helper to determine active cash session.
+   */
+  private static async determineActiveCashSession(
+    companyId: string,
+    userId: string,
+    paymentType: string,
+    providedCashSessionId?: string
+  ): Promise<string | undefined> {
+    let activeCashSessionId = providedCashSessionId;
 
-    if (data.paymentType === 'cash') {
-      // Get the role of the user
+    if (paymentType === 'cash') {
       const [userWithRole] = await db
         .select({
           roleName: roles.name,
         })
         .from(users)
         .innerJoin(roles, eq(users.roleId, roles.id))
-        .where(eq(users.id, data.userId))
+        .where(eq(users.id, userId))
         .limit(1);
 
       const roleName = userWithRole?.roleName?.toLowerCase() || '';
@@ -101,14 +190,12 @@ export class InvoiceService {
 
       let activeSession = null;
       if (isAdminOrSys) {
-        // Admins and systems can use their own active session or fallback to ANY active session in the company
-        activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+        activeSession = await CashRepository.getActiveSession(userId, companyId);
         if (!activeSession) {
-          activeSession = await CashRepository.getAnyActiveSession(data.companyId);
+          activeSession = await CashRepository.getAnyActiveSession(companyId);
         }
       } else {
-        // Standard cashiers / billing must have their own active session open
-        activeSession = await CashRepository.getActiveSession(data.userId, data.companyId);
+        activeSession = await CashRepository.getActiveSession(userId, companyId);
       }
 
       if (!activeSession) {
@@ -117,7 +204,13 @@ export class InvoiceService {
       activeCashSessionId = activeSession.id;
     }
 
-    // 1. Calculate totals
+    return activeCashSessionId;
+  }
+
+  /**
+   * Helper to calculate subtotals, discounts, taxes and retentions.
+   */
+  private static calculateTotalsAndRetentions(data: IssueInvoiceInput): CalculatedTotals {
     let subtotal = 0;
     let totalDiscount = 0;
     let totalTaxes = 0;
@@ -143,9 +236,9 @@ export class InvoiceService {
         discount: line.discount,
         subtotal: lineSubtotal,
         total: lineTotal,
+        taxRate: line.taxRate, // Fixed and preserved for payload construction
       });
 
-      // Group taxes by rate
       const taxKey = `ITBIS_${(line.taxRate * 100).toFixed(0)}%`;
       if (!taxSummaryMap[taxKey]) {
         taxSummaryMap[taxKey] = { rate: line.taxRate * 100, amount: 0 };
@@ -160,7 +253,6 @@ export class InvoiceService {
       amount: val.amount,
     }));
 
-    // Calculate retenciones
     let totalRetained = 0;
     const calculatedRetentions: any[] = [];
 
@@ -168,15 +260,12 @@ export class InvoiceService {
       data.retentions.forEach((ret) => {
         let amount = 0;
         const baseTaxable = roundMoney(subtotal - totalDiscount);
-        
+
         if (ret.retentionType === 'ISR') {
-          // ISR retention is calculated on the subtotal (ex-discount)
           amount = roundMoney(baseTaxable * (ret.retentionPercentage / 100));
         } else if (ret.retentionType === 'ITBIS') {
-          // ITBIS retention is calculated on the ITBIS amount (totalTaxes)
           amount = roundMoney(totalTaxes * (ret.retentionPercentage / 100));
         } else {
-          // Custom / Other retention is calculated on subtotal
           amount = roundMoney(baseTaxable * (ret.retentionPercentage / 100));
         }
 
@@ -195,25 +284,53 @@ export class InvoiceService {
 
     const totalNet = roundMoney(total - totalRetained);
 
-    // 2. Predict next NCF without incrementing database sequence yet
-    // This prevents skipping sequences on network/communication errors!
-    const seqRecord = await CompanyRepository.getSequence(data.companyId, data.ecfType);
+    return {
+      subtotal,
+      totalDiscount,
+      totalTaxes,
+      total,
+      totalRetained,
+      totalNet,
+      itemLines,
+      taxesList,
+      calculatedRetentions,
+    };
+  }
+
+  /**
+   * Helper to predict next NCF.
+   */
+  private static async predictNextNcf(companyId: string, ecfType: string) {
+    const seqRecord = await CompanyRepository.getSequence(companyId, ecfType);
     if (!seqRecord) {
-      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${data.ecfType}.`);
+      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType}.`);
     }
     if (seqRecord.currentSequence >= seqRecord.maxSequence) {
-      throw new Error(`La secuencia de comprobantes e-CF tipo ${data.ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}). Solicite una nueva autorización SACF.`);
+      throw new Error(
+        `La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}). Solicite una nueva autorización SACF.`
+      );
     }
 
     const nextVal = seqRecord.currentSequence + 1;
     const isElectronic = seqRecord.prefix.toUpperCase().startsWith('E');
     const padLength = isElectronic ? 10 : 8;
     const sequenceStr = nextVal.toString().padStart(padLength, '0');
-    const ncf = `${seqRecord.prefix}${data.ecfType}${sequenceStr}`;
+    const ncf = `${seqRecord.prefix}${ecfType}${sequenceStr}`;
 
-    // Load company settings
-    const settings = await CompanyRepository.getSettings(data.companyId);
+    return { ncf, seqRecord };
+  }
 
+  /**
+   * Helper to submit document to MSeller/DGII.
+   */
+  private static async submitToDgii(
+    data: IssueInvoiceInput,
+    ncf: string,
+    company: any,
+    settings: any,
+    totals: CalculatedTotals,
+    activeCashSessionId: string | undefined
+  ): Promise<DgiiSubmissionResult> {
     let msellerTrackId: string | null = null;
     let dgiiMessage: string | null = null;
     let securityHash: string = '';
@@ -296,14 +413,14 @@ export class InvoiceService {
           emitterAddress: company.businessActivity || 'Santiago, R.D.',
           buyerRnc: data.buyerRnc,
           buyerName: data.buyerName,
-          subtotal: subtotal - totalDiscount,
-          totalTaxes,
-          total,
+          subtotal: totals.subtotal - totals.totalDiscount,
+          totalTaxes: totals.totalTaxes,
+          total: totals.total,
           modifiedNcf: data.modifiedNcf,
           modifiedNcfDate: originalInvoiceDate,
           originalInvoiceTotal,
           indicadorNotaCredito: data.indicadorNotaCredito,
-          lines: itemLines.map((line, idx) => ({
+          lines: totals.itemLines.map((line, idx) => ({
             index: idx + 1,
             name: line.name,
             quantity: line.quantity,
@@ -320,7 +437,7 @@ export class InvoiceService {
           msellerTrackId = msellerRes.trackId || null;
           securityHash = msellerRes.securityCode || '';
           qrCode = msellerRes.qrCode || null;
-          
+
           const resEstado = (msellerRes.rawResponse?.status || msellerRes.rawResponse?.estado || 'Aceptado').toLowerCase();
           if (resEstado.includes('acept') || resEstado === 'accepted') {
             finalStatus = 'accepted';
@@ -355,7 +472,7 @@ export class InvoiceService {
               err.code = 'MSELLER_COMMUNICATION_ERROR';
               throw err;
             } else {
-              console.warn('[InvoiceService] Bypassing MSeller communication error since ignoreCommunicationError is true:', errMsg);
+              Logger.warn('[InvoiceService] Bypassing MSeller communication error since ignoreCommunicationError is true', { error: errMsg });
               finalStatus = 'signed';
               dgiiMessage = `Error de red: ${errMsg}. Emitida localmente, pendiente de envío.`;
             }
@@ -400,12 +517,12 @@ export class InvoiceService {
                 paymentType: data.paymentType,
                 bankName: data.bankName,
                 transactionNumber: data.transactionNumber,
-                subtotal,
-                discount: totalDiscount,
-                totalTaxes,
-                total,
-                totalRetained,
-                totalNet,
+                subtotal: totals.subtotal,
+                discount: totals.totalDiscount,
+                totalTaxes: totals.totalTaxes,
+                total: totals.total,
+                totalRetained: totals.totalRetained,
+                totalNet: totals.totalNet,
                 dgiiMessage: errMsg,
                 buyerRnc: data.buyerRnc,
                 buyerName: data.buyerName,
@@ -415,9 +532,9 @@ export class InvoiceService {
                 codigoFactura,
                 deliveryStatus: 'pending',
                 quoteId: data.quoteId || undefined,
-                lines: itemLines,
-                taxes: taxesList,
-                retentions: calculatedRetentions,
+                lines: totals.itemLines,
+                taxes: totals.taxesList,
+                retentions: totals.calculatedRetentions,
               }, tx);
             });
             throw err;
@@ -435,28 +552,37 @@ export class InvoiceService {
           mSellerErr.code = 'MSELLER_COMMUNICATION_ERROR';
           throw mSellerErr;
         } else {
-          console.warn('[InvoiceService] Bypassing fetch network error since ignoreCommunicationError is true:', err.message);
+          Logger.warn('[InvoiceService] Bypassing fetch network error since ignoreCommunicationError is true', { error: err.message });
           finalStatus = 'signed';
           dgiiMessage = `Error de red: ${err.message}. Emitida localmente, pendiente de envío.`;
         }
       }
     }
 
-    const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
-    const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
+    return {
+      msellerTrackId,
+      dgiiMessage,
+      securityHash,
+      qrCode,
+      finalStatus,
+      msellerResponsePayload,
+    };
+  }
 
-    if (!securityHash) {
-      securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
-    }
-
-    const storageDir = process.env.STORAGE_PATH || './storage';
-    const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
-    const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
-    const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
-    const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
-
-    // 3. Perform main transactional operations (Fase 3)
-    const result = await db.transaction(async (tx) => {
+  /**
+   * Helper to run the SQL transactions atomically.
+   */
+  private static async executeDbTransaction(
+    data: IssueInvoiceInput,
+    ncf: string,
+    activeCashSessionId: string | undefined,
+    totals: CalculatedTotals,
+    submission: DgiiSubmissionResult,
+    xmlPath: string,
+    signedXmlPath: string,
+    pdfPath: string
+  ) {
+    return await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
       const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
       if (allocatedNcf !== ncf) {
@@ -480,7 +606,7 @@ export class InvoiceService {
 
       // 2.0. Verify Stock Availability (Skip for Credit Notes since it increases stock)
       if (data.ecfType !== '34') {
-        for (const line of itemLines) {
+        for (const line of totals.itemLines) {
           const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true);
           if (!hasStock) {
             throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
@@ -497,22 +623,22 @@ export class InvoiceService {
         cashSessionId: activeCashSessionId,
         ncf,
         ecfType: data.ecfType,
-        status: finalStatus,
+        status: submission.finalStatus,
         paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
         paymentType: data.paymentType,
         bankName: data.bankName,
         transactionNumber: data.transactionNumber,
-        subtotal,
-        discount: totalDiscount,
-        totalTaxes,
-        total,
-        totalRetained,
-        totalNet,
+        subtotal: totals.subtotal,
+        discount: totals.totalDiscount,
+        totalTaxes: totals.totalTaxes,
+        total: totals.total,
+        totalRetained: totals.totalRetained,
+        totalNet: totals.totalNet,
         xmlPath,
         signedXmlPath,
         pdfPath,
-        msellerTrackId: msellerTrackId || undefined,
-        dgiiMessage: dgiiMessage || undefined,
+        msellerTrackId: submission.msellerTrackId || undefined,
+        dgiiMessage: submission.dgiiMessage || undefined,
         buyerRnc: data.buyerRnc,
         buyerName: data.buyerName,
         notes: data.notes,
@@ -520,16 +646,16 @@ export class InvoiceService {
         modifiedInvoiceId: data.modifiedInvoiceId,
         indicadorNotaCredito: data.indicadorNotaCredito,
         codigoFactura,
-        lines: itemLines,
-        taxes: taxesList,
-        retentions: calculatedRetentions,
+        lines: totals.itemLines,
+        taxes: totals.taxesList,
+        retentions: totals.calculatedRetentions,
       };
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
 
       // Deduct or add inventory (Deducción diferida a Conduce de Entrega. Solo Nota de Crédito e-34 agrega stock aquí)
       if (data.ecfType === '34') {
-        for (const line of itemLines) {
+        for (const line of totals.itemLines) {
           await deductStock(
             data.companyId,
             line.productId,
@@ -556,18 +682,18 @@ export class InvoiceService {
       let journalLines = [];
       if (data.ecfType === '34') {
         // Credit note reverses standard journal entry
-        const creditAmount = totalNet;
+        const creditAmount = totals.totalNet;
         journalLines = [
-          { accountId: accVentas.id, debit: subtotal - totalDiscount, credit: 0 },
+          { accountId: accVentas.id, debit: totals.subtotal - totals.totalDiscount, credit: 0 },
           { accountId: paymentAccount.id, debit: 0, credit: creditAmount },
         ];
-        if (totalTaxes > 0) {
-          journalLines.unshift({ accountId: accItbis.id, debit: totalTaxes, credit: 0 });
+        if (totals.totalTaxes > 0) {
+          journalLines.unshift({ accountId: accItbis.id, debit: totals.totalTaxes, credit: 0 });
         }
 
         // Revert retentions if any
-        if (totalRetained > 0) {
-          for (const ret of calculatedRetentions) {
+        if (totals.totalRetained > 0) {
+          for (const ret of totals.calculatedRetentions) {
             if (ret.retentionType === 'ISR') {
               const accIsr = await getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
               journalLines.push({ accountId: accIsr.id, debit: 0, credit: ret.retentionAmount });
@@ -582,16 +708,16 @@ export class InvoiceService {
         }
       } else {
         journalLines = [
-          { accountId: paymentAccount.id, debit: totalNet, credit: 0 },
-          { accountId: accVentas.id, debit: 0, credit: subtotal - totalDiscount },
+          { accountId: paymentAccount.id, debit: totals.totalNet, credit: 0 },
+          { accountId: accVentas.id, debit: 0, credit: totals.subtotal - totals.totalDiscount },
         ];
-        if (totalTaxes > 0) {
-          journalLines.push({ accountId: accItbis.id, debit: 0, credit: totalTaxes });
+        if (totals.totalTaxes > 0) {
+          journalLines.push({ accountId: accItbis.id, debit: 0, credit: totals.totalTaxes });
         }
 
         // Book retention assets (Anticipo de impuestos)
-        if (totalRetained > 0) {
-          for (const ret of calculatedRetentions) {
+        if (totals.totalRetained > 0) {
+          for (const ret of totals.calculatedRetentions) {
             if (ret.retentionType === 'ISR') {
               const accIsr = await getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
               journalLines.push({ accountId: accIsr.id, debit: ret.retentionAmount, credit: 0 });
@@ -622,7 +748,7 @@ export class InvoiceService {
           cashSessionId: activeCashSessionId,
           invoiceId: invoice.id,
           type: isCreditNote ? 'refund' : 'sale',
-          amount: totalNet,
+          amount: totals.totalNet,
           description: isCreditNote
             ? `Devolución Nota de Crédito: ${ncf}`
             : data.ecfType === '33'
@@ -642,7 +768,7 @@ export class InvoiceService {
             .where(eq(accountsReceivable.invoiceId, data.modifiedInvoiceId))
             .limit(1);
           if (existingAr) {
-            const newBalance = Math.max(0, parseFloat(existingAr.balance || '0') - totalNet);
+            const newBalance = Math.max(0, parseFloat(existingAr.balance || '0') - totals.totalNet);
             await tx
               .update(accountsReceivable)
               .set({
@@ -660,7 +786,7 @@ export class InvoiceService {
             companyId: data.companyId,
             customerId: data.customerId,
             invoiceId: invoice.id,
-            amount: totalNet,
+            amount: totals.totalNet,
             dueDate,
           });
         }
@@ -673,22 +799,22 @@ export class InvoiceService {
         action: 'invoice_issued_and_signed',
         entityType: 'invoices',
         entityId: invoice.id,
-        newValues: { ncf, total, customerId: data.customerId },
+        newValues: { ncf, total: totals.total, customerId: data.customerId },
         ipAddress: 'server',
       });
 
       // 3. Register submission or queue asynchronous submission to DGII
-      if (finalStatus === 'accepted') {
+      if (submission.finalStatus === 'accepted') {
         await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
           invoiceId: invoice.id,
           status: 'accepted',
-          trackId: msellerTrackId,
-          responseMessage: dgiiMessage,
-          responsePayload: JSON.stringify(msellerResponsePayload),
+          trackId: submission.msellerTrackId,
+          responseMessage: submission.dgiiMessage,
+          responsePayload: JSON.stringify(submission.msellerResponsePayload),
           retryCount: 0,
         });
-      } else if (finalStatus === 'signed') {
+      } else if (submission.finalStatus === 'signed') {
         await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
           invoiceId: invoice.id,
@@ -704,12 +830,36 @@ export class InvoiceService {
 
       return {
         invoice,
-        msellerResponse: msellerResponsePayload
+        msellerResponse: submission.msellerResponsePayload,
       };
     });
+  }
 
-    // ── File generation outside the transaction block to avoid lockups ──────
+  /**
+   * Helper to write files and send the invoice to the customer asynchronously.
+   */
+  private static async generateFilesAndSendEmail(
+    data: IssueInvoiceInput,
+    ncf: string,
+    company: any,
+    settings: any,
+    totals: CalculatedTotals,
+    submission: DgiiSubmissionResult,
+    codigoFactura: string,
+    invoicesDir: string,
+    xmlPath: string,
+    signedXmlPath: string,
+    pdfPath: string
+  ) {
     try {
+      const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
+      const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
+
+      let securityHash = submission.securityHash;
+      if (!securityHash) {
+        securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
+      }
+
       if (!fs.existsSync(invoicesDir)) {
         fs.mkdirSync(invoicesDir, { recursive: true });
       }
@@ -717,7 +867,7 @@ export class InvoiceService {
       fs.writeFileSync(signedXmlPath, signedXml);
 
       // Fetch real product SKUs and units of measure
-      const productIds = itemLines.map(l => l.productId).filter(Boolean);
+      const productIds = totals.itemLines.map((l) => l.productId).filter(Boolean);
       let dbProducts: any[] = [];
       if (productIds.length > 0) {
         dbProducts = await db
@@ -727,9 +877,9 @@ export class InvoiceService {
             unitOfMeasure: products.unitOfMeasure,
           })
           .from(products)
-          .where(sql`${products.id} in (${sql.raw(productIds.map(id => `'${id}'`).join(','))})`);
+          .where(sql`${products.id} in (${sql.raw(productIds.map((id) => `'${id}'`).join(','))})`);
       }
-      const productMap = new Map(dbProducts.map(p => [p.id, p]));
+      const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
       // Generate PDF Buffer using premium HTML/Puppeteer rendering engine
       const formattedInvoiceRecord = {
@@ -738,15 +888,15 @@ export class InvoiceService {
         paymentType: data.paymentType,
         createdAt: new Date().toISOString(),
         paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
-        subtotal,
-        discount: totalDiscount,
-        totalTaxes,
-        total,
+        subtotal: totals.subtotal,
+        discount: totals.totalDiscount,
+        totalTaxes: totals.totalTaxes,
+        total: totals.total,
         notes: data.notes || '',
-        codigoFactura: result.invoice.codigoFactura,
+        codigoFactura,
         securityCode: securityHash,
         signatureDate: new Date().toISOString(),
-        lines: itemLines.map(l => {
+        lines: totals.itemLines.map((l) => {
           const prod = productMap.get(l.productId);
           return {
             quantity: l.quantity,
@@ -755,13 +905,13 @@ export class InvoiceService {
             unitOfMeasure: prod?.unitOfMeasure || 'Unidad',
             unitPrice: l.unitPrice,
             discount: l.discount,
-            total: l.total
+            total: l.total,
           };
         }),
-        taxes: taxesList.map(t => ({
+        taxes: totals.taxesList.map((t) => ({
           taxType: t.taxType,
           rate: t.rate,
-          amount: t.amount
+          amount: t.amount,
         })),
         company: {
           name: company.name,
@@ -770,33 +920,33 @@ export class InvoiceService {
           phone: '1-829-214-4128',
           email: settings?.msellerEmail || 'latindoors@gmail.com',
           logoUrl: settings?.logoUrl || undefined,
-          settings: { 
-            printLayout: settings?.printLayout || 'carta' 
-          }
+          settings: {
+            printLayout: settings?.printLayout || 'carta',
+          },
         },
         customer: {
           name: data.buyerName || 'Consumidor Final',
           rncCedula: data.buyerRnc || '',
           phone: '',
-          address: ''
-        }
+          address: '',
+        },
       };
 
       // Generate QR Code base64
       let qrBase64 = '';
-      if (qrCode) {
-        if (qrCode.startsWith('http')) {
-          qrBase64 = await PdfGenerator.generateQrBase64(qrCode);
+      if (submission.qrCode) {
+        if (submission.qrCode.startsWith('http')) {
+          qrBase64 = await PdfGenerator.generateQrBase64(submission.qrCode);
         } else {
-          qrBase64 = qrCode;
+          qrBase64 = submission.qrCode;
         }
       } else {
         const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
-        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(total).toFixed(2)}&codigoSeguridad=${securityHash}`;
+        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(totals.total).toFixed(2)}&codigoSeguridad=${securityHash}`;
         qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
       }
 
-      const layout = settings?.printLayout as 'carta' | '80mm' | '58mm' || 'carta';
+      const layout = (settings?.printLayout as 'carta' | '80mm' | '58mm') || 'carta';
       const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
       const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
       fs.writeFileSync(pdfPath, pdfBuffer);
@@ -822,26 +972,36 @@ export class InvoiceService {
             await addJob('emails-sending', 'send-email', {
               to: customer.email,
               subject,
-              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: ${ncf} por un valor total de RD$ ${total}.\n\nAtentamente,\n${companyName}`,
-              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
+              text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: ${ncf} por un valor total de RD$ ${totals.total}.\n\nAtentamente,\n${companyName}`,
+              html: `<p>Estimado(a) <strong>${customer.name}</strong>,</p><p>Le notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: <strong>${ncf}</strong> por un valor total de <strong>RD$ ${totals.total}</strong>.</p><p>Atentamente,<br/>${companyName}</p>`,
               pdfPath,
             });
-            console.log(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${ncf} with attachment ${pdfPath}`);
+            Logger.info(`[InvoiceService] Invoice email queued for customer ${customer.email} regarding NCF ${ncf} with attachment ${pdfPath}`);
           }
         } catch (emailErr) {
-          console.error('[InvoiceService] Error queuing email for invoice:', emailErr);
+          Logger.error('[InvoiceService] Error queuing email for invoice', emailErr);
         }
       }
     } catch (pdfErr: any) {
-      console.error('[InvoiceService] Error generating PDF or XML outside transaction:', pdfErr.message);
+      Logger.error('[InvoiceService] Error generating PDF or XML outside transaction', pdfErr);
     }
+  }
 
+  /**
+   * Helper to perform follow up operations (delivery note, quote status).
+   */
+  private static async processPostEmission(
+    data: IssueInvoiceInput,
+    invoiceId: string,
+    settings: any,
+    itemLines: any[]
+  ) {
     // Automatically issue delivery note if autoDeliveryNotes is enabled
     if (settings?.autoDeliveryNotes && ['31', '32', '45'].includes(data.ecfType)) {
       try {
         const draftNote = await DeliveryRepository.create({
           companyId: data.companyId,
-          invoiceId: result.invoice.id,
+          invoiceId: invoiceId,
           userId: data.userId,
           deliveryDate: new Date(),
           driverName: 'Despacho Automático',
@@ -854,9 +1014,8 @@ export class InvoiceService {
         });
 
         await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId);
-        result.invoice.deliveryStatus = 'delivered';
       } catch (autoErr) {
-        console.error('[InvoiceService] Error creating automatic delivery note:', autoErr);
+        Logger.error('[InvoiceService] Error creating automatic delivery note', autoErr);
       }
     }
 
@@ -865,17 +1024,21 @@ export class InvoiceService {
         const { QuoteService } = await import('@/services/quoteService');
         await QuoteService.markAsInvoiced(data.quoteId);
       } catch (err) {
-        console.error('[InvoiceService] Error marking quote as invoiced:', err);
+        Logger.error('[InvoiceService] Error marking quote as invoiced', err);
       }
     }
-
-    return result;
   }
 }
 
-// Helpers
+// Helpers outside class
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+async function getOrCreateAccount(
+  tx: any,
+  companyId: string,
+  code: string,
+  name: string,
+  type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+) {
   const [acc] = await tx
     .select()
     .from(chartOfAccounts)
@@ -910,7 +1073,8 @@ function generateEcfXml(
 ): string {
   const dateStr = new Date().toISOString().substring(0, 10);
   const itemsXml = lines
-    .map((line, idx) => `
+    .map(
+      (line, idx) => `
     <DetalleItem>
       <NumeroLinea>${idx + 1}</NumeroLinea>
       <IndicadorFacturacion>1</IndicadorFacturacion>
@@ -919,7 +1083,8 @@ function generateEcfXml(
       <PrecioUnitarioItem>${line.unitPrice.toFixed(2)}</PrecioUnitarioItem>
       <DescuentoMonto>${line.discount.toFixed(2)}</DescuentoMonto>
       <MontoItem>${line.total.toFixed(2)}</MontoItem>
-    </DetalleItem>`)
+    </DetalleItem>`
+    )
     .join('');
 
   return `<?xml version="1.0" encoding="utf-8"?>

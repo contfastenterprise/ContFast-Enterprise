@@ -17,7 +17,7 @@ export type PermissionModule =
 export type PermissionAction = 'read' | 'write' | 'delete' | 'execute' | 'admin';
 
 // Default base permissions for editable roles
-const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
   contabilidad: {
     'contabilidad:read': true,
     'contabilidad:write': true,

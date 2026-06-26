@@ -27,10 +27,12 @@ export default function AdminPage() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   // Modals
   const [showNewUserModal, setShowNewUserModal] = useState(false);
+  const [showNewRoleModal, setShowNewRoleModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Forms
@@ -41,6 +43,11 @@ export default function AdminPage() {
     roleId: ''
   });
 
+  const [roleForm, setRoleForm] = useState({
+    name: '',
+    description: ''
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -48,15 +55,20 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [uRes, rRes] = await Promise.all([
+      const [uRes, rRes, meRes] = await Promise.all([
         fetch('/api/v1/admin/users'),
-        fetch('/api/v1/admin/roles')
+        fetch('/api/v1/admin/roles'),
+        fetch('/api/v1/auth/me')
       ]);
       const uData = await uRes.json();
       const rData = await rRes.json();
+      const meData = await meRes.json();
 
       if (uData.success) setUsers(uData.data);
       if (rData.success) setRoles(rData.data);
+      if (meData.success && meData.data?.user) {
+        setCurrentUserRole(meData.data.user.role || '');
+      }
     } catch (err) {
       toast.error('Error al cargar datos administrativos');
     } finally {
@@ -84,6 +96,31 @@ export default function AdminPage() {
       }
     } catch (error) {
       toast.error('Error de red al crear usuario');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/v1/admin/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roleForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Rol creado exitosamente');
+        setShowNewRoleModal(false);
+        fetchData();
+        setRoleForm({ name: '', description: '' });
+      } else {
+        toast.error(data.error?.message || 'Error al crear rol');
+      }
+    } catch (error) {
+      toast.error('Error de red al crear rol');
     } finally {
       setSubmitting(false);
     }
@@ -128,10 +165,16 @@ export default function AdminPage() {
               Controla los usuarios y roles que tienen acceso al ERP.
             </p>
           </div>
-          {activeTab === 'users' && (
+          {activeTab === 'users' ? (
             <button onClick={() => setShowNewUserModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
               <Plus className="h-4 w-4" /> Nuevo Usuario
             </button>
+          ) : (
+            currentUserRole === 'sistemas' && (
+              <button onClick={() => setShowNewRoleModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Nuevo Rol
+              </button>
+            )
           )}
         </div>
 
@@ -273,6 +316,37 @@ export default function AdminPage() {
                   <button type="button" onClick={() => setShowNewUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Usuario
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: NEW ROLE */}
+      <AnimatePresence>
+        {showNewRoleModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><KeyRound className="w-5 h-5 text-[#c5a059]" /> Nuevo Rol</h3>
+                <button onClick={() => setShowNewRoleModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleCreateRole} className="p-6 space-y-5">
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Nombre del Rol</label>
+                  <input type="text" required value={roleForm.name} onChange={e => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. ventas, soporte, etc." />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Descripción</label>
+                  <textarea value={roleForm.description} onChange={e => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Describa las responsabilidades del rol" rows={3} />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                  <button type="button" onClick={() => setShowNewRoleModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Rol
                   </button>
                 </div>
               </form>

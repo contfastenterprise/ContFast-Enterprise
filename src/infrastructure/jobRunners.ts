@@ -1,5 +1,6 @@
 import { db, invoices, dgiiSubmissions, ecfSequences, companySettings, companies } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
+import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { decrypt } from '@/utils/encryption';
@@ -34,7 +35,7 @@ function resolveEntorno(dgiiEnv: string | null): string {
 export async function processDgiiSubmissionJob(data: { companyId: string; invoiceId: string; attemptsMade?: number }): Promise<any> {
   const { companyId, invoiceId } = data;
   const attemptsMade = data.attemptsMade ?? 0;
-  console.log(`[JobRunner] Processing DGII submission for invoice ${invoiceId} (attempt ${attemptsMade + 1})...`);
+  Logger.info(`[JobRunner] Processing DGII submission for invoice ${invoiceId} (attempt ${attemptsMade + 1})...`);
 
   // 1. Load invoice with lines
   const invoice = await InvoiceRepository.getById(invoiceId, companyId);
@@ -155,7 +156,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   const result = await client.sendDocument(ecfPayload);
 
   if (result.success) {
-    console.log(`[JobRunner] ✓ DGII submission accepted for invoice ${invoiceId}, trackId: ${result.trackId}`);
+    Logger.info(`[JobRunner] ✓ DGII submission accepted for invoice ${invoiceId}, trackId: ${result.trackId}`);
 
     const resEstado = (result.rawResponse?.status || result.rawResponse?.estado || 'Aceptado').toLowerCase();
     let newStatus = 'accepted';
@@ -192,7 +193,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
 
     return { success: true, trackId: result.trackId };
   } else {
-    console.error(`[JobRunner] ✗ DGII submission failed for invoice ${invoiceId}: ${result.message}`);
+    Logger.error(`[JobRunner] ✗ DGII submission failed for invoice ${invoiceId}: ${result.message}`);
 
     // Update dgii_submissions to failed
     await db
@@ -224,7 +225,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
  */
 export async function sendEmailJob(data: { to: string; subject: string; text: string; html?: string; pdfPath?: string }): Promise<any> {
   const { to, subject, text, html, pdfPath } = data;
-  console.log(`[JobRunner] Preparing to send email to: ${to} with subject: "${subject}"...`);
+  Logger.info(`[JobRunner] Preparing to send email to: ${to} with subject: "${subject}"...`);
 
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -233,7 +234,7 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
   const from = process.env.SMTP_FROM || 'no-reply@contfast.com';
 
   if (!host || !user || !pass) {
-    console.error('[JobRunner] SMTP configuration is missing. Cannot send email.');
+    Logger.error('[JobRunner] SMTP configuration is missing. Cannot send email.');
     throw new Error('SMTP configuration missing');
   }
 
@@ -258,9 +259,9 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
         filename: path.basename(resolvedPath),
         path: resolvedPath,
       });
-      console.log(`[JobRunner] Attaching PDF file: ${resolvedPath}`);
+      Logger.info(`[JobRunner] Attaching PDF file: ${resolvedPath}`);
     } else {
-      console.warn(`[JobRunner] PDF file not found at path: ${resolvedPath}`);
+      Logger.warn(`[JobRunner] PDF file not found at path: ${resolvedPath}`);
     }
   }
 
@@ -273,6 +274,6 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
     attachments,
   });
 
-  console.log(`[JobRunner] Email sent successfully to ${to}.`);
+  Logger.info(`[JobRunner] Email sent successfully to ${to}.`);
   return { success: true };
 }

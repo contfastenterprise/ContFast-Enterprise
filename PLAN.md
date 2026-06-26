@@ -231,6 +231,11 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Soporte para Gastos Exentos de ITBIS**: Incorporación de un checkbox "Gasto Exento de ITBIS (No posee ITBIS)" en el formulario de compras (visible tanto en gastos normales como en gastos menores). Al activarse, deshabilita y pone en cero el campo de entrada de ITBIS (tanto en desglose general como en líneas de artículos físicas), deshabilita el campo "Monto sin ITBIS (Subtotal)" y asegura de manera reactiva que el Subtotal sea exactamente igual al Monto Total del gasto.
 - **Fechas Robustas en Reportes Financieros**: Reemplazado el fallback de fecha `new Date().toISOString().split('T')[0]` en los endpoints de Balance General y PDF (`balance-sheet/route.ts` y `pdf/route.ts`) por una función de cálculo local con compensación horaria de Santo Domingo (`UTC-04:00`). Esto previene que al consultar los reportes por la noche en la zona horaria de República Dominicana se muestre la fecha del día siguiente. Las consultas por rango de fecha en el Estado de Resultados comparan directamente strings ISO `YYYY-MM-DD` sin desfases de huso horario.
 
+### 37. Seeding Dinámico de Matriz de Roles y Permisos en Base de Datos
+- **Aislamiento por Empresa en Transacción Atómica:** Se refactorizó la creación de empresas en `src/app/api/v1/admin/companies/route.ts` para ejecutar todos los inserts en una única transacción de base de datos (`db.transaction`).
+- **Upsert del Catálogo de Permisos:** Se autogeneran y cargan dinámicamente los 55 permisos posibles en el sistema (`11 módulos * 5 acciones`) usando `.onConflictDoNothing()`.
+- **Siembra Completa de `role_permissions`:** Una vez creados los 6 roles de la empresa, se asocian sus respectivos permisos por defecto basándose en la matriz `DEFAULT_ROLE_PERMISSIONS` de `src/middleware/permissions.ts` (habilitando acceso total para `sistemas`, acceso restringido/de lectura técnica para `administracion`, y los privilegios operativos correspondientes para `contabilidad`, `facturacion`, `banco` y `cajero`), grabándolos físicamente en la tabla `role_permissions`.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

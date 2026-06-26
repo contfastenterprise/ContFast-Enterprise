@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
+import { Logger } from '@/utils/logger';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { addJob } from '@/infrastructure/queue';
@@ -134,7 +135,7 @@ export async function POST(
             }
             signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
           } catch (err) {
-            console.error('Error parsing submission responsePayload:', err);
+            Logger.error('Error parsing submission responsePayload', err);
           }
         }
 
@@ -221,9 +222,9 @@ export async function POST(
           fs.mkdirSync(pdfDir, { recursive: true });
         }
         fs.writeFileSync(resolvedPath, pdfBuffer);
-        console.log(`[Email Route] Regenerated PDF successfully at ${resolvedPath}`);
+        Logger.info(`[Email Route] Regenerated PDF successfully at ${resolvedPath}`);
       } catch (err: any) {
-        console.error('[Email Route] Failed to regenerate PDF on the fly:', err);
+        Logger.error('[Email Route] Failed to regenerate PDF on the fly', err);
       }
     }
 
@@ -253,7 +254,7 @@ export async function POST(
       { headers: resHeaders }
     );
   } catch (error: any) {
-    console.error('Error in POST /api/v1/invoices/[id]/email:', error);
+    Logger.error('Error in POST /api/v1/invoices/[id]/email', error);
     const status = error.status || 500;
     const code = error.code || 'SERVER_ERROR';
     return NextResponse.json(

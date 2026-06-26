@@ -10,7 +10,14 @@ const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
 };
 
-const conn = globalForDb.conn ?? postgres(connectionString, { prepare: false });
+const poolMax = process.env.DATABASE_POOL_MAX
+  ? parseInt(process.env.DATABASE_POOL_MAX, 10)
+  : (process.env.NODE_ENV === 'production' ? 2 : 10);
+
+const conn = globalForDb.conn ?? postgres(connectionString, { 
+  prepare: false,
+  max: poolMax,
+});
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
 
 export const db = drizzle(conn, { schema });

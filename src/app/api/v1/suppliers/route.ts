@@ -16,7 +16,13 @@ const createSupplierSchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     const session = await verifyAuth(req);
     if (!session) {
@@ -51,7 +57,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     const session = await verifyAuth(req);
     if (!session) {

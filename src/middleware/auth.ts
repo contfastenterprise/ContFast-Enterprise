@@ -4,8 +4,12 @@ import { db, users, sessions, roles, userWarehouses } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cf_v2_jwt_access_secret_2026_super_secure_9876543210';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'cf_v2_jwt_refresh_secret_2026_super_secure_0123456789';
+const JWT_SECRET = process.env.JWT_SECRET as string;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  throw new Error('Las variables de entorno JWT_SECRET y JWT_REFRESH_SECRET son obligatorias y deben estar definidas.');
+}
 
 // En desarrollo (http://localhost) el flag Secure bloquea las cookies.
 // Sólo activar en producción (HTTPS).
@@ -46,6 +50,33 @@ export async function verifyAuth(
   req: NextRequest,
   resHeaders: Headers = new Headers()
 ): Promise<AuthPayload | null> {
+  // 0. Check if this request has already been verified and enriched by the centralized Next.js middleware
+  const userId = req.headers.get('x-user-id');
+  const companyId = req.headers.get('x-company-id');
+  const role = req.headers.get('x-user-role');
+  const roleId = req.headers.get('x-role-id');
+  const sessionId = req.headers.get('x-session-id') || '';
+  const allowedWarehousesHeader = req.headers.get('x-allowed-warehouses');
+
+  if (userId && companyId && role && roleId) {
+    let allowedWarehouses: string[] = [];
+    if (allowedWarehousesHeader) {
+      try {
+        allowedWarehouses = JSON.parse(allowedWarehousesHeader);
+      } catch (_) {
+        allowedWarehouses = allowedWarehousesHeader ? allowedWarehousesHeader.split(',') : [];
+      }
+    }
+    return {
+      userId,
+      companyId,
+      role,
+      roleId,
+      sessionId,
+      allowedWarehouses,
+    };
+  }
+
   const accessToken = req.cookies.get('accessToken')?.value;
   const refreshToken = req.cookies.get('refreshToken')?.value;
 

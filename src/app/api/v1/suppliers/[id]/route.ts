@@ -18,7 +18,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     const session = await verifyAuth(req);
     if (!session) {
@@ -44,7 +50,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     const session = await verifyAuth(req);
     if (!session) {
@@ -81,7 +93,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await checkRateLimit(ip, 'standard');
+    const allowed = await checkRateLimit(ip, 'standard');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiadas peticiones. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
 
     const session = await verifyAuth(req);
     if (!session) {
