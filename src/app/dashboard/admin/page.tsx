@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare } from 'lucide-react';
+import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -22,17 +22,31 @@ interface Role {
   isFixed: boolean;
 }
 
+interface Plan {
+  id: string;
+  name: string;
+  description: string | null;
+  price: string;
+  maxEcfLimit: number;
+  maxUsers: number;
+  maxWarehouses: number;
+  active: boolean;
+}
+
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'plans'>('users');
 
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   // Modals
   const [showNewUserModal, setShowNewUserModal] = useState(false);
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Forms
@@ -48,26 +62,48 @@ export default function AdminPage() {
     description: ''
   });
 
+  const [planForm, setPlanForm] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    maxEcfLimit: 100,
+    maxUsers: 5,
+    maxWarehouses: 1,
+    active: true
+  });
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [uRes, rRes, meRes] = await Promise.all([
-        fetch('/api/v1/admin/users'),
-        fetch('/api/v1/admin/roles'),
-        fetch('/api/v1/auth/me')
+      const [meRes, uRes, rRes, pRes] = await Promise.all([
+        fetch('/api/v1/auth/me'),
+        activeTab === 'users' ? fetch('/api/v1/admin/users') : Promise.resolve(null),
+        activeTab === 'roles' ? fetch('/api/v1/admin/roles') : Promise.resolve(null),
+        activeTab === 'plans' ? fetch('/api/v1/admin/plans') : Promise.resolve(null)
       ]);
-      const uData = await uRes.json();
-      const rData = await rRes.json();
-      const meData = await meRes.json();
 
-      if (uData.success) setUsers(uData.data);
-      if (rData.success) setRoles(rData.data);
+      const meData = await meRes.json();
       if (meData.success && meData.data?.user) {
         setCurrentUserRole(meData.data.user.role || '');
+      }
+
+      if (uRes) {
+        const uData = await uRes.json();
+        if (uData.success) setUsers(uData.data);
+      }
+
+      if (rRes) {
+        const rData = await rRes.json();
+        if (rData.success) setRoles(rData.data);
+      }
+
+      if (pRes) {
+        const pData = await pRes.json();
+        if (pData.success) setPlans(pData.data);
       }
     } catch (err) {
       toast.error('Error al cargar datos administrativos');
@@ -126,6 +162,68 @@ export default function AdminPage() {
     }
   };
 
+  const handleOpenPlanModal = (plan: Plan | null = null) => {
+    setSelectedPlan(plan);
+    if (plan) {
+      setPlanForm({
+        name: plan.name,
+        description: plan.description || '',
+        price: parseFloat(plan.price),
+        maxEcfLimit: plan.maxEcfLimit,
+        maxUsers: plan.maxUsers,
+        maxWarehouses: plan.maxWarehouses,
+        active: plan.active
+      });
+    } else {
+      setPlanForm({
+        name: '',
+        description: '',
+        price: 0,
+        maxEcfLimit: 100,
+        maxUsers: 5,
+        maxWarehouses: 1,
+        active: true
+      });
+    }
+    setShowPlanModal(true);
+  };
+
+  const handleSavePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      let res;
+      if (selectedPlan) {
+        // Edit Plan
+        res = await fetch(`/api/v1/admin/plans/${selectedPlan.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planForm)
+        });
+      } else {
+        // Create Plan
+        res = await fetch('/api/v1/admin/plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(planForm)
+        });
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(selectedPlan ? 'Plan actualizado correctamente' : 'Plan SaaS creado correctamente');
+        setShowPlanModal(false);
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al guardar plan');
+      }
+    } catch (error) {
+      toast.error('Error de red al guardar plan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleToggleStatus = async (userId: string) => {
     try {
       const res = await fetch('/api/v1/admin/users', {
@@ -159,22 +257,26 @@ export default function AdminPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Gestión de Acceso
+              Gestión de Acceso y Planes
             </h1>
             <p className="text-on-surface-variant/70 text-sm mt-1">
-              Controla los usuarios y roles que tienen acceso al ERP.
+              Controla los usuarios, roles y planes de suscripción de la plataforma.
             </p>
           </div>
-          {activeTab === 'users' ? (
+          {activeTab === 'users' && (
             <button onClick={() => setShowNewUserModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
               <Plus className="h-4 w-4" /> Nuevo Usuario
             </button>
-          ) : (
-            currentUserRole === 'sistemas' && (
-              <button onClick={() => setShowNewRoleModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Nuevo Rol
-              </button>
-            )
+          )}
+          {activeTab === 'roles' && currentUserRole === 'sistemas' && (
+            <button onClick={() => setShowNewRoleModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Nuevo Rol
+            </button>
+          )}
+          {activeTab === 'plans' && currentUserRole === 'sistemas' && (
+            <button onClick={() => handleOpenPlanModal(null)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Nuevo Plan SaaS
+            </button>
           )}
         </div>
 
@@ -192,13 +294,19 @@ export default function AdminPage() {
           >
             <div className="flex items-center gap-2"><KeyRound className="w-4 h-4" /> Roles del Sistema</div>
           </button>
+          <button
+            onClick={() => setActiveTab('plans')}
+            className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'plans' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
+          >
+            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> Planes SaaS</div>
+          </button>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
         ) : (
           <div className="mt-6">
-            {activeTab === 'users' ? (
+            {activeTab === 'users' && (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <table className="w-full text-sm text-left">
                   <thead className="bg-slate-50 border-b border-slate-100 text-[10px] tracking-widest text-on-surface-variant uppercase font-bold">
@@ -257,7 +365,9 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            ) : (
+            )}
+
+            {activeTab === 'roles' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {roles
                   .filter(role => role.name.toLowerCase() !== 'sistemas' && role.name.toLowerCase() !== 'sistema')
@@ -272,6 +382,64 @@ export default function AdminPage() {
                       <p className="text-sm text-on-surface-variant/70 mb-4">{role.description || 'Sin descripción'}</p>
                     </div>
                   ))}
+              </div>
+            )}
+
+            {activeTab === 'plans' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {plans.length === 0 ? (
+                  <div className="col-span-full py-12 text-center text-slate-500">No hay planes registrados.</div>
+                ) : (
+                  plans.map(plan => (
+                    <div key={plan.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+                      <div>
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-bold text-lg text-[#003366]">{plan.name}</h3>
+                            <p className="text-xs text-slate-500 mt-1 max-w-[200px]">{plan.description || 'Sin descripción'}</p>
+                          </div>
+                          <span className={clsx(
+                            "px-2.5 py-0.5 rounded text-[10px] uppercase font-bold",
+                            plan.active ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                          )}>
+                            {plan.active ? 'Activo' : 'Desactivado'}
+                          </span>
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-4 mb-4">
+                          <div className="text-3xl font-extrabold text-slate-900">
+                            RD$ {parseFloat(plan.price).toLocaleString('es-DO')}
+                            <span className="text-xs text-slate-500 font-normal"> / mes</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 mb-6">
+                          <div className="flex justify-between text-xs text-slate-700">
+                            <span>Límite de e-CF:</span>
+                            <span className="font-bold">{plan.maxEcfLimit === -1 ? 'Ilimitados' : `${plan.maxEcfLimit} / mes`}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-700">
+                            <span>Límite de Usuarios:</span>
+                            <span className="font-bold">{plan.maxUsers === -1 ? 'Ilimitados' : `${plan.maxUsers}`}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-700">
+                            <span>Límite de Almacenes:</span>
+                            <span className="font-bold">{plan.maxWarehouses === -1 ? 'Ilimitados' : `${plan.maxWarehouses}`}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {currentUserRole === 'sistemas' && (
+                        <button
+                          onClick={() => handleOpenPlanModal(plan)}
+                          className="w-full mt-4 bg-[#003366] hover:bg-[#002244] text-white font-bold text-xs py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Zap className="h-3 w-3 text-[#C5A059]" /> Modificar Plan
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
@@ -347,6 +515,64 @@ export default function AdminPage() {
                   <button type="button" onClick={() => setShowNewRoleModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Rol
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: NEW / EDIT PLAN */}
+      <AnimatePresence>
+        {showPlanModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-[#c5a059]" /> 
+                  {selectedPlan ? 'Editar Plan SaaS' : 'Nuevo Plan SaaS'}
+                </h3>
+                <button onClick={() => setShowPlanModal(false)} className="text-white hover:text-[#c5a059] transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleSavePlan} className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Nombre del Plan <span className="text-red-500">*</span></label>
+                  <input type="text" required value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Básico, Profesional, Ilimitado" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Descripción</label>
+                  <textarea value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors resize-none" placeholder="Breve resumen del plan..." rows={2} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Precio Mensual (RD$) <span className="text-red-500">*</span></label>
+                    <input type="number" required min={0} value={planForm.price} onChange={e => setPlanForm({ ...planForm, price: parseFloat(e.target.value) || 0 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Límite e-CF <span className="text-red-500">*</span></label>
+                    <input type="number" required min={-1} value={planForm.maxEcfLimit} onChange={e => setPlanForm({ ...planForm, maxEcfLimit: parseInt(e.target.value) || -1 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="-1 para Ilimitado" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Límite de Usuarios <span className="text-red-500">*</span></label>
+                    <input type="number" required min={-1} value={planForm.maxUsers} onChange={e => setPlanForm({ ...planForm, maxUsers: parseInt(e.target.value) || -1 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="-1 para Ilimitado" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">Límite Almacenes <span className="text-red-500">*</span></label>
+                    <input type="number" required min={1} value={planForm.maxWarehouses} onChange={e => setPlanForm({ ...planForm, maxWarehouses: parseInt(e.target.value) || 1 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  <input type="checkbox" id="planActive" checked={planForm.active} onChange={e => setPlanForm({ ...planForm, active: e.target.checked })} className="h-4 w-4 border-slate-200 rounded text-primary focus:ring-primary" />
+                  <label htmlFor="planActive" className="text-xs font-bold text-slate-700 cursor-pointer">Plan Habilitado para Contratación</label>
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button type="button" onClick={() => setShowPlanModal(false)} className="px-5 py-2 text-slate-700 hover:text-[#003366] font-medium transition-colors">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar Plan
                   </button>
                 </div>
               </form>

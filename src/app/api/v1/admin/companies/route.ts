@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings, roles, chartOfAccounts, payrollConfigs, permissions, rolePermissions } from '@/db';
+import { db, companies, companySettings, roles, chartOfAccounts, payrollConfigs, permissions, rolePermissions, subscriptions, plans } from '@/db';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { z } from 'zod';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, and, ne } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 
@@ -24,7 +24,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere rol de sistemas.' } }, { status: 403 });
     }
 
-    const list = await db.select().from(companies).orderBy(desc(companies.createdAt));
+    const list = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        rnc: companies.rnc,
+        email: companies.email,
+        businessActivity: companies.businessActivity,
+        status: companies.status,
+        createdAt: companies.createdAt,
+        subscriptionId: subscriptions.id,
+        subscriptionStatus: subscriptions.status,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        planId: plans.id,
+        planName: plans.name,
+      })
+      .from(companies)
+      .leftJoin(subscriptions, and(eq(companies.id, subscriptions.companyId), ne(subscriptions.status, 'canceled')))
+      .leftJoin(plans, eq(subscriptions.planId, plans.id))
+      .orderBy(desc(companies.createdAt));
 
     return NextResponse.json({ success: true, data: list });
   } catch (error: any) {
