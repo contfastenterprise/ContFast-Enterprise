@@ -1118,6 +1118,41 @@ export default function AccountingPage() {
         )}
       </AnimatePresence>
 
+      {/* MODAL: OPEN PERIOD */}
+      <AnimatePresence>
+        {showPeriodModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPeriodModal(false)} className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#c5a059]" /> Abrir Período Contable</h3>
+                <button onClick={() => setShowPeriodModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleCreatePeriod} className="p-6 space-y-5">
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Nombre del Período</label>
+                  <input type="text" required value={periodForm.name} onChange={e => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Enero 2026" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Fecha de Inicio</label>
+                  <input type="date" required value={periodForm.startDate} onChange={e => setPeriodForm({ ...periodForm, startDate: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Fecha de Fin</label>
+                  <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                  <button type="button" onClick={() => setShowPeriodModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
+                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                    {periodSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />} Abrir Período
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* MODAL: NEW JOURNAL ENTRY */}
       <AnimatePresence>
         {showJournalModal && (
