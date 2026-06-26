@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings } from '@/db';
-import { eq } from 'drizzle-orm';
+import { db, companies, companySettings, subscriptions, plans } from '@/db';
+import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
@@ -54,6 +54,22 @@ export async function GET(req: NextRequest) {
       hasMsellerPassword: companySettings.msellerPasswordEncrypted
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
 
+    // Fetch active subscription for the company
+    const [sub] = await db
+      .select({
+        id: subscriptions.id,
+        status: subscriptions.status,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        planName: plans.name,
+        maxEcfLimit: plans.maxEcfLimit,
+        maxUsers: plans.maxUsers,
+        maxWarehouses: plans.maxWarehouses,
+      })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(and(eq(subscriptions.companyId, session.companyId), eq(subscriptions.status, 'active')))
+      .limit(1);
+
     return NextResponse.json({ 
       success: true, 
       data: { 
@@ -62,7 +78,8 @@ export async function GET(req: NextRequest) {
           ...settings,
           hasMsellerApiKey: !!settings.hasMsellerApiKey,
           hasMsellerPassword: !!settings.hasMsellerPassword
-        } 
+        },
+        subscription: sub || null
       } 
     });
   } catch (err: any) {

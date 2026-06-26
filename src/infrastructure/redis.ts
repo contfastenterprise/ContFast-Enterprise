@@ -11,6 +11,7 @@ if (REDIS_URL || process.env.NODE_ENV !== 'production') {
     redis = new Redis(finalRedisUrl, {
       maxRetriesPerRequest: null, // Required by BullMQ
       lazyConnect: true, // Connect lazily so we can catch initial connect errors
+      enableOfflineQueue: false, // Prevents hanging when Redis is down
       retryStrategy(times) {
         // Retry every 5 seconds to prevent event loop flooding
         return 5000;
@@ -35,7 +36,7 @@ export { redis };
 
 // Caching Helpers
 export async function getCache(key: string): Promise<string | null> {
-  if (!redis) return null;
+  if (!redis || redis.status !== 'ready') return null;
   try {
     return await redis.get(key);
   } catch (error) {
@@ -45,7 +46,7 @@ export async function getCache(key: string): Promise<string | null> {
 }
 
 export async function setCache(key: string, value: string, expireSeconds?: number): Promise<void> {
-  if (!redis) return;
+  if (!redis || redis.status !== 'ready') return;
   try {
     if (expireSeconds) {
       await redis.set(key, value, 'EX', expireSeconds);
@@ -58,7 +59,7 @@ export async function setCache(key: string, value: string, expireSeconds?: numbe
 }
 
 export async function delCache(key: string): Promise<void> {
-  if (!redis) return;
+  if (!redis || redis.status !== 'ready') return;
   try {
     await redis.del(key);
   } catch (error) {
@@ -67,7 +68,7 @@ export async function delCache(key: string): Promise<void> {
 }
 
 export async function clearCachePattern(pattern: string): Promise<void> {
-  if (!redis) return;
+  if (!redis || redis.status !== 'ready') return;
   try {
     let cursor = '0';
     let allKeys: string[] = [];
