@@ -19,11 +19,10 @@ export class DGIIService {
   static async lookupRNC(rnc: string): Promise<RncLookupResult> {
     try {
       const API_URL = 'https://pptonanntevatndjyzmk.supabase.co/functions/v1/dgii-api';
-      const envKey = process.env.DGII_API_KEY;
-      if (!envKey && process.env.NODE_ENV === 'production') {
-        throw new Error('La variable de entorno DGII_API_KEY es obligatoria en entornos de producción.');
+      const API_KEY = process.env.DGII_API_KEY;
+      if (!API_KEY) {
+        throw new Error('La variable de entorno DGII_API_KEY es obligatoria y debe estar definida.');
       }
-      const API_KEY = envKey || 'dgii_b76383a9adce413fb82e0f58ec206f71';
       const url = `${API_URL}/rnc/${rnc}`;
       
       const controller = new AbortController();
