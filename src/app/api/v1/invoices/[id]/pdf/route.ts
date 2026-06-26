@@ -8,7 +8,11 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cf_v2_jwt_access_secret_2026_super_secure_9876543210';
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+if (!JWT_SECRET) {
+  throw new Error('La variable de entorno JWT_SECRET es obligatoria y debe estar definida.');
+}
 
 export async function GET(
   req: NextRequest,
