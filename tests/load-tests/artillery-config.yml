@@ -1,0 +1,37 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 50
+      name: "Ramp up load (Simulating concurrent invoice checkout)"
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained high load"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      # Insert your JWT token here for authenticated endpoints:
+      Authorization: "Bearer {{ $processEnv.LOAD_TEST_JWT_TOKEN }}"
+
+scenarios:
+  - name: "Query Products catalog"
+    flow:
+      - get:
+          url: "/api/v1/products"
+
+  - name: "Create Invoice (e-CF emission flow)"
+    flow:
+      - post:
+          url: "/api/v1/invoices"
+          json:
+            customerName: "Consumer Load Test"
+            rnc: "222222222"
+            paymentType: "cash"
+            ecfType: "31"
+            lines:
+              - productId: "test-prod-id"
+                quantity: 1
+                unitPrice: 100
+                discount: 0
+                taxRate: 0.18
