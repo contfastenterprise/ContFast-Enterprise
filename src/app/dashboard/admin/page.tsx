@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap } from 'lucide-react';
+import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -39,6 +39,15 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [subscription, setSubscription] = useState<{
+    id: string;
+    status: string;
+    currentPeriodEnd: string;
+    planName: string;
+    maxEcfLimit: number;
+    maxUsers: number;
+    maxWarehouses: number;
+  } | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -79,11 +88,12 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [meRes, uRes, rRes, pRes] = await Promise.all([
+      const [meRes, uRes, rRes, pRes, sRes] = await Promise.all([
         fetch('/api/v1/auth/me'),
         activeTab === 'users' ? fetch('/api/v1/admin/users') : Promise.resolve(null),
         activeTab === 'roles' ? fetch('/api/v1/admin/roles') : Promise.resolve(null),
-        activeTab === 'plans' ? fetch('/api/v1/admin/plans') : Promise.resolve(null)
+        activeTab === 'plans' ? fetch('/api/v1/admin/plans') : Promise.resolve(null),
+        activeTab === 'plans' ? fetch('/api/v1/admin/settings') : Promise.resolve(null)
       ]);
 
       const meData = await meRes.json();
@@ -104,6 +114,11 @@ export default function AdminPage() {
       if (pRes) {
         const pData = await pRes.json();
         if (pData.success) setPlans(pData.data);
+      }
+
+      if (sRes) {
+        const sData = await sRes.json();
+        if (sData.success) setSubscription(sData.data.subscription || null);
       }
     } catch (err) {
       toast.error('Error al cargar datos administrativos');
@@ -294,12 +309,14 @@ export default function AdminPage() {
           >
             <div className="flex items-center gap-2"><KeyRound className="w-4 h-4" /> Roles del Sistema</div>
           </button>
-          <button
-            onClick={() => setActiveTab('plans')}
-            className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'plans' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
-          >
-            <div className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> Planes SaaS</div>
-          </button>
+          {(currentUserRole === 'sistemas' || currentUserRole === 'administracion' || currentUserRole?.toLowerCase().includes('admin')) && (
+            <button
+              onClick={() => setActiveTab('plans')}
+              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'plans' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
+            >
+              <div className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> {currentUserRole === 'sistemas' ? 'Planes SaaS' : 'Mi Suscripción'}</div>
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -385,7 +402,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {activeTab === 'plans' && (
+            {activeTab === 'plans' && currentUserRole === 'sistemas' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {plans.length === 0 ? (
                   <div className="col-span-full py-12 text-center text-slate-500">No hay planes registrados.</div>
@@ -439,6 +456,92 @@ export default function AdminPage() {
                       )}
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {activeTab === 'plans' && currentUserRole !== 'sistemas' && (
+              <div className="max-w-3xl">
+                {subscription ? (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in">
+                    <div className="bg-[#003366] px-6 py-8 text-white relative">
+                      <div className="absolute top-0 right-0 p-8 opacity-10">
+                        <Award className="w-32 h-32" />
+                      </div>
+                      <p className="text-xs uppercase tracking-widest font-bold text-slate-300">Plan de Suscripción Activo</p>
+                      <h3 className="text-2xl font-display font-bold mt-2">{subscription.planName}</h3>
+                      <div className="mt-4 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Suscripción Activa
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite e-CF</p>
+                            <p className="text-lg font-bold text-slate-800 mt-1">
+                              {subscription.maxEcfLimit === -1 ? 'Ilimitado' : `${subscription.maxEcfLimit} / mes`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <UsersIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Usuarios</p>
+                            <p className="text-lg font-bold text-slate-800 mt-1">
+                              {subscription.maxUsers === -1 ? 'Ilimitado' : `${subscription.maxUsers}`}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                          <div className="p-2 bg-violet-50 text-violet-600 rounded-lg">
+                            <Layers className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Almacenes</p>
+                            <p className="text-lg font-bold text-slate-800 mt-1">
+                              {subscription.maxWarehouses === -1 ? 'Ilimitado' : `${subscription.maxWarehouses}`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-semibold">
+                            Vencimiento / Renovación:{' '}
+                            <span className="text-slate-800 font-bold">
+                              {new Date(subscription.currentPeriodEnd).toLocaleDateString('es-DO', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </span>
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium italic">
+                          Para modificar su plan o límites, contacte a soporte.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center animate-fade-in">
+                    <p className="text-sm text-slate-500 font-medium">No se encontró una suscripción activa para esta empresa.</p>
+                    <p className="text-xs text-slate-400 mt-1">Por favor, póngase en contacto con soporte técnico para activar su plan.</p>
+                  </div>
                 )}
               </div>
             )}
