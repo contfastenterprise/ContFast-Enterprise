@@ -1,4 +1,4 @@
-import { decrypt } from '@/utils/encryption';
+import { decryptAsync } from '@/utils/encryption';
 
 export interface ECFPayload {
   ECF: {
@@ -148,8 +148,8 @@ export class MSellerClient {
     this.apiKeyEncrypted = config.apiKeyEncrypted;
   }
 
-  private getApiKey(): string {
-    return decrypt(this.apiKeyEncrypted);
+  private async getApiKey(): Promise<string> {
+    return decryptAsync(this.apiKeyEncrypted);
   }
 
   private async authenticate(): Promise<string> {
@@ -198,7 +198,7 @@ export class MSellerClient {
 
   async sendDocument(payload: ECFPayload): Promise<MSellerSendResponse> {
     const idToken = await this.authenticate();
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf`;
     const controller = new AbortController();
@@ -291,7 +291,7 @@ export class MSellerClient {
 
   async getDocumentStatus(ncf: string): Promise<MSellerStatusResponse> {
     const idToken = await this.authenticate();
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf?ecf=${encodeURIComponent(ncf)}`;
     const controller = new AbortController();
@@ -384,7 +384,7 @@ export class MSellerClient {
     message?: string;
   }> {
     const idToken = await this.authenticate();
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf/status/batch`;
     const controller = new AbortController();

@@ -4,7 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, dgiiSubmissions, companySettings, companies, invoices } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
-import { decrypt } from '@/utils/encryption';
+import { decryptAsync } from '@/utils/encryption';
 import { eq, and, isNull } from 'drizzle-orm';
 
 function resolveEntorno(dgiiEnv: string | null): string {
@@ -67,7 +67,7 @@ export async function GET(
 
     const msellerEmail = settings?.msellerEmail || process.env.MSELLER_EMAIL;
     const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
-    const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : process.env.MSELLER_PASSWORD;
+    const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : process.env.MSELLER_PASSWORD;
     const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
 
     if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {

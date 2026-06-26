@@ -1,7 +1,7 @@
 import { db, ecfSequences, invoices } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
-import { decrypt } from '@/utils/encryption';
+import { decryptAsync } from '@/utils/encryption';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
 
@@ -28,7 +28,7 @@ export class InvoiceSubmissionService {
 
     const msellerEmail = settings?.msellerEmail;
     const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
-    const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : null;
+    const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : null;
     const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
 
     if (msellerEmail && msellerPassword && msellerApiKeyEncrypted) {

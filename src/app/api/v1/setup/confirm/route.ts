@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db, companies, companySettings, roles, users, permissions, auditLogs } from '@/db';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
-import { encrypt, encryptBuffer } from '@/utils/encryption';
+import { encryptAsync, encryptBuffer } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { count, and, eq } from 'drizzle-orm';
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         companyId: newCompany.id,
         dgiiEnv: fiscal.dgiiEnv,
         msellerUrl: fiscal.msellerUrl || undefined,
-        msellerApiKeyEncrypted: encrypt(fiscal.msellerApiKey),
+        msellerApiKeyEncrypted: await encryptAsync(fiscal.msellerApiKey),
         printLayout: printing.printLayout,
         autoDeliveryNotes: delivery.autoDeliveryNotes,
       });

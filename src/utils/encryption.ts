@@ -66,3 +66,13 @@ export function decryptToBuffer(encryptedData: string): Buffer {
   const decrypted = Buffer.concat([decipher.update(encryptedBytes), decipher.final()]);
   return decrypted;
 }
+
+import { KmsService } from '@/services/kmsService';
+
+export async function encryptAsync(text: string): Promise<string> {
+  return KmsService.encrypt(text);
+}
+
+export async function decryptAsync(cipherText: string): Promise<string> {
+  return KmsService.decrypt(cipherText);
+}

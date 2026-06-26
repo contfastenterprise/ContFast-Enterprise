@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { db, companies, companySettings } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { encrypt } from '@/utils/encryption';
+import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
 
 const settingsSchema = z.object({
@@ -197,8 +197,8 @@ export async function PATCH(req: NextRequest) {
       if (msellerUrl !== undefined) settingsUpdate.msellerUrl = msellerUrl;
       if (msellerEntorno !== undefined) settingsUpdate.msellerEntorno = msellerEntorno;
       if (msellerEmail !== undefined) settingsUpdate.msellerEmail = msellerEmail;
-      if (msellerApiKey) settingsUpdate.msellerApiKeyEncrypted = encrypt(msellerApiKey);
-      if (msellerPassword) settingsUpdate.msellerPasswordEncrypted = encrypt(msellerPassword);
+      if (msellerApiKey) settingsUpdate.msellerApiKeyEncrypted = await encryptAsync(msellerApiKey);
+      if (msellerPassword) settingsUpdate.msellerPasswordEncrypted = await encryptAsync(msellerPassword);
 
       await tx.update(companySettings)
         .set(settingsUpdate)

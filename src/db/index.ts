@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { sql } from 'drizzle-orm';
 
 const connectionString = process.env.DATABASE_URL || '';
 
@@ -21,4 +22,20 @@ const conn = globalForDb.conn ?? postgres(connectionString, {
 if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
 
 export const db = drizzle(conn, { schema });
+
+/**
+ * Executes operations in a database transaction with app.current_company_id set
+ * to enforce Row Level Security (RLS) tenant isolation.
+ */
+export async function withTenantContext<T>(
+  companyId: string,
+  fn: (tx: any) => Promise<T>
+): Promise<T> {
+  return await db.transaction(async (tx) => {
+    // Set the tenant context locally in the transaction
+    await tx.execute(sql`SELECT set_config('app.current_company_id', ${companyId}, true)`);
+    return await fn(tx);
+  });
+}
+
 export * from './schema';

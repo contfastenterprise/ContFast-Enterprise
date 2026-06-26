@@ -3,7 +3,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
-import { decrypt } from '@/utils/encryption';
+import { decryptAsync } from '@/utils/encryption';
 import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
@@ -68,7 +68,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   // 4. Check for mSeller credentials from settings
   const msellerEmail = settings.msellerEmail;
   const msellerPasswordEncrypted = settings.msellerPasswordEncrypted;
-  const msellerPassword = msellerPasswordEncrypted ? decrypt(msellerPasswordEncrypted) : null;
+  const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : null;
   const msellerApiKeyEncrypted = settings.msellerApiKeyEncrypted;
 
   if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {
