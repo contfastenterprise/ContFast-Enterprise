@@ -165,23 +165,28 @@ export async function proxy(req: NextRequest) {
             // In case we can't parse it directly, decrypter will read it on next hop
             const decodedNew = newAccessToken ? await verifyHS256(newAccessToken, JWT_SECRET) : null;
             
-            // Construct response
-            const response = NextResponse.next();
+            // Set request headers for downstream controllers
+            const requestHeaders = new Headers(req.headers);
+            if (decodedNew) {
+              requestHeaders.set('x-user-id', decodedNew.userId);
+              requestHeaders.set('x-company-id', decodedNew.companyId);
+              requestHeaders.set('x-user-role', decodedNew.role);
+              requestHeaders.set('x-role-id', decodedNew.roleId);
+              requestHeaders.set('x-session-id', decodedNew.sessionId);
+              requestHeaders.set('x-allowed-warehouses', JSON.stringify(decodedNew.allowedWarehouses || []));
+            }
+
+            // Construct response with request headers overridden to propagate context downstream
+            const response = NextResponse.next({
+              request: {
+                headers: requestHeaders,
+              },
+            });
             
             // Copy Set-Cookie headers to our response to persist them in client browser
             responseCookies.forEach((cookie) => {
               response.headers.append('Set-Cookie', cookie);
             });
-
-            // Set request headers for downstream controllers
-            if (decodedNew) {
-              response.headers.set('x-user-id', decodedNew.userId);
-              response.headers.set('x-company-id', decodedNew.companyId);
-              response.headers.set('x-user-role', decodedNew.role);
-              response.headers.set('x-role-id', decodedNew.roleId);
-              response.headers.set('x-session-id', decodedNew.sessionId);
-              response.headers.set('x-allowed-warehouses', JSON.stringify(decodedNew.allowedWarehouses || []));
-            }
 
             return response;
           }

@@ -10,6 +10,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Colas BullMQ & Redis**: Transmisión asíncrona de e-CF a los servidores web de la DGII.
 - **Refactorización Modular de Invoicing (`InvoiceService`)**: Desacoplamiento de la lógica de facturación electrónica en submódulos especializados (Calculator, Validator, Submitter, DB Booker, File Generator) bajo `/src/services/invoice/`, facilitando pruebas unitarias sobre cálculos fiscales aislados y aislando fallos de comunicación de red de las transacciones SQL de persistencia.
 - **Sistema de Logging Profesional (JSON)**: Implementación de intercepción global en `src/instrumentation.ts` para capturar llamadas de `console.log/warn/error` y formatearlas automáticamente en JSON estructurado (con timestamp, nivel, mensaje y contexto) en entornos de producción, serializando de manera robusta pilas de errores y objetos.
+- **Corrección de Refresco de Sesiones (Desincronización de Cookies)**: Modificada la lógica de rotación de tokens en `src/proxy.ts` para inyectar y propagar las cabeceras enriquecidas de identidad (`x-user-id`, `x-company-id`, etc.) directamente en la solicitud downstream (`NextRequest.headers`) cuando el refresco tiene éxito. Esto evita la doble rotación redundante en los controladores API que conllevaba a la desincronización de cookies y desconexiones inesperadas del usuario.
 
 ### 2. Base de Datos & Capa de Acceso (Repositories)
 - **Tenancy Isolation**: Aislamiento estricto de datos mediante `company_id`.
