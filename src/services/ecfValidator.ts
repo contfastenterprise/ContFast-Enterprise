@@ -8,9 +8,8 @@
  *  4. Sequence expiry     — Validated ONLY when sequenceExpiry was supplied by DGII (non-null).
  */
 
-import { db, ecfSequences } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
-import { desc } from 'drizzle-orm';
+import { db, ecfSequences, subscriptions, plans, invoices } from '@/db';
+import { eq, and, isNull, desc, count, gte, lte } from 'drizzle-orm';
 import { DGIIService } from '@/services/dgii/rncLookup';
 
 // ─── Result Types ─────────────────────────────────────────────────────────────
@@ -21,7 +20,7 @@ export interface EcfValidationResult {
 }
 
 export interface EcfValidationError {
-  code: 'CONTRIBUTOR_INACTIVE' | 'NO_ACTIVE_SEQUENCE' | 'SEQUENCE_EXHAUSTED' | 'SEQUENCE_EXPIRED' | 'DGII_LOOKUP_FAILED';
+  code: 'CONTRIBUTOR_INACTIVE' | 'NO_ACTIVE_SEQUENCE' | 'SEQUENCE_EXHAUSTED' | 'SEQUENCE_EXPIRED' | 'DGII_LOOKUP_FAILED' | 'NO_ACTIVE_SUBSCRIPTION' | 'SUBSCRIPTION_LIMIT_EXCEEDED';
   message: string;
 }
 
@@ -147,6 +146,53 @@ export class EcfValidator {
   }
 
   /**
+   * 5. Verify SaaS subscription active status and monthly e-CF emission limits.
+   */
+  static async validateSubscription(companyId: string): Promise<EcfValidationError | null> {
+    const [sub] = await db
+      .select({
+        status: subscriptions.status,
+        currentPeriodStart: subscriptions.currentPeriodStart,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        maxEcfLimit: plans.maxEcfLimit,
+      })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
+      .limit(1);
+
+    if (!sub) {
+      return {
+        code: 'NO_ACTIVE_SUBSCRIPTION',
+        message: 'La empresa no cuenta con una suscripción SaaS activa. Active un plan para poder emitir comprobantes e-CF.'
+      };
+    }
+
+    if (sub.maxEcfLimit !== -1) {
+      const [usage] = await db
+        .select({ count: count() })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            gte(invoices.createdAt, sub.currentPeriodStart),
+            lte(invoices.createdAt, sub.currentPeriodEnd)
+          )
+        );
+
+      const currentCount = Number(usage?.count || 0);
+      if (currentCount >= sub.maxEcfLimit) {
+        return {
+          code: 'SUBSCRIPTION_LIMIT_EXCEEDED',
+          message: `Límite de plan excedido. Ha emitido ${currentCount} de sus ${sub.maxEcfLimit} comprobantes e-CF autorizados para este período.`
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Master validation: runs all checks in order and returns a consolidated result.
    * Call this BEFORE opening the DB transaction in invoiceService.
    *
@@ -162,6 +208,14 @@ export class EcfValidator {
     strictRncLookup = false
   ): Promise<EcfValidationResult> {
     const errors: EcfValidationError[] = [];
+
+    // 0. SaaS Subscription check
+    const subError = await EcfValidator.validateSubscription(companyId);
+    if (subError) {
+      errors.push(subError);
+      // If no subscription, we block immediately
+      return { valid: false, errors };
+    }
 
     // 1. Contributor status
     const rncError = await EcfValidator.validateContributorStatus(companyRnc, strictRncLookup);

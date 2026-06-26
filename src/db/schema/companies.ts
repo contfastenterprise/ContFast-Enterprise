@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex, integer } from 'drizzle-orm/pg-core';
 
 export const companies = pgTable('companies', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -37,4 +37,30 @@ export const companySettings = pgTable('company_settings', {
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('company_settings_company_idx').on(table.companyId),
+}));
+
+export const plans = pgTable('plans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  price: decimal('price', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  maxEcfLimit: integer('max_ecf_limit').default(100).notNull(), // Maximum e-CFs per month (-1 for unlimited)
+  maxUsers: integer('max_users').default(5).notNull(), // Maximum users (-1 for unlimited)
+  maxWarehouses: integer('max_warehouses').default(1).notNull(), // Maximum warehouses
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  planId: uuid('plan_id').notNull().references(() => plans.id),
+  status: varchar('status', { length: 50 }).default('active').notNull(), // active | past_due | canceled | trialing
+  currentPeriodStart: timestamp('current_period_start').notNull(),
+  currentPeriodEnd: timestamp('current_period_end').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('subscriptions_company_idx').on(table.companyId),
 }));
