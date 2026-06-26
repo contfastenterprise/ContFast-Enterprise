@@ -267,6 +267,10 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Consultas Contables y Reportes**: Implementación de algoritmos y consultas de alto rendimiento en el repositorio unificado de contabilidad para generar el Libro Diario General con filtros por rango de fecha, Libro Mayor General con saldos acumulados iniciales, y la Balanza de Comprobación estructurada jerárquicamente, así como el Balance General y Estado de Resultados adaptados al huso horario de República Dominicana.
 - **Interfaz Multi-pestaña Premium**: Rediseño completo de la interfaz de contabilidad en `/dashboard/accounting/page.tsx` en una vista unificada por pestañas (Catálogo, Asientos Diario, Libro Mayor, Balanza de Comprobación, Estados Financieros, Períodos Contables y Configuración Puente) con soporte para colapsar/expandir líneas de partida doble en asientos, búsqueda por rango de fechas, botones premium para impresión del catálogo en formato formal, control de estados de periodos y edición fluida de las cuentas puente.
 
+### 43. Visualización del Plan y Límites de Suscripción en Ajustes
+- **Visualización de Ajustes**: Se introdujo una sección premium "Plan y Suscripción" en la página de ajustes de la empresa (`/dashboard/settings`), visible para los roles de administración (`administracion` o `sistemas`). Muestra los límites operativos contratados (e-CF por mes, usuarios y almacenes permitidos) y la fecha de expiración del plan asignado.
+- **Verificación**: Compilación de TypeScript y build de producción verificados y exitosos.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
