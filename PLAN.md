@@ -245,9 +245,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Soporte de Refresh Token Headers:** Se adaptaron todos los endpoints modificados para propagar y retornar correctamente las cabeceras actualizadas de cookies (`resHeaders`) generadas por el middleware.
 
 ### 39. Capa de Caching Layer con Redis en Catálogos Operativos
-- **Optimización de Consultas:** Se implementó almacenamiento en caché de Redis para acelerar la recuperación de catálogos contables (`GET /api/v1/accounting/accounts`) e inventarios (`GET /api/v1/products`), disminuyendo drásticamente la carga sobre PostgreSQL.
+- **Optimización de Consultas:** Se implementó almacenamiento en caché de Redis para acelerar la recuperación de catálogos contables (`GET /api/v1/accounting/accounts`), de inventarios (`GET /api/v1/products`), y de clientes (`GET /api/v1/customers` y `GET /api/v1/customers/[id]`), disminuyendo drásticamente la carga sobre PostgreSQL.
 - **Barrido No Bloqueante en Redis (SCAN):** Se reemplazó el uso del comando bloqueante `redis.keys` por un bucle iterativo no bloqueante basado en `redis.scan` con cursores para limpiar patrones de claves en `clearCachePattern` de forma segura.
-- **Invalidación Reactiva de Caché:** Se configuró el vaciado selectivo de las claves cacheables por empresa (`cache:products:${companyId}:*` y `cache:accounts:${companyId}*`) inmediatamente tras registrar modificaciones mediante operaciones de escritura (`POST`, `PUT`, `DELETE`).
+- **Invalidación Reactiva de Caché:** Se configuró el vaciado selectivo de las claves cacheables por empresa (`cache:products:${companyId}:*`, `cache:accounts:${companyId}:*`, y `cache:customers:${companyId}:*`) inmediatamente tras registrar modificaciones mediante operaciones de escritura (`POST`, `PUT`, `DELETE`).
 
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

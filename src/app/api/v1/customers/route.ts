@@ -5,6 +5,7 @@ import { CustomerRepository } from '@/repositories/customerRepository';
 import { enforcePermission } from '@/middleware/permissions';
 import { z } from 'zod';
 import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
+import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 
 const createCustomerSchema = z.object({
   rncCedula: z.string().min(9, 'El RNC o Cédula es muy corto').max(15, 'El RNC o Cédula es muy largo').optional().or(z.literal('')),
@@ -39,9 +40,14 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const result = await CustomerRepository.findAll(session.companyId, search, limit, offset);
+    const cacheKey = `cache:customers:${session.companyId}:limit_${limit}_offset_${offset}_search_${search || ''}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached), { headers: resHeaders });
+    }
 
-    return NextResponse.json({
+    const result = await CustomerRepository.findAll(session.companyId, search, limit, offset);
+    const responseData = {
       success: true,
       data: result.data,
       meta: {
@@ -49,7 +55,11 @@ export async function GET(req: NextRequest) {
         limit,
         offset
       }
-    }, { headers: resHeaders });
+    };
+
+    await setCache(cacheKey, JSON.stringify(responseData), 3600);
+
+    return NextResponse.json(responseData, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching customers:', error);
     const status = error.status || 500;
@@ -94,6 +104,9 @@ export async function POST(req: NextRequest) {
       companyId: session.companyId,
       rncCedula: parsed.data.rncCedula || '',
     });
+
+    // Invalidate customer cache for this company
+    await clearCachePattern(`cache:customers:${session.companyId}:*`);
 
     // Asynchronously synchronize to Google Contacts in the background
     syncCustomerToGoogleContacts({

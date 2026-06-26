@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { CustomerRepository } from '@/repositories/customerRepository';
 import { z } from 'zod';
 import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
+import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 
 const updateCustomerSchema = z.object({
   rncCedula: z.string().min(9).max(15).optional(),
@@ -35,12 +36,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
 
     await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'read');
 
+    const cacheKey = `cache:customers:${session.companyId}:id_${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return NextResponse.json(JSON.parse(cached), { headers: resHeaders });
+    }
+
     const customer = await CustomerRepository.findById(id, session.companyId);
     if (!customer) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Cliente no encontrado' } }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: customer }, { headers: resHeaders });
+    const responseData = { success: true, data: customer };
+    await setCache(cacheKey, JSON.stringify(responseData), 3600);
+
+    return NextResponse.json(responseData, { headers: resHeaders });
   } catch (error: any) {
     console.error('Error fetching customer:', error);
     const status = error.status || 500;
@@ -86,6 +96,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Cliente no encontrado' } }, { status: 404 });
     }
 
+    // Invalidate customer cache for this company
+    await clearCachePattern(`cache:customers:${session.companyId}:*`);
+
     // Asynchronously synchronize to Google Contacts in the background
     syncCustomerToGoogleContacts({
       name: updated.name,
@@ -130,6 +143,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     if (!deleted) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Cliente no encontrado' } }, { status: 404 });
     }
+
+    // Invalidate customer cache for this company
+    await clearCachePattern(`cache:customers:${session.companyId}:*`);
 
     return NextResponse.json({ success: true, message: 'Cliente eliminado correctamente' }, { headers: resHeaders });
   } catch (error: any) {
