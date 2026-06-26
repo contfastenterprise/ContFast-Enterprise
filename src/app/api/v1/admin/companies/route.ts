@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { db, companies, companySettings, roles, chartOfAccounts, payrollConfigs, permissions, rolePermissions } from '@/db';
-import { DEFAULT_ROLE_PERMISSIONS } from '@/middleware/permissions';
+import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { z } from 'zod';
 import { desc, eq } from 'drizzle-orm';
@@ -221,63 +221,8 @@ export async function POST(req: NextRequest) {
         .values(allPermissionsToUpsert)
         .onConflictDoNothing();
 
-      // Retrieve all permissions to obtain their database IDs
-      const dbPermissions = await tx.select({
-        id: permissions.id,
-        module: permissions.module,
-        action: permissions.action,
-      }).from(permissions);
-
-      // Prepare role_permissions mappings
-      const rolePermissionsToInsert: {
-        companyId: string;
-        roleId: string;
-        permissionId: string;
-        granted: boolean;
-      }[] = [];
-
-      // Helper function to evaluate default permission matrix
-      const isPermissionGranted = (roleName: string, module: string, action: string): boolean => {
-        const normalizedRole = roleName.toLowerCase();
-        
-        // Sistemas has full access
-        if (normalizedRole === 'sistemas') {
-          return true;
-        }
-        
-        // Administracion has full access except audit and administration modules where it only gets read
-        if (normalizedRole === 'administracion') {
-          if (module === 'auditoria' || module === 'administracion') {
-            return action === 'read';
-          }
-          return true;
-        }
-
-        // Other roles are mapped using DEFAULT_ROLE_PERMISSIONS
-        const defaultPerms = DEFAULT_ROLE_PERMISSIONS[normalizedRole];
-        if (defaultPerms) {
-          return !!defaultPerms[`${module}:${action}`];
-        }
-
-        return false;
-      };
-
-      for (const role of insertedRoles) {
-        for (const p of dbPermissions) {
-          const granted = isPermissionGranted(role.name, p.module, p.action);
-          rolePermissionsToInsert.push({
-            companyId: newComp.id,
-            roleId: role.id,
-            permissionId: p.id,
-            granted,
-          });
-        }
-      }
-
-      // Bulk insert role permissions
-      if (rolePermissionsToInsert.length > 0) {
-        await tx.insert(rolePermissions).values(rolePermissionsToInsert);
-      }
+      // 7. Seed default role permissions dynamically
+      await seedRolePermissionsForCompany(tx, newComp.id, insertedRoles);
 
       return newComp;
     });

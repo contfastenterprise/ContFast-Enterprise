@@ -5,6 +5,7 @@ import { db, users, roles, companies, auditLogs } from '@/db';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { eq, and } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -77,14 +78,16 @@ export async function POST(req: NextRequest) {
 
     // If new company was created, generate all 6 standard roles
     if (isNewCompany) {
-      await db.insert(roles).values(
+      const insertedRoles = await db.insert(roles).values(
         DEFAULT_COMPANY_ROLES.map((role) => ({
           companyId,
           name: role.name,
           description: role.description,
           isFixed: role.isFixed,
         }))
-      );
+      ).returning({ id: roles.id, name: roles.name });
+
+      await seedRolePermissionsForCompany(db, companyId, insertedRoles);
     }
 
     // Get the 'administracion' role for the new user

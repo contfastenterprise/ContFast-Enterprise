@@ -163,3 +163,53 @@ export function enforceAdminOrSistemas(roleName: string): void {
     throw err;
   }
 }
+
+/**
+ * Seeds the default role permissions for a newly created company in the database.
+ */
+export async function seedRolePermissionsForCompany(
+  tx: any,
+  companyId: string,
+  insertedRoles: { id: string; name: string }[]
+): Promise<void> {
+  const dbPermissions = await tx.select().from(permissions);
+  
+  const rolePermissionsToInsert: {
+    companyId: string;
+    roleId: string;
+    permissionId: string;
+    granted: boolean;
+  }[] = [];
+
+  const isPermissionGranted = (roleName: string, module: string, action: string): boolean => {
+    const normalizedRole = roleName.toLowerCase();
+    if (normalizedRole === 'sistemas') return true;
+    if (normalizedRole === 'administracion') {
+      if (module === 'auditoria' || module === 'administracion') {
+        return action === 'read';
+      }
+      return true;
+    }
+    const defaultPerms = DEFAULT_ROLE_PERMISSIONS[normalizedRole];
+    if (defaultPerms) {
+      return !!defaultPerms[`${module}:${action}`];
+    }
+    return false;
+  };
+
+  for (const role of insertedRoles) {
+    for (const p of dbPermissions) {
+      const granted = isPermissionGranted(role.name, p.module, p.action);
+      rolePermissionsToInsert.push({
+        companyId,
+        roleId: role.id,
+        permissionId: p.id,
+        granted,
+      });
+    }
+  }
+
+  if (rolePermissionsToInsert.length > 0) {
+    await tx.insert(rolePermissions).values(rolePermissionsToInsert);
+  }
+}

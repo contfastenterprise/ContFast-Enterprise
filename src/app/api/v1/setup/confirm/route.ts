@@ -5,6 +5,7 @@ import { db, companies, companySettings, roles, users, permissions, auditLogs } 
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { encrypt, encryptBuffer } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
+import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { count, and, eq } from 'drizzle-orm';
 
 const confirmSchema = z.object({
@@ -139,6 +140,9 @@ export async function POST(req: NextRequest) {
           }))
         )
         .returning({ id: roles.id, name: roles.name });
+
+      // Seed permissions for these roles!
+      await seedRolePermissionsForCompany(tx, newCompany.id, insertedRoles);
 
       // The initial user is assigned to the 'sistemas' role
       const roleSistemas = insertedRoles.find((r) => r.name === 'sistemas')!;
