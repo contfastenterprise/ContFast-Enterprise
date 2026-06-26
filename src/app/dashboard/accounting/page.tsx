@@ -788,6 +788,52 @@ export default function AccountingPage() {
                 </div>
               </div>
 
+              {/* RESUMEN DE BALANCE DE COMPROBACIÓN */}
+              {!loading && trialBalanceData.length > 0 && (() => {
+                const transactional = trialBalanceData.filter(r => r.isTransactional);
+                const totalDebits = transactional.reduce((sum, r) => sum + r.debit, 0);
+                const totalCredits = transactional.reduce((sum, r) => sum + r.credit, 0);
+                const difference = Math.abs(totalDebits - totalCredits);
+                const isBalanced = difference < 0.01;
+
+                return (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex gap-8">
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Débitos</p>
+                        <p className="text-lg font-mono font-bold text-emerald-600">{fmt(totalDebits)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Créditos</p>
+                        <p className="text-lg font-mono font-bold text-rose-600">{fmt(totalCredits)}</p>
+                      </div>
+                      {difference > 0.01 && (
+                        <div>
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Diferencia</p>
+                          <p className="text-lg font-mono font-bold text-amber-600">{fmt(difference)}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className={clsx(
+                      "px-4 py-2.5 rounded-xl border font-bold text-sm flex items-center gap-2",
+                      isBalanced 
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                        : "bg-rose-50 border-rose-200 text-rose-800"
+                    )}>
+                      {isBalanced ? (
+                        <>
+                          <FileCheck className="w-5 h-5" /> Balance Cuadrado
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-5 h-5 animate-pulse" /> Balance Descuadrado
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {loading ? (
                 <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
               ) : (
