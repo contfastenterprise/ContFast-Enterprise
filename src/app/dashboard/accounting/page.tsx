@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -109,6 +109,106 @@ export default function AccountingPage() {
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  const handlePrintCatalog = async () => {
+    const toastId = toast.loading('Preparando plantilla de impresión del catálogo...');
+    try {
+      const res = await fetch('/api/v1/company/settings');
+      const settingsData = await res.json();
+      const company = settingsData.data || {};
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const logoHtml = company.logoUrl 
+        ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
+        : '';
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'ContFast'}</div>`;
+
+      const htmlContent = `
+        <html>
+          <head>
+            <title>Catálogo de Cuentas - ${company.companyName || 'ContFast'}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 12px; }
+              .header { display: flex; justify-content: flex-start; align-items: center; gap: 20px; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
+              .company-info { font-size: 11px; color: #555; line-height: 1.4; flex-grow: 1; }
+              .doc-info { text-align: right; }
+              .subtitle { font-size: 16pt; color: #003366; font-weight: bold; margin-bottom: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { padding: 8px 10px; font-size: 11px; text-align: left; border-bottom: 1px solid #ddd; }
+              th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+              tr.level-1 { background-color: #f1f5f9; font-weight: bold; }
+              tr.level-2 { font-weight: bold; }
+              .indent-1 { padding-left: 10px; }
+              .indent-2 { padding-left: 20px; }
+              .indent-3 { padding-left: 30px; }
+              .indent-4 { padding-left: 40px; }
+              .text-center { text-align: center; }
+              .footer { margin-top: 50px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company-info">
+                ${logoHtml}
+                ${companyTitleHtml}
+                ${company.rnc ? `<div>RNC: ${company.rnc}</div>` : ''}
+                ${company.address ? `<div>${company.address}</div>` : ''}
+              </div>
+              <div class="doc-info">
+                <div class="subtitle">CATÁLOGO DE CUENTAS</div>
+                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Total Cuentas:</strong> ${accounts.length}</div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 150px;">Código</th>
+                  <th>Nombre de la Cuenta</th>
+                  <th style="width: 120px;">Tipo</th>
+                  <th style="width: 100px; text-align: center;">Nivel</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${accounts.map(acc => {
+                  const segments = acc.code.split('.');
+                  const level = segments.length;
+                  const indentClass = `indent-${Math.min(level - 1, 4)}`;
+                  const levelClass = level === 1 ? 'level-1' : level === 2 ? 'level-2' : '';
+                  return `
+                    <tr class="${levelClass}">
+                      <td style="font-family: monospace;">${acc.code}</td>
+                      <td class="${indentClass}">${acc.name}</td>
+                      <td>${typeLabels[acc.type] || acc.type}</td>
+                      <td class="text-center">${level}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+            <div class="footer">
+              Catálogo de Cuentas - Generado por ContFast Enterprise
+            </div>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      toast.success('Impresión del catálogo preparada con éxito', { id: toastId });
+    } catch (err) {
+      toast.error('Error al preparar impresión del catálogo', { id: toastId });
+    }
   };
 
   // --- Handlers ---
@@ -225,12 +325,20 @@ export default function AccountingPage() {
           </div>
           <div className="flex gap-3">
             {activeTab === 'catalog' ? (
-              <button
-                onClick={() => setShowAccountModal(true)}
-                className="bg-white border border-gray-200 hover:bg-gray-50 text-[#003366] font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
-              >
-                <Plus className="h-4 w-4" /> Nueva Cuenta
-              </button>
+              <>
+                <button
+                  onClick={handlePrintCatalog}
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Printer className="h-4 w-4 text-[#C5A059]" /> Imprimir Catálogo
+                </button>
+                <button
+                  onClick={() => setShowAccountModal(true)}
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-[#003366] font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                >
+                  <Plus className="h-4 w-4" /> Nueva Cuenta
+                </button>
+              </>
             ) : null}
             <button
               onClick={() => setShowJournalModal(true)}
