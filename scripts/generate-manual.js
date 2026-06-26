@@ -855,6 +855,14 @@ const htmlContent = `
     <h3 class="subsection-title">Edición de Secuencias SACF (Exclusivo Sistemas)</h3>
     <p>Navegue a <em>Configuración de e-CF</em> > pestaña <em>Secuencias SACF</em>. Si su usuario cuenta con el rol de 'sistemas', visualizará el botón de edición para actualizar el número de la secuencia actual, secuencia máxima y fecha de vencimiento otorgada por la DGII, asegurando que no se detenga la emisión de comprobantes autorizados.</p>
 
+    <h3 class="subsection-title">Visualización de Plan y Límites de Suscripción (Admin/Sistemas)</h3>
+    <p>Los usuarios con rol de <strong>Administración</strong> o <strong>Sistemas</strong> pueden visualizar de forma detallada el plan de suscripción contratado y los límites activos de su empresa. Para acceder, diríjase a <em>Ajustes del Sistema</em> en la sección <em>Plan y Suscripción</em>, o bien a <em>Permisos &amp; Administración</em> en la pestaña <em>Mi Suscripción</em>. El panel le mostrará:</p>
+    <ul>
+      <li><strong>Plan Contratado:</strong> Nombre del plan actual (ej: Plan Profesional, Plan Ilimitado) y su estado de validez (Activo).</li>
+      <li><strong>Límites Operacionales:</strong> Capacidad mensual máxima de comprobantes e-CF autorizados, cantidad límite de usuarios activos y almacenes permitidos.</li>
+      <li><strong>Vencimiento y Renovación:</strong> La fecha exacta en que finaliza o se renueva el ciclo actual de facturación de la empresa.</li>
+    </ul>
+
     <h3 class="subsection-title">Mecanismo Auto-Curativo de Contingencias (Redis Offline)</h3>
     <p>La facturación electrónica no debe detenerse ante fallos de infraestructura. Por esta razón, el sistema incorpora un motor resiliente en segundo plano:</p>
     <div class="alert-box success">
