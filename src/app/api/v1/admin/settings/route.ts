@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
+import { delCache } from '@/infrastructure/redis';
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -204,6 +205,12 @@ export async function PATCH(req: NextRequest) {
         .set(settingsUpdate)
         .where(eq(companySettings.companyId, session.companyId));
     });
+
+    try {
+      await delCache(`company_settings:${session.companyId}`);
+    } catch (e) {
+      console.error('Failed to invalidate settings cache:', e);
+    }
 
     return NextResponse.json({ success: true, message: 'Configuración actualizada' });
   } catch (err: any) {

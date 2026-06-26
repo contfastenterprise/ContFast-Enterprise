@@ -1,16 +1,35 @@
 import { db, companies, companySettings, ecfSequences } from '@/db';
 import { eq, and, isNull, sql, desc } from 'drizzle-orm';
+import { getCache, setCache } from '@/infrastructure/redis';
 
 export class CompanyRepository {
   /**
-   * Fetches settings for a company.
+   * Fetches settings for a company (with Redis caching).
    */
   static async getSettings(companyId: string) {
+    const cacheKey = `company_settings:${companyId}`;
+    try {
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.error('Failed to get settings cache:', e);
+    }
+
     const [settings] = await db
       .select()
       .from(companySettings)
       .where(and(eq(companySettings.companyId, companyId), isNull(companySettings.deletedAt)))
       .limit(1);
+
+    if (settings) {
+      try {
+        await setCache(cacheKey, JSON.stringify(settings), 86400); // Cache for 24 hours
+      } catch (e) {
+        console.error('Failed to set settings cache:', e);
+      }
+    }
     return settings;
   }
 

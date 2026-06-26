@@ -34,26 +34,27 @@ export async function GET(req: NextRequest) {
       .where(and(eq(ecfSequences.companyId, auth.companyId), isNull(ecfSequences.deletedAt)))
       .orderBy(ecfSequences.ecfType);
 
-    // For each sequence, count how many invoices used it
-    const result = await Promise.all(
-      sequences.map(async (seq) => {
-        const [usage] = await db
-          .select({ usedCount: count() })
-          .from(invoices)
-          .where(
-            and(
-              eq(invoices.companyId, auth.companyId),
-              eq(invoices.ecfType, seq.ecfType),
-              isNull(invoices.deletedAt)
-            )
-          );
-
-        return {
-          ...seq,
-          usedCount: Number(usage?.usedCount || 0),
-        };
+    // Get the invoice usage count for all sequence types in a single grouped query
+    const usages = await db
+      .select({
+        ecfType: invoices.ecfType,
+        usedCount: count(),
       })
-    );
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, auth.companyId),
+          isNull(invoices.deletedAt)
+        )
+      )
+      .groupBy(invoices.ecfType);
+
+    const usagesMap = new Map(usages.map(u => [u.ecfType, Number(u.usedCount)]));
+
+    const result = sequences.map((seq) => ({
+      ...seq,
+      usedCount: usagesMap.get(seq.ecfType) || 0,
+    }));
 
     return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
   } catch (error: any) {

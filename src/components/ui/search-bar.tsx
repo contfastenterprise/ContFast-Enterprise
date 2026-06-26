@@ -85,12 +85,6 @@ const SearchBar = ({
     }
   }
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (isFocused) {
-      const rect = e.currentTarget.getBoundingClientRect()
-      setMousePosition({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-    }
-  }
 
   const handleClick = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -183,7 +177,6 @@ const SearchBar = ({
         className="relative flex items-center justify-center w-full mx-auto"
         animate={{ scale: isFocused ? 1.02 : 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}
-        onMouseMove={handleMouseMove}
       >
         <motion.div
           className={cn(
