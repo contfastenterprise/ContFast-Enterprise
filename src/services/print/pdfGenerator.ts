@@ -74,9 +74,70 @@ export class PdfGenerator {
    */
   static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm', landscape: boolean = false): Promise<Buffer> {
     const pdfServiceUrl = process.env.PDF_SERVICE_URL;
+    const generatorMode = process.env.PDF_GENERATOR_MODE || 'local';
+
+    if (generatorMode === 'external') {
+      if (!pdfServiceUrl) {
+        throw new Error('[PdfGenerator] PDF_GENERATOR_MODE is set to "external" but PDF_SERVICE_URL is not defined.');
+      }
+
+      console.log(`[PdfGenerator] Routing PDF generation to external service: ${pdfServiceUrl}`);
+      const formData = new FormData();
+      // Convert html string to Blob and append to Gotenberg required "files" key
+      const htmlBlob = new Blob([html], { type: 'text/html' });
+      formData.append('files', htmlBlob, 'index.html');
+
+      // Configure layout and page sizes (Gotenberg expects dimensions in inches by default)
+      if (layout === 'carta') {
+        formData.append('paperWidth', '8.5');
+        formData.append('paperHeight', '11');
+        formData.append('marginTop', '0.39'); // ~10mm
+        formData.append('marginBottom', '0.39');
+        formData.append('marginLeft', '0.39');
+        formData.append('marginRight', '0.39');
+        if (landscape) {
+          formData.append('landscape', 'true');
+        }
+      } else {
+        // Cash session receipts rolls (80mm / 58mm)
+        const width = layout === '80mm' ? '3.15' : '2.28';
+        formData.append('paperWidth', width);
+        formData.append('paperHeight', '15'); // 15 inches standard height limit
+        formData.append('marginTop', '0');
+        formData.append('marginBottom', '0');
+        formData.append('marginLeft', '0.08');
+        formData.append('marginRight', '0.08');
+        formData.append('singlePage', 'true'); // force single page continuous height
+      }
+
+      const endpoint = `${pdfServiceUrl.replace(/\/$/, '')}/forms/chromium/convert/html`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`External PDF API returned status ${response.status}: ${await response.text()}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        throw new Error(`[PdfGenerator] External PDF service failed: ${err.message}`);
+      }
+    }
 
     if (pdfServiceUrl) {
-      console.log(`[PdfGenerator] Routing PDF generation to external service: ${pdfServiceUrl}`);
+      console.log(`[PdfGenerator] Routing PDF generation to external service (local fallback enabled): ${pdfServiceUrl}`);
       try {
         const formData = new FormData();
         // Convert html string to Blob and append to Gotenberg required "files" key
