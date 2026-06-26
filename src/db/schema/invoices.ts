@@ -240,7 +240,9 @@ export const retentions = pgTable('retentions', {
   active: boolean('active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+}, (table) => ({
+  companyActiveIdx: index('retentions_company_active_idx').on(table.companyId, table.active),
+}));
 
 export const invoiceRetentions = pgTable('invoice_retentions', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -250,6 +250,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Barrido No Bloqueante en Redis (SCAN):** Se reemplazó el uso del comando bloqueante `redis.keys` por un bucle iterativo no bloqueante basado en `redis.scan` con cursores para limpiar patrones de claves en `clearCachePattern` de forma segura.
 - **Invalidación Reactiva de Caché:** Se configuró el vaciado selectivo de las claves cacheables por empresa (`cache:products:${companyId}:*`, `cache:accounts:${companyId}:*`, y `cache:customers:${companyId}:*`) inmediatamente tras registrar modificaciones mediante operaciones de escritura (`POST`, `PUT`, `DELETE`).
 
+### 40. Auditoría y Optimización de la Base de Datos
+- **Índices Críticos Faltantes**: Se agregaron dos índices clave a la base de datos para mejorar el rendimiento en entornos SaaS multitenant de alta concurrencia:
+  - `retentions_company_active_idx` en la tabla `retentions` (columnas `company_id` y `active`).
+  - `journal_entry_lines_acc_created_idx` en la tabla `journal_entry_lines` (columnas `account_id` y `created_at`).
+- **Migración y Sincronización**: Se generó el script de migración SQL correspondiente con Drizzle Kit (`0017_breezy_wolfpack.sql`) y se sincronizó el esquema directamente en la base de datos de producción mediante `drizzle-kit push` de forma exitosa.
+- **Validación**: Se verificó la compilación de tipos de TypeScript y se completó con éxito el build de producción.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

@@ -52,6 +52,7 @@ export const journalEntryLines = pgTable('journal_entry_lines', {
   accountIdx: index('journal_lines_account_idx').on(table.accountId),
   companyIdx: index('journal_entry_lines_company_idx').on(table.companyId),
   companyAccountIdx: index('journal_entry_lines_comp_acc_idx').on(table.companyId, table.accountId),
+  accCreatedIdx: index('journal_entry_lines_acc_created_idx').on(table.accountId, table.createdAt),
 }));
 
 export const accountsReceivable = pgTable('accounts_receivable', {

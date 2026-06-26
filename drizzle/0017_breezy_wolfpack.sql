@@ -1,0 +1,2 @@
+CREATE INDEX "retentions_company_active_idx" ON "retentions" USING btree ("company_id","active");--> statement-breakpoint
+CREATE INDEX "journal_entry_lines_acc_created_idx" ON "journal_entry_lines" USING btree ("account_id","created_at");

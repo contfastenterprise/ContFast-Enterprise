@@ -113,6 +113,20 @@
       "when": 1782435879830,
       "tag": "0015_premium_boomer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1782441567318,
+      "tag": "0016_handy_klaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782444887858,
+      "tag": "0017_breezy_wolfpack",
+      "breakpoints": true
     }
   ]
 }
