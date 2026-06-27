@@ -66,8 +66,83 @@ async function verifyHS256(token: string, secret: string): Promise<any | null> {
   }
 }
 
+const STATIC_ROUTE_MAPPINGS = [
+  { pattern: /^\/dashboard\/accounting/, module: 'contabilidad', action: 'read' },
+  { pattern: /^\/api\/v1\/accounting/, module: 'contabilidad', action: null },
+  { pattern: /^\/dashboard\/invoices/, module: 'facturacion', action: 'read' },
+  { pattern: /^\/api\/v1\/invoices/, module: 'facturacion', action: null },
+  { pattern: /^\/dashboard\/adjustments/, module: 'facturacion', action: 'read' },
+  { pattern: /^\/api\/v1\/adjustments/, module: 'facturacion', action: null },
+  { pattern: /^\/dashboard\/cash/, module: 'caja', action: 'read' },
+  { pattern: /^\/api\/v1\/cash/, module: 'caja', action: null },
+  { pattern: /^\/dashboard\/bank/, module: 'banco', action: 'read' },
+  { pattern: /^\/api\/v1\/bank/, module: 'banco', action: null },
+  { pattern: /^\/dashboard\/customers/, module: 'clientes', action: 'read' },
+  { pattern: /^\/api\/v1\/customers/, module: 'clientes', action: null },
+  { pattern: /^\/dashboard\/suppliers/, module: 'proveedores', action: 'read' },
+  { pattern: /^\/api\/v1\/suppliers/, module: 'proveedores', action: null },
+  { pattern: /^\/dashboard\/products/, module: 'catalogo', action: 'read' },
+  { pattern: /^\/api\/v1\/products/, module: 'catalogo', action: null },
+  { pattern: /^\/dashboard\/inventory/, module: 'catalogo', action: 'read' },
+  { pattern: /^\/api\/v1\/categories/, module: 'catalogo', action: null },
+  { pattern: /^\/api\/v1\/inventory/, module: 'catalogo', action: null },
+  { pattern: /^\/dashboard\/reports/, module: 'reportes', action: 'read' },
+  { pattern: /^\/api\/v1\/reports/, module: 'reportes', action: null },
+  { pattern: /^\/dashboard\/admin/, module: 'administracion', action: 'read' },
+  { pattern: /^\/api\/v1\/admin/, module: 'administracion', action: null },
+  { pattern: /^\/dashboard\/settings/, module: 'administracion', action: 'read' },
+  { pattern: /^\/api\/v1\/company\/settings/, module: 'administracion', action: null },
+  { pattern: /^\/dashboard\/hr/, module: 'nomina', action: 'read' },
+  { pattern: /^\/api\/v1\/hr/, module: 'nomina', action: null },
+  { pattern: /^\/dashboard\/retentions/, module: 'retenciones', action: 'read' },
+  { pattern: /^\/api\/v1\/retentions/, module: 'retenciones', action: null },
+  { pattern: /^\/dashboard\/delivery-notes/, module: 'conduce', action: 'read' },
+  { pattern: /^\/api\/v1\/delivery-notes/, module: 'conduce', action: null },
+];
+
+function checkRbacPermission(pathname: string, method: string, decoded: any): boolean {
+  const userPermissions: string[] = decoded.permissions || [];
+  const userRole = (decoded.role || '').toLowerCase();
+
+  const isSistemas = userRole.includes('sistema');
+  const isAdmin = userRole.includes('admin');
+
+  // Si es sistemas, tiene acceso total a todo
+  if (isSistemas) return true;
+
+  for (const mapping of STATIC_ROUTE_MAPPINGS) {
+    if (mapping.pattern.test(pathname)) {
+      const module = mapping.module;
+      let action: string;
+
+      if (mapping.action) {
+        action = mapping.action;
+      } else {
+        action = method === 'GET' ? 'read' : 'write';
+      }
+
+      const requiredPermission = `${module}:${action}`;
+
+      // Admin has full operational access except write/delete on auditoria & administracion
+      if (isAdmin) {
+        if (module === 'auditoria' || module === 'administracion') {
+          return action === 'read';
+        }
+        return true;
+      }
+
+      // Para los demás roles, comprobar la lista de permisos del JWT
+      return userPermissions.includes(requiredPermission);
+    }
+  }
+
+  // Si no coincide con ninguna regla estática del proxy, permitir acceso por defecto
+  return true;
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const method = req.method;
 
   // 1. Exclude public assets, static files and internal Next.js paths
   if (
@@ -112,6 +187,18 @@ export async function proxy(req: NextRequest) {
     if (accessToken) {
       const decoded = await verifyHS256(accessToken, JWT_SECRET);
       if (decoded) {
+        // Enforce RBAC permissions check
+        const isAllowed = checkRbacPermission(pathname, method, decoded);
+        if (!isAllowed) {
+          if (pathname.startsWith('/api/v1')) {
+            return NextResponse.json(
+              { success: false, error: { code: 'FORBIDDEN', message: 'Acceso denegado.' } },
+              { status: 403 }
+            );
+          }
+          return NextResponse.redirect(new URL('/403', req.url));
+        }
+
         // Clone request headers to inject security context parameters
         const requestHeaders = new Headers(req.headers);
         requestHeaders.set('x-user-id', decoded.userId);
@@ -120,6 +207,7 @@ export async function proxy(req: NextRequest) {
         requestHeaders.set('x-role-id', decoded.roleId);
         requestHeaders.set('x-session-id', decoded.sessionId);
         requestHeaders.set('x-allowed-warehouses', JSON.stringify(decoded.allowedWarehouses || []));
+        requestHeaders.set('x-user-permissions', JSON.stringify(decoded.permissions || []));
 
         return NextResponse.next({
           request: {
@@ -168,12 +256,25 @@ export async function proxy(req: NextRequest) {
             // Set request headers for downstream controllers
             const requestHeaders = new Headers(req.headers);
             if (decodedNew) {
+              // Enforce RBAC permissions check on rotated token
+              const isAllowed = checkRbacPermission(pathname, method, decodedNew);
+              if (!isAllowed) {
+                if (pathname.startsWith('/api/v1')) {
+                  return NextResponse.json(
+                    { success: false, error: { code: 'FORBIDDEN', message: 'Acceso denegado.' } },
+                    { status: 403 }
+                  );
+                }
+                return NextResponse.redirect(new URL('/403', req.url));
+              }
+
               requestHeaders.set('x-user-id', decodedNew.userId);
               requestHeaders.set('x-company-id', decodedNew.companyId);
               requestHeaders.set('x-user-role', decodedNew.role);
               requestHeaders.set('x-role-id', decodedNew.roleId);
               requestHeaders.set('x-session-id', decodedNew.sessionId);
               requestHeaders.set('x-allowed-warehouses', JSON.stringify(decodedNew.allowedWarehouses || []));
+              requestHeaders.set('x-user-permissions', JSON.stringify(decodedNew.permissions || []));
             }
 
             // Construct response with request headers overridden to propagate context downstream
