@@ -661,7 +661,7 @@ export default function AdminPage() {
 
                   {/* Right Column: Avatar Uploader */}
                   <div className="flex flex-col items-center justify-center">
-                    <label className="text-sm font-semibold text-primary block self-start mb-2">Foto de Perfil (Local)</label>
+                    <label className="text-sm font-semibold text-primary block self-center mb-2">Foto de Perfil (Local)</label>
                     <AvatarUploader
                       currentAvatarUrl={userForm.avatarUrl}
                       currentAvatarPath={userForm.avatarPath}
@@ -727,7 +727,7 @@ export default function AdminPage() {
 
                   {/* Right Column: Avatar Uploader */}
                   <div className="flex flex-col items-center justify-center">
-                    <label className="text-sm font-semibold text-primary block self-start mb-2">Foto de Perfil (Local)</label>
+                    <label className="text-sm font-semibold text-primary block self-center mb-2">Foto de Perfil (Local)</label>
                     <AvatarUploader
                       currentAvatarUrl={editUserForm.avatarUrl}
                       currentAvatarPath={editUserForm.avatarPath}
