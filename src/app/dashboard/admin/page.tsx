@@ -16,6 +16,8 @@ interface User {
   status: string;
   roleName: string;
   roleId?: string;
+  role_id?: string;
+  role_name?: string;
   avatarUrl?: string | null;
   avatarPath?: string | null;
 }
@@ -183,7 +185,7 @@ export default function AdminPage() {
       name: user.name,
       email: user.email,
       passwordRaw: '',
-      roleId: user.roleId || '',
+      roleId: user.roleId || user.role_id || '',
       avatarUrl: user.avatarUrl || '',
       avatarPath: user.avatarPath || ''
     });
