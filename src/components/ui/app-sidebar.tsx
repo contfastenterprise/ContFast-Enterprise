@@ -654,8 +654,8 @@ export default function AppSidebar({
         />
       )}
 
-      {/* ── Panel de Diagnostico RBAC (Siempre visible para depuracion) ── */}
-      {rbacUser && (
+      {/* ── Panel de Diagnostico RBAC (Visible solo para sistemas) ── */}
+      {rbacUser?.role === 'sistemas' && (
         <div className="fixed bottom-4 right-4 z-[9999] bg-slate-950/95 backdrop-blur border border-indigo-500/50 shadow-2xl p-4 rounded-xl max-w-xs text-[11px] font-mono text-slate-200">
           <div className="font-bold text-indigo-400 mb-1.5 flex justify-between items-center pb-1 border-b border-indigo-500/20">
             <span>Diagnostico RBAC</span>
