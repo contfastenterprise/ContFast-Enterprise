@@ -54,7 +54,24 @@ export function RbacProvider({
         if (mappingsRes.ok) {
           const mappingsData = await mappingsRes.json();
           if (mappingsData.success && mappingsData.data && mappingsData.data.length > 0) {
-            setRouteMappings(mappingsData.data);
+            // Check if there is at least one menu item, otherwise keep DEFAULT_ROUTE_MAPPINGS fallback
+            const hasMenuItems = mappingsData.data.some((m: any) => m.isMenuItem || m.is_menu_item);
+            if (hasMenuItems) {
+              const normalized = mappingsData.data.map((m: any) => ({
+                id: m.id,
+                routePattern: m.routePattern || m.route_pattern,
+                module: m.module,
+                action: m.action,
+                isMenuItem: m.isMenuItem !== undefined ? m.isMenuItem : (m.is_menu_item || false),
+                displayName: m.displayName || m.display_name,
+                groupName: m.groupName || m.group_name,
+                iconName: m.iconName || m.icon_name,
+                orderIndex: m.orderIndex !== undefined ? m.orderIndex : m.order_index,
+                createdAt: m.createdAt || m.created_at,
+                updatedAt: m.updatedAt || m.updated_at,
+              }));
+              setRouteMappings(normalized);
+            }
           }
         }
       } catch (mappingErr) {
@@ -82,14 +99,14 @@ export function RbacProvider({
 
   const hasPermission = (module: string, action: string): boolean => {
     if (!user) return false;
-    const userRole = (user.role || '').toLowerCase();
+    const userRole = (user.role || '').toLowerCase().trim();
     const permissionKey = `${module.toLowerCase()}:${action.toLowerCase()}`;
 
     // 1. Fixed roles: sistemas tiene acceso total
-    if (userRole.includes('sistema')) return true;
+    if (userRole.includes('sistema') || userRole === 'sistemas') return true;
 
     // 2. Administración tiene acceso a todo excepto auditoria/administracion que es solo lectura
-    if (userRole.includes('admin') || userRole === 'administracion') {
+    if (userRole.includes('admin') || userRole === 'administracion' || userRole.includes('administraci')) {
       if (module === 'auditoria' || module === 'administracion') {
         return action === 'read';
       }

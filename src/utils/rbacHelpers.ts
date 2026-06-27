@@ -97,7 +97,9 @@ export function buildSidebar(
   hasPermission: (module: string, action: string) => boolean,
   userRole: string
 ): SidebarGroup[] {
-  const cleanRole = userRole?.toLowerCase() || '';
+  const cleanRole = userRole?.toLowerCase().trim() || '';
+  const isSistemas = cleanRole === 'sistemas' || cleanRole.includes('sistema');
+  const isAdmin = cleanRole.includes('admin') || cleanRole.includes('administraci');
 
   // Debug log para auditar flujo de generación de sidebar
   console.log('[Sidebar Audit]: Generating dynamic menu for role:', cleanRole);
@@ -115,12 +117,7 @@ export function buildSidebar(
     const action = m.action || 'read';
     
     // Bypass inmediato para sistemas y administracion (acceso total a todas las vistas)
-    const isAllowed = cleanRole === 'sistemas' || 
-                      cleanRole.includes('sistema') || 
-                      cleanRole.includes('admin') || 
-                      cleanRole === 'administracion'
-                        ? true 
-                        : hasPermission(module, action);
+    const isAllowed = isSistemas || isAdmin ? true : hasPermission(module, action);
 
     if (!isAllowed) {
       console.log(`[Sidebar Audit]: module=${module} action=${action} NOT authorized for role=${cleanRole}`);
@@ -128,9 +125,7 @@ export function buildSidebar(
     }
 
     // Restricción admin/companies: solo sistemas y administracion tienen acceso
-    if (m.routePattern.includes('/admin/companies') &&
-        cleanRole !== 'sistemas' &&
-        !cleanRole.includes('admin')) {
+    if (m.routePattern.includes('/admin/companies') && !isSistemas && !isAdmin) {
       console.log(`[Sidebar Audit]: Path ${m.routePattern} restricted to sistemas/administracion.`);
       continue;
     }
