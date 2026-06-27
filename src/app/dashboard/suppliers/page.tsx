@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
-import { Truck, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, FileCheck, Printer } from 'lucide-react';
+import { Truck, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { SearchBar } from '@/components/ui/search-bar';
 
 interface Supplier {
   id: string;
@@ -25,8 +26,11 @@ export default function SuppliersPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [searchingDGII, setSearchingDGII] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+
+  // DGII State
+  const [searchingDGII, setSearchingDGII] = useState(false);
+  const [rncVerified, setRncVerified] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -106,7 +110,7 @@ export default function SuppliersPage() {
                 ${suppliers.map(s => `
                   <tr>
                     <td><strong>${s.name}</strong></td>
-                    <td class="font-mono">${s.rnc}</td>
+                    <td class="font-mono">${s.rnc || '-'}</td>
                     <td>${s.email || '-'}</td>
                     <td>${s.phone || '-'}</td>
                     <td>${s.address || '-'}</td>
@@ -159,6 +163,7 @@ export default function SuppliersPage() {
   const openNewModal = () => {
     setEditId(null);
     setFormData({ rnc: '', name: '', email: '', phone: '', address: '', status: 'active' });
+    setRncVerified(false);
     setShowModal(true);
   };
 
@@ -172,6 +177,7 @@ export default function SuppliersPage() {
       address: supplier.address || '',
       status: supplier.status
     });
+    setRncVerified(false);
     setShowModal(true);
   };
 
@@ -183,6 +189,8 @@ export default function SuppliersPage() {
     }
 
     setSearchingDGII(true);
+    setRncVerified(false);
+
     try {
       const res = await fetch(`/api/v1/dgii/rnc/${rnc}`);
       const data = await res.json();
@@ -193,6 +201,7 @@ export default function SuppliersPage() {
           name: data.data.name,
           status: 'active'
         }));
+        setRncVerified(true);
         toast.success('Proveedor validado por DGII');
       } else {
         toast.warning(data.message || 'No encontrado en DGII. Puede ingresarlo manual.');
@@ -251,142 +260,133 @@ export default function SuppliersPage() {
   };
 
   return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
 
-    <div className="min-h-full bg-slate-50 text-slate-900 font-sans max-w-7xl mx-auto w-full">
-      {/* Environment Indicator Placeholder (Corporate Modern Style) */}
-      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center">
-        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-          <FileCheck className="h-3 w-3" /> Entorno Seguro
-        </span>
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
+            <Truck className="h-7 w-7 text-amber-500" />
+            Gestión de Suplidores
+          </h1>
+          <p className="text-on-surface-variant text-sm mt-1">
+            Gestiona los datos de facturación y contacto de todos tus suplidores.
+          </p>
+        </div>
+        <Button
+          onClick={openNewModal}
+          variant="secondary"
+          size="md"
+          animated
+          className="shadow-lg shadow-amber-500/20"
+        >
+          <Plus className="h-5 w-5" />
+          Nuevo Suplidor
+        </Button>
       </div>
 
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              <Truck className="h-7 w-7 text-[#C5A059]" />
-              Gestión de Suplidores
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Administre sus suplidores para el registro de compras y gastos fiscales.
-            </p>
+      {/* SEARCH BAR */}
+      <div className="flex items-center gap-2">
+        <SearchBar
+          placeholder="Buscar por nombre, RNC..."
+          value={search}
+          onChange={setSearch}
+          className="flex-1"
+        />
+        {loading && search && (
+          <div className="text-amber-500 shrink-0">
+            <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
-          <button
-            onClick={openNewModal}
-            className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2 px-5 rounded flex items-center justify-center gap-2 transition-all shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            Nuevo Suplidor
-          </button>
-        </div>
+        )}
+        <button
+          onClick={handlePrintList}
+          className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shrink-0"
+        >
+          <Printer className="w-4 h-4 text-amber-500" />
+          <span>Imprimir</span>
+        </button>
+      </div>
 
-        {/* SEARCH BAR */}
-        <div className="bg-white border border-slate-200 rounded-md p-1.5 flex items-center shadow-sm">
-          <div className="pl-3 pr-2 text-on-surface-variant">
-            <Search className="h-5 w-5" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar por nombre, RNC..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-transparent border-none text-slate-800 focus:ring-0 text-sm py-2 px-2 outline-none placeholder:text-on-surface-variant"
-          />
-          {loading && search && (
-            <div className="pr-3 text-[#C5A059]">
-              <RefreshCw className="h-5 w-5 animate-spin" />
-            </div>
-          )}
-          <button
-            onClick={handlePrintList}
-            className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-300 px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ml-2 mr-1 shadow-sm"
-          >
-            <Printer className="w-4 h-4 text-[#C5A059]" />
-            <span>Imprimir</span>
-          </button>
-        </div>
-
-        {/* SUPPLIERS LIST */}
-        <div className="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-on-surface-variant/70 text-xs uppercase tracking-wider font-semibold">
-                  <th className="p-4">Suplidor / Empresa</th>
-                  <th className="p-4">RNC</th>
-                  <th className="p-4 hidden md:table-cell">Contacto</th>
-                  <th className="p-4 hidden lg:table-cell">Dirección</th>
-                  <th className="p-4 text-center">Estado</th>
-                  <th className="p-4 text-right">Acciones</th>
+      {/* SUPPLIERS LIST */}
+      <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-background/50 border-b border-outline-variant/30 text-on-surface-variant text-xs uppercase tracking-wider">
+                <th className="p-4 font-semibold">Suplidor / Empresa</th>
+                <th className="p-4 font-semibold">RNC</th>
+                <th className="p-4 font-semibold hidden md:table-cell">Contacto</th>
+                <th className="p-4 font-semibold hidden lg:table-cell">Dirección</th>
+                <th className="p-4 font-semibold text-center">Estado</th>
+                <th className="p-4 font-semibold text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/20">
+              {suppliers.length === 0 && !loading ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-on-surface-variant/70">
+                    No se encontraron suplidores. Haz clic en "Nuevo Suplidor" para empezar.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {suppliers.length === 0 && !loading ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-on-surface-variant/70">
-                      No se encontraron proveedores.
+              ) : (
+                suppliers.map((s) => (
+                  <motion.tr
+                    key={s.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hover:bg-surface-container-high/50 transition-colors group"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center text-amber-500 flex-shrink-0">
+                          {s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-primary text-sm">{s.name}</p>
+                          <p className="text-xs text-on-surface-variant/70 hidden sm:block">Creado: {new Date(s.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
                     </td>
-                  </tr>
-                ) : (
-                  suppliers.map((s) => (
-                    <motion.tr
-                      key={s.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="hover:bg-[#FFFBEB] transition-colors group"
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded bg-[#003366]/10 flex items-center justify-center text-[#003366] font-bold flex-shrink-0">
-                            {s.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-800 text-sm">{s.name}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="inline-flex font-mono text-sm text-slate-700">
-                          {s.rnc}
+                    <td className="p-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high border border-outline-variant/50 text-xs font-mono text-on-surface-variant">
+                        <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                        {s.rnc}
+                      </span>
+                    </td>
+                    <td className="p-4 hidden md:table-cell text-sm text-on-surface-variant">
+                      {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {s.email}</div>}
+                      {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3 w-3" /> {s.phone}</div>}
+                      {(!s.email && !s.phone) && <span className="text-on-surface-variant/80">-</span>}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell text-sm text-on-surface-variant max-w-[200px] truncate">
+                      {s.address ? (
+                        <span className="flex items-center gap-1.5" title={s.address}>
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{s.address}</span>
                         </span>
-                      </td>
-                      <td className="p-4 hidden md:table-cell text-sm text-on-surface-variant/80">
-                        {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-on-surface-variant" /> {s.email}</div>}
-                        {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3.5 w-3.5 text-on-surface-variant" /> {s.phone}</div>}
-                        {(!s.email && !s.phone) && <span className="text-on-surface-variant">-</span>}
-                      </td>
-                      <td className="p-4 hidden lg:table-cell text-sm text-on-surface-variant/80 max-w-[200px] truncate">
-                        {s.address ? (
-                          <span className="flex items-center gap-1.5" title={s.address}>
-                            <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-on-surface-variant" />
-                            <span className="truncate">{s.address}</span>
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${s.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                          {s.status === 'active' ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditModal(s)} className="p-1.5 text-on-surface-variant hover:text-[#003366] rounded transition-colors">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 text-on-surface-variant hover:text-red-600 rounded transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      ) : '-'}
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                        }`}>
+                      {s.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEditModal(s)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-lg transition-colors" title="Editar">
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDelete(s.id, s.name)} className="p-2 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors" title="Eliminar">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -397,17 +397,17 @@ export default function SuppliersPage() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowModal(false)}
-              className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-4xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
             >
               <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
                 <h2 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-[#C5A059]" />
+                  <Building2 className="h-5 w-5 text-[#c5a059]" />
                   {editId ? 'Editar Suplidor' : 'Registrar Nuevo Suplidor'}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary transition-colors">
@@ -415,40 +415,45 @@ export default function SuppliersPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">RNC / Cédula <span className="text-[#C5A059]">*</span></label>
-                    <div className="flex gap-2">
+                    <label className="text-sm font-semibold text-primary flex justify-between">
+                      <span>RNC o Cédula <span className="text-on-surface-variant/70 font-normal text-xs">(Opcional)</span></span>
+                      {rncVerified && <span className="text-emerald-500 text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Validado</span>}
+                    </label>
+                    <div className="relative flex items-center">
                       <input
                         type="text"
-                        required
                         value={formData.rnc}
-                        onChange={(e) => setFormData({ ...formData, rnc: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                        onChange={(e) => {
+                          setFormData({ ...formData, rnc: e.target.value });
+                          setRncVerified(false);
+                        }}
+                        className={`w-full bg-surface-container-highest border ${rncVerified ? 'border-emerald-500/50' : 'border-outline'} rounded-lg pl-3 pr-24 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors`}
                         placeholder="Ej. 130123456"
                       />
                       <button
                         type="button"
                         onClick={handleSearchDGII}
-                        disabled={searchingDGII || formData.rnc.length < 9}
-                        className="bg-[#C5A059] hover:bg-[#d4b069] text-[#001e40] px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={searchingDGII || !formData.rnc}
+                        className="absolute right-1 top-1 bottom-1 px-3 bg-[#c5a059] hover:bg-[#d4b069] disabled:bg-surface-container-high disabled:text-on-surface-variant/70 text-[#001e40] font-bold text-xs rounded-md flex items-center gap-1.5 transition-colors"
                       >
-                        {searchingDGII ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        {searchingDGII ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
                         DGII
                       </button>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Razón Social <span className="text-[#C5A059]">*</span></label>
+                    <label className="text-sm font-semibold text-primary">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
-                      placeholder="Nombre de la empresa"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      placeholder="Nombre de la empresa o persona"
                     />
                   </div>
 
@@ -458,8 +463,8 @@ export default function SuppliersPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
-                      placeholder="contacto@proveedor.com"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      placeholder="contacto@empresa.com"
                     />
                   </div>
 
@@ -469,7 +474,7 @@ export default function SuppliersPage() {
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       placeholder="(809) 000-0000"
                     />
                   </div>
@@ -480,7 +485,7 @@ export default function SuppliersPage() {
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-all"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
@@ -491,7 +496,7 @@ export default function SuppliersPage() {
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>
@@ -508,29 +513,30 @@ export default function SuppliersPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    className="text-on-surface-variant hover:text-primary"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="secondary"
+                    animated
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2"
                   >
-                    {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileCheck className="h-4 w-4" />}
+                    {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Suplidor'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
-
   );
 }
