@@ -287,7 +287,7 @@ export default function AvatarUploader({
   };
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto p-6 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+    <div className="flex flex-col items-center gap-4 w-full max-w-xs mx-auto p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
       <div className="relative group">
         {/* Componente Avatar central */}
         <Avatar 
