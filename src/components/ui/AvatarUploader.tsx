@@ -287,14 +287,14 @@ export default function AvatarUploader({
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full max-w-xs mx-auto p-4 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+    <div className="flex flex-col items-center gap-3 w-full max-w-[240px] mx-auto p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
       <div className="relative group">
         {/* Componente Avatar central */}
         <Avatar 
           src={previewUrl || currentAvatarUrl} 
           name={userName} 
-          size={128} 
-          className="shadow-md ring-4 ring-primary/10 transition-transform group-hover:scale-[1.02]"
+          size={80} 
+          className="shadow-sm ring-2 ring-primary/10 transition-transform group-hover:scale-[1.02]"
         />
 
         {/* Botón para eliminar foto activa directamente */}
@@ -302,11 +302,11 @@ export default function AvatarUploader({
           <button
             type="button"
             onClick={handleDeleteAvatar}
-            className="absolute -top-1 -right-1 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-lg transition-transform hover:scale-110"
+            className="absolute -top-1 -right-1 p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-lg transition-transform hover:scale-110"
             title="Eliminar foto actual"
             aria-label="Eliminar foto actual"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -320,15 +320,15 @@ export default function AvatarUploader({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={clsx(
-            "w-full h-36 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all p-4 text-center",
+            "w-full h-24 flex flex-col items-center justify-center border border-dashed rounded-xl cursor-pointer transition-all p-2 text-center",
             dragActive
               ? "border-primary bg-primary/5 dark:bg-primary/10"
               : "border-slate-300 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-900"
           )}
         >
-          <UploadCloud className="w-8 h-8 text-on-surface-variant/70 mb-2" />
-          <p className="text-sm font-semibold text-on-surface">Arrastrar imagen aquí o haz clic para subir</p>
-          <p className="text-xs text-on-surface-variant/60 mt-1">Soporta WEBP, PNG, JPG hasta 3 MB</p>
+          <UploadCloud className="w-6 h-6 text-on-surface-variant/70 mb-1" />
+          <p className="text-[11px] font-semibold text-on-surface leading-tight">Arrastrar aquí o clic para subir</p>
+          <p className="text-[9px] text-on-surface-variant/60 mt-0.5">Soporta WEBP, PNG, JPG (3MB)</p>
           <input
             ref={fileInputRef}
             type="file"
