@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const updateProfileSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').optional(),
-  avatarUrl: z.string().url('URL inválida').nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
   avatarPath: z.string().nullable().optional(),
 });
 
