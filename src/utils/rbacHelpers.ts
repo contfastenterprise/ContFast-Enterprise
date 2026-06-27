@@ -113,7 +113,14 @@ export function buildSidebar(
     // Esto evita el bug de pasar el patrón '/dashboard/X%' a canAccessRoute que usa regex.
     const module = m.module;
     const action = m.action || 'read';
-    const isAllowed = hasPermission(module, action);
+    
+    // Bypass inmediato para sistemas y administracion (acceso total a todas las vistas)
+    const isAllowed = cleanRole === 'sistemas' || 
+                      cleanRole.includes('sistema') || 
+                      cleanRole.includes('admin') || 
+                      cleanRole === 'administracion'
+                        ? true 
+                        : hasPermission(module, action);
 
     if (!isAllowed) {
       console.log(`[Sidebar Audit]: module=${module} action=${action} NOT authorized for role=${cleanRole}`);
