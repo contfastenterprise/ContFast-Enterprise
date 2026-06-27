@@ -12,51 +12,16 @@ export type PermissionModule =
   | 'reportes'
   | 'administracion'
   | 'auditoria'
-  | 'cobros';
+  | 'cobros'
+  | 'nomina'
+  | 'conduce'
+  | 'retenciones';
 
 export type PermissionAction = 'read' | 'write' | 'delete' | 'execute' | 'admin';
 
-// Default base permissions for editable roles
-export const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> = {
-  contabilidad: {
-    'contabilidad:read': true,
-    'contabilidad:write': true,
-    'banco:read': true,
-    'banco:write': true,
-    'proveedores:read': true,
-    'proveedores:write': true,
-    'clientes:read': true,
-    'cobros:read': true,
-    'cobros:write': true,
-  },
-  facturacion: {
-    'facturacion:read': true,
-    'facturacion:write': true,
-    'clientes:read': true,
-    'clientes:write': true,
-    'catalogo:read': true,
-    'caja:read': true,
-    'caja:write': true,
-    'cobros:read': true,
-    'cobros:write': true,
-  },
-  banco: {
-    'banco:read': true,
-    'banco:write': true,
-    'proveedores:read': true,
-    'cobros:read': true,
-    'cobros:write': true,
-  },
-  cajero: {
-    'caja:read': true,
-    'caja:write': true, // Only for opening, closing, movements on own session (enforced in business logic)
-    'catalogo:read': true,
-    'clientes:read': true,
-    'clientes:write': true, // Can create basic client during checkout
-    'facturacion:read': false, // Disabled by default, requires explicit enable override
-    'facturacion:write': false,
-  }
-};
+// Default base permissions are defined in a pure, client-safe file to allow import from both client and server
+import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
+export { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 
 /**
  * Evaluates the effective permission for a user based on their role and overrides.

@@ -87,10 +87,14 @@ export function getIconComponent(iconName: string): React.ComponentType<any> {
 /**
  * Filtra y construye el árbol de navegación del Sidebar de forma 100% dinámica
  * a partir de los mapeos de ruta registrados en base de datos y los permisos del usuario.
+ *
+ * IMPORTANTE: buildSidebar usa hasPermission(module, action) directamente a partir del mapeo.
+ * NO usa canAccessRoute() porque esa función es para validar rutas reales con paths limpios,
+ * no patrones de base de datos que contienen wildcards '%' que causan fallos de regex.
  */
 export function buildSidebar(
   routeMappings: RouteMapping[],
-  canAccessRoute: (path: string) => boolean,
+  hasPermission: (module: string, action: string) => boolean,
   userRole: string
 ): SidebarGroup[] {
   const cleanRole = userRole?.toLowerCase() || '';
@@ -105,16 +109,22 @@ export function buildSidebar(
   const authorizedItems: SidebarItem[] = [];
 
   for (const m of menuMappings) {
-    // Validamos acceso dinámico usando la función canAccessRoute del contexto
-    const isAllowed = canAccessRoute(m.routePattern);
+    // Usamos hasPermission directamente con el module/action del mapeo de DB.
+    // Esto evita el bug de pasar el patrón '/dashboard/X%' a canAccessRoute que usa regex.
+    const module = m.module;
+    const action = m.action || 'read';
+    const isAllowed = hasPermission(module, action);
+
     if (!isAllowed) {
-      console.log(`[Sidebar Audit]: Path ${m.routePattern} NOT authorized for user.`);
+      console.log(`[Sidebar Audit]: module=${module} action=${action} NOT authorized for role=${cleanRole}`);
       continue;
     }
 
-    // Red de seguridad adicional: restricción estática por rol (si aplica)
-    if (m.routePattern.includes('/admin/companies') && cleanRole !== 'sistemas') {
-      console.log(`[Sidebar Audit]: Path ${m.routePattern} restricted to systems role only.`);
+    // Restricción admin/companies: solo sistemas y administracion tienen acceso
+    if (m.routePattern.includes('/admin/companies') &&
+        cleanRole !== 'sistemas' &&
+        !cleanRole.includes('admin')) {
+      console.log(`[Sidebar Audit]: Path ${m.routePattern} restricted to sistemas/administracion.`);
       continue;
     }
 

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 import { UserProfile, RouteMapping } from '@/types/rbac';
+import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 
 export interface RbacContextType {
   user: UserProfile | null;
@@ -66,17 +67,27 @@ export function RbacProvider({ children }: { children: React.ReactNode }) {
   const hasPermission = (module: string, action: string): boolean => {
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase();
+    const permissionKey = `${module.toLowerCase()}:${action.toLowerCase()}`;
 
-    // Technical override for systems & admin roles
+    // 1. Fixed roles: sistemas tiene acceso total
     if (userRole.includes('sistema')) return true;
-    if (userRole.includes('admin')) {
+
+    // 2. Administración tiene acceso a todo excepto auditoria/administracion que es solo lectura
+    if (userRole.includes('admin') || userRole === 'administracion') {
       if (module === 'auditoria' || module === 'administracion') {
         return action === 'read';
       }
       return true;
     }
 
-    return permissions.includes(`${module.toLowerCase()}:${action.toLowerCase()}`);
+    // 3. Check permissions list from server (resolved from DB role_permissions + user_permissions)
+    if (permissions.includes(permissionKey)) return true;
+
+    // 4. Fallback to DEFAULT_ROLE_PERMISSIONS for roles not fully seeded in DB yet
+    const roleDefaults = DEFAULT_ROLE_PERMISSIONS[userRole];
+    if (roleDefaults && roleDefaults[permissionKey] === true) return true;
+
+    return false;
   };
 
   const hasRole = (roleName: string): boolean => {

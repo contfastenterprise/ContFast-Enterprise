@@ -282,10 +282,12 @@ function SidebarContent({
   collapsed: boolean; onLogout: () => void; onItemClick?: () => void;
 }) {
   const pathname = usePathname();
-  const { canAccessRoute, routeMappings, user: rbacUser } = useRbac();
+  const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
   // 1. Build and map dynamic groups from Supabase mappings and permissions
-  const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, canAccessRoute, rbacUser?.role || '').map(g => ({
+  // NOTE: We pass hasPermission (not canAccessRoute) because buildSidebar works with
+  // DB route patterns that contain SQL wildcards ('%'), not real cleaned paths.
+  const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '').map(g => ({
     title: g.title,
     icon: getGroupIcon(g.title),
     items: g.items.map(item => ({
@@ -295,12 +297,11 @@ function SidebarContent({
     })),
   }));
 
-  // Temporarily output debugging logs to audit permission state in the browser console
-  console.log('[Sidebar Debug] User authenticated profile:', rbacUser);
+  // Debug logs - remove after confirming sidebar is working correctly
   console.log('[Sidebar Debug] User role:', rbacUser?.role);
-  console.log('[Sidebar Debug] User permissions:', rbacUser?.permissions);
+  console.log('[Sidebar Debug] User permissions count:', rbacUser?.permissions?.length);
   console.log('[Sidebar Debug] Route mappings count:', routeMappings.length);
-  console.log('[Sidebar Debug] Dynamic groups compiled:', dynamicGroups);
+  console.log('[Sidebar Debug] Dynamic groups compiled:', dynamicGroups.map(g => ({ group: g.title, items: g.items.map(i => i.name) })));
   
   // Track open/collapsed state of groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
