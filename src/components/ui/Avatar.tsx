@@ -22,8 +22,7 @@ export function Avatar({ src, name, size = 40, className }: AvatarProps) {
 
   const initials = getInitials(name);
 
-  // Invalidación de caché usando timestamp si hay src
-  const finalSrc = src ? (src.includes('?') ? src : `${src}?t=${Date.now()}`) : null;
+  const finalSrc = src || null;
 
   return (
     <div
