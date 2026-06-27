@@ -625,47 +625,55 @@ export default function AdminPage() {
         {showNewUserModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
                 <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Nuevo Usuario</h3>
                 <button onClick={() => setShowNewUserModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleCreateUser} className="p-6 space-y-5">
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Nombre Completo</label>
-                  <input type="text" required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Juan Pérez" />
+              <form onSubmit={handleCreateUser} className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column: Form Fields */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Nombre Completo</label>
+                      <input type="text" required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Juan Pérez" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Correo Electrónico</label>
+                      <input type="email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="usuario@empresa.com" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Contraseña Inicial</label>
+                      <input type="password" required minLength={6} value={userForm.passwordRaw} onChange={e => setUserForm({ ...userForm, passwordRaw: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Mínimo 6 caracteres" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
+                      <select required value={userForm.roleId} onChange={e => setUserForm({ ...userForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
+                        <option value="">Seleccione un rol...</option>
+                        {roles
+                          .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                          .map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Avatar Uploader */}
+                  <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-zinc-900/40 rounded-xl border border-dashed border-outline-variant/30">
+                    <label className="text-sm font-semibold text-primary block self-start mb-2">Foto de Perfil (Local)</label>
+                    <AvatarUploader
+                      currentAvatarUrl={userForm.avatarUrl}
+                      currentAvatarPath={userForm.avatarPath}
+                      userName={userForm.name || 'CF'}
+                      userId={newUserTempId}
+                      skipDatabaseUpdate={true}
+                      onUploadSuccess={(url, path) => setUserForm({ ...userForm, avatarUrl: url, avatarPath: path })}
+                      onDeleteSuccess={() => setUserForm({ ...userForm, avatarUrl: '', avatarPath: '' })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Correo Electrónico</label>
-                  <input type="email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="usuario@empresa.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Contraseña Inicial</label>
-                  <input type="password" required minLength={6} value={userForm.passwordRaw} onChange={e => setUserForm({ ...userForm, passwordRaw: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Mínimo 6 caracteres" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
-                  <select required value={userForm.roleId} onChange={e => setUserForm({ ...userForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
-                    <option value="">Seleccione un rol...</option>
-                    {roles
-                      .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
-                      .map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                  </select>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <label className="text-sm font-semibold text-primary block self-start mb-1">Foto de Perfil (Local)</label>
-                  <AvatarUploader
-                    currentAvatarUrl={userForm.avatarUrl}
-                    currentAvatarPath={userForm.avatarPath}
-                    userName={userForm.name || 'CF'}
-                    userId={newUserTempId}
-                    skipDatabaseUpdate={true}
-                    onUploadSuccess={(url, path) => setUserForm({ ...userForm, avatarUrl: url, avatarPath: path })}
-                    onDeleteSuccess={() => setUserForm({ ...userForm, avatarUrl: '', avatarPath: '' })}
-                  />
-                </div>
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                   <button type="button" onClick={() => setShowNewUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
@@ -683,47 +691,55 @@ export default function AdminPage() {
         {showEditUserModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
                 <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Modificar Usuario</h3>
                 <button onClick={() => setShowEditUserModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleEditUser} className="p-6 space-y-5">
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Nombre Completo</label>
-                  <input type="text" required value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Juan Pérez" />
+              <form onSubmit={handleEditUser} className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column: Form Fields */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Nombre Completo</label>
+                      <input type="text" required value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Juan Pérez" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Correo Electrónico</label>
+                      <input type="email" required value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="usuario@empresa.com" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Contraseña (dejar en blanco para no cambiar)</label>
+                      <input type="password" minLength={6} value={editUserForm.passwordRaw} onChange={e => setEditUserForm({ ...editUserForm, passwordRaw: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Mínimo 6 caracteres" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
+                      <select required value={editUserForm.roleId} onChange={e => setEditUserForm({ ...editUserForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
+                        <option value="">Seleccione un rol...</option>
+                        {roles
+                          .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                          .map(r => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Avatar Uploader */}
+                  <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-zinc-900/40 rounded-xl border border-dashed border-outline-variant/30">
+                    <label className="text-sm font-semibold text-primary block self-start mb-2">Foto de Perfil (Local)</label>
+                    <AvatarUploader
+                      currentAvatarUrl={editUserForm.avatarUrl}
+                      currentAvatarPath={editUserForm.avatarPath}
+                      userName={editUserForm.name || 'CF'}
+                      userId={editingUserId || 'edit-user'}
+                      skipDatabaseUpdate={true}
+                      onUploadSuccess={(url, path) => setEditUserForm({ ...editUserForm, avatarUrl: url, avatarPath: path })}
+                      onDeleteSuccess={() => setEditUserForm({ ...editUserForm, avatarUrl: '', avatarPath: '' })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Correo Electrónico</label>
-                  <input type="email" required value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="usuario@empresa.com" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Contraseña (dejar en blanco para no cambiar)</label>
-                  <input type="password" minLength={6} value={editUserForm.passwordRaw} onChange={e => setEditUserForm({ ...editUserForm, passwordRaw: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Mínimo 6 caracteres" />
-                </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
-                  <select required value={editUserForm.roleId} onChange={e => setEditUserForm({ ...editUserForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
-                    <option value="">Seleccione un rol...</option>
-                    {roles
-                      .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
-                      .map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
-                  </select>
-                </div>
-                <div className="flex flex-col items-center gap-1">
-                  <label className="text-sm font-semibold text-primary block self-start mb-1">Foto de Perfil (Local)</label>
-                  <AvatarUploader
-                    currentAvatarUrl={editUserForm.avatarUrl}
-                    currentAvatarPath={editUserForm.avatarPath}
-                    userName={editUserForm.name || 'CF'}
-                    userId={editingUserId || 'edit-user'}
-                    skipDatabaseUpdate={true}
-                    onUploadSuccess={(url, path) => setEditUserForm({ ...editUserForm, avatarUrl: url, avatarPath: path })}
-                    onDeleteSuccess={() => setEditUserForm({ ...editUserForm, avatarUrl: '', avatarPath: '' })}
-                  />
-                </div>
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                   <button type="button" onClick={() => setShowEditUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
