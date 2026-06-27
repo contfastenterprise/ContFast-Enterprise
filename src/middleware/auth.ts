@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db, users, sessions, roles, userWarehouses } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
+import { RbacService } from '@/services/auth/rbacService';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
@@ -23,6 +24,7 @@ export interface AuthPayload {
   roleId: string;
   sessionId: string;
   allowedWarehouses: string[];
+  permissions: string[];
 }
 
 // Helpers for hash generation
@@ -58,6 +60,8 @@ export async function verifyAuth(
   const sessionId = req.headers.get('x-session-id') || '';
   const allowedWarehousesHeader = req.headers.get('x-allowed-warehouses');
 
+  const permissionsHeader = req.headers.get('x-user-permissions');
+
   if (userId && companyId && role && roleId) {
     let allowedWarehouses: string[] = [];
     if (allowedWarehousesHeader) {
@@ -67,6 +71,14 @@ export async function verifyAuth(
         allowedWarehouses = allowedWarehousesHeader ? allowedWarehousesHeader.split(',') : [];
       }
     }
+    let permissions: string[] = [];
+    if (permissionsHeader) {
+      try {
+        permissions = JSON.parse(permissionsHeader);
+      } catch (_) {
+        permissions = permissionsHeader ? permissionsHeader.split(',') : [];
+      }
+    }
     return {
       userId,
       companyId,
@@ -74,6 +86,7 @@ export async function verifyAuth(
       roleId,
       sessionId,
       allowedWarehouses,
+      permissions,
     };
   }
 
@@ -91,6 +104,7 @@ export async function verifyAuth(
         roleId: decoded.roleId,
         sessionId: decoded.sessionId,
         allowedWarehouses: decoded.allowedWarehouses || [],
+        permissions: decoded.permissions || [],
       };
     } catch (err: any) {
       // If access token is expired, proceed to refresh token validation
@@ -154,6 +168,13 @@ export async function verifyAuth(
 
     // Fetch updated allowed warehouses
     const allowedWarehouses = await fetchAllowedWarehouses(userWithRole.id, userWithRole.roleName);
+    
+    // Fetch user permissions
+    const permissionsList = await RbacService.getUserPermissions(
+      userWithRole.id,
+      userWithRole.roleName,
+      userWithRole.roleId
+    );
 
     // Generate new Access and Refresh tokens
     const newSessionId = session.id;
@@ -165,6 +186,7 @@ export async function verifyAuth(
         roleId: userWithRole.roleId,
         sessionId: newSessionId,
         allowedWarehouses,
+        permissions: permissionsList,
       },
       JWT_SECRET,
       { expiresIn: '15m' }
@@ -208,6 +230,7 @@ export async function verifyAuth(
       roleId: userWithRole.roleId,
       sessionId: newSessionId,
       allowedWarehouses,
+      permissions: permissionsList,
     };
   } catch (error) {
     return null;
@@ -231,9 +254,12 @@ export async function createSession(
   // Fetch allowed warehouses
   const allowedWarehouses = await fetchAllowedWarehouses(userId, role);
 
+  // Fetch user permissions
+  const permissionsList = await RbacService.getUserPermissions(userId, role, roleId);
+
   // Generate tokens
   const accessToken = jwt.sign(
-    { userId, companyId, role, roleId, sessionId, allowedWarehouses },
+    { userId, companyId, role, roleId, sessionId, allowedWarehouses, permissions: permissionsList },
     JWT_SECRET,
     { expiresIn: '15m' }
   );

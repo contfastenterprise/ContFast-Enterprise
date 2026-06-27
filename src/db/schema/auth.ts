@@ -22,6 +22,8 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   status: varchar('status', { length: 50 }).default('active').notNull(),
+  avatarUrl: text('avatar_url'),
+  avatarPath: text('avatar_path'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

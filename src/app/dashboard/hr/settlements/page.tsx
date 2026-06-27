@@ -71,31 +71,31 @@ export default function SettlementsPage() {
         // Hired before or during the selected year, and not terminated before selected year
         const hireDate = new Date(emp.hireDate);
         if (hireDate.getFullYear() > currentYear) return false;
-        
+
         if (emp.terminationDate) {
           const termDate = new Date(emp.terminationDate);
           if (termDate.getFullYear() < currentYear) return false;
         }
-        
+
         return true;
       })
       .map((emp) => {
         const hireDate = new Date(emp.hireDate);
         const termDate = emp.terminationDate ? new Date(emp.terminationDate) : new Date(currentYear, 11, 31);
-        
+
         // Find months worked in this specific year
         const startOfYear = new Date(currentYear, 0, 1);
         const endOfYear = new Date(currentYear, 11, 31);
-        
+
         const effectiveStart = hireDate > startOfYear ? hireDate : startOfYear;
         const effectiveEnd = termDate < endOfYear ? termDate : endOfYear;
-        
+
         const diffMs = effectiveEnd.getTime() - effectiveStart.getTime();
         const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1);
-        
+
         // Months worked (cap at 12)
         const monthsWorked = Math.min(12, Number((diffDays / 30.4).toFixed(2)));
-        
+
         // 1/12 of the accumulated wages in the year
         const salary = parseFloat(emp.salary) || 0;
         const accumulated = salary * monthsWorked;
@@ -212,428 +212,423 @@ export default function SettlementsPage() {
   const totalDobleSum = dobleCalculations.reduce((sum, item) => sum + item.amount, 0);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              Prestaciones y Salario de Navidad
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400">
-              Calcule las liquidaciones de empleados según el Código de Trabajo de RD y proyecte el Doble Sueldo anual.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={fetchData}
-              className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Prestaciones y Salario de Navidad
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            Calcule las liquidaciones de empleados según el Código de Trabajo de RD y proyecte el Doble Sueldo anual.
+          </p>
         </div>
-
-        {/* Tab Buttons */}
-        <div className="border-b border-outline/30">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('settlements')}
-              className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'settlements'
-                  ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
-                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-              }`}
-            >
-              Liquidaciones (Prestaciones Laborales)
-            </button>
-            <button
-              onClick={() => setActiveTab('doblesueldo')}
-              className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${
-                activeTab === 'doblesueldo'
-                  ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
-                  : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-              }`}
-            >
-              Salario de Navidad (Doble Sueldo)
-            </button>
-          </nav>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
         </div>
+      </div>
 
-        {/* Loading state */}
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-[#003366] dark:text-[#799dd6]" />
-          </div>
-        ) : activeTab === 'settlements' ? (
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Form Column */}
-            <div className="space-y-6 lg:col-span-1">
-              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
-                <h3 className="text-base font-semibold text-on-surface mb-4">Nueva Liquidación</h3>
-                <form onSubmit={handleSimulate} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                      Empleado
-                    </label>
-                    <select
-                      value={employeeId}
+      {/* Tab Buttons */}
+      <div className="border-b border-outline/30">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('settlements')}
+            className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${activeTab === 'settlements'
+                ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+              }`}
+          >
+            Liquidaciones (Prestaciones Laborales)
+          </button>
+          <button
+            onClick={() => setActiveTab('doblesueldo')}
+            className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${activeTab === 'doblesueldo'
+                ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+              }`}
+          >
+            Salario de Navidad (Doble Sueldo)
+          </button>
+        </nav>
+      </div>
+
+      {/* Loading state */}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-[#003366] dark:text-[#799dd6]" />
+        </div>
+      ) : activeTab === 'settlements' ? (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Form Column */}
+          <div className="space-y-6 lg:col-span-1">
+            <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-on-surface mb-4">Nueva Liquidación</h3>
+              <form onSubmit={handleSimulate} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                    Empleado
+                  </label>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => {
+                      setEmployeeId(e.target.value);
+                      setCalculation(null);
+                    }}
+                    required
+                    className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                  >
+                    <option value="">Seleccione un empleado...</option>
+                    {employees
+                      .filter((e) => e.status === 'active' || e.status === 'suspended')
+                      .map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.employeeCode})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                    Fecha de Salida
+                  </label>
+                  <input
+                    type="date"
+                    value={terminationDate}
+                    onChange={(e) => {
+                      setTerminationDate(e.target.value);
+                      setCalculation(null);
+                    }}
+                    required
+                    className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Incluir en el Cálculo
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includePreaviso}
                       onChange={(e) => {
-                        setEmployeeId(e.target.value);
+                        setIncludePreaviso(e.target.checked);
                         setCalculation(null);
                       }}
-                      required
-                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                    >
-                      <option value="">Seleccione un empleado...</option>
-                      {employees
-                        .filter((e) => e.status === 'active' || e.status === 'suspended')
-                        .map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.firstName} {emp.lastName} ({emp.employeeCode})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                      className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
+                    />
+                    <span>Preaviso de Ley</span>
+                  </label>
 
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeCesantia}
+                      onChange={(e) => {
+                        setIncludeCesantia(e.target.checked);
+                        setCalculation(null);
+                      }}
+                      className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
+                    />
+                    <span>Cesantía de Ley</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                      Fecha de Salida
+                      Vacaciones No Tomadas
                     </label>
                     <input
-                      type="date"
-                      value={terminationDate}
+                      type="number"
+                      min="0"
+                      value={vacacionesDays}
                       onChange={(e) => {
-                        setTerminationDate(e.target.value);
+                        setVacacionesDays(parseInt(e.target.value) || 0);
                         setCalculation(null);
                       }}
-                      required
+                      placeholder="Ej. 14"
                       className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Incluir en el Cálculo
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                      Ajuste Extra (RD$)
                     </label>
-                    
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includePreaviso}
-                        onChange={(e) => {
-                          setIncludePreaviso(e.target.checked);
-                          setCalculation(null);
-                        }}
-                        className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
-                      />
-                      <span>Preaviso de Ley</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={includeCesantia}
-                        onChange={(e) => {
-                          setIncludeCesantia(e.target.checked);
-                          setCalculation(null);
-                        }}
-                        className="rounded border-outline bg-surface text-[#003366] focus:ring-primary"
-                      />
-                      <span>Cesantía de Ley</span>
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                        Vacaciones No Tomadas
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={vacacionesDays}
-                        onChange={(e) => {
-                          setVacacionesDays(parseInt(e.target.value) || 0);
-                          setCalculation(null);
-                        }}
-                        placeholder="Ej. 14"
-                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                        Ajuste Extra (RD$)
-                      </label>
-                      <input
-                        type="number"
-                        value={otrosAmount === 0 ? '' : otrosAmount}
-                        onChange={(e) => {
-                          setOtrosAmount(parseFloat(e.target.value) || 0);
-                        }}
-                        placeholder="Opcional. Ej. -2000"
-                        className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={calculating}
-                    className="w-full inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
-                  >
-                    {calculating ? 'Calculando...' : 'Calcular Previsualización'}
-                  </button>
-                </form>
-              </div>
-            </div>
-
-            {/* Calculations Breakdown Column */}
-            <div className="space-y-6 lg:col-span-2">
-              {calculation ? (
-                <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-6">
-                  <div className="flex items-center justify-between border-b border-outline/30 pb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-on-surface">
-                        {calculation.employee.firstName} {calculation.employee.lastName}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Código: {calculation.employee.employeeCode} | Ingreso: {new Date(calculation.employee.hireDate).toLocaleDateString('es-DO')}
-                      </p>
-                    </div>
-                    <Sparkles className="h-6 w-6 text-[#003366]" />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 bg-surface p-4 rounded-lg border border-outline/30 text-center">
-                    <div>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Antigüedad</span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {calculation.calculation.yearsOfService} años, {calculation.calculation.monthsOfService} meses
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Salario Promedio Diario</span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {formatCurrency(calculation.calculation.dailyRate)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Días a Pagar (Cesantía)</span>
-                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {calculation.calculation.cesantiaDays} días
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Table Breakdown */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Desglose de Pago</h4>
-                    <div className="divide-y divide-outline/30 rounded-lg border border-outline bg-surface text-sm">
-                      <div className="flex justify-between p-3.5">
-                        <span className="text-slate-600 dark:text-slate-400">Preaviso ({calculation.calculation.preavisoDays} días)</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.preaviso)}</span>
-                      </div>
-                      <div className="flex justify-between p-3.5">
-                        <span className="text-slate-600 dark:text-slate-400">Cesantía ({calculation.calculation.cesantiaDays} días)</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.cesantia)}</span>
-                      </div>
-                      <div className="flex justify-between p-3.5">
-                        <span className="text-slate-600 dark:text-slate-400">Vacaciones Pendientes/Proporcionales ({calculation.calculation.vacacionesDays} días)</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.vacaciones)}</span>
-                      </div>
-                      <div className="flex justify-between p-3.5">
-                        <span className="text-slate-600 dark:text-slate-400">Salario de Navidad Proporcional (1/12)</span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.navidad)}</span>
-                      </div>
-                      {otrosAmount !== 0 && (
-                        <div className="flex justify-between p-3.5">
-                          <span className="text-slate-600 dark:text-slate-400">Ajustes / Otros conceptos</span>
-                          <span className={`font-semibold ${otrosAmount > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {formatCurrency(otrosAmount)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between p-4 bg-surface-variant/20 rounded-b-lg font-bold text-base text-on-surface">
-                        <span>Total Neto a Recibir</span>
-                        <span>{formatCurrency(calculation.calculation.preaviso + calculation.calculation.cesantia + calculation.calculation.vacaciones + calculation.calculation.navidad + otrosAmount)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Warning/Info message */}
-                  <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-400">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold">Información Legal de RD</p>
-                      <p className="mt-0.5">
-                        De acuerdo al Código de Trabajo, el salario de Navidad está exento de TSS, ISR y embargos. 
-                        Las prestaciones laborales (preaviso y cesantía) tampoco están sujetas a retenciones de ley.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => setCalculation(null)}
-                      className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition-all"
-                    >
-                      Descartar
-                    </button>
-                    <button
-                      onClick={handleSaveSettlement}
-                      disabled={saving}
-                      className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
-                    >
-                      {saving ? 'Guardando...' : 'Registrar y Pagar Liquidación'}
-                    </button>
+                    <input
+                      type="number"
+                      value={otrosAmount === 0 ? '' : otrosAmount}
+                      onChange={(e) => {
+                        setOtrosAmount(parseFloat(e.target.value) || 0);
+                      }}
+                      placeholder="Opcional. Ej. -2000"
+                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-semibold text-on-surface">Histórico de Liquidaciones</h3>
-                  
-                  {settlements.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
-                      No hay liquidaciones registradas en el sistema.
+
+                <button
+                  type="submit"
+                  disabled={calculating}
+                  className="w-full inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
+                >
+                  {calculating ? 'Calculando...' : 'Calcular Previsualización'}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Calculations Breakdown Column */}
+          <div className="space-y-6 lg:col-span-2">
+            {calculation ? (
+              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-6">
+                <div className="flex items-center justify-between border-b border-outline/30 pb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-on-surface">
+                      {calculation.employee.firstName} {calculation.employee.lastName}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Código: {calculation.employee.employeeCode} | Ingreso: {new Date(calculation.employee.hireDate).toLocaleDateString('es-DO')}
                     </p>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead>
-                          <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
-                            <th className="p-3">Empleado</th>
-                            <th className="p-3">Código</th>
-                            <th className="p-3">Fecha Salida</th>
-                            <th className="p-3">Cesantía/Preaviso</th>
-                            <th className="p-3">Total Liquidado</th>
-                            <th className="p-3">Estado</th>
-                            <th className="p-3 text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                          {settlements.map((set) => (
-                            <tr key={set.id} className="hover:bg-surface-variant/10 text-on-surface">
-                              <td className="p-3 font-medium">{set.firstName} {set.lastName}</td>
-                              <td className="p-3">{set.employeeCode}</td>
-                              <td className="p-3">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
-                              <td className="p-3">
-                                {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
-                              </td>
-                              <td className="p-3 font-bold">{formatCurrency(set.total)}</td>
-                              <td className="p-3">
-                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                  set.status === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                                }`}>
-                                  {set.status === 'paid' ? 'Pagado' : 'Calculado'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-right">
-                                <button
-                                  onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
-                                  className="inline-flex items-center justify-center text-[#003366] hover:text-[#001e40] p-1 rounded hover:bg-slate-55 mr-2"
-                                  title="Imprimir Liquidación"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteSettlement(set.id)}
-                                  className="inline-flex items-center justify-center text-rose-600 hover:text-rose-900 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  </div>
+                  <Sparkles className="h-6 w-6 text-[#003366]" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 bg-surface p-4 rounded-lg border border-outline/30 text-center">
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Antigüedad</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {calculation.calculation.yearsOfService} años, {calculation.calculation.monthsOfService} meses
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Salario Promedio Diario</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {formatCurrency(calculation.calculation.dailyRate)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Días a Pagar (Cesantía)</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {calculation.calculation.cesantiaDays} días
+                    </span>
+                  </div>
+                </div>
+
+                {/* Table Breakdown */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Desglose de Pago</h4>
+                  <div className="divide-y divide-outline/30 rounded-lg border border-outline bg-surface text-sm">
+                    <div className="flex justify-between p-3.5">
+                      <span className="text-slate-600 dark:text-slate-400">Preaviso ({calculation.calculation.preavisoDays} días)</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.preaviso)}</span>
                     </div>
-                  )}
+                    <div className="flex justify-between p-3.5">
+                      <span className="text-slate-600 dark:text-slate-400">Cesantía ({calculation.calculation.cesantiaDays} días)</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.cesantia)}</span>
+                    </div>
+                    <div className="flex justify-between p-3.5">
+                      <span className="text-slate-600 dark:text-slate-400">Vacaciones Pendientes/Proporcionales ({calculation.calculation.vacacionesDays} días)</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.vacaciones)}</span>
+                    </div>
+                    <div className="flex justify-between p-3.5">
+                      <span className="text-slate-600 dark:text-slate-400">Salario de Navidad Proporcional (1/12)</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.navidad)}</span>
+                    </div>
+                    {otrosAmount !== 0 && (
+                      <div className="flex justify-between p-3.5">
+                        <span className="text-slate-600 dark:text-slate-400">Ajustes / Otros conceptos</span>
+                        <span className={`font-semibold ${otrosAmount > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {formatCurrency(otrosAmount)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between p-4 bg-surface-variant/20 rounded-b-lg font-bold text-base text-on-surface">
+                      <span>Total Neto a Recibir</span>
+                      <span>{formatCurrency(calculation.calculation.preaviso + calculation.calculation.cesantia + calculation.calculation.vacaciones + calculation.calculation.navidad + otrosAmount)}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Doble Sueldo Tab */
-          <div className="space-y-6">
-            <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-                <div>
-                  <h3 className="text-base font-semibold text-on-surface">
-                    Proyección de Salario de Navidad ({dobleYear})
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Bajo el Artículo 219 del Código de Trabajo dominicano, la regalía pascual equivale a la 1/12 parte de los salarios ordinarios del año.
-                  </p>
+
+                {/* Warning/Info message */}
+                <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-400">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Información Legal de RD</p>
+                    <p className="mt-0.5">
+                      De acuerdo al Código de Trabajo, el salario de Navidad está exento de TSS, ISR y embargos.
+                      Las prestaciones laborales (preaviso y cesantía) tampoco están sujetas a retenciones de ley.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-500">Año:</span>
-                  <select
-                    value={dobleYear}
-                    onChange={(e) => setDobleYear(parseInt(e.target.value) || new Date().getFullYear())}
-                    className="rounded-md border border-outline bg-surface p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+
+                {/* Action buttons */}
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setCalculation(null)}
+                    className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition-all"
                   >
-                    {[2025, 2026, 2027, 2028].map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
+                    Descartar
+                  </button>
+                  <button
+                    onClick={handleSaveSettlement}
+                    disabled={saving}
+                    className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
+                  >
+                    {saving ? 'Guardando...' : 'Registrar y Pagar Liquidación'}
+                  </button>
                 </div>
               </div>
+            ) : (
+              <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm space-y-4">
+                <h3 className="text-base font-semibold text-on-surface">Histórico de Liquidaciones</h3>
 
-              {/* Total projection card */}
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-6 dark:bg-emerald-950/10 dark:border-emerald-900/50 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <span className="block text-sm font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
-                    Total Proyectado de Regalía Pascual ({dobleYear})
-                  </span>
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 block">
-                    {formatCurrency(totalDobleSum)}
-                  </span>
-                </div>
-                <div className="mt-4 sm:mt-0 bg-emerald-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center gap-2">
-                  <Award className="h-5 w-5" />
-                  <span>Proyección de Nómina Exenta</span>
-                </div>
+                {settlements.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
+                    No hay liquidaciones registradas en el sistema.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
+                          <th className="p-3">Empleado</th>
+                          <th className="p-3">Código</th>
+                          <th className="p-3">Fecha Salida</th>
+                          <th className="p-3">Cesantía/Preaviso</th>
+                          <th className="p-3">Total Liquidado</th>
+                          <th className="p-3">Estado</th>
+                          <th className="p-3 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                        {settlements.map((set) => (
+                          <tr key={set.id} className="hover:bg-surface-variant/10 text-on-surface">
+                            <td className="p-3 font-medium">{set.firstName} {set.lastName}</td>
+                            <td className="p-3">{set.employeeCode}</td>
+                            <td className="p-3">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
+                            <td className="p-3">
+                              {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
+                            </td>
+                            <td className="p-3 font-bold">{formatCurrency(set.total)}</td>
+                            <td className="p-3">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${set.status === 'paid'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                }`}>
+                                {set.status === 'paid' ? 'Pagado' : 'Calculado'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
+                                className="inline-flex items-center justify-center text-[#003366] hover:text-[#001e40] p-1 rounded hover:bg-slate-55 mr-2"
+                                title="Imprimir Liquidación"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSettlement(set.id)}
+                                className="inline-flex items-center justify-center text-rose-600 hover:text-rose-900 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-
-              {/* Doble Sueldo Grid */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
-                      <th className="p-3">Empleado</th>
-                      <th className="p-3">Código</th>
-                      <th className="p-3">Fecha de Ingreso</th>
-                      <th className="p-3 text-right">Salario Mensual</th>
-                      <th className="p-3 text-center">Meses Proyectados en {dobleYear}</th>
-                      <th className="p-3 text-right">Salario de Navidad Estimado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {dobleCalculations.map((item) => (
-                      <tr key={item.id} className="hover:bg-surface-variant/10 text-on-surface">
-                        <td className="p-3 font-medium">{item.firstName} {item.lastName}</td>
-                        <td className="p-3">{item.employeeCode}</td>
-                        <td className="p-3">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                        <td className="p-3 text-right">{formatCurrency(item.salary)}</td>
-                        <td className="p-3 text-center">{item.monthsWorked} meses</td>
-                        <td className="p-3 text-right font-bold text-primary">
-                          {formatCurrency(item.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Doble Sueldo Tab */
+        <div className="space-y-6">
+          <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div>
+                <h3 className="text-base font-semibold text-on-surface">
+                  Proyección de Salario de Navidad ({dobleYear})
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Bajo el Artículo 219 del Código de Trabajo dominicano, la regalía pascual equivale a la 1/12 parte de los salarios ordinarios del año.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">Año:</span>
+                <select
+                  value={dobleYear}
+                  onChange={(e) => setDobleYear(parseInt(e.target.value) || new Date().getFullYear())}
+                  className="rounded-md border border-outline bg-surface p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                >
+                  {[2025, 2026, 2027, 2028].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+
+            {/* Total projection card */}
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-6 dark:bg-emerald-950/10 dark:border-emerald-900/50 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="block text-sm font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                  Total Proyectado de Regalía Pascual ({dobleYear})
+                </span>
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 block">
+                  {formatCurrency(totalDobleSum)}
+                </span>
+              </div>
+              <div className="mt-4 sm:mt-0 bg-emerald-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                <span>Proyección de Nómina Exenta</span>
+              </div>
+            </div>
+
+            {/* Doble Sueldo Grid */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
+                    <th className="p-3">Empleado</th>
+                    <th className="p-3">Código</th>
+                    <th className="p-3">Fecha de Ingreso</th>
+                    <th className="p-3 text-right">Salario Mensual</th>
+                    <th className="p-3 text-center">Meses Proyectados en {dobleYear}</th>
+                    <th className="p-3 text-right">Salario de Navidad Estimado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {dobleCalculations.map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-variant/10 text-on-surface">
+                      <td className="p-3 font-medium">{item.firstName} {item.lastName}</td>
+                      <td className="p-3">{item.employeeCode}</td>
+                      <td className="p-3">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="p-3 text-right">{formatCurrency(item.salary)}</td>
+                      <td className="p-3 text-center">{item.monthsWorked} meses</td>
+                      <td className="p-3 text-right font-bold text-primary">
+                        {formatCurrency(item.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+        </div>
+      )}
+    </div>
   );
 }

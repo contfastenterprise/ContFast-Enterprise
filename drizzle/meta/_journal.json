@@ -134,6 +134,20 @@
       "when": 1782506651089,
       "tag": "0018_flashy_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782572361776,
+      "tag": "0019_add_user_avatar_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1782574740036,
+      "tag": "0020_add_rbac_system_tables",
+      "breakpoints": true
     }
   ]
 }

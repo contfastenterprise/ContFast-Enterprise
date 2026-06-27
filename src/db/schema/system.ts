@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, jsonb, index, boolean } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 
@@ -30,4 +30,31 @@ export const notifications = pgTable('notifications', {
 }, (table) => ({
   companyIdx: index('notifications_company_idx').on(table.companyId),
   userReadIdx: index('notifications_user_read_idx').on(table.userId, table.readAt),
+}));
+
+export const routeMappings = pgTable('route_mappings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  routePattern: varchar('route_pattern', { length: 255 }).notNull(), // ej. '/dashboard/accounting%'
+  module: varchar('module', { length: 100 }).notNull(), // ej. 'contabilidad'
+  action: varchar('action', { length: 50 }), // read | write | delete | null (dinámico por método HTTP)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  patternIdx: index('route_mappings_pattern_idx').on(table.routePattern),
+}));
+
+export const auditPermissions = pgTable('audit_permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').references(() => companies.id),
+  userId: uuid('user_id').references(() => users.id),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  route: text('route').notNull(),
+  method: varchar('method', { length: 10 }).notNull(),
+  allowed: boolean('allowed').notNull(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('audit_permissions_company_idx').on(table.companyId),
+  userIdIdx: index('audit_permissions_user_idx').on(table.userId),
+  createdAtIdx: index('audit_permissions_created_idx').on(table.createdAt),
 }));

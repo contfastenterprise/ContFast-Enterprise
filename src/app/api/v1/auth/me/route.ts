@@ -35,6 +35,8 @@ export async function GET(req: NextRequest) {
         name: users.name,
         email: users.email,
         companyId: users.companyId,
+        avatarUrl: users.avatarUrl,
+        avatarPath: users.avatarPath,
         role: roles.name,
       })
       .from(users)
@@ -56,6 +58,7 @@ export async function GET(req: NextRequest) {
           user: {
             ...user,
             companyId: auth.companyId,
+            permissions: auth.permissions,
           } 
         } 
       },

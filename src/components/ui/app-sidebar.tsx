@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { useRbac } from '@/components/providers/rbacContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -138,15 +139,12 @@ export const NAV_GROUPS: NavGroupDef[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getVisibleItems(group: NavGroupDef, userRole: string): NavItemDef[] {
-  return group.items.filter(item => {
-    if (!item.roles) return true;
-    return item.roles.some(r => userRole?.toLowerCase().includes(r.toLowerCase()));
-  });
+function getVisibleItems(group: NavGroupDef, canAccessRoute: (path: string) => boolean): NavItemDef[] {
+  return group.items.filter(item => canAccessRoute(item.href));
 }
 
-function getAllSearchableItems(userRole: string): NavItemDef[] {
-  return NAV_GROUPS.flatMap(g => getVisibleItems(g, userRole));
+function getAllSearchableItems(canAccessRoute: (path: string) => boolean): NavItemDef[] {
+  return NAV_GROUPS.flatMap(g => getVisibleItems(g, canAccessRoute));
 }
 
 // ─── WorkspaceSwitcher ───────────────────────────────────────────────────────
@@ -290,10 +288,11 @@ function NavItem({
 
 // ─── SearchModal ─────────────────────────────────────────────────────────────
 
-function SearchModal({ onClose, userRole }: { onClose: () => void; userRole: string }) {
+function SearchModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const allItems = getAllSearchableItems(userRole);
+  const { canAccessRoute } = useRbac();
+  const allItems = getAllSearchableItems(canAccessRoute);
   const results = query.trim()
     ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
     : allItems.slice(0, 7);
@@ -369,7 +368,7 @@ function SidebarContent({
   collapsed: boolean; onLogout: () => void; onItemClick?: () => void;
 }) {
   const pathname = usePathname();
-  const userRole = (user?.role || '').toLowerCase();
+  const { canAccessRoute } = useRbac();
   
   // Track open/collapsed state of groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
@@ -416,7 +415,7 @@ function SidebarContent({
       {/* Nav Groups */}
       <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2 pb-4 flex flex-col gap-1.5 mt-1 relative">
         {NAV_GROUPS.map(group => {
-          const visible = getVisibleItems(group, userRole);
+          const visible = getVisibleItems(group, canAccessRoute);
           if (visible.length === 0) return null;
 
           const isPrincipal = group.title === 'Principal';
@@ -598,7 +597,6 @@ export default function AppSidebar({
   onLogout, onSwitchCompany, switching,
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const userRole = (user?.role || '').toLowerCase();
 
   // ⌘K global shortcut
   React.useEffect(() => {
@@ -722,7 +720,6 @@ export default function AppSidebar({
       {searchOpen && (
         <SearchModal
           onClose={() => setSearchOpen(false)}
-          userRole={userRole}
         />
       )}
     </>

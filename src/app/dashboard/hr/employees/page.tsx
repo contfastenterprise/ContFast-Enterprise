@@ -187,342 +187,341 @@ export default function EmployeesPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
-              <Users className="h-6 w-6 text-primary" /> Colaboradores / Empleados
-            </h1>
-            <p className="text-sm text-on-surface-variant/80">
-              Administración de ficha de datos personales y laborales del personal.
-            </p>
-          </div>
-          <button
-            onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-xl shadow-md shadow-primary/10 transition-all shrink-0 self-start md:self-auto"
-          >
-            <Plus className="h-4 w-4" /> Agregar Empleado
-          </button>
-        </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 bg-surface p-4 rounded-xl border border-outline shadow-sm">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/40" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, código o cédula..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full bg-surface-variant/20 text-sm text-on-surface border border-outline/35 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-primary transition-all"
-            />
-          </div>
-          <button
-            onClick={fetchData}
-            className="p-2 border border-outline hover:bg-surface-variant rounded-lg transition-all text-on-surface"
-          >
-            <RefreshCw className="h-4.5 w-4.5" />
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
+            <Users className="h-6 w-6 text-primary" /> Colaboradores / Empleados
+          </h1>
+          <p className="text-sm text-on-surface-variant/80">
+            Administración de ficha de datos personales y laborales del personal.
+          </p>
         </div>
+        <button
+          onClick={handleOpenCreate}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-xl shadow-md shadow-primary/10 transition-all shrink-0 self-start md:self-auto"
+        >
+          <Plus className="h-4 w-4" /> Agregar Empleado
+        </button>
+      </div>
 
-        {/* Table View */}
-        {loading ? (
-          <div className="flex h-[30vh] items-center justify-center">
-            <RefreshCw className="h-7 w-7 animate-spin text-primary" />
-          </div>
-        ) : employeesList.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-outline rounded-xl bg-surface p-8">
-            <Users className="mx-auto h-12 w-12 text-on-surface-variant/30" />
-            <h3 className="mt-4 text-sm font-semibold text-on-surface">No se encontraron empleados</h3>
-            <p className="mt-1 text-xs text-on-surface-variant/70">Comienza agregando tu primer colaborador administrativo o de taller.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-outline bg-surface shadow-sm">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="bg-surface-variant/25 text-xs text-on-surface-variant/80 uppercase border-b border-outline">
-                  <th className="p-3">Código</th>
-                  <th className="p-3">Nombre</th>
-                  <th className="p-3">Cédula</th>
-                  <th className="p-3">Departamento / Cargo</th>
-                  <th className="p-3">Salario</th>
-                  <th className="p-3">Contrato</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employeesList.map((emp) => (
-                  <tr key={emp.id} className="border-b border-outline/40 hover:bg-surface-variant/10 text-on-surface">
-                    <td className="p-3 font-semibold text-primary">{emp.employeeCode}</td>
-                    <td className="p-3 font-medium">{emp.firstName} {emp.lastName}</td>
-                    <td className="p-3 font-mono">{emp.cedula.replace(/(\d{3})(\d{7})(\d{1})/, '$1-$2-$3')}</td>
-                    <td className="p-3">
-                      <div className="flex flex-col text-xs text-on-surface-variant">
-                        <span>{departments.find(d => d.id === emp.departmentId)?.name || 'General'}</span>
-                        <span className="text-[10px] opacity-75">{positions.find(p => p.id === emp.positionId)?.name || 'Sin Puesto'}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 font-medium">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</td>
-                    <td className="p-3 capitalize text-xs">{emp.contractType}</td>
-                    <td className="p-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        emp.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300' :
+      {/* Filters */}
+      <div className="flex items-center gap-3 bg-surface p-4 rounded-xl border border-outline shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/40" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, código o cédula..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-surface-variant/20 text-sm text-on-surface border border-outline/35 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-primary transition-all"
+          />
+        </div>
+        <button
+          onClick={fetchData}
+          className="p-2 border border-outline hover:bg-surface-variant rounded-lg transition-all text-on-surface"
+        >
+          <RefreshCw className="h-4.5 w-4.5" />
+        </button>
+      </div>
+
+      {/* Table View */}
+      {loading ? (
+        <div className="flex h-[30vh] items-center justify-center">
+          <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+        </div>
+      ) : employeesList.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-outline rounded-xl bg-surface p-8">
+          <Users className="mx-auto h-12 w-12 text-on-surface-variant/30" />
+          <h3 className="mt-4 text-sm font-semibold text-on-surface">No se encontraron empleados</h3>
+          <p className="mt-1 text-xs text-on-surface-variant/70">Comienza agregando tu primer colaborador administrativo o de taller.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-outline bg-surface shadow-sm">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-surface-variant/25 text-xs text-on-surface-variant/80 uppercase border-b border-outline">
+                <th className="p-3">Código</th>
+                <th className="p-3">Nombre</th>
+                <th className="p-3">Cédula</th>
+                <th className="p-3">Departamento / Cargo</th>
+                <th className="p-3">Salario</th>
+                <th className="p-3">Contrato</th>
+                <th className="p-3">Estado</th>
+                <th className="p-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {employeesList.map((emp) => (
+                <tr key={emp.id} className="border-b border-outline/40 hover:bg-surface-variant/10 text-on-surface">
+                  <td className="p-3 font-semibold text-primary">{emp.employeeCode}</td>
+                  <td className="p-3 font-medium">{emp.firstName} {emp.lastName}</td>
+                  <td className="p-3 font-mono">{emp.cedula.replace(/(\d{3})(\d{7})(\d{1})/, '$1-$2-$3')}</td>
+                  <td className="p-3">
+                    <div className="flex flex-col text-xs text-on-surface-variant">
+                      <span>{departments.find(d => d.id === emp.departmentId)?.name || 'General'}</span>
+                      <span className="text-[10px] opacity-75">{positions.find(p => p.id === emp.positionId)?.name || 'Sin Puesto'}</span>
+                    </div>
+                  </td>
+                  <td className="p-3 font-medium">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</td>
+                  <td className="p-3 capitalize text-xs">{emp.contractType}</td>
+                  <td className="p-3">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300' :
                         emp.status === 'inactive' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-300' :
-                        'bg-red-100 text-red-800 dark:bg-red-900/35 dark:text-red-300'
+                          'bg-red-100 text-red-800 dark:bg-red-900/35 dark:text-red-300'
                       }`}>
-                        {emp.status === 'active' ? 'Activo' : emp.status === 'inactive' ? 'Inactivo' : emp.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenEdit(emp)}
-                        className="p-1 hover:bg-surface-variant/40 rounded transition-colors text-on-surface"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(emp.id)}
-                        className="p-1 hover:bg-red-500/10 text-red-500 rounded transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      {emp.status === 'active' ? 'Activo' : emp.status === 'inactive' ? 'Inactivo' : emp.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right space-x-2">
+                    <button
+                      onClick={() => handleOpenEdit(emp)}
+                      className="p-1 hover:bg-surface-variant/40 rounded transition-colors text-on-surface"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(emp.id)}
+                      className="p-1 hover:bg-red-500/10 text-red-500 rounded transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        {/* Modal Form */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-            <div className="bg-surface border border-outline rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative">
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute right-4 top-4 p-1 rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant"
-              >
-                <X className="h-5 w-5" />
-              </button>
+      {/* Modal Form */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-surface border border-outline rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute right-4 top-4 p-1 rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-              <h2 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2 border-b border-outline/50 pb-2">
-                <Users className="h-5 w-5 text-primary" /> {editId ? 'Editar Empleado' : 'Registrar Nuevo Empleado'}
-              </h2>
+            <h2 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2 border-b border-outline/50 pb-2">
+              <Users className="h-5 w-5 text-primary" /> {editId ? 'Editar Empleado' : 'Registrar Nuevo Empleado'}
+            </h2>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Personal Section */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">1. Datos Personales</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Nombre</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.firstName}
-                        onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Apellido</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.lastName}
-                        onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Cédula Dominicana</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej. 00112345678"
-                        value={formData.cedula}
-                        onChange={e => setFormData({ ...formData, cedula: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Fecha de Nacimiento</label>
-                      <input
-                        type="date"
-                        required
-                        value={formData.birthDate}
-                        onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Género</label>
-                      <select
-                        value={formData.gender}
-                        onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="masculino">Masculino</option>
-                        <option value="femenino">Femenino</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Estado Civil</label>
-                      <select
-                        value={formData.civilStatus}
-                        onChange={e => setFormData({ ...formData, civilStatus: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="soltero">Soltero/a</option>
-                        <option value="casado">Casado/a</option>
-                        <option value="divorciado">Divorciado/a</option>
-                        <option value="viudo">Viudo/a</option>
-                        <option value="union_libre">Unión Libre</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Correo Electrónico</label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Teléfono</label>
-                      <input
-                        type="text"
-                        value={formData.phone}
-                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Personal Section */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">1. Datos Personales</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Nombre</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-on-surface-variant">Dirección Completa</label>
-                    <textarea
-                      rows={2}
-                      value={formData.address}
-                      onChange={e => setFormData({ ...formData, address: e.target.value })}
+                    <label className="text-xs font-medium text-on-surface-variant">Apellido</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Cédula Dominicana</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. 00112345678"
+                      value={formData.cedula}
+                      onChange={e => setFormData({ ...formData, cedula: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Fecha de Nacimiento</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.birthDate}
+                      onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Género</label>
+                    <select
+                      value={formData.gender}
+                      onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Estado Civil</label>
+                    <select
+                      value={formData.civilStatus}
+                      onChange={e => setFormData({ ...formData, civilStatus: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="soltero">Soltero/a</option>
+                      <option value="casado">Casado/a</option>
+                      <option value="divorciado">Divorciado/a</option>
+                      <option value="viudo">Viudo/a</option>
+                      <option value="union_libre">Unión Libre</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Teléfono</label>
+                    <input
+                      type="text"
+                      value={formData.phone}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
                     />
                   </div>
                 </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-on-surface-variant">Dirección Completa</label>
+                  <textarea
+                    rows={2}
+                    value={formData.address}
+                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                  />
+                </div>
+              </div>
 
-                {/* Job Section */}
-                <div className="space-y-3 pt-2 border-t border-outline/40">
-                  <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">2. Datos Laborales</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Código Empleado</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.employeeCode}
-                        onChange={e => setFormData({ ...formData, employeeCode: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Tipo Contrato</label>
-                      <select
-                        value={formData.contractType}
-                        onChange={e => setFormData({ ...formData, contractType: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="fijo">Fijo</option>
-                        <option value="indefinido">Indefinido</option>
-                        <option value="temporal">Temporal</option>
-                        <option value="por_obra">Por Obra</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Departamento</label>
-                      <select
-                        value={formData.departmentId}
-                        onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="">Ninguno / General</option>
-                        {departments.map(d => (
-                          <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Cargo / Puesto</label>
-                      <select
-                        value={formData.positionId}
-                        onChange={e => setFormData({ ...formData, positionId: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="">Ninguno / General</option>
-                        {positions.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Salario Base (DOP)</label>
-                      <input
-                        type="number"
-                        required
-                        value={formData.salary}
-                        onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Fecha de Ingreso</label>
-                      <input
-                        type="date"
-                        required
-                        value={formData.hireDate}
-                        onChange={e => setFormData({ ...formData, hireDate: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-on-surface-variant">Estado Laboral</label>
-                      <select
-                        value={formData.status}
-                        onChange={e => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
-                      >
-                        <option value="active">Activo</option>
-                        <option value="inactive">Inactivo</option>
-                        <option value="suspended">Suspendido</option>
-                        <option value="cancelled">Cancelado</option>
-                      </select>
-                    </div>
+              {/* Job Section */}
+              <div className="space-y-3 pt-2 border-t border-outline/40">
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">2. Datos Laborales</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Código Empleado</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.employeeCode}
+                      onChange={e => setFormData({ ...formData, employeeCode: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Tipo Contrato</label>
+                    <select
+                      value={formData.contractType}
+                      onChange={e => setFormData({ ...formData, contractType: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="fijo">Fijo</option>
+                      <option value="indefinido">Indefinido</option>
+                      <option value="temporal">Temporal</option>
+                      <option value="por_obra">Por Obra</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Departamento</label>
+                    <select
+                      value={formData.departmentId}
+                      onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="">Ninguno / General</option>
+                      {departments.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Cargo / Puesto</label>
+                    <select
+                      value={formData.positionId}
+                      onChange={e => setFormData({ ...formData, positionId: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="">Ninguno / General</option>
+                      {positions.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Salario Base (DOP)</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.salary}
+                      onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Fecha de Ingreso</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.hireDate}
+                      onChange={e => setFormData({ ...formData, hireDate: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Estado Laboral</label>
+                    <select
+                      value={formData.status}
+                      onChange={e => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="active">Activo</option>
+                      <option value="inactive">Inactivo</option>
+                      <option value="suspended">Suspendido</option>
+                      <option value="cancelled">Cancelado</option>
+                    </select>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-outline/40">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="px-4 py-2 border border-outline hover:bg-surface-variant rounded-lg text-sm text-on-surface"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-primary hover:bg-primary-variant text-on-primary font-semibold rounded-lg text-sm transition-all"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar Empleado'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-outline/40">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-outline hover:bg-surface-variant rounded-lg text-sm text-on-surface"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-primary hover:bg-primary-variant text-on-primary font-semibold rounded-lg text-sm transition-all"
+                >
+                  {submitting ? 'Guardando...' : 'Guardar Empleado'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
-    </DashboardLayout>
+        </div>
+      )}
+    </div>
+
   );
 }

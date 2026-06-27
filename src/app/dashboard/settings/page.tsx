@@ -2,16 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User } from 'lucide-react';
 import { toast } from 'sonner';
+import AvatarUploader from '@/components/ui/AvatarUploader';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa'>('perfil');
 
   // Read-only
   const [initialCompanyInfo, setInitialCompanyInfo] = useState({ name: '', rnc: '' });
   const [userRole, setUserRole] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string; avatarUrl?: string | null; avatarPath?: string | null } | null>(null);
   const [hasMsellerApiKey, setHasMsellerApiKey] = useState(false);
   const [hasMsellerPassword, setHasMsellerPassword] = useState(false);
   const [subscription, setSubscription] = useState<{
@@ -54,12 +57,13 @@ export default function SettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      // Cargar rol de usuario
+      // Cargar rol de usuario y perfil
       try {
         const userRes = await fetch('/api/v1/auth/me');
         const userData = await userRes.json();
         if (userData.success && userData.data?.user) {
           setUserRole(userData.data.user.role);
+          setCurrentUser(userData.data.user);
         }
       } catch (userErr) {
         console.error('Error al obtener perfil de usuario', userErr);
@@ -138,347 +142,441 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
-      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-          <SettingsIcon className="h-3 w-3" /> Configuración Global
-        </span>
-      </div>
-
-      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Ajustes del Sistema
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Configura los parámetros operativos y límites de la empresa.
-            </p>
-          </div>
+    <DashboardLayout>
+      <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
+        <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
+          <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+            <SettingsIcon className="h-3 w-3" /> Configuración Global
+          </span>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
-        ) : (
-          <form onSubmit={handleSave} className="space-y-6">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
+                Ajustes del Sistema
+              </h1>
+              <p className="text-on-surface-variant/70 text-sm mt-1">
+                Configura tu cuenta personal y los parámetros operativos de la empresa.
+              </p>
+            </div>
+            
+            {/* Tabs de Configuración */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('perfil')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                  activeTab === 'perfil'
+                    ? 'bg-[#003366] text-white shadow-md'
+                    : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
+                }`}
+              >
+                Mi Perfil
+              </button>
+              {(isAdministracion || isSistemas) && (
+                <button
+                  onClick={() => setActiveTab('empresa')}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    activeTab === 'empresa'
+                      ? 'bg-[#003366] text-white shadow-md'
+                      : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
+                  }`}
+                >
+                  Configuración Empresa
+                </button>
+              )}
+            </div>
+          </div>
 
-            {/* Bloque: Identidad */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
-                <Lock className="w-5 h-5 text-[#003366]" />
-                <h3 className="font-bold text-slate-800">Identidad Fiscal</h3>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+            </div>
+          ) : activeTab === 'perfil' && currentUser ? (
+            /* Sección Mi Perfil */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
+                <h3 className="text-lg font-bold text-[#003366] mb-4">Foto de Perfil</h3>
+                <AvatarUploader
+                  userId={currentUser.id}
+                  userName={currentUser.name}
+                  currentAvatarUrl={currentUser.avatarUrl}
+                  currentAvatarPath={currentUser.avatarPath}
+                  onUploadSuccess={(url, path) => {
+                    setCurrentUser(prev => prev ? { ...prev, avatarUrl: url, avatarPath: path } : null);
+                    // Actualizar localStorage o forzar actualización si es necesario
+                    if (typeof window !== 'undefined') {
+                      const stored = localStorage.getItem('cf_user');
+                      if (stored) {
+                        try {
+                          const parsed = JSON.parse(stored);
+                          parsed.avatarUrl = url;
+                          parsed.avatarPath = path;
+                          localStorage.setItem('cf_user', JSON.stringify(parsed));
+                        } catch(e) {}
+                      }
+                    }
+                  }}
+                  onDeleteSuccess={() => {
+                    setCurrentUser(prev => prev ? { ...prev, avatarUrl: null, avatarPath: null } : null);
+                    if (typeof window !== 'undefined') {
+                      const stored = localStorage.getItem('cf_user');
+                      if (stored) {
+                        try {
+                          const parsed = JSON.parse(stored);
+                          parsed.avatarUrl = null;
+                          parsed.avatarPath = null;
+                          localStorage.setItem('cf_user', JSON.stringify(parsed));
+                        } catch(e) {}
+                      }
+                    }
+                  }}
+                />
               </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Nombre Comercial</label>
-                  <input 
-                    type="text" 
-                    disabled={isNameDisabled} 
-                    value={formData.name} 
-                    onChange={e => setFormData({ ...formData, name: e.target.value })} 
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">RNC</label>
-                  <input 
-                    type="text" 
-                    disabled={isRncDisabled} 
-                    value={formData.rnc} 
-                    onChange={e => setFormData({ ...formData, rnc: e.target.value })} 
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
-                  />
-                </div>
-                <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
-                  <div className="flex items-start gap-6 mt-2">
-                    <div className="w-24 h-24 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {formData.logoUrl ? (
-                        <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                      ) : (
-                        <ImageIcon className="w-8 h-8 text-on-surface-variant" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <label className="flex items-center justify-center w-full max-w-sm h-24 px-4 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <UploadCloud className="w-6 h-6 text-on-surface-variant mb-2" />
-                          <p className="text-sm text-on-surface-variant/70 font-medium">Haga clic para subir el logo</p>
-                          <p className="text-xs text-on-surface-variant mt-1">PNG, JPG, SVG (Recomendado 250x100px)</p>
-                        </div>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                      </label>
-                      {formData.logoUrl && (
-                        <button type="button" onClick={() => setFormData({ ...formData, logoUrl: '' })} className="text-xs text-rose-500 font-bold mt-2 hover:underline">
-                          Remover Imagen
-                        </button>
-                      )}
-                    </div>
+
+              <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#003366]" /> Datos del Usuario
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Nombre</span>
+                    <span className="text-sm font-semibold text-slate-800">{currentUser.name}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Correo Electrónico</span>
+                    <span className="text-sm font-semibold text-slate-800">{currentUser.email}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Rol de Sistema</span>
+                    <span className="text-sm font-semibold uppercase text-[#003366] bg-[#003366]/5 px-2.5 py-1 rounded-md inline-block mt-1">
+                      {userRole}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* Sección Configuración Empresa */
+            <form onSubmit={handleSave} className="space-y-6">
 
-            {/* Bloque: Configuración Editable */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
-                <Building className="w-5 h-5 text-[#003366]" />
-                <h3 className="font-bold text-[#003366]">Parámetros Operativos</h3>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
-                  <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
+              {/* Bloque: Identidad */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                  <Lock className="w-5 h-5 text-[#003366]" />
+                  <h3 className="font-bold text-slate-800">Identidad Fiscal</h3>
                 </div>
-
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
-                  <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Ambiente de Facturación (e-CF)</label>
-                  <select value={formData.dgiiEnv} onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium text-slate-900 bg-white">
-                    <option value="test">Pruebas (Sandbox)</option>
-                    <option value="production">Producción</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
-                  <select value={formData.printLayout} onChange={e => setFormData({ ...formData, printLayout: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium uppercase text-slate-900 bg-white">
-                    <option value="carta">Carta (8.5 x 11)</option>
-                    <option value="80mm">Ticket 80mm</option>
-                    <option value="58mm">Ticket 58mm</option>
-                  </select>
-                </div>
-
-                <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6 mt-2">
-                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Límites y Automatizaciones</h4>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={formData.maxCreditNoteApprovalAmount} onChange={e => setFormData({ ...formData, maxCreditNoteApprovalAmount: Number(e.target.value) })} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#C5A059] font-mono text-slate-900 bg-white" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={formData.maxCashOutApprovalAmount} onChange={e => setFormData({ ...formData, maxCashOutApprovalAmount: Number(e.target.value) })} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#C5A059] font-mono text-slate-900 bg-white" />
-                  </div>
-                </div>
-
-                <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-amber-50 p-4 rounded-lg border border-amber-100 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, autoDeliveryNotes: !formData.autoDeliveryNotes })}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${formData.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-300'
-                      }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.autoDeliveryNotes ? 'translate-x-5' : 'translate-x-0'
-                        }`}
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Nombre Comercial</label>
+                    <input 
+                      type="text" 
+                      disabled={isNameDisabled} 
+                      value={formData.name} 
+                      onChange={e => setFormData({ ...formData, name: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
                     />
-                  </button>
+                  </div>
                   <div>
-                    <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2"><Truck className="w-4 h-4" /> Conduces Automáticos</h4>
-                    <p className="text-xs text-amber-700/80">Generar un borrador de remisión automáticamente al facturar productos físicos.</p>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">RNC</label>
+                    <input 
+                      type="text" 
+                      disabled={isRncDisabled} 
+                      value={formData.rnc} 
+                      onChange={e => setFormData({ ...formData, rnc: e.target.value })} 
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold" 
+                    />
+                  </div>
+                  <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
+                    <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
+                    <div className="flex items-start gap-6 mt-2">
+                      <div className="w-24 h-24 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {formData.logoUrl ? (
+                          <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                          <ImageIcon className="w-8 h-8 text-on-surface-variant" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <label className="flex items-center justify-center w-full max-w-sm h-24 px-4 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <UploadCloud className="w-6 h-6 text-on-surface-variant mb-2" />
+                            <p className="text-sm text-on-surface-variant/70 font-medium">Haga clic para subir el logo</p>
+                            <p className="text-xs text-on-surface-variant mt-1">PNG, JPG, SVG (Recomendado 250x100px)</p>
+                          </div>
+                          <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                        </label>
+                        {formData.logoUrl && (
+                          <button type="button" onClick={() => setFormData({ ...formData, logoUrl: '' })} className="text-xs text-rose-500 font-bold mt-2 hover:underline">
+                            Remover Imagen
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-
               </div>
-            </div>
 
-            {/* Bloque: Integración mSeller API */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
-                <SettingsIcon className="w-5 h-5 text-[#003366]" />
-                <h3 className="font-bold text-[#003366]">Integración mSeller API</h3>
-              </div>
-              <div className="p-6">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-                  <Lock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-800">
-                    <strong>Seguridad:</strong> Las contraseñas y llaves de API se encriptan de forma segura (AES-256) antes de almacenarse en la base de datos. Una vez guardadas, no podrán ser visualizadas.
-                  </p>
+              {/* Bloque: Configuración Editable */}
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                  <Building className="w-5 h-5 text-[#003366]" />
+                  <h3 className="font-bold text-[#003366]">Parámetros Operativos</h3>
                 </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
+                    <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
+                    <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
+                  </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
-                    <select 
-                      disabled={!isSistemas} 
-                      value={formData.msellerEntorno} 
-                      onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })} 
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] font-medium text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <option value="test">Pruebas</option>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Ambiente de Facturación (e-CF)</label>
+                    <select value={formData.dgiiEnv} onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium text-slate-900 bg-white">
+                      <option value="test">Pruebas (Sandbox)</option>
                       <option value="production">Producción</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
-                    <input 
-                      type="text" 
-                      disabled={!isSistemas} 
-                      value={formData.msellerUrl} 
-                      onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })} 
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
-                      placeholder="https://api.mseller.app/v1" 
-                    />
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
+                    <select value={formData.printLayout} onChange={e => setFormData({ ...formData, printLayout: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium uppercase text-slate-900 bg-white">
+                      <option value="carta">Carta (8.5 x 11)</option>
+                      <option value="80mm">Ticket 80mm</option>
+                      <option value="58mm">Ticket 58mm</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6 mt-2">
+                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Límites y Automatizaciones</h4>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
-                    <input 
-                      type="email" 
-                      disabled={!isSistemas} 
-                      value={formData.msellerEmail} 
-                      onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })} 
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
-                      placeholder="usuario@empresa.com" 
-                    />
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
+                      <input type="number" min="0" step="0.01" value={formData.maxCreditNoteApprovalAmount} onChange={e => setFormData({ ...formData, maxCreditNoteApprovalAmount: Number(e.target.value) })} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#C5A059] font-mono text-slate-900 bg-white" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
-                    <input 
-                      type="password" 
-                      disabled={!isSistemas} 
-                      value={formData.msellerPassword} 
-                      onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })} 
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
-                      placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"} 
-                    />
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
+                      <input type="number" min="0" step="0.01" value={formData.maxCashOutApprovalAmount} onChange={e => setFormData({ ...formData, maxCashOutApprovalAmount: Number(e.target.value) })} className="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#C5A059] font-mono text-slate-900 bg-white" />
+                    </div>
                   </div>
 
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
-                    <input 
-                      type="password" 
-                      disabled={!isSistemas} 
-                      value={formData.msellerApiKey} 
-                      onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })} 
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
-                      placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"} 
-                    />
+                  <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-amber-50 p-4 rounded-lg border border-amber-100 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, autoDeliveryNotes: !formData.autoDeliveryNotes })}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${formData.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-300'
+                        }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.autoDeliveryNotes ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                      />
+                    </button>
+                    <div>
+                      <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2"><Truck className="w-4 h-4" /> Conduces Automáticos</h4>
+                      <p className="text-xs text-amber-700/80">Generar un borrador de remisión automáticamente al facturar productos físicos.</p>
+                    </div>
                   </div>
+
                 </div>
               </div>
-            </div>
 
-            {/* Bloque: Plan y Suscripción (Solo para Admin/Sistemas) */}
-            {(isAdministracion || isSistemas) && (
+              {/* Bloque: Integración mSeller API */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
-                  <Award className="w-5 h-5 text-[#C5A059]" />
-                  <h3 className="font-bold text-[#003366]">Plan y Suscripción</h3>
+                  <SettingsIcon className="w-5 h-5 text-[#003366]" />
+                  <h3 className="font-bold text-[#003366]">Integración mSeller API</h3>
                 </div>
                 <div className="p-6">
-                  {subscription ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+                    <Lock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      <strong>Seguridad:</strong> Las contraseñas y llaves de API se encriptan de forma segura (AES-256) antes de almacenarse en la base de datos. Una vez guardadas, no podrán ser visualizadas.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6 mb-6">
-                        <div>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Contratado</p>
-                          <h4 className="text-xl font-bold text-[#003366] mt-1">{subscription.planName}</h4>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                            subscription.status === 'active' 
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
-                            <span className={`w-2 h-2 rounded-full ${subscription.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                            {subscription.status === 'active' ? 'Activo' : subscription.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite e-CF</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxEcfLimit === -1 ? 'Ilimitado' : `${subscription.maxEcfLimit} / mes`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                            <Users className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Usuarios</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxUsers === -1 ? 'Ilimitado' : `${subscription.maxUsers}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-violet-50 rounded-lg text-violet-600">
-                            <Layers className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Almacenes</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxWarehouses === -1 ? 'Ilimitado' : `${subscription.maxWarehouses}`}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Calendar className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs font-semibold">
-                            Vencimiento / Renovación:{' '}
-                            <span className="text-slate-800 font-bold">
-                              {new Date(subscription.currentPeriodEnd).toLocaleDateString('es-DO', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
-                            </span>
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium italic">
-                          Para modificar su plan o límites, contacte a soporte.
-                        </p>
-                      </div>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
+                      <select 
+                        disabled={!isSistemas} 
+                        value={formData.msellerEntorno} 
+                        onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })} 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] font-medium text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="test">Pruebas</option>
+                        <option value="production">Producción</option>
+                      </select>
                     </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-slate-500 font-medium">No se encontró una suscripción activa para esta empresa.</p>
-                      <p className="text-xs text-slate-400 mt-1">Por favor, póngase en contacto con soporte técnico para activar su plan.</p>
+
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
+                      <input 
+                        type="text" 
+                        disabled={!isSistemas} 
+                        value={formData.msellerUrl} 
+                        onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })} 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                        placeholder="https://api.mseller.app/v1" 
+                      />
                     </div>
-                  )}
+
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
+                      <input 
+                        type="email" 
+                        disabled={!isSistemas} 
+                        value={formData.msellerEmail} 
+                        onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })} 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                        placeholder="usuario@empresa.com" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
+                      <input 
+                        type="password" 
+                        disabled={!isSistemas} 
+                        value={formData.msellerPassword} 
+                        onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })} 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                        placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"} 
+                      />
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
+                      <input 
+                        type="password" 
+                        disabled={!isSistemas} 
+                        value={formData.msellerApiKey} 
+                        onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })} 
+                        className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed" 
+                        placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"} 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <div className="flex justify-end pt-4">
-              <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2">
-                {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />} Guardar Cambios
-              </button>
-            </div>
+              {/* Bloque: Plan y Suscripción (Solo para Admin/Sistemas) */}
+              {(isAdministracion || isSistemas) && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                    <Award className="w-5 h-5 text-[#C5A059]" />
+                    <h3 className="font-bold text-[#003366]">Plan y Suscripción</h3>
+                  </div>
+                  <div className="p-6">
+                    {subscription ? (
+                      <div>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6 mb-6">
+                          <div>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Contratado</p>
+                            <h4 className="text-xl font-bold text-[#003366] mt-1">{subscription.planName}</h4>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                              subscription.status === 'active' 
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              <span className={`w-2 h-2 rounded-full ${subscription.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                              {subscription.status === 'active' ? 'Activo' : subscription.status}
+                            </span>
+                          </div>
+                        </div>
 
-          </form>
-        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite e-CF</p>
+                              <p className="text-lg font-bold text-slate-800 mt-1">
+                                {subscription.maxEcfLimit === -1 ? 'Ilimitado' : `${subscription.maxEcfLimit} / mes`}
+                              </p>
+                            </div>
+                          </div>
 
+                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                            <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                              <Users className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Usuarios</p>
+                              <p className="text-lg font-bold text-slate-800 mt-1">
+                                {subscription.maxUsers === -1 ? 'Ilimitado' : `${subscription.maxUsers}`}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
+                            <div className="p-2 bg-violet-50 rounded-lg text-violet-600">
+                              <Layers className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Almacenes</p>
+                              <p className="text-lg font-bold text-slate-800 mt-1">
+                                {subscription.maxWarehouses === -1 ? 'Ilimitado' : `${subscription.maxWarehouses}`}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                          <div className="flex items-center gap-2 text-slate-600">
+                            <Calendar className="w-4 h-4 text-slate-400" />
+                            <span className="text-xs font-semibold">
+                              Vencimiento / Renovación:{' '}
+                              <span className="text-slate-800 font-bold">
+                                {new Date(subscription.currentPeriodEnd).toLocaleDateString('es-DO', {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                })}
+                              </span>
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium italic">
+                            Para modificar su plan o límites, contacte a soporte.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-sm text-slate-500 font-medium">No se encontró una suscripción activa para esta empresa.</p>
+                        <p className="text-xs text-slate-400 mt-1">Por favor, póngase en contacto con soporte técnico para activar su plan.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4">
+                <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 font-semibold">
+                  {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />} Guardar Cambios
+                </button>
+              </div>
+
+            </form>
+          )}
+
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
