@@ -20,6 +20,7 @@ interface AvatarUploaderProps {
   userId: string;
   onUploadSuccess: (url: string, path: string) => void;
   onDeleteSuccess: () => void;
+  skipDatabaseUpdate?: boolean;
 }
 
 export default function AvatarUploader({
@@ -29,6 +30,7 @@ export default function AvatarUploader({
   userId,
   onUploadSuccess,
   onDeleteSuccess,
+  skipDatabaseUpdate = false,
 }: AvatarUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -212,18 +214,20 @@ export default function AvatarUploader({
         .getPublicUrl(filePath);
 
       // Llamar al endpoint local para guardar en base de datos
-      const res = await fetch('/api/v1/auth/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          avatarUrl: publicUrl,
-          avatarPath: filePath,
-        }),
-      });
+      if (!skipDatabaseUpdate) {
+        const res = await fetch('/api/v1/auth/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            avatarUrl: publicUrl,
+            avatarPath: filePath,
+          }),
+        });
 
-      const resData = await res.json();
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error?.message || 'Error al guardar la información en base de datos.');
+        const resData = await res.json();
+        if (!res.ok || !resData.success) {
+          throw new Error(resData.error?.message || 'Error al guardar la información en base de datos.');
+        }
       }
 
       toast.success('Avatar actualizado con éxito');
@@ -256,19 +260,21 @@ export default function AvatarUploader({
         await supabase.storage.from('avatars').remove([currentAvatarPath]);
       }
 
-      // Actualizar base de datos a null
-      const res = await fetch('/api/v1/auth/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          avatarUrl: null,
-          avatarPath: null,
-        }),
-      });
+      if (!skipDatabaseUpdate) {
+        // Actualizar base de datos a null
+        const res = await fetch('/api/v1/auth/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            avatarUrl: null,
+            avatarPath: null,
+          }),
+        });
 
-      const resData = await res.json();
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error?.message || 'Error al actualizar base de datos.');
+        const resData = await res.json();
+        if (!res.ok || !resData.success) {
+          throw new Error(resData.error?.message || 'Error al actualizar base de datos.');
+        }
       }
 
       toast.success('Foto de perfil eliminada.');

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
+import AvatarUploader from '@/components/ui/AvatarUploader';
 
 interface User {
   id: string;
@@ -61,6 +62,7 @@ export default function AdminPage() {
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [newUserTempId, setNewUserTempId] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Forms
@@ -69,7 +71,8 @@ export default function AdminPage() {
     email: '',
     passwordRaw: '',
     roleId: '',
-    avatarUrl: ''
+    avatarUrl: '',
+    avatarPath: ''
   });
 
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -78,7 +81,8 @@ export default function AdminPage() {
     email: '',
     passwordRaw: '',
     roleId: '',
-    avatarUrl: ''
+    avatarUrl: '',
+    avatarPath: ''
   });
 
   const [roleForm, setRoleForm] = useState({
@@ -156,7 +160,7 @@ export default function AdminPage() {
         toast.success('Usuario creado exitosamente');
         setShowNewUserModal(false);
         fetchData();
-        setUserForm({ name: '', email: '', passwordRaw: '', roleId: '', avatarUrl: '' });
+        setUserForm({ name: '', email: '', passwordRaw: '', roleId: '', avatarUrl: '', avatarPath: '' });
       } else {
         toast.error(data.error?.message || 'Error al crear usuario');
       }
@@ -167,6 +171,12 @@ export default function AdminPage() {
     }
   };
 
+  const handleOpenNewUser = () => {
+    setNewUserTempId(crypto.randomUUID());
+    setUserForm({ name: '', email: '', passwordRaw: '', roleId: '', avatarUrl: '', avatarPath: '' });
+    setShowNewUserModal(true);
+  };
+
   const handleOpenEditUser = (user: User) => {
     setEditingUserId(user.id);
     setEditUserForm({
@@ -174,7 +184,8 @@ export default function AdminPage() {
       email: user.email,
       passwordRaw: '',
       roleId: user.roleId || '',
-      avatarUrl: user.avatarUrl || ''
+      avatarUrl: user.avatarUrl || '',
+      avatarPath: user.avatarPath || ''
     });
     setShowEditUserModal(true);
   };
@@ -331,7 +342,7 @@ export default function AdminPage() {
             </p>
           </div>
           {activeTab === 'users' && (
-            <button onClick={() => setShowNewUserModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+            <button onClick={handleOpenNewUser} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
               <Plus className="h-4 w-4" /> Nuevo Usuario
             </button>
           )}
@@ -643,9 +654,17 @@ export default function AdminPage() {
                       ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">URL del Avatar</label>
-                  <input type="url" value={userForm.avatarUrl} onChange={e => setUserForm({ ...userForm, avatarUrl: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="https://ejemplo.com/avatar.png" />
+                <div className="flex flex-col items-center gap-1">
+                  <label className="text-sm font-semibold text-primary block self-start mb-1">Foto de Perfil (Local)</label>
+                  <AvatarUploader
+                    currentAvatarUrl={userForm.avatarUrl}
+                    currentAvatarPath={userForm.avatarPath}
+                    userName={userForm.name || 'CF'}
+                    userId={newUserTempId}
+                    skipDatabaseUpdate={true}
+                    onUploadSuccess={(url, path) => setUserForm({ ...userForm, avatarUrl: url, avatarPath: path })}
+                    onDeleteSuccess={() => setUserForm({ ...userForm, avatarUrl: '', avatarPath: '' })}
+                  />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                   <button type="button" onClick={() => setShowNewUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
@@ -693,9 +712,17 @@ export default function AdminPage() {
                       ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">URL del Avatar</label>
-                  <input type="url" value={editUserForm.avatarUrl} onChange={e => setEditUserForm({ ...editUserForm, avatarUrl: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="https://ejemplo.com/avatar.png" />
+                <div className="flex flex-col items-center gap-1">
+                  <label className="text-sm font-semibold text-primary block self-start mb-1">Foto de Perfil (Local)</label>
+                  <AvatarUploader
+                    currentAvatarUrl={editUserForm.avatarUrl}
+                    currentAvatarPath={editUserForm.avatarPath}
+                    userName={editUserForm.name || 'CF'}
+                    userId={editingUserId || 'edit-user'}
+                    skipDatabaseUpdate={true}
+                    onUploadSuccess={(url, path) => setEditUserForm({ ...editUserForm, avatarUrl: url, avatarPath: path })}
+                    onDeleteSuccess={() => setEditUserForm({ ...editUserForm, avatarUrl: '', avatarPath: '' })}
+                  />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                   <button type="button" onClick={() => setShowEditUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
