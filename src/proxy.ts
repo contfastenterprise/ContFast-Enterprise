@@ -101,6 +101,11 @@ const STATIC_ROUTE_MAPPINGS = [
 ];
 
 function checkRbacPermission(pathname: string, method: string, decoded: any): boolean {
+  // Gracefully handle pre-existing active session tokens that do not contain the permissions payload
+  if (decoded.permissions === undefined) {
+    return true;
+  }
+
   const userPermissions: string[] = decoded.permissions || [];
   const userRole = (decoded.role || '').toLowerCase();
 

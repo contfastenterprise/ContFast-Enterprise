@@ -34,22 +34,28 @@ export function RbacProvider({ children }: { children: React.ReactNode }) {
   const fetchSessionData = async () => {
     try {
       setLoading(true);
-      const [meRes, mappingsRes] = await Promise.all([
-        fetch('/api/v1/auth/me'),
-        fetch('/api/v1/auth/route-mappings'),
-      ]);
-
-      if (meRes.ok && mappingsRes.ok) {
+      
+      // 1. Fetch user session and permissions
+      const meRes = await fetch('/api/v1/auth/me');
+      if (meRes.ok) {
         const meData = await meRes.json();
-        const mappingsData = await mappingsRes.json();
-
         if (meData.success && meData.data?.user) {
           setUser(meData.data.user);
           setPermissions(meData.data.user.permissions || []);
         }
-        if (mappingsData.success && mappingsData.data) {
-          setRouteMappings(mappingsData.data);
+      }
+
+      // 2. Fetch route mappings independently
+      try {
+        const mappingsRes = await fetch('/api/v1/auth/route-mappings');
+        if (mappingsRes.ok) {
+          const mappingsData = await mappingsRes.json();
+          if (mappingsData.success && mappingsData.data) {
+            setRouteMappings(mappingsData.data);
+          }
         }
+      } catch (mappingErr) {
+        console.error('[RBAC Provider] Failed to fetch route mappings:', mappingErr);
       }
     } catch (err) {
       console.error('[RBAC Provider Error]: Failed to fetch permissions data.', err);

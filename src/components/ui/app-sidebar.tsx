@@ -139,12 +139,36 @@ export const NAV_GROUPS: NavGroupDef[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getVisibleItems(group: NavGroupDef, canAccessRoute: (path: string) => boolean): NavItemDef[] {
-  return group.items.filter(item => canAccessRoute(item.href));
+function getVisibleItems(
+  group: NavGroupDef,
+  canAccessRoute: (path: string) => boolean,
+  userRole: string
+): NavItemDef[] {
+  return group.items.filter(item => {
+    // 1. Check RBAC permissions dynamic routing
+    const isAllowedByRbac = canAccessRoute(item.href);
+    if (!isAllowedByRbac) return false;
+
+    // 2. Check static role restrictions if defined in the item as a secondary filter
+    if (item.roles) {
+      const cleanRole = userRole?.toLowerCase() || '';
+      const hasStaticRole = item.roles.some(r => {
+        const targetRole = r.toLowerCase();
+        // Homologate sistemas/sistema
+        if (targetRole === 'sistemas' || targetRole === 'sistema') {
+          return cleanRole === 'sistemas';
+        }
+        return cleanRole === targetRole || cleanRole.includes(targetRole);
+      });
+      if (!hasStaticRole) return false;
+    }
+
+    return true;
+  });
 }
 
-function getAllSearchableItems(canAccessRoute: (path: string) => boolean): NavItemDef[] {
-  return NAV_GROUPS.flatMap(g => getVisibleItems(g, canAccessRoute));
+function getAllSearchableItems(canAccessRoute: (path: string) => boolean, userRole: string): NavItemDef[] {
+  return NAV_GROUPS.flatMap(g => getVisibleItems(g, canAccessRoute, userRole));
 }
 
 // ─── WorkspaceSwitcher ───────────────────────────────────────────────────────
@@ -291,8 +315,8 @@ function NavItem({
 function SearchModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const { canAccessRoute } = useRbac();
-  const allItems = getAllSearchableItems(canAccessRoute);
+  const { canAccessRoute, user } = useRbac();
+  const allItems = getAllSearchableItems(canAccessRoute, user?.role || '');
   const results = query.trim()
     ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
     : allItems.slice(0, 7);
@@ -415,7 +439,7 @@ function SidebarContent({
       {/* Nav Groups */}
       <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2 pb-4 flex flex-col gap-1.5 mt-1 relative">
         {NAV_GROUPS.map(group => {
-          const visible = getVisibleItems(group, canAccessRoute);
+          const visible = getVisibleItems(group, canAccessRoute, user?.role || '');
           if (visible.length === 0) return null;
 
           const isPrincipal = group.title === 'Principal';

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { db, users, roles } from '@/db';
 import { eq } from 'drizzle-orm';
+import { RbacService } from '@/services/auth/rbacService';
 
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
         avatarUrl: users.avatarUrl,
         avatarPath: users.avatarPath,
         role: roles.name,
+        roleId: users.roleId,
       })
       .from(users)
       .innerJoin(roles, eq(users.roleId, roles.id))
@@ -51,14 +53,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Resolve permissions dynamically from DB to ensure backward compatibility and real-time correctness
+    const userPermissionsList = await RbacService.getUserPermissions(user.id, user.role, user.roleId);
+
     return NextResponse.json(
       { 
         success: true, 
         data: { 
           user: {
-            ...user,
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+            avatarPath: user.avatarPath,
+            role: user.role,
             companyId: auth.companyId,
-            permissions: auth.permissions,
+            permissions: userPermissionsList,
           } 
         } 
       },

@@ -101,7 +101,7 @@ export class RbacService {
       }
 
       // Default role permissions fallback
-      const roleDefaults = DEFAULT_ROLE_PERMISSIONS[roleName];
+      const roleDefaults = DEFAULT_ROLE_PERMISSIONS[normalizedRole];
       if (roleDefaults && roleDefaults[permissionKey] === true) {
         effectivePermissions.push(permissionKey);
       }
