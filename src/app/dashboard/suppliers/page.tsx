@@ -273,13 +273,21 @@ export default function SuppliersPage() {
             Gestiona los datos de facturación y contacto de todos tus suplidores.
           </p>
         </div>
-        <button
-          onClick={openNewModal}
-          className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo Suplidor
-        </button>
+        <div className="flex gap-2 w-full md:w-auto shrink-0">
+          <button
+            onClick={handlePrintList}
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm"
+          >
+            <Printer className="h-4 w-4 text-amber-500" /> Imprimir
+          </button>
+          <button
+            onClick={openNewModal}
+            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center flex-1 md:flex-none"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo Suplidor
+          </button>
+        </div>
       </div>
 
       {/* SEARCH BAR */}
@@ -295,13 +303,6 @@ export default function SuppliersPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
-        <button
-          onClick={handlePrintList}
-          className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shrink-0"
-        >
-          <Printer className="w-4 h-4 text-amber-500" />
-          <span>Imprimir</span>
-        </button>
       </div>
 
       {/* SUPPLIERS LIST */}
