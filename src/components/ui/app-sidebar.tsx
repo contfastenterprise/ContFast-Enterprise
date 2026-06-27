@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
+import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -44,131 +45,20 @@ interface AppSidebarProps {
   switching?: boolean;
 }
 
-// ─── Navigation Config ───────────────────────────────────────────────────────
-
-export const NAV_GROUPS: NavGroupDef[] = [
-  {
-    title: 'Principal',
-    icon: LayoutDashboard,
-    items: [
-      { name: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: 'Contactos',
-    icon: Users,
-    items: [
-      { name: 'Clientes', href: '/dashboard/customers', icon: Users, roles: ['sistema', 'admin', 'factura', 'contab', 'cajero'] },
-      { name: 'Suplidores', href: '/dashboard/suppliers', icon: Truck, roles: ['sistema', 'admin', 'contab', 'banco'] },
-    ],
-  },
-  {
-    title: 'Inventario',
-    icon: Package,
-    items: [
-      { name: 'Almacenes', href: '/dashboard/warehouses', icon: Building2, roles: ['sistema', 'admin'] },
-      { name: 'Categorías', href: '/dashboard/inventory/categories', icon: Tag, roles: ['sistema', 'admin'] },
-      { name: 'Productos', href: '/dashboard/products', icon: Package, roles: ['sistema', 'admin', 'cajero'] },
-      { name: 'Conduces', href: '/dashboard/delivery-notes', icon: Truck, roles: ['sistema', 'admin'] },
-      { name: 'Traslados', href: '/dashboard/inventory/transfer', icon: ArrowRightLeft, roles: ['sistema', 'admin'] },
-      { name: 'Ajustes', href: '/dashboard/inventory/adjustments', icon: PackageMinus, roles: ['sistema', 'admin'] },
-      { name: 'Movimientos', href: '/dashboard/inventory/movements', icon: HistoryIcon, roles: ['sistema', 'admin'] },
-    ],
-  },
-  {
-    title: 'Ingresos',
-    icon: HandCoins,
-    items: [
-      { name: 'Facturación e-CF', href: '/dashboard/invoices', icon: FileText, roles: ['sistema', 'admin', 'factura'] },
-      { name: 'Cotizaciones', href: '/dashboard/quotes', icon: FileText, roles: ['sistema', 'admin', 'factura'] },
-      { name: 'Crédito / Débito', href: '/dashboard/adjustments', icon: FileMinus, roles: ['sistema', 'admin', 'factura'] },
-      { name: 'Módulo de Caja', href: '/dashboard/cash', icon: Wallet, roles: ['sistema', 'admin', 'factura', 'cajero'] },
-      { name: 'Pagos y Abonos', href: '/dashboard/receivables', icon: HandCoins, roles: ['sistema', 'admin', 'factura', 'contab'] },
-      { name: 'Retenciones', href: '/dashboard/retentions', icon: ShieldAlert, roles: ['sistema', 'admin'] },
-    ],
-  },
-  {
-    title: 'Egresos',
-    icon: Receipt,
-    items: [
-      { name: 'Compras y Gastos', href: '/dashboard/purchases', icon: Banknote, roles: ['sistema', 'admin', 'contab'] },
-      { name: 'Cuentas por Pagar', href: '/dashboard/ap', icon: Receipt, roles: ['sistema', 'admin', 'contab'] },
-    ],
-  },
-  {
-    title: 'Finanzas',
-    icon: Landmark,
-    items: [
-      { name: 'Cuentas Bancarias', href: '/dashboard/bank', icon: Landmark, roles: ['sistema', 'sistemas', 'admin', 'contab', 'banco'] },
-      { name: 'Contabilidad', href: '/dashboard/accounting', icon: BookOpen, roles: ['sistema', 'sistemas', 'admin', 'contab'] },
-      { name: 'Reportes', href: '/dashboard/reports', icon: PieChart, roles: ['sistema', 'sistemas', 'admin', 'contab', 'banco'] },
-    ],
-  },
-  {
-    title: 'Recursos Humanos',
-    icon: Users,
-    items: [
-      { name: 'Dashboard RRHH', href: '/dashboard/hr', icon: LayoutDashboard, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-      { name: 'Empleados', href: '/dashboard/hr/employees', icon: Users, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-      { name: 'Departamentos', href: '/dashboard/hr/departments', icon: Building2, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-      { name: 'Nóminas', href: '/dashboard/hr/payroll', icon: Banknote, roles: ['sistemas', 'administracion', 'recursos_humanos', 'contabilidad'] },
-      { name: 'Horas Extras y Adicionales', href: '/dashboard/hr/overtime', icon: Calculator, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-      { name: 'Liquidación y Prestaciones', href: '/dashboard/hr/settlements', icon: ShieldAlert, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-      { name: 'Configuración de Ley', href: '/dashboard/hr/config', icon: Settings, roles: ['sistemas', 'administracion', 'recursos_humanos'] },
-    ],
-  },
-  {
-    title: 'Herramientas',
-    icon: Calculator,
-    items: [
-      { name: 'Desglose Ventanas', href: '/dashboard/tools/desglose/ventanas', icon: Calculator, roles: ['sistema', 'admin', 'factura'] },
-      { name: 'Corte de Vidrio', href: '/dashboard/tools/glass-cutting', icon: Layers, roles: ['sistema', 'admin', 'factura'] },
-    ],
-  },
-  {
-    title: 'Sistema',
-    icon: Settings,
-    items: [
-      { name: 'Ajustes', href: '/dashboard/settings', icon: Settings, roles: ['sistema', 'admin'] },
-      { name: 'Comprobantes Fiscales', href: '/dashboard/ecf', icon: ShieldCheck, roles: ['sistema', 'admin'] },
-      { name: 'Empresas', href: '/dashboard/admin/companies', icon: Building2, roles: ['sistema'] },
-      { name: 'Administración', href: '/dashboard/admin', icon: Shield, roles: ['sistema', 'admin'] },
-    ],
-  },
-];
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getVisibleItems(
-  group: NavGroupDef,
+function getAllSearchableItems(
+  routeMappings: RouteMapping[],
   canAccessRoute: (path: string) => boolean,
   userRole: string
 ): NavItemDef[] {
-  return group.items.filter(item => {
-    // 1. Check RBAC permissions dynamic routing
-    const isAllowedByRbac = canAccessRoute(item.href);
-    if (!isAllowedByRbac) return false;
-
-    // 2. Check static role restrictions if defined in the item as a secondary filter
-    if (item.roles) {
-      const cleanRole = userRole?.toLowerCase() || '';
-      const hasStaticRole = item.roles.some(r => {
-        const targetRole = r.toLowerCase();
-        // Homologate sistemas/sistema
-        if (targetRole === 'sistemas' || targetRole === 'sistema') {
-          return cleanRole === 'sistemas';
-        }
-        return cleanRole === targetRole || cleanRole.includes(targetRole);
-      });
-      if (!hasStaticRole) return false;
-    }
-
-    return true;
-  });
-}
-
-function getAllSearchableItems(canAccessRoute: (path: string) => boolean, userRole: string): NavItemDef[] {
-  return NAV_GROUPS.flatMap(g => getVisibleItems(g, canAccessRoute, userRole));
+  return buildSidebar(routeMappings, canAccessRoute, userRole).flatMap(g =>
+    g.items.map(item => ({
+      name: item.name,
+      href: item.href,
+      icon: getIconComponent(item.iconName),
+    }))
+  );
 }
 
 // ─── WorkspaceSwitcher ───────────────────────────────────────────────────────
@@ -315,8 +205,8 @@ function NavItem({
 function SearchModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const { canAccessRoute, user } = useRbac();
-  const allItems = getAllSearchableItems(canAccessRoute, user?.role || '');
+  const { canAccessRoute, routeMappings, user } = useRbac();
+  const allItems = getAllSearchableItems(routeMappings, canAccessRoute, user?.role || '');
   const results = query.trim()
     ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
     : allItems.slice(0, 7);
@@ -392,12 +282,23 @@ function SidebarContent({
   collapsed: boolean; onLogout: () => void; onItemClick?: () => void;
 }) {
   const pathname = usePathname();
-  const { canAccessRoute } = useRbac();
+  const { canAccessRoute, routeMappings } = useRbac();
+
+  // 1. Build and map dynamic groups from Supabase mappings and permissions
+  const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, canAccessRoute, user?.role || '').map(g => ({
+    title: g.title,
+    icon: getGroupIcon(g.title),
+    items: g.items.map(item => ({
+      name: item.name,
+      href: item.href,
+      icon: getIconComponent(item.iconName),
+    })),
+  }));
   
   // Track open/collapsed state of groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    NAV_GROUPS.forEach(g => {
+    dynamicGroups.forEach(g => {
       const active = g.items.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
       if (active) {
         initial[g.title] = true;
@@ -410,13 +311,13 @@ function SidebarContent({
 
   // Auto-expand group when path changes
   useEffect(() => {
-    NAV_GROUPS.forEach(g => {
+    dynamicGroups.forEach(g => {
       const active = g.items.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
       if (active) {
         setExpandedGroups(prev => ({ ...prev, [g.title]: true }));
       }
     });
-  }, [pathname]);
+  }, [pathname, routeMappings]);
 
   const toggleGroup = (title: string) => {
     setExpandedGroups(prev => ({ ...prev, [title]: !prev[title] }));
@@ -438,8 +339,8 @@ function SidebarContent({
 
       {/* Nav Groups */}
       <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-2 pb-4 flex flex-col gap-1.5 mt-1 relative">
-        {NAV_GROUPS.map(group => {
-          const visible = getVisibleItems(group, canAccessRoute, user?.role || '');
+        {dynamicGroups.map(group => {
+          const visible = group.items;
           if (visible.length === 0) return null;
 
           const isPrincipal = group.title === 'Principal';

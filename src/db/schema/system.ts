@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb, index, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, jsonb, index, boolean, integer } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 
@@ -37,6 +37,11 @@ export const routeMappings = pgTable('route_mappings', {
   routePattern: varchar('route_pattern', { length: 255 }).notNull(), // ej. '/dashboard/accounting%'
   module: varchar('module', { length: 100 }).notNull(), // ej. 'contabilidad'
   action: varchar('action', { length: 50 }), // read | write | delete | null (dinámico por método HTTP)
+  isMenuItem: boolean('is_menu_item').default(false).notNull(),
+  displayName: varchar('display_name', { length: 255 }),
+  groupName: varchar('group_name', { length: 100 }),
+  iconName: varchar('icon_name', { length: 100 }),
+  orderIndex: integer('order_index'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

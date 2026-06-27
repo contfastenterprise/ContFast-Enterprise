@@ -3,15 +3,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-export interface RouteMapping {
-  id: string;
-  routePattern: string;
-  module: string;
-  action: string | null;
-}
+import { UserProfile, RouteMapping } from '@/types/rbac';
 
 export interface RbacContextType {
-  user: any;
+  user: UserProfile | null;
   permissions: string[];
   routeMappings: RouteMapping[];
   loading: boolean;
@@ -26,7 +21,7 @@ const RbacContext = createContext<RbacContextType | undefined>(undefined);
 export function RbacProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [routeMappings, setRouteMappings] = useState<RouteMapping[]>([]);
   const [loading, setLoading] = useState(true);

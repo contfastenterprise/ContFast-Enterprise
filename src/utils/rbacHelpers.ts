@@ -1,0 +1,113 @@
+import { RouteMapping, SidebarGroup, SidebarItem } from '@/types/rbac';
+import * as LucideIcons from 'lucide-react';
+import React from 'react';
+
+// Predefined icons mapping for Groups
+const GROUP_ICONS: Record<string, React.ComponentType<any>> = {
+  'Principal': LucideIcons.LayoutDashboard,
+  'Contactos': LucideIcons.Users,
+  'Inventario': LucideIcons.Package,
+  'Ingresos': LucideIcons.HandCoins,
+  'Egresos': LucideIcons.Receipt,
+  'Finanzas': LucideIcons.Landmark,
+  'Recursos Humanos': LucideIcons.Users,
+  'Herramientas': LucideIcons.Calculator,
+  'Sistema': LucideIcons.Settings,
+};
+
+/**
+ * Get group icon component based on string name
+ */
+export function getGroupIcon(groupTitle: string): React.ComponentType<any> {
+  return GROUP_ICONS[groupTitle] || LucideIcons.HelpCircle;
+}
+
+/**
+ * Get individual item icon component dynamically from Lucide library
+ */
+export function getIconComponent(iconName: string): React.ComponentType<any> {
+  const Icon = (LucideIcons as any)[iconName];
+  return Icon || LucideIcons.HelpCircle;
+}
+
+/**
+ * Filtra y construye el árbol de navegación del Sidebar de forma 100% dinámica
+ * a partir de los mapeos de ruta registrados en base de datos y los permisos del usuario.
+ */
+export function buildSidebar(
+  routeMappings: RouteMapping[],
+  canAccessRoute: (path: string) => boolean,
+  userRole: string
+): SidebarGroup[] {
+  const cleanRole = userRole?.toLowerCase() || '';
+
+  // Debug log para auditar flujo de generación de sidebar
+  console.log('[Sidebar Audit]: Generating dynamic menu for role:', cleanRole);
+
+  // 1. Obtener todos los mapeos configurados como elementos de menú
+  const menuMappings = routeMappings.filter(m => m.isMenuItem && m.routePattern);
+
+  // 2. Filtrar los mapeos autorizados para el usuario actual
+  const authorizedItems: SidebarItem[] = [];
+
+  for (const m of menuMappings) {
+    // Validamos acceso dinámico usando la función canAccessRoute del contexto
+    const isAllowed = canAccessRoute(m.routePattern);
+    if (!isAllowed) {
+      console.log(`[Sidebar Audit]: Path ${m.routePattern} NOT authorized for user.`);
+      continue;
+    }
+
+    // Red de seguridad adicional: restricción estática por rol (si aplica)
+    if (m.routePattern.includes('/admin/companies') && cleanRole !== 'sistemas') {
+      console.log(`[Sidebar Audit]: Path ${m.routePattern} restricted to systems role only.`);
+      continue;
+    }
+
+    authorizedItems.push({
+      name: m.displayName || 'Módulo',
+      href: m.routePattern.replace(/%/g, ''), // Limpiamos wildcards
+      iconName: m.iconName || 'HelpCircle',
+      groupName: m.groupName || 'Otros',
+      orderIndex: m.orderIndex || 999,
+    });
+  }
+
+  // 3. Agrupar ítems por su groupName
+  const groupsMap = new Map<string, SidebarItem[]>();
+  for (const item of authorizedItems) {
+    if (!groupsMap.has(item.groupName)) {
+      groupsMap.set(item.groupName, []);
+    }
+    groupsMap.get(item.groupName)!.push(item);
+  }
+
+  // Definimos un orden fijo de grupos para una consistencia visual premium
+  const groupOrder = ['Principal', 'Contactos', 'Inventario', 'Ingresos', 'Egresos', 'Finanzas', 'Recursos Humanos', 'Herramientas', 'Sistema'];
+
+  // 4. Construir y ordenar los grupos resultantes
+  const sidebarGroups: SidebarGroup[] = [];
+  
+  // Agregamos en el orden preestablecido si tienen elementos autorizados
+  for (const title of groupOrder) {
+    const items = groupsMap.get(title);
+    if (items && items.length > 0) {
+      // Ordenamos los ítems dentro de cada grupo por su orderIndex
+      items.sort((a, b) => a.orderIndex - b.orderIndex);
+      sidebarGroups.push({ title, items });
+      groupsMap.delete(title);
+    }
+  }
+
+  // Agregamos cualquier grupo restante no clasificado en la lista
+  for (const [title, items] of groupsMap.entries()) {
+    if (items.length > 0) {
+      items.sort((a, b) => a.orderIndex - b.orderIndex);
+      sidebarGroups.push({ title, items });
+    }
+  }
+
+  console.log('[Sidebar Audit]: Sidebar successfully generated with groups count:', sidebarGroups.length);
+  return sidebarGroups;
+}
+export type { RouteMapping, SidebarGroup, SidebarItem };
