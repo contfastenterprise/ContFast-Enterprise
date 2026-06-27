@@ -1,33 +1,87 @@
 import { RouteMapping, SidebarGroup, SidebarItem } from '@/types/rbac';
-import * as LucideIcons from 'lucide-react';
 import React from 'react';
+import {
+  LayoutDashboard,
+  Users,
+  Truck,
+  Building2,
+  Tag,
+  Package,
+  ArrowRightLeft,
+  PackageMinus,
+  History as HistoryIcon,
+  FileText,
+  FileMinus,
+  Wallet,
+  HandCoins,
+  ShieldAlert,
+  Banknote,
+  Receipt,
+  Landmark,
+  BookOpen,
+  PieChart,
+  Calculator,
+  Layers,
+  Settings,
+  ShieldCheck,
+  Shield,
+  HelpCircle,
+} from 'lucide-react';
 
-// Predefined icons mapping for Groups
 const GROUP_ICONS: Record<string, React.ComponentType<any>> = {
-  'Principal': LucideIcons.LayoutDashboard,
-  'Contactos': LucideIcons.Users,
-  'Inventario': LucideIcons.Package,
-  'Ingresos': LucideIcons.HandCoins,
-  'Egresos': LucideIcons.Receipt,
-  'Finanzas': LucideIcons.Landmark,
-  'Recursos Humanos': LucideIcons.Users,
-  'Herramientas': LucideIcons.Calculator,
-  'Sistema': LucideIcons.Settings,
+  'Principal': LayoutDashboard,
+  'Contactos': Users,
+  'Inventario': Package,
+  'Ingresos': HandCoins,
+  'Egresos': Receipt,
+  'Finanzas': Landmark,
+  'Recursos Humanos': Users,
+  'Herramientas': Calculator,
+  'Sistema': Settings,
+};
+
+const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
+  LayoutDashboard,
+  Users,
+  Truck,
+  Building2,
+  Tag,
+  Package,
+  ArrowRightLeft,
+  PackageMinus,
+  HistoryIcon,
+  History: HistoryIcon,
+  FileText,
+  FileMinus,
+  Wallet,
+  HandCoins,
+  ShieldAlert,
+  Banknote,
+  Receipt,
+  Landmark,
+  BookOpen,
+  PieChart,
+  Calculator,
+  Layers,
+  Settings,
+  ShieldCheck,
+  Shield,
+  HelpCircle,
 };
 
 /**
  * Get group icon component based on string name
  */
 export function getGroupIcon(groupTitle: string): React.ComponentType<any> {
-  return GROUP_ICONS[groupTitle] || LucideIcons.HelpCircle;
+  return GROUP_ICONS[groupTitle] || HelpCircle;
 }
 
 /**
  * Get individual item icon component dynamically from Lucide library
  */
 export function getIconComponent(iconName: string): React.ComponentType<any> {
-  const Icon = (LucideIcons as any)[iconName];
-  return Icon || LucideIcons.HelpCircle;
+  const Icon = ICON_COMPONENTS[iconName];
+  return Icon || HelpCircle;
 }
 
 /**
