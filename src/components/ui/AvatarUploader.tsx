@@ -3,15 +3,8 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, X, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { createClient } from '@supabase/supabase-js';
 import clsx from 'clsx';
 import Avatar from './Avatar';
-
-// Inicializar el cliente de Supabase para subidas directas desde frontend (usando RLS)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-// Creamos el cliente condicionalmente para evitar errores en SSR
-const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 interface AvatarUploaderProps {
   currentAvatarUrl?: string | null;
@@ -158,11 +151,6 @@ export default function AvatarUploader({
 
   const handleUpload = async () => {
     if (!selectedFile) return;
-    if (!supabase) {
-      setErrorMessage('Error de configuración. El cliente de almacenamiento no está disponible.');
-      return;
-    }
-
     setUploading(true);
     setProgress(10);
     setErrorMessage(null);
@@ -188,30 +176,34 @@ export default function AvatarUploader({
       // Eliminar el avatar anterior si existe
       if (currentAvatarPath) {
         setStatusMessage('Eliminando imagen anterior...');
-        await supabase.storage.from('avatars').remove([currentAvatarPath]);
+        await fetch('/api/v1/storage/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: currentAvatarPath }),
+        });
       }
 
-      setStatusMessage('Subiendo imagen a Supabase Storage...');
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, selectedFile, {
-          contentType: 'image/webp',
-          upsert: true,
-        });
+      setStatusMessage('Subiendo imagen al servidor...');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFile);
+      uploadFormData.append('path', filePath);
+
+      const uploadRes = await fetch('/api/v1/storage/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
 
       clearInterval(progressInterval);
 
-      if (uploadError) {
-        throw new Error(`No se pudo subir la imagen: ${uploadError.message}`);
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.error?.message || 'No se pudo subir la imagen.');
       }
+
+      const { publicUrl } = uploadData.data;
 
       setProgress(100);
       setStatusMessage('Imagen subida correctamente.');
-
-      // Obtener URL Pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
 
       // Llamar al endpoint local para guardar en base de datos
       if (!skipDatabaseUpdate) {
@@ -254,13 +246,16 @@ export default function AvatarUploader({
   };
 
   const handleDeleteAvatar = async () => {
-    if (!supabase) return;
     if (!confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?')) return;
 
     setUploading(true);
     try {
       if (currentAvatarPath) {
-        await supabase.storage.from('avatars').remove([currentAvatarPath]);
+        await fetch('/api/v1/storage/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: currentAvatarPath }),
+        });
       }
 
       if (!skipDatabaseUpdate) {
