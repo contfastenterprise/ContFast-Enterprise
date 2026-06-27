@@ -428,15 +428,13 @@ export default function ProductsPage() {
           </h1>
           <p className="text-on-surface-variant text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
         </div>
-        <Button
+        <button
           onClick={openNewModal}
-          variant="secondary"
-          size="md"
-          animated
-          className="shadow-lg shadow-amber-900/20"
+          className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0"
         >
-          <Plus className="h-4 w-4" /> Nuevo Producto
-        </Button>
+          <Plus className="h-4 w-4" />
+          Nuevo Producto
+        </button>
       </div>
 
       {/* Metrics Cards */}

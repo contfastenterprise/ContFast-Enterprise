@@ -206,9 +206,9 @@ export default function WarehousesPage() {
               setCurrentWarehouse(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-2xl font-label-lg font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:-translate-y-0.5 transition-all justify-center"
+            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="h-4 w-4" />
             Nuevo Almacén
           </button>
         </div>
