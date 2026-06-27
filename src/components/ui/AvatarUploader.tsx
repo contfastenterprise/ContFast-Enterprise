@@ -231,6 +231,9 @@ export default function AvatarUploader({
       }
 
       toast.success('Avatar actualizado con éxito');
+      if (!skipDatabaseUpdate && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('user-profile-updated'));
+      }
       onUploadSuccess(publicUrl, filePath);
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -278,6 +281,9 @@ export default function AvatarUploader({
       }
 
       toast.success('Foto de perfil eliminada.');
+      if (!skipDatabaseUpdate && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('user-profile-updated'));
+      }
       onDeleteSuccess();
     } catch (err: any) {
       toast.error(err.message || 'Error al eliminar el avatar.');

@@ -46,6 +46,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchUser();
 
+    window.addEventListener('user-profile-updated', fetchUser);
+
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/v1/company/settings');
@@ -63,6 +65,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
     fetchSettings();
+
+    return () => {
+      window.removeEventListener('user-profile-updated', fetchUser);
+    };
   }, []);
 
   useEffect(() => {
