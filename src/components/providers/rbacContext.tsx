@@ -20,13 +20,19 @@ export interface RbacContextType {
 
 const RbacContext = createContext<RbacContextType | undefined>(undefined);
 
-export function RbacProvider({ children }: { children: React.ReactNode }) {
+export function RbacProvider({ 
+  children,
+  initialUser = null
+}: { 
+  children: React.ReactNode;
+  initialUser?: UserProfile | null;
+}) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [permissions, setPermissions] = useState<string[]>([]);
+  const [user, setUser] = useState<UserProfile | null>(initialUser);
+  const [permissions, setPermissions] = useState<string[]>(initialUser?.permissions || []);
   const [routeMappings, setRouteMappings] = useState<RouteMapping[]>(DEFAULT_ROUTE_MAPPINGS);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialUser);
 
   const fetchSessionData = async () => {
     try {
@@ -60,6 +66,15 @@ export function RbacProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
+
+  // Sync reactive updates of initialUser prop from layout down to provider state
+  useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+      setPermissions(initialUser.permissions || []);
+      setLoading(false);
+    }
+  }, [initialUser]);
 
   useEffect(() => {
     fetchSessionData();
