@@ -110,7 +110,7 @@ export default function AdminPage() {
       const [meRes, uRes, rRes, pRes, sRes] = await Promise.all([
         fetch('/api/v1/auth/me'),
         activeTab === 'users' ? fetch('/api/v1/admin/users') : Promise.resolve(null),
-        activeTab === 'roles' ? fetch('/api/v1/admin/roles') : Promise.resolve(null),
+        (activeTab === 'users' || activeTab === 'roles') ? fetch('/api/v1/admin/roles') : Promise.resolve(null),
         activeTab === 'plans' ? fetch('/api/v1/admin/plans') : Promise.resolve(null),
         activeTab === 'plans' ? fetch('/api/v1/admin/settings') : Promise.resolve(null)
       ]);
