@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
+import Avatar from '@/components/ui/Avatar';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,7 +72,7 @@ function WorkspaceSwitcher({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const isSistemas = user?.role === 'sistemas';
-
+  console.log(user)
   if (collapsed) {
     return (
       <div className="flex items-center justify-center py-3">
@@ -302,7 +303,7 @@ function SidebarContent({
   console.log('[Sidebar Debug] User permissions count:', rbacUser?.permissions?.length);
   console.log('[Sidebar Debug] Route mappings count:', routeMappings.length);
   console.log('[Sidebar Debug] Dynamic groups compiled:', dynamicGroups.map(g => ({ group: g.title, items: g.items.map(i => i.name) })));
-  
+
   // Track open/collapsed state of groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -489,11 +490,35 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Bottom: entorno indicator + logout */}
+      {/* Bottom: User profile + entorno indicator + logout */}
       <div className={clsx(
-        'border-t border-outline-variant/20 flex flex-col gap-1 py-3 px-2',
+        'border-t border-outline-variant/20 flex flex-col gap-2 py-3 px-2',
         collapsed && 'items-center',
       )}>
+        {user && (
+          <div className={clsx(
+            'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg transition-colors select-none',
+            collapsed ? 'justify-center' : 'hover:bg-black/5 dark:hover:bg-white/5'
+          )}>
+            <Avatar
+              src={user.avatarUrl}
+              name={user.name || 'CF'}
+              size={collapsed ? 28 : 32}
+              className="border border-outline-variant/30 shadow-sm"
+            />
+            {!collapsed && (
+              <div className="flex flex-col overflow-hidden min-w-0">
+                <span className="text-[12px] font-semibold leading-none mb-1 text-on-surface truncate">
+                  {user.name}
+                </span>
+                <span className="text-[10px] text-on-surface-variant/60 leading-none capitalize truncate">
+                  {user.role}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {!collapsed && (
           <div className="flex items-center gap-2 px-2.5 py-1">
             <span className={clsx('h-2 w-2 rounded-full shrink-0', {
@@ -530,6 +555,12 @@ export default function AppSidebar({
   onLogout, onSwitchCompany, switching,
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { hasPermission, routeMappings, user: rbacUser } = useRbac();
+
+  const activeUser = user || rbacUser;
+
+  // Re-compile dynamicGroups for diagnostic auditing display on systems role
+  const auditGroups = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '');
 
   // ⌘K global shortcut
   React.useEffect(() => {
@@ -583,7 +614,7 @@ export default function AppSidebar({
         </div>
 
         <SidebarContent
-          user={user}
+          user={activeUser}
           companies={companies}
           companyName={companyName}
           entorno={entorno}
@@ -634,7 +665,7 @@ export default function AppSidebar({
               </div>
 
               <SidebarContent
-                user={user}
+                user={activeUser}
                 companies={companies}
                 companyName={companyName}
                 entorno={entorno}
@@ -654,6 +685,35 @@ export default function AppSidebar({
         <SearchModal
           onClose={() => setSearchOpen(false)}
         />
+      )}
+
+      {/* ── Panel de Diagnostico RBAC (Siempre visible para depuracion) ── */}
+      {rbacUser && (
+        <div className="fixed bottom-4 right-4 z-[9999] bg-slate-950/95 backdrop-blur border border-indigo-500/50 shadow-2xl p-4 rounded-xl max-w-xs text-[11px] font-mono text-slate-200">
+          <div className="font-bold text-indigo-400 mb-1.5 flex justify-between items-center pb-1 border-b border-indigo-500/20">
+            <span>Diagnostico RBAC</span>
+            <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-[9px] uppercase">Sys</span>
+          </div>
+          <div className="space-y-1">
+            <div><strong>Rol Client:</strong> {rbacUser?.role || 'null'}</div>
+            <div><strong>Rol Prop:</strong> {user?.role || 'null'}</div>
+            <div><strong>Permisos:</strong> {rbacUser?.permissions?.length || 0}</div>
+            <div><strong>Route Mappings:</strong> {routeMappings?.length || 0}</div>
+            <div><strong>Grupos Sidebar:</strong> {auditGroups?.length || 0}</div>
+            <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 max-h-32 overflow-y-auto">
+              <strong>Compilados:</strong>
+              {auditGroups.length === 0 ? (
+                <div className="text-red-400 mt-0.5">Vacio. Filtros bloqueados.</div>
+              ) : (
+                auditGroups.map(g => (
+                  <div key={g.title} className="text-emerald-400 text-[10px]">
+                    • {g.title} ({g.items.length})
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
