@@ -190,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <RbacProvider>
+    <RbacProvider initialUser={user}>
       <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
         <Toaster position="top-right" richColors />
   
