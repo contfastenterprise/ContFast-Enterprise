@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 import { UserProfile, RouteMapping } from '@/types/rbac';
 import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
+import { DEFAULT_ROUTE_MAPPINGS } from '@/constants/defaultMappings';
 
 export interface RbacContextType {
   user: UserProfile | null;
@@ -24,7 +25,7 @@ export function RbacProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [routeMappings, setRouteMappings] = useState<RouteMapping[]>([]);
+  const [routeMappings, setRouteMappings] = useState<RouteMapping[]>(DEFAULT_ROUTE_MAPPINGS);
   const [loading, setLoading] = useState(true);
 
   const fetchSessionData = async () => {
@@ -46,12 +47,12 @@ export function RbacProvider({ children }: { children: React.ReactNode }) {
         const mappingsRes = await fetch('/api/v1/auth/route-mappings');
         if (mappingsRes.ok) {
           const mappingsData = await mappingsRes.json();
-          if (mappingsData.success && mappingsData.data) {
+          if (mappingsData.success && mappingsData.data && mappingsData.data.length > 0) {
             setRouteMappings(mappingsData.data);
           }
         }
       } catch (mappingErr) {
-        console.error('[RBAC Provider] Failed to fetch route mappings:', mappingErr);
+        console.error('[RBAC Provider] Failed to fetch route mappings, using fallbacks:', mappingErr);
       }
     } catch (err) {
       console.error('[RBAC Provider Error]: Failed to fetch permissions data.', err);
