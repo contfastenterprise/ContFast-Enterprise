@@ -247,13 +247,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
   
           <div className="flex items-center gap-4">
-            {/* User avatar */}
-            <Avatar 
-              src={user?.avatarUrl} 
-              name={user?.name || 'CF'} 
-              size={36} 
-              className="border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer"
-            />
+            {/* User name & avatar */}
+            <div className="flex items-center gap-2.5 select-none">
+              <span className="hidden sm:inline text-[13px] font-semibold text-white/90 tracking-wide">
+                {user?.name || 'Usuario'}
+              </span>
+              <Avatar 
+                src={user?.avatarUrl} 
+                name={user?.name || 'CF'} 
+                size={36} 
+                className="border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer"
+              />
+            </div>
             {/* ContFast logo */}
             <div className="flex items-center gap-2 pl-3 border-l border-white/20">
               <img
