@@ -288,7 +288,7 @@ export default function AvatarUploader({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full max-w-[240px] mx-auto p-3 bg-white dark:bg-zinc-950 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+    <div className="flex flex-col items-center gap-3 w-full max-w-[240px] mx-auto p-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
       <div className="relative group">
         {/* Componente Avatar central */}
         <Avatar 
@@ -323,8 +323,8 @@ export default function AvatarUploader({
           className={clsx(
             "w-full h-24 flex flex-col items-center justify-center border border-dashed rounded-xl cursor-pointer transition-all p-2 text-center",
             dragActive
-              ? "border-primary bg-primary/5 dark:bg-primary/10"
-              : "border-slate-300 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-900"
+              ? "border-primary bg-primary/5"
+              : "border-slate-300 hover:bg-slate-50"
           )}
         >
           <UploadCloud className="w-6 h-6 text-on-surface-variant/70 mb-1" />
@@ -340,7 +340,7 @@ export default function AvatarUploader({
         </div>
       ) : (
         <div className="flex flex-col gap-3 w-full">
-          <div className="flex justify-between items-center bg-slate-50 dark:bg-zinc-900 p-3 rounded-lg border border-slate-200 dark:border-zinc-800">
+          <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
             <span className="text-xs font-semibold text-on-surface-variant truncate max-w-[200px]">
               {selectedFile?.name || 'Imagen seleccionada'}
             </span>
