@@ -6,6 +6,7 @@ import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound,
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import Avatar from '@/components/ui/Avatar';
 
 interface User {
   id: string;
@@ -13,6 +14,9 @@ interface User {
   email: string;
   status: string;
   roleName: string;
+  roleId?: string;
+  avatarUrl?: string | null;
+  avatarPath?: string | null;
 }
 
 interface Role {
@@ -53,6 +57,7 @@ export default function AdminPage() {
 
   // Modals
   const [showNewUserModal, setShowNewUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -63,7 +68,17 @@ export default function AdminPage() {
     name: '',
     email: '',
     passwordRaw: '',
-    roleId: ''
+    roleId: '',
+    avatarUrl: ''
+  });
+
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    name: '',
+    email: '',
+    passwordRaw: '',
+    roleId: '',
+    avatarUrl: ''
   });
 
   const [roleForm, setRoleForm] = useState({
@@ -141,12 +156,49 @@ export default function AdminPage() {
         toast.success('Usuario creado exitosamente');
         setShowNewUserModal(false);
         fetchData();
-        setUserForm({ name: '', email: '', passwordRaw: '', roleId: '' });
+        setUserForm({ name: '', email: '', passwordRaw: '', roleId: '', avatarUrl: '' });
       } else {
         toast.error(data.error?.message || 'Error al crear usuario');
       }
     } catch (error) {
       toast.error('Error de red al crear usuario');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenEditUser = (user: User) => {
+    setEditingUserId(user.id);
+    setEditUserForm({
+      name: user.name,
+      email: user.email,
+      passwordRaw: '',
+      roleId: user.roleId || '',
+      avatarUrl: user.avatarUrl || ''
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUserId) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/v1/admin/users/${editingUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUserForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Usuario modificado exitosamente');
+        setShowEditUserModal(false);
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al modificar usuario');
+      }
+    } catch (error) {
+      toast.error('Error de red al modificar usuario');
     } finally {
       setSubmitting(false);
     }
@@ -342,9 +394,12 @@ export default function AdminPage() {
                         <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-[#003366] font-bold">
-                                {user.name.charAt(0).toUpperCase()}
-                              </div>
+                              <Avatar
+                                src={user.avatarUrl}
+                                name={user.name}
+                                size={38}
+                                className="border border-slate-200"
+                              />
                               <div>
                                 <p className="font-bold text-[#003366]">{user.name}</p>
                                 <p className="text-xs text-on-surface-variant/70">{user.email}</p>
@@ -368,13 +423,18 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            {user.roleName?.toLowerCase().includes('sistema') ? (
-                              <span className="text-xs text-slate-400 italic font-semibold">No suspendible</span>
-                            ) : (
-                              <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
-                                {user.status === 'active' ? 'Suspender' : 'Activar'}
+                            <div className="flex items-center justify-center gap-3">
+                              <button onClick={() => handleOpenEditUser(user)} className="text-xs font-bold text-[#003366] hover:text-[#C5A059] underline decoration-slate-300 underline-offset-4">
+                                Modificar
                               </button>
-                            )}
+                              {user.roleName?.toLowerCase().includes('sistema') ? (
+                                <span className="text-xs text-slate-400 italic font-semibold">No suspendible</span>
+                              ) : (
+                                <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
+                                  {user.status === 'active' ? 'Suspender' : 'Activar'}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -583,10 +643,64 @@ export default function AdminPage() {
                       ))}
                   </select>
                 </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">URL del Avatar</label>
+                  <input type="url" value={userForm.avatarUrl} onChange={e => setUserForm({ ...userForm, avatarUrl: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="https://ejemplo.com/avatar.png" />
+                </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
                   <button type="button" onClick={() => setShowNewUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Usuario
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: EDIT USER */}
+      <AnimatePresence>
+        {showEditUserModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Modificar Usuario</h3>
+                <button onClick={() => setShowEditUserModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              <form onSubmit={handleEditUser} className="p-6 space-y-5">
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Nombre Completo</label>
+                  <input type="text" required value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Juan Pérez" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Correo Electrónico</label>
+                  <input type="email" required value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="usuario@empresa.com" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Contraseña (dejar en blanco para no cambiar)</label>
+                  <input type="password" minLength={6} value={editUserForm.passwordRaw} onChange={e => setEditUserForm({ ...editUserForm, passwordRaw: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Mínimo 6 caracteres" />
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">Asignar Rol</label>
+                  <select required value={editUserForm.roleId} onChange={e => setEditUserForm({ ...editUserForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
+                    <option value="">Seleccione un rol...</option>
+                    {roles
+                      .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                      .map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-primary block mb-1">URL del Avatar</label>
+                  <input type="url" value={editUserForm.avatarUrl} onChange={e => setEditUserForm({ ...editUserForm, avatarUrl: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="https://ejemplo.com/avatar.png" />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                  <button type="button" onClick={() => setShowEditUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar Cambios
                   </button>
                 </div>
               </form>

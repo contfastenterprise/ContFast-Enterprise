@@ -8,7 +8,9 @@ const userSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   email: z.string().email('Email inválido'),
   passwordRaw: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  roleId: z.string().uuid('Rol inválido')
+  roleId: z.string().uuid('Rol inválido'),
+  avatarUrl: z.string().optional().nullable(),
+  avatarPath: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {

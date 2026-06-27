@@ -9,6 +9,8 @@ export interface CreateUserInput {
   email: string;
   passwordRaw: string;
   roleId: string;
+  avatarUrl?: string | null;
+  avatarPath?: string | null;
 }
 
 export class AdminRepository {
@@ -20,6 +22,8 @@ export class AdminRepository {
         email: users.email,
         status: users.status,
         createdAt: users.createdAt,
+        avatarUrl: users.avatarUrl,
+        avatarPath: users.avatarPath,
         roleId: roles.id,
         roleName: roles.name,
       })
@@ -55,14 +59,72 @@ export class AdminRepository {
         name: data.name,
         email: data.email.toLowerCase(),
         passwordHash,
-        status: 'active'
+        status: 'active',
+        avatarUrl: data.avatarUrl || null,
+        avatarPath: data.avatarPath || null
       }).returning();
 
       return {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        status: newUser.status
+        status: newUser.status,
+        avatarUrl: newUser.avatarUrl,
+        avatarPath: newUser.avatarPath
+      };
+    });
+  }
+
+  static async updateUser(
+    userId: string,
+    companyId: string,
+    data: {
+      name: string;
+      email: string;
+      passwordRaw?: string;
+      roleId: string;
+      avatarUrl?: string | null;
+      avatarPath?: string | null;
+    }
+  ) {
+    return await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(users).where(and(eq(users.id, userId), eq(users.companyId, companyId)));
+      if (!existing) throw new Error('Usuario no encontrado');
+
+      const existingEmail = await tx
+        .select()
+        .from(users)
+        .where(and(eq(users.email, data.email.toLowerCase()), eq(users.companyId, companyId)));
+      const otherUserUsingEmail = existingEmail.find(u => u.id !== userId);
+      if (otherUserUsingEmail) throw new Error('El correo electrónico ya está en uso');
+
+      const updateData: any = {
+        name: data.name,
+        email: data.email.toLowerCase(),
+        roleId: data.roleId,
+        avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : existing.avatarUrl,
+        avatarPath: data.avatarPath !== undefined ? data.avatarPath : existing.avatarPath,
+        updatedAt: new Date()
+      };
+
+      if (data.passwordRaw && data.passwordRaw.trim().length >= 6) {
+        const salt = await bcrypt.genSalt(10);
+        updateData.passwordHash = await bcrypt.hash(data.passwordRaw, salt);
+      }
+
+      const [updated] = await tx
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+
+      return {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        status: updated.status,
+        avatarUrl: updated.avatarUrl,
+        avatarPath: updated.avatarPath
       };
     });
   }
