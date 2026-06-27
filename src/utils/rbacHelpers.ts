@@ -101,9 +101,6 @@ export function buildSidebar(
   const isSistemas = cleanRole === 'sistemas' || cleanRole.includes('sistema');
   const isAdmin = cleanRole.includes('admin') || cleanRole.includes('administraci');
 
-  // Debug log para auditar flujo de generación de sidebar
-  console.log('[Sidebar Audit]: Generating dynamic menu for role:', cleanRole);
-
   // 1. Obtener todos los mapeos configurados como elementos de menú
   const menuMappings = routeMappings.filter(m => m.isMenuItem && m.routePattern);
 
@@ -120,13 +117,16 @@ export function buildSidebar(
     const isAllowed = isSistemas || isAdmin ? true : hasPermission(module, action);
 
     if (!isAllowed) {
-      console.log(`[Sidebar Audit]: module=${module} action=${action} NOT authorized for role=${cleanRole}`);
+      continue;
+    }
+
+    // Restricción de empresas/compañías: solo el rol 'sistemas' tiene acceso
+    if ((m.routePattern.toLowerCase().includes('empresa') || m.routePattern.toLowerCase().includes('compan')) && !isSistemas) {
       continue;
     }
 
     // Restricción admin/companies: solo sistemas y administracion tienen acceso
     if (m.routePattern.includes('/admin/companies') && !isSistemas && !isAdmin) {
-      console.log(`[Sidebar Audit]: Path ${m.routePattern} restricted to sistemas/administracion.`);
       continue;
     }
 
@@ -173,7 +173,6 @@ export function buildSidebar(
     }
   }
 
-  console.log('[Sidebar Audit]: Sidebar successfully generated with groups count:', sidebarGroups.length);
   return sidebarGroups;
 }
 export type { RouteMapping, SidebarGroup, SidebarItem };
