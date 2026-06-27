@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
-import Avatar from '@/components/ui/Avatar';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -72,7 +71,6 @@ function WorkspaceSwitcher({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const isSistemas = user?.role === 'sistemas';
-  console.log(user)
   if (collapsed) {
     return (
       <div className="flex items-center justify-center py-3">
@@ -297,13 +295,6 @@ function SidebarContent({
       icon: getIconComponent(item.iconName),
     })),
   }));
-
-  // Debug logs - remove after confirming sidebar is working correctly
-  console.log('[Sidebar Debug] User role:', rbacUser?.role);
-  console.log('[Sidebar Debug] User permissions count:', rbacUser?.permissions?.length);
-  console.log('[Sidebar Debug] Route mappings count:', routeMappings.length);
-  console.log('[Sidebar Debug] Dynamic groups compiled:', dynamicGroups.map(g => ({ group: g.title, items: g.items.map(i => i.name) })));
-
   // Track open/collapsed state of groups
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -490,35 +481,11 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Bottom: User profile + entorno indicator + logout */}
+      {/* Bottom: entorno indicator + logout */}
       <div className={clsx(
-        'border-t border-outline-variant/20 flex flex-col gap-2 py-3 px-2',
+        'border-t border-outline-variant/20 flex flex-col gap-1 py-3 px-2',
         collapsed && 'items-center',
       )}>
-        {user && (
-          <div className={clsx(
-            'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg transition-colors select-none',
-            collapsed ? 'justify-center' : 'hover:bg-black/5 dark:hover:bg-white/5'
-          )}>
-            <Avatar
-              src={user.avatarUrl}
-              name={user.name || 'CF'}
-              size={collapsed ? 28 : 32}
-              className="border border-outline-variant/30 shadow-sm"
-            />
-            {!collapsed && (
-              <div className="flex flex-col overflow-hidden min-w-0">
-                <span className="text-[12px] font-semibold leading-none mb-1 text-on-surface truncate">
-                  {user.name}
-                </span>
-                <span className="text-[10px] text-on-surface-variant/60 leading-none capitalize truncate">
-                  {user.role}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
         {!collapsed && (
           <div className="flex items-center gap-2 px-2.5 py-1">
             <span className={clsx('h-2 w-2 rounded-full shrink-0', {
