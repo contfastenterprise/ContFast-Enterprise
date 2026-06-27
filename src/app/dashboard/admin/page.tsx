@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar } from 'lucide-react';
+import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -434,15 +434,28 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-3">
-                              <button onClick={() => handleOpenEditUser(user)} className="text-xs font-bold text-[#003366] hover:text-[#C5A059] underline decoration-slate-300 underline-offset-4">
-                                Modificar
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleOpenEditUser(user)}
+                                className="p-1.5 hover:bg-[#003366]/10 text-[#003366] rounded-md transition-colors"
+                                title="Modificar usuario"
+                              >
+                                <Pencil className="w-4 h-4" />
                               </button>
                               {user.roleName?.toLowerCase().includes('sistema') ? (
-                                <span className="text-xs text-slate-400 italic font-semibold">No suspendible</span>
+                                <span className="text-xs text-slate-400 italic font-semibold px-2">No suspendible</span>
                               ) : (
-                                <button onClick={() => handleToggleStatus(user.id)} className="text-xs font-bold text-on-surface-variant/70 hover:text-[#003366] underline decoration-slate-300 underline-offset-4">
-                                  {user.status === 'active' ? 'Suspender' : 'Activar'}
+                                <button
+                                  onClick={() => handleToggleStatus(user.id)}
+                                  className={clsx(
+                                    "p-1.5 rounded-md transition-colors",
+                                    user.status === 'active' 
+                                      ? "hover:bg-rose-50 text-rose-600 hover:text-rose-700" 
+                                      : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700"
+                                  )}
+                                  title={user.status === 'active' ? "Suspender usuario" : "Activar usuario"}
+                                >
+                                  {user.status === 'active' ? <Ban className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                                 </button>
                               )}
                             </div>
