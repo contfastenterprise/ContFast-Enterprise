@@ -522,6 +522,7 @@ export default function AppSidebar({
   onLogout, onSwitchCompany, switching,
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [diagExpanded, setDiagExpanded] = useState(false);
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
   const activeUser = user || rbacUser;
@@ -656,31 +657,45 @@ export default function AppSidebar({
 
       {/* ── Panel de Diagnostico RBAC (Visible solo para sistemas) ── */}
       {rbacUser?.role === 'sistemas' && (
-        <div className="fixed bottom-4 right-4 z-[9999] bg-slate-950/95 backdrop-blur border border-indigo-500/50 shadow-2xl p-4 rounded-xl max-w-xs text-[11px] font-mono text-slate-200">
-          <div className="font-bold text-indigo-400 mb-1.5 flex justify-between items-center pb-1 border-b border-indigo-500/20">
-            <span>Diagnostico RBAC</span>
-            <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-[9px] uppercase">Sys</span>
-          </div>
-          <div className="space-y-1">
-            <div><strong>Rol Client:</strong> {rbacUser?.role || 'null'}</div>
-            <div><strong>Rol Prop:</strong> {user?.role || 'null'}</div>
-            <div><strong>Permisos:</strong> {rbacUser?.permissions?.length || 0}</div>
-            <div><strong>Route Mappings:</strong> {routeMappings?.length || 0}</div>
-            <div><strong>Grupos Sidebar:</strong> {auditGroups?.length || 0}</div>
-            <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 max-h-32 overflow-y-auto">
-              <strong>Compilados:</strong>
-              {auditGroups.length === 0 ? (
-                <div className="text-red-400 mt-0.5">Vacio. Filtros bloqueados.</div>
-              ) : (
-                auditGroups.map(g => (
-                  <div key={g.title} className="text-emerald-400 text-[10px]">
-                    • {g.title} ({g.items.length})
-                  </div>
-                ))
-              )}
+        diagExpanded ? (
+          <div className="fixed bottom-4 right-4 z-[9999] bg-slate-950/95 backdrop-blur border border-indigo-500/50 shadow-2xl p-4 rounded-xl max-w-xs text-[11px] font-mono text-slate-200">
+            <div 
+              onClick={() => setDiagExpanded(false)}
+              className="font-bold text-indigo-400 mb-1.5 flex justify-between items-center pb-1 border-b border-indigo-500/20 cursor-pointer hover:text-indigo-300 select-none"
+              title="Minimizar panel"
+            >
+              <span>Diagnostico RBAC</span>
+              <span className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-[9px] uppercase">Sys ✕</span>
+            </div>
+            <div className="space-y-1">
+              <div><strong>Rol Client:</strong> {rbacUser?.role || 'null'}</div>
+              <div><strong>Rol Prop:</strong> {user?.role || 'null'}</div>
+              <div><strong>Permisos:</strong> {rbacUser?.permissions?.length || 0}</div>
+              <div><strong>Route Mappings:</strong> {routeMappings?.length || 0}</div>
+              <div><strong>Grupos Sidebar:</strong> {auditGroups?.length || 0}</div>
+              <div className="mt-1.5 pt-1.5 border-t border-slate-800/60 max-h-32 overflow-y-auto">
+                <strong>Compilados:</strong>
+                {auditGroups.length === 0 ? (
+                  <div className="text-red-400 mt-0.5">Vacio. Filtros bloqueados.</div>
+                ) : (
+                  auditGroups.map(g => (
+                    <div key={g.title} className="text-emerald-400 text-[10px]">
+                      • {g.title} ({g.items.length})
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <button
+            onClick={() => setDiagExpanded(true)}
+            className="fixed bottom-4 right-4 z-[9999] bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg border border-indigo-400/30 transition-transform active:scale-95 select-none"
+            title="Mostrar panel de diagnóstico"
+          >
+            Diagnóstico RBAC (Sys)
+          </button>
+        )
       )}
     </>
   );
