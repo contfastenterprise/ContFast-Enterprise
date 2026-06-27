@@ -247,11 +247,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
   
           <div className="flex items-center gap-4">
-            {/* User name & avatar */}
+            {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
-              <span className="hidden sm:inline text-[13px] font-semibold text-white/90 tracking-wide">
-                {user?.name || 'Usuario'}
-              </span>
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-[13px] font-semibold text-white tracking-wide leading-tight">
+                  {user?.name || 'Usuario'}
+                </span>
+                <span className="text-[10px] font-medium text-white/60 capitalize leading-none mt-0.5">
+                  {user?.role || ''}
+                </span>
+              </div>
               <Avatar 
                 src={user?.avatarUrl} 
                 name={user?.name || 'CF'} 
