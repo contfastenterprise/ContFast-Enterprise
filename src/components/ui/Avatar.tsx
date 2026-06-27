@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import clsx from 'clsx';
 
 interface AvatarProps {
@@ -34,14 +33,10 @@ export function Avatar({ src, name, size = 40, className }: AvatarProps) {
       aria-label={`Avatar de ${name}`}
     >
       {finalSrc ? (
-        <Image
+        <img
           src={finalSrc}
           alt={`Avatar de ${name}`}
-          fill
-          sizes={`${size}px`}
-          className="object-cover"
-          priority
-          unoptimized // Supabase URLs optimizadas pueden no requerir optimización de Next.js
+          className="w-full h-full object-cover rounded-full"
         />
       ) : (
         <span
