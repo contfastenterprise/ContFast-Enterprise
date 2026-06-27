@@ -49,10 +49,10 @@ interface AppSidebarProps {
 
 function getAllSearchableItems(
   routeMappings: RouteMapping[],
-  canAccessRoute: (path: string) => boolean,
+  hasPermission: (module: string, action: string) => boolean,
   userRole: string
 ): NavItemDef[] {
-  return buildSidebar(routeMappings, canAccessRoute, userRole).flatMap(g =>
+  return buildSidebar(routeMappings, hasPermission, userRole).flatMap(g =>
     g.items.map(item => ({
       name: item.name,
       href: item.href,
@@ -205,8 +205,8 @@ function NavItem({
 function SearchModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const { canAccessRoute, routeMappings, user } = useRbac();
-  const allItems = getAllSearchableItems(routeMappings, canAccessRoute, user?.role || '');
+  const { hasPermission, routeMappings, user } = useRbac();
+  const allItems = getAllSearchableItems(routeMappings, hasPermission, user?.role || '');
   const results = query.trim()
     ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
     : allItems.slice(0, 7);
