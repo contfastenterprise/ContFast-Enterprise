@@ -9,12 +9,11 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'puente'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa'>('perfil');
 
   // Mappings Tab States
   const [accounts, setAccounts] = useState<any[]>([]);
   const [draftMappings, setDraftMappings] = useState<Record<string, string>>({});
-  const [mappingSubmitting, setMappingSubmitting] = useState(false);
 
   // Read-only
   const [initialCompanyInfo, setInitialCompanyInfo] = useState({ name: '', rnc: '' });
@@ -131,44 +130,36 @@ export default function SettingsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      // 1. Update company settings
       const res = await fetch('/api/v1/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
-      if (data.success) {
-        toast.success('Configuración guardada exitosamente');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('company-settings-updated'));
-        }
-      } else {
-        toast.error(data.error?.message || 'Error al guardar');
-      }
-    } catch (error) {
-      toast.error('Error de conexión');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSaveMappings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMappingSubmitting(true);
-    try {
-      const promises = Object.entries(draftMappings).map(([key, accountId]) => 
+      
+      // 2. Update mappings
+      const mappingPromises = Object.entries(draftMappings).map(([key, accountId]) => 
         fetch('/api/v1/accounting/mappings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mappingKey: key, accountId })
         })
       );
-      await Promise.all(promises);
-      toast.success('Cuentas puente guardadas exitosamente.');
+      await Promise.all(mappingPromises);
+
+      if (data.success) {
+        toast.success('Configuración y cuentas puente guardadas exitosamente');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('company-settings-updated'));
+        }
+      } else {
+        toast.error(data.error?.message || 'Error al guardar la configuración');
+      }
     } catch (error) {
-      toast.error('Error al guardar las cuentas puente');
+      toast.error('Error de conexión al guardar');
     } finally {
-      setMappingSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -230,18 +221,6 @@ export default function SettingsPage() {
                 }`}
               >
                 Configuración Empresa
-              </button>
-            )}
-            {(isAdministracion || isSistemas) && (
-              <button
-                onClick={() => setActiveTab('puente')}
-                className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'puente'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Cuentas Puente
               </button>
             )}
           </div>
@@ -624,6 +603,47 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {/* Bloque: Parametrización de Cuentas Puente */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                <FileText className="w-5 h-5 text-[#C5A059]" />
+                <div>
+                  <h3 className="font-bold text-[#003366]">Cuentas Puente (Plantillas)</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Configura las cuentas por defecto para facturación y almacén.</p>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    { key: 'sales_revenue', label: 'Ingresos por Ventas' },
+                    { key: 'accounts_receivable', label: 'Cuentas por Cobrar (Clientes)' },
+                    { key: 'cash', label: 'Caja General' },
+                    { key: 'bank', label: 'Bancos' },
+                    { key: 'itbis_sales', label: 'ITBIS Cobrado en Ventas' },
+                    { key: 'itbis_purchases', label: 'ITBIS Pagado en Compras' },
+                    { key: 'cost_of_goods_sold', label: 'Costo de Ventas' },
+                    { key: 'inventory', label: 'Inventario' },
+                    { key: 'supplier_payable', label: 'Cuentas por Pagar (Proveedores)' }
+                  ].map((mapItem) => (
+                    <div key={mapItem.key} className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-700 uppercase">{mapItem.label}</label>
+                      <select 
+                        value={draftMappings[mapItem.key] || ''} 
+                        onChange={e => setDraftMappings(prev => ({ ...prev, [mapItem.key]: e.target.value }))}
+                        disabled={submitting}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:border-[#c5a059] outline-none"
+                      >
+                        <option value="" disabled>-- Seleccione cuenta puente --</option>
+                        {accounts.filter(acc => acc.isTransactional).map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end pt-4">
               <button type="submit" disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 font-semibold">
                 {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />} Guardar Cambios
@@ -631,57 +651,7 @@ export default function SettingsPage() {
             </div>
 
           </form>
-        )}
-
-        {/* TAB: Cuentas Puente */}
-        {!loading && activeTab === 'puente' && (
-          <form onSubmit={handleSaveMappings} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-[#003366]">Parametrización de Cuentas Puente (Plantillas)</h3>
-              <p className="text-sm text-slate-500 mt-1">Configura las cuentas por defecto que recibirán débitos/créditos de transacciones automatizadas en facturas, cobros y almacén.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { key: 'sales_revenue', label: 'Ingresos por Ventas' },
-                { key: 'accounts_receivable', label: 'Cuentas por Cobrar (Clientes)' },
-                { key: 'cash', label: 'Caja General' },
-                { key: 'bank', label: 'Bancos' },
-                { key: 'itbis_sales', label: 'ITBIS Cobrado en Ventas' },
-                { key: 'itbis_purchases', label: 'ITBIS Pagado en Compras' },
-                { key: 'cost_of_goods_sold', label: 'Costo de Ventas' },
-                { key: 'inventory', label: 'Inventario' },
-                { key: 'supplier_payable', label: 'Cuentas por Pagar (Proveedores)' }
-              ].map((mapItem) => (
-                <div key={mapItem.key} className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">{mapItem.label}</label>
-                  <select 
-                    value={draftMappings[mapItem.key] || ''} 
-                    onChange={e => setDraftMappings(prev => ({ ...prev, [mapItem.key]: e.target.value }))}
-                    disabled={mappingSubmitting}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:border-[#c5a059] outline-none"
-                  >
-                    <option value="" disabled>-- Seleccione cuenta puente --</option>
-                    {accounts.filter(acc => acc.isTransactional).map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button
-                type="submit"
-                disabled={mappingSubmitting}
-                className="bg-[#c5a059] text-white px-6 py-2 rounded-xl text-sm font-semibold hover:bg-[#b08d4b] transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {mappingSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Guardar Cuentas Puente
-              </button>
-            </div>
-          </form>
-        )}
+        ) : null}
       </div>
     </div>
   );
