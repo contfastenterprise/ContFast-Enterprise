@@ -51,7 +51,7 @@ export const rolePermissions = pgTable('role_permissions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  rolePermissionIdx: uniqueIndex('role_permissions_role_perm_idx').on(table.roleId, table.permissionId),
+  rolePermissionIdx: uniqueIndex('role_permissions_role_perm_idx').on(table.companyId, table.roleId, table.permissionId),
   companyIdx: index('role_permissions_company_idx').on(table.companyId),
 }));
 
