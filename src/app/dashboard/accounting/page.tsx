@@ -56,7 +56,7 @@ const fmt = (val: number | string) => {
 };
 
 export default function AccountingPage() {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods' | 'mappings'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods'>('catalog');
   const [loading, setLoading] = useState(true);
 
   // Data
@@ -84,10 +84,6 @@ export default function AccountingPage() {
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [periodForm, setPeriodForm] = useState({ name: '', startDate: '', endDate: '' });
   const [periodSubmitting, setPeriodSubmitting] = useState(false);
-
-  // Mappings Tab States
-  const [mappings, setMappings] = useState<any[]>([]);
-  const [mappingSubmitting, setMappingSubmitting] = useState(false);
 
   // Modals
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -148,10 +144,6 @@ export default function AccountingPage() {
         const res = await fetch('/api/v1/accounting/periods');
         const data = await res.json();
         if (data.success) setPeriods(data.data);
-      } else if (activeTab === 'mappings') {
-        const res = await fetch('/api/v1/accounting/mappings');
-        const data = await res.json();
-        if (data.success) setMappings(data.data);
       }
     } catch (err) {
       toast.error('Error cargando datos de contabilidad.');
@@ -403,28 +395,6 @@ export default function AccountingPage() {
     }
   };
 
-  const handleUpdateMapping = async (mappingKey: string, accountId: string) => {
-    setMappingSubmitting(true);
-    try {
-      const res = await fetch('/api/v1/accounting/mappings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mappingKey, accountId })
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Cuenta puente actualizada correctamente.');
-        fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al actualizar cuenta puente.');
-      }
-    } catch (err) {
-      toast.error('Error de red');
-    } finally {
-      setMappingSubmitting(false);
-    }
-  };
-
   const totalDebits = journalLines.reduce((s, l) => s + l.debit, 0);
   const totalCredits = journalLines.reduce((s, l) => s + l.credit, 0);
   const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01 && totalDebits > 0;
@@ -483,8 +453,7 @@ export default function AccountingPage() {
             { id: 'ledger', label: 'Libro Mayor' },
             { id: 'trial-balance', label: 'Balanza de Comprobación' },
             { id: 'financials', label: 'Estados Financieros' },
-            { id: 'periods', label: 'Períodos Fiscales' },
-            { id: 'mappings', label: 'Configuración Puente' },
+            { id: 'periods', label: 'Períodos Contables' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1073,53 +1042,6 @@ export default function AccountingPage() {
             </motion.div>
           )}
 
-          {/* MAPPINGS TAB */}
-          {activeTab === 'mappings' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-[#003366]">Parametrización de Cuentas Puente (Plantillas)</h3>
-                <p className="text-xs text-slate-500 mt-1">Configura las cuentas por defecto que recibirán débitos/créditos de transacciones automatizadas en facturas, cobros y almacén.</p>
-              </div>
-
-              {loading ? (
-                <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
-              ) : (
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 max-w-4xl space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                      { key: 'sales_revenue', label: 'Ingresos por Ventas' },
-                      { key: 'accounts_receivable', label: 'Cuentas por Cobrar (Clientes)' },
-                      { key: 'cash', label: 'Caja General' },
-                      { key: 'bank', label: 'Bancos' },
-                      { key: 'itbis_sales', label: 'ITBIS Cobrado en Ventas' },
-                      { key: 'itbis_purchases', label: 'ITBIS Pagado en Compras' },
-                      { key: 'cost_of_goods_sold', label: 'Costo de Ventas' },
-                      { key: 'inventory', label: 'Inventario' },
-                      { key: 'supplier_payable', label: 'Cuentas por Pagar (Proveedores)' }
-                    ].map((mapItem) => {
-                      const activeMapping = mappings.find(m => m.mappingKey === mapItem.key);
-                      return (
-                        <div key={mapItem.key} className="space-y-1">
-                          <label className="block text-xs font-bold text-slate-700 uppercase">{mapItem.label}</label>
-                          <select 
-                            value={activeMapping?.accountId || ''} 
-                            onChange={e => handleUpdateMapping(mapItem.key, e.target.value)}
-                            disabled={mappingSubmitting}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:border-[#c5a059] outline-none"
-                          >
-                            <option value="" disabled>-- Seleccione cuenta puente --</option>
-                            {accounts.filter(acc => acc.isTransactional).map(acc => (
-                              <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
 
