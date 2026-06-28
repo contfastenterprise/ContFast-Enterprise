@@ -315,7 +315,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'empresa' ? (
           /* Sección Configuración Empresa */
           <form onSubmit={handleSave} className="space-y-6">
 
@@ -631,7 +631,7 @@ export default function SettingsPage() {
             </div>
 
           </form>
-        )}
+        ) : null}
 
         {/* TAB: Cuentas Puente */}
         {!loading && activeTab === 'puente' && (
