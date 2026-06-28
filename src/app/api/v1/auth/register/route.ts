@@ -3,64 +3,50 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db, users, roles, companies, auditLogs } from '@/db';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  email: z.string().email('Formato de correo electrónico inválido'),
+  email: z.string().email('El correo electrónico no es válido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  rnc: z.string().optional(), // opcional si se une a una ya existente
 });
 
 export async function POST(req: NextRequest) {
-  const ipAddress = req.headers.get('x-forwarded-for') || (req as any).ip || 'unknown';
-
-  // Rate limit registration by IP
-  const allowed = await checkRateLimit(ipAddress, 'auth');
-  if (!allowed) {
-    return NextResponse.json(
-      { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiados intentos. Intente más tarde.' } },
-      { status: 429 }
-    );
-  }
-
   try {
-    const body = await req.json();
-    const result = registerSchema.safeParse(body);
-
-    if (!result.success) {
-      return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message } },
-        { status: 400 }
-      );
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const isAllowed = await checkRateLimit(ip, 'strict');
+    if (!isAllowed) {
+      return NextResponse.json({ success: false, error: { message: 'Demasiadas solicitudes. Intente más tarde.' } }, { status: 429 });
     }
 
-    const { fullName, email, password } = result.data;
+    const body = await req.json();
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
+    }
+
+    const { fullName, email, password, rnc } = parsed.data;
 
     // Check if email already exists
-    const [existingUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
-
+    const [existingUser] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
     if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: { code: 'EMAIL_ALREADY_EXISTS', message: 'El correo electrónico ya está registrado.' } },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: { message: 'El correo electrónico ya está registrado.' } }, { status: 400 });
     }
 
-    // Since we need a companyId and roleId for a user, we will associate this user
-    // with either an existing company or create a default demo one for them to start, 
-    // or retrieve the latest company.
-    // In our case, for signup/register we check if there is at least one company or we create a default one.
-    let company = await db.select().from(companies).limit(1);
     let companyId: string;
     let isNewCompany = false;
 
-    if (company.length === 0) {
+    // If RNC is provided, check if company exists, otherwise create Demo company
+    if (rnc) {
+      const [existingComp] = await db.select().from(companies).where(eq(companies.rnc, rnc)).limit(1);
+      if (!existingComp) {
+        return NextResponse.json({ success: false, error: { message: 'La empresa con el RNC especificado no existe. Por favor use el asistente de configuración para crearla.' } }, { status: 400 });
+      }
+      companyId = existingComp.id;
+    } else {
       const [newCompany] = await db
         .insert(companies)
         .values({
@@ -72,30 +58,29 @@ export async function POST(req: NextRequest) {
         .returning();
       companyId = newCompany.id;
       isNewCompany = true;
-    } else {
-      companyId = company[0].id;
     }
 
-    // If new company was created, generate all 6 standard roles
-    if (isNewCompany) {
-      const insertedRoles = await db.insert(roles).values(
+    // Ensure global roles are seeded if empty
+    const checkRoles = await db.select({ value: count() }).from(roles);
+    let allRoles = [];
+    if ((checkRoles[0]?.value || 0) === 0) {
+      allRoles = await db.insert(roles).values(
         DEFAULT_COMPANY_ROLES.map((role) => ({
-          companyId,
           name: role.name,
           description: role.description,
           isFixed: role.isFixed,
         }))
       ).returning({ id: roles.id, name: roles.name });
+    } else {
+      allRoles = await db.select({ id: roles.id, name: roles.name }).from(roles);
+    }
 
-      await seedRolePermissionsForCompany(db, companyId, insertedRoles);
+    if (isNewCompany) {
+      await seedRolePermissionsForCompany(db, companyId, allRoles);
     }
 
     // Get the 'administracion' role for the new user
-    const [adminRole] = await db
-      .select()
-      .from(roles)
-      .where(and(eq(roles.companyId, companyId), eq(roles.name, 'administracion')))
-      .limit(1);
+    const adminRole = allRoles.find(r => r.name === 'administracion')!;
 
     const roleId = adminRole.id;
 
@@ -128,7 +113,7 @@ export async function POST(req: NextRequest) {
       entityType: 'users',
       entityId: newUser.id,
       newValues: { email: newUser.email, name: newUser.name },
-      ipAddress,
+      ipAddress: ip,
     });
 
     return NextResponse.json({

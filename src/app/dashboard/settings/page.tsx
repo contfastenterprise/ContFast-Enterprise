@@ -115,6 +115,9 @@ export default function SettingsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Configuración guardada exitosamente');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('company-settings-updated'));
+        }
       } else {
         toast.error(data.error?.message || 'Error al guardar');
       }

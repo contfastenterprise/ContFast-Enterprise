@@ -3,16 +3,13 @@ import { companies } from './companies';
 
 export const roles = pgTable('roles', {
   id: uuid('id').defaultRandom().primaryKey(),
-  companyId: uuid('company_id').references(() => companies.id), // Nullable for system-wide roles
   name: varchar('name', { length: 100 }).notNull(), // sistemas | administracion | contabilidad | facturacion | banco | cajero
   description: text('description'),
   isFixed: boolean('is_fixed').default(false).notNull(), // sistemas and administracion are fixed
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
-}, (table) => ({
-  companyNameIdx: index('roles_company_name_idx').on(table.companyId, table.name),
-}));
+});
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),

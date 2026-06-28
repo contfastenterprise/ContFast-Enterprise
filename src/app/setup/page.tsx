@@ -156,14 +156,17 @@ export default function SetupWizard() {
       {/* Onboarding Header */}
       <header className="bg-surface-container-low/40 border-b border-slate-900 py-6 shrink-0">
         <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <img 
-            alt="Latin Doors Logo" 
-            className="h-10 object-contain brightness-95" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDl-a6MYr3pCuvDfhdfg2VsbCggo6qEsaqURtdMkvUAQHRlXrFTtg9n3S-s2FkLtbhnaYVQILBbn5A5IyMSOLJez_vEEVSzJ8tVwMfS1jsa33vsuPwKkzwHFjmOuCq8JPZl3rtSisjT9q8MLwRfpnuPh4eLfoSK-Q6OjFOL8YpTW1OyQ9NcJGWccmdF_-tT7396-uR3dke78esJ0PZvnB0QZuHHpGZS14Xg9ueX988uE79O2QsdXZfeVSQ7K9bfJJ6rWoGlEhNmBKs2" 
-          />
+          <div className="flex items-center gap-3">
+            <img 
+              alt="ContFast Logo" 
+              className="h-10 w-10 rounded-lg object-cover ring-1 ring-amber-500/20 shadow-md" 
+              src="/contfast-logo.png" 
+            />
+            <span className="text-lg font-bold text-primary font-display">ContFast <span className="text-amber-500">Enterprise</span></span>
+          </div>
           <div className="text-center sm:text-right">
-            <h1 className="text-xl font-bold tracking-tight text-[#C5A059] font-display">Onboarding Wizard</h1>
-            <p className="text-xs text-on-surface-variant">Fiscal Authorization Process</p>
+            <h1 className="text-xl font-bold tracking-tight text-[#C5A059] font-display">Asistente de Configuracion</h1>
+            <p className="text-xs text-on-surface-variant">Proceso de autorización fiscal.</p>
           </div>
         </div>
       </header>
@@ -234,7 +237,7 @@ export default function SetupWizard() {
                       value={company.name}
                       onChange={(e) => setCompany({ ...company, name: e.target.value })}
                       className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
-                      placeholder="e.g. Latin Doors SRL"
+                      placeholder="e.g. Mi Empresa SRL"
                     />
                   </div>
                   <div className="space-y-1">
@@ -395,7 +398,7 @@ export default function SetupWizard() {
               {currentStep === 4 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="col-span-1 md:col-span-2 space-y-1">
-                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Nombre Completo del Administrador <span className="text-[#C5A059]">*</span></label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Nombre Completo del Ingeniero <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="text"
                       value={user.name}
@@ -411,11 +414,11 @@ export default function SetupWizard() {
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
                       className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
-                      placeholder="admin@empresa.com"
+                      placeholder="sistemas@empresa.com"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Contraseña Administrativa <span className="text-[#C5A059]">*</span></label>
+                    <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Contraseña de Sistemas <span className="text-[#C5A059]">*</span></label>
                     <input
                       type="password"
                       value={user.password}
@@ -511,7 +514,7 @@ export default function SetupWizard() {
       {/* Footer */}
       <footer className="py-6 bg-background border-t border-slate-900 shrink-0">
         <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-on-surface-variant/70 text-[11px]">
-          <span>© 2024 Latin Doors SRL - Proveedor Autorizado de Facturación Electrónica</span>
+          <span>© 2026 ContFast Enterprise - Proveedor Autorizado de Facturación Electrónica</span>
           <div className="flex gap-6">
             <a className="hover:text-on-surface-variant transition-colors" href="#">Política de Privacidad</a>
             <a className="hover:text-on-surface-variant transition-colors" href="#">Términos de Servicio</a>

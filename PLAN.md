@@ -272,6 +272,12 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Rendimiento mediante JWT Caching**: Configuración de `auth.ts` para cargar e inyectar la lista de permisos efectivos encriptados en el JWT de sesión del usuario. El Middleware global de Next.js (`src/middleware.ts`) puede decodificar síncronamente el token y validar el acceso a las rutas e APIs en 0ms y con 0 consultas de red.
 - **Seguridad en Frontend y APIs**: Diseño de hooks reactivos (`useCan`, `usePermissions`) y del componente envolvente `<PermissionGate>` para proteger controles visuales y botones del cliente. Adicionalmente, el Sidebar (`app-sidebar.tsx`) se conecta directamente a este sistema para ocultar de forma completamente dinámica las secciones a las que el usuario no tiene privilegios de lectura.
 
+### 45. Roles Globales Genéricos y Seeding Automatizado en Setup
+- **Desacoplamiento de Roles del Tenant**: Se eliminó la columna `company_id` de la tabla `roles` para transformarla en un catálogo de roles globales del sistema, simplificando la administración y previniendo la duplicación innecesaria.
+- **Siembra Automática de Roles y Planes**: Se integró un autoseeder en el flujo del asistente de configuración `/setup` que inyecta automáticamente los 7 roles globales y 3 planes SaaS en el primer arranque si la base de datos se encuentra vacía.
+- **Remoción de RLS y Seguridad Simplificada**: Se desactivó Row Level Security (RLS) en la tabla `roles` y se eliminaron las políticas de aislamiento sobre esta tabla, permitiendo un acceso general sin inconvenientes, mientras que la asignación por empresa se sigue manejando por el puente `role_permissions`.
+- **Exclusión en Reseteo de Base de Datos**: Se actualizaron las herramientas de mantenimiento para excluir `roles` y `plans` de la instrucción de truncamiento, manteniendo las bases estructurales activas tras restauraciones del sistema.
+
 * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  
  * * V e r i f i e d   &   P o l i s h e d * *  

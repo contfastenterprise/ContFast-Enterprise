@@ -4,7 +4,7 @@ import { db, companies, companySettings, roles, chartOfAccounts, payrollConfigs,
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { z } from 'zod';
-import { desc, eq, and, ne } from 'drizzle-orm';
+import { desc, eq, and, ne, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 
@@ -99,15 +99,20 @@ export async function POST(req: NextRequest) {
         autoDeliveryNotes: false,
       });
 
-      // 3. Generate all 6 standard roles for the new company
-      const insertedRoles = await tx.insert(roles).values(
-        DEFAULT_COMPANY_ROLES.map((role) => ({
-          companyId: newComp.id,
-          name: role.name,
-          description: role.description,
-          isFixed: role.isFixed,
-        }))
-      ).returning({ id: roles.id, name: roles.name });
+      // 3. Fetch global roles (seed if none exist)
+      const checkRoles = await tx.select({ value: count() }).from(roles);
+      let allRoles = [];
+      if ((checkRoles[0]?.value || 0) === 0) {
+        allRoles = await tx.insert(roles).values(
+          DEFAULT_COMPANY_ROLES.map((role) => ({
+            name: role.name,
+            description: role.description,
+            isFixed: role.isFixed,
+          }))
+        ).returning({ id: roles.id, name: roles.name });
+      } else {
+        allRoles = await tx.select({ id: roles.id, name: roles.name }).from(roles);
+      }
 
       // 4. Generate Default Payroll Config for the new company
       await tx.insert(payrollConfigs).values({
@@ -160,7 +165,7 @@ export async function POST(req: NextRequest) {
         .onConflictDoNothing();
 
       // 7. Seed default role permissions dynamically
-      await seedRolePermissionsForCompany(tx, newComp.id, insertedRoles);
+      await seedRolePermissionsForCompany(tx, newComp.id, allRoles);
 
       return newComp;
     });

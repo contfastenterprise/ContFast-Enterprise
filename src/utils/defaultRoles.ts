@@ -10,4 +10,5 @@ export const DEFAULT_COMPANY_ROLES = [
   { name: 'facturacion', description: 'Facturación y Ventas', isFixed: false },
   { name: 'banco', description: 'Gestión Bancaria', isFixed: false },
   { name: 'cajero', description: 'Cajero Operador de Terminal', isFixed: false },
+  { name: 'recursos_humanos', description: 'Rol de Gestión de Recursos Humanos y Nómina', isFixed: true },
 ] as const;

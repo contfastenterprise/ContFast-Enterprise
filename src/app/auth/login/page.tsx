@@ -9,6 +9,8 @@ import { Mail, Lock, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
+import { RippleBackground } from '@/components/ui/interactive-ripple-background';
+
 const loginSchema = z.object({
   email: z.string().email('Formato de correo electrónico inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
@@ -90,18 +92,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <RippleBackground>
       <Toaster position="top-right" richColors />
-      
-      {/* Decorative Glowing Gradients */}
-      <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 -right-4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md space-y-8 z-10"
+        className="w-full max-w-md space-y-8 z-10 px-4 sm:px-6"
       >
         <div className="text-center">
           <motion.div
@@ -199,6 +197,6 @@ export default function LoginPage() {
           </form>
         </div>
       </motion.div>
-    </div>
+    </RippleBackground>
   );
 }

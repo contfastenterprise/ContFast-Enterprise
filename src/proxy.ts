@@ -157,6 +157,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/api/v1/auth/register') ||
     pathname.startsWith('/api/v1/auth/refresh') ||
     pathname.startsWith('/api/v1/setup/status') ||
+    pathname.startsWith('/api/v1/setup/confirm') ||
     pathname.startsWith('/api/v1/setup/init') ||
     pathname.startsWith('/auth/login') ||
     pathname.startsWith('/auth/register') ||

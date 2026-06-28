@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     }
     await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
 
-    const roles = await AdminRepository.getRoles(session.companyId);
+    const roles = await AdminRepository.getRoles();
     return NextResponse.json({ success: true, data: roles });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
@@ -50,7 +50,6 @@ export async function POST(req: NextRequest) {
     }
 
     const newRole = await AdminRepository.createRole(
-      session.companyId,
       result.data.name,
       result.data.description
     );

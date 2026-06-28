@@ -39,7 +39,7 @@ export async function GET(
     const [role] = await db
       .select()
       .from(roles)
-      .where(and(eq(roles.id, id), eq(roles.companyId, auth.companyId), isNull(roles.deletedAt)))
+      .where(and(eq(roles.id, id), isNull(roles.deletedAt)))
       .limit(1);
 
     if (!role) {
@@ -105,7 +105,7 @@ export async function PATCH(
     const [role] = await db
       .select()
       .from(roles)
-      .where(and(eq(roles.id, id), eq(roles.companyId, auth.companyId), isNull(roles.deletedAt)))
+      .where(and(eq(roles.id, id), isNull(roles.deletedAt)))
       .limit(1);
 
     if (!role) {

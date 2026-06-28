@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (data.success) {
           if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
           if (data.data?.companyName) setCompanyName(data.data.companyName);
-          const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
+          const env = data.data?.dgiiEnv || data.data?.msellerEntorno;
           if (env === 'production') setEntorno('PROD');
           else if (env === 'cert') setEntorno('CERT');
           else setEntorno('TEST');
@@ -66,8 +66,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
     fetchSettings();
 
+    window.addEventListener('company-settings-updated', fetchSettings);
+
     return () => {
       window.removeEventListener('user-profile-updated', fetchUser);
+      window.removeEventListener('company-settings-updated', fetchSettings);
     };
   }, []);
 
@@ -217,11 +220,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
   
         {/* TopNavBar */}
-        <nav className="bg-primary/95 backdrop-blur-md text-on-primary flex justify-between items-center w-full px-4 md:px-6 h-14 fixed top-10 left-0 z-50 border-b border-white/10">
+        <nav className={clsx(
+          "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b",
+          entorno === 'PROD' 
+            ? 'bg-white/95 text-slate-900 border-slate-200 top-0 shadow-sm' 
+            : 'bg-primary/95 text-on-primary border-white/10 top-10'
+        )}>
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 hover:bg-white/10 rounded-lg transition-all"
+              className={clsx(
+                "md:hidden p-2 rounded-lg transition-all",
+                entorno === 'PROD' ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-white'
+              )}
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
             >
@@ -234,7 +245,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
                 return next;
               })}
-              className="hidden md:flex p-2 hover:bg-white/10 rounded-lg transition-all"
+              className={clsx(
+                "hidden md:flex p-2 rounded-lg transition-all",
+                entorno === 'PROD' ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-white'
+              )}
               title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               {sidebarCollapsed
@@ -246,7 +260,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Company name — suppressHydrationWarning allows SSR/client content to differ */}
             <span
               suppressHydrationWarning
-              className="font-display-lg text-xl font-extrabold text-secondary-fixed tracking-tight min-w-[80px]"
+              className={clsx(
+                "font-display-lg text-xl font-extrabold tracking-tight min-w-[80px]",
+                entorno === 'PROD' ? 'text-[#001e40]' : 'text-secondary-fixed'
+              )}
             >
               {switching ? '' : companyName}
             </span>
@@ -256,10 +273,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-[13px] font-semibold text-white tracking-wide leading-tight">
+                <span className={clsx(
+                  "text-[13px] font-semibold tracking-wide leading-tight",
+                  entorno === 'PROD' ? 'text-slate-900' : 'text-white'
+                )}>
                   {user?.name || 'Usuario'}
                 </span>
-                <span className="text-[10px] font-medium text-white/60 capitalize leading-none mt-0.5">
+                <span className={clsx(
+                  "text-[10px] font-medium leading-none mt-0.5",
+                  entorno === 'PROD' ? 'text-slate-500' : 'text-white/60'
+                )}>
                   {user?.role || ''}
                 </span>
               </div>
@@ -267,19 +290,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 src={user?.avatarUrl} 
                 name={user?.name || 'CF'} 
                 size={36} 
-                className="border-2 border-white/20 shadow-inner hover:scale-105 transition-transform cursor-pointer"
+                className={clsx(
+                  "border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer",
+                  entorno === 'PROD' ? 'border-slate-200' : 'border-white/20'
+                )}
               />
             </div>
             {/* ContFast logo */}
-            <div className="flex items-center gap-2 pl-3 border-l border-white/20">
+            <div className={clsx(
+              "flex items-center gap-2 pl-3 border-l",
+              entorno === 'PROD' ? 'border-slate-200' : 'border-white/20'
+            )}>
               <img
                 src="/contfast-logo.png"
                 alt="ContFast Enterprise"
                 className="h-9 w-9 rounded-xl object-cover shadow-md shadow-black/30 ring-1 ring-white/20 hover:scale-105 transition-transform"
               />
-              <span className="hidden lg:block text-xs font-bold text-white/80 leading-tight">
+              <span className={clsx(
+                "hidden lg:block text-xs font-bold leading-tight",
+                entorno === 'PROD' ? 'text-slate-700' : 'text-white/80'
+              )}>
                 ContFast<br />
-                <span className="text-amber-400 font-extrabold">Enterprise</span>
+                <span className={clsx("font-extrabold", entorno === 'PROD' ? 'text-[#001e40]' : 'text-amber-400')}>Enterprise</span>
               </span>
             </div>
           </div>

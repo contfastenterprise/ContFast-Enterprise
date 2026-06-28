@@ -83,11 +83,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Obtener el rol 'sistemas' de la empresa
+    // 5. Obtener el rol 'sistemas'
     const [roleSistemas] = await db
       .select({ id: roles.id, name: roles.name })
       .from(roles)
-      .where(and(eq(roles.companyId, companyResult.id), eq(roles.name, 'sistemas')))
+      .where(eq(roles.name, 'sistemas'))
       .limit(1);
 
     if (!roleSistemas) {

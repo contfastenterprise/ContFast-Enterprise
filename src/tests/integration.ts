@@ -72,7 +72,6 @@ async function runTests() {
       await db.delete(auditLogs).where(inArray(auditLogs.companyId, mockIds));
       await db.delete(companySettings).where(inArray(companySettings.companyId, mockIds));
       await db.delete(users).where(inArray(users.companyId, mockIds));
-      await db.delete(roles).where(inArray(roles.companyId, mockIds));
       await db.delete(companies).where(inArray(companies.id, mockIds));
     }
     console.log('[PRE-CLEANUP] Pre-cleanup completed.');
@@ -110,28 +109,12 @@ async function runTests() {
       maxCashOutApprovalAmount: '1000.00',
     });
 
-    // 3. Create Roles
-    const [roleSistemas] = await db.insert(roles).values({
-      companyId: testCompanyId1,
-      name: 'sistemas',
-      isFixed: true,
-      description: 'Ingeniero de sistemas',
-    }).returning({ id: roles.id });
-
-    const [roleAdmin] = await db.insert(roles).values({
-      companyId: testCompanyId1,
-      name: 'administracion',
-      isFixed: true,
-      description: 'Administracion de empresa',
-    }).returning({ id: roles.id });
+    // 3. Retrieve global roles
+    const allRoles = await db.select().from(roles);
+    const roleSistemas = allRoles.find(r => r.name === 'sistemas')!;
+    const roleAdmin = allRoles.find(r => r.name === 'administracion')!;
+    const roleCajero = allRoles.find(r => r.name === 'cajero')!;
     adminRoleId = roleAdmin.id;
-
-    const [roleCajero] = await db.insert(roles).values({
-      companyId: testCompanyId1,
-      name: 'cajero',
-      isFixed: false,
-      description: 'Cajero de tienda',
-    }).returning({ id: roles.id });
     cashierRoleId = roleCajero.id;
 
     // 4. Create Users
@@ -393,7 +376,6 @@ async function runTests() {
       await db.delete(auditLogs).where(inArray(auditLogs.companyId, testIds));
       await db.delete(companySettings).where(inArray(companySettings.companyId, testIds));
       await db.delete(users).where(inArray(users.companyId, testIds));
-      await db.delete(roles).where(inArray(roles.companyId, testIds));
       await db.delete(companies).where(inArray(companies.id, testIds));
     }
     console.log('[CLEANUP] Cleanup completed.');

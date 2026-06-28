@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { db, companies, companySettings, roles, users, permissions, auditLogs } from '@/db';
+import { db, companies, companySettings, roles, users, permissions, auditLogs, plans } from '@/db';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { encryptAsync, encryptBuffer } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
@@ -80,6 +80,40 @@ export async function POST(req: NextRequest) {
 
     // 2. Perform transactional database setup
     const setupResult = await db.transaction(async (tx) => {
+      // 2.0. Seed default SaaS plans if none exist
+      const checkPlans = await tx.select({ value: count() }).from(plans);
+      if ((checkPlans[0]?.value || 0) === 0) {
+        await tx.insert(plans).values([
+          {
+            name: 'Plan Básico',
+            description: 'Ideal para pequeñas empresas que inician en facturación electrónica.',
+            price: '1500.00',
+            maxEcfLimit: 100,
+            maxUsers: 2,
+            maxWarehouses: 1,
+            active: true,
+          },
+          {
+            name: 'Plan Profesional',
+            description: 'Perfecto para negocios en crecimiento con múltiples usuarios.',
+            price: '3500.00',
+            maxEcfLimit: 500,
+            maxUsers: 5,
+            maxWarehouses: 2,
+            active: true,
+          },
+          {
+            name: 'Plan Corporativo',
+            description: 'Acceso completo para corporaciones grandes con alta facturación y almacenes.',
+            price: '7500.00',
+            maxEcfLimit: 2000,
+            maxUsers: 15,
+            maxWarehouses: 5,
+            active: true,
+          }
+        ]);
+      }
+
       // 2.1. Create company
       const [newCompany] = await tx
         .insert(companies)
@@ -128,24 +162,29 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2.5. Create all standard roles for the new company
-      const insertedRoles = await tx
-        .insert(roles)
-        .values(
-          DEFAULT_COMPANY_ROLES.map((role) => ({
-            companyId: newCompany.id,
-            name: role.name,
-            description: role.description,
-            isFixed: role.isFixed,
-          }))
-        )
-        .returning({ id: roles.id, name: roles.name });
+      // 2.5. Seed global roles if they do not exist
+      const checkRoles = await tx.select({ value: count() }).from(roles);
+      let globalRoles = [];
+      if ((checkRoles[0]?.value || 0) === 0) {
+        globalRoles = await tx
+          .insert(roles)
+          .values(
+            DEFAULT_COMPANY_ROLES.map((role) => ({
+              name: role.name,
+              description: role.description,
+              isFixed: role.isFixed,
+            }))
+          )
+          .returning({ id: roles.id, name: roles.name });
+      } else {
+        globalRoles = await tx.select({ id: roles.id, name: roles.name }).from(roles);
+      }
 
-      // Seed permissions for these roles!
-      await seedRolePermissionsForCompany(tx, newCompany.id, insertedRoles);
+      // Seed permissions for these roles (specific to this new company)!
+      await seedRolePermissionsForCompany(tx, newCompany.id, globalRoles);
 
       // The initial user is assigned to the 'sistemas' role
-      const roleSistemas = insertedRoles.find((r) => r.name === 'sistemas')!;
+      const roleSistemas = globalRoles.find((r) => r.name === 'sistemas')!;
 
       // 2.6. Create initial user (System Engineer)
       const salt = await bcrypt.genSalt(12);

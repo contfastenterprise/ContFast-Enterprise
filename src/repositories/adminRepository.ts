@@ -35,11 +35,9 @@ export class AdminRepository {
     return data;
   }
 
-  static async getRoles(companyId: string) {
-    // Currently returns roles created for this company, plus any global fixed roles if applicable
+  static async getRoles() {
     return await db.select()
       .from(roles)
-      .where(eq(roles.companyId, companyId))
       .orderBy(roles.name);
   }
 
@@ -157,30 +155,29 @@ export class AdminRepository {
     return { id: updated.id, status: updated.status };
   }
 
-  static async createRole(companyId: string, name: string, description: string) {
+  static async createRole(name: string, description: string) {
     const roleNameClean = name.trim().toLowerCase();
     
-    // Check if role name already exists for this company
+    // Check if role name already exists
     const existing = await db
       .select()
       .from(roles)
-      .where(and(eq(roles.companyId, companyId), eq(roles.name, roleNameClean)));
-
+      .where(eq(roles.name, roleNameClean));
+ 
     if (existing.length > 0) {
       throw new Error(`El rol "${name}" ya existe.`);
     }
-
+ 
     const [newRole] = await db
       .insert(roles)
       .values({
         id: uuidv4(),
-        companyId,
         name: roleNameClean,
         description: description.trim(),
         isFixed: false, // Custom roles are never fixed
       })
       .returning();
-
+ 
     return newRole;
   }
 }
