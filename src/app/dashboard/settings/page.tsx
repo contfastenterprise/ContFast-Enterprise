@@ -154,7 +154,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="space-y-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
               Ajustes del Sistema
@@ -165,23 +165,25 @@ export default function SettingsPage() {
           </div>
 
           {/* Tabs de Configuración */}
-          <div className="flex gap-2">
+          <div className="flex border-b border-slate-200">
             <button
               onClick={() => setActiveTab('perfil')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${activeTab === 'perfil'
-                  ? 'bg-[#003366] text-white shadow-md'
-                  : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
-                }`}
+              className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
+                activeTab === 'perfil'
+                  ? 'border-[#003366] text-[#003366]'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
             >
               Mi Perfil
             </button>
             {(isAdministracion || isSistemas) && (
               <button
                 onClick={() => setActiveTab('empresa')}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${activeTab === 'empresa'
-                    ? 'bg-[#003366] text-white shadow-md'
-                    : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
-                  }`}
+                className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
+                  activeTab === 'empresa'
+                    ? 'border-[#003366] text-[#003366]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
               >
                 Configuración Empresa
               </button>
