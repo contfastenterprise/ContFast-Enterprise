@@ -377,14 +377,16 @@ function InvoicesList() {
         setTotalPages(data.pagination?.total_pages || data.meta?.total_pages || 1);
         setTotalRecords(data.pagination?.total || data.meta?.total || 0);
 
-        // Dummy stats calculation for demo based on current page if full stats not in API
-        const totalAmount = (data.data || []).reduce((acc: number, inv: any) => acc + parseFloat(inv.total), 0);
-        const pendingCount = (data.data || []).filter((i: any) => ['submitted', 'draft', 'signed'].includes(i.status)).length;
-
-        setStats({
-          totalMonth: totalAmount || 1200000, // fallback to match design if 0
-          pending: pendingCount || 24,
-        });
+        if (data.stats) {
+          setStats(data.stats);
+        } else {
+          const totalAmount = (data.data || []).reduce((acc: number, inv: any) => acc + parseFloat(inv.total), 0);
+          const pendingCount = (data.data || []).filter((i: any) => ['submitted', 'draft', 'signed'].includes(i.status)).length;
+          setStats({
+            totalMonth: totalAmount,
+            pending: pendingCount,
+          });
+        }
       }
     } catch (error) {
       toast.error('Error al cargar facturas');
@@ -1486,7 +1488,11 @@ function InvoicesList() {
               <div className="flex gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
-                  <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">RD$ {(stats.totalMonth / 1000000).toFixed(1)}M</span>
+                  <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">
+                    {stats.totalMonth >= 1000000
+                      ? `RD$ ${(stats.totalMonth / 1000000).toFixed(1)}M`
+                      : `RD$ ${new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stats.totalMonth)}`}
+                  </span>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />

@@ -97,9 +97,10 @@ export async function GET(req: NextRequest) {
     const excludeTypes = excludeTypesParam ? excludeTypesParam.split(',') : undefined;
 
     const result = await InvoiceRepository.list(auth.companyId, page, perPage, { excludeTypes });
+    const stats = await InvoiceRepository.getStats(auth.companyId);
 
     return NextResponse.json(
-      { success: true, data: result.data, meta: result.meta },
+      { success: true, data: result.data, meta: result.meta, stats },
       { headers: resHeaders }
     );
   } catch (error: any) {

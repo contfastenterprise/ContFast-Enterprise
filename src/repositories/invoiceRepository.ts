@@ -1,5 +1,5 @@
 import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions } from '@/db';
-import { eq, and, isNull, desc, count, notInArray } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, notInArray, gte, inArray, sql } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
   companyId: string;
@@ -279,6 +279,43 @@ export class InvoiceRepository {
         total,
         total_pages: Math.ceil(total / perPage),
       },
+    };
+  }
+
+  /**
+   * Retrieves dynamic invoice stats for the current month and pending count.
+   */
+  static async getStats(companyId: string) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [monthTotalResult] = await db
+      .select({ value: sql<string>`coalesce(sum(${invoices.total}), '0')` })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          isNull(invoices.deletedAt),
+          gte(invoices.createdAt, startOfMonth),
+          notInArray(invoices.ecfType, ['33', '34', '03', '04'])
+        )
+      );
+
+    const [pendingResult] = await db
+      .select({ value: count() })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.companyId, companyId),
+          isNull(invoices.deletedAt),
+          inArray(invoices.status, ['draft', 'signed', 'submitted'])
+        )
+      );
+
+    return {
+      totalMonth: parseFloat(monthTotalResult?.value || '0'),
+      pending: pendingResult?.value || 0,
     };
   }
 
