@@ -367,10 +367,10 @@ export class AccountingRepository {
   // CONFIGURATION BRIDGE MAPPINGS
   // ==========================================
   static async getMappings(companyId: string) {
-    // Seed default chart and mapping first if empty
-    await this.getChartOfAccounts(companyId);
+    // Ensure chart exists
+    const chart = await this.getChartOfAccounts(companyId);
 
-    const mappings = await db.select({
+    let mappings = await db.select({
       id: accountingMappings.id,
       mappingKey: accountingMappings.mappingKey,
       accountId: accountingMappings.accountId,
@@ -380,6 +380,53 @@ export class AccountingRepository {
     .from(accountingMappings)
     .innerJoin(chartOfAccounts, eq(accountingMappings.accountId, chartOfAccounts.id))
     .where(eq(accountingMappings.companyId, companyId));
+
+    const defaultMappings = [
+      { key: 'sales_revenue', code: '4.1.01' },
+      { key: 'accounts_receivable', code: '1.1.02.01' },
+      { key: 'cash', code: '1.1.01.01' },
+      { key: 'bank', code: '1.1.01.02' },
+      { key: 'itbis_sales', code: '2.1.02.01' },
+      { key: 'itbis_purchases', code: '1.1.04.01' },
+      { key: 'cost_of_goods_sold', code: '5.1.01' },
+      { key: 'inventory', code: '1.1.03.01' },
+      { key: 'supplier_payable', code: '2.1.01.01' }
+    ];
+
+    // Auto-seed mappings if any are missing (for legacy companies)
+    if (mappings.length < defaultMappings.length && chart.length > 0) {
+      const existingKeys = new Set(mappings.map((m: any) => m.mappingKey));
+      const toInsert = [];
+
+      for (const mapping of defaultMappings) {
+        if (!existingKeys.has(mapping.key)) {
+          const account = chart.find((a: any) => a.code === mapping.code);
+          if (account) {
+            toInsert.push({
+              id: uuidv4(),
+              companyId,
+              mappingKey: mapping.key,
+              accountId: account.id
+            });
+          }
+        }
+      }
+
+      if (toInsert.length > 0) {
+        await db.insert(accountingMappings).values(toInsert);
+        // Re-fetch after seeding
+        mappings = await db.select({
+          id: accountingMappings.id,
+          mappingKey: accountingMappings.mappingKey,
+          accountId: accountingMappings.accountId,
+          accountCode: chartOfAccounts.code,
+          accountName: chartOfAccounts.name
+        })
+        .from(accountingMappings)
+        .innerJoin(chartOfAccounts, eq(accountingMappings.accountId, chartOfAccounts.id))
+        .where(eq(accountingMappings.companyId, companyId));
+      }
+    }
 
     return mappings;
   }
