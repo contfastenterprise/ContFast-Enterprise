@@ -404,16 +404,22 @@ function InvoicesList() {
     let subtotal = 0;
     let discount = 0;
     let taxes = 0;
+    const taxableByRate: Record<string, number> = {};
 
     lines.forEach((line) => {
       const lineSub = line.quantity * line.unitPrice;
-      const lineDisc = line.quantity * line.discount;
+      const lineDisc = line.quantity * line.discount; // Wait, invoice uses line.quantity * line.discount! Let me keep it that way.
       const taxable = lineSub - lineDisc;
-      const taxAmount = taxable * line.taxRate;
 
       subtotal += lineSub;
       discount += lineDisc;
-      taxes += taxAmount;
+
+      const rateStr = Number(line.taxRate || 0).toString();
+      taxableByRate[rateStr] = (taxableByRate[rateStr] || 0) + taxable;
+    });
+
+    Object.entries(taxableByRate).forEach(([rateStr, taxableAmt]) => {
+      taxes += taxableAmt * Number(rateStr);
     });
 
     const total = subtotal - discount + taxes;

@@ -70,21 +70,42 @@ export class QuoteService {
       let totalDiscount = 0;
       let totalTaxes = 0;
 
+      const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
+
       const linesData = data.lines.map((line) => {
         const lineSubtotal = line.quantity * line.unitPrice;
-        const lineTotal = lineSubtotal - line.discount;
-        const lineTax = lineTotal * line.taxRate;
+        const lineDiscount = line.quantity * line.discount; // Assume discount sent is unit discount
+        const lineTaxable = lineSubtotal - lineDiscount;
         
         subtotal += lineSubtotal;
-        totalDiscount += line.discount;
-        totalTaxes += lineTax;
+        totalDiscount += lineDiscount;
+
+        const rateKey = line.taxRate.toString();
+        if (!taxableByRate[rateKey]) {
+          taxableByRate[rateKey] = { rate: line.taxRate, taxableAmount: 0 };
+        }
+        taxableByRate[rateKey].taxableAmount += lineTaxable;
 
         return {
           ...line,
           lineSubtotal,
-          lineTotal,
-          lineTax,
+          lineTotal: lineTaxable, // Save base taxable as line total without tax
+          lineDiscount,
         };
+      });
+
+      const taxInserts: any[] = [];
+      Object.entries(taxableByRate).forEach(([rateStr, val]) => {
+        const taxAmount = val.taxableAmount * val.rate;
+        totalTaxes += taxAmount;
+
+        if (val.rate > 0) {
+          taxInserts.push({
+            taxType: 'ITBIS',
+            rate: (val.rate * 100).toFixed(2),
+            amount: taxAmount.toFixed(2),
+          });
+        }
       });
 
       const total = subtotal - totalDiscount + totalTaxes;
@@ -123,25 +144,16 @@ export class QuoteService {
           }))
         );
 
-        // Group taxes
-        const groupedTaxes = linesData.reduce((acc, line) => {
-          if (line.taxRate > 0) {
-            const key = line.taxRate.toString();
-            acc[key] = (acc[key] || 0) + line.lineTax;
-          }
-          return acc;
-        }, {} as Record<string, number>);
-
-        const taxInserts = Object.entries(groupedTaxes).map(([rate, amount]) => ({
-          id: uuidv4(),
-          quoteId,
-          taxType: 'ITBIS', // Hardcoded ITBIS for now as per typical DR invoice
-          rate: (parseFloat(rate) * 100).toFixed(2), // Convert 0.18 to 18.00
-          amount: amount.toFixed(2),
-        }));
-
         if (taxInserts.length > 0) {
-          await tx.insert(quoteTaxes).values(taxInserts);
+          await tx.insert(quoteTaxes).values(
+            taxInserts.map(t => ({
+              id: uuidv4(),
+              quoteId,
+              taxType: t.taxType,
+              rate: t.rate,
+              amount: t.amount
+            }))
+          );
         }
       }
 
@@ -181,21 +193,42 @@ export class QuoteService {
         let totalDiscount = 0;
         let totalTaxes = 0;
 
+        const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
+
         const linesData = data.lines.map((line) => {
           const lineSubtotal = line.quantity * line.unitPrice;
-          const lineTotal = lineSubtotal - line.discount;
-          const lineTax = lineTotal * line.taxRate;
+          const lineDiscount = line.quantity * line.discount; // Assume unit discount
+          const lineTaxable = lineSubtotal - lineDiscount;
           
           subtotal += lineSubtotal;
-          totalDiscount += line.discount;
-          totalTaxes += lineTax;
+          totalDiscount += lineDiscount;
+
+          const rateKey = line.taxRate.toString();
+          if (!taxableByRate[rateKey]) {
+            taxableByRate[rateKey] = { rate: line.taxRate, taxableAmount: 0 };
+          }
+          taxableByRate[rateKey].taxableAmount += lineTaxable;
 
           return {
             ...line,
             lineSubtotal,
-            lineTotal,
-            lineTax,
+            lineTotal: lineTaxable,
+            lineDiscount,
           };
+        });
+
+        const taxInserts: any[] = [];
+        Object.entries(taxableByRate).forEach(([rateStr, val]) => {
+          const taxAmount = val.taxableAmount * val.rate;
+          totalTaxes += taxAmount;
+
+          if (val.rate > 0) {
+            taxInserts.push({
+              taxType: 'ITBIS',
+              rate: (val.rate * 100).toFixed(2),
+              amount: taxAmount.toFixed(2),
+            });
+          }
         });
 
         const total = subtotal - totalDiscount + totalTaxes;
@@ -215,25 +248,16 @@ export class QuoteService {
             }))
           );
 
-          // Group taxes
-          const groupedTaxes = linesData.reduce((acc, line) => {
-            if (line.taxRate > 0) {
-              const key = line.taxRate.toString();
-              acc[key] = (acc[key] || 0) + line.lineTax;
-            }
-            return acc;
-          }, {} as Record<string, number>);
-
-          const taxInserts = Object.entries(groupedTaxes).map(([rate, amount]) => ({
-            id: uuidv4(),
-            quoteId,
-            taxType: 'ITBIS',
-            rate: (parseFloat(rate) * 100).toFixed(2),
-            amount: amount.toFixed(2),
-          }));
-
           if (taxInserts.length > 0) {
-            await tx.insert(quoteTaxes).values(taxInserts);
+            await tx.insert(quoteTaxes).values(
+              taxInserts.map(t => ({
+                id: uuidv4(),
+                quoteId,
+                taxType: t.taxType,
+                rate: t.rate,
+                amount: t.amount
+              }))
+            );
           }
         }
 

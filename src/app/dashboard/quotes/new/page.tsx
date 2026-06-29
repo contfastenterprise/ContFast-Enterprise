@@ -31,6 +31,8 @@ export default function NewQuote() {
       unitPrice: 0,
       discount: 0,
       taxRate: 0.18,
+      priceTier: 'consumidor',
+      productData: null,
     },
   ]);
 
@@ -88,30 +90,61 @@ export default function NewQuote() {
   const selectProduct = (product: any) => {
     if (activeLineIndex !== null) {
       const newLines = [...lines];
+      const currentTier = newLines[activeLineIndex].priceTier || 'consumidor';
+      let priceToApply = Number(product.price || 0);
+      if (currentTier === 'proveedor') priceToApply = Number(product.supplierPrice || product.price || 0);
+      else if (currentTier === 'mayorista') priceToApply = Number(product.wholesalePrice || product.price || 0);
+
       newLines[activeLineIndex] = {
         ...newLines[activeLineIndex],
         productId: product.id,
         productName: product.name,
-        unitPrice: Number(product.price || 0),
-        taxRate: Number(product.taxRate || 0.18),
+        unitPrice: priceToApply,
+        taxRate: Number(product.taxRate ?? 0.18),
+        productData: product,
       };
       setLines(newLines);
     }
     setProductSearchOpen(false);
   };
 
+  const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
+    const updated = [...lines];
+    updated[idx].priceTier = tier;
+    
+    if (updated[idx].productData) {
+      const prod = updated[idx].productData;
+      let priceToApply = Number(prod.price || 0);
+      if (tier === 'proveedor') priceToApply = Number(prod.supplierPrice || prod.price || 0);
+      else if (tier === 'mayorista') priceToApply = Number(prod.wholesalePrice || prod.price || 0);
+      
+      updated[idx].unitPrice = priceToApply;
+    }
+    setLines(updated);
+  };
+
   const calculateTotals = () => {
     let subtotal = 0;
     let discount = 0;
-    let tax = 0;
+    const taxableByRate: Record<string, number> = {};
+
     lines.forEach(l => {
       const lSub = l.quantity * l.unitPrice;
-      const lDisc = Number(l.discount) || 0;
-      const lTax = (lSub - lDisc) * l.taxRate;
+      const lDisc = l.quantity * (Number(l.discount) || 0);
+      const lTaxable = lSub - lDisc;
+      
       subtotal += lSub;
       discount += lDisc;
-      tax += lTax;
+      
+      const rateStr = Number(l.taxRate || 0).toString();
+      taxableByRate[rateStr] = (taxableByRate[rateStr] || 0) + lTaxable;
     });
+
+    let tax = 0;
+    Object.entries(taxableByRate).forEach(([rateStr, taxableAmt]) => {
+      tax += taxableAmt * Number(rateStr);
+    });
+
     return { subtotal, discount, tax, total: subtotal - discount + tax };
   };
 
@@ -139,6 +172,7 @@ export default function NewQuote() {
             unitPrice: Number(l.unitPrice),
             discount: Number(l.discount),
             taxRate: Number(l.taxRate),
+            priceTier: l.priceTier,
           }))
         })
       });
@@ -159,7 +193,7 @@ export default function NewQuote() {
   const handleAddLine = () => {
     setLines([
       ...lines,
-      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18 }
+      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, priceTier: 'consumidor', productData: null }
     ]);
   };
 
@@ -236,7 +270,7 @@ export default function NewQuote() {
             <div className="space-y-3">
               {lines.map((line, idx) => {
                 const lineSubtotal = line.quantity * line.unitPrice;
-                const lineDiscount = Number(line.discount) || 0;
+                const lineDiscount = line.quantity * (Number(line.discount) || 0);
                 const lineTaxable = lineSubtotal - lineDiscount;
                 const lineTax = lineTaxable * line.taxRate;
                 const lineTotal = lineTaxable + lineTax;
@@ -269,7 +303,7 @@ export default function NewQuote() {
                       </div>
 
                       {/* Quantity */}
-                      <div className="md:col-span-2 space-y-1.5">
+                      <div className="md:col-span-1 space-y-1.5">
                         <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
                         <input
                           type="number"
@@ -283,9 +317,24 @@ export default function NewQuote() {
                         />
                       </div>
 
-                      {/* Unit Price */}
+                      {/* Price Tier */}
                       <div className="md:col-span-2 space-y-1.5">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
+                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel</label>
+                        <select
+                          value={line.priceTier || 'consumidor'}
+                          onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
+                          disabled={!hasProduct}
+                          className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        >
+                          <option value="consumidor">Consumidor</option>
+                          <option value="proveedor">Proveedor</option>
+                          <option value="mayorista">Mayorista</option>
+                        </select>
+                      </div>
+
+                      {/* Unit Price */}
+                      <div className="md:col-span-1 space-y-1.5">
+                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio U.</label>
                         <input
                           type="number"
                           value={line.unitPrice}

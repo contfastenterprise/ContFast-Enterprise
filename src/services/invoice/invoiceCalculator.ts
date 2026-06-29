@@ -12,17 +12,21 @@ export class InvoiceCalculator {
     let totalTaxes = 0;
     const itemLines: any[] = [];
     const taxSummaryMap: Record<string, { rate: number; amount: number }> = {};
+    const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
 
     data.lines.forEach((line) => {
       const lineSubtotal = roundMoney(line.quantity * line.unitPrice);
       const lineDiscount = roundMoney(line.quantity * line.discount);
       const lineTaxableAmount = roundMoney(lineSubtotal - lineDiscount);
-      const lineTaxAmount = roundMoney(lineTaxableAmount * line.taxRate);
-      const lineTotal = roundMoney(lineTaxableAmount + lineTaxAmount);
 
       subtotal = roundMoney(subtotal + lineSubtotal);
       totalDiscount = roundMoney(totalDiscount + lineDiscount);
-      totalTaxes = roundMoney(totalTaxes + lineTaxAmount);
+
+      const rateKey = line.taxRate.toString();
+      if (!taxableByRate[rateKey]) {
+        taxableByRate[rateKey] = { rate: line.taxRate, taxableAmount: 0 };
+      }
+      taxableByRate[rateKey].taxableAmount = roundMoney(taxableByRate[rateKey].taxableAmount + lineTaxableAmount);
 
       itemLines.push({
         productId: line.productId,
@@ -31,15 +35,20 @@ export class InvoiceCalculator {
         unitPrice: line.unitPrice,
         discount: line.discount,
         subtotal: lineSubtotal,
-        total: lineTotal,
-        taxRate: line.taxRate, // Fixed and preserved for payload construction
+        total: lineTaxableAmount, // Note: lineTotal without tax for now, as tax is global
+        taxRate: line.taxRate,
       });
+    });
 
-      const taxKey = `ITBIS_${(line.taxRate * 100).toFixed(0)}%`;
+    Object.entries(taxableByRate).forEach(([rateStr, val]) => {
+      const taxAmount = roundMoney(val.taxableAmount * val.rate);
+      totalTaxes = roundMoney(totalTaxes + taxAmount);
+
+      const taxKey = `ITBIS_${(val.rate * 100).toFixed(0)}%`;
       if (!taxSummaryMap[taxKey]) {
-        taxSummaryMap[taxKey] = { rate: line.taxRate * 100, amount: 0 };
+        taxSummaryMap[taxKey] = { rate: val.rate * 100, amount: 0 };
       }
-      taxSummaryMap[taxKey].amount = roundMoney(taxSummaryMap[taxKey].amount + lineTaxAmount);
+      taxSummaryMap[taxKey].amount = roundMoney(taxSummaryMap[taxKey].amount + taxAmount);
     });
 
     const total = roundMoney(subtotal - totalDiscount + totalTaxes);
