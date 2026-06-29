@@ -92,8 +92,8 @@ export default function NewQuote() {
       const newLines = [...lines];
       const currentTier = newLines[activeLineIndex].priceTier || 'consumidor';
       let priceToApply = Number(product.price || 0);
-      if (currentTier === 'proveedor') priceToApply = Number(product.supplierPrice || product.price || 0);
-      else if (currentTier === 'mayorista') priceToApply = Number(product.wholesalePrice || product.price || 0);
+      if (currentTier === 'proveedor') priceToApply = Number(product.priceProveedor || product.price || 0);
+      else if (currentTier === 'mayorista') priceToApply = Number(product.priceMayorista || product.price || 0);
 
       newLines[activeLineIndex] = {
         ...newLines[activeLineIndex],
@@ -115,8 +115,8 @@ export default function NewQuote() {
     if (updated[idx].productData) {
       const prod = updated[idx].productData;
       let priceToApply = Number(prod.price || 0);
-      if (tier === 'proveedor') priceToApply = Number(prod.supplierPrice || prod.price || 0);
-      else if (tier === 'mayorista') priceToApply = Number(prod.wholesalePrice || prod.price || 0);
+      if (tier === 'proveedor') priceToApply = Number(prod.priceProveedor || prod.price || 0);
+      else if (tier === 'mayorista') priceToApply = Number(prod.priceMayorista || prod.price || 0);
       
       updated[idx].unitPrice = priceToApply;
     }
