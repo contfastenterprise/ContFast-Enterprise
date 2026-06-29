@@ -105,27 +105,51 @@ interface PaginationMeta {
 
 const ECF_TYPE_LABELS: Record<string, string> = {
   // Traditional NCFs
-  '01': 'Crédito Fiscal',
-  '02': 'Consumo',
-  '03': 'Nota Débito',
-  '04': 'Nota Crédito',
-  '11': 'Compras',
-  '13': 'Gastos Menores',
-  '14': 'Regímenes Especiales',
-  '15': 'Gubernamental',
-  '16': 'Exportación',
-  '17': 'Pagos al Exterior',
+  '01': 'Factura de Crédito Fiscal',
+  '02': 'Factura de Consumo',
+  '03': 'Nota de Débito',
+  '04': 'Nota de Crédito',
+  '11': 'Comprobante de Compras',
+  '13': 'Comprobante para Gastos Menores',
+  '14': 'Comprobante de Regímenes Especiales',
+  '15': 'Comprobante Gubernamental',
+  '16': 'Comprobante de Exportación',
+  '17': 'Comprobante para Pagos al Exterior',
   // Electronic e-CFs
-  '31': 'Crédito Fiscal',
-  '32': 'Consumo',
-  '33': 'Nota Débito',
-  '34': 'Nota Crédito',
-  '41': 'Compras',
-  '43': 'Gastos Menores',
-  '44': 'Regímenes Especiales',
-  '45': 'Gubernamental',
-  '46': 'Pagos al Exterior',
-  '47': 'Exportación',
+  '31': 'Factura de Crédito Fiscal Electrónica',
+  '32': 'Factura de Consumo Electrónica',
+  '33': 'Nota de Débito Electrónica',
+  '34': 'Nota de Crédito Electrónica',
+  '41': 'Comprobante de Compras Electrónico',
+  '43': 'Comprobante para Gastos Menores Electrónico',
+  '44': 'Comprobante para Regímenes Especiales Electrónico',
+  '45': 'Comprobante Gubernamental Electrónico',
+  '46': 'Comprobante para Pagos al Exterior Electrónico',
+  '47': 'Comprobante de Exportación Electrónico',
+};
+
+const ECF_TYPE_DESCRIPTIONS: Record<string, string> = {
+  // Electronic & Traditional matching pairs
+  '31': 'Emisiones entre contribuyentes para sustentar gastos, costos o crédito fiscal.',
+  '01': 'Emisiones entre contribuyentes para sustentar gastos, costos o crédito fiscal.',
+  '32': 'Para venta de bienes o servicios a consumidores finales que no requieren sustentar crédito fiscal.',
+  '02': 'Para venta de bienes o servicios a consumidores finales que no requieren sustentar crédito fiscal.',
+  '33': 'Ajustes que incrementan el valor o monto de una factura emitida anteriormente.',
+  '03': 'Ajustes que incrementan el valor o monto de una factura emitida anteriormente.',
+  '34': 'Modificaciones por anulaciones, devoluciones, descuentos o correcciones en facturas ya emitidas.',
+  '04': 'Modificaciones por anulaciones, devoluciones, descuentos o correcciones en facturas ya emitidas.',
+  '41': 'Emitido al adquirir bienes o servicios de personas no registradas en la DGII.',
+  '11': 'Emitido al adquirir bienes o servicios de personas no registradas en la DGII.',
+  '43': 'Para registrar gastos menores realizados por personal de la empresa que carecen de comprobante.',
+  '13': 'Para registrar gastos menores realizados por personal de la empresa que carecen de comprobante.',
+  '44': 'Para facturar a personas físicas o jurídicas acogidas a regímenes especiales de tributación.',
+  '14': 'Para facturar a personas físicas o jurídicas acogidas a regímenes especiales de tributación.',
+  '45': 'Utilizado para facturar la venta de bienes o la prestación de servicios al Estado Dominicano.',
+  '15': 'Utilizado para facturar la venta de bienes o la prestación de servicios al Estado Dominicano.',
+  '46': 'Para sustentar pagos por rentas de fuente dominicana a personas físicas o jurídicas no residentes.',
+  '17': 'Para sustentar pagos por rentas de fuente dominicana a personas físicas o jurídicas no residentes.',
+  '47': 'Para reportar las ventas de bienes fuera del territorio nacional.',
+  '16': 'Para reportar las ventas de bienes fuera del territorio nacional.',
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -306,32 +330,38 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               >
                 {isElectronic ? (
                   <>
-                    <option value="31">e-31 — Crédito Fiscal</option>
-                    <option value="32">e-32 — Consumo</option>
-                    <option value="33">e-33 — Nota Débito</option>
-                    <option value="34">e-34 — Nota Crédito</option>
-                    <option value="41">e-41 — Compras</option>
-                    <option value="43">e-43 — Gastos Menores</option>
-                    <option value="44">e-44 — Regímenes Especiales</option>
-                    <option value="45">e-45 — Gubernamental</option>
-                    <option value="46">e-46 — Pagos al Exterior</option>
-                    <option value="47">e-47 — Exportación</option>
+                    <option value="31">E31 — Factura de Crédito Fiscal Electrónica</option>
+                    <option value="32">E32 — Factura de Consumo Electrónica</option>
+                    <option value="33">E33 — Nota de Débito Electrónica</option>
+                    <option value="34">E34 — Nota de Crédito Electrónica</option>
+                    <option value="41">E41 — Comprobante de Compras Electrónico</option>
+                    <option value="43">E43 — Comprobante para Gastos Menores Electrónico</option>
+                    <option value="44">E44 — Comprobante para Regímenes Especiales Electrónico</option>
+                    <option value="45">E45 — Comprobante Gubernamental Electrónico</option>
+                    <option value="46">E46 — Comprobante para Pagos al Exterior Electrónico</option>
+                    <option value="47">E47 — Comprobante de Exportación Electrónico</option>
                   </>
                 ) : (
                   <>
-                    <option value="01">B-01 — Crédito Fiscal</option>
-                    <option value="02">B-02 — Consumo</option>
-                    <option value="03">B-03 — Nota Débito</option>
-                    <option value="04">B-04 — Nota Crédito</option>
-                    <option value="11">B-11 — Compras</option>
-                    <option value="13">B-13 — Gastos Menores</option>
-                    <option value="14">B-14 — Regímenes Especiales</option>
-                    <option value="15">B-15 — Gubernamental</option>
-                    <option value="16">B-16 — Exportación</option>
-                    <option value="17">B-17 — Pagos al Exterior</option>
+                    <option value="01">B01 — Factura de Crédito Fiscal</option>
+                    <option value="02">B02 — Factura de Consumo</option>
+                    <option value="03">B03 — Nota de Débito</option>
+                    <option value="04">B04 — Nota de Crédito</option>
+                    <option value="11">B11 — Comprobante de Compras</option>
+                    <option value="13">B13 — Comprobante para Gastos Menores</option>
+                    <option value="14">B14 — Comprobante de Regímenes Especiales</option>
+                    <option value="15">B15 — Comprobante Gubernamental</option>
+                    <option value="16">B16 — Comprobante de Exportación</option>
+                    <option value="17">B17 — Comprobante para Pagos al Exterior</option>
                   </>
                 )}
               </select>
+              {ECF_TYPE_DESCRIPTIONS[form.ecfType] && (
+                <p className="mt-2 text-xs text-on-surface-variant italic bg-slate-100 p-2 rounded-lg border border-slate-200">
+                  <span className="font-semibold text-primary not-italic block mb-1">¿Para qué se utiliza?</span>
+                  {ECF_TYPE_DESCRIPTIONS[form.ecfType]}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
