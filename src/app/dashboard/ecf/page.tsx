@@ -410,7 +410,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
                 className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
-                pattern="\d{2}-\d{2}-\d{4}"
+                pattern={form.sequenceExpiry ? "\\d{2}-\\d{2}-\\d{4}" : undefined}
                 required={isExpiryRequired(isElectronic, form.ecfType)}
               />
             </div>
@@ -568,7 +568,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
                 className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
-                pattern="\d{2}-\d{2}-\d{4}"
+                pattern={form.sequenceExpiry ? "\\d{2}-\\d{2}-\\d{4}" : undefined}
                 required={isExpiryRequired(isElectronic, sequence.ecfType)}
               />
             </div>
@@ -1262,9 +1262,9 @@ function SecuenciasTab() {
                 key={seq.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl border p-5 bg-white dark:bg-gray-900 ${isNearLimit
-                  ? 'border-orange-300 dark:border-orange-700'
-                  : 'border-gray-200 dark:border-gray-700'
+                className={`rounded-2xl border p-5 bg-white shadow-sm ${isNearLimit
+                  ? 'border-orange-300'
+                  : 'border-outline-variant'
                   }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -1293,9 +1293,9 @@ function SecuenciasTab() {
                     <button
                       onClick={() => handleToggleStatus(seq)}
                       disabled={togglingId === seq.id}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${seq.status === 'active'
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-500 dark:bg-gray-800 hover:bg-gray-200'
+                      className={`text-xs font-bold px-3 py-1 rounded-full transition-colors border ${seq.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                     >
                       {togglingId === seq.id ? '...' : seq.status === 'active' ? 'Activo' : 'Inactivo'}
@@ -1327,9 +1327,9 @@ function SecuenciasTab() {
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                <div className="w-full bg-slate-100 rounded-full h-2">
                   <div
-                    className={`h-2 rounded-full transition-all ${usedPct >= 90 ? 'bg-orange-500' : usedPct >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                    className={`h-2 rounded-full transition-all ${usedPct >= 90 ? 'bg-rose-600' : usedPct >= 70 ? 'bg-amber-500' : 'bg-emerald-600'
                       }`}
                     style={{ width: `${usedPct}%` }}
                   />

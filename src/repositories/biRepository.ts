@@ -524,7 +524,7 @@ export class BIRepository {
       isNull(invoices.deletedAt)
     ))
     .groupBy(customers.id, customers.name, customers.phone, customers.rncCedula)
-    .having(sql`MAX(${invoices.createdAt}) < ${sixtyDaysAgo}`);
+    .having(sql`MAX(${invoices.createdAt}) < ${sixtyDaysAgo.toISOString()}`);
 
     // Customer debts
     const debts = await db.select({

@@ -788,7 +788,7 @@ export default function AccountsPayablePage() {
                 </div>
 
                 {/* Configurable Accounting Accounts */}
-                <div className="bg-[#001733]/50 p-4 rounded-xl border border-[#003366] space-y-4">
+                <div className="bg-surface-container-low p-4 rounded-xl border border-outline/30 space-y-4">
                   <div className="flex items-center gap-1.5 text-xs text-[#c5a059] font-bold uppercase tracking-wider">
                     <Settings className="w-4 h-4" /> Configuración de Cuentas
                   </div>
@@ -800,7 +800,7 @@ export default function AccountsPayablePage() {
                         required
                         value={paymentForm.debitAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, debitAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -816,7 +816,7 @@ export default function AccountsPayablePage() {
                         required
                         value={paymentForm.creditAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, creditAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -871,7 +871,7 @@ export default function AccountsPayablePage() {
                 {paymentForm.paymentMethod === 'check' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                    className="bg-[#001733]/30 p-4 rounded-xl border border-[#003366] space-y-4 overflow-hidden"
+                    className="bg-surface-container-low p-4 rounded-xl border border-outline/30 space-y-4 overflow-hidden"
                   >
                     <div className="text-xs text-[#c5a059] font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Landmark className="w-4 h-4" /> Datos de Emisión del Cheque
@@ -883,7 +883,7 @@ export default function AccountsPayablePage() {
                         <select
                           value={paymentForm.bankAccountId}
                           onChange={e => setPaymentForm({ ...paymentForm, bankAccountId: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                         >
                           <option value="">-- Seleccionar Banco --</option>
                           {bankAccountsList.map(b => (
@@ -897,7 +897,7 @@ export default function AccountsPayablePage() {
                           type="text"
                           value={paymentForm.checkNumber}
                           onChange={e => setPaymentForm({ ...paymentForm, checkNumber: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                           placeholder="Ej. 000192"
                         />
                       </div>
@@ -907,20 +907,20 @@ export default function AccountsPayablePage() {
                           type="text"
                           value={paymentForm.payee}
                           onChange={e => setPaymentForm({ ...paymentForm, payee: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
                           placeholder="Beneficiario"
                         />
                       </div>
                     </div>
 
                     {/* Guarantee check configuration */}
-                    <div className="border-t border-[#003366] pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="border-t border-outline/30 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={paymentForm.isGuarantee}
                           onChange={e => setPaymentForm({ ...paymentForm, isGuarantee: e.target.checked })}
-                          className="rounded bg-surface-container-highest border-[#003366] text-[#c5a059] focus:ring-[#c5a059] focus:ring-offset-0 focus:ring-1 w-4 h-4 cursor-pointer"
+                          className="rounded bg-surface-container-highest border-outline text-[#c5a059] focus:ring-[#c5a059] focus:ring-offset-0 focus:ring-1 w-4 h-4 cursor-pointer"
                         />
                         <div>
                           <span className="text-sm font-semibold text-primary block">Cheque en Garantía (Post-fechado)</span>
@@ -935,7 +935,7 @@ export default function AccountsPayablePage() {
                             type="date"
                             value={paymentForm.dueDate}
                             onChange={e => setPaymentForm({ ...paymentForm, dueDate: e.target.value })}
-                            className="w-full bg-surface-container-highest border border-[#003366] rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                            className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
                           />
                         </motion.div>
                       )}
@@ -960,17 +960,18 @@ export default function AccountsPayablePage() {
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
-                    className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors"
                   >
+                    <X className="w-4 h-4" />
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-6 py-2.5 rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
                   >
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    {paymentForm.isGuarantee ? 'Registrar Garantía' : 'Procesar Pago Contable'}
+                    {paymentForm.isGuarantee ? 'Registrar Garantía' : 'Procesar'}
                   </button>
                 </div>
 

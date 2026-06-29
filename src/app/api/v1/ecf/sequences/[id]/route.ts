@@ -82,16 +82,25 @@ export async function PUT(
     }
 
     if (sequenceExpiry !== undefined) {
-      if (typeof sequenceExpiry !== 'string' || sequenceExpiry.trim() === '') {
+      if (sequenceExpiry === null || (typeof sequenceExpiry === 'string' && sequenceExpiry.trim() === '')) {
+        updateFields.sequenceExpiry = null;
+        updateFields.expiryDate = null;
+      } else if (typeof sequenceExpiry !== 'string') {
         return NextResponse.json(
           { success: false, error: { code: 'VALIDATION_ERROR', message: 'Fecha de vencimiento debe ser una cadena válida.' } },
           { status: 400, headers: resHeaders }
         );
-      }
-      updateFields.sequenceExpiry = sequenceExpiry.trim();
-      
-      const parts = sequenceExpiry.split('-');
-      if (parts.length === 3) {
+      } else {
+        const trimmed = sequenceExpiry.trim();
+        if (!/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+          return NextResponse.json(
+            { success: false, error: { code: 'VALIDATION_ERROR', message: 'La fecha de vencimiento debe estar en formato dd-MM-yyyy.' } },
+            { status: 400, headers: resHeaders }
+          );
+        }
+        updateFields.sequenceExpiry = trimmed;
+        
+        const parts = trimmed.split('-');
         const day = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1;
         const year = parseInt(parts[2], 10);
