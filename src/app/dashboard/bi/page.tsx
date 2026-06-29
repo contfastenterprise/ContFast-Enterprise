@@ -181,6 +181,21 @@ export default function BIDashboardPage() {
         if (genData.success) setGeneralData(genData.data);
         if (billData.success) setBillingData(billData.data);
         if (purchData.success) setPurchasesData(purchData.data);
+      } else if (activeTab === 'alerts') {
+        // Load products, inventory, customers & general stats in parallel for alerts aggregation
+        const [pRes, iRes, cRes, gRes] = await Promise.all([
+          fetch(`/api/v1/bi/stats?tab=products&${params.toString()}`),
+          fetch(`/api/v1/bi/stats?tab=inventory&${params.toString()}`),
+          fetch(`/api/v1/bi/stats?tab=customers&${params.toString()}`),
+          fetch(`/api/v1/bi/stats?tab=general&${params.toString()}`)
+        ]);
+        const [pData, iData, cData, gData] = await Promise.all([
+          pRes.json(), iRes.json(), cRes.json(), gRes.json()
+        ]);
+        if (pData.success) setProductsData(pData.data);
+        if (iData.success) setInventoryData(iData.data);
+        if (cData.success) setCustomersData(cData.data);
+        if (gData.success) setGeneralData(gData.data);
       } 
       
       // Other individual tabs
@@ -194,23 +209,6 @@ export default function BIDashboardPage() {
           else if (activeTab === 'customers') setCustomersData(data.data);
           else if (activeTab === 'billing') setBillingData(data.data);
           else if (activeTab === 'purchases') setPurchasesData(data.data);
-          // Alerts relies on all tabs data. Let's pre-load necessary sets
-          else if (activeTab === 'alerts') {
-            // Load products, inventory & customers in parallel for comprehensive alert aggregates
-            const [pRes, iRes, cRes, gRes] = await Promise.all([
-              fetch(`/api/v1/bi/stats?tab=products&${params.toString()}`),
-              fetch(`/api/v1/bi/stats?tab=inventory&${params.toString()}`),
-              fetch(`/api/v1/bi/stats?tab=customers&${params.toString()}`),
-              fetch(`/api/v1/bi/stats?tab=general&${params.toString()}`)
-            ]);
-            const [pData, iData, cData, gData] = await Promise.all([
-              pRes.json(), iRes.json(), cRes.json(), gRes.json()
-            ]);
-            if (pData.success) setProductsData(pData.data);
-            if (iData.success) setInventoryData(iData.data);
-            if (cData.success) setCustomersData(cData.data);
-            if (gData.success) setGeneralData(gData.data);
-          }
         } else {
           toast.error(data.error?.message || 'Error al cargar estadísticas.');
         }
