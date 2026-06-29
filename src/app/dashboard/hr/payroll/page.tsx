@@ -10,6 +10,7 @@ interface Payroll {
   periodStart: string;
   periodEnd: string;
   paymentDate: string;
+  frequency: string;
   status: string;
   createdAt: string;
 }
@@ -31,6 +32,7 @@ export default function PayrollPage() {
     periodStart: new Date().toISOString().split('T')[0],
     periodEnd: new Date().toISOString().split('T')[0],
     paymentDate: new Date().toISOString().split('T')[0],
+    frequency: 'mensual',
   });
 
   useEffect(() => {
@@ -362,6 +364,19 @@ export default function PayrollPage() {
               <Calendar className="h-5 w-5 text-primary" /> Generar Nómina de Período
             </h3>
             <form onSubmit={handleCreatePayroll} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-on-surface-variant">Frecuencia de la Nómina</label>
+                <select
+                  required
+                  value={formData.frequency}
+                  onChange={e => setFormData({ ...formData, frequency: e.target.value })}
+                  className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                >
+                  <option value="mensual">Mensual</option>
+                  <option value="quincenal">Quincenal</option>
+                  <option value="semanal">Semanal</option>
+                </select>
+              </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-on-surface-variant">Fecha de Inicio del Período</label>
                 <input

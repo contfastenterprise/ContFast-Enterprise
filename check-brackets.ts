@@ -1,0 +1,1 @@
+import { db } from './src/db/index'; import { isrBrackets } from './src/db/schema/hr'; async function run() { const b = await db.select().from(isrBrackets); console.log(JSON.stringify(b, null, 2)); process.exit(0); } run();

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -675,7 +675,13 @@ export default function ProductsPage() {
 
                   <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-semibold text-[#001e40]">Precios de Venta</label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-semibold text-[#001e40]">Precios de Venta</label>
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-md shadow-sm" title="Importante: Los precios no incluyen ITBIS">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Sin ITBIS</span>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-3">
                         <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#001e40]">
                           <input
@@ -766,22 +772,19 @@ export default function ProductsPage() {
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="text-xs cursor-pointer"
+                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer"
                   >
+                    <X className="w-4 h-4" />
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    variant="secondary"
-                    size="sm"
-                    animated
                     disabled={submitting}
-                    className="text-xs cursor-pointer"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer"
                   >
-                    {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+                    {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
                   </Button>
                 </div>

@@ -67,7 +67,7 @@ export const RippleBackground = ({ children }: { children?: React.ReactNode }) =
   return (
     <div
       ref={containerRef}
-      className="relative w-full min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-zinc-950 overflow-hidden cursor-pointer"
+      className="relative w-full min-h-screen bg-background  overflow-hidden cursor-pointer"
       onClick={createRipple}
     >
       {/* Ripple effects */}
@@ -81,13 +81,13 @@ export const RippleBackground = ({ children }: { children?: React.ReactNode }) =
             transform: 'translate(-50%, -50%)'
           }}
         >
-          <div className="absolute inset-0 rounded-full border-2 border-purple-400/30 dark:border-purple-500/25 animate-ripple" />
+          <div className="absolute inset-0 rounded-full border-2 border-gray-400/30 dark:border-gray-500/25 animate-ripple" />
           <div
-            className="absolute inset-0 rounded-full border-2 border-blue-400/20 dark:border-blue-500/15 animate-ripple"
+            className="absolute inset-0 rounded-full border-2 border-gray-400/20 dark:border-gray-500/15 animate-ripple"
             style={{ animationDelay: '0.2s' }}
           />
           <div
-            className="absolute inset-0 rounded-full border-2 border-pink-400/10 dark:border-pink-500/5 animate-ripple"
+            className="absolute inset-0 rounded-full border-2 border-gray-400/10 dark:border-gray-500/5 animate-ripple"
             style={{ animationDelay: '0.4s' }}
           />
         </div>

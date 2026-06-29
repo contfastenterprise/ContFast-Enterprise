@@ -22,9 +22,33 @@ export async function GET(req: NextRequest) {
     const apId = url.searchParams.get('apId') || undefined;
 
     if (getPayments) {
-      const data = await ApRepository.getPayments(auth.companyId, apId);
+      const page = parseInt(url.searchParams.get('page') || '1');
+      const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+      const startDate = url.searchParams.get('startDate') || undefined;
+      const endDate = url.searchParams.get('endDate') || undefined;
+      const search = url.searchParams.get('search') || undefined;
+
+      const offset = (page - 1) * pageSize;
+
+      const { items, total } = await ApRepository.getPayments(auth.companyId, {
+        apId,
+        startDate,
+        endDate,
+        search,
+        limit: pageSize,
+        offset
+      });
+
       return NextResponse.json(
-        { success: true, data },
+        { 
+          success: true, 
+          data: { 
+            items, 
+            total, 
+            page, 
+            totalPages: Math.ceil(total / pageSize) 
+          } 
+        },
         { headers: resHeaders }
       );
     }

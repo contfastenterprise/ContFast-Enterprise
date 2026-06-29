@@ -31,8 +31,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkSetupAndFetchUser = async () => {
       try {
+        const setupRes = await fetch('/api/v1/setup/status');
+        const setupData = await setupRes.json();
+        if (setupData.success && !setupData.data.initialized) {
+          router.push('/setup');
+          return;
+        }
+
         const res = await fetch('/api/v1/auth/me');
         const data = await res.json();
         if (data.success && data.data?.user) {
@@ -41,12 +48,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           router.push('/auth/login');
         }
       } catch (err) {
-        console.error('Error fetching user profile', err);
+        console.error('Error in init sequence', err);
       }
     };
-    fetchUser();
+    checkSetupAndFetchUser();
 
-    window.addEventListener('user-profile-updated', fetchUser);
+    window.addEventListener('user-profile-updated', checkSetupAndFetchUser);
 
     const fetchSettings = async () => {
       try {
@@ -69,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.addEventListener('company-settings-updated', fetchSettings);
 
     return () => {
-      window.removeEventListener('user-profile-updated', fetchUser);
+      window.removeEventListener('user-profile-updated', checkSetupAndFetchUser);
       window.removeEventListener('company-settings-updated', fetchSettings);
     };
   }, []);

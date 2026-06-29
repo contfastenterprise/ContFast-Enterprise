@@ -68,6 +68,14 @@ export default function AccountsPayablePage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [bankAccountsList, setBankAccountsList] = useState<BankAccount[]>([]);
   const [paymentsList, setPaymentsList] = useState<PaymentHistory[]>([]);
+  const [paymentsTotal, setPaymentsTotal] = useState(0);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsTotalPages, setPaymentsTotalPages] = useState(1);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsSearch, setPaymentsSearch] = useState('');
+  const [paymentsStartDate, setPaymentsStartDate] = useState('');
+  const [paymentsEndDate, setPaymentsEndDate] = useState('');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'bills' | 'guarantees' | 'history'>('bills');
 
@@ -103,6 +111,49 @@ export default function AccountsPayablePage() {
     fetchSecondaryData();
   }, []);
 
+  useEffect(() => {
+    fetchPaymentsData();
+  }, [paymentsPage, paymentsStartDate, paymentsEndDate]); // Fetch when page or dates change
+
+  const fetchPaymentsData = async (searchOverride?: string) => {
+    setPaymentsLoading(true);
+    try {
+      const qSearch = searchOverride !== undefined ? searchOverride : paymentsSearch;
+      
+      const query = new URLSearchParams({
+        payments: 'true',
+        page: paymentsPage.toString(),
+        pageSize: '20'
+      });
+      if (qSearch) query.append('search', qSearch);
+      if (paymentsStartDate) query.append('startDate', paymentsStartDate);
+      if (paymentsEndDate) query.append('endDate', paymentsEndDate);
+
+      const res = await fetch(`/api/v1/ap?${query.toString()}`);
+      const json = await res.json();
+      
+      if (json.success && json.data) {
+        setPaymentsList(json.data.items || []);
+        setPaymentsTotal(json.data.total || 0);
+        setPaymentsTotalPages(json.data.totalPages || 1);
+      }
+    } catch (err) {
+      toast.error('Error de red al cargar el historial de pagos');
+    } finally {
+      setPaymentsLoading(false);
+    }
+  };
+
+  const handlePaymentsSearch = (val: string) => {
+    setPaymentsSearch(val);
+    setPaymentsPage(1); // Reset page on new search
+  };
+
+  const handlePaymentsSearchSubmit = () => {
+    setPaymentsPage(1);
+    fetchPaymentsData();
+  };
+
   const handlePrintSupplierAP = async (supplierId: string) => {
     const toastId = toast.loading('Generando reporte de cuentas por pagar...');
     setPrintingSupplierId(supplierId);
@@ -129,16 +180,9 @@ export default function AccountsPayablePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [apRes, paymentsRes] = await Promise.all([
-        fetch('/api/v1/ap'),
-        fetch('/api/v1/ap?payments=true')
-      ]);
-
+      const apRes = await fetch('/api/v1/ap');
       const apData = await apRes.json();
-      const paymentsData = await paymentsRes.json();
-
       if (apData.success) setSuppliers(apData.data || []);
-      if (paymentsData.success) setPaymentsList(paymentsData.data || []);
     } catch (err) {
       toast.error('Error de red al cargar datos principales');
     } finally {
@@ -502,7 +546,7 @@ export default function AccountsPayablePage() {
                 <button
                   onClick={handleApplyDueGuarantees}
                   disabled={applyingGuarantees || pendingGuarantees.length === 0}
-                  className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-amber-500/10 flex items-center gap-2"
+                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center"
                 >
                   {applyingGuarantees ? (
                     <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
@@ -567,11 +611,50 @@ export default function AccountsPayablePage() {
           {activeTab === 'history' && (
             <motion.div
               key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden shadow-lg"
+              className="space-y-4"
             >
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
+              {/* Filtros */}
+              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="flex-1 w-full max-w-sm">
+                  <SearchBar 
+                    placeholder="Buscar suplidor o cheque..." 
+                    value={paymentsSearch} 
+                    onChange={handlePaymentsSearch} 
+                  />
+                </div>
+                <div className="flex items-center gap-4 text-sm w-full md:w-auto">
+                  <div className="flex flex-col gap-1 w-full md:w-auto">
+                    <label className="text-xs text-on-surface-variant font-bold">Desde</label>
+                    <input 
+                      type="date" 
+                      value={paymentsStartDate} 
+                      onChange={(e) => setPaymentsStartDate(e.target.value)}
+                      className="bg-background border border-outline-variant rounded-md px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 w-full md:w-auto">
+                    <label className="text-xs text-on-surface-variant font-bold">Hasta</label>
+                    <input 
+                      type="date" 
+                      value={paymentsEndDate} 
+                      onChange={(e) => setPaymentsEndDate(e.target.value)}
+                      className="bg-background border border-outline-variant rounded-md px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => { setPaymentsStartDate(''); setPaymentsEndDate(''); setPaymentsSearch(''); setPaymentsPage(1); }}
+                    className="mt-5 px-3 py-1.5 border border-outline-variant hover:bg-outline-variant/20 rounded-md transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabla */}
+              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden shadow-lg">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
                     <tr>
                       <th className="px-6 py-3.5">Fecha</th>
                       <th className="px-6 py-3.5">Proveedor</th>
@@ -626,6 +709,32 @@ export default function AccountsPayablePage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+              
+              {/* Paginación */}
+              {paymentsTotalPages > 1 && (
+                <div className="flex items-center justify-between p-4 border-t border-slate-850 bg-background/20">
+                  <span className="text-xs text-on-surface-variant font-mono">
+                    Mostrando página {paymentsPage} de {paymentsTotalPages} ({paymentsTotal} registros)
+                  </span>
+                  <div className="flex gap-2">
+                    <button 
+                      disabled={paymentsPage <= 1}
+                      onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                      className="px-3 py-1 bg-surface-container border border-outline-variant rounded hover:bg-outline-variant/20 disabled:opacity-50 text-xs font-bold transition-colors"
+                    >
+                      Anterior
+                    </button>
+                    <button 
+                      disabled={paymentsPage >= paymentsTotalPages}
+                      onClick={() => setPaymentsPage(p => Math.min(paymentsTotalPages, p + 1))}
+                      className="px-3 py-1 bg-surface-container border border-outline-variant rounded hover:bg-outline-variant/20 disabled:opacity-50 text-xs font-bold transition-colors"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

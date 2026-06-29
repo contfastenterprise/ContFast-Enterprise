@@ -44,6 +44,7 @@ export const employees = pgTable('employees', {
   departmentId: uuid('department_id').references(() => departments.id),
   positionId: uuid('position_id').references(() => positions.id),
   contractType: varchar('contract_type', { length: 50 }).notNull(), // fijo | indefinido | temporal | por_obra
+  paymentFrequency: varchar('payment_frequency', { length: 20 }).default('mensual').notNull(), // mensual | quincenal | semanal
   salary: decimal('salary', { precision: 18, scale: 2 }).notNull(),
   hireDate: date('hire_date').notNull(),
   terminationDate: date('termination_date'),
@@ -63,6 +64,7 @@ export const payrolls = pgTable('payrolls', {
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   paymentDate: date('payment_date').notNull(),
+  frequency: varchar('frequency', { length: 20 }).default('mensual').notNull(), // mensual | quincenal | semanal
   status: varchar('status', { length: 50 }).default('draft').notNull(), // draft | calculated | approved | paid | cancelled
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),

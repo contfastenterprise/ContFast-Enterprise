@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -424,13 +424,13 @@ export default function AccountingPage() {
               <>
                 <button
                   onClick={handlePrintCatalog}
-                  className="bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-300 transition-colors shadow-sm"
                 >
-                  <Printer className="h-4 w-4 text-[#C5A059]" /> Imprimir Catálogo
+                  <Printer className="h-4 w-4 text-slate-500" /> Imprimir Catálogo
                 </button>
                 <button
                   onClick={() => setShowAccountModal(true)}
-                  className="bg-white border border-gray-200 hover:bg-gray-50 text-[#003366] font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold shadow-md hover:-translate-y-0.5 transition-all"
                 >
                   <Plus className="h-4 w-4" /> Nueva Cuenta
                 </button>
@@ -438,7 +438,7 @@ export default function AccountingPage() {
             ) : null}
             <button
               onClick={() => setShowJournalModal(true)}
-              className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-bold shadow-md hover:-translate-y-0.5 transition-all"
             >
               <FileText className="h-4 w-4" /> Nuevo Asiento
             </button>
@@ -545,7 +545,7 @@ export default function AccountingPage() {
                 {(startDate || endDate) && (
                   <button 
                     onClick={() => { setStartDate(''); setEndDate(''); }}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition-all"
                   >
                     Limpiar Filtros
                   </button>
@@ -1075,9 +1075,11 @@ export default function AccountingPage() {
                   </select>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowAccountModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />} Guardar Cuenta
+                  <button type="button" onClick={() => setShowAccountModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
+                    <X className="w-4 h-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Guardar Cuenta
                   </button>
                 </div>
               </form>
@@ -1110,9 +1112,11 @@ export default function AccountingPage() {
                   <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowPeriodModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {periodSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />} Abrir Período
+                  <button type="button" onClick={() => setShowPeriodModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
+                    <X className="w-4 h-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                    {periodSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Abrir Período
                   </button>
                 </div>
               </form>
@@ -1148,9 +1152,9 @@ export default function AccountingPage() {
                   </div>
                 </div>
 
-                <div className="bg-surface-container-highest border border-[#003366] rounded-xl overflow-hidden">
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <table className="w-full text-left">
-                    <thead className="bg-[#001733] border-b border-[#003366]">
+                    <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
                         <th className="px-4 py-3 text-sm font-semibold text-primary">Cuenta Contable</th>
                         <th className="px-4 py-3 text-right text-sm font-semibold text-primary w-40">Débito</th>
@@ -1158,16 +1162,27 @@ export default function AccountingPage() {
                         <th className="w-10"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#003366]/50">
+                    <tbody className="divide-y divide-slate-100">
                       {journalLines.map((line, idx) => (
                         <tr key={idx} className="hover:bg-surface-container-high/30">
                           <td className="p-2">
-                            <select required value={line.accountId} onChange={e => handleJournalLineChange(idx, 'accountId', e.target.value)} className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-primary focus:border-[#c5a059] outline-none">
-                              <option value="" disabled>Seleccione cuenta...</option>
+                            <input 
+                              list={`accounts-list-${idx}`}
+                              required
+                              placeholder="Escriba para buscar cuenta..."
+                              value={accounts.find(a => a.id === line.accountId) ? `${accounts.find(a => a.id === line.accountId)?.code} - ${accounts.find(a => a.id === line.accountId)?.name}` : line.accountId}
+                              onChange={e => {
+                                const val = e.target.value;
+                                const matched = accounts.find(a => `${a.code} - ${a.name}` === val);
+                                handleJournalLineChange(idx, 'accountId', matched ? matched.id : val);
+                              }}
+                              className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-primary focus:border-[#c5a059] outline-none"
+                            />
+                            <datalist id={`accounts-list-${idx}`}>
                               {accounts.map(acc => (
-                                <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                                <option key={acc.id} value={`${acc.code} - ${acc.name}`} />
                               ))}
-                            </select>
+                            </datalist>
                           </td>
                           <td className="p-2">
                             <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-right font-mono text-primary focus:border-[#c5a059] outline-none disabled:opacity-50" placeholder="0.00" />
@@ -1193,15 +1208,15 @@ export default function AccountingPage() {
               </div>
 
               {/* Footer Totals */}
-              <div className="bg-[#001733] border-t border-[#003366] p-6 shrink-0 grid grid-cols-1 md:grid-cols-2 items-center gap-4">
+              <div className="bg-slate-50 border-t border-slate-200 p-6 shrink-0 grid grid-cols-1 md:grid-cols-2 items-center gap-4">
                 <div className="flex gap-6">
                   <div>
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Total Débitos</p>
-                    <p className="font-mono text-xl font-bold text-emerald-400">{fmt(totalDebits)}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Débitos</p>
+                    <p className="font-mono text-xl font-bold text-emerald-600">{fmt(totalDebits)}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Total Créditos</p>
-                    <p className="font-mono text-xl font-bold text-emerald-400">{fmt(totalCredits)}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Créditos</p>
+                    <p className="font-mono text-xl font-bold text-emerald-600">{fmt(totalCredits)}</p>
                   </div>
                 </div>
 
@@ -1211,11 +1226,11 @@ export default function AccountingPage() {
                       <AlertTriangle className="w-4 h-4" /> Asiento Descuadrado
                     </div>
                   )}
-                  <button type="button" onClick={() => setShowJournalModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">
-                    Cancelar
+                  <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
+                    <X className="w-4 h-4" /> Cancelar
                   </button>
-                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
+                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     Contabilizar Asiento
                   </button>
                 </div>

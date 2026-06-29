@@ -7,6 +7,7 @@ const createPayrollSchema = z.object({
   periodStart: z.string().min(1, 'La fecha de inicio es obligatoria'),
   periodEnd: z.string().min(1, 'La fecha de fin es obligatoria'),
   paymentDate: z.string().min(1, 'La fecha de pago es obligatoria'),
+  frequency: z.enum(['mensual', 'quincenal', 'semanal']).optional().default('mensual'),
 });
 
 export async function GET(req: NextRequest) {

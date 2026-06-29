@@ -107,6 +107,7 @@ export class PayrollCalculationService {
    */
   public static calculateDetails(params: {
     baseSalary: number;
+    frequency?: 'mensual' | 'quincenal' | 'semanal';
     overtimeAmount?: number;
     bonusAmount?: number;
     commissionAmount?: number;
@@ -115,44 +116,50 @@ export class PayrollCalculationService {
     config: PayrollConfig;
   }) {
     const baseSalary = Number(params.baseSalary);
+    const frequency = params.frequency || 'mensual';
     const overtimeAmount = Number(params.overtimeAmount || 0);
     const bonusAmount = Number(params.bonusAmount || 0);
     const commissionAmount = Number(params.commissionAmount || 0);
     const otherDeductions = Number(params.otherDeductions || 0);
     const config = params.config;
 
-    // 1. Gross Salary
+    // Factor de periodo para proyectar salarios
+    let factorPeriodo = 1;
+    if (frequency === 'quincenal') factorPeriodo = 2;
+    if (frequency === 'semanal') factorPeriodo = 4.3333; // Promedio de semanas por mes
+
+    // 1. Gross Salary (del periodo)
     const grossSalary = this.round(baseSalary + overtimeAmount + bonusAmount + commissionAmount);
 
-    // 2. Cotizable TSS Salary (Base Salary + Commissions + any other recurring item, excluding extra hours and bonuses according to law)
+    // 2. Cotizable TSS Salary (del periodo)
     const cotizableSalary = this.round(baseSalary + commissionAmount);
 
     // 3. AFP limits (20 times minimum wage)
-    const afpLimit = 20 * this.SALARIO_MINIMO_TSS;
+    const afpLimit = (20 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
     const afpBase = Math.min(cotizableSalary, afpLimit);
     const afpEmployee = this.round(afpBase * Number(config.afpEmployee || 0.0287));
     const afpEmployer = this.round(afpBase * Number(config.afpEmployer || 0.0710));
 
     // 4. SFS limits (10 times minimum wage)
-    const sfsLimit = 10 * this.SALARIO_MINIMO_TSS;
+    const sfsLimit = (10 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
     const sfsBase = Math.min(cotizableSalary, sfsLimit);
     const sfsEmployee = this.round(sfsBase * Number(config.sfsEmployee || 0.0304));
     const sfsEmployer = this.round(sfsBase * Number(config.sfsEmployer || 0.0709));
 
-    // 5. INFOTEP (1% employer on base+commissions, 0.5% employee on bonuses/commissions. Note: Standard practice in DR is employer pays 1%, employee pays 0.5% only on commissions/bonuses/incentives)
+    // 5. INFOTEP 
     const infotepEmployer = this.round(cotizableSalary * Number(config.infotepEmployer || 0.0100));
 
-    // 6. SRL (Riesgo Laboral) - Employer only, limit 4 minimum wages
-    const srlLimit = 4 * this.SALARIO_MINIMO_TSS;
+    // 6. SRL (Riesgo Laboral)
+    const srlLimit = (4 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
     const srlBase = Math.min(cotizableSalary, srlLimit);
     const riskEmployer = this.round(srlBase * Number(config.riskEmployer || 0.0110));
 
-    // 7. Net Salary for ISR deduction: Gross Salary - AFP - SFS (Other items like overtime or bonus can be subject to ISR depending on policy, generally they are!)
-    // Standard DGII rules: All incomes (base, overtime, commissions, bonuses) except double sueldo are subject to ISR.
-    // Deductions allowed: SFS and AFP.
-    const monthlyNetForIsr = Math.max(0, grossSalary - afpEmployee - sfsEmployee);
-    const annualNetForIsr = monthlyNetForIsr * 12;
-    const isr = this.calculateIsr(annualNetForIsr, params.isrBrackets);
+    // 7. Net Salary for ISR deduction
+    // Para calcular el ISR de una quincena/semana, proyectamos el salario gravable al mes, calculamos el ISR mensual, y luego lo dividimos entre el factor.
+    const projectedMonthlyNetForIsr = Math.max(0, (grossSalary * factorPeriodo) - (afpEmployee * factorPeriodo) - (sfsEmployee * factorPeriodo));
+    const annualNetForIsr = projectedMonthlyNetForIsr * 12;
+    const monthlyIsr = this.calculateIsr(annualNetForIsr, params.isrBrackets);
+    const isr = this.round(monthlyIsr / factorPeriodo);
 
     // 8. Net Salary to pay
     const netSalary = this.round(grossSalary - afpEmployee - sfsEmployee - isr - otherDeductions);

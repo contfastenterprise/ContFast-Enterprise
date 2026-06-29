@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 
@@ -330,10 +330,13 @@ export default function CategoriesPage() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 rounded-xl text-primary font-bold hover:bg-surface-container">Cancelar</button>
-                <button type="submit" disabled={submitting} className="bg-primary text-on-primary px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90">
-                  {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {editId ? 'Actualizar' : 'Guardar'}
+                <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
+                  <X className="w-4 h-4" />
+                  Cancelar
+                </button>
+                <button type="submit" disabled={submitting} className="bg-[#003366] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md hover:bg-[#002244] hover:-translate-y-0.5 transition-all">
+                  {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  {editId ? 'Guardar Cambios' : 'Registrar Categoría'}
                 </button>
               </div>
             </form>

@@ -244,7 +244,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
             <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
@@ -261,7 +261,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               <select
                 value={form.ecfType}
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
-                className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                className="w-full bg-white border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
               >
                 <option value="31">e-31 — Crédito Fiscal</option>
                 <option value="32">e-32 — Consumo</option>
@@ -284,7 +284,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="1"
                   value={form.startSequence}
                   onChange={(e) => setForm((f) => ({ ...f, startSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
               <div>
@@ -294,7 +294,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="2"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 />
               </div>
             </div>
@@ -308,7 +308,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
               />
             </div>
@@ -404,7 +404,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
             <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
@@ -434,7 +434,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="0"
                   value={form.currentSequence}
                   onChange={(e) => setForm((f) => ({ ...f, currentSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -445,7 +445,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="1"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -460,7 +460,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
                 required
               />
@@ -777,7 +777,7 @@ function ComprobantesTab() {
           {(filters.q || filters.ecfType || filters.status || filters.from || filters.to) && (
             <button
               onClick={() => { setFilters({ status: '', ecfType: '', from: '', to: '', q: '' }); setPage(1); }}
-              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg bg-white border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" /> Limpiar
             </button>
@@ -818,7 +818,7 @@ function ComprobantesTab() {
             </div>
           ) : (
             <table className="w-full text-left border-collapse min-w-[1000px]">
-              <thead className="bg-surface-container-low border-b border-outline-variant">
+              <thead className="bg-white border-b border-outline-variant">
                 <tr>
                   <th className="py-4 px-6 w-12 text-center">
                     <input
@@ -838,7 +838,7 @@ function ComprobantesTab() {
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {invoiceList.map((inv) => (
-                  <tr key={inv.id} className={`hover:bg-surface-container-low/50 transition-colors group ${selectedIds.includes(inv.id) ? 'bg-primary/5 hover:bg-primary/10' : ''}`}>
+                  <tr key={inv.id} className={`hover:bg-white/50 transition-colors group ${selectedIds.includes(inv.id) ? 'bg-primary/5 hover:bg-primary/10' : ''}`}>
                     <td className="py-4 px-6 text-center w-12">
                       <input
                         type="checkbox"
@@ -876,11 +876,11 @@ function ComprobantesTab() {
         </div>
 
         {meta.total_pages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-outline-variant bg-surface-container-lowest">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-outline-variant bg-whiteest">
             <span className="text-xs text-on-surface-variant font-medium">Página {meta.page} de {meta.total_pages}</span>
             <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors disabled:opacity-50">Anterior</button>
-              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors disabled:opacity-50">Siguiente</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-white transition-colors disabled:opacity-50">Anterior</button>
+              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-white transition-colors disabled:opacity-50">Siguiente</button>
             </div>
           </div>
         )}
@@ -979,7 +979,7 @@ function ColaTab() {
         <div className="flex gap-2">
           <button
             onClick={fetchSubmissions}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5"
           >
             <RefreshCw className="h-3.5 w-3.5" /> Actualizar
           </button>
@@ -1000,14 +1000,14 @@ function ColaTab() {
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : submissions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white">
             <Activity className="h-12 w-12 opacity-30" />
             <p className="text-sm font-medium">Cola vacía</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50">
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reintentos</th>
@@ -1017,7 +1017,7 @@ function ColaTab() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {submissions.map((sub) => (
-                <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                <tr key={sub.id} className="hover:bg-white dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">
                       {(sub as any).ncf || sub.invoiceId.substring(0, 8) + '…'}
@@ -1131,7 +1131,7 @@ function SecuenciasTab() {
           ))}
         </div>
       ) : sequences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white rounded-2xl border border-gray-200">
           <Database className="h-12 w-12 opacity-30" />
           <p className="text-sm font-medium">No hay secuencias SACF configuradas</p>
           <button onClick={() => setShowModal(true)} className="text-primary text-sm font-semibold hover:underline">
@@ -1303,7 +1303,7 @@ function NotasTab() {
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="rounded-xl border border-gray-200 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         >
           <option value="">Todos los tipos</option>
           <option value="33">e-33 Nota Débito</option>
@@ -1312,7 +1312,7 @@ function NotasTab() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="rounded-xl border border-gray-200 bg-white text-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         >
           <option value="">Todos los estados</option>
           <option value="draft">Borrador</option>
@@ -1325,14 +1325,14 @@ function NotasTab() {
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : notes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white">
             <CreditCard className="h-12 w-12 opacity-30" />
             <p className="text-sm font-medium">No hay notas de crédito o débito</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50">
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF Nota</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monto</th>
@@ -1342,7 +1342,7 @@ function NotasTab() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {notes.map((note: any) => (
-                <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                <tr key={note.id} className="hover:bg-white dark:hover:bg-gray-800/40 transition-colors">
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{note.ncf}</span>
                   </td>
@@ -1435,7 +1435,7 @@ export default function ECFPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`relative flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab.id
               ? 'text-primary'
-              : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-low/50 rounded-t-xl'
+              : 'text-on-surface-variant hover:text-primary hover:bg-white/50 rounded-t-xl'
               }`}
           >
             {tab.icon}
@@ -1458,6 +1458,7 @@ export default function ECFPage() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -8 }}
           transition={{ duration: 0.15 }}
+          className="mt-6"
         >
           {activeTab === 'comprobantes' && <ComprobantesTab />}
           {activeTab === 'cola' && <ColaTab />}

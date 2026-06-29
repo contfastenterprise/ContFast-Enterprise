@@ -517,16 +517,15 @@ export default function CustomersPage() {
                     type="button"
                     variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="text-on-surface-variant hover:text-primary"
+                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200"
                   >
+                    <X className="w-4 h-4" />
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    variant="secondary"
-                    animated
                     disabled={submitting}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Cliente'}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer, X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Warehouse {
@@ -362,14 +362,16 @@ export default function WarehousesPage() {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-5 py-2.5 rounded-xl font-bold text-on-surface-variant hover:bg-surface-variant transition-colors"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border border-rose-200 transition-colors"
                   >
+                    <X className="w-4 h-4" />
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl font-bold bg-primary text-on-primary shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-[#003366] text-white shadow-md hover:bg-[#002244] hover:-translate-y-0.5 transition-all"
                   >
+                    <ShieldCheck className="w-4 h-4" />
                     Guardar Cambios
                   </button>
                 </div>

@@ -12,6 +12,7 @@ export default function SetupWizard() {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [showToken, setShowToken] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [company, setCompany] = useState({ name: '', rnc: '', businessActivity: '' });
@@ -419,13 +420,22 @@ export default function SetupWizard() {
                   </div>
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Contraseña de Sistemas <span className="text-[#C5A059]">*</span></label>
-                    <input
-                      type="password"
-                      value={user.password}
-                      onChange={(e) => setUser({ ...user, password: e.target.value })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
-                      placeholder="Mínimo 8 caracteres"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={user.password}
+                        onChange={(e) => setUser({ ...user, password: e.target.value })}
+                        className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 pl-4 pr-10 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#C5A059]"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

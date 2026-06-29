@@ -218,7 +218,7 @@ export default function AdminCompaniesPage() {
               Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
             </p>
           </div>
-          <button onClick={() => setShowNewCompanyModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+          <button onClick={() => setShowNewCompanyModal(true)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center">
             <Plus className="h-4 w-4" /> Nueva Empresa
           </button>
         </div>

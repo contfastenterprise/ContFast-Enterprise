@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { accountsPayable, apPayments, checks, suppliers, chartOfAccounts, bankAccounts, cashSessions } from '@/db/schema';
-import { eq, and, sql, desc, isNull, lte } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull, lte, gte, ilike, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { CashRepository } from '@/repositories/cashRepository';
 
@@ -149,20 +149,42 @@ export class ApRepository {
   }
 
   /**
-   * Find payments for a company.
+   * Find payments for a company with pagination and filters.
    */
-  static async getPayments(companyId: string, apId?: string) {
+  static async getPayments(companyId: string, filters?: { 
+    apId?: string, 
+    startDate?: string, 
+    endDate?: string, 
+    search?: string, 
+    limit?: number, 
+    offset?: number 
+  }) {
     const debitAccount = alias(chartOfAccounts, 'debit_account');
     const creditAccount = alias(chartOfAccounts, 'credit_account');
 
-    let conditions = [
+    let conditions: any[] = [
       eq(apPayments.companyId, companyId)
     ];
-    if (apId) {
-      conditions.push(eq(apPayments.apId, apId));
+    if (filters?.apId) {
+      conditions.push(eq(apPayments.apId, filters.apId));
+    }
+    if (filters?.startDate) {
+      conditions.push(gte(apPayments.paymentDate, filters.startDate));
+    }
+    if (filters?.endDate) {
+      conditions.push(lte(apPayments.paymentDate, filters.endDate));
+    }
+    if (filters?.search) {
+      const searchStr = `%${filters.search}%`;
+      conditions.push(
+        or(
+          ilike(suppliers.name, searchStr),
+          ilike(checks.checkNumber, searchStr)
+        )
+      );
     }
 
-    const query = db.select({
+    const baseQuery = db.select({
       payment: apPayments,
       ap: accountsPayable,
       supplier: suppliers,
@@ -176,11 +198,31 @@ export class ApRepository {
     .innerJoin(debitAccount, eq(apPayments.debitAccountId, debitAccount.id))
     .innerJoin(creditAccount, eq(apPayments.creditAccountId, creditAccount.id))
     .leftJoin(checks, eq(apPayments.checkId, checks.id))
-    .where(and(...conditions))
-    .orderBy(desc(apPayments.paymentDate));
+    .where(and(...conditions));
 
-    const results = await query;
-    return results.map(r => ({
+    // Get total count
+    const countResult = await db.select({ count: sql<number>`count(*)` })
+      .from(apPayments)
+      .innerJoin(accountsPayable, eq(apPayments.apId, accountsPayable.id))
+      .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
+      .leftJoin(checks, eq(apPayments.checkId, checks.id))
+      .where(and(...conditions));
+    
+    const total = Number(countResult[0]?.count || 0);
+
+    // Apply pagination
+    let finalQuery = baseQuery.orderBy(desc(apPayments.paymentDate)).$dynamic();
+    
+    if (filters?.limit !== undefined) {
+      finalQuery = finalQuery.limit(filters.limit);
+    }
+    if (filters?.offset !== undefined) {
+      finalQuery = finalQuery.offset(filters.offset);
+    }
+
+    const results = await finalQuery;
+    
+    const items = results.map(r => ({
       ...r.payment,
       supplierName: r.supplier.name,
       debitAccountName: r.debit.name,
@@ -192,6 +234,8 @@ export class ApRepository {
       checkStatus: r.check?.status,
       checkBankAccountId: r.check?.bankAccountId,
     }));
+
+    return { items, total };
   }
 
   /**

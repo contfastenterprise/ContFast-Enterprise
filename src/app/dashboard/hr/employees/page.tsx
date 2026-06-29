@@ -19,7 +19,9 @@ interface Employee {
   civilStatus?: string;
   nationality?: string;
   departmentId?: string;
-  positionId?: string;
+  positionId?: string | null;
+  paymentFrequency: string;
+  department?: { id: string; name: string } | null;
   contractType: string;
   salary: string;
   hireDate: string;
@@ -53,6 +55,7 @@ export default function EmployeesPage() {
     positionId: '',
     contractType: 'indefinido',
     salary: 25000,
+    paymentFrequency: 'mensual',
     hireDate: new Date().toISOString().split('T')[0],
     terminationDate: '',
     status: 'active'
@@ -103,6 +106,7 @@ export default function EmployeesPage() {
       departmentId: departments[0]?.id || '',
       positionId: positions[0]?.id || '',
       contractType: 'indefinido',
+      paymentFrequency: 'mensual',
       salary: 25000,
       hireDate: new Date().toISOString().split('T')[0],
       terminationDate: '',
@@ -129,6 +133,7 @@ export default function EmployeesPage() {
       positionId: emp.positionId || '',
       contractType: emp.contractType || 'indefinido',
       salary: parseFloat(emp.salary),
+      paymentFrequency: emp.paymentFrequency || 'mensual',
       hireDate: new Date(emp.hireDate).toISOString().split('T')[0],
       terminationDate: emp.terminationDate ? new Date(emp.terminationDate).toISOString().split('T')[0] : '',
       status: emp.status
@@ -268,7 +273,7 @@ export default function EmployeesPage() {
                   <td className="p-3 font-medium">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</td>
                   <td className="p-3 capitalize text-xs">{emp.contractType}</td>
                   <td className="p-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300' :
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${emp.status === 'active' ? 'bg-[#003366] text-white' :
                         emp.status === 'inactive' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-300' :
                           'bg-red-100 text-red-800 dark:bg-red-900/35 dark:text-red-300'
                       }`}>
@@ -466,7 +471,7 @@ export default function EmployeesPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-on-surface-variant">Salario Base (DOP)</label>
+                    <label className="text-xs font-medium text-on-surface-variant">Salario Base Mensual (DOP)</label>
                     <input
                       type="number"
                       required
@@ -474,6 +479,18 @@ export default function EmployeesPage() {
                       onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
                       className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-on-surface-variant">Frecuencia de Pago</label>
+                    <select
+                      value={formData.paymentFrequency}
+                      onChange={e => setFormData({ ...formData, paymentFrequency: e.target.value })}
+                      className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                    >
+                      <option value="mensual">Mensual</option>
+                      <option value="quincenal">Quincenal</option>
+                      <option value="semanal">Semanal</option>
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-on-surface-variant">Fecha de Ingreso</label>

@@ -428,12 +428,16 @@ export default function CashPage() {
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-sm font-bold text-on-surface mb-0">
-                    Punto de Venta / Terminal <span className="text-error">*</span>
+                    Punto de Venta <span className="text-error">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowNewRegisterModal(true)}
-                    className="text-xs font-bold text-primary hover:underline"
+                    className={`text-xs font-bold px-2 py-0.5 rounded transition-all ${
+                      registers.length === 0
+                        ? 'bg-[#003366] text-white hover:bg-[#002244] animate-pulse hover:animate-none'
+                        : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+                    }`}
                   >
                     + Nueva Terminal
                   </button>
@@ -673,21 +677,21 @@ export default function CashPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setMoveType('cash_in'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-[#001e40] text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Entrada de Efectivo
                 </button>
                 <button
                   onClick={() => { setMoveType('cash_out'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-[#001e40] text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white text-xs font-semibold rounded-lg hover:bg-rose-600 transition-colors shadow-sm"
                 >
                   <Minus className="w-4 h-4" />
                   Salida de Efectivo
                 </button>
                 <button
                   onClick={() => handleTabChange('arqueo')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#c5a059] text-[#001e40] text-xs font-bold rounded-lg hover:bg-[#d4b069] transition-all shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#003366] text-white text-xs font-bold rounded-lg hover:bg-[#002244] transition-all shadow-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Arqueo y Cierre

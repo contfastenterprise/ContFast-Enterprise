@@ -12,7 +12,7 @@ async function main() {
       WHERE table_schema = 'public' 
         AND table_type = 'BASE TABLE'
         AND table_name NOT LIKE '%drizzle%'
-        AND table_name NOT IN ('roles', 'plans')
+        AND table_name NOT IN ('roles', 'plans', 'route_mappings')
     `);
 
     const tables = (tablesResult as any).map((row: any) => row.table_name);

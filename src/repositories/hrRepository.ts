@@ -188,15 +188,27 @@ export class HRRepository {
   }
 
   static async updatePayrollConfig(companyId: string, data: any) {
-    const [updated] = await db
-      .update(payrollConfigs)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
-      .where(eq(payrollConfigs.companyId, companyId))
-      .returning();
-    return updated;
+    const existing = await this.getPayrollConfig(companyId);
+    if (existing) {
+      const [updated] = await db
+        .update(payrollConfigs)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
+        .where(eq(payrollConfigs.companyId, companyId))
+        .returning();
+      return updated;
+    } else {
+      const [inserted] = await db
+        .insert(payrollConfigs)
+        .values({
+          companyId,
+          ...data,
+        })
+        .returning();
+      return inserted;
+    }
   }
 
   static async getIsrBrackets() {
@@ -263,7 +275,7 @@ export class HRRepository {
       .orderBy(employees.firstName);
   }
 
-  static async createPayroll(companyId: string, data: { periodStart: string; periodEnd: string; paymentDate: string; createdBy?: string }) {
+  static async createPayroll(companyId: string, data: { periodStart: string; periodEnd: string; paymentDate: string; frequency?: string; createdBy?: string }) {
     return db.transaction(async (tx) => {
       // 1. Create payroll record
       const [payroll] = await tx
@@ -273,6 +285,7 @@ export class HRRepository {
           periodStart: data.periodStart,
           periodEnd: data.periodEnd,
           paymentDate: data.paymentDate,
+          frequency: data.frequency || 'mensual',
           status: 'draft',
           createdBy: data.createdBy,
         })
@@ -302,11 +315,16 @@ export class HRRepository {
     const start = payroll.periodStart;
     const end = payroll.periodEnd;
 
-    // 3. Fetch active employees
+    // 3. Fetch active employees matching the payroll frequency
     const activeEmployees = await tx
       .select()
       .from(employees)
-      .where(and(eq(employees.companyId, companyId), eq(employees.status, 'active'), isNull(employees.deletedAt)));
+      .where(and(
+        eq(employees.companyId, companyId), 
+        eq(employees.status, 'active'), 
+        isNull(employees.deletedAt),
+        eq(employees.paymentFrequency, payroll.frequency)
+      ));
 
     // 4. Fetch laws configuration and ISR Brackets
     const config = await tx
@@ -316,7 +334,25 @@ export class HRRepository {
       .limit(1)
       .then((rows: any[]) => rows[0]);
 
-    const brackets = await tx.select().from(isrBrackets).orderBy(isrBrackets.fromAmount);
+    if (!config) {
+      throw new Error('Configuración de nómina incompleta. Por favor, guarde la Configuración de RRHH antes de generar una nómina.');
+    }
+
+    const payrollYear = new Date(end).getFullYear();
+    const [latestYearRecord] = await tx
+      .select({ year: isrBrackets.year })
+      .from(isrBrackets)
+      .where(sql`${isrBrackets.year} <= ${payrollYear}`)
+      .orderBy(desc(isrBrackets.year))
+      .limit(1);
+
+    const targetYear = latestYearRecord ? latestYearRecord.year : payrollYear;
+
+    const brackets = await tx
+      .select()
+      .from(isrBrackets)
+      .where(eq(isrBrackets.year, targetYear))
+      .orderBy(isrBrackets.fromAmount);
 
     // 5. For each employee, fetch incomes/deductions and compute details
     for (const emp of activeEmployees) {
@@ -364,8 +400,15 @@ export class HRRepository {
         );
 
       // Calculate details using service
+      // We divide the monthly salary by the factor to get the period base salary
+      let factorPeriodo = 1;
+      if (payroll.frequency === 'quincenal') factorPeriodo = 2;
+      if (payroll.frequency === 'semanal') factorPeriodo = 4.3333;
+      const periodBaseSalary = Number(emp.salary) / factorPeriodo;
+
       const payrollCalcs = PayrollCalculationService.calculateDetails({
-        baseSalary: Number(emp.salary),
+        baseSalary: periodBaseSalary,
+        frequency: payroll.frequency as any,
         overtimeAmount: Number(overtimeSum?.total || 0),
         bonusAmount: bonusSum,
         commissionAmount: commissionSum,

@@ -40,6 +40,7 @@ const employeeSchema = z.object({
   departmentId: z.string().uuid('Departamento no válido').optional().nullable(),
   positionId: z.string().uuid('Puesto no válido').optional().nullable(),
   contractType: z.enum(['fijo', 'indefinido', 'temporal', 'por_obra']),
+  paymentFrequency: z.enum(['mensual', 'quincenal', 'semanal']).default('mensual'),
   salary: z.number().positive('El salario debe ser mayor a cero'),
   hireDate: z.string().min(1, 'La fecha de ingreso es obligatoria'),
   terminationDate: z.string().optional().nullable(),

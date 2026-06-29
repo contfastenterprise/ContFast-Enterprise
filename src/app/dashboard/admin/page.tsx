@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban } from 'lucide-react';
+import { Shield, ShieldCheck, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -344,17 +344,17 @@ export default function AdminPage() {
             </p>
           </div>
           {activeTab === 'users' && (
-            <button onClick={handleOpenNewUser} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+            <button onClick={handleOpenNewUser} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center">
               <Plus className="h-4 w-4" /> Nuevo Usuario
             </button>
           )}
           {activeTab === 'roles' && currentUserRole === 'sistemas' && (
-            <button onClick={() => setShowNewRoleModal(true)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+            <button onClick={() => setShowNewRoleModal(true)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center">
               <Plus className="h-4 w-4" /> Nuevo Rol
             </button>
           )}
           {activeTab === 'plans' && currentUserRole === 'sistemas' && (
-            <button onClick={() => handleOpenPlanModal(null)} className="bg-[#C5A059] hover:bg-[#b08c4a] text-primary px-4 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+            <button onClick={() => handleOpenPlanModal(null)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center">
               <Plus className="h-4 w-4" /> Nuevo Plan SaaS
             </button>
           )}
@@ -666,7 +666,11 @@ export default function AdminPage() {
                       <select required value={userForm.roleId} onChange={e => setUserForm({ ...userForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
                         <option value="">Seleccione un rol...</option>
                         {roles
-                          .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                          .filter(r => {
+                            const isSysRole = r.name.toLowerCase() === 'sistemas' || r.name.toLowerCase() === 'sistema';
+                            const isMyRoleSys = currentUserRole.toLowerCase() === 'sistemas' || currentUserRole.toLowerCase() === 'sistema';
+                            return isMyRoleSys ? true : !isSysRole;
+                          })
                           .map(r => (
                             <option key={r.id} value={r.id}>{r.name}</option>
                           ))}
@@ -690,9 +694,11 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowNewUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Usuario
+                  <button type="button" onClick={() => setShowNewUserModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-sm font-semibold transition-colors">
+                    <X className="h-4 w-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] text-white text-sm font-semibold hover:opacity-90 shadow-sm disabled:opacity-50 transition-all">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Crear Usuario
                   </button>
                 </div>
               </form>
@@ -732,7 +738,11 @@ export default function AdminPage() {
                       <select required value={editUserForm.roleId} onChange={e => setEditUserForm({ ...editUserForm, roleId: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors capitalize">
                         <option value="">Seleccione un rol...</option>
                         {roles
-                          .filter(r => r.name.toLowerCase() !== 'sistemas' && r.name.toLowerCase() !== 'sistema')
+                          .filter(r => {
+                            const isSysRole = r.name.toLowerCase() === 'sistemas' || r.name.toLowerCase() === 'sistema';
+                            const isMyRoleSys = currentUserRole.toLowerCase() === 'sistemas' || currentUserRole.toLowerCase() === 'sistema';
+                            return isMyRoleSys ? true : !isSysRole;
+                          })
                           .map(r => (
                             <option key={r.id} value={r.id}>{r.name}</option>
                           ))}
@@ -756,9 +766,11 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowEditUserModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar Cambios
+                  <button type="button" onClick={() => setShowEditUserModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-sm font-semibold transition-colors">
+                    <X className="h-4 w-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] text-white text-sm font-semibold hover:opacity-90 shadow-sm disabled:opacity-50 transition-all">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Guardar Cambios
                   </button>
                 </div>
               </form>
@@ -787,9 +799,11 @@ export default function AdminPage() {
                   <textarea value={roleForm.description} onChange={e => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Describa las responsabilidades del rol" rows={3} />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowNewRoleModal(false)} className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Rol
+                  <button type="button" onClick={() => setShowNewRoleModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-sm font-semibold transition-colors">
+                    <X className="h-4 w-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] text-white text-sm font-semibold hover:opacity-90 shadow-sm disabled:opacity-50 transition-all">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Crear Rol
                   </button>
                 </div>
               </form>
@@ -845,9 +859,11 @@ export default function AdminPage() {
                   <label htmlFor="planActive" className="text-xs font-bold text-slate-700 cursor-pointer">Plan Habilitado para Contratación</label>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowPlanModal(false)} className="px-5 py-2 text-slate-700 hover:text-[#003366] font-medium transition-colors">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar Plan
+                  <button type="button" onClick={() => setShowPlanModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-sm font-semibold transition-colors">
+                    <X className="h-4 w-4" /> Cancelar
+                  </button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] text-white text-sm font-semibold hover:opacity-90 shadow-sm disabled:opacity-50 transition-all">
+                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Guardar Plan
                   </button>
                 </div>
               </form>
