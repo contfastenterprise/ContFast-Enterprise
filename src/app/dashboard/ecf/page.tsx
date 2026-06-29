@@ -104,6 +104,18 @@ interface PaginationMeta {
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 const ECF_TYPE_LABELS: Record<string, string> = {
+  // Traditional NCFs
+  '01': 'Crédito Fiscal',
+  '02': 'Consumo',
+  '03': 'Nota Débito',
+  '04': 'Nota Crédito',
+  '11': 'Compras',
+  '13': 'Gastos Menores',
+  '14': 'Regímenes Especiales',
+  '15': 'Gubernamental',
+  '16': 'Exportación',
+  '17': 'Pagos al Exterior',
+  // Electronic e-CFs
   '31': 'Crédito Fiscal',
   '32': 'Consumo',
   '33': 'Nota Débito',
@@ -149,9 +161,12 @@ function ECFTypeBadge({ type }: { type: string }) {
     '46': 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',
     '47': 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
   };
+  const isTraditional = type.startsWith('0') || type.startsWith('1');
+  const prefix = isTraditional ? 'B' : 'e';
+  
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${colors[type] || 'bg-gray-100 text-gray-700'}`}>
-      e-{type}
+      {prefix}-{type}
     </span>
   );
 }
@@ -194,6 +209,7 @@ interface NewSeqModalProps {
 }
 
 function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
+  const [isElectronic, setIsElectronic] = useState(true);
   const [form, setForm] = useState({
     ecfType: '31',
     prefix: 'E',
@@ -201,6 +217,15 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
     maxSequence: '1000',
     sequenceExpiry: '',
   });
+
+  // Update defaults when switching type
+  useEffect(() => {
+    setForm(f => ({
+      ...f,
+      prefix: isElectronic ? 'E' : 'B',
+      ecfType: isElectronic ? '31' : '01',
+    }));
+  }, [isElectronic]);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,23 +281,56 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div>
+                <h4 className="text-sm font-bold text-[#003366]">Formato Electrónico (e-CF)</h4>
+                <p className="text-xs text-on-surface-variant">Genera secuencias E-31, E-32, etc. requeridas por DGII para facturación electrónica.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={isElectronic}
+                  onChange={(e) => setIsElectronic(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C5A059]"></div>
+              </label>
+            </div>
+
             <div>
-              <label className="text-sm font-semibold text-primary mb-1 block">Tipo e-CF</label>
+              <label className="text-sm font-semibold text-primary mb-1 block">Tipo de Comprobante</label>
               <select
                 value={form.ecfType}
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
                 className="w-full bg-white border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
               >
-                <option value="31">e-31 — Crédito Fiscal</option>
-                <option value="32">e-32 — Consumo</option>
-                <option value="33">e-33 — Nota Débito</option>
-                <option value="34">e-34 — Nota Crédito</option>
-                <option value="41">e-41 — Compras</option>
-                <option value="43">e-43 — Gastos Menores</option>
-                <option value="44">e-44 — Regímenes Especiales</option>
-                <option value="45">e-45 — Gubernamental</option>
-                <option value="46">e-46 — Pagos al Exterior</option>
-                <option value="47">e-47 — Exportación</option>
+                {isElectronic ? (
+                  <>
+                    <option value="31">e-31 — Crédito Fiscal</option>
+                    <option value="32">e-32 — Consumo</option>
+                    <option value="33">e-33 — Nota Débito</option>
+                    <option value="34">e-34 — Nota Crédito</option>
+                    <option value="41">e-41 — Compras</option>
+                    <option value="43">e-43 — Gastos Menores</option>
+                    <option value="44">e-44 — Regímenes Especiales</option>
+                    <option value="45">e-45 — Gubernamental</option>
+                    <option value="46">e-46 — Pagos al Exterior</option>
+                    <option value="47">e-47 — Exportación</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="01">B-01 — Crédito Fiscal</option>
+                    <option value="02">B-02 — Consumo</option>
+                    <option value="03">B-03 — Nota Débito</option>
+                    <option value="04">B-04 — Nota Crédito</option>
+                    <option value="11">B-11 — Compras</option>
+                    <option value="13">B-13 — Gastos Menores</option>
+                    <option value="14">B-14 — Regímenes Especiales</option>
+                    <option value="15">B-15 — Gubernamental</option>
+                    <option value="16">B-16 — Exportación</option>
+                    <option value="17">B-17 — Pagos al Exterior</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -417,11 +475,11 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div>
-              <label className="text-sm font-semibold text-primary mb-1 block">Tipo e-CF</label>
+              <label className="text-sm font-semibold text-primary mb-1 block">Tipo Comprobante</label>
               <input
                 type="text"
                 disabled
-                value={`e-${sequence.ecfType} — ${ECF_TYPE_LABELS[sequence.ecfType] || ''}`}
+                value={`${sequence.prefix}-${sequence.ecfType} — ${ECF_TYPE_LABELS[sequence.ecfType] || ''}`}
                  className="w-full bg-surface-container border border-outline rounded-lg px-3 py-2 text-xs text-primary opacity-60 outline-none font-medium"
               />
             </div>
@@ -1163,6 +1221,9 @@ function SecuenciasTab() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <ECFTypeBadge type={seq.ecfType} />
+                    <span className="font-semibold text-[#003366] group-hover:text-primary transition-colors">
+                      {seq.prefix}-{seq.ecfType}
+                    </span>
                     <span className="font-semibold text-gray-900 dark:text-primary">
                       {ECF_TYPE_LABELS[seq.ecfType] || `Tipo ${seq.ecfType}`}
                     </span>
