@@ -2140,7 +2140,16 @@ function InvoicesList() {
                           }
 
                           return (
-                            <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                            <tr 
+                              key={p.id} 
+                              className="hover:bg-slate-50 transition-colors cursor-pointer"
+                              onDoubleClick={() => {
+                                if (activeLineIndex !== null) {
+                                  applyProductToLine(activeLineIndex, p);
+                                  setProductSearchModalOpen(false);
+                                }
+                              }}
+                            >
                               <td className="p-3 font-mono font-bold text-slate-500">{p.sku || p.barcode || '-'}</td>
                               <td className="p-3">
                                 <span className="font-bold text-slate-800 block">{p.name}</span>
