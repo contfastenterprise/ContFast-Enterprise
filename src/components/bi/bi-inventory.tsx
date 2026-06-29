@@ -45,15 +45,15 @@ export default function BIInventory({ data }: BIInventoryProps) {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-300 text-on-surface">
       
       {/* ─── FLOW & CHARTS SECTION ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Inventory Flow Bar Chart */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
-          <h4 className="font-bold text-slate-800 dark:text-white text-base mb-2">Flujo Físico de Mercancías</h4>
-          <p className="text-xs text-slate-500 mb-6">Comparativa de unidades ingresadas vs retiradas del inventario</p>
+        <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
+          <h4 className="font-bold text-on-surface text-base mb-1">Flujo Físico de Mercancías</h4>
+          <p className="text-xs text-on-surface-variant mb-6">Comparativa de unidades ingresadas vs retiradas del inventario</p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={flowChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -75,10 +75,10 @@ export default function BIInventory({ data }: BIInventoryProps) {
         </div>
 
         {/* Warehouse Stock value bar chart */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-base mb-2">Valor de Inventario por Almacén</h4>
-            <p className="text-xs text-slate-500 mb-6">Costo acumulado de existencias en cada sucursal/almacén</p>
+            <h4 className="font-bold text-on-surface text-base mb-1">Valor de Inventario por Almacén</h4>
+            <p className="text-xs text-on-surface-variant mb-6">Costo acumulado de existencias en cada sucursal/almacén</p>
           </div>
           <div className="h-80">
             {warehouseRotations.length > 0 ? (
@@ -92,7 +92,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">Sin datos de existencias por almacén</div>
+              <div className="h-full flex items-center justify-center text-on-surface-variant/40">Sin datos de existencias por almacén</div>
             )}
           </div>
         </div>
@@ -103,11 +103,11 @@ export default function BIInventory({ data }: BIInventoryProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Rotation by category */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
-          <h4 className="font-bold text-slate-800 dark:text-white text-base mb-4">Índice de Rotación por Categoría</h4>
+        <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
+          <h4 className="font-bold text-on-surface text-base mb-4">Índice de Rotación por Categoría</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase">
+              <thead className="bg-surface-variant/30 text-xs font-bold text-on-surface-variant uppercase">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg">Categoría</th>
                   <th className="px-4 py-3 text-right">Costo Ventas (COGS)</th>
@@ -115,12 +115,12 @@ export default function BIInventory({ data }: BIInventoryProps) {
                   <th className="px-4 py-3 text-right rounded-r-lg">Índice Rotación</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-outline-variant/10">
                 {categoryRotations.map((c: any) => (
-                  <tr key={c.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">{c.name || 'Sin Categoría'}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-600 dark:text-slate-400">{fmtDop(c.salesCost)}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-600 dark:text-slate-400">{fmtDop(c.stockValue)}</td>
+                  <tr key={c.name} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-on-surface">{c.name || 'Sin Categoría'}</td>
+                    <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(c.salesCost)}</td>
+                    <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(c.stockValue)}</td>
                     <td className="px-4 py-3.5 text-right font-black text-primary">
                       {c.rotation.toFixed(2)}x
                     </td>
@@ -132,11 +132,11 @@ export default function BIInventory({ data }: BIInventoryProps) {
         </div>
 
         {/* Rotation by warehouse */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
-          <h4 className="font-bold text-slate-800 dark:text-white text-base mb-4">Índice de Rotación por Almacén</h4>
+        <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
+          <h4 className="font-bold text-on-surface text-base mb-4">Índice de Rotación por Almacén</h4>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase">
+              <thead className="bg-surface-variant/30 text-xs font-bold text-on-surface-variant uppercase">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg">Almacén</th>
                   <th className="px-4 py-3 text-right">Costo Ventas (COGS)</th>
@@ -144,12 +144,12 @@ export default function BIInventory({ data }: BIInventoryProps) {
                   <th className="px-4 py-3 text-right rounded-r-lg">Índice Rotación</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-outline-variant/10">
                 {warehouseRotations.map((w: any) => (
-                  <tr key={w.name} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">{w.name}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-600 dark:text-slate-400">{fmtDop(w.salesCost)}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-600 dark:text-slate-400">{fmtDop(w.stockValue)}</td>
+                  <tr key={w.name} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-on-surface">{w.name}</td>
+                    <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(w.salesCost)}</td>
+                    <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(w.stockValue)}</td>
                     <td className="px-4 py-3.5 text-right font-black text-primary">
                       {w.rotation.toFixed(2)}x
                     </td>
@@ -163,36 +163,36 @@ export default function BIInventory({ data }: BIInventoryProps) {
       </div>
 
       {/* ─── STOCK LEVELS LIST SECTION ─── */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
+      <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-base">Existencias y Umbrales</h4>
-            <p className="text-xs text-slate-500">Listado detallado de existencias físicas y umbrales de reordenamiento</p>
+            <h4 className="font-bold text-on-surface text-base">Existencias y Umbrales</h4>
+            <p className="text-xs text-on-surface-variant">Listado detallado de existencias físicas y umbrales de reordenamiento</p>
           </div>
           
           {/* Status filter buttons */}
           <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'all' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'all' ? 'bg-primary text-white' : 'bg-surface-variant/40 text-on-surface-variant'}`}
             >
               Todos ({stockLevels.length})
             </button>
             <button 
               onClick={() => setFilterStatus('exhausted')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'exhausted' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'exhausted' ? 'bg-[#ff4d4d] text-white' : 'bg-red-50 text-[#ff4d4d]'}`}
             >
               Agotado ({stockLevels.filter((l: any) => l.status === 'exhausted').length})
             </button>
             <button 
               onClick={() => setFilterStatus('critical')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'critical' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'critical' ? 'bg-[#ff9900] text-white' : 'bg-amber-50 text-[#ff9900]'}`}
             >
               Bajo Mínimo ({stockLevels.filter((l: any) => l.status === 'critical').length})
             </button>
             <button 
               onClick={() => setFilterStatus('excessive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'excessive' ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'excessive' ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600'}`}
             >
               Exceso ({stockLevels.filter((l: any) => l.status === 'excessive').length})
             </button>
@@ -201,7 +201,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
 
         <div className="overflow-x-auto max-h-[380px] overflow-y-auto custom-scrollbar">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase sticky top-0 z-10">
+            <thead className="bg-surface-variant/30 text-xs font-bold text-on-surface-variant uppercase sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-3">Código</th>
                 <th className="px-4 py-3">Producto</th>
@@ -212,34 +212,34 @@ export default function BIInventory({ data }: BIInventoryProps) {
                 <th className="px-4 py-3 rounded-r-lg">Estatus</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-outline-variant/10">
               {filteredLevels.map((lvl: any, idx: number) => {
-                let badgeColor = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+                let badgeColor = 'bg-surface-variant text-on-surface-variant';
                 let badgeLabel = 'NORMAL';
 
                 if (lvl.status === 'exhausted') {
-                  badgeColor = 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400';
+                  badgeColor = 'bg-red-100 text-red-800';
                   badgeLabel = 'AGOTADO';
                 } else if (lvl.status === 'critical') {
-                  badgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400';
+                  badgeColor = 'bg-amber-100 text-amber-800';
                   badgeLabel = 'BAJO MÍNIMO';
                 } else if (lvl.status === 'excessive') {
-                  badgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400';
+                  badgeColor = 'bg-blue-100 text-blue-800';
                   badgeLabel = 'SOBRE STOCK';
                 }
 
                 return (
-                  <tr key={`${lvl.id}-${idx}`} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{lvl.sku || 'N/A'}</td>
-                    <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200">{lvl.name}</td>
-                    <td className="px-4 py-3 text-slate-500">{lvl.warehouse}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-300">
+                  <tr key={`${lvl.id}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-xs text-on-surface-variant">{lvl.sku || 'N/A'}</td>
+                    <td className="px-4 py-3 font-bold text-on-surface">{lvl.name}</td>
+                    <td className="px-4 py-3 text-on-surface-variant">{lvl.warehouse}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-on-surface">
                       {lvl.stock.toLocaleString('es-DO')}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-400">
+                    <td className="px-4 py-3 text-right text-on-surface-variant/60">
                       {lvl.minStock.toLocaleString('es-DO')}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">
+                    <td className="px-4 py-3 text-right text-on-surface-variant">
                       {fmtDop(lvl.cost)}
                     </td>
                     <td className="px-4 py-3">
@@ -252,7 +252,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
               })}
               {filteredLevels.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">No se encontraron productos con el filtro de estatus seleccionado</td>
+                  <td colSpan={7} className="text-center py-8 text-on-surface-variant">No se encontraron productos con el filtro de estatus seleccionado</td>
                 </tr>
               )}
             </tbody>

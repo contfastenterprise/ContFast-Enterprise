@@ -62,35 +62,35 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
   const COLORS = ['#003366', '#008080', '#D4AF37', '#800020', '#36454F', '#FF4500'];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-8 animate-in fade-in duration-300 text-on-surface">
       
       {/* ─── API COUNTS BADGES ─── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {statusCounts.map((sc: any) => {
           let icon = <FileText className="w-5 h-5" />;
-          let iconBg = 'bg-slate-50 text-slate-500 dark:bg-slate-800';
+          let iconBg = 'bg-surface-variant/30 text-on-surface-variant';
 
           if (sc.status === 'accepted') {
             icon = <CheckCircle2 className="w-5 h-5" />;
-            iconBg = 'bg-green-50 text-green-600 dark:bg-green-950/20 dark:text-green-400';
+            iconBg = 'bg-green-50 text-green-600';
           } else if (sc.status === 'rejected') {
             icon = <AlertCircle className="w-5 h-5" />;
-            iconBg = 'bg-red-50 text-red-500 dark:bg-red-950/20 dark:text-red-400';
+            iconBg = 'bg-red-50 text-red-500';
           } else if (sc.status === 'submitted') {
             icon = <Clock className="w-5 h-5" />;
-            iconBg = 'bg-blue-50 text-blue-500 dark:bg-blue-950/20 dark:text-blue-400';
+            iconBg = 'bg-blue-50 text-blue-500';
           }
 
           return (
             <div 
               key={sc.status} 
-              className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 p-5 rounded-2xl flex items-center gap-4 shadow-xs"
+              className="bg-surface-bright border border-outline-variant/30 p-5 rounded-3xl flex items-center gap-4 shadow-sm"
             >
-              <div className={`p-3 rounded-xl shrink-0 ${iconBg}`}>{icon}</div>
+              <div className={`p-3 rounded-2xl shrink-0 ${iconBg}`}>{icon}</div>
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{mapStatusName(sc.status)}</p>
-                <h4 className="text-lg font-black text-slate-800 dark:text-white mt-0.5">{sc.count}</h4>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{fmtDop(sc.amount)}</p>
+                <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">{mapStatusName(sc.status)}</p>
+                <h4 className="text-lg font-black text-on-surface mt-0.5">{sc.count}</h4>
+                <p className="text-[10px] text-on-surface-variant/60 font-mono mt-0.5">{fmtDop(sc.amount)}</p>
               </div>
             </div>
           );
@@ -101,9 +101,9 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Hourly Sales Activity */}
-        <div className="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
-          <h4 className="font-bold text-slate-800 dark:text-white text-base mb-2">Picos de Facturación por Hora</h4>
-          <p className="text-xs text-slate-500 mb-6">Monto acumulado de ventas según la hora del día</p>
+        <div className="lg:col-span-2 bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
+          <h4 className="font-bold text-on-surface text-base mb-1">Picos de Facturación por Hora</h4>
+          <p className="text-xs text-on-surface-variant mb-6">Monto acumulado de ventas según la hora del día</p>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={hourly} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -124,10 +124,10 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
         </div>
 
         {/* Status Distribution Pie Chart */}
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
           <div>
-            <h4 className="font-bold text-slate-800 dark:text-white text-base mb-2">Composición del Estado e-CF</h4>
-            <p className="text-xs text-slate-500 mb-4">Proporción del volumen de facturas enviadas a la DGII</p>
+            <h4 className="font-bold text-on-surface text-base mb-1">Composición del Estado e-CF</h4>
+            <p className="text-xs text-on-surface-variant mb-4">Proporción del volumen de facturas enviadas a la DGII</p>
           </div>
           <div className="h-64 flex justify-center items-center">
             {statusChartData.length > 0 ? (
@@ -151,7 +151,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-slate-400 text-sm">Sin datos de estado de facturas</div>
+              <div className="text-on-surface-variant text-sm">Sin datos de estado de facturas</div>
             )}
           </div>
         </div>
@@ -159,27 +159,27 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
       </div>
 
       {/* ─── E-CF BREAKDOWN TABLE ─── */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-xs">
-        <h4 className="font-bold text-slate-800 dark:text-white text-base mb-4">Desglose Fiscal por Tipo de Comprobante (e-CF)</h4>
+      <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
+        <h4 className="font-bold text-on-surface text-base mb-4">Desglose Fiscal por Tipo de Comprobante (e-CF)</h4>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-xs font-bold text-slate-500 uppercase">
+            <thead className="bg-surface-variant/30 text-xs font-bold text-on-surface-variant uppercase">
               <tr>
                 <th className="px-4 py-3 rounded-l-lg">Tipo Comprobante</th>
                 <th className="px-4 py-3 text-right">Cant. Emitida</th>
                 <th className="px-4 py-3 text-right rounded-r-lg">Monto Total Facturado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-outline-variant/10">
               {ecf.map((e: any) => (
-                <tr key={e.type} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3.5 font-bold text-slate-800 dark:text-slate-200">
+                <tr key={e.type} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 py-3.5 font-bold text-on-surface">
                     <span className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                       {mapEcfName(e.type)}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-right font-semibold text-slate-700 dark:text-slate-300">
+                  <td className="px-4 py-3.5 text-right font-semibold text-on-surface-variant">
                     {e.count.toLocaleString('es-DO')}
                   </td>
                   <td className="px-4 py-3.5 text-right font-black text-primary">
@@ -189,7 +189,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
               ))}
               {ecf.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="text-center py-8 text-slate-400">No se registran comprobantes electrónicos en este período</td>
+                  <td colSpan={3} className="text-center py-8 text-on-surface-variant">No se registran comprobantes electrónicos en este período</td>
                 </tr>
               )}
             </tbody>

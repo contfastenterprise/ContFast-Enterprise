@@ -3,7 +3,7 @@
 import React from 'react';
 import { 
   AlertTriangle, ShieldAlert, CheckCircle2, 
-  Info, Users, Package, FileText, ArrowRight 
+  Info, ArrowRight 
 } from 'lucide-react';
 
 interface BIAlertsProps {
@@ -106,12 +106,12 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 flex items-start gap-4">
+    <div className="space-y-8 animate-in fade-in duration-300 text-on-surface">
+      <div className="bg-surface-variant/30 p-6 rounded-3xl border border-outline-variant/10 flex items-start gap-4">
         <Info className="w-6 h-6 text-primary shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-bold text-slate-800 dark:text-white text-base">Alertas y Sugerencias de Negocio</h4>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <h4 className="font-bold text-on-surface text-base font-display-md">Alertas y Sugerencias de Negocio</h4>
+          <p className="text-sm text-on-surface-variant mt-1">
             Esta sección agrupa automáticamente eventos críticos en base a umbrales, plazos fiscales, CxC y rotaciones físicas de inventario.
           </p>
         </div>
@@ -119,24 +119,24 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
 
       <div className="space-y-6">
         {alerts.map((alert: any, idx: number) => {
-          let cardBg = 'bg-blue-50/50 border-blue-200 text-blue-800 dark:bg-blue-950/10 dark:border-blue-900/40';
-          let badgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-          let icon = <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
+          let cardBg = 'bg-blue-50/50 border-blue-200 text-blue-800';
+          let badgeColor = 'bg-blue-100 text-blue-850';
+          let icon = <Info className="w-5 h-5 text-blue-600" />;
 
           if (alert.type === 'danger') {
-            cardBg = 'bg-red-50/50 border-red-200 text-red-800 dark:bg-red-950/10 dark:border-red-900/40';
-            badgeColor = 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-            icon = <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400" />;
+            cardBg = 'bg-red-50/50 border-red-200 text-red-800';
+            badgeColor = 'bg-red-100 text-red-850';
+            icon = <ShieldAlert className="w-5 h-5 text-red-600" />;
           } else if (alert.type === 'warning') {
-            cardBg = 'bg-amber-50/50 border-amber-200 text-amber-800 dark:bg-amber-950/10 dark:border-amber-900/40';
-            badgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-            icon = <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
+            cardBg = 'bg-amber-50/50 border-amber-200 text-amber-800';
+            badgeColor = 'bg-amber-100 text-amber-850';
+            icon = <AlertTriangle className="w-5 h-5 text-amber-600" />;
           }
 
           return (
             <div 
               key={idx} 
-              className={`p-6 rounded-2xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 shadow-xs ${cardBg}`}
+              className={`p-6 rounded-3xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 shadow-sm ${cardBg}`}
             >
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2">
@@ -144,13 +144,13 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${badgeColor}`}>
                     {alert.category}
                   </span>
-                  <span className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-slate-100">{alert.title}</span>
+                  <span className="font-extrabold text-sm sm:text-base text-on-surface">{alert.title}</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">{alert.description}</p>
+                <p className="text-xs text-on-surface-variant leading-relaxed max-w-2xl">{alert.description}</p>
                 {alert.items && alert.items.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-200/40 dark:border-slate-800/40 space-y-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Detalles de Alerta:</p>
-                    <ul className="text-xs space-y-1 list-disc list-inside text-slate-500 font-medium">
+                  <div className="mt-3 pt-3 border-t border-outline-variant/10 space-y-1">
+                    <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Detalles de Alerta:</p>
+                    <ul className="text-xs space-y-1 list-disc list-inside text-on-surface-variant/80 font-medium">
                       {alert.items.map((item: string, iIndex: number) => (
                         <li key={iIndex}>{item}</li>
                       ))}
@@ -161,7 +161,7 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
 
               <a 
                 href={alert.actionLink}
-                className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs shrink-0 self-end sm:self-center transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-surface-bright border border-outline-variant/30 hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant shadow-xs shrink-0 self-end sm:self-center transition-all"
               >
                 {alert.actionText}
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -173,8 +173,8 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
         {alerts.length === 0 && (
           <div className="py-16 text-center space-y-3">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto" />
-            <h4 className="font-bold text-slate-800 dark:text-white text-base">Operaciones al Día</h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <h4 className="font-bold text-on-surface text-base">Operaciones al Día</h4>
+            <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
               No se detectaron alertas operativas ni deudas vencidas. Las finanzas e inventarios están saludables.
             </p>
           </div>
