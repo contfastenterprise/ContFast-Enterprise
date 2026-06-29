@@ -1195,8 +1195,8 @@ function InvoicesList() {
                               className={`w-full rounded-lg border py-2 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                             >
                               <option value="consumidor">Consumidor (P1)</option>
-                              <option value="proveedor">Proveedor (P2)</option>
                               <option value="mayorista">Mayorista (P3)</option>
+                              <option value="proveedor">Proveedor (P2)</option>
                             </select>
                           </div>
 
