@@ -148,7 +148,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
   };
 
   const totals = calculateTotals();
-  const canEditDiscount = userRole === 'admin' || userRole === 'sistema';
+  const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole.toLowerCase());
   const isEditable = quoteStatus === 'pending';
 
   const saveQuote = async () => {
@@ -277,7 +277,12 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       />
                     </div>
                     <div className="w-28 relative group">
-                      <label className="text-xs text-neutral-400 mb-1 block">Descuento</label>
+                      <label className="flex items-center gap-2 text-xs text-neutral-400 mb-1">
+                        Descuento
+                        {!canEditDiscount && isEditable && (
+                          <span className="text-[9px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">Solo admin</span>
+                        )}
+                      </label>
                       <input 
                         type="number" step="any"
                         disabled={!isEditable || !canEditDiscount}
@@ -292,11 +297,6 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                             : "bg-neutral-900 border-white/10 text-white"
                         )}
                       />
-                      {!canEditDiscount && isEditable && (
-                        <div className="absolute hidden group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-black text-xs text-amber-400 rounded">
-                          Solo administradores pueden modificar
-                        </div>
-                      )}
                     </div>
                     {isEditable && (
                       <div className="pt-6">

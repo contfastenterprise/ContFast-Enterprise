@@ -150,7 +150,7 @@ export default function NewQuote() {
 
   const totals = calculateTotals();
   const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
-  const canEditDiscount = userRole === 'admin' || userRole === 'sistema';
+  const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole);
 
   const saveQuote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,7 +349,12 @@ export default function NewQuote() {
 
                       {/* Discount */}
                       <div className="md:col-span-2 space-y-1.5 relative group">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
+                          Desc. Unit.
+                          {!canEditDiscount && hasProduct && (
+                            <span className="text-[9px] text-red-500 normal-case bg-red-50 px-1.5 py-0.5 rounded font-semibold">Solo admin</span>
+                          )}
+                        </label>
                         <input
                           type="number"
                           disabled={!hasProduct || !canEditDiscount}
@@ -360,9 +365,6 @@ export default function NewQuote() {
                           className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${(!hasProduct || !canEditDiscount) ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                           min={0} step="any"
                         />
-                        {!canEditDiscount && hasProduct && (
-                          <p className="text-[9px] text-red-500 mt-0.5">Solo admin</p>
-                        )}
                       </div>
 
                       {/* Actions */}

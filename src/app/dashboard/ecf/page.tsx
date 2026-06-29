@@ -152,6 +152,16 @@ const ECF_TYPE_DESCRIPTIONS: Record<string, string> = {
   '16': 'Para reportar las ventas de bienes fuera del territorio nacional.',
 };
 
+// Helper: Determine if a sequence requires an expiration date (DGII rules)
+function isExpiryRequired(isElectronic: boolean, ecfType: string) {
+  // Facturas de consumo (02/32), Notas de Débito (03/33) y Notas de Crédito (04/34)
+  // no exigen que la fecha se imprima físicamente, por lo que se marca como Opcional.
+  if (['02', '03', '04', '32', '33', '34'].includes(ecfType)) {
+    return false;
+  }
+  return true;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', icon: <Clock className="h-3 w-3" /> },
   signed: { label: 'Firmado', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300', icon: <FileText className="h-3 w-3" /> },
@@ -388,8 +398,11 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-primary mb-1 block">
-                Fecha Vencimiento <span className="text-on-surface-variant/70 text-xs font-normal">(dd-MM-yyyy)</span>
+              <label className="text-sm font-semibold text-primary mb-1 flex items-center justify-between">
+                <span>Fecha Vencimiento {isExpiryRequired(isElectronic, form.ecfType) && <span className="text-red-500">*</span>}</span>
+                <span className="text-on-surface-variant/70 text-xs font-normal">
+                  {!isExpiryRequired(isElectronic, form.ecfType) ? '(Opcional) ' : ''}dd-MM-yyyy
+                </span>
               </label>
               <input
                 type="text"
@@ -398,6 +411,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
                 className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
+                required={isExpiryRequired(isElectronic, form.ecfType)}
               />
             </div>
 
@@ -478,6 +492,8 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
 
   if (!open || !sequence) return null;
 
+  const isElectronic = !sequence.ecfType.startsWith('0') && !sequence.ecfType.startsWith('1');
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -540,8 +556,11 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-primary mb-1 block">
-                Fecha Vencimiento <span className="text-on-surface-variant/70 text-xs font-normal">(dd-MM-yyyy)</span>
+              <label className="text-sm font-semibold text-primary mb-1 flex items-center justify-between">
+                <span>Fecha Vencimiento {isExpiryRequired(isElectronic, sequence.ecfType) && <span className="text-red-500">*</span>}</span>
+                <span className="text-on-surface-variant/70 text-xs font-normal">
+                  {!isExpiryRequired(isElectronic, sequence.ecfType) ? '(Opcional) ' : ''}dd-MM-yyyy
+                </span>
               </label>
               <input
                 type="text"
@@ -550,7 +569,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
                 className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
                 pattern="\d{2}-\d{2}-\d{4}"
-                required
+                required={isExpiryRequired(isElectronic, sequence.ecfType)}
               />
             </div>
 
