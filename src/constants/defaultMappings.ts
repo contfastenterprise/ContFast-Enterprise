@@ -1,8 +1,9 @@
-﻿import { RouteMapping } from '@/types/rbac';
+import { RouteMapping } from '@/types/rbac';
 
 export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 1. Principal
   { id: '1', routePattern: '/dashboard', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Inicio', groupName: 'Principal', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
+  { id: '35', routePattern: '/dashboard/bi%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Inteligencia de Negocios', groupName: 'Principal', iconName: 'PieChart', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
   
   // 2. Contactos
   { id: '2', routePattern: '/dashboard/customers%', module: 'clientes', action: 'read', isMenuItem: true, displayName: 'Clientes', groupName: 'Contactos', iconName: 'Users', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
