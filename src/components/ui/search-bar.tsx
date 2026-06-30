@@ -17,12 +17,14 @@ export interface SearchBarProps {
   className?: string;
 }
 
+const DEFAULT_SUGGESTIONS: string[] = [];
+
 const SearchBar = ({
   placeholder = "Buscar...",
   onSearch,
   onChange,
   value,
-  suggestions = [],
+  suggestions = DEFAULT_SUGGESTIONS,
   className,
 }: SearchBarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,18 +42,24 @@ const SearchBar = ({
 
   const searchQuery = value !== undefined ? value : internalQuery;
 
-  // Filter suggestions
+  // Filter suggestions safely preventing infinite rendering loops
   useEffect(() => {
     if (suggestions.length > 0 && searchQuery.trim()) {
-      setActiveSuggestions(
-        suggestions.filter((item) =>
-          item.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+      const filtered = suggestions.filter((item) =>
+        item.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      const isDifferent =
+        filtered.length !== activeSuggestions.length ||
+        filtered.some((val, idx) => val !== activeSuggestions[idx]);
+      if (isDifferent) {
+        setActiveSuggestions(filtered);
+      }
     } else {
-      setActiveSuggestions([]);
+      if (activeSuggestions.length > 0) {
+        setActiveSuggestions([]);
+      }
     }
-  }, [searchQuery, suggestions]);
+  }, [searchQuery, suggestions, activeSuggestions]);
 
   // Click outside to close suggestions
   useEffect(() => {
