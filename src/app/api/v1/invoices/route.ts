@@ -5,6 +5,8 @@ import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { InvoiceService } from '@/services/invoiceService';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
+import { db, invoices, subscriptions, plans } from '@/db';
+import { eq, and, count, gte, lte } from 'drizzle-orm';
 
 // Zod validation schema for creating an invoice
 const createInvoiceSchema = z.object({
@@ -162,6 +164,43 @@ export async function POST(req: NextRequest) {
         { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message } },
         { status: 400, headers: resHeaders }
       );
+    }
+
+    // Check invoice limits from subscription
+    const subscriptionInfo = await db
+      .select({ maxEcfLimit: plans.maxEcfLimit })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(and(eq(subscriptions.companyId, auth.companyId), eq(subscriptions.status, 'active')))
+      .limit(1);
+
+    if (subscriptionInfo.length > 0) {
+      const maxEcfLimit = subscriptionInfo[0].maxEcfLimit;
+      if (maxEcfLimit !== -1) {
+        // Count existing invoices for this month
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        
+        const checkInvoices = await db
+          .select({ value: count() })
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.companyId, auth.companyId),
+              gte(invoices.createdAt, startOfMonth),
+              lte(invoices.createdAt, endOfMonth)
+            )
+          );
+          
+        const currentCount = checkInvoices[0]?.value || 0;
+        if (currentCount >= maxEcfLimit) {
+          return NextResponse.json(
+            { success: false, error: { code: 'FORBIDDEN', message: `Límite alcanzado: Tu plan actual solo permite emitir hasta ${maxEcfLimit} comprobante(s) por mes.` } }, 
+            { status: 403, headers: resHeaders }
+          );
+        }
+      }
     }
 
     // Call service layer to perform all database transactions and PDF/XMLDSIG generation
