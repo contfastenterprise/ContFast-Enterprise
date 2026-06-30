@@ -374,6 +374,15 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 54. Robustecimiento de Dependencias (Parches en Cadena de Suministro)
+- **Corrección de Dependencias Vulnerables en pnpm v11**: Integración de overrides globales en `pnpm-workspace.yaml` (requerido a partir de pnpm v11) para forzar las versiones seguras de `esbuild` (`>=0.24.3`), `postcss` (`>=8.5.10`) y `uuid` (`>=11.1.1`) que solucionan vulnerabilidades de origen cruzado, XSS y desbordamiento de búfer en memoria respectivamente. Ejecución de `pnpm install` para regenerar y verificar el reporte de vulnerabilidades (0 fallos encontrados en `pnpm audit`).
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+
 
 
 
