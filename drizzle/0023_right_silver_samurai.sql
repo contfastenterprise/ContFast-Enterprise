@@ -1,0 +1,1 @@
+ALTER TABLE "customers" ADD COLUMN "credit_limit" numeric(15, 2) DEFAULT '0.00' NOT NULL;

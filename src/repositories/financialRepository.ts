@@ -241,8 +241,7 @@ export class FinancialRepository {
       .orderBy(desc(sql`SUM(${invoiceLines.quantity})`))
       .limit(5);
 
-    // Mock credit limit since it's not physical in db
-    const creditLimit = 150000.00;
+    const creditLimit = parseFloat(customer.creditLimit || '0.00');
     const currentBalance = parseFloat(totalsResult?.currentBalance || '0');
     const creditAvailable = Math.max(0, creditLimit - currentBalance);
 

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, index, uniqueIndex, decimal } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 
 export const customers = pgTable('customers', {
@@ -9,6 +9,7 @@ export const customers = pgTable('customers', {
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),
   address: text('address'),
+  creditLimit: decimal('credit_limit', { precision: 15, scale: 2 }).default('0.00').notNull(),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

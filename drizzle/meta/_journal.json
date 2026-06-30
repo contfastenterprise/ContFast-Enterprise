@@ -162,6 +162,13 @@
       "when": 1782779457936,
       "tag": "0022_dapper_skreet",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782781405474,
+      "tag": "0023_right_silver_samurai",
+      "breakpoints": true
     }
   ]
 }
