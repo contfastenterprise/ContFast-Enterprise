@@ -52,10 +52,13 @@ export class SupplierRepository {
   }
 
   static async findByRnc(rnc: string, companyId: string) {
+    if (!rnc) return null;
+    const cleanRnc = rnc.replace(/[\s-]/g, '');
+    if (!cleanRnc) return null;
     const result = await db.select()
       .from(suppliers)
       .where(and(
-        eq(suppliers.rnc, rnc),
+        eq(suppliers.rnc, cleanRnc),
         eq(suppliers.companyId, companyId),
         isNull(suppliers.deletedAt)
       ))
@@ -73,15 +76,18 @@ export class SupplierRepository {
     address?: string;
     status?: string;
   }) {
-    const existing = await this.findByRnc(data.rnc, data.companyId);
-    if (existing) {
-      throw new Error('Un proveedor con este RNC ya existe en su empresa.');
+    const cleanRnc = data.rnc ? data.rnc.replace(/[\s-]/g, '') : '';
+    if (cleanRnc) {
+      const existing = await this.findByRnc(cleanRnc, data.companyId);
+      if (existing) {
+        throw new Error('Un proveedor con este RNC ya existe en su empresa.');
+      }
     }
 
     const [newSupplier] = await db.insert(suppliers)
       .values({
         companyId: data.companyId,
-        rnc: data.rnc,
+        rnc: cleanRnc || null,
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -94,16 +100,21 @@ export class SupplierRepository {
   }
 
   static async update(id: string, companyId: string, data: Partial<typeof suppliers.$inferInsert>) {
+    const cleanRnc = data.rnc !== undefined ? (data.rnc ? data.rnc.replace(/[\s-]/g, '') : '') : undefined;
     // Check if RNC is changed and if it conflicts
-    if (data.rnc) {
-      const existing = await this.findByRnc(data.rnc, companyId);
+    if (cleanRnc) {
+      const existing = await this.findByRnc(cleanRnc, companyId);
       if (existing && existing.id !== id) {
         throw new Error('El RNC ingresado ya está en uso por otro proveedor.');
       }
     }
 
     const [updatedSupplier] = await db.update(suppliers)
-      .set({ ...data, updatedAt: new Date() })
+      .set({
+        ...data,
+        ...(data.rnc !== undefined ? { rnc: cleanRnc || null } : {}),
+        updatedAt: new Date()
+      })
       .where(and(
         eq(suppliers.id, id),
         eq(suppliers.companyId, companyId)

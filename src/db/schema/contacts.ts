@@ -4,7 +4,7 @@ import { companies } from './companies';
 export const customers = pgTable('customers', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
-  rncCedula: varchar('rnc_cedula', { length: 15 }).notNull(),
+  rncCedula: varchar('rnc_cedula', { length: 15 }),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),
@@ -22,7 +22,7 @@ export const customers = pgTable('customers', {
 export const suppliers = pgTable('suppliers', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
-  rnc: varchar('rnc', { length: 11 }).notNull(),
+  rnc: varchar('rnc', { length: 11 }),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),

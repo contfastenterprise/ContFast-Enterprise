@@ -382,6 +382,16 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 55. Soporte para Múltiples Contactos sin RNC/Cédula
+- **Habilitación de RNC/Cédula Nullable**: Modificación de las tablas `customers` y `suppliers` para que sus columnas de RNC sean opcionales/nullables en el esquema Drizzle (`src/db/schema/contacts.ts`) e implementado en PostgreSQL mediante migración de base de datos (`drizzle/0026_nullable_rnc.sql`). Los registros pre-existentes vacíos fueron migrados a `NULL`.
+- **Limpieza de Entrada y Validación Selectiva**: Actualización en los repositorios de clientes y proveedores para limpiar todos los espacios en blanco y guiones del input de RNC. Si el input queda vacío, se omite el chequeo de duplicidad y se guarda el valor como `NULL`, permitiendo registrar múltiples contactos de consumidor final/casual por empresa sin incurrir en violaciones de unicidad.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+
 
 
 

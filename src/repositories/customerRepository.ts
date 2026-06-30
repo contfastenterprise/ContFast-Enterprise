@@ -46,7 +46,9 @@ export class CustomerRepository {
    * Find a customer by RNC and companyId
    */
   static async findByRnc(rncCedula: string, companyId: string) {
+    if (!rncCedula) return null;
     const cleanRnc = rncCedula.replace(/[\s-]/g, '');
+    if (!cleanRnc) return null;
     const result = await db
       .select()
       .from(customers)
@@ -103,18 +105,20 @@ export class CustomerRepository {
    * Create a new customer
    */
   static async create(input: CreateCustomerInput) {
-    const cleanRnc = input.rncCedula.replace(/[\s-]/g, '');
-    // Check if RNC already exists
-    const existing = await this.findByRnc(cleanRnc, input.companyId);
-    if (existing) {
-      throw new Error('Ya existe un cliente con este RNC/Cédula');
+    const cleanRnc = input.rncCedula ? input.rncCedula.replace(/[\s-]/g, '') : '';
+    // Check if RNC already exists (only if a non-empty value was provided)
+    if (cleanRnc) {
+      const existing = await this.findByRnc(cleanRnc, input.companyId);
+      if (existing) {
+        throw new Error('Ya existe un cliente con este RNC/Cédula');
+      }
     }
 
     const [customer] = await db
       .insert(customers)
       .values({
         companyId: input.companyId,
-        rncCedula: cleanRnc,
+        rncCedula: cleanRnc || null,
         name: input.name,
         email: input.email || null,
         phone: input.phone || null,
@@ -131,7 +135,7 @@ export class CustomerRepository {
    * Update an existing customer
    */
   static async update(id: string, companyId: string, input: UpdateCustomerInput) {
-    const cleanRnc = input.rncCedula ? input.rncCedula.replace(/[\s-]/g, '') : undefined;
+    const cleanRnc = input.rncCedula !== undefined ? input.rncCedula.replace(/[\s-]/g, '') : undefined;
     if (cleanRnc) {
       const existing = await this.findByRnc(cleanRnc, companyId);
       if (existing && existing.id !== id) {
@@ -143,7 +147,7 @@ export class CustomerRepository {
       .update(customers)
       .set({
         ...input,
-        ...(cleanRnc ? { rncCedula: cleanRnc } : {}),
+        ...(input.rncCedula !== undefined ? { rncCedula: cleanRnc || null } : {}),
         updatedAt: new Date()
       })
       .where(
