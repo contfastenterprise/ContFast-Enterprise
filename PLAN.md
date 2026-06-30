@@ -302,6 +302,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Seguridad RBAC**: Restricción de acceso de vistas y endpoints para que solo los roles `sistemas`, `administracion` y `contabilidad` puedan ingresar.
 - **Buscador Autocomplete Reusable**: Diseñado el componente premium `AutocompleteSelect` (`autocomplete-select.tsx`), aislando el input con ícono de lupa, botón de limpiar 'X', soporte para click-outside y lista flotante de sugerencias, unificando el comportamiento y estilo en todo el ERP.
 - **Unificación de Buscadores Globales**: Refactorizado el componente de búsqueda principal del sistema `SearchBar` (`search-bar.tsx`) para adoptar la misma apariencia minimalista de alta gama, tamaño estandarizado, íconos y comportamiento de borrado rápido, actualizando simultáneamente todas las vistas del ERP.
+- **Migración a Buscador Unificado**: Reemplazados los buscadores manuales nativos por el componente `SearchBar` unificado en las páginas de Almacenes (`dashboard/warehouses`) y Empleados (`dashboard/hr/employees`).
 - **Interfaces de Usuario Premium**:
   - `/dashboard/financial`: Dashboard financiero ejecutivo con gráficos interactivos de Recharts y tablas comparativas CxC/CxP.
   - `/dashboard/financial/customers`: Ficha financiera del cliente con filtros avanzados por fecha, tipo (contado/crédito), búsqueda y exportaciones (PDF y CSV).
