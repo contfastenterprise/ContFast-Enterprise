@@ -2355,12 +2355,14 @@ export class DocumentTemplates {
       totalItbis += itbis;
       totalTaxed += amount;
 
+      const supplierName = item.isMinorExpense ? 'Gastos Menores / Caja Chica' : (item.supplierName || 'N/A');
+      const supplierRnc = item.supplierRnc ? ` (${item.supplierRnc})` : '';
+
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td>
-            <div class="font-bold">${item.isMinorExpense ? 'Gastos Menores / Caja Chica' : (item.supplierName || 'N/A')}</div>
-            ${item.supplierRnc ? `<div style="font-size: 8pt; color: #666;">RNC: ${item.supplierRnc}</div>` : ''}
+          <td class="ellipsis">
+            <strong>${supplierName}</strong>${supplierRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
           <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
@@ -2382,6 +2384,19 @@ export class DocumentTemplates {
           .font-mono { font-family: monospace; }
           .font-bold { font-weight: bold; }
           .text-emerald { color: #059669; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 3px 5px !important; 
+            font-size: 7.5pt !important; 
+            white-space: nowrap !important;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 8pt !important; }
+          .ellipsis {
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         </style>
       </head>
       <body>
@@ -2407,11 +2422,11 @@ export class DocumentTemplates {
             <tr>
               <th class="text-center" style="width: 5%;">#</th>
               <th>Suplidor / Proveedor</th>
-              <th class="text-center" style="width: 15%;">NCF</th>
+              <th class="text-center" style="width: 18%;">NCF</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">ITBIS</th>
-              <th class="text-right" style="width: 14%;">Total Neto</th>
+              <th class="text-right" style="width: 15%;">Total Neto</th>
             </tr>
           </thead>
           <tbody>
@@ -2463,17 +2478,6 @@ export class DocumentTemplates {
       return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const getEcfLabel = (type: string) => {
-      switch (type) {
-        case '31': return 'Crédito Fiscal (e-31)';
-        case '32': return 'Consumo (e-32)';
-        case '33': return 'Nota de Débito (e-33)';
-        case '34': return 'Nota de Crédito (e-34)';
-        case '45': return 'Gubernamental (e-45)';
-        default: return `Comprobante (e-${type})`;
-      }
-    };
-
     let totalSubtotal = 0;
     let totalDiscount = 0;
     let totalItbis = 0;
@@ -2491,17 +2495,15 @@ export class DocumentTemplates {
       totalAmount += total;
 
       const buyerName = item.buyerName || item.customerName || 'Consumidor Final';
-      const buyerRnc = item.buyerRnc || item.customerRnc || '-';
+      const buyerRnc = (item.buyerRnc || item.customerRnc) ? ` (${item.buyerRnc || item.customerRnc})` : '';
 
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td>
-            <div class="font-bold">${buyerName}</div>
-            ${buyerRnc && buyerRnc !== '-' ? `<div style="font-size: 8pt; color: #666;">RNC: ${buyerRnc}</div>` : ''}
+          <td class="ellipsis">
+            <strong>${buyerName}</strong>${buyerRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
-          <td class="text-center" style="font-size: 8.5pt;">${getEcfLabel(item.ecfType)}</td>
           <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
           <td class="text-right font-mono">$${formatNum(subtotal)}</td>
           <td class="text-right font-mono" style="color: #ef4444;">$${formatNum(discount)}</td>
@@ -2522,6 +2524,19 @@ export class DocumentTemplates {
           .font-mono { font-family: monospace; }
           .font-bold { font-weight: bold; }
           .text-emerald { color: #059669; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 3px 5px !important; 
+            font-size: 7.5pt !important; 
+            white-space: nowrap !important;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 8pt !important; }
+          .ellipsis {
+            max-width: 320px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         </style>
       </head>
       <body>
@@ -2547,17 +2562,16 @@ export class DocumentTemplates {
             <tr>
               <th class="text-center" style="width: 4%;">#</th>
               <th>Adquiriente / Cliente</th>
-              <th class="text-center" style="width: 14%;">NCF</th>
-              <th class="text-center" style="width: 15%;">Tipo Comprobante</th>
-              <th class="text-center" style="width: 10%;">Fecha</th>
-              <th class="text-right" style="width: 10%;">Subtotal</th>
-              <th class="text-right" style="width: 10%;">Descuento</th>
-              <th class="text-right" style="width: 10%;">ITBIS</th>
-              <th class="text-right" style="width: 12%;">Total Neto</th>
+              <th class="text-center" style="width: 18%;">NCF</th>
+              <th class="text-center" style="width: 12%;">Fecha</th>
+              <th class="text-right" style="width: 12%;">Subtotal</th>
+              <th class="text-right" style="width: 12%;">Descuento</th>
+              <th class="text-right" style="width: 12%;">ITBIS</th>
+              <th class="text-right" style="width: 15%;">Total Neto</th>
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="9" class="text-center">No se encontraron facturas en el rango</td></tr>'}
+            ${linesHtml || '<tr><td colspan="8" class="text-center">No se encontraron facturas en el rango</td></tr>'}
           </tbody>
         </table>
 

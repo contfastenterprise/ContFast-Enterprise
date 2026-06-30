@@ -325,8 +325,9 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 
 ### 49. Impresión de Reportes Fiscales de Ventas y Compras para Contadores (DGII)
 - **Reporte PDF de Ventas**: Creación del endpoint `src/app/api/v1/invoices/report/route.ts` para extraer facturas de venta según los filtros de búsqueda (rango de fecha, tipo de e-CF, cliente, NCF) y generar un reporte formal PDF consolidado.
-- **Plantilla de Ventas**: Diseño de la plantilla premium `renderInvoicesReport` en `src/utils/templates/documentTemplates.ts` con todos los campos clave exigidos por la DGII (NCF, RNC/Cédula, Tipo, Subtotal, ITBIS, Descuento, Total Neto) y con la regla de omitir el título textual de la empresa si ya tiene logotipo.
-- **Plantilla de Compras**: Corrección en `renderPurchasesReport` para ocultar igualmente el título textual de la empresa en presencia de logotipo.
+- **Plantilla de Ventas**: Diseño de la plantilla premium `renderInvoicesReport` en `src/utils/templates/documentTemplates.ts` con todos los campos clave exigidos por la DGII (NCF, RNC/Cédula, Subtotal, ITBIS, Descuento, Total Neto), omitiendo la columna de "Tipo Comprobante" y la regla de no mostrar el título textual de la empresa si ya tiene logotipo.
+- **Plantilla de Compras**: Corrección en `renderPurchasesReport` para ocultar igualmente el título de la empresa si posee logotipo.
+- **Formato Ultra-Compacto sin Saltos de Línea**: Modificación del CSS y estructura HTML de ambos reportes (`renderPurchasesReport` y `renderInvoicesReport`) para reducir el padding de celdas (`3px 5px`), disminuir el tamaño de letra (`7.5pt`) y aplicar reglas CSS de forzado de línea (`white-space: nowrap !important` y `.ellipsis` en max-width de nombres de clientes/suplidores), logrando que todas las filas quepan estrictamente en una sola fila.
 - **Integración UI**: Inserción del botón "REPORTE PDF" en la barra de filtros del listado de facturas (`src/app/dashboard/invoices/page.tsx`) alineado con los filtros de búsqueda actuales.
 
 * * Verified & Polished * *  
