@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { warehouses } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { warehouses, subscriptions, plans } from '@/db/schema';
+import { eq, and, count } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
@@ -41,6 +41,33 @@ export async function POST(req: NextRequest) {
 
     if (!name || !code) {
       return NextResponse.json({ error: 'Name and code are required' }, { status: 400 });
+    }
+
+    // Check warehouse limits from subscription
+    const subscriptionInfo = await db
+      .select({ maxWarehouses: plans.maxWarehouses })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
+      .limit(1);
+
+    if (subscriptionInfo.length > 0) {
+      const maxWarehouses = subscriptionInfo[0].maxWarehouses;
+      if (maxWarehouses !== -1) {
+        // Count existing warehouses
+        const checkWarehouses = await db
+          .select({ value: count() })
+          .from(warehouses)
+          .where(eq(warehouses.companyId, companyId));
+          
+        const currentCount = checkWarehouses[0]?.value || 0;
+        if (currentCount >= maxWarehouses) {
+          return NextResponse.json(
+            { error: `Límite alcanzado: Tu plan actual solo permite hasta ${maxWarehouses} almacén(es).` }, 
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Comprobar que el código no exista
