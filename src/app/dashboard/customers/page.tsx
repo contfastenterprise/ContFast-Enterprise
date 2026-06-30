@@ -47,6 +47,22 @@ export default function CustomersPage() {
     status: 'active'
   });
 
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      const url = `/api/v1/customers?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setCustomers(data.data || []);
+      }
+    } catch (error) {
+      toast.error('Error al cargar clientes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
   }, [search]);
@@ -149,22 +165,6 @@ export default function CustomersPage() {
     }
   };
 
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      const url = `/api/v1/customers?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setCustomers(data.data || []);
-      }
-    } catch (error) {
-      toast.error('Error al cargar clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const openNewModal = () => {
     setEditId(null);
     setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', creditLimit: '0.00', status: 'active' });
@@ -239,10 +239,15 @@ export default function CustomersPage() {
       const url = editId ? `/api/v1/customers/${editId}` : '/api/v1/customers';
       const method = editId ? 'PUT' : 'POST';
 
+      const cleanedData = {
+        ...formData,
+        rncCedula: formData.rncCedula.replace(/[\s-]/g, ''),
+      };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(cleanedData)
       });
 
       const data = await res.json();

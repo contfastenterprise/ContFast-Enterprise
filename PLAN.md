@@ -312,3 +312,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * V e r i f i e d   &   P o l i s h e d * *  
 * * V e r i f i e d   &   P o l i s h e d * *  
 * * V e r i f i e d   &   P o l i s h e d * *
+
+### 48. Saneamiento Automático de RNC/Cédula al Crear o Editar Clientes
+- **Limpieza de RNC en Repositorio**: Se modificó `CustomerRepository` para limpiar automáticamente cualquier espacio en blanco o guión (`replace(/[\s-]/g, '')`) del campo `rncCedula` en los métodos `findByRnc`, `create` y `update`. Esto garantiza la integridad y el formato estricto exigido por la DGII a nivel de base de datos.
+- **Limpieza en Frontend**: Se actualizó el submit de los formularios de creación de clientes y creación rápida de clientes (`src/app/dashboard/customers/page.tsx` y `src/app/dashboard/invoices/page.tsx`) para limpiar los espacios en blanco y guiones antes de enviar los datos al servidor.
+- **Resolución de Error de Linting**: Se corrigió el error de ESLint en `customers/page.tsx` donde la función `fetchCustomers` era accedida antes de su declaración (resuelto moviendo la declaración arriba de `useEffect`).
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *

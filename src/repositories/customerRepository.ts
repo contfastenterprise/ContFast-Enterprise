@@ -46,12 +46,13 @@ export class CustomerRepository {
    * Find a customer by RNC and companyId
    */
   static async findByRnc(rncCedula: string, companyId: string) {
+    const cleanRnc = rncCedula.replace(/[\s-]/g, '');
     const result = await db
       .select()
       .from(customers)
       .where(
         and(
-          eq(customers.rncCedula, rncCedula),
+          eq(customers.rncCedula, cleanRnc),
           eq(customers.companyId, companyId),
           isNull(customers.deletedAt)
         )
@@ -102,8 +103,9 @@ export class CustomerRepository {
    * Create a new customer
    */
   static async create(input: CreateCustomerInput) {
+    const cleanRnc = input.rncCedula.replace(/[\s-]/g, '');
     // Check if RNC already exists
-    const existing = await this.findByRnc(input.rncCedula, input.companyId);
+    const existing = await this.findByRnc(cleanRnc, input.companyId);
     if (existing) {
       throw new Error('Ya existe un cliente con este RNC/Cédula');
     }
@@ -112,7 +114,7 @@ export class CustomerRepository {
       .insert(customers)
       .values({
         companyId: input.companyId,
-        rncCedula: input.rncCedula,
+        rncCedula: cleanRnc,
         name: input.name,
         email: input.email || null,
         phone: input.phone || null,
@@ -129,8 +131,9 @@ export class CustomerRepository {
    * Update an existing customer
    */
   static async update(id: string, companyId: string, input: UpdateCustomerInput) {
-    if (input.rncCedula) {
-      const existing = await this.findByRnc(input.rncCedula, companyId);
+    const cleanRnc = input.rncCedula ? input.rncCedula.replace(/[\s-]/g, '') : undefined;
+    if (cleanRnc) {
+      const existing = await this.findByRnc(cleanRnc, companyId);
       if (existing && existing.id !== id) {
         throw new Error('El RNC/Cédula proporcionado ya está en uso por otro cliente');
       }
@@ -140,6 +143,7 @@ export class CustomerRepository {
       .update(customers)
       .set({
         ...input,
+        ...(cleanRnc ? { rncCedula: cleanRnc } : {}),
         updatedAt: new Date()
       })
       .where(

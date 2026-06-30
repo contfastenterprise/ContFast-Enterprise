@@ -15,6 +15,7 @@ import clsx from 'clsx';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
+import DateRangePicker from '@/components/ui/date-range-picker';
 
 function InvoicesList() {
   const router = useRouter();
@@ -36,6 +37,14 @@ function InvoicesList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   // Stats
   const [stats, setStats] = useState({ totalMonth: 0, pending: 0 });
@@ -73,6 +82,8 @@ function InvoicesList() {
     },
   ]);
   const [quoteId, setQuoteId] = useState('');
+  const [sequences, setSequences] = useState<any[]>([]);
+  const activeSequences = sequences.filter((s: any) => s.status === 'active');
 
   // Product Search Modal states
   const [productSearchModalOpen, setProductSearchModalOpen] = useState(false);
@@ -170,10 +181,15 @@ function InvoicesList() {
 
     setIsSavingCustomer(true);
     try {
+      const cleanedCustomerData = {
+        ...newCustomerData,
+        rncCedula: newCustomerData.rncCedula.replace(/[\s-]/g, '')
+      };
+
       const res = await fetch('/api/v1/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCustomerData)
+        body: JSON.stringify(cleanedCustomerData)
       });
       const data = await res.json();
       if (data.success) {
@@ -256,6 +272,37 @@ function InvoicesList() {
       return () => clearTimeout(delayDebounceFn);
     }
   }, [modalSearchTerm, modalCategoryFilter, modalWarehouseFilter, productSearchModalOpen, fetchModalProducts]);
+
+  // Load products, warehouses and categories when form opens
+  // Load sequences on mount (for filter bar and form default)
+  useEffect(() => {
+    async function loadSequences() {
+      try {
+        const res = await fetch('/api/v1/ecf/sequences');
+        const data = await res.json();
+        if (data.success) {
+          const seqs = data.data || [];
+          setSequences(seqs);
+          
+          const activeSeqs = seqs.filter((s: any) => s.status === 'active');
+          if (activeSeqs.length > 0) {
+            const isCurrentActive = activeSeqs.some((s: any) => s.ecfType === ecfType);
+            if (!isCurrentActive) {
+              const firstSaleType = activeSeqs.find((s: any) => s.ecfType !== '33' && s.ecfType !== '34');
+              if (firstSaleType) {
+                setEcfType(firstSaleType.ecfType);
+              } else {
+                setEcfType(activeSeqs[0].ecfType);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching sequences', error);
+      }
+    }
+    loadSequences();
+  }, []);
 
   // Load products, warehouses and categories when form opens
   useEffect(() => {
@@ -367,6 +414,8 @@ function InvoicesList() {
       if (statusFilter) queryParams.append('status', statusFilter);
       if (searchTerm) queryParams.append('ncf', searchTerm);
       if (typeFilter) queryParams.append('ecfType', typeFilter);
+      if (startDate) queryParams.append('startDate', startDate);
+      if (endDate) queryParams.append('endDate', endDate);
       queryParams.append('excludeTypes', '33,34,03,04');
 
       const res = await fetch(`/api/v1/invoices?${queryParams.toString()}`);
@@ -393,11 +442,16 @@ function InvoicesList() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, searchTerm, typeFilter]);
+  }, [page, statusFilter, searchTerm, typeFilter, startDate, endDate]);
 
   useEffect(() => {
     loadInvoices();
   }, [loadInvoices]);
+
+  // Reset to page 1 when filter states change
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, typeFilter, startDate, endDate]);
 
   // Totals calculations
   const calculateTotals = () => {
@@ -912,9 +966,39 @@ function InvoicesList() {
                     onChange={(e) => setEcfType(e.target.value)}
                     className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
                   >
-                    <option value="31">e-31 Factura de Crédito Fiscal</option>
-                    <option value="32">e-32 Factura de Consumo</option>
-                    <option value="45">e-45 Comprobante Gubernamental</option>
+                    {activeSequences.length === 0 ? (
+                      <>
+                        <option value="31">e-31 Factura de Crédito Fiscal</option>
+                        <option value="32">e-32 Factura de Consumo</option>
+                        <option value="45">e-45 Comprobante Gubernamental</option>
+                      </>
+                    ) : (
+                      activeSequences
+                        .filter((s: any) => {
+                          if (ecfType === '33' || ecfType === '34') {
+                            return s.ecfType === ecfType || (s.ecfType !== '33' && s.ecfType !== '34');
+                          }
+                          return s.ecfType !== '33' && s.ecfType !== '34';
+                        })
+                        .map((s: any) => {
+                          const getLabel = (type: string, prefix?: string) => {
+                            const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
+                            switch (type) {
+                              case '31': return isElectronic ? 'Factura de Crédito Fiscal Electrónica (e-31)' : 'Factura de Crédito Fiscal (B01)';
+                              case '32': return isElectronic ? 'Factura de Consumo Electrónica (e-32)' : 'Factura de Consumo (B02)';
+                              case '33': return isElectronic ? 'Nota de Débito Electrónica (e-33)' : 'Nota de Débito (B03)';
+                              case '34': return isElectronic ? 'Nota de Crédito Electrónica (e-34)' : 'Nota de Crédito (B04)';
+                              case '45': return isElectronic ? 'Comprobante Gubernamental Electrónico (e-45)' : 'Comprobante Gubernamental (B15)';
+                              default: return isElectronic ? `Comprobante Electrónico (e-${type})` : `Comprobante Especial (B${type})`;
+                            }
+                          };
+                          return (
+                            <option key={s.id} value={s.ecfType}>
+                              {getLabel(s.ecfType, s.prefix)}
+                            </option>
+                          );
+                        })
+                    )}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -1512,14 +1596,15 @@ function InvoicesList() {
             <div className="bg-white border border-slate-200 rounded-xl p-4 md:p-5 flex flex-col md:flex-row flex-wrap items-end gap-4 shadow-lg">
               <div className="flex-1 min-w-[200px] w-full">
                 <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Rango de Fechas</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value="Mes Actual"
-                    disabled
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-700 opacity-70 cursor-not-allowed"
+                <div className="w-full [&>div]:w-full [&_button]:w-full">
+                  <DateRangePicker
+                    from={startDate}
+                    to={endDate}
+                    onChange={({ from, to }) => {
+                      setStartDate(from);
+                      setEndDate(to);
+                    }}
                   />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/80" />
                 </div>
               </div>
 
@@ -1531,9 +1616,32 @@ function InvoicesList() {
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-[#003366] focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all appearance-none"
                 >
                   <option value="">Todos los Tipos</option>
-                  <option value="31">Factura Crédito Fiscal (31)</option>
-                  <option value="32">Factura Consumo (32)</option>
-                  <option value="45">Gubernamental (45)</option>
+                  {sequences.length === 0 ? (
+                    <>
+                      <option value="31">Factura Crédito Fiscal (31)</option>
+                      <option value="32">Factura Consumo (32)</option>
+                      <option value="45">Gubernamental (45)</option>
+                    </>
+                  ) : (
+                    sequences.map((s: any) => {
+                      const getLabel = (type: string, prefix?: string) => {
+                        const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
+                        switch (type) {
+                          case '31': return isElectronic ? 'Factura de Crédito Fiscal Electrónica (e-31)' : 'Factura de Crédito Fiscal (B01)';
+                          case '32': return isElectronic ? 'Factura de Consumo Electrónica (e-32)' : 'Factura de Consumo (B02)';
+                          case '33': return isElectronic ? 'Nota de Débito Electrónica (e-33)' : 'Nota de Débito (B03)';
+                          case '34': return isElectronic ? 'Nota de Crédito Electrónica (e-34)' : 'Nota de Crédito (B04)';
+                          case '45': return isElectronic ? 'Comprobante Gubernamental Electrónico (e-45)' : 'Comprobante Gubernamental (B15)';
+                          default: return isElectronic ? `Comprobante Electrónico (e-${type})` : `Comprobante Especial (B${type})`;
+                        }
+                      };
+                      return (
+                        <option key={s.id} value={s.ecfType}>
+                          {getLabel(s.ecfType, s.prefix)}
+                        </option>
+                      );
+                    })
+                  )}
                 </select>
               </div>
 
@@ -1546,6 +1654,7 @@ function InvoicesList() {
                 >
                   <option value="">Todos los Estados</option>
                   <option value="draft">Borrador</option>
+                  <option value="signed">Firmado</option>
                   <option value="submitted">Transmitido (En Cola)</option>
                   <option value="accepted">Aceptado DGII</option>
                   <option value="rejected">Rechazado</option>
@@ -1705,7 +1814,14 @@ function InvoicesList() {
                             <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
                             <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas con los filtros actuales.</span>
                             <button
-                              onClick={() => { setSearchTerm(''); setStatusFilter(''); setTypeFilter(''); }}
+                              onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('');
+                                setTypeFilter('');
+                                const d = new Date();
+                                setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+                                setEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                              }}
                               className="mt-2 text-[#C5A059] hover:text-[#b08c4a] text-xs font-bold"
                             >
                               Limpiar Filtros
