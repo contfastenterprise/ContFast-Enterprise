@@ -6,6 +6,7 @@ import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { eq, and, count } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
+import { AccountingRepository } from '@/repositories/accountingRepository';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
 
     if (isNewCompany) {
       await seedRolePermissionsForCompany(db, companyId, allRoles);
+      await AccountingRepository.seedDefaultChartOfAccounts(companyId);
     }
 
     // Get the 'administracion' role for the new user

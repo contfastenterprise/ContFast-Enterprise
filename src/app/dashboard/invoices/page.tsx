@@ -1576,13 +1576,13 @@ function InvoicesList() {
                 <table className="w-full text-left">
                   <thead className="bg-slate-50/80 border-b border-slate-200">
                     <tr>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Comprobante / Tipo</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cliente</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado DGII</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">MSeller Info</th>
-                      <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Comprobante / Tipo</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cliente</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado DGII</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">MSeller Info</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/20/80">
@@ -1605,92 +1605,92 @@ function InvoicesList() {
                             animate={{ opacity: 1 }}
                             className="hover:bg-[#C5A059]/5 transition-colors group"
                           >
-                            <td className="px-6 py-4 align-top">
-                              <span className="font-mono text-sm text-slate-700">
+                            <td className="px-4 py-2 align-middle">
+                              <span className="font-mono text-xs text-slate-700 whitespace-nowrap">
                                 {new Date(inv.createdAt).toISOString().split('T')[0]}
                               </span>
                             </td>
-                            <td className="px-6 py-4 align-top">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors">
+                            <td className="px-4 py-2 align-middle">
+                              <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                                <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors text-xs">
                                   {inv.ncf || `e-${inv.ecfType}`}
                                 </span>
-                                <span className="text-xs text-on-surface-variant/70">
+                                <span className="text-[10px] text-on-surface-variant/70">
                                   {getTypeLabel(inv.ecfType)}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-6 py-4 align-top">
+                            <td className="px-4 py-2 align-middle">
                               <div className="flex flex-col gap-0.5">
-                                <span className="font-semibold text-[#003366] truncate max-w-[200px] md:max-w-xs">
+                                <span className="font-semibold text-[#003366] block truncate max-w-[150px] md:max-w-xs text-xs" title={inv.buyerName || 'Consumidor Final'}>
                                   {inv.buyerName || 'Consumidor Final'}
                                 </span>
                                 {inv.buyerRnc && (
-                                  <span className="text-xs text-on-surface-variant/70 font-mono">
+                                  <span className="text-[10px] text-on-surface-variant/70 font-mono block whitespace-nowrap">
                                     RNC/Cédula: {inv.buyerRnc}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 align-top text-right">
-                              <span className="font-mono font-bold text-[#003366]">
+                            <td className="px-4 py-2 align-middle text-right">
+                              <span className="font-mono font-bold text-[#003366] text-xs whitespace-nowrap">
                                 RD$ {parseFloat(inv.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                               </span>
                             </td>
-                            <td className="px-6 py-4 align-top text-center">
-                              <span className={clsx('inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border', badge.cls)}>
-                                {badge.icon || <span className={clsx('w-1.5 h-1.5 rounded-full mr-1.5', badge.dot)} />}
+                            <td className="px-4 py-2 align-middle text-center">
+                              <span className={clsx('inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap', badge.cls)}>
+                                {badge.icon || <span className={clsx('w-1.5 h-1.5 rounded-full mr-1', badge.dot)} />}
                                 {badge.label}
                               </span>
                             </td>
-                            <td className="px-6 py-4 align-top text-center text-xs">
-                              <div className="flex flex-col gap-1 items-center">
+                            <td className="px-4 py-2 align-middle text-center text-xs">
+                              <div className="flex flex-col gap-0.5 items-center">
                                 {inv.msellerTrackId && (
-                                  <span className="text-[10px] font-mono bg-slate-100 text-on-surface-variant/80 px-1.5 py-0.5 rounded border border-slate-200" title="Track ID">
+                                  <span className="text-[9px] font-mono bg-slate-100 text-on-surface-variant/80 px-1 py-0.2 rounded border border-slate-200 block whitespace-nowrap" title="Track ID">
                                     {inv.msellerTrackId}
                                   </span>
                                 )}
                                 {inv.dgiiMessage && (
-                                  <span className="text-[10px] text-emerald-600 font-semibold max-w-[120px] truncate" title={inv.dgiiMessage}>
+                                  <span className="text-[9px] text-emerald-600 font-semibold block max-w-[100px] truncate" title={inv.dgiiMessage}>
                                     {inv.dgiiMessage}
                                   </span>
                                 )}
-                                {(!inv.msellerTrackId && !inv.dgiiMessage) && <span className="text-on-surface-variant">-</span>}
+                                {(!inv.msellerTrackId && !inv.dgiiMessage) && <span className="text-on-surface-variant text-xs">-</span>}
                               </div>
                             </td>
-                            <td className="px-6 py-4 align-top text-right">
-                              <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <td className="px-4 py-2 align-middle text-right">
+                              <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => viewInvoiceDetails(inv)}
-                                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
                                   title="Ver Detalles"
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3.5 w-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDownloadPdf(inv)}
-                                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
+                                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
                                   title="Descargar PDF"
                                 >
-                                  <Printer className="h-4 w-4" />
+                                  <Printer className="h-3.5 w-3.5" />
                                 </button>
                                 {inv.customerId && (
                                   <button
                                     onClick={() => handleResendEmail(inv.id)}
                                     disabled={resendingEmailId === inv.id}
-                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366] disabled:opacity-40"
+                                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366] disabled:opacity-40"
                                     title="Reenviar Correo"
                                   >
                                     {resendingEmailId === inv.id ? (
-                                      <RefreshCw className="h-4 w-4 animate-spin text-[#C5A059]" />
+                                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#C5A059]" />
                                     ) : (
-                                      <Mail className="h-4 w-4" />
+                                      <Mail className="h-3.5 w-3.5" />
                                     )}
                                   </button>
                                 )}
                                 {inv.status === 'draft' && (
-                                  <button className="p-2 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500" title="Eliminar Borrador">
-                                    <Trash2 className="h-4 w-4" />
+                                  <button className="p-1.5 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500" title="Eliminar Borrador">
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
                                 )}
                               </div>

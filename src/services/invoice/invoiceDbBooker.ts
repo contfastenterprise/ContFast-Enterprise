@@ -1,4 +1,5 @@
 import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable } from '@/db';
+import { FinancialMovementService } from '@/services/financialMovementService';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
@@ -223,6 +224,53 @@ export class InvoiceDbBooker {
       };
 
       const invoice = await InvoiceRepository.create(invoiceInput, tx);
+
+      // Financial movements registration (Clientes)
+      if (data.customerId) {
+        const isCreditNote = data.ecfType === '34';
+        const isDebitNote = data.ecfType === '33';
+        const movementType = isCreditNote ? 'credit_note' : isDebitNote ? 'debit_note' : 'invoice';
+        const debit = isCreditNote ? 0 : totals.totalNet;
+        const credit = isCreditNote ? totals.totalNet : 0;
+
+        await FinancialMovementService.registerMovement(tx, {
+          companyId: data.companyId,
+          entityType: 'customer',
+          customerId: data.customerId,
+          date: new Date(),
+          movementType,
+          documentId: invoice.id,
+          documentNumber: ncf,
+          originModule: 'invoicing',
+          debit,
+          credit,
+          userId: data.userId,
+          notes: isCreditNote
+            ? `Nota de Crédito aplicada. Modifica NCF: ${data.modifiedNcf || 'N/A'}`
+            : isDebitNote
+            ? `Nota de Débito aplicada. Modifica NCF: ${data.modifiedNcf || 'N/A'}`
+            : `Factura de Venta emitida. NCF: ${ncf}`,
+        });
+
+        // Rule: If cash sale, generate matching immediate payment receipt movement
+        const isCash = data.paymentType === 'cash' || data.paymentType === 'bank_transfer';
+        if (isCash && !isCreditNote) {
+          await FinancialMovementService.registerMovement(tx, {
+            companyId: data.companyId,
+            entityType: 'customer',
+            customerId: data.customerId,
+            date: new Date(),
+            movementType: 'receipt',
+            documentId: invoice.id,
+            documentNumber: `REC-CASH-${ncf}`,
+            originModule: 'cash',
+            debit: 0,
+            credit: totals.totalNet,
+            userId: data.userId,
+            notes: `Cobro inmediato en venta al contado NCF: ${ncf}`,
+          });
+        }
+      }
 
       // Deduct or add inventory (Deducción diferida a Conduce de Entrega. Solo Nota de Crédito e-34 agrega stock aquí)
       if (data.ecfType === '34') {

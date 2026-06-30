@@ -2,6 +2,7 @@ import { db, accountsReceivable, customers, invoices, customerReceipts, customer
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
+import { FinancialMovementService } from '@/services/financialMovementService';
 
 export interface RegisterReceiptInput {
   companyId: string;
@@ -86,6 +87,22 @@ export class ArRepository {
         reference: data.reference || null,
         notes: data.notes || null
       }).returning();
+
+      // Financial movements registration (Clientes - Recibo de Cobro)
+      await FinancialMovementService.registerMovement(tx, {
+        companyId: data.companyId,
+        entityType: 'customer',
+        customerId: data.customerId,
+        date: data.date,
+        movementType: 'receipt',
+        documentId: receipt.id,
+        documentNumber: data.reference || `REC-${receipt.id.slice(0, 8)}`,
+        originModule: data.paymentMethod === 'cash' ? 'cash' : 'bank',
+        debit: 0,
+        credit: data.amount,
+        userId: data.userId,
+        notes: data.notes || `Cobro registrado. Método de pago: ${data.paymentMethod}`,
+      });
 
       // 2. Apply payments to AR and update balance
       for (const applied of data.invoicesApplied) {

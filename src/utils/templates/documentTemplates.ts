@@ -2501,4 +2501,262 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderCustomerFinancialStatement(data: any): string {
+    const { company, customer, movements, summary } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const getMovementTypeLabel = (type: string) => {
+      switch (type) {
+        case 'invoice': return 'Factura';
+        case 'receipt': return 'Recibo Cobro';
+        case 'credit_note': return 'Nota de Crédito';
+        case 'debit_note': return 'Nota de Débito';
+        case 'retention': return 'Retención';
+        case 'advance': return 'Anticipo';
+        case 'void': return 'Anulación';
+        default: return type.toUpperCase();
+      }
+    };
+
+    const linesHtml = movements.map((m: any) => {
+      const typeLabel = getMovementTypeLabel(m.movementType);
+      return `
+        <tr>
+          <td>${new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+          <td class="font-mono">${m.documentNumber}</td>
+          <td><span style="font-weight: 600;">${typeLabel}</span></td>
+          <td style="font-size: 8pt; color: #555;">${m.notes || ''}</td>
+          <td class="text-right font-mono" style="${m.debit > 0 ? 'color: #003366;' : ''}">${m.debit > 0 ? '$' + formatNum(m.debit) : '-'}</td>
+          <td class="text-right font-mono" style="${m.credit > 0 ? 'color: #1e7e34;' : ''}">${m.credit > 0 ? '$' + formatNum(m.credit) : '-'}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: ${m.balance > 0 ? '#b07b1d' : '#1e7e34'};">$${formatNum(m.balance)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuenta Histórico - ${customer.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+          .summary-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 15px;
+            background-color: #f8fafc;
+            display: inline-block;
+            min-width: 150px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA (CLIENTE)</div>
+            <div><strong>Cliente:</strong> ${customer.name}</div>
+            ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="margin-top: 5px; font-weight: bold; color: #003366; font-size: 12pt;">Saldo Actual: $${formatNum(summary.currentBalance)}</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 25px; margin-bottom: 15px;">
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Total Facturado</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #003366;">$${formatNum(summary.totalInvoiced)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Total Cobrado</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #1e7e34;">$${formatNum(summary.totalPaid)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Notas de Crédito</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #ef4444;">$${formatNum(summary.totalCreditNotes)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Notas de Débito</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #003366;">$${formatNum(summary.totalDebitNotes)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px;">Auxiliar de Movimientos Financieros</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Fecha</th>
+              <th>Documento</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th class="text-right">Débito (+)</th>
+              <th class="text-right">Crédito (-)</th>
+              <th class="text-right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movements.length === 0 ? '<tr><td colspan="7" class="text-center" style="padding: 20px; color: #555;">No existen movimientos para este período.</td></tr>' : linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Documento Auxiliar de Cuenta de Cliente - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderSupplierFinancialStatement(data: any): string {
+    const { company, supplier, movements, summary } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const getMovementTypeLabel = (type: string) => {
+      switch (type) {
+        case 'invoice': return 'Compra/Gasto';
+        case 'payment': return 'Pago';
+        case 'credit_note': return 'Nota de Crédito';
+        case 'debit_note': return 'Nota de Débito';
+        case 'retention': return 'Retención';
+        case 'advance': return 'Anticipo';
+        case 'void': return 'Anulación';
+        default: return type.toUpperCase();
+      }
+    };
+
+    const linesHtml = movements.map((m: any) => {
+      const typeLabel = getMovementTypeLabel(m.movementType);
+      return `
+        <tr>
+          <td>${new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+          <td class="font-mono">${m.documentNumber}</td>
+          <td><span style="font-weight: 600;">${typeLabel}</span></td>
+          <td style="font-size: 8pt; color: #555;">${m.notes || ''}</td>
+          <td class="text-right font-mono" style="${m.debit > 0 ? 'color: #1e7e34;' : ''}">${m.debit > 0 ? '$' + formatNum(m.debit) : '-'}</td>
+          <td class="text-right font-mono" style="${m.credit > 0 ? 'color: #003366;' : ''}">${m.credit > 0 ? '$' + formatNum(m.credit) : '-'}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: ${m.balance > 0 ? '#dc3545' : '#1e7e34'};">$${formatNum(m.balance)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuenta Histórico - ${supplier.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-semibold { font-weight: 600; }
+          .text-slate-800 { color: #334155; }
+          .summary-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 15px;
+            background-color: #f8fafc;
+            display: inline-block;
+            min-width: 150px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA (PROVEEDOR)</div>
+            <div><strong>Proveedor:</strong> ${supplier.name}</div>
+            ${supplier.rnc ? `<div><strong>RNC:</strong> ${supplier.rnc}</div>` : ''}
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="margin-top: 5px; font-weight: bold; color: #dc3545; font-size: 12pt;">Balance Pendiente: $${formatNum(summary.currentBalance)}</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 25px; margin-bottom: 15px;">
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Total Comprado</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #003366;">$${formatNum(summary.totalPurchased)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Total Pagado</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #1e7e34;">$${formatNum(summary.totalPaid)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Notas de Crédito</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #1e7e34;">$${formatNum(summary.totalCreditNotes)}</div>
+          </div>
+          <div class="summary-card">
+            <div style="font-size: 7.5pt; color: #555; text-transform: uppercase;">Notas de Débito</div>
+            <div style="font-size: 11pt; font-weight: bold; color: #dc3545;">$${formatNum(summary.totalDebitNotes)}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px;">Auxiliar de Movimientos Financieros</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Fecha</th>
+              <th>Documento</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th class="text-right">Débito (-)</th>
+              <th class="text-right">Crédito (+)</th>
+              <th class="text-right">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movements.length === 0 ? '<tr><td colspan="7" class="text-center" style="padding: 20px; color: #555;">No existen movimientos para este suplidor.</td></tr>' : linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Documento Auxiliar de Cuenta de Suplidor - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

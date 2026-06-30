@@ -6,6 +6,7 @@ import { accountsPayable } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { addStock } from './inventoryService';
 import { AccountRepository } from '../repositories/accountRepository';
+import { FinancialMovementService } from '@/services/financialMovementService';
 
 async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
   const [acc] = await tx
@@ -98,6 +99,42 @@ export async function createExpense(expenseData: {
         dueDate: expenseData.paymentDate ?? expenseData.issueDate,
         status: isCredit ? 'pending' : 'paid',
       });
+
+    // Financial movements registration (Suplidores)
+    if (expenseData.supplierId) {
+      await FinancialMovementService.registerMovement(tx, {
+        companyId: expenseData.companyId,
+        entityType: 'supplier',
+        supplierId: expenseData.supplierId,
+        date: expenseData.issueDate,
+        movementType: 'invoice',
+        documentId: expense.id,
+        documentNumber: expenseData.ncf || 'Sin NCF',
+        originModule: 'purchases',
+        debit: 0,
+        credit: expenseData.amount,
+        userId: expenseData.userId,
+        notes: `Compra de bienes/servicios registrada. NCF: ${expenseData.ncf || 'Sin NCF'}`,
+      });
+
+      // Rule: If cash purchase, generate matching immediate payment movement
+      if (!isCredit) {
+        await FinancialMovementService.registerMovement(tx, {
+          companyId: expenseData.companyId,
+          entityType: 'supplier',
+          supplierId: expenseData.supplierId,
+          date: expenseData.issueDate,
+          movementType: 'payment',
+          documentId: expense.id,
+          documentNumber: `PAG-CASH-${expenseData.ncf || expense.id.slice(0, 8)}`,
+          originModule: expenseData.paymentMethod === '01' ? 'cash' : 'bank',
+          debit: expenseData.amount,
+          credit: 0,
+          userId: expenseData.userId,
+          notes: `Pago inmediato al contado. NCF: ${expenseData.ncf || 'Sin NCF'}`,
+        });
+      }
+    }
 
     // --- Journal Entry Generation (Asiento Contable) ---
     const subtotal = expenseData.amount;

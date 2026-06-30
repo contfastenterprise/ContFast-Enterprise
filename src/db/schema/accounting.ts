@@ -5,6 +5,7 @@ import { invoices } from './invoices';
 import { bankAccounts } from './bank';
 import { warehouses } from './inventory';
 import { products } from './products';
+import { users } from './auth';
 
 export const chartOfAccounts = pgTable('chart_of_accounts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -263,3 +264,33 @@ export const accountingMappings = pgTable('accounting_mappings', {
 }, (table) => ({
   companyKeyIdx: uniqueIndex('accounting_mappings_company_key_idx').on(table.companyId, table.mappingKey),
 }));
+
+export const financialMovements = pgTable('financial_movements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  entityType: varchar('entity_type', { length: 50 }).notNull(), // 'customer' | 'supplier'
+  customerId: uuid('customer_id').references(() => customers.id),
+  supplierId: uuid('supplier_id').references(() => suppliers.id),
+  date: date('date').notNull(),
+  time: varchar('time', { length: 8 }).notNull(), // HH:MM:SS
+  movementType: varchar('movement_type', { length: 50 }).notNull(), // 'invoice' | 'receipt' | 'payment' | 'credit_note' | 'debit_note' | 'retention' | 'advance' | 'void'
+  documentId: uuid('document_id').notNull(),
+  documentNumber: varchar('document_number', { length: 100 }).notNull(),
+  originModule: varchar('origin_module', { length: 50 }).notNull(), // 'invoicing' | 'purchases' | 'cash' | 'bank' | 'accounting'
+  debit: decimal('debit', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  credit: decimal('credit', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  balance: decimal('balance', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  currency: varchar('currency', { length: 10 }).default('DOP').notNull(),
+  userId: uuid('user_id').references(() => users.id),
+  notes: text('notes'),
+  status: varchar('status', { length: 50 }).default('active').notNull(), // active | voided
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('fin_mov_company_idx').on(table.companyId),
+  customerIdx: index('fin_mov_customer_idx').on(table.companyId, table.customerId),
+  supplierIdx: index('fin_mov_supplier_idx').on(table.companyId, table.supplierId),
+  dateIdx: index('fin_mov_date_idx').on(table.date),
+  createdAtIdx: index('fin_mov_created_at_idx').on(table.createdAt),
+}));
+

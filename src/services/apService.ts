@@ -4,6 +4,7 @@ import { AccountRepository } from '@/repositories/accountRepository';
 import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { FinancialMovementService } from '@/services/financialMovementService';
 
 export interface RegisterPaymentInput {
   companyId: string;
@@ -132,6 +133,21 @@ export class ApService {
       const newBalance = balanceNum - input.amount;
       await ApRepository.updateApBalance(tx, input.apId, input.companyId, newBalance);
 
+      // Financial movements registration (Suplidores - Pago)
+      await FinancialMovementService.registerMovement(tx, {
+        companyId: input.companyId,
+        entityType: 'supplier',
+        supplierId: ap.supplierId,
+        date: input.paymentDate,
+        movementType: 'payment',
+        documentId: payment.id,
+        documentNumber: input.checkNumber || `PAG-${payment.id.slice(0, 8)}`,
+        originModule: input.paymentMethod === 'cash' ? 'cash' : 'bank',
+        debit: input.amount,
+        credit: 0,
+        notes: `Pago registrado. Método: ${input.paymentMethod}. Ref: ${input.checkNumber || 'N/A'}`,
+      });
+
       // Create Ledger entry (Journal Entry)
       const description = `Pago CXP a proveedor ${ap.supplierName} - ${
         input.paymentMethod === 'check' 
@@ -203,6 +219,21 @@ export class ApService {
 
         // 3. Update accounts payable balance
         await ApRepository.updateApBalance(tx, ap.id, companyId, newBalance);
+
+        // Financial movements registration (Suplidores - Aplicación de Cheque en lote)
+        await FinancialMovementService.registerMovement(tx, {
+          companyId: companyId,
+          entityType: 'supplier',
+          supplierId: ap.supplierId,
+          date: today,
+          movementType: 'payment',
+          documentId: payment.id,
+          documentNumber: check.checkNumber,
+          originModule: 'bank',
+          debit: amountNum,
+          credit: 0,
+          notes: `Aplicación Automática de Cheque en Garantía #${check.checkNumber}`,
+        });
 
         // 4. Update bank account balance and create bank transaction
         if (check.bankAccountId) {
@@ -330,6 +361,21 @@ export class ApService {
 
       // 6. Update accounts payable balance
       await ApRepository.updateApBalance(tx, ap.id, companyId, newBalance);
+
+      // Financial movements registration (Suplidores - Aplicación de Cheque)
+      await FinancialMovementService.registerMovement(tx, {
+        companyId: companyId,
+        entityType: 'supplier',
+        supplierId: ap.supplierId,
+        date: today,
+        movementType: 'payment',
+        documentId: payment.id,
+        documentNumber: check.checkNumber,
+        originModule: 'bank',
+        debit: amountNum,
+        credit: 0,
+        notes: `Aplicación de Cheque en Garantía #${check.checkNumber}`,
+      });
 
       // 7. Update bank account balance and create bank transaction
       if (check.bankAccountId) {

@@ -292,3 +292,18 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
  -   * * R e s o l u c i ó n   d e   C o n f l i c t o   d e   V i s t a s * * :   S e   c o r r i g i ó   u n   e r r o r   e n   e l   r e n d e r i z a d o   c o n d i c i o n a l   e n   \ s e t t i n g s / p a g e . t s x \   q u e   p r o v o c a b a   l a   s u p e r p o s i c i ó n   d e l   f o r m u l a r i o   g e n e r a l   d e   l a   e m p r e s a   c o n   e l   d e   C u e n t a s   P u e n t e ,   a s e g u r a n d o   u n a   s e p a r a c i ó n   v i s u a l   l i m p i a   d e   p e s t a ñ a s . 
  -   * * A u t o c o n f i g u r a c i ó n   D i n á m i c a   d e   M a p e o s   R e t r o a c t i v a * * :   S e   p e r f e c c i o n ó   e l   m é t o d o   \ g e t M a p p i n g s \   e n   \ A c c o u n t i n g R e p o s i t o r y \   p a r a   q u e   d e t e c t e   s i   a   u n a   e m p r e s a   ( n u e v a   o   l e g a d a )   l e   f a l t a n   l a s   c u e n t a s   p u e n t e   p r e d e t e r m i n a d a s   y   l a s   a u t o g e n e r e   e   i n s e r t e   d i n á m i c a m e n t e   u t i l i z a n d o   e l   c ó d i g o   c o n t a b l e   e n   s u   p r i m e r   u s o ,   a s e g u r a n d o   q u e   n i n g ú n   u s u a r i o   t e n g a   q u e   c o n f i g u r a r   m a n u a l m e n t e   e l   e n l a c e   i n i c i a l   d e   f a c t u r a c i ó n - c o n t a b i l i d a d .  
  
+### 47. Módulo Financiero de Estados de Cuenta (CxC, CxP y Dashboard Financiero)
+- **Base de Datos & Libro Auxiliar**: Creación de la tabla transaccional centralizada `financial_movements` con índices de alto rendimiento para registrar débitos, créditos y balances progresivos.
+- **Integraciones Operativas Automáticas**: Sincronización transaccional en facturación (invoices, ND, NC, ventas al contado), gastos/compras (expenses, compras al contado), cobros (arRepository) y pagos (apService, cheques en garantía y ordinarios).
+- **Auto-Seeding Autoejecutable (Self-healing)**: Desarrollada una función para reconstruir cronológicamente el historial financiero desde el primer inicio si la tabla se encuentra vacía, con reconstrucción automática de balances progresivos en lotes.
+- **Reportes e Impresión Directa**: API de resúmenes de clientes y proveedores, antigüedad de saldos clasificada (aging) y estadísticas operativas, integrando impresión en PDF con Puppeteer y plantillas HTML premium.
+- **Seguridad RBAC**: Restricción de acceso de vistas y endpoints para que solo los roles `sistemas`, `administracion` y `contabilidad` puedan ingresar.
+- **Interfaces de Usuario Premium**:
+  - `/dashboard/financial`: Dashboard financiero ejecutivo con gráficos interactivos de Recharts y tablas comparativas CxC/CxP.
+  - `/dashboard/financial/customers`: Ficha financiera del cliente con filtros avanzados por fecha, tipo (contado/crédito), búsqueda y exportaciones (PDF y CSV).
+  - `/dashboard/financial/suppliers`: Ficha financiera del proveedor homologous.
+
+* * V e r i f i e d   &   P o l i s h e d * *  
+* * V e r i f i e d   &   P o l i s h e d * *  
+* * V e r i f i e d   &   P o l i s h e d * *  
+* * V e r i f i e d   &   P o l i s h e d * *

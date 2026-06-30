@@ -130,6 +130,11 @@ export function buildSidebar(
       continue;
     }
 
+    // Restricción dashboard/financial: solo sistemas, administracion y contabilidad tienen acceso
+    if (m.routePattern.includes('/dashboard/financial') && !isSistemas && !isAdmin && cleanRole !== 'contabilidad') {
+      continue;
+    }
+
     authorizedItems.push({
       name: m.displayName || 'Módulo',
       href: m.routePattern.replace(/%/g, ''), // Limpiamos wildcards
