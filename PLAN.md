@@ -322,3 +322,14 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
+
+### 49. Impresión de Reportes Fiscales de Ventas y Compras para Contadores (DGII)
+- **Reporte PDF de Ventas**: Creación del endpoint `src/app/api/v1/invoices/report/route.ts` para extraer facturas de venta según los filtros de búsqueda (rango de fecha, tipo de e-CF, cliente, NCF) y generar un reporte formal PDF consolidado.
+- **Plantilla de Ventas**: Diseño de la plantilla premium `renderInvoicesReport` en `src/utils/templates/documentTemplates.ts` con todos los campos clave exigidos por la DGII (NCF, RNC/Cédula, Tipo, Subtotal, ITBIS, Descuento, Total Neto) y con la regla de omitir el título textual de la empresa si ya tiene logotipo.
+- **Plantilla de Compras**: Corrección en `renderPurchasesReport` para ocultar igualmente el título textual de la empresa en presencia de logotipo.
+- **Integración UI**: Inserción del botón "REPORTE PDF" en la barra de filtros del listado de facturas (`src/app/dashboard/invoices/page.tsx`) alineado con los filtros de búsqueda actuales.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *

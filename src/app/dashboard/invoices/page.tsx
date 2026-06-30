@@ -1677,6 +1677,26 @@ function InvoicesList() {
                 <Filter className="h-4 w-4" />
                 FILTRAR
               </button>
+
+              {invoices.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const queryParams = new URLSearchParams();
+                    if (statusFilter) queryParams.append('status', statusFilter);
+                    if (searchTerm) queryParams.append('ncf', searchTerm);
+                    if (typeFilter) queryParams.append('ecfType', typeFilter);
+                    if (startDate) queryParams.append('startDate', startDate);
+                    if (endDate) queryParams.append('endDate', endDate);
+                    queryParams.append('excludeTypes', '33,34,03,04');
+                    window.open(`/api/v1/invoices/report?${queryParams.toString()}`, '_blank');
+                  }}
+                  className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[42px] flex items-center justify-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  REPORTE PDF
+                </button>
+              )}
             </div>
 
             {/* Data Table */}

@@ -121,34 +121,56 @@ export class DocumentTemplates {
         conditionLabel = 'NOTA DE CREDITO';
       }
 
-      // Lines processing
-      const linesHtml = lines.map((line: any) => {
-        const qty = Number(line.quantity);
-        const uPrice = Number(line.unitPrice);
-        const discUnit = Number(line.discount);
-        const lineTotal = Number(line.total);
+      // Group lines by category
+      const groupedLines: Record<string, any[]> = {};
+      (lines || []).forEach((line: any) => {
+        const cat = line.categoryName || 'General';
+        if (!groupedLines[cat]) groupedLines[cat] = [];
+        groupedLines[cat].push(line);
+      });
 
-        const rawSubtotal = qty * uPrice;
-        const rawDiscount = qty * discUnit;
-        const rawTaxable = rawSubtotal - rawDiscount;
+      const categoriesList = Object.keys(groupedLines).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
-        let lineItbis = 0;
-        if (rawTaxable > 0) {
-          lineItbis = lineTotal - rawTaxable;
-        }
-
-        return `
-          <tr>
-            <td>${line.productSku || 'N/A'}</td>
-            <td>${line.productName}</td>
-            <td>${line.unitOfMeasure || 'Unidad'}</td>
-            <td class="text-center">${qty}</td>
-            <td class="text-right">${formatNum(uPrice)}</td>
-            <td class="text-right">${formatNum(rawDiscount)}</td>
-            <td class="text-right">${formatNum(lineItbis)}</td>
-            <td class="text-right">${formatNum(lineTotal)}</td>
+      // Lines processing by category
+      const linesHtml = categoriesList.map((category) => {
+        const headerRow = `
+          <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #cbd5e1;">
+            <td colspan="8" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Categoría: ${category}
+            </td>
           </tr>
         `;
+
+        const itemsRows = groupedLines[category].map((line: any) => {
+          const qty = Number(line.quantity);
+          const uPrice = Number(line.unitPrice);
+          const discUnit = Number(line.discount);
+          const lineTotal = Number(line.total);
+
+          const rawSubtotal = qty * uPrice;
+          const rawDiscount = qty * discUnit;
+          const rawTaxable = rawSubtotal - rawDiscount;
+
+          let lineItbis = 0;
+          if (rawTaxable > 0) {
+            lineItbis = lineTotal - rawTaxable;
+          }
+
+          return `
+            <tr>
+              <td style="padding-left: 12px;">${line.productSku || 'N/A'}</td>
+              <td>${line.productName}</td>
+              <td>${line.unitOfMeasure || 'Unidad'}</td>
+              <td class="text-center">${qty}</td>
+              <td class="text-right">${formatNum(uPrice)}</td>
+              <td class="text-right">${formatNum(rawDiscount)}</td>
+              <td class="text-right">${formatNum(lineItbis)}</td>
+              <td class="text-right">${formatNum(lineTotal)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        return headerRow + itemsRows;
       }).join('');
 
       // Totals calculations
@@ -383,14 +405,42 @@ export class DocumentTemplates {
       ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
       : '';
 
-    const linesHtml = lines.map((line: any) => `
-      <tr>
-        <td>${line.quantity}</td>
-        <td>${line.productName}</td>
-        <td class="text-right">$${line.unitPrice.toFixed(2)}</td>
-        <td class="text-right">$${line.total.toFixed(2)}</td>
-      </tr>
-    `).join('');
+    // Group lines by category for ticket layout
+    const ticketGrouped: Record<string, any[]> = {};
+    (lines || []).forEach((line: any) => {
+      const cat = line.categoryName || 'General';
+      if (!ticketGrouped[cat]) ticketGrouped[cat] = [];
+      ticketGrouped[cat].push(line);
+    });
+
+    const ticketCategories = Object.keys(ticketGrouped).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    const linesHtml = ticketCategories.map((category) => {
+      const headerRow = `
+        <tr style="background-color: #f1f5f9;">
+          <td colspan="4" style="font-weight: bold; font-size: 8pt; padding: 4px 2px; border-bottom: 1px solid #ddd; text-transform: uppercase;">
+            ${category}
+          </td>
+        </tr>
+      `;
+
+      const itemsRows = ticketGrouped[category].map((line: any) => {
+        const qty = Number(line.quantity);
+        const uPrice = Number(line.unitPrice);
+        const lineTotal = Number(line.total);
+
+        return `
+          <tr>
+            <td>${qty}</td>
+            <td>${line.productName}</td>
+            <td class="text-right">$${uPrice.toFixed(2)}</td>
+            <td class="text-right">$${lineTotal.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return headerRow + itemsRows;
+    }).join('');
 
     const taxesHtml = taxes.map((tax: any) => `
       <tr>
@@ -2283,7 +2333,9 @@ export class DocumentTemplates {
       ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
       : '';
 
-    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+    const companyTitleHtml = logoHtml 
+      ? '' 
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
 
     const formatNum = (val: number | string) => {
       const num = typeof val === 'string' ? parseFloat(val) : val;
@@ -2337,7 +2389,6 @@ export class DocumentTemplates {
           <div class="company-info" style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
             ${logoHtml}
             ${companyTitleHtml}
-            <div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>
             <div>RNC: ${company.rnc}</div>
             ${company.address ? `<div>${company.address}</div>` : ''}
             ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
@@ -2389,6 +2440,152 @@ export class DocumentTemplates {
 
         <div class="footer" style="margin-top: 60px;">
           Reporte de Compras - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderInvoicesReport(data: any): string {
+    const { company, items, filters } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml 
+      ? '' 
+      : `<div class="font-bold" style="font-size: 13pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
+
+    const formatNum = (val: number | string) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const getEcfLabel = (type: string) => {
+      switch (type) {
+        case '31': return 'Crédito Fiscal (e-31)';
+        case '32': return 'Consumo (e-32)';
+        case '33': return 'Nota de Débito (e-33)';
+        case '34': return 'Nota de Crédito (e-34)';
+        case '45': return 'Gubernamental (e-45)';
+        default: return `Comprobante (e-${type})`;
+      }
+    };
+
+    let totalSubtotal = 0;
+    let totalDiscount = 0;
+    let totalItbis = 0;
+    let totalAmount = 0;
+
+    const linesHtml = items.map((item: any, idx: number) => {
+      const subtotal = parseFloat(item.subtotal) || 0;
+      const discount = parseFloat(item.discount) || 0;
+      const itbis = parseFloat(item.totalTaxes) || 0;
+      const total = parseFloat(item.total) || 0;
+
+      totalSubtotal += subtotal;
+      totalDiscount += discount;
+      totalItbis += itbis;
+      totalAmount += total;
+
+      const buyerName = item.buyerName || item.customerName || 'Consumidor Final';
+      const buyerRnc = item.buyerRnc || item.customerRnc || '-';
+
+      return `
+        <tr>
+          <td class="text-center">${idx + 1}</td>
+          <td>
+            <div class="font-bold">${buyerName}</div>
+            ${buyerRnc && buyerRnc !== '-' ? `<div style="font-size: 8pt; color: #666;">RNC: ${buyerRnc}</div>` : ''}
+          </td>
+          <td class="font-mono text-center">${item.ncf || '-'}</td>
+          <td class="text-center" style="font-size: 8.5pt;">${getEcfLabel(item.ecfType)}</td>
+          <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
+          <td class="text-right font-mono">$${formatNum(subtotal)}</td>
+          <td class="text-right font-mono" style="color: #ef4444;">$${formatNum(discount)}</td>
+          <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
+          <td class="text-right font-mono font-bold">$${formatNum(total)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Facturación (Ventas)</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-bold { font-weight: bold; }
+          .text-emerald { color: #059669; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE FACTURACIÓN (VENTAS)</div>
+            <div><strong>Rango:</strong> ${filters.startDate} al ${filters.endDate}</div>
+            <div><strong>Estado:</strong> ${filters.status === 'draft' ? 'Borrador' : filters.status === 'signed' ? 'Firmado' : filters.status === 'submitted' ? 'Transmitido' : filters.status === 'accepted' ? 'Aceptado DGII' : filters.status === 'rejected' ? 'Rechazado' : 'Todos'}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Facturado: $${formatNum(totalAmount)}</div>
+          </div>
+        </div>
+
+        <table style="width: 100%; margin-top: 20px;">
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 4%;">#</th>
+              <th>Adquiriente / Cliente</th>
+              <th class="text-center" style="width: 14%;">NCF</th>
+              <th class="text-center" style="width: 15%;">Tipo Comprobante</th>
+              <th class="text-center" style="width: 10%;">Fecha</th>
+              <th class="text-right" style="width: 10%;">Subtotal</th>
+              <th class="text-right" style="width: 10%;">Descuento</th>
+              <th class="text-right" style="width: 10%;">ITBIS</th>
+              <th class="text-right" style="width: 12%;">Total Neto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || '<tr><td colspan="9" class="text-center">No se encontraron facturas en el rango</td></tr>'}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 20px;">
+          <div class="totals">
+            <table style="width: 100%; font-size: 9.5pt;">
+              <tr>
+                <td>Subtotal Facturado:</td>
+                <td class="text-right font-mono">$${formatNum(totalSubtotal)}</td>
+              </tr>
+              <tr>
+                <td>Descuentos Otorgados:</td>
+                <td class="text-right font-mono" style="color: #ef4444;">$${formatNum(totalDiscount)}</td>
+              </tr>
+              <tr>
+                <td>ITBIS Total:</td>
+                <td class="text-right font-mono text-emerald">$${formatNum(totalItbis)}</td>
+              </tr>
+              <tr class="grand-total">
+                <td style="font-weight: bold; padding-top: 8px;">TOTAL GENERAL:</td>
+                <td class="text-right font-mono" style="font-weight: bold; padding-top: 8px; font-size: 11pt; color: #0f172a;">$${formatNum(totalAmount)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Reporte de Facturación - Generado por ContFast Enterprise
         </div>
       </body>
       </html>
