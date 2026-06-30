@@ -300,6 +300,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Auto-Seeding Autoejecutable (Self-healing)**: Desarrollada una función para reconstruir cronológicamente el historial financiero desde el primer inicio si la tabla se encuentra vacía, con reconstrucción automática de balances progresivos en lotes.
 - **Reportes e Impresión Directa**: API de resúmenes de clientes y proveedores, antigüedad de saldos clasificada (aging) y estadísticas operativas, integrando impresión en PDF con Puppeteer y plantillas HTML premium.
 - **Seguridad RBAC**: Restricción de acceso de vistas y endpoints para que solo los roles `sistemas`, `administracion` y `contabilidad` puedan ingresar.
+- **Buscador Autocomplete Reusable**: Diseñado el componente premium `AutocompleteSelect` (`autocomplete-select.tsx`), aislando el input con ícono de lupa, botón de limpiar 'X', soporte para click-outside y lista flotante de sugerencias, unificando el comportamiento y estilo en todo el ERP.
 - **Interfaces de Usuario Premium**:
   - `/dashboard/financial`: Dashboard financiero ejecutivo con gráficos interactivos de Recharts y tablas comparativas CxC/CxP.
   - `/dashboard/financial/customers`: Ficha financiera del cliente con filtros avanzados por fecha, tipo (contado/crédito), búsqueda y exportaciones (PDF y CSV).
