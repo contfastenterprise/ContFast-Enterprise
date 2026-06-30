@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
     }
     await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
 
-    const users = await AdminRepository.getUsers(session.companyId);
+    let users = await AdminRepository.getUsers(session.companyId);
+    const currentUserIsSystem = session.role?.toLowerCase() === 'sistemas' || session.role?.toLowerCase() === 'sistema';
+    if (!currentUserIsSystem) {
+      users = users.filter(u => u.roleName?.toLowerCase() !== 'sistemas' && u.roleName?.toLowerCase() !== 'sistema');
+    }
     return NextResponse.json({ success: true, data: users });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });

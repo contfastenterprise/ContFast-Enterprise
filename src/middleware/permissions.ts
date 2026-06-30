@@ -44,9 +44,12 @@ export async function hasPermission(
   }
 
   if (normalizedRole.includes('admin')) {
-    // Access to all operational modules, read-only for audit logs & technical config
-    if (module === 'auditoria' || module === 'administracion') {
+    // Access to all operational modules, read-only for audit logs
+    if (module === 'auditoria') {
       return action === 'read';
+    }
+    if (module === 'administracion') {
+      return action === 'read' || action === 'write';
     }
     return true; // Full access to contabilidad, banco, caja, facturacion, etc.
   }
@@ -150,8 +153,11 @@ export async function seedRolePermissionsForCompany(
     const normalizedRole = roleName.toLowerCase();
     if (normalizedRole === 'sistemas') return true;
     if (normalizedRole === 'administracion') {
-      if (module === 'auditoria' || module === 'administracion') {
+      if (module === 'auditoria') {
         return action === 'read';
+      }
+      if (module === 'administracion') {
+        return action === 'read' || action === 'write';
       }
       return true;
     }

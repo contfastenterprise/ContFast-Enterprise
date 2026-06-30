@@ -1,5 +1,5 @@
 import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines } from '@/db';
-import { eq, and, isNull, desc, count, like } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
 import { checkStock, deductStock } from '@/services/inventoryService';
 
 export interface CreateDeliveryNoteInput {
@@ -223,28 +223,18 @@ export class DeliveryRepository {
           )
         );
 
-      const otherLines = otherNotes.length > 0
+      // Query other approved line quantities directly
+      const otherNoteIds = otherNotes.map((n) => n.id);
+      const otherLines = otherNoteIds.length > 0
         ? await tx
             .select()
             .from(deliveryNoteLines)
-            .where(
-              and(
-                like(deliveryNoteLines.deliveryNoteId, '%'), // placeholder to query lines
-                // or just filter programmatically
-              )
-            )
+            .where(inArray(deliveryNoteLines.deliveryNoteId, otherNoteIds))
         : [];
-      
-      // Better: Query other approved line quantities directly
+
       const deliveredMap: Record<string, number> = {};
-      for (const n of otherNotes) {
-        const lines = await tx
-          .select()
-          .from(deliveryNoteLines)
-          .where(eq(deliveryNoteLines.deliveryNoteId, n.id));
-        for (const l of lines) {
-          deliveredMap[l.productId] = (deliveredMap[l.productId] || 0) + Number(l.quantity);
-        }
+      for (const l of otherLines) {
+        deliveredMap[l.productId] = (deliveredMap[l.productId] || 0) + Number(l.quantity);
       }
 
       // 4. Validate limits and stock availability

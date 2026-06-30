@@ -107,8 +107,11 @@ export function RbacProvider({
 
     // 2. Administración tiene acceso a todo excepto auditoria/administracion que es solo lectura
     if (userRole.includes('admin') || userRole === 'administracion' || userRole.includes('administraci')) {
-      if (module === 'auditoria' || module === 'administracion') {
+      if (module === 'auditoria') {
         return action === 'read';
+      }
+      if (module === 'administracion') {
+        return action === 'read' || action === 'write';
       }
       return true;
     }

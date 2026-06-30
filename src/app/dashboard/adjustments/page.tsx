@@ -211,8 +211,8 @@ export default function AdjustmentsPage() {
       return;
     }
     // Validate indicadorNotaCredito is explicitly selected (must not be the placeholder state)
-    // Note: 1, 2, 3, 4 are valid Codigos de Modificacion
-    const validIndicadores = noteType === '34' ? [1, 2, 3] : [1, 2, 3, 4];
+    // Note: For E33 (debit notes), only 2 (price adjustment), 3 (quantity adjustment), and 4 (others) are valid.
+    const validIndicadores = noteType === '34' ? [1, 2, 3] : [2, 3, 4];
     if (!validIndicadores.includes(indicadorNotaCredito)) {
       toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
       return;
@@ -585,9 +585,8 @@ export default function AdjustmentsPage() {
                                 )}
                               >
                                 <option value={-1} disabled>— Seleccione el motivo —</option>
-                                <option value={1}>1 - Intereses</option>
-                                <option value={2}>2 - Gastos de cobranzas</option>
-                                <option value={3}>3 - Gastos de facturación</option>
+                                <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
+                                <option value={3}>3 - Ajuste de cantidad</option>
                                 <option value={4}>4 - Otros</option>
                               </select>
                             )}

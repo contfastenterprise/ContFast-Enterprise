@@ -158,6 +158,7 @@ export async function GET(
       customer: customerData,
       invoice: {
         ncf: invoice.ncf,
+        codigoFactura: invoice.codigoFactura,
       },
       deliveryNote: {
         deliveryNumber: note.deliveryNumber,

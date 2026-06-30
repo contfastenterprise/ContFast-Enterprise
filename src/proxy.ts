@@ -128,9 +128,15 @@ function checkRbacPermission(pathname: string, method: string, decoded: any): bo
 
       const requiredPermission = `${module}:${action}`;
 
-      // Admin has full operational access except write/delete on auditoria & administracion
+      // Admin has full operational access except write/delete on auditoria
       if (isAdmin) {
-        if (module === 'auditoria' || module === 'administracion') {
+        if (module === 'auditoria') {
+          return action === 'read';
+        }
+        if (module === 'administracion') {
+          if (action === 'write') {
+            return pathname.startsWith('/api/v1/admin/users') || pathname === '/api/v1/admin/settings';
+          }
           return action === 'read';
         }
         return true;

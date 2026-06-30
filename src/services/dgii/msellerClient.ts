@@ -498,11 +498,11 @@ export class MSellerClient {
         TipoPago: params.paymentType,
       };
     } else if (params.ecfType === '33') {
-      // e-33 (Nota de Débito) — no IndicadorNotaCredito, but needs IndicadorEnvioDiferido
+      // e-33 (Nota de Débito) — requires FechaVencimientoSecuencia and no IndicadorEnvioDiferido
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        IndicadorEnvioDiferido: 1,
+        FechaVencimientoSecuencia: params.sequenceExpiry,
         IndicadorMontoGravado: '0',
         TipoIngresos: '01',
         TipoPago: params.paymentType,

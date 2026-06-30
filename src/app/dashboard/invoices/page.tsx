@@ -728,7 +728,7 @@ function InvoicesList() {
 
       const isNote = ecfType === '33' || ecfType === '34';
       if (isNote) {
-        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [1, 2, 3, 4];
+        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
         if (!validIndicadores.includes(indicadorNotaCredito)) {
           throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
         }
@@ -1095,9 +1095,8 @@ function InvoicesList() {
                               )}
                             >
                               <option value={0} disabled>— Seleccione el motivo —</option>
-                              <option value={1}>1 - Intereses</option>
-                              <option value={2}>2 - Gastos de cobranzas</option>
-                              <option value={3}>3 - Gastos de facturación</option>
+                              <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
+                              <option value={3}>3 - Ajuste de cantidad</option>
                               <option value={4}>4 - Otros</option>
                             </select>
                           )}

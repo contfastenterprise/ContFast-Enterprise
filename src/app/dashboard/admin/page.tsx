@@ -323,6 +323,12 @@ export default function AdminPage() {
     }
   };
 
+  const isSystemUser = currentUserRole?.toLowerCase() === 'sistemas' || currentUserRole?.toLowerCase() === 'sistema';
+  const filteredUsers = users.filter(user => {
+    const isTargetSystem = user.roleName?.toLowerCase() === 'sistemas' || user.roleName?.toLowerCase() === 'sistema';
+    return isSystemUser ? true : !isTargetSystem;
+  });
+
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
@@ -400,10 +406,10 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {users.length === 0 ? (
+                    {filteredUsers.length === 0 ? (
                       <tr><td colSpan={4} className="px-6 py-12 text-center text-on-surface-variant/70">No hay usuarios registrados.</td></tr>
                     ) : (
-                      users.map(user => (
+                      filteredUsers.map(user => (
                         <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">

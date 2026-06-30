@@ -6,6 +6,10 @@ function deepEscape<T>(obj: T): T {
     return obj;
   }
   
+  if (obj instanceof Date) {
+    return obj;
+  }
+  
   if (typeof obj === 'string') {
     const trimmed = obj.trim();
     if (trimmed.startsWith('<') || obj.startsWith('data:image/') || obj.startsWith('http://') || obj.startsWith('https://')) {
@@ -816,7 +820,7 @@ export class DocumentTemplates {
           </div>
           <div class="logistic-info">
   <span style="font-weight: bold; font-family: 'Inter', sans-serif; color: #005E6A;">DATOS DE TRANSPORTE:</span>
-  Factura Ref : ${invoice.ncf}
+  Factura Ref : ${invoice.codigoFactura || invoice.ncf}
   Chofer      : ${deliveryNote.driverName || 'N/A'}
   Placa       : ${deliveryNote.vehiclePlate || 'N/A'}
   Despachador : ${deliveryNote.dispatcherName || 'N/A'}
