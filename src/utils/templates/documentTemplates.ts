@@ -2373,6 +2373,15 @@ export class DocumentTemplates {
       `;
     }).join('');
 
+    const formatRangeDate = (dateStr: string) => {
+      if (!dateStr || dateStr === 'Inicio' || dateStr === 'Hoy') return dateStr;
+      const parts = dateStr.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return dateStr;
+    };
+
     return `
       <!DOCTYPE html>
       <html>
@@ -2410,7 +2419,7 @@ export class DocumentTemplates {
           </div>
           <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE COMPRAS Y GASTOS</div>
-            <div><strong>Rango:</strong> ${filters.startDate} al ${filters.endDate}</div>
+            <div><strong>Rango:</strong> ${formatRangeDate(filters.startDate)} al ${formatRangeDate(filters.endDate)}</div>
             <div><strong>Tipo:</strong> ${filters.type === 'purchases' ? 'Compras Comerciales' : filters.type === 'expenses' ? 'Gastos Menores' : 'Todos'}</div>
             <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
             <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Lote: $${formatNum(totalAmount)}</div>
@@ -2513,6 +2522,15 @@ export class DocumentTemplates {
       `;
     }).join('');
 
+    const formatRangeDate = (dateStr: string) => {
+      if (!dateStr || dateStr === 'Inicio' || dateStr === 'Hoy') return dateStr;
+      const parts = dateStr.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return dateStr;
+    };
+
     return `
       <!DOCTYPE html>
       <html>
@@ -2550,7 +2568,7 @@ export class DocumentTemplates {
           </div>
           <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE FACTURACIÓN (VENTAS)</div>
-            <div><strong>Rango:</strong> ${filters.startDate} al ${filters.endDate}</div>
+            <div><strong>Rango:</strong> ${formatRangeDate(filters.startDate)} al ${formatRangeDate(filters.endDate)}</div>
             <div><strong>Estado:</strong> ${filters.status === 'draft' ? 'Borrador' : filters.status === 'signed' ? 'Firmado' : filters.status === 'submitted' ? 'Transmitido' : filters.status === 'accepted' ? 'Aceptado DGII' : filters.status === 'rejected' ? 'Rechazado' : 'Todos'}</div>
             <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
             <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Facturado: $${formatNum(totalAmount)}</div>

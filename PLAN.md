@@ -328,7 +328,8 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 - **Plantilla de Ventas**: Diseño de la plantilla premium `renderInvoicesReport` en `src/utils/templates/documentTemplates.ts` con todos los campos clave exigidos por la DGII (NCF, RNC/Cédula, Subtotal, ITBIS, Descuento, Total Neto), omitiendo la columna de "Tipo Comprobante" y la regla de no mostrar el título textual de la empresa si ya tiene logotipo.
 - **Plantilla de Compras**: Corrección en `renderPurchasesReport` para ocultar igualmente el título de la empresa si posee logotipo.
 - **Formato Ultra-Compacto sin Saltos de Línea**: Modificación del CSS y estructura HTML de ambos reportes (`renderPurchasesReport` y `renderInvoicesReport`) para reducir el padding de celdas (`3px 5px`), disminuir el tamaño de letra (`7.5pt`) y aplicar reglas CSS de forzado de línea (`white-space: nowrap !important` y `.ellipsis` en max-width de nombres de clientes/suplidores), logrando que todas las filas quepan estrictamente en una sola fila.
-- **Integración UI**: Inserción del botón "REPORTE PDF" en la barra de filtros del listado de facturas (`src/app/dashboard/invoices/page.tsx`) alineado con los filtros de búsqueda actuales.
+- **Formateo de Rango de Fechas a dd-MM-YYYY**: Incorporación de la función auxiliar `formatRangeDate` en las plantillas de reporte para mostrar las fechas impresas con el formato estándar `dd-MM-YYYY`.
+- **Integración UI & Rango en Compras**: Inserción del botón "REPORTE PDF" en la barra de filtros del listado de facturas (`src/app/dashboard/invoices/page.tsx`) alineado con los filtros de búsqueda actuales. Además, se reemplazaron los inputs individuales "Desde" y "Hasta" de la página de compras (`src/app/dashboard/purchases/page.tsx`) con el componente unificado `DateRangePicker` para homogeneizar la experiencia de usuario.
 
 * * Verified & Polished * *  
 * * Verified & Polished * *  

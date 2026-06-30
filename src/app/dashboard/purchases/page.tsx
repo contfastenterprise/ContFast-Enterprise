@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { roundMoney } from '@/utils/calculos';
 import InvoiceImageUploader from '@/components/InvoiceImageUploader';
 import { OcrInvoiceData } from '@/utils/ocrParser';
+import DateRangePicker from '@/components/ui/date-range-picker';
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -139,7 +140,7 @@ export default function PurchasesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // Filters State
-  const [filterStartDate, setFilterStartDate] = useState(getLocalDateString());
+  const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonthString());
   const [filterEndDate, setFilterEndDate] = useState(getLocalDateString());
   const [filterType, setFilterType] = useState<'all' | 'purchases' | 'expenses'>('all');
   const [filterSupplier, setFilterSupplier] = useState('');
@@ -220,6 +221,42 @@ export default function PurchasesPage() {
     }
   }, [supplierId, suppliers]);
 
+  // Filter and search action
+  const handleSearch = async () => {
+    setSearchLoading(true);
+    setHasSearched(true);
+    try {
+      let url = `/api/v1/expenses?startDate=${filterStartDate}&endDate=${filterEndDate}`;
+      if (filterType === 'purchases') {
+        url += '&isMinorExpense=false';
+      } else if (filterType === 'expenses') {
+        url += '&isMinorExpense=true';
+      }
+      if (filterSupplier) {
+        url += `&supplierId=${filterSupplier}`;
+      }
+      if (filterWarehouse) {
+        url += `&warehouseId=${filterWarehouse}`;
+      }
+      if (filterNcf) {
+        url += `&ncf=${encodeURIComponent(filterNcf)}`;
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        setSearchResults(data.data || []);
+        toast.success(`Se encontraron ${data.data.length} transacciones`);
+      } else {
+        toast.error('Error al realizar búsqueda', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   // Load initial search results automatically on mount
   useEffect(() => {
     handleSearch();
@@ -260,42 +297,6 @@ export default function PurchasesPage() {
       }
     }
   }, [noItbis, isGeneralAmount]);
-
-  // Filter and search action
-  const handleSearch = async () => {
-    setSearchLoading(true);
-    setHasSearched(true);
-    try {
-      let url = `/api/v1/expenses?startDate=${filterStartDate}&endDate=${filterEndDate}`;
-      if (filterType === 'purchases') {
-        url += '&isMinorExpense=false';
-      } else if (filterType === 'expenses') {
-        url += '&isMinorExpense=true';
-      }
-      if (filterSupplier) {
-        url += `&supplierId=${filterSupplier}`;
-      }
-      if (filterWarehouse) {
-        url += `&warehouseId=${filterWarehouse}`;
-      }
-      if (filterNcf) {
-        url += `&ncf=${encodeURIComponent(filterNcf)}`;
-      }
-
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setSearchResults(data.data || []);
-        toast.success(`Se encontraron ${data.data.length} transacciones`);
-      } else {
-        toast.error('Error al realizar búsqueda', { description: data.error?.message });
-      }
-    } catch (err: any) {
-      toast.error('Error de red', { description: err.message });
-    } finally {
-      setSearchLoading(false);
-    }
-  };
 
   // View expense details
   const viewDetails = async (id: string) => {
@@ -544,24 +545,18 @@ export default function PurchasesPage() {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
-              <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Desde</label>
-                <input
-                  type="date"
-                  value={filterStartDate}
-                  onChange={e => setFilterStartDate(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Hasta</label>
-                <input
-                  type="date"
-                  value={filterEndDate}
-                  onChange={e => setFilterEndDate(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
-                />
+              <div className="md:col-span-2">
+                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Rango de Fechas</label>
+                <div className="w-full [&>div]:w-full [&_button]:w-full">
+                  <DateRangePicker
+                    from={filterStartDate}
+                    to={filterEndDate}
+                    onChange={({ from, to }) => {
+                      setFilterStartDate(from);
+                      setFilterEndDate(to);
+                    }}
+                  />
+                </div>
               </div>
 
               <div>
