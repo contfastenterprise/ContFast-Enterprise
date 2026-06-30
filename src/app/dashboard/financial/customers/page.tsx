@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
@@ -223,53 +224,26 @@ export default function CustomerStatementPage() {
       {/* Customer Select dropdown */}
       <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-5 space-y-4">
         <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">Seleccione el Cliente</label>
-        <div className="relative max-w-md">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder={loadingCustomers ? "Cargando clientes..." : "Buscar por nombre o RNC/Cédula..."}
-                disabled={loadingCustomers}
-                value={customerSearchQuery}
-                onChange={(e) => {
-                  setCustomerSearchQuery(e.target.value);
-                  setIsDropdownOpen(true);
-                }}
-                onFocus={() => setIsDropdownOpen(true)}
-                className="w-full pl-9 pr-4 py-2 border border-outline-variant/20 rounded-xl bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary text-sm"
-              />
-              {customerSearchQuery && (
-                <button
-                  onClick={() => {
-                    setCustomerSearchQuery('');
-                    setSelectedCustomerId('');
-                    setStatementData(null);
-                    setIsDropdownOpen(true);
-                  }}
-                  className="absolute right-3 top-3 hover:text-neutral-700"
-                >
-                  <X className="w-4 h-4 text-neutral-400" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Dropdown list */}
-          {isDropdownOpen && filteredCustomers.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full bg-surface-bright border border-outline-variant/20 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-outline-variant/10">
-              {filteredCustomers.map((cust) => (
-                <div
-                  key={cust.id}
-                  onClick={() => handleCustomerSelect(cust)}
-                  className="px-4 py-3 text-sm hover:bg-surface-container-low cursor-pointer flex justify-between"
-                >
-                  <span className="font-semibold">{cust.name}</span>
-                  <span className="text-xs text-neutral-500">{cust.rncCedula || 'Sin RNC'}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="max-w-md">
+          <AutocompleteSelect
+            items={customers.map((c) => ({
+              id: c.id,
+              name: c.name,
+              subLabel: c.rncCedula ? `RNC/Cédula: ${c.rncCedula}` : "Sin RNC/Cédula",
+            }))}
+            value={selectedCustomerId}
+            onChange={(id, name) => {
+              setSelectedCustomerId(id);
+              setCustomerSearchQuery(name);
+              if (id) {
+                fetchStatement(id);
+              } else {
+                setStatementData(null);
+              }
+            }}
+            placeholder="Buscar por nombre o RNC/Cédula..."
+            loading={loadingCustomers}
+          />
         </div>
       </div>
 
