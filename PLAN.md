@@ -295,6 +295,7 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 ### 47. Módulo Financiero de Estados de Cuenta (CxC, CxP y Dashboard Financiero)
 - **Base de Datos & Libro Auxiliar**: Creación de la tabla transaccional centralizada `financial_movements` con índices de alto rendimiento para registrar débitos, créditos y balances progresivos.
 - **Límite de Crédito Dinámico**: Agregada la columna física `credit_limit` a la tabla de clientes (`customers`) e integrada de forma reactiva en las consultas del repositorio contable.
+- **Validación Activa de Límite**: Implementada validación transaccional durante la emisión de facturas a crédito (`invoiceDbBooker.ts`), bloqueando la operación si el balance del cliente más el total neto de la nueva factura excede su límite de crédito.
 - **Integraciones Operativas Automáticas**: Sincronización transaccional en facturación (invoices, ND, NC, ventas al contado), gastos/compras (expenses, compras al contado), cobros (arRepository) y pagos (apService, cheques en garantía y ordinarios).
 - **Auto-Seeding Autoejecutable (Self-healing)**: Desarrollada una función para reconstruir cronológicamente el historial financiero desde el primer inicio si la tabla se encuentra vacía, con reconstrucción automática de balances progresivos en lotes.
 - **Reportes e Impresión Directa**: API de resúmenes de clientes y proveedores, antigüedad de saldos clasificada (aging) y estadísticas operativas, integrando impresión en PDF con Puppeteer y plantillas HTML premium.
