@@ -127,17 +127,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Deactivate previous active sequences of the same type
-    await db
-      .update(ecfSequences)
-      .set({ status: 'inactive', updatedAt: new Date() })
+    // Check if there is already an active sequence for this ecfType (category)
+    const [existingActive] = await db
+      .select({ id: ecfSequences.id })
+      .from(ecfSequences)
       .where(
         and(
           eq(ecfSequences.companyId, auth.companyId),
           eq(ecfSequences.ecfType, ecfType),
-          eq(ecfSequences.status, 'active')
+          eq(ecfSequences.status, 'active'),
+          isNull(ecfSequences.deletedAt)
         )
+      )
+      .limit(1);
+
+    if (existingActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Ya existe una secuencia activa para esta categoría de comprobante. Debe desactivarla o inactivarla antes de poder registrar una nueva.',
+          },
+        },
+        { status: 400, headers: resHeaders }
       );
+    }
 
     const [newSeq] = await db
       .insert(ecfSequences)

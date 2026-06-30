@@ -5,7 +5,7 @@ import DashboardLayout from '@/app/dashboard/layout';
 import {
   Plus, Search, FileText, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, FileDown, Printer, ChevronLeft,
-  ChevronRight, AlertCircle, Package, Truck, UserCheck, ShieldAlert
+  ChevronRight, AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -31,6 +31,8 @@ export default function DeliveryNotesPage() {
   const [notesText, setNotesText] = useState('');
 
   // Target Invoice
+  const [applyCode, setApplyCode] = useState('');
+  const [applying, setApplying] = useState(false);
   const [showInvoiceSearch, setShowInvoiceSearch] = useState(false);
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
   const [invoicesList, setInvoicesList] = useState<any[]>([]);
@@ -63,6 +65,34 @@ export default function DeliveryNotesPage() {
     }
   }, [page]);
 
+  const handleApplyCode = async () => {
+    if (!applyCode.trim()) {
+      toast.error('Debe ingresar un código de factura o conduce.');
+      return;
+    }
+    setApplying(true);
+    try {
+      const res = await fetch('/api/v1/delivery-notes/apply-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: applyCode }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Código aplicado con éxito.');
+        setApplyCode('');
+        // Refresh delivery notes list
+        loadDeliveryNotes();
+      } else {
+        toast.error(data.error?.message || 'Error al aplicar el código.');
+      }
+    } catch (error) {
+      toast.error('Error de red al aplicar el código.');
+    } finally {
+      setApplying(false);
+    }
+  };
+
   useEffect(() => {
     loadDeliveryNotes();
   }, [loadDeliveryNotes]);
@@ -71,15 +101,30 @@ export default function DeliveryNotesPage() {
   const handleSearchInvoices = async () => {
     setInvoicesLoading(true);
     try {
-      // Fetch invoices
-      const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&status=accepted&per_page=30`);
+      // Fetch current delivery notes to check for drafts
+      const dRes = await fetch(`/api/v1/delivery-notes?per_page=100`);
+      const dData = await dRes.json();
+      const draftInvoiceIds = new Set<string>();
+      if (dData.success) {
+        (dData.data || []).forEach((dn: any) => {
+          if (dn.status === 'draft') {
+            draftInvoiceIds.add(dn.invoiceId);
+          }
+        });
+      }
+
+      // Fetch invoices (without forcing accepted status, we will filter in frontend to allow signed/submitted too)
+      const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&per_page=50`);
       const data = await res.json();
       if (data.success) {
-        // Filter out credit notes (34) and check deliveryStatus
+        // Filter out credit notes (34) and check deliveryStatus, only show active invoices (accepted, signed, submitted)
+        // Also exclude invoices that already have a draft delivery note
         const validInvoices = (data.data || []).filter(
           (inv: any) =>
             inv.ecfType !== '34' &&
-            (inv.deliveryStatus === 'pending' || inv.deliveryStatus === 'partial')
+            ['accepted', 'signed', 'submitted'].includes(inv.status) &&
+            (inv.deliveryStatus === 'pending' || inv.deliveryStatus === 'partial') &&
+            !draftInvoiceIds.has(inv.id)
         );
         setInvoicesList(validInvoices);
       }
@@ -305,6 +350,40 @@ export default function DeliveryNotesPage() {
                   >
                     <Plus className="h-4 w-4" /> Nuevo Conduce
                   </button>
+                </div>
+
+                {/* Quick Action: Apply Delivery Note or Invoice Stock Deduction */}
+                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#c5a059]/10 p-3 rounded-lg text-[#c5a059]">
+                      <Truck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-md font-bold text-slate-900">Aplicar Despacho por Código</h3>
+                      <p className="text-xs text-slate-500">Digita el NCF de la factura o el código de conduce para aprobar y descontar stock automáticamente.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch md:items-center w-full md:w-auto">
+                    <input
+                      type="text"
+                      placeholder="Ej: E310000000001 o CON-2026-000001"
+                      value={applyCode}
+                      onChange={(e) => setApplyCode(e.target.value)}
+                      className="bg-white border border-slate-350 rounded-lg px-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-[#003366] focus:border-transparent outline-none w-full sm:w-80 font-mono"
+                    />
+                    <button
+                      onClick={handleApplyCode}
+                      disabled={applying}
+                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm shrink-0 disabled:opacity-50"
+                    >
+                      {applying ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileCheck className="h-4 w-4" />
+                      )}
+                      <span>Aplicar Despacho</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Table list */}

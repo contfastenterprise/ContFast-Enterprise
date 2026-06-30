@@ -79,7 +79,7 @@ export default function DateRangePicker({ from, to, onChange }: DateRangePickerP
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer min-w-[240px]"
+        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer min-w-[240px]"
       >
         <CalendarIcon className="h-4 w-4 text-on-surface-variant" />
         <span className="flex-1 text-left">{displayValue}</span>

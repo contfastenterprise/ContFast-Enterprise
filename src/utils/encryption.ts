@@ -40,32 +40,7 @@ export function decrypt(encryptedData: string): string {
   return decrypted.toString('utf8');
 }
 
-/**
- * Encrypts binary buffer (useful for .p12 certificate binary files).
- * Returns a string formatted as "ivHex:encryptedHex".
- */
-export function encryptBuffer(buffer: Buffer): string {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(ALGORITHM, getSecretKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
-  return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
-}
 
-/**
- * Decrypts text encrypted by encryptBuffer back into a binary Buffer.
- */
-export function decryptToBuffer(encryptedData: string): Buffer {
-  const [ivHex, encryptedText] = encryptedData.split(':');
-  if (!ivHex || !encryptedText) {
-    throw new Error('Invalid encrypted buffer format.');
-  }
-
-  const iv = Buffer.from(ivHex, 'hex');
-  const encryptedBytes = Buffer.from(encryptedText, 'hex');
-  const decipher = crypto.createDecipheriv(ALGORITHM, getSecretKey(), iv);
-  const decrypted = Buffer.concat([decipher.update(encryptedBytes), decipher.final()]);
-  return decrypted;
-}
 
 import { KmsService } from '@/services/kmsService';
 

@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions } from '@/db';
+import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { verifyAuth } from '@/middleware/auth';
 
-async function getInvoicePdfBuffer(invoiceId: string) {
+async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
   // 1. Fetch invoice from DB
   const [invoiceRecordDb] = await db
     .select()
     .from(invoices)
-    .where(eq(invoices.id, invoiceId))
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)))
     .limit(1);
 
   if (!invoiceRecordDb) {
@@ -62,7 +63,7 @@ async function getInvoicePdfBuffer(invoiceId: string) {
     customer = cust;
   }
 
-  // 4. Fetch lines and join with product details
+  // 4. Fetch lines and join with product details and categories
   const lines = await db
     .select({
       quantity: invoiceLines.quantity,
@@ -72,9 +73,11 @@ async function getInvoicePdfBuffer(invoiceId: string) {
       productName: products.name,
       productSku: products.sku,
       unitOfMeasure: products.unitOfMeasure,
+      categoryName: productCategories.name,
     })
     .from(invoiceLines)
     .leftJoin(products, eq(invoiceLines.productId, products.id))
+    .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
     .where(eq(invoiceLines.invoiceId, invoiceId));
 
   // 5. Fetch taxes
@@ -154,7 +157,8 @@ async function getInvoicePdfBuffer(invoiceId: string) {
       unitOfMeasure: l.unitOfMeasure || 'Unidad',
       unitPrice: Number(l.unitPrice),
       discount: Number(l.discount),
-      total: Number(l.total)
+      total: Number(l.total),
+      categoryName: l.categoryName || 'General'
     })),
     taxes: taxes.map(t => ({
       taxType: t.taxType,
@@ -210,10 +214,16 @@ export async function GET(
   { params }: { params: Promise<any> }
 ) {
   try {
-    const { id: invoiceId } = await params;
-    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId);
+    const resHeaders = new Headers();
+    const session = await verifyAuth(request, resHeaders);
+    if (!session) {
+      return new NextResponse('No autorizado', { status: 401 });
+    }
 
-    const headers = new Headers();
+    const { id: invoiceId } = await params;
+    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId, session.companyId);
+
+    const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');
     headers.set('Content-Disposition', `inline; filename="${filename}"`);
 
@@ -234,8 +244,14 @@ export async function POST(
   { params }: { params: Promise<any> }
 ) {
   try {
+    const resHeaders = new Headers();
+    const session = await verifyAuth(request, resHeaders);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const { id: invoiceId } = await params;
-    const { pdfBuffer } = await getInvoicePdfBuffer(invoiceId);
+    const { pdfBuffer } = await getInvoicePdfBuffer(invoiceId, session.companyId);
 
     // 6. Almacenar el archivo temporalmente
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');
@@ -246,7 +262,7 @@ export async function POST(
     return NextResponse.json({
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-    });
+    }, { headers: resHeaders });
 
   } catch (error: any) {
     console.error('Error printing invoice POST:', error);

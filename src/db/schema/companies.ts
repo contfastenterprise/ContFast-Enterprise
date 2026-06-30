@@ -20,8 +20,7 @@ export const companySettings = pgTable('company_settings', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
   dgiiEnv: varchar('dgii_env', { length: 50 }).default('test').notNull(), // test | production
-  certP12Encrypted: text('cert_p12_encrypted'), // Encrypted base64 of .p12 certificate
-  certPasswordEncrypted: text('cert_password_encrypted'), // Encrypted certificate password
+
   logoUrl: text('logo_url'),
   msellerUrl: text('mseller_url').default('https://ecf.api.mseller.app/v1').notNull(),
   msellerApiKeyEncrypted: text('mseller_api_key_encrypted'),

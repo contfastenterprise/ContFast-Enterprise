@@ -89,14 +89,27 @@ export async function GET(req: NextRequest) {
     // Enforce "facturacion:read" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
 
-    // Parse pagination query parameters
+    // Parse query parameters
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
     const excludeTypesParam = searchParams.get('excludeTypes');
     const excludeTypes = excludeTypesParam ? excludeTypesParam.split(',') : undefined;
 
-    const result = await InvoiceRepository.list(auth.companyId, page, perPage, { excludeTypes });
+    const status = searchParams.get('status') || undefined;
+    const ncf = searchParams.get('ncf') || undefined;
+    const ecfType = searchParams.get('ecfType') || undefined;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+
+    const result = await InvoiceRepository.list(auth.companyId, page, perPage, {
+      excludeTypes,
+      status,
+      ncf,
+      ecfType,
+      startDate,
+      endDate,
+    });
     const stats = await InvoiceRepository.getStats(auth.companyId);
 
     return NextResponse.json(

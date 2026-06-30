@@ -5,7 +5,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
-import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
+import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, productCategories } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -112,7 +112,7 @@ export async function GET(
       customer = cust;
     }
 
-    // Fetch lines and join with product details
+    // Fetch lines and join with product details and categories
     const lines = await db
       .select({
         quantity: invoiceLines.quantity,
@@ -122,9 +122,11 @@ export async function GET(
         productName: products.name,
         productSku: products.sku,
         unitOfMeasure: products.unitOfMeasure,
+        categoryName: productCategories.name,
       })
       .from(invoiceLines)
       .leftJoin(products, eq(invoiceLines.productId, products.id))
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
       .where(eq(invoiceLines.invoiceId, id));
 
     // Fetch taxes
@@ -198,7 +200,8 @@ export async function GET(
         unitOfMeasure: l.unitOfMeasure || 'Unidad',
         unitPrice: Number(l.unitPrice),
         discount: Number(l.discount),
-        total: Number(l.total)
+        total: Number(l.total),
+        categoryName: l.categoryName || 'General'
       })),
       taxes: taxes.map(t => ({
         taxType: t.taxType,

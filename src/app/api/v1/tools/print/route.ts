@@ -5,24 +5,31 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { db, companies, companySettings } from '@/db';
 import { eq } from 'drizzle-orm';
+import { verifyAuth } from '@/middleware/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const resHeaders = new Headers();
+    const session = await verifyAuth(request, resHeaders);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { type, data, sheetWidth, sheetHeight } = body;
 
     if (!type || !data) {
-      return NextResponse.json({ error: 'Faltan parámetros requeridos (type, data)' }, { status: 400 });
+      return NextResponse.json({ error: 'Faltan parámetros requeridos (type, data)' }, { status: 400, headers: resHeaders });
     }
 
-    // Get the first company from the database
-    const [company] = await db.select().from(companies).limit(1);
+    // Get the authenticated company from the database
+    const [company] = await db.select().from(companies).where(eq(companies.id, session.companyId)).limit(1);
     if (!company) {
-      return NextResponse.json({ error: 'Perfil de empresa no configurado' }, { status: 404 });
+      return NextResponse.json({ error: 'Perfil de empresa no configurado' }, { status: 404, headers: resHeaders });
     }
 
     // Get settings to retrieve msellerEmail or logoUrl if available
-    const [settings] = await db.select().from(companySettings).where(eq(companySettings.companyId, company.id)).limit(1);
+    const [settings] = await db.select().from(companySettings).where(eq(companySettings.companyId, session.companyId)).limit(1);
 
     const companyInfo = {
       name: company.name,
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
       const sh = Number(sheetHeight) || 72;
       pdfBuffer = await PdfGenerator.generateGlassCutting(companyInfo, data, sw, sh);
     } else {
-      return NextResponse.json({ error: 'Tipo de reporte no soportado' }, { status: 400 });
+      return NextResponse.json({ error: 'Tipo de reporte no soportado' }, { status: 400, headers: resHeaders });
     }
 
     // Store the generated file in temporary memory using current system structure
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-    });
+    }, { headers: resHeaders });
 
   } catch (error: any) {
     console.error('Error generating tool print PDF:', error);

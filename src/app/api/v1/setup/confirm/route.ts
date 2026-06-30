@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db, companies, companySettings, roles, users, permissions, auditLogs, plans } from '@/db';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
-import { encryptAsync, encryptBuffer } from '@/utils/encryption';
+import { encryptAsync } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { AccountingRepository } from '@/repositories/accountingRepository';

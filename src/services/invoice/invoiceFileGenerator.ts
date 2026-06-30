@@ -1,5 +1,5 @@
-import { db, products } from '@/db';
-import { sql } from 'drizzle-orm';
+import { db, products, productCategories } from '@/db';
+import { sql, eq } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -52,8 +52,10 @@ export class InvoiceFileGenerator {
             id: products.id,
             sku: products.sku,
             unitOfMeasure: products.unitOfMeasure,
+            categoryName: productCategories.name,
           })
           .from(products)
+          .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
           .where(sql`${products.id} in (${sql.raw(productIds.map((id) => `'${id}'`).join(','))})`);
       }
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
@@ -83,6 +85,7 @@ export class InvoiceFileGenerator {
             unitPrice: l.unitPrice,
             discount: l.discount,
             total: l.total,
+            categoryName: prod?.categoryName || 'General',
           };
         }),
         taxes: totals.taxesList.map((t) => ({

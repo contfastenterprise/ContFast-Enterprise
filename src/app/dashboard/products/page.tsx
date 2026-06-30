@@ -813,7 +813,7 @@ export default function ProductsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
                 </h3>
-                <button onClick={() => setShowCategoryModal(false)} className="text-on-surface-variant hover:text-primary">
+                <button onClick={() => setShowCategoryModal(false)} className="text-white/70 hover:text-white cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -826,7 +826,7 @@ export default function ProductsPage() {
                     required
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-white border border-outline/50 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
                     placeholder="Ej. Herramientas"
                   />
                 </div>
@@ -836,27 +836,30 @@ export default function ProductsPage() {
                   <textarea
                     value={categoryForm.description}
                     onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    className="w-full bg-[#0b1120] border border-outline/50 rounded-lg px-4 py-2.5 text-primary focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-white border border-outline/50 rounded-lg px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
                     placeholder="Opcional..."
                     rows={2}
                   />
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-outline/20">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setShowCategoryModal(false)}
-                    className="px-4 py-2 text-sm text-on-surface-variant hover:text-primary transition-colors"
+                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer"
                   >
+                    <X className="w-4 h-4" />
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={submittingCategory}
-                    className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer"
                   >
-                    {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Guardar'}
-                  </button>
+                    {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    Guardar
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -883,7 +886,7 @@ export default function ProductsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-[#c5a059]" /> Edición Manual de Precios
                 </h3>
-                <button onClick={() => setShowPricesModal(false)} className="text-on-surface-variant hover:text-primary">
+                <button onClick={() => setShowPricesModal(false)} className="text-white/70 hover:text-white cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -908,7 +911,7 @@ export default function ProductsPage() {
                         onChange={(e) => {
                           setFormData({ ...formData, priceConsumidor: e.target.value, price: e.target.value });
                         }}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -922,7 +925,7 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceMayorista}
                         onChange={(e) => setFormData({ ...formData, priceMayorista: e.target.value })}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -936,20 +939,21 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceProveedor}
                         onChange={(e) => setFormData({ ...formData, priceProveedor: e.target.value })}
-                        className="w-full bg-[#0b1120] border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setShowPricesModal(false)}
-                    className="flex items-center gap-2 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] px-6 py-2.5 rounded-lg font-bold transition-colors w-full justify-center"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer w-full justify-center"
                   >
+                    <ShieldCheck className="w-4 h-4" />
                     Confirmar Precios
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>

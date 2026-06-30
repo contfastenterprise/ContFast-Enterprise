@@ -1,5 +1,5 @@
 import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions } from '@/db';
-import { eq, and, isNull, desc, count, notInArray, gte, inArray, sql } from 'drizzle-orm';
+import { eq, and, or, isNull, desc, count, notInArray, gte, lte, ilike, inArray, sql } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
   companyId: string;
@@ -244,7 +244,19 @@ export class InvoiceRepository {
   /**
    * Paginated invoice list with tenancy check.
    */
-  static async list(companyId: string, page = 1, perPage = 20, options?: { excludeTypes?: string[] }) {
+  static async list(
+    companyId: string,
+    page = 1,
+    perPage = 20,
+    options?: {
+      excludeTypes?: string[];
+      status?: string;
+      ncf?: string;
+      ecfType?: string;
+      startDate?: string;
+      endDate?: string;
+    }
+  ) {
     const offset = (page - 1) * perPage;
 
     const baseConditions = [
@@ -256,14 +268,84 @@ export class InvoiceRepository {
       baseConditions.push(notInArray(invoices.ecfType, options.excludeTypes));
     }
 
+    if (options?.status) {
+      baseConditions.push(eq(invoices.status, options.status));
+    }
+
+    if (options?.ecfType) {
+      baseConditions.push(eq(invoices.ecfType, options.ecfType));
+    }
+
+    if (options?.ncf) {
+      const searchCond = or(
+        ilike(invoices.ncf, `%${options.ncf}%`),
+        ilike(invoices.buyerName, `%${options.ncf}%`),
+        ilike(invoices.buyerRnc, `%${options.ncf}%`),
+        ilike(customers.name, `%${options.ncf}%`),
+        ilike(customers.rncCedula, `%${options.ncf}%`)
+      );
+      if (searchCond) {
+        baseConditions.push(searchCond);
+      }
+    }
+
+    if (options?.startDate) {
+      baseConditions.push(gte(invoices.createdAt, new Date(`${options.startDate}T00:00:00-04:00`)));
+    }
+
+    if (options?.endDate) {
+      baseConditions.push(lte(invoices.createdAt, new Date(`${options.endDate}T23:59:59.999-04:00`)));
+    }
+
     const [totalResult] = await db
       .select({ value: count() })
       .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(and(...baseConditions));
 
     const data = await db
-      .select()
+      .select({
+        id: invoices.id,
+        companyId: invoices.companyId,
+        warehouseId: invoices.warehouseId,
+        customerId: invoices.customerId,
+        userId: invoices.userId,
+        cashSessionId: invoices.cashSessionId,
+        quoteId: invoices.quoteId,
+        ncf: invoices.ncf,
+        ecfType: invoices.ecfType,
+        status: invoices.status,
+        paymentStatus: invoices.paymentStatus,
+        subtotal: invoices.subtotal,
+        discount: invoices.discount,
+        totalTaxes: invoices.totalTaxes,
+        total: invoices.total,
+        xmlPath: invoices.xmlPath,
+        signedXmlPath: invoices.signedXmlPath,
+        pdfPath: invoices.pdfPath,
+        msellerTrackId: invoices.msellerTrackId,
+        buyerRnc: invoices.buyerRnc,
+        buyerName: invoices.buyerName,
+        dgiiMessage: invoices.dgiiMessage,
+        notes: invoices.notes,
+        paymentType: invoices.paymentType,
+        bankName: invoices.bankName,
+        transactionNumber: invoices.transactionNumber,
+        modifiedNcf: invoices.modifiedNcf,
+        modifiedInvoiceId: invoices.modifiedInvoiceId,
+        indicadorNotaCredito: invoices.indicadorNotaCredito,
+        codigoFactura: invoices.codigoFactura,
+        deliveryStatus: invoices.deliveryStatus,
+        totalRetained: invoices.totalRetained,
+        totalNet: invoices.totalNet,
+        createdAt: invoices.createdAt,
+        updatedAt: invoices.updatedAt,
+        deletedAt: invoices.deletedAt,
+        customerName: customers.name,
+        customerRnc: customers.rncCedula,
+      })
       .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(and(...baseConditions))
       .orderBy(desc(invoices.createdAt))
       .limit(perPage)

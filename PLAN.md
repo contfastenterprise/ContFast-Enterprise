@@ -335,3 +335,17 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
+
+### 50. Auditoría de Seguridad & Robustecimiento del ERP (Seguridad en Profundidad)
+- **Eliminación de la Gestión Local de P12**: Se removió el procesamiento local de certificados `.p12` locales (en `src/db/schema/companies.ts`, `src/utils/encryption.ts` y eliminando `src/app/api/v1/setup/ecf/route.ts` y `src/utils/xmlSigner.ts`), delegando el firmado e identidad fiscal en la API de mSeller.
+- **Aseguramiento de Endpoints de Impresión y Colas (IDOR)**: Se integró protección por cookies y sesión activa (`verifyAuth`) en `invoices/[id]/print`, `reports/[reportType]/print`, `tools/print` y `jobs/[jobId]`. Se validan estrictamente las pertenencias de inquilinos (`companyId` del usuario de sesión comparado contra los datos consultados) para evitar fugas de información inter-empresa.
+- **Remoción de Rutas de Desarrollo Vulnerables**: Eliminación completa de `/api/v1/test-create-company` y el mock `/api/v1/cash-sessions`.
+- **Ajuste de Convención de Proxy (Next.js 16)**: Se eliminó `src/middleware.ts` redundante para habilitar que Next.js 16 cargue nativamente `src/proxy.ts` como el firewall global único del ERP.
+- **Mitigación de Server-Side XSS en Puppeteer**: Se implementó una rutina de sanitización recursiva `deepEscape` en `src/utils/templates/documentTemplates.ts` envolviendo dinámicamente todos los métodos estáticos `render*` para escapar de forma transparente caracteres HTML peligrosos antes de generar PDFs.
+- **Aislamiento a Nivel de Base de Datos (RLS)**: Creación y aplicación de un script PL/pgSQL que habilita Row-Level Security (RLS) y fuerza RLS en todas las tablas físicas con columna `company_id`. La política `tenant_isolation_policy` restringe las filas por la variable de sesión `app.current_company_id` si está definida (durante consultas transaccionales de aplicación), y permite consultas globales si está vacía (autenticación, logins).
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+

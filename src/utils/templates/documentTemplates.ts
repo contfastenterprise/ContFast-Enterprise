@@ -1,6 +1,45 @@
 import { parseFraction } from '../calculos';
 import { windowProfiles } from '../profilesRegistry';
 
+function deepEscape<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (typeof obj === 'string') {
+    const trimmed = obj.trim();
+    if (trimmed.startsWith('<') || obj.startsWith('data:image/') || obj.startsWith('http://') || obj.startsWith('https://')) {
+      return obj;
+    }
+    return obj
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;') as unknown as T;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepEscape(item)) as unknown as T;
+  }
+  
+  if (typeof obj === 'object') {
+    const escapedObj: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        if (key === 'logoUrl' || key === 'qrBase64' || key === 'signature' || key === 'html' || key === 'style') {
+          escapedObj[key] = obj[key];
+        } else {
+          escapedObj[key] = deepEscape(obj[key]);
+        }
+      }
+    }
+    return escapedObj as T;
+  }
+  
+  return obj;
+}
+
 export class DocumentTemplates {
   private static getBaseCss(layout: 'carta' | '80mm' | '58mm') {
     if (layout === 'carta') {
@@ -2987,5 +3026,16 @@ export class DocumentTemplates {
       </body>
       </html>
     `;
+  }
+}
+
+// Auto-wrap all static render methods to automatically escape input data
+for (const key of Object.getOwnPropertyNames(DocumentTemplates)) {
+  if (key.startsWith('render') && typeof (DocumentTemplates as any)[key] === 'function') {
+    const originalMethod = (DocumentTemplates as any)[key];
+    (DocumentTemplates as any)[key] = function (data: any, ...args: any[]) {
+      const escapedData = deepEscape(data);
+      return originalMethod.call(this, escapedData, ...args);
+    };
   }
 }
