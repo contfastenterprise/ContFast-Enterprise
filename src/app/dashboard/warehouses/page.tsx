@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer, X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchBar } from '@/components/ui/search-bar';
 
 interface Warehouse {
   id: string;
@@ -215,16 +216,11 @@ export default function WarehousesPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-surface-variant/50" />
-        <input
-          type="text"
-          placeholder="Buscar por nombre o código..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-surface-bright border border-outline-variant/30 rounded-2xl py-4 pl-12 pr-4 font-body-lg text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
-        />
-      </div>
+      <SearchBar
+        placeholder="Buscar por nombre o código..."
+        value={searchTerm}
+        onChange={setSearchTerm}
+      />
 
       {/* List */}
       {loading ? (

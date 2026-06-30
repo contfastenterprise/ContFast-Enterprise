@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchBar } from '@/components/ui/search-bar';
 
 interface Employee {
   id: string;
@@ -214,16 +215,11 @@ export default function EmployeesPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 bg-surface p-4 rounded-xl border border-outline shadow-sm">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-on-surface-variant/40" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, código o cédula..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-surface-variant/20 text-sm text-on-surface border border-outline/35 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-primary transition-all"
-          />
-        </div>
+        <SearchBar
+          placeholder="Buscar por nombre, código o cédula..."
+          value={search}
+          onChange={setSearch}
+        />
         <button
           onClick={fetchData}
           className="p-2 border border-outline hover:bg-surface-variant rounded-lg transition-all text-on-surface"
