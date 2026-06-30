@@ -21,14 +21,19 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const path = formData.get('path') as string;
 
-    if (!file || !path) {
+    if (!file) {
       return NextResponse.json(
-        { success: false, error: { message: 'Archivo o ruta de destino no especificada.' } },
+        { success: false, error: { message: 'Archivo no especificado.' } },
         { status: 400 }
       );
     }
+
+    // Securely construct target filePath using the authenticated user's ID to prevent IDOR/Traversal
+    const fileExt = file.name.split('.').pop() || 'webp';
+    // Sanitize extension to prevent any injection
+    const cleanExt = fileExt.replace(/[^a-zA-Z0-9]/g, '');
+    const filePath = `${session.userId}/avatar_${Date.now()}.${cleanExt}`;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -56,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Subir usando el cliente con Service Role para evitar problemas de firma JWT en cliente
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(path, buffer, {
+      .upload(filePath, buffer, {
         contentType: file.type,
         upsert: true,
       });
@@ -67,13 +72,13 @@ export async function POST(req: NextRequest) {
 
     const { data: { publicUrl } } = supabase.storage
       .from('avatars')
-      .getPublicUrl(path);
+      .getPublicUrl(filePath);
 
     return NextResponse.json({
       success: true,
       data: {
         publicUrl,
-        filePath: path,
+        filePath: filePath,
       }
     });
   } catch (err: any) {

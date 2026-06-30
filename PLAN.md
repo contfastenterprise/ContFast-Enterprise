@@ -349,3 +349,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 51. Robustecimiento de Supabase & Storage (Mitigación IDOR y Protección PostgREST)
+- **Bloqueo de IDOR y Path Traversal en Avatares**: Modificación de las APIs `/api/v1/storage/upload` y `/api/v1/storage/delete` para que el `filePath` del avatar se construya y valide estrictamente en el servidor utilizando el identificador único del usuario (`session.userId`) obtenido de la sesión verificada, impidiendo la manipulación de archivos pertenecientes a otros usuarios.
+- **Habilitación de RLS Global contra Fugas de PostgREST**: Aplicación de RLS en todas las tablas compartidas/sistema (`companies`, `roles`, `permissions`) que carecían de políticas RLS. Esto bloquea cualquier consulta HTTP no autorizada vía PostgREST (usando la clave Anon pública), mientras que la conexión directa TCP del backend (propietario `postgres`) opera de forma transparente y sin afectaciones.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+

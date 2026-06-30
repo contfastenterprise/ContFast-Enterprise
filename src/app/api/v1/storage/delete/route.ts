@@ -28,6 +28,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Extract filename and enforce isolation under user's directory to prevent IDOR/Traversal
+    const parts = path.split('/');
+    const fileName = parts[parts.length - 1];
+
+    if (!fileName || fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Ruta de archivo inválida o insegura.' } },
+        { status: 400 }
+      );
+    }
+
+    const safePath = `${session.userId}/${fileName}`;
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false,
@@ -36,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     const { error } = await supabase.storage
       .from('avatars')
-      .remove([path]);
+      .remove([safePath]);
 
     if (error) {
       return NextResponse.json({ success: false, error: { message: error.message } }, { status: 400 });
