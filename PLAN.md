@@ -358,4 +358,13 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 52. Robustecimiento de API Routes (Prevención de SQL Injection)
+- **Eliminación de sql.raw en Consultas de Producto**: Modificación de la consulta SQL en `src/services/invoice/invoiceFileGenerator.ts` para utilizar el helper parametrizado `inArray(products.id, productIds)` de Drizzle ORM en lugar de concatenar cadenas sin sanitizar mediante `sql.raw`. Esto previene de forma absoluta inyecciones de código SQL procedentes de IDs de productos controlados por el cliente.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+
 

@@ -1,5 +1,5 @@
 import { db, products, productCategories } from '@/db';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -56,7 +56,7 @@ export class InvoiceFileGenerator {
           })
           .from(products)
           .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-          .where(sql`${products.id} in (${sql.raw(productIds.map((id) => `'${id}'`).join(','))})`);
+          .where(inArray(products.id, productIds as string[]));
       }
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
