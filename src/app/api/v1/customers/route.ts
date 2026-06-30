@@ -13,6 +13,7 @@ const createCustomerSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
+  creditLimit: z.string().optional().or(z.number()).transform(v => v ? String(v) : '0.00'),
   status: z.enum(['active', 'inactive']).optional(),
 });
 

@@ -8,6 +8,7 @@ export interface CreateCustomerInput {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  creditLimit?: string;
   status?: string;
 }
 
@@ -17,6 +18,7 @@ export interface UpdateCustomerInput {
   email?: string | null;
   phone?: string | null;
   address?: string | null;
+  creditLimit?: string;
   status?: string;
 }
 
@@ -115,6 +117,7 @@ export class CustomerRepository {
         email: input.email || null,
         phone: input.phone || null,
         address: input.address || null,
+        creditLimit: input.creditLimit || '0.00',
         status: input.status || 'active',
       })
       .returning();

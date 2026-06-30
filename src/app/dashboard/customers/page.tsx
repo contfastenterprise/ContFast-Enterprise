@@ -17,6 +17,7 @@ interface Customer {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: string;
   status: string;
   createdAt: string;
 }
@@ -42,6 +43,7 @@ export default function CustomersPage() {
     email: '',
     phone: '',
     address: '',
+    creditLimit: '0.00',
     status: 'active'
   });
 
@@ -165,7 +167,7 @@ export default function CustomersPage() {
 
   const openNewModal = () => {
     setEditId(null);
-    setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', status: 'active' });
+    setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', creditLimit: '0.00', status: 'active' });
     setRncVerified(false);
     setShowModal(true);
   };
@@ -178,6 +180,7 @@ export default function CustomersPage() {
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
+      creditLimit: customer.creditLimit || '0.00',
       status: customer.status
     });
     setRncVerified(false);
@@ -476,6 +479,19 @@ export default function CustomersPage() {
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
                       placeholder="(809) 000-0000"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-primary">Límite de Crédito (RD$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.creditLimit}
+                      onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
+                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      placeholder="0.00"
                     />
                   </div>
 
