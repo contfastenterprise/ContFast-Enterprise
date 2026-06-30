@@ -366,5 +366,14 @@ El proyecto se encuentra **Verified & Polished** tras completar exitosamente la 
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 53. Robustecimiento de Seguridad de Base de Datos (Inmutabilidad de Logs)
+- **Implementación de Logs de Auditoría Inmutables**: Creación de la función disparadora `prevent_audit_log_modification()` y el trigger `trg_immutable_audit_logs` en la tabla `audit_logs` (documentado en `drizzle/0025_immutable_audit_logs.sql` y activado en PostgreSQL). Esto impide de manera absoluta modificaciones o eliminaciones accidentales o maliciosas en la tabla de bitácoras por parte de cualquier rol (incluido el propietario de las tablas), garantizando el no repudio y el cumplimiento normativo.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+
 
 
