@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { warehouses } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { isAdminOrSistemas } from '@/middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(req: NextRequest) {
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     const companyId = auth.companyId;
     
     // Only admins/system can create warehouses
-    if (auth.role !== 'administrador' && auth.role !== 'sistemas') {
+    if (!isAdminOrSistemas(auth.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

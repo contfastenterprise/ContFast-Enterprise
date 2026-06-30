@@ -32,8 +32,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     const auth = await verifyAuth(req);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Only admins/system can update warehouses
-    if (auth.role !== 'administrador' && auth.role !== 'sistemas') {
+    if (!isAdminOrSistemas(auth.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

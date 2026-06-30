@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
-import { enforcePermission } from '@/middleware/permissions';
+import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { QuoteService } from '@/services/quoteService';
 
 const createQuoteSchema = z.object({
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Enforce role-based discount validation
     const hasDiscount = data.lines.some(l => l.discount > 0);
-    if (hasDiscount && auth.role !== 'admin' && auth.role !== 'sistema') {
+    if (hasDiscount && !isAdminOrSistemas(auth.role)) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Solo administradores pueden aplicar descuentos.' } },
         { status: 403, headers: resHeaders }

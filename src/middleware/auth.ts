@@ -4,6 +4,7 @@ import { db, users, sessions, roles, userWarehouses } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 import { RbacService } from '@/services/auth/rbacService';
+import { isAdminOrSistemas } from './permissions';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
@@ -33,7 +34,7 @@ function hashToken(token: string): string {
 }
 
 export async function fetchAllowedWarehouses(userId: string, roleName: string): Promise<string[]> {
-  if (roleName === 'administrador' || roleName === 'sistemas') {
+  if (isAdminOrSistemas(roleName)) {
     return ['*'];
   }
   const assigned = await db
