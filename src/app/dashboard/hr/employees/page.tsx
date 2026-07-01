@@ -36,9 +36,14 @@ export default function EmployeesPage() {
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+
+  const itemsPerPage = 15;
+  const totalPages = Math.ceil(employeesList.length / itemsPerPage);
+  const pagedEmployees = employeesList.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const [formData, setFormData] = useState({
     employeeCode: '',
@@ -63,6 +68,7 @@ export default function EmployeesPage() {
   });
 
   useEffect(() => {
+    setPage(1);
     fetchData();
   }, [search]);
 
@@ -240,60 +246,98 @@ export default function EmployeesPage() {
           <p className="mt-1 text-xs text-on-surface-variant/70">Comienza agregando tu primer colaborador administrativo o de taller.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-outline bg-surface shadow-sm">
-          <table className="w-full text-left text-sm border-collapse">
-            <thead>
-              <tr className="bg-surface-variant/25 text-xs text-on-surface-variant/80 uppercase border-b border-outline">
-                <th className="p-3">Código</th>
-                <th className="p-3">Nombre</th>
-                <th className="p-3">Cédula</th>
-                <th className="p-3">Departamento / Cargo</th>
-                <th className="p-3">Salario</th>
-                <th className="p-3">Contrato</th>
-                <th className="p-3">Estado</th>
-                <th className="p-3 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employeesList.map((emp) => (
-                <tr key={emp.id} className="border-b border-outline/40 hover:bg-surface-variant/10 text-on-surface">
-                  <td className="p-3 font-semibold text-primary">{emp.employeeCode}</td>
-                  <td className="p-3 font-medium">{emp.firstName} {emp.lastName}</td>
-                  <td className="p-3 font-mono">{emp.cedula.replace(/(\d{3})(\d{7})(\d{1})/, '$1-$2-$3')}</td>
-                  <td className="p-3">
-                    <div className="flex flex-col text-xs text-on-surface-variant">
-                      <span>{departments.find(d => d.id === emp.departmentId)?.name || 'General'}</span>
-                      <span className="text-[10px] opacity-75">{positions.find(p => p.id === emp.positionId)?.name || 'Sin Puesto'}</span>
-                    </div>
-                  </td>
-                  <td className="p-3 font-medium">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</td>
-                  <td className="p-3 capitalize text-xs">{emp.contractType}</td>
-                  <td className="p-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${emp.status === 'active' ? 'bg-[#003366] text-white' :
-                        emp.status === 'inactive' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-300' :
-                          'bg-red-100 text-red-800 dark:bg-red-900/35 dark:text-red-300'
-                      }`}>
-                      {emp.status === 'active' ? 'Activo' : emp.status === 'inactive' ? 'Inactivo' : emp.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-right space-x-2">
-                    <button
-                      onClick={() => handleOpenEdit(emp)}
-                      className="p-1 hover:bg-surface-variant/40 rounded transition-colors text-on-surface"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(emp.id)}
-                      className="p-1 hover:bg-red-500/10 text-red-500 rounded transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/80 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Código</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Nombre</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cédula</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Departamento / Cargo</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Salario</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Contrato</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pagedEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                      <td className="px-4 py-2 align-middle text-xs font-mono font-bold text-[#003366]">{emp.employeeCode}</td>
+                      <td className="px-4 py-2 align-middle text-xs font-semibold text-slate-700">{emp.firstName} {emp.lastName}</td>
+                      <td className="px-4 py-2 align-middle text-xs font-mono text-slate-600">{emp.cedula.replace(/(\d{3})(\d{7})(\d{1})/, '$1-$2-$3')}</td>
+                      <td className="px-4 py-2 align-middle text-xs">
+                        <div className="flex flex-col text-[11px] text-slate-600">
+                          <span className="font-semibold text-[#003366]">{departments.find(d => d.id === emp.departmentId)?.name || 'General'}</span>
+                          <span className="text-[10px] text-slate-400">{positions.find(p => p.id === emp.positionId)?.name || 'Sin Puesto'}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 align-middle text-right text-xs font-bold text-[#003366] font-mono">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</td>
+                      <td className="px-4 py-2 align-middle text-xs text-slate-600 capitalize">{emp.contractType}</td>
+                      <td className="px-4 py-2 align-middle text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${emp.status === 'active' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-slate-50 text-slate-500 border border-slate-200'
+                          }`}>
+                          {emp.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 align-middle text-right">
+                        <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleOpenEdit(emp)}
+                            className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(emp.id)}
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Toolbar */}
+            <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+              <p className="text-xs text-slate-500 font-medium">
+                Mostrando <span className="font-bold text-slate-800">{pagedEmployees.length}</span> de <span className="font-bold text-slate-800">{employeesList.length}</span> empleados
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() => setPage(page - 1)}
+                    type="button"
+                    className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs text-slate-500 font-bold px-2">
+                    Pág. {page} de {totalPages}
+                  </span>
+                  <button
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(page + 1)}
+                    type="button"
+                    className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         </div>
       )}
 
