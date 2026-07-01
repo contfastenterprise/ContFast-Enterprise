@@ -134,6 +134,27 @@ export async function POST(req: NextRequest) {
       data.priceConsumidor = data.price;
     }
 
+    if (data.sku && data.sku.trim()) {
+      const [existingSku] = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(
+          and(
+            eq(products.companyId, auth.companyId),
+            eq(products.sku, data.sku.trim()),
+            isNull(products.deletedAt)
+          )
+        )
+        .limit(1);
+
+      if (existingSku) {
+        return NextResponse.json(
+          { success: false, error: { code: 'SKU_ALREADY_EXISTS', message: 'Ya existe un producto con este SKU.' } },
+          { status: 400, headers: resHeaders }
+        );
+      }
+    }
+
     const product = await ProductRepository.create({
       companyId: auth.companyId,
       ...data,
