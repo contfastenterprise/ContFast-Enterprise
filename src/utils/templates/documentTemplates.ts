@@ -121,6 +121,46 @@ export class DocumentTemplates {
     }
   }
 
+  static generateCode39Svg(text: string): string {
+    const table: Record<string, string> = {
+      '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn',
+      '4': 'nnnwwnnnw', '5': 'wnnwwnnnn', '6': 'nnwwnwnnn', '7': 'nnnnwnwnw',
+      '8': 'wnnnwnwnn', '9': 'nnwnwnwnn', 'A': 'wnnnnwnnw', 'B': 'nnwnnwnnw',
+      'C': 'wnwnnwnnn', 'D': 'nnnnwwnnw', 'E': 'wnnnwwnnn', 'F': 'nnwnwwnnn',
+      'G': 'nnnnnwwnw', 'H': 'wnnnnwwnn', 'I': 'nnwnnwwnn', 'J': 'nnnnwwwnn',
+      'K': 'wnnnnnnww', 'L': 'nnwnnnnww', 'M': 'wnwnnnnww', 'N': 'nnnnwnnww',
+      'O': 'wnnnwnnww', 'P': 'nnwnwnnww', 'Q': 'nnnnnnwww', 'R': 'wnnnnnwww',
+      'S': 'nnwnnnwww', 'T': 'nnnnwnwww', 'U': 'wwnnnnnnw', 'V': 'nwwnnnnnw',
+      'W': 'wwwnnnnnn', 'X': 'nwnnwnnnw', 'Y': 'wwnnwnnnn', 'Z': 'nwwnwnnnn',
+      '-': 'nwnnnnwnw', '.': 'wwnnnnwnn', ' ': 'nwwnnnwnn', '*': 'nwnnwnwnn',
+      '$': 'nwnwnwnnn', '/': 'nwnwnnnwn', '+': 'nwnnnnwnw', '%': 'nnnwnwnwn'
+    };
+
+    const cleanText = `*${text.toUpperCase()}*`;
+    let currentX = 0;
+    const height = 45;
+    let paths = '';
+
+    for (let i = 0; i < cleanText.length; i++) {
+      const char = cleanText[i];
+      const pattern = table[char] || table['*'];
+
+      for (let j = 0; j < 9; j++) {
+        const type = pattern[j];
+        const width = type === 'w' ? 3 : 1;
+        const isBar = j % 2 === 0;
+
+        if (isBar) {
+          paths += `<rect x="${currentX}" y="0" width="${width}" height="${height}" fill="black" />`;
+        }
+        currentX += width;
+      }
+      currentX += 1;
+    }
+
+    return `<svg width="${currentX}" height="${height}" viewBox="0 0 ${currentX} ${height}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+  }
+
   /**
    * Renderiza el HTML para una factura (e-CF)
    */
@@ -295,14 +335,12 @@ export class DocumentTemplates {
         <head>
           <meta charset="UTF-8">
           <title>Factura ${inv.ncf}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
           <style>
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
             .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
-            .barcode { font-family: 'Libre Barcode 39', cursive; font-size: 38pt; line-height: 1; margin-top: 6px; }
-            .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: -2px; }
+            .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: 2px; }
             .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
             .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
             
@@ -358,7 +396,7 @@ export class DocumentTemplates {
                 : ''
               }
               <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
-                <div class="barcode">*${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}*</div>
+                ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
                 <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
               </div>
             </div>
