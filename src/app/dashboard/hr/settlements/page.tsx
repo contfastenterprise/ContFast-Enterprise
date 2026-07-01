@@ -615,12 +615,12 @@ export default function SettlementsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {dobleCalculations.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-800 dark:text-slate-100">
+                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-950 dark:text-slate-100">
                       <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{item.firstName} {item.lastName}</td>
-                      <td className="px-4 py-2 align-middle font-mono text-slate-800 dark:text-slate-200">{item.employeeCode}</td>
-                      <td className="px-4 py-2 align-middle text-slate-800 dark:text-slate-200">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(item.salary)}</td>
-                      <td className="px-4 py-2 align-middle text-center text-slate-800 dark:text-slate-200">{item.monthsWorked} meses</td>
+                      <td className="px-4 py-2 align-middle font-mono text-slate-950 dark:text-slate-200">{item.employeeCode}</td>
+                      <td className="px-4 py-2 align-middle text-slate-950 dark:text-slate-200">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-slate-950 dark:text-slate-200">{formatCurrency(item.salary)}</td>
+                      <td className="px-4 py-2 align-middle text-center text-slate-950 dark:text-slate-200">{item.monthsWorked} meses</td>
                       <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] dark:text-[#799dd6] font-mono">
                         {formatCurrency(item.amount)}
                       </td>
