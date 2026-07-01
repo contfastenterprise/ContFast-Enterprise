@@ -399,10 +399,10 @@ export default function SettlementsPage() {
                       Código: {calculation.employee.employeeCode} | Ingreso: {new Date(calculation.employee.hireDate).toLocaleDateString('es-DO')}
                     </p>
                   </div>
-                  <Sparkles className="h-6 w-6 text-[#003366]" />
+                  <Sparkles className="h-6 w-6 text-[#003366] dark:text-[#799dd6]" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 bg-surface p-4 rounded-lg border border-outline/30 text-center">
+                <div className="grid grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-800 text-center">
                   <div>
                     <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Antigüedad</span>
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -426,7 +426,7 @@ export default function SettlementsPage() {
                 {/* Table Breakdown */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Desglose de Pago</h4>
-                  <div className="divide-y divide-outline/30 rounded-lg border border-outline bg-surface text-sm">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-sm">
                     <div className="flex justify-between p-3.5">
                       <span className="text-slate-600 dark:text-slate-400">Preaviso ({calculation.calculation.preavisoDays} días)</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(calculation.calculation.preaviso)}</span>
@@ -451,7 +451,7 @@ export default function SettlementsPage() {
                         </span>
                       </div>
                     )}
-                    <div className="flex justify-between p-4 bg-surface-variant/20 rounded-b-lg font-bold text-base text-on-surface">
+                    <div className="flex justify-between p-4 bg-slate-100 dark:bg-slate-800/80 rounded-b-lg font-bold text-base text-slate-800 dark:text-slate-100">
                       <span>Total Neto a Recibir</span>
                       <span>{formatCurrency(calculation.calculation.preaviso + calculation.calculation.cesantia + calculation.calculation.vacaciones + calculation.calculation.navidad + otrosAmount)}</span>
                     </div>
@@ -496,51 +496,54 @@ export default function SettlementsPage() {
                     No hay liquidaciones registradas en el sistema.
                   </p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
-                          <th className="p-3">Empleado</th>
-                          <th className="p-3">Código</th>
-                          <th className="p-3">Fecha Salida</th>
-                          <th className="p-3">Cesantía/Preaviso</th>
-                          <th className="p-3">Total Liquidado</th>
-                          <th className="p-3">Estado</th>
-                          <th className="p-3 text-right">Acciones</th>
+                  <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-md mt-4">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Código</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha Salida</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Cesantía/Preaviso</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Total Liquidado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Estado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right w-24">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {settlements.map((set) => (
-                          <tr key={set.id} className="hover:bg-surface-variant/10 text-on-surface">
-                            <td className="p-3 font-medium">{set.firstName} {set.lastName}</td>
-                            <td className="p-3">{set.employeeCode}</td>
-                            <td className="p-3">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
-                            <td className="p-3">
+                          <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-700 dark:text-slate-200">
+                            <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{set.firstName} {set.lastName}</td>
+                            <td className="px-4 py-2 align-middle font-mono">{set.employeeCode}</td>
+                            <td className="px-4 py-2 align-middle">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2 align-middle font-mono">
                               {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
                             </td>
-                            <td className="p-3 font-bold">{formatCurrency(set.total)}</td>
-                            <td className="p-3">
-                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${set.status === 'paid'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                            <td className="px-4 py-2 align-middle font-bold text-[#003366] dark:text-slate-100 font-mono">{formatCurrency(set.total)}</td>
+                            <td className="px-4 py-2 align-middle text-center">
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${set.status === 'paid'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-slate-50 text-slate-500 border border-slate-200'
                                 }`}>
                                 {set.status === 'paid' ? 'Pagado' : 'Calculado'}
                               </span>
                             </td>
-                            <td className="p-3 text-right">
-                              <button
-                                onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
-                                className="inline-flex items-center justify-center text-[#003366] hover:text-[#001e40] p-1 rounded hover:bg-slate-55 mr-2"
-                                title="Imprimir Liquidación"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSettlement(set.id)}
-                                className="inline-flex items-center justify-center text-rose-600 hover:text-rose-900 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                            <td className="px-4 py-2 align-middle text-right">
+                              <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
+                                  className="p-1.5 text-slate-500 hover:text-[#003366] dark:text-slate-400 dark:hover:text-[#799dd6] hover:bg-[#003366]/5 rounded-lg transition-colors"
+                                  title="Imprimir Liquidación"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteSettlement(set.id)}
+                                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -598,27 +601,27 @@ export default function SettlementsPage() {
             </div>
 
             {/* Doble Sueldo Grid */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-outline bg-surface-variant/20 text-on-surface-variant font-semibold">
-                    <th className="p-3">Empleado</th>
-                    <th className="p-3">Código</th>
-                    <th className="p-3">Fecha de Ingreso</th>
-                    <th className="p-3 text-right">Salario Mensual</th>
-                    <th className="p-3 text-center">Meses Proyectados en {dobleYear}</th>
-                    <th className="p-3 text-right">Salario de Navidad Estimado</th>
+            <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Código</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha de Ingreso</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right whitespace-nowrap">Salario Mensual</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center whitespace-nowrap">Meses Proyectados en {dobleYear}</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right whitespace-nowrap">Salario de Navidad Estimado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {dobleCalculations.map((item) => (
-                    <tr key={item.id} className="hover:bg-surface-variant/10 text-on-surface">
-                      <td className="p-3 font-medium">{item.firstName} {item.lastName}</td>
-                      <td className="p-3">{item.employeeCode}</td>
-                      <td className="p-3">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                      <td className="p-3 text-right">{formatCurrency(item.salary)}</td>
-                      <td className="p-3 text-center">{item.monthsWorked} meses</td>
-                      <td className="p-3 text-right font-bold text-primary">
+                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-700 dark:text-slate-200">
+                      <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{item.firstName} {item.lastName}</td>
+                      <td className="px-4 py-2 align-middle font-mono">{item.employeeCode}</td>
+                      <td className="px-4 py-2 align-middle">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="px-4 py-2 align-middle text-right font-mono">{formatCurrency(item.salary)}</td>
+                      <td className="px-4 py-2 align-middle text-center">{item.monthsWorked} meses</td>
+                      <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] dark:text-[#799dd6] font-mono">
                         {formatCurrency(item.amount)}
                       </td>
                     </tr>
