@@ -188,88 +188,84 @@ export default function QuotesList() {
         {/* Data Table */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/80 border-b border-slate-200">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">No. Cotización</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Cliente</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Monto Total</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
                 <tr>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">No. Cotización</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cliente</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
+                  <td colSpan={6} className="p-12 text-center text-slate-400">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
+                    Cargando cotizaciones...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/20/80">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center">
-                      <div className="flex flex-col items-center justify-center gap-3">
-                        <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-                        <span className="text-on-surface-variant/80 text-sm font-medium">Cargando cotizaciones...</span>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredQuotes.length > 0 ? (
-                  filteredQuotes.map((quote) => {
-                    const badge = getStatusBadge(quote.status);
-                    return (
-                      <motion.tr
-                        key={quote.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="hover:bg-[#C5A059]/5 transition-colors group"
-                      >
-                        <td className="px-6 py-4 text-xs font-semibold text-slate-700">
-                          {new Date(quote.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-xs font-bold text-[#003366] bg-[#003366]/5 px-2 py-1 rounded">
-                            {quote.sequenceNumber}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-[#003366] text-xs">{quote.customerName || 'Cliente General'}</div>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono font-bold text-[#003366] text-xs">
-                          RD$ {Number(quote.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className={clsx('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border', badge.cls)}>
-                            {badge.label}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {quote.status === 'pending' && (
-                              <button
-                                onClick={() => convertToInvoice(quote.id)}
-                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200"
-                                title="Convertir a Factura"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                            )}
+              ) : filteredQuotes.length > 0 ? (
+                filteredQuotes.map((quote) => {
+                  const badge = getStatusBadge(quote.status);
+                  return (
+                    <tr
+                      key={quote.id}
+                      className="hover:bg-[#C5A059]/5 transition-colors group"
+                    >
+                      <td className="px-4 py-2 align-middle text-xs font-semibold text-slate-700">
+                        {new Date(quote.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </td>
+                      <td className="px-4 py-2 align-middle">
+                        <span className="font-mono text-xs font-bold text-[#003366] bg-[#003366]/5 px-2 py-0.5 rounded">
+                          {quote.sequenceNumber}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 align-middle">
+                        <div className="font-bold text-[#003366] text-xs">{quote.customerName || 'Cliente General'}</div>
+                      </td>
+                      <td className="px-4 py-2 align-middle text-right font-mono font-bold text-[#003366] text-xs">
+                        RD$ {Number(quote.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-4 py-2 align-middle text-center">
+                        <span className={clsx('inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border', badge.cls)}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {quote.status === 'pending' && (
                             <button
-                              onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)}
-                              className="p-2 text-[#003366] hover:bg-slate-50 rounded-lg transition-colors border border-slate-200"
-                              title="Ver / Editar"
+                              onClick={() => convertToInvoice(quote.id)}
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Convertir a Factura"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Check className="w-3.5 h-3.5" />
                             </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center text-slate-400 text-sm">
-                      No se encontraron cotizaciones.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                          )}
+                          <button
+                            onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)}
+                            className="p-1.5 text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
+                            title="Ver / Editar"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="p-12 text-center text-slate-400 text-xs">
+                    No se encontraron cotizaciones.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           </div>
 
           {/* Pagination Controls */}
