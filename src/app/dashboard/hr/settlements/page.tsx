@@ -564,12 +564,12 @@ export default function SettlementsPage() {
                 <h3 className="text-base font-semibold text-on-surface">
                   Proyección de Salario de Navidad ({dobleYear})
                 </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">
                   Bajo el Artículo 219 del Código de Trabajo dominicano, la regalía pascual equivale a la 1/12 parte de los salarios ordinarios del año.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-500">Año:</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Año:</span>
                 <select
                   value={dobleYear}
                   onChange={(e) => setDobleYear(parseInt(e.target.value) || new Date().getFullYear())}
@@ -605,22 +605,22 @@ export default function SettlementsPage() {
               <table className="w-full text-left">
                 <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
                   <tr>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Empleado</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Código</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha de Ingreso</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right whitespace-nowrap">Salario Mensual</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center whitespace-nowrap">Meses Proyectados en {dobleYear}</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right whitespace-nowrap">Salario de Navidad Estimado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Código</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Fecha de Ingreso</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-right whitespace-nowrap">Salario Mensual</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-center whitespace-nowrap">Meses Proyectados en {dobleYear}</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-right whitespace-nowrap">Salario de Navidad Estimado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {dobleCalculations.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-700 dark:text-slate-200">
+                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-800 dark:text-slate-100">
                       <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{item.firstName} {item.lastName}</td>
-                      <td className="px-4 py-2 align-middle font-mono">{item.employeeCode}</td>
-                      <td className="px-4 py-2 align-middle">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                      <td className="px-4 py-2 align-middle text-right font-mono">{formatCurrency(item.salary)}</td>
-                      <td className="px-4 py-2 align-middle text-center">{item.monthsWorked} meses</td>
+                      <td className="px-4 py-2 align-middle font-mono text-slate-800 dark:text-slate-200">{item.employeeCode}</td>
+                      <td className="px-4 py-2 align-middle text-slate-800 dark:text-slate-200">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-slate-850 dark:text-slate-150">{formatCurrency(item.salary)}</td>
+                      <td className="px-4 py-2 align-middle text-center text-slate-800 dark:text-slate-200">{item.monthsWorked} meses</td>
                       <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] dark:text-[#799dd6] font-mono">
                         {formatCurrency(item.amount)}
                       </td>
