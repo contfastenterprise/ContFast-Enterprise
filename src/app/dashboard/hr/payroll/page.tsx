@@ -18,6 +18,7 @@ interface Payroll {
 export default function PayrollPage() {
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   // Detail View State
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
@@ -28,6 +29,10 @@ export default function PayrollPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const itemsPerPage = 15;
+  const totalPages = Math.ceil(payrolls.length / itemsPerPage);
+  const pagedPayrolls = payrolls.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
   const [formData, setFormData] = useState({
     periodStart: new Date().toISOString().split('T')[0],
     periodEnd: new Date().toISOString().split('T')[0],
@@ -36,6 +41,7 @@ export default function PayrollPage() {
   });
 
   useEffect(() => {
+    setPage(1);
     fetchPayrolls();
   }, []);
 
@@ -205,53 +211,93 @@ export default function PayrollPage() {
             <p className="mt-1 text-xs text-on-surface-variant/70">Comienza generando un nuevo período de nómina.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-outline bg-surface shadow-sm">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="bg-surface-variant/25 text-xs text-on-surface-variant/80 uppercase border-b border-outline">
-                  <th className="p-3">Período</th>
-                  <th className="p-3">Fecha de Pago</th>
-                  <th className="p-3">Estado</th>
-                  <th className="p-3">Fecha Creación</th>
-                  <th className="p-3 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payrolls.map((pr) => (
-                  <tr key={pr.id} className="border-b border-outline/40 hover:bg-surface-variant/10 text-on-surface">
-                    <td className="p-3 font-medium">
-                      Desde {new Date(pr.periodStart).toLocaleDateString('es-DO')} Hasta {new Date(pr.periodEnd).toLocaleDateString('es-DO')}
-                    </td>
-                    <td className="p-3 font-mono">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</td>
-                    <td className="p-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${pr.status === 'approved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/35 dark:text-emerald-300' :
-                          pr.status === 'calculated' ? 'bg-[#003366]/10 text-[#003366] dark:bg-[#003366]/30 dark:text-[#a7c8ff]' :
-                            'bg-amber-100 text-amber-800 dark:bg-amber-900/35 dark:text-amber-300'
-                        }`}>
-                        {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-xs opacity-75">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</td>
-                    <td className="p-3 text-right space-x-2">
-                      <button
-                        onClick={() => handleSelectPayroll(pr)}
-                        className="p-1 hover:bg-surface-variant rounded text-on-surface inline-flex items-center gap-1 text-xs font-semibold"
-                      >
-                        <Eye className="h-4.5 w-4.5" /> Ver
-                      </button>
-                      {(pr.status === 'draft' || pr.status === 'calculated') && (
-                        <button
-                          onClick={() => handleDelete(pr.id)}
-                          className="p-1 hover:bg-red-500/10 text-red-500 rounded"
-                        >
-                          <Trash2 className="h-4.5 w-4.5" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50/80 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Período</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha de Pago</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fecha Creación</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pagedPayrolls.map((pr) => (
+                      <tr key={pr.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                        <td className="px-4 py-2 align-middle text-xs font-semibold text-slate-700">
+                          Desde {new Date(pr.periodStart).toLocaleDateString('es-DO')} Hasta {new Date(pr.periodEnd).toLocaleDateString('es-DO')}
+                        </td>
+                        <td className="px-4 py-2 align-middle text-xs font-mono font-bold text-[#003366]">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2 align-middle text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${pr.status === 'approved' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : pr.status === 'calculated' 
+                              ? 'bg-blue-50 text-[#003366] border border-blue-250' 
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                            {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 align-middle text-xs text-slate-500">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2 align-middle text-right">
+                          <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleSelectPayroll(pr)}
+                              className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors inline-flex items-center gap-1 text-xs font-semibold"
+                              title="Ver Volantes"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> Ver
+                            </button>
+                            {(pr.status === 'draft' || pr.status === 'calculated') && (
+                              <button
+                                onClick={() => handleDelete(pr.id)}
+                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Toolbar */}
+              <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+                <p className="text-xs text-slate-500 font-medium">
+                  Mostrando <span className="font-bold text-slate-800">{pagedPayrolls.length}</span> de <span className="font-bold text-slate-800">{payrolls.length}</span> nóminas
+                </p>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => setPage(page - 1)}
+                      type="button"
+                      className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-xs text-slate-500 font-bold px-2">
+                      Pág. {page} de {totalPages}
+                    </span>
+                    <button
+                      disabled={page >= totalPages}
+                      onClick={() => setPage(page + 1)}
+                      type="button"
+                      className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           </div>
         )
       ) : (
