@@ -28,6 +28,9 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -93,15 +96,20 @@ export default function ProductsPage() {
     }
   }, [formData.cost, manualPricesEnabled]);
 
-  const fetchProducts = async (searchQuery = '', catId = selectedCategory) => {
+  const fetchProducts = async (searchQuery = search, catId = selectedCategory, pageNum = 1) => {
     setLoading(true);
     try {
-      let url = `/api/v1/products?search=${searchQuery}`;
+      let url = `/api/v1/products?search=${searchQuery}&page=${pageNum}&per_page=20`;
       if (catId) url += `&categoryId=${catId}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setProducts(data.data);
+        if (data.meta) {
+          setPage(data.meta.page);
+          setTotalPages(data.meta.total_pages);
+          setTotalItems(data.meta.total);
+        }
       } else {
         toast.error('Error al cargar productos');
       }
@@ -137,7 +145,7 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts('', selectedCategory, 1);
     fetchCategories();
     fetchWarehouses();
   }, []);
@@ -148,7 +156,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchProducts(search);
+      fetchProducts(search, selectedCategory, 1);
     }, 500);
     return () => clearTimeout(delayDebounceFn);
   }, [search]);
@@ -412,7 +420,6 @@ export default function ProductsPage() {
   };
 
   // Metrics calculation (Mock/derived from current page for demo purposes)
-  const totalItems = products.length; // In real app, use meta.total
   const totalValue = products.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
 
   return (
@@ -570,6 +577,36 @@ export default function ProductsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Toolbar */}
+        <div className="p-4 border-t border-outline-variant/30 flex items-center justify-between bg-surface-container-low/50">
+          <p className="text-xs text-on-surface-variant/80 font-medium">
+            Mostrando <span className="font-bold text-slate-800">{products.length}</span> de <span className="font-bold text-slate-800">{totalItems}</span> productos
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => fetchProducts(search, selectedCategory, page - 1)}
+                type="button"
+                className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-on-surface-variant font-bold px-2">
+                Pág. {page} de {totalPages}
+              </span>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => fetchProducts(search, selectedCategory, page + 1)}
+                type="button"
+                className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
