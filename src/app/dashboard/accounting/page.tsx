@@ -436,12 +436,14 @@ export default function AccountingPage() {
                 </button>
               </>
             ) : null}
-            <button
-              onClick={() => setShowJournalModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-bold shadow-md hover:-translate-y-0.5 transition-all"
-            >
-              <FileText className="h-4 w-4" /> Nuevo Asiento
-            </button>
+            {activeTab === 'journals' && (
+              <button
+                onClick={() => setShowJournalModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-bold shadow-md hover:-translate-y-0.5 transition-all"
+              >
+                <FileText className="h-4 w-4" /> Nuevo Asiento
+              </button>
+            )}
           </div>
         </div>
 

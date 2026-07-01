@@ -1132,16 +1132,6 @@ function InvoicesList() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
-                  <input
-                    type="text"
-                    value={customerRnc}
-                    onChange={(e) => setCustomerRnc(e.target.value.replace(/\D/g, ''))}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="Ej: 131002002"
-                  />
-                </div>
-                <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social</label>
                   <input
                     type="text"
@@ -1152,13 +1142,23 @@ function InvoicesList() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
+                  <input
+                    type="text"
+                    value={customerRnc}
+                    readOnly
+                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
+                    placeholder="Buscar o crear cliente..."
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
                   <input
                     type="text"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="Ej: 809-555-5555"
+                    readOnly
+                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
+                    placeholder="Buscar o crear cliente..."
                   />
                 </div>
               </div>
