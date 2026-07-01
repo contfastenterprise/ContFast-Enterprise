@@ -2259,8 +2259,6 @@ function InvoicesList() {
                           <th className="p-3 text-center">Stock Físico</th>
                           <th className="p-3 text-center">Existencia</th>
                           <th className="p-3 text-right">Precio Consumidor</th>
-                          <th className="p-3 text-right">Precio Mayorista</th>
-                          <th className="p-3 text-right">Precio Distribuidor</th>
                           <th className="p-3 text-right">Acción</th>
                         </tr>
                       </thead>
@@ -2308,8 +2306,6 @@ function InvoicesList() {
                                 )}
                               </td>
                               <td className="p-3 text-right font-mono font-bold text-slate-700">RD$ {parseFloat(p.priceConsumidor || p.price || '0').toFixed(2)}</td>
-                              <td className="p-3 text-right font-mono text-slate-500">RD$ {parseFloat(p.priceMayorista || p.price || '0').toFixed(2)}</td>
-                              <td className="p-3 text-right font-mono text-slate-500">RD$ {parseFloat(p.priceProveedor || p.price || '0').toFixed(2)}</td>
                               <td className="p-3 text-right">
                                 <button
                                   type="button"

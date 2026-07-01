@@ -204,59 +204,76 @@ export class DocumentTemplates {
         conditionLabel = 'NOTA DE CREDITO';
       }
 
-      // Group lines by category
-      const groupedLines: Record<string, any[]> = {};
+      // Group lines by warehouse and then by category
+      const groupedLines: Record<string, Record<string, any[]>> = {};
       (lines || []).forEach((line: any) => {
+        const wh = line.warehouseName || 'Almacén Principal';
         const cat = line.categoryName || 'General';
-        if (!groupedLines[cat]) groupedLines[cat] = [];
-        groupedLines[cat].push(line);
+        if (!groupedLines[wh]) groupedLines[wh] = {};
+        if (!groupedLines[wh][cat]) groupedLines[wh][cat] = [];
+        groupedLines[wh][cat].push(line);
       });
 
-      const categoriesList = Object.keys(groupedLines).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      const warehousesList = Object.keys(groupedLines).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
-      // Lines processing by category
-      const linesHtml = categoriesList.map((category) => {
-        const headerRow = `
-          <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #cbd5e1;">
-            <td colspan="8" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-              Categoría: ${category}
+      // Lines processing nested by warehouse and category
+      const linesHtml = warehousesList.map((warehouse) => {
+        const warehouseHeaderRow = `
+          <tr style="background-color: #005E6A; color: white; border-bottom: 2px solid #004650;">
+            <td colspan="8" style="font-weight: bold; font-size: 9.5pt; padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Almacén: ${warehouse}
             </td>
           </tr>
         `;
 
-        const itemsRows = groupedLines[category].map((line: any) => {
-          const qty = Number(line.quantity);
-          const uPrice = Number(line.unitPrice);
-          const discUnit = Number(line.discount);
-          const lineTotal = Number(line.total);
+        const categoriesMap = groupedLines[warehouse];
+        const categoriesList = Object.keys(categoriesMap).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
-          const rawSubtotal = qty * uPrice;
-          const rawDiscount = qty * discUnit;
-          const rawTaxable = rawSubtotal - rawDiscount;
-
-          const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate 
-            ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100 
-            : 0.18;
-
-          const hasGlobalTaxes = Number(inv.totalTaxes) > 0;
-          const lineItbis = hasGlobalTaxes ? rawTaxable * defaultTaxRate : 0;
-          const finalLineTotal = rawTaxable + lineItbis;
-
-          return `
-            <tr>
-              <td style="padding-left: 12px;">${line.productSku || 'N/A'}</td>
-              <td>${line.productName}</td>
-              <td>${line.unitOfMeasure || 'Unidad'}</td>
-              <td class="text-center">${qty}</td>
-              <td class="text-right">${formatNum(uPrice)}</td>
-              <td class="text-right">${formatNum(rawDiscount)}</td>
-              <td class="text-right">${formatNum(lineItbis)}</td>
-              <td class="text-right">${formatNum(finalLineTotal)}</td>
+        const categoriesHtml = categoriesList.map((category) => {
+          const categoryHeaderRow = `
+            <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #cbd5e1;">
+              <td colspan="8" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                Categoría: ${category}
+              </td>
             </tr>
           `;
+
+          const itemsRows = categoriesMap[category].map((line: any) => {
+            const qty = Number(line.quantity);
+            const uPrice = Number(line.unitPrice);
+            const discUnit = Number(line.discount);
+            const lineTotal = Number(line.total);
+
+            const rawSubtotal = qty * uPrice;
+            const rawDiscount = qty * discUnit;
+            const rawTaxable = rawSubtotal - rawDiscount;
+
+            const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate 
+              ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100 
+              : 0.18;
+
+            const hasGlobalTaxes = Number(inv.totalTaxes) > 0;
+            const lineItbis = hasGlobalTaxes ? rawTaxable * defaultTaxRate : 0;
+            const finalLineTotal = rawTaxable + lineItbis;
+
+            return `
+              <tr>
+                <td style="padding-left: 16px;">${line.productSku || 'N/A'}</td>
+                <td>${line.productName}</td>
+                <td>${line.unitOfMeasure || 'Unidad'}</td>
+                <td class="text-center">${qty}</td>
+                <td class="text-right">${formatNum(uPrice)}</td>
+                <td class="text-right">${formatNum(rawDiscount)}</td>
+                <td class="text-right">${formatNum(lineItbis)}</td>
+                <td class="text-right">${formatNum(finalLineTotal)}</td>
+              </tr>
+            `;
+          }).join('');
+
+          return categoryHeaderRow + itemsRows;
         }).join('');
 
-        return headerRow + itemsRows;
+        return warehouseHeaderRow + categoriesHtml;
       }).join('');
 
       // Totals calculations

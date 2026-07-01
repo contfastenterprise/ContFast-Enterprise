@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories } from '@/db';
+import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories, warehouses } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
@@ -63,7 +63,7 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
     customer = cust;
   }
 
-  // 4. Fetch lines and join with product details and categories
+  // 4. Fetch lines and join with product details, categories and warehouses
   const lines = await db
     .select({
       quantity: invoiceLines.quantity,
@@ -74,10 +74,12 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
       productSku: products.sku,
       unitOfMeasure: products.unitOfMeasure,
       categoryName: productCategories.name,
+      warehouseName: warehouses.name,
     })
     .from(invoiceLines)
     .leftJoin(products, eq(invoiceLines.productId, products.id))
     .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+    .leftJoin(warehouses, eq(invoiceLines.warehouseId, warehouses.id))
     .where(eq(invoiceLines.invoiceId, invoiceId));
 
   // 5. Fetch taxes
@@ -158,7 +160,8 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
       unitPrice: Number(l.unitPrice),
       discount: Number(l.discount),
       total: Number(l.total),
-      categoryName: l.categoryName || 'General'
+      categoryName: l.categoryName || 'General',
+      warehouseName: l.warehouseName || 'Almacén Principal'
     })),
     taxes: taxes.map(t => ({
       taxType: t.taxType,
