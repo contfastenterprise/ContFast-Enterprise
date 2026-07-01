@@ -469,9 +469,9 @@ export default function ProductsPage() {
       </div>
 
       {/* Search and Table Container */}
-      <div className="bg-[#0b1120] border border-outline-variant/30 rounded-xl shadow-xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
         {/* Toolbar */}
-        <div className="p-4 border-b border-outline-variant/30 flex flex-col sm:flex-row gap-4 items-center justify-between bg-surface-container-low/50">
+        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-50/50">
           <div className="flex gap-4 flex-1">
             <div className="flex-1">
               <SearchBar
@@ -490,7 +490,7 @@ export default function ProductsPage() {
                   setSelectedCategory(e.target.value);
                   fetchProducts(search, e.target.value);
                 }}
-                className="w-full bg-white border-none rounded-2xl px-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
+                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
               >
                 <option value="">Todas las categorías</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -506,7 +506,7 @@ export default function ProductsPage() {
               <Printer className="w-4 h-4 text-[#c5a059]" />
               <span>Imprimir</span>
             </button>
-            <button onClick={() => fetchProducts(search)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors">
+            <button onClick={() => fetchProducts(search, selectedCategory, page)} className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
             </button>
           </div>
@@ -514,61 +514,63 @@ export default function ProductsPage() {
 
         {/* Data Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/80 border-b border-outline-variant/30 text-on-surface-variant text-xs uppercase tracking-wider">
-                <th className="p-4 font-semibold">SKU / Código</th>
-                <th className="p-4 font-semibold">Nombre</th>
-                <th className="p-4 font-semibold">Medida</th>
-                <th className="p-4 font-semibold text-right">Costo</th>
-                <th className="p-4 font-semibold text-right">Precio Venta</th>
-                <th className="p-4 font-semibold text-center">Estado</th>
-                <th className="p-4 font-semibold text-right">Acciones</th>
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">SKU / Código</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nombre</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Medida</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Costo</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Precio Venta</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/20/50 bg-surface-container-low">
+            <tbody className="divide-y divide-slate-100">
               {loading && products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-on-surface-variant/70">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-amber-500" />
+                  <td colSpan={7} className="p-12 text-center text-slate-400">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
                     Cargando catálogo...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-on-surface-variant/70">
+                  <td colSpan={7} className="p-12 text-center text-slate-400">
                     <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
                     No se encontraron productos.
                   </td>
                 </tr>
               ) : (
                 products.map((p) => (
-                  <tr key={p.id} className="hover:bg-surface-container-high/30 transition-colors group">
-                    <td className="p-4 text-sm font-mono text-on-surface-variant">
+                  <tr key={p.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                    <td className="px-4 py-2 align-middle text-xs font-mono text-slate-700">
                       <div>{p.sku || 'N/A'}</div>
                       {p.barcode && (
-                        <div className="text-[10px] text-on-surface-variant/60 font-sans mt-0.5" title="Código de Barra">
+                        <div className="text-[10px] text-slate-400 font-sans mt-0.5" title="Código de Barra">
                           CB: {p.barcode}
                         </div>
                       )}
                     </td>
-                    <td className="p-4 text-sm font-semibold text-primary">{p.name}</td>
-                    <td className="p-4 text-sm text-on-surface-variant capitalize">{p.unitOfMeasure}</td>
-                    <td className="p-4 text-sm text-on-surface-variant text-right">{formatCurrency(p.cost)}</td>
-                    <td className="p-4 text-sm font-bold text-emerald-400 text-right">{formatCurrency(p.price)}</td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex px-2 py-1 rounded text-xs font-semibold ${p.status === 'active' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-500/10 text-on-surface-variant border border-slate-500/20'
+                    <td className="px-4 py-2 align-middle text-xs font-semibold text-[#003366]">{p.name}</td>
+                    <td className="px-4 py-2 align-middle text-xs text-slate-600 capitalize">{p.unitOfMeasure}</td>
+                    <td className="px-4 py-2 align-middle text-xs text-slate-700 text-right">{formatCurrency(p.cost)}</td>
+                    <td className="px-4 py-2 align-middle text-xs font-bold text-[#003366] text-right">{formatCurrency(p.price)}</td>
+                    <td className="px-4 py-2 align-middle text-center">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'active' 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : 'bg-slate-50 text-slate-500 border border-slate-200'
                         }`}>
                         {p.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
                       </span>
                     </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-2 text-on-surface-variant hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors">
-                          <Layers className="h-4 w-4" />
+                    <td className="px-4 py-2 align-middle text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors">
+                          <Layers className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => openEditModal(p)} title="Editar" className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-lg transition-colors">
-                          <Edit2 className="h-4 w-4" />
+                        <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors">
+                          <Edit2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -580,8 +582,8 @@ export default function ProductsPage() {
         </div>
 
         {/* Pagination Toolbar */}
-        <div className="p-4 border-t border-outline-variant/30 flex items-center justify-between bg-surface-container-low/50">
-          <p className="text-xs text-on-surface-variant/80 font-medium">
+        <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+          <p className="text-xs text-slate-500 font-medium">
             Mostrando <span className="font-bold text-slate-800">{products.length}</span> de <span className="font-bold text-slate-800">{totalItems}</span> productos
           </p>
           {totalPages > 1 && (
@@ -594,7 +596,7 @@ export default function ProductsPage() {
               >
                 Anterior
               </button>
-              <span className="text-xs text-on-surface-variant font-bold px-2">
+              <span className="text-xs text-slate-500 font-bold px-2">
                 Pág. {page} de {totalPages}
               </span>
               <button
