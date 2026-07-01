@@ -498,27 +498,27 @@ export default function SettlementsPage() {
                 ) : (
                   <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-md mt-4">
                     <table className="w-full text-left">
-                      <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                      <thead className="bg-slate-50/80 border-b border-slate-200">
                         <tr>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Empleado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Código</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Fecha Salida</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Cesantía/Preaviso</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Total Liquidado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-center w-24">Estado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-right w-24">Acciones</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest whitespace-nowrap">Código</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest whitespace-nowrap">Fecha Salida</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest whitespace-nowrap">Cesantía/Preaviso</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest whitespace-nowrap">Total Liquidado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest text-center w-24">Estado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 uppercase tracking-widest text-right w-24">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      <tbody className="divide-y divide-slate-100">
                         {settlements.map((set) => (
-                          <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-900 dark:text-slate-100">
-                            <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{set.firstName} {set.lastName}</td>
-                            <td className="px-4 py-2 align-middle font-mono text-slate-900 dark:text-slate-200">{set.employeeCode}</td>
-                            <td className="px-4 py-2 align-middle text-slate-900 dark:text-slate-200">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
-                            <td className="px-4 py-2 align-middle font-mono text-slate-900 dark:text-slate-200">
+                          <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-900">
+                            <td className="px-4 py-2 align-middle font-semibold text-[#003366]">{set.firstName} {set.lastName}</td>
+                            <td className="px-4 py-2 align-middle font-mono text-slate-900">{set.employeeCode}</td>
+                            <td className="px-4 py-2 align-middle text-slate-900">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2 align-middle font-mono text-slate-900">
                               {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
                             </td>
-                            <td className="px-4 py-2 align-middle font-bold text-[#003366] dark:text-slate-100 font-mono">{formatCurrency(set.total)}</td>
+                            <td className="px-4 py-2 align-middle font-bold text-[#003366] font-mono">{formatCurrency(set.total)}</td>
                             <td className="px-4 py-2 align-middle text-center">
                               <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${set.status === 'paid'
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -531,7 +531,7 @@ export default function SettlementsPage() {
                               <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
-                                  className="p-1.5 text-slate-500 hover:text-[#003366] dark:text-slate-400 dark:hover:text-[#799dd6] hover:bg-[#003366]/5 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
                                   title="Imprimir Liquidación"
                                 >
                                   <FileText className="h-3.5 w-3.5" />
@@ -603,25 +603,25 @@ export default function SettlementsPage() {
             {/* Doble Sueldo Grid */}
             <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl shadow-md">
               <table className="w-full text-left">
-                <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-50/80 border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Empleado</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Código</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Fecha de Ingreso</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-right whitespace-nowrap">Salario Mensual</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-center whitespace-nowrap">Meses Proyectados en {dobleYear}</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-widest text-right whitespace-nowrap">Salario de Navidad Estimado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest whitespace-nowrap">Código</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest whitespace-nowrap">Fecha de Ingreso</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest text-right whitespace-nowrap">Salario Mensual</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest text-center whitespace-nowrap">Meses Proyectados en {dobleYear}</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-700 uppercase tracking-widest text-right whitespace-nowrap">Salario de Navidad Estimado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {dobleCalculations.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-[#191c1d] dark:text-slate-100">
-                      <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{item.firstName} {item.lastName}</td>
-                      <td className="px-4 py-2 align-middle font-mono text-[#191c1d] dark:text-slate-200">{item.employeeCode}</td>
-                      <td className="px-4 py-2 align-middle text-[#191c1d] dark:text-slate-200">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-[#191c1d] dark:text-slate-200">{formatCurrency(item.salary)}</td>
-                      <td className="px-4 py-2 align-middle text-center text-[#191c1d] dark:text-slate-200">{item.monthsWorked} meses</td>
-                      <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] dark:text-[#799dd6] font-mono">
+                    <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-[#191c1d]">
+                      <td className="px-4 py-2 align-middle font-semibold text-[#003366]">{item.firstName} {item.lastName}</td>
+                      <td className="px-4 py-2 align-middle font-mono text-[#191c1d]">{item.employeeCode}</td>
+                      <td className="px-4 py-2 align-middle text-[#191c1d]">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-[#191c1d]">{formatCurrency(item.salary)}</td>
+                      <td className="px-4 py-2 align-middle text-center text-[#191c1d]">{item.monthsWorked} meses</td>
+                      <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] font-mono">
                         {formatCurrency(item.amount)}
                       </td>
                     </tr>
