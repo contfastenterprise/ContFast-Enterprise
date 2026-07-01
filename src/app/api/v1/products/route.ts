@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, products } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
+import { db, products, inventoryLevels, warehouses } from '@/db';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
@@ -62,9 +62,37 @@ export async function GET(req: NextRequest) {
       }
 
       const product = await ProductRepository.getByBarcode(barcode, auth.companyId);
+      let dataWithInventory: any[] = [];
+      if (product) {
+        const levels = await db
+          .select({
+            productId: inventoryLevels.productId,
+            warehouseId: inventoryLevels.warehouseId,
+            warehouseName: warehouses.name,
+            quantity: inventoryLevels.quantity,
+          })
+          .from(inventoryLevels)
+          .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
+          .where(
+            and(
+              eq(inventoryLevels.companyId, auth.companyId),
+              eq(inventoryLevels.productId, product.id)
+            )
+          );
+        dataWithInventory = [{
+          ...product,
+          inventory: levels.map(lvl => ({
+            warehouseId: lvl.warehouseId,
+            warehouseName: lvl.warehouseName,
+            quantity: lvl.quantity,
+            availableQuantity: lvl.quantity,
+          }))
+        }];
+      }
+
       const responseData = { 
         success: true, 
-        data: product ? [product] : [], 
+        data: dataWithInventory, 
         meta: { page: 1, per_page: 1, total: product ? 1 : 0, total_pages: product ? 1 : 0 } 
       };
 
@@ -79,7 +107,46 @@ export async function GET(req: NextRequest) {
     }
 
     const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId);
-    const responseDataList = { success: true, data: result.data, meta: result.meta };
+    
+    // Batch fetch inventory levels for all products in list
+    const productIds = result.data.map((p: any) => p.id);
+    const inventoryMap: Record<string, any[]> = {};
+    if (productIds.length > 0) {
+      const levels = await db
+        .select({
+          productId: inventoryLevels.productId,
+          warehouseId: inventoryLevels.warehouseId,
+          warehouseName: warehouses.name,
+          quantity: inventoryLevels.quantity,
+        })
+        .from(inventoryLevels)
+        .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
+        .where(
+          and(
+            eq(inventoryLevels.companyId, auth.companyId),
+            inArray(inventoryLevels.productId, productIds)
+          )
+        );
+
+      levels.forEach((lvl) => {
+        if (!inventoryMap[lvl.productId]) {
+          inventoryMap[lvl.productId] = [];
+        }
+        inventoryMap[lvl.productId].push({
+          warehouseId: lvl.warehouseId,
+          warehouseName: lvl.warehouseName,
+          quantity: lvl.quantity,
+          availableQuantity: lvl.quantity,
+        });
+      });
+    }
+
+    const dataWithInventory = result.data.map((p: any) => ({
+      ...p,
+      inventory: inventoryMap[p.id] || [],
+    }));
+
+    const responseDataList = { success: true, data: dataWithInventory, meta: result.meta };
 
     await setCache(cacheKeyList, JSON.stringify(responseDataList), 3600);
 

@@ -235,19 +235,7 @@ function InvoicesList() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && data.data) {
-        const productsWithStock = await Promise.all(
-          data.data.map(async (prod: any) => {
-            try {
-              const stockRes = await fetch(`/api/v1/products/${prod.id}/inventory`);
-              const stockData = await stockRes.json();
-              const inventory = stockData.success ? stockData.data : [];
-              return { ...prod, inventory };
-            } catch {
-              return { ...prod, inventory: [] };
-            }
-          })
-        );
-        setModalProducts(productsWithStock);
+        setModalProducts(data.data);
       }
     } catch (error) {
       console.error('Error fetching modal products', error);
