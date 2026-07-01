@@ -268,44 +268,35 @@ export default function QuotesList() {
           </table>
           </div>
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
-              <span className="text-xs text-on-surface-variant/80">
-                Mostrando página <strong className="text-[#003366]">{page}</strong> de <strong className="text-[#003366]">{totalPages}</strong> ({totalRecords} registros)
-              </span>
-              <div className="flex items-center gap-1">
+          {/* Pagination Toolbar */}
+          <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <p className="text-xs text-slate-500 font-medium">
+              Mostrando <span className="font-bold text-slate-800">{filteredQuotes.length}</span> de <span className="font-bold text-slate-800">{totalRecords}</span> cotizaciones
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
                 <button
                   disabled={page <= 1}
-                  onClick={() => setPage(1)}
-                  className="p-2 text-[#003366] hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
+                  onClick={() => setPage(page - 1)}
+                  type="button"
+                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
-                  <ChevronsLeft className="h-4 w-4" />
+                  Anterior
                 </button>
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage(p => p - 1)}
-                  className="p-2 text-[#003366] hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
+                <span className="text-xs text-slate-500 font-bold px-2">
+                  Pág. {page} de {totalPages}
+                </span>
                 <button
                   disabled={page >= totalPages}
-                  onClick={() => setPage(p => p + 1)}
-                  className="p-2 text-[#003366] hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
+                  onClick={() => setPage(page + 1)}
+                  type="button"
+                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(totalPages)}
-                  className="p-2 text-[#003366] hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-40"
-                >
-                  <ChevronsRight className="h-4 w-4" />
+                  Siguiente
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.div>
 
