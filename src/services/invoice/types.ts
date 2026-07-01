@@ -23,6 +23,7 @@ export interface IssueInvoiceInput {
     unitPrice: number;
     discount: number;
     taxRate: number; // e.g. 0.18 for 18% ITBIS
+    warehouseId?: string;
   }[];
   retentions?: {
     retentionId?: string;

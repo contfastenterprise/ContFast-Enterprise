@@ -32,6 +32,7 @@ const createInvoiceSchema = z.object({
       unitPrice: z.number().nonnegative('El precio unitario no puede ser negativo'),
       discount: z.number().nonnegative('El descuento no puede ser negativo').default(0),
       taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
+      warehouseId: z.string().uuid().optional(),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),
   retentions: z.array(

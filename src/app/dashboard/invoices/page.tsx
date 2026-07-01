@@ -625,6 +625,7 @@ function InvoicesList() {
         unitPrice: Number(line.unitPrice),
         discount: Number(line.discount || 0),
         taxRate: Number(line.taxRate || 0.18),
+        warehouseId: line.warehouseId,
       }));
       setLines(preloadedLines);
 
@@ -669,6 +670,7 @@ function InvoicesList() {
       unitPrice: Number(l.unitPrice),
       discount: Number(l.discount || 0),
       taxRate: Number(l.taxRate || 0.18),
+      warehouseId: l.warehouseId || warehouseId,
     })),
   });
 
@@ -740,6 +742,7 @@ function InvoicesList() {
         unitPrice: Number(l.unitPrice),
         discount: Number(l.discount || 0),
         taxRate: Number(l.taxRate || 0.18),
+        warehouseId: l.warehouseId || warehouseId,
       }));
 
       const retentionsToSubmit = retentionsEnabled && retentions ? retentions.map((r: any) => ({
@@ -1202,7 +1205,7 @@ function InvoicesList() {
                           </div>
 
                           {/* Product Selection / Custom Name */}
-                          <div className="md:col-span-6 space-y-1.5">
+                          <div className="md:col-span-4 space-y-1.5">
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
                             <div className="flex gap-2">
                               <button
@@ -1224,8 +1227,22 @@ function InvoicesList() {
                             </div>
                           </div>
 
-                          {/* Barcode input */}
+                          {/* Warehouse Selector */}
                           <div className="md:col-span-3 space-y-1.5">
+                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Almacén</label>
+                            <select
+                              value={line.warehouseId || warehouseId}
+                              onChange={(e) => handleLineChange(idx, 'warehouseId', e.target.value)}
+                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+                            >
+                              {warehouses.map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Barcode input */}
+                          <div className="md:col-span-2 space-y-1.5">
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Código de Barras</label>
                             <input
                               type="text"
@@ -2231,6 +2248,17 @@ function InvoicesList() {
                   <option value="">Todas las categorías</option>
                   {categories.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={modalWarehouseFilter}
+                  onChange={(e) => setModalWarehouseFilter(e.target.value)}
+                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
+                >
+                  <option value="">Todos los almacenes</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
               </div>

@@ -27,6 +27,7 @@ const saveDraftSchema = z.object({
       unitPrice: z.number().nonnegative(),
       discount: z.number().nonnegative().default(0),
       taxRate: z.number().nonnegative().default(0.18),
+      warehouseId: z.string().uuid().optional(),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),
 });
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
         discount: line.discount,
         subtotal: lineSubtotal,
         total: lineTotal,
+        warehouseId: line.warehouseId || data.warehouseId,
       });
 
       const taxKey = `ITBIS_${(line.taxRate * 100).toFixed(0)}%`;
@@ -159,6 +161,7 @@ export async function POST(req: NextRequest) {
           itemLines.map((line) => ({
             invoiceId: invoice.id,
             productId: line.productId,
+            warehouseId: line.warehouseId,
             quantity: line.quantity.toString(),
             unitPrice: line.unitPrice.toString(),
             discount: line.discount.toString(),

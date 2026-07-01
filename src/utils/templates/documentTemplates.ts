@@ -295,11 +295,14 @@ export class DocumentTemplates {
         <head>
           <meta charset="UTF-8">
           <title>Factura ${inv.ncf}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
           <style>
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
             .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
+            .barcode { font-family: 'Libre Barcode 39', cursive; font-size: 38pt; line-height: 1; margin-top: 6px; }
+            .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: -2px; }
             .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
             .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
             
@@ -354,6 +357,10 @@ export class DocumentTemplates {
                    </div>`
                 : ''
               }
+              <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
+                <div class="barcode">*${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}*</div>
+                <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
+              </div>
             </div>
           </div>
 

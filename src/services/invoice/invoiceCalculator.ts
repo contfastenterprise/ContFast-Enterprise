@@ -37,6 +37,7 @@ export class InvoiceCalculator {
         subtotal: lineSubtotal,
         total: lineTaxableAmount, // Note: lineTotal without tax for now, as tax is global
         taxRate: line.taxRate,
+        warehouseId: line.warehouseId,
       });
     });
 

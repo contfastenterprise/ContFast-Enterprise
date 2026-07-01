@@ -169,6 +169,13 @@
       "when": 1782781405474,
       "tag": "0023_right_silver_samurai",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1782938503006,
+      "tag": "0024_petite_blizzard",
+      "breakpoints": true
     }
   ]
 }

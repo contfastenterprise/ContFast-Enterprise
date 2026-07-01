@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { db, deliveryNotes, invoices, invoiceLines } from '@/db';
+import { db, deliveryNotes, invoices, invoiceLines, deliveryNoteLines } from '@/db';
 import { eq, and, isNull, or, ilike } from 'drizzle-orm';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
 
@@ -92,24 +92,20 @@ export async function POST(req: NextRequest) {
           )
         );
 
-      const draftNote = notes.find(n => n.status === 'draft');
-      if (draftNote) {
-        await DeliveryRepository.approve(draftNote.id, auth.userId, auth.companyId);
+      const draftNotes = notes.filter(n => n.status === 'draft');
+      if (draftNotes.length > 0) {
+        const approvedNames = [];
+        for (const draftNote of draftNotes) {
+          await DeliveryRepository.approve(draftNote.id, auth.userId, auth.companyId);
+          approvedNames.push(draftNote.deliveryNumber);
+        }
         return NextResponse.json(
-          { success: true, message: `Conduce ${draftNote.deliveryNumber} (vinculado a factura ${invoice.ncf}) aprobado y stock descontado exitosamente.` },
+          { success: true, message: `Conduces ${approvedNames.join(', ')} (vinculados a factura ${invoice.ncf || invoice.codigoFactura}) aprobados y stock descontado exitosamente.` },
           { headers: resHeaders }
         );
       }
 
-      const approvedNotes = notes.filter(n => n.status === 'approved');
-      if (approvedNotes.length > 0) {
-        return NextResponse.json(
-          { success: true, message: `Las mercancías de la factura ${invoice.ncf} ya han sido despachadas por completo.` },
-          { headers: resHeaders }
-        );
-      }
-
-      // No delivery notes exist at all: Auto-create and approve!
+      // Fetch all invoice lines
       const lines = await db
         .select()
         .from(invoiceLines)
@@ -122,22 +118,73 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const newNote = await DeliveryRepository.create({
-        companyId: auth.companyId,
-        invoiceId: invoice.id,
-        userId: auth.userId,
-        deliveryDate: new Date(),
-        notes: 'Generado automáticamente al aplicar código desde catálogo',
-        lines: lines.map(l => ({
-          productId: l.productId,
-          quantity: Number(l.quantity)
-        }))
-      });
+      // Calculate already delivered quantities for each product across approved notes
+      const deliveredMap: Record<string, number> = {};
+      const approvedNotes = notes.filter(n => n.status === 'approved');
+      for (const n of approvedNotes) {
+        const otherLines = await db
+          .select()
+          .from(deliveryNoteLines)
+          .where(eq(deliveryNoteLines.deliveryNoteId, n.id));
+        for (const l of otherLines) {
+          deliveredMap[l.productId] = (deliveredMap[l.productId] || 0) + Number(l.quantity);
+        }
+      }
 
-      await DeliveryRepository.approve(newNote.id, auth.userId, auth.companyId);
+      // Filter to only remaining items that have not been fully delivered yet
+      const remainingLines = [];
+      for (const l of lines) {
+        const invoicedQty = Number(l.quantity);
+        const deliveredQty = deliveredMap[l.productId] || 0;
+        const remainingQty = invoicedQty - deliveredQty;
+        if (remainingQty > 0) {
+          remainingLines.push({
+            ...l,
+            quantity: remainingQty
+          });
+        }
+      }
+
+      if (remainingLines.length === 0) {
+        return NextResponse.json(
+          { success: true, message: `Todas las mercancías de la factura ${invoice.ncf || invoice.codigoFactura} ya han sido despachadas por completo.` },
+          { headers: resHeaders }
+        );
+      }
+
+      // Group remaining lines by warehouseId
+      const linesByWarehouse: Record<string, typeof remainingLines> = {};
+      for (const line of remainingLines) {
+        const whId = line.warehouseId || invoice.warehouseId || 'default';
+        if (!linesByWarehouse[whId]) {
+          linesByWarehouse[whId] = [];
+        }
+        linesByWarehouse[whId].push(line);
+      }
+
+      const createdNotes = [];
+      for (const [whId, whLines] of Object.entries(linesByWarehouse)) {
+        // Resolve a real warehouse ID (use fallback if default is just a string key)
+        const targetWarehouseId = whId === 'default' ? null : whId;
+        const newNote = await DeliveryRepository.create({
+          companyId: auth.companyId,
+          invoiceId: invoice.id,
+          userId: auth.userId,
+          deliveryDate: new Date(),
+          notes: 'Generado automáticamente por almacén al aplicar código de barra',
+          lines: whLines.map(l => ({
+            productId: l.productId,
+            quantity: l.quantity
+          }))
+        });
+
+        // If the newNote created successfully, approve it
+        await DeliveryRepository.approve(newNote.id, auth.userId, auth.companyId);
+        createdNotes.push(newNote.deliveryNumber);
+      }
 
       return NextResponse.json(
-        { success: true, message: `Conduce ${newNote.deliveryNumber} creado y aprobado automáticamente para la factura ${invoice.ncf}. Stock actualizado.` },
+        { success: true, message: `Se crearon y aprobaron los conduces (${createdNotes.join(', ')}) correspondientes por almacén. Stock actualizado.` },
         { headers: resHeaders }
       );
     }

@@ -133,6 +133,7 @@ export const invoiceLines = pgTable('invoice_lines', {
   id: uuid('id').defaultRandom().primaryKey(),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   productId: uuid('product_id').notNull().references(() => products.id),
+  warehouseId: uuid('warehouse_id').references(() => warehouses.id),
   quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(),
   unitPrice: decimal('unit_price', { precision: 15, scale: 2 }).notNull(),
   discount: decimal('discount', { precision: 15, scale: 2 }).default('0.00').notNull(),

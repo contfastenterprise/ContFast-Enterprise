@@ -41,6 +41,7 @@ export interface CreateInvoiceInput {
     discount: number;
     subtotal: number;
     total: number;
+    warehouseId?: string;
   }[];
   taxes: {
     taxType: string;
@@ -107,6 +108,7 @@ export class InvoiceRepository {
           data.lines.map((line) => ({
             invoiceId: invoice.id,
             productId: line.productId,
+            warehouseId: line.warehouseId || data.warehouseId,
             quantity: line.quantity.toString(),
             unitPrice: line.unitPrice.toString(),
             discount: line.discount.toString(),
