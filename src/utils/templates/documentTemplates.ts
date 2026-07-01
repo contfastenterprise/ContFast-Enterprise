@@ -138,7 +138,7 @@ export class DocumentTemplates {
 
     const cleanText = `*${text.toUpperCase()}*`;
     let currentX = 0;
-    const height = 45;
+    const height = 30;
     let paths = '';
 
     for (let i = 0; i < cleanText.length; i++) {
@@ -147,18 +147,18 @@ export class DocumentTemplates {
 
       for (let j = 0; j < 9; j++) {
         const type = pattern[j];
-        const width = type === 'w' ? 3 : 1;
+        const width = type === 'w' ? 2.0 : 0.8;
         const isBar = j % 2 === 0;
 
         if (isBar) {
-          paths += `<rect x="${currentX}" y="0" width="${width}" height="${height}" fill="black" />`;
+          paths += `<rect x="${currentX.toFixed(1)}" y="0" width="${width.toFixed(1)}" height="${height}" fill="black" />`;
         }
         currentX += width;
       }
-      currentX += 1;
+      currentX += 0.8;
     }
 
-    return `<svg width="${currentX}" height="${height}" viewBox="0 0 ${currentX} ${height}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+    return `<svg width="${currentX.toFixed(1)}" height="${height}" viewBox="0 0 ${currentX.toFixed(1)} ${height}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
   }
 
   /**
