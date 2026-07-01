@@ -234,10 +234,13 @@ export class DocumentTemplates {
           const rawDiscount = qty * discUnit;
           const rawTaxable = rawSubtotal - rawDiscount;
 
-          let lineItbis = 0;
-          if (rawTaxable > 0) {
-            lineItbis = lineTotal - rawTaxable;
-          }
+          const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate 
+            ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100 
+            : 0.18;
+
+          const hasGlobalTaxes = Number(inv.totalTaxes) > 0;
+          const lineItbis = hasGlobalTaxes ? rawTaxable * defaultTaxRate : 0;
+          const finalLineTotal = rawTaxable + lineItbis;
 
           return `
             <tr>
@@ -248,7 +251,7 @@ export class DocumentTemplates {
               <td class="text-right">${formatNum(uPrice)}</td>
               <td class="text-right">${formatNum(rawDiscount)}</td>
               <td class="text-right">${formatNum(lineItbis)}</td>
-              <td class="text-right">${formatNum(lineTotal)}</td>
+              <td class="text-right">${formatNum(finalLineTotal)}</td>
             </tr>
           `;
         }).join('');
