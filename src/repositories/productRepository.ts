@@ -36,12 +36,56 @@ export interface UpdateProductInput {
 
 export class ProductRepository {
   static async create(data: CreateProductInput) {
+    let finalSku = data.sku;
+
+    if (!finalSku || !finalSku.trim()) {
+      const lastProducts = await db
+        .select({ sku: products.sku })
+        .from(products)
+        .where(
+          and(
+            eq(products.companyId, data.companyId),
+            ilike(products.sku, 'PROD-%'),
+            isNull(products.deletedAt)
+          )
+        );
+
+      let maxNum = 0;
+      for (const p of lastProducts) {
+        if (p.sku) {
+          const match = p.sku.match(/^PROD-(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) {
+              maxNum = num;
+            }
+          }
+        }
+      }
+
+      let collision = true;
+      let nextNum = maxNum + 1;
+      while (collision) {
+        finalSku = `PROD-${String(nextNum).padStart(6, '0')}`;
+        const [existing] = await db
+          .select({ id: products.id })
+          .from(products)
+          .where(and(eq(products.companyId, data.companyId), eq(products.sku, finalSku)));
+
+        if (!existing) {
+          collision = false;
+        } else {
+          nextNum++;
+        }
+      }
+    }
+
     const [product] = await db
       .insert(products)
       .values({
         companyId: data.companyId,
         categoryId: data.categoryId,
-        sku: data.sku,
+        sku: finalSku,
         name: data.name,
         description: data.description,
         price: data.price !== undefined ? data.price.toString() : '0.00',
