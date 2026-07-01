@@ -216,7 +216,7 @@ export default function SettlementsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="text-3xl font-bold tracking-tight text-[#003366] dark:text-[#799dd6]">
             Prestaciones y Salario de Navidad
           </h1>
           <p className="text-slate-500 dark:text-slate-400">
