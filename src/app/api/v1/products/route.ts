@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db, products } from '@/db';
+import { eq, and, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
