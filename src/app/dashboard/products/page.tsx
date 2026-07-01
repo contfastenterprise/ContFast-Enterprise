@@ -846,9 +846,9 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-sm bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#0b1120]">
+              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#001733]">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
                 </h3>

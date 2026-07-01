@@ -387,7 +387,7 @@ export default function DeliveryNotesPage() {
                 </div>
 
                 {/* Table list */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
                   {loading ? (
                     <div className="flex justify-center py-16">
                       <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
@@ -399,36 +399,36 @@ export default function DeliveryNotesPage() {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-100 bg-slate-50 text-slate-500 font-semibold uppercase text-xs">
-                            <th className="px-6 py-4 text-left">Número</th>
-                            <th className="px-6 py-4 text-left">Fecha Entrega</th>
-                            <th className="px-6 py-4 text-left">Chofer</th>
-                            <th className="px-6 py-4 text-left">Placa</th>
-                            <th className="px-6 py-4 text-center">Estado</th>
-                            <th className="px-6 py-4 text-right">Acciones</th>
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50/80 border-b border-slate-200">
+                          <tr>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Número</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha Entrega</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chofer</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {notes.map((note) => (
-                            <tr key={note.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-6 py-4 font-mono font-bold text-slate-800">
+                            <tr key={note.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                              <td className="px-4 py-2 align-middle text-xs font-mono font-bold text-slate-800">
                                 {note.deliveryNumber}
                               </td>
-                              <td className="px-6 py-4 text-slate-600">
+                              <td className="px-4 py-2 align-middle text-xs text-slate-650">
                                 {new Date(note.deliveryDate + 'T00:00:00').toLocaleDateString('es-DO')}
                               </td>
-                              <td className="px-6 py-4 text-slate-700 font-semibold">
+                              <td className="px-4 py-2 align-middle text-xs text-slate-700 font-semibold">
                                 {note.driverName || 'N/A'}
                               </td>
-                              <td className="px-6 py-4 font-mono text-slate-500">
+                              <td className="px-4 py-2 align-middle text-xs font-mono text-slate-500">
                                 {note.vehiclePlate || 'N/A'}
                               </td>
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-4 py-2 align-middle text-center">
                                 <span
                                   className={clsx(
-                                    "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border",
+                                    "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded border",
                                     note.status === 'approved' && "bg-emerald-50 text-emerald-700 border-emerald-100",
                                     note.status === 'draft' && "bg-amber-50 text-amber-700 border-amber-100",
                                     note.status === 'voided' && "bg-rose-50 text-rose-700 border-rose-100"
@@ -437,14 +437,14 @@ export default function DeliveryNotesPage() {
                                   {note.status === 'approved' ? 'Despachado' : note.status === 'draft' ? 'Borrador' : 'Anulado'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-right">
-                                <div className="flex justify-end gap-2">
+                              <td className="px-4 py-2 align-middle text-right">
+                                <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => handlePrintNote(note.id)}
-                                    className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
                                     title="Imprimir Conduce"
                                   >
-                                    <Printer className="h-4 w-4" />
+                                    <Printer className="h-3.5 w-3.5" />
                                   </button>
                                   {note.status === 'draft' && (
                                     <>
@@ -453,14 +453,14 @@ export default function DeliveryNotesPage() {
                                         className="p-1.5 hover:bg-emerald-50 rounded text-emerald-600 transition-colors"
                                         title="Aprobar y Despachar Inventario"
                                       >
-                                        <Check className="h-4 w-4" />
+                                        <Check className="h-3.5 w-3.5" />
                                       </button>
                                       <button
                                         onClick={() => handleVoidNote(note.id)}
                                         className="p-1.5 hover:bg-rose-50 rounded text-rose-600 transition-colors"
                                         title="Eliminar Borrador"
                                       >
-                                        <Trash2 className="h-4 w-4" />
+                                        <Trash2 className="h-3.5 w-3.5" />
                                       </button>
                                     </>
                                   )}
