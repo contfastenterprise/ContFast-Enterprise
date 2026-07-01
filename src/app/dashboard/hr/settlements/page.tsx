@@ -590,7 +590,7 @@ export default function SettlementsPage() {
                 <span className="block text-sm font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   Total Proyectado de Regalía Pascual ({dobleYear})
                 </span>
-                <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-1 block">
+                <span className="text-3xl font-black text-emerald-900 dark:text-emerald-400 mt-1 block">
                   {formatCurrency(totalDobleSum)}
                 </span>
               </div>
@@ -619,7 +619,7 @@ export default function SettlementsPage() {
                       <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{item.firstName} {item.lastName}</td>
                       <td className="px-4 py-2 align-middle font-mono text-slate-800 dark:text-slate-200">{item.employeeCode}</td>
                       <td className="px-4 py-2 align-middle text-slate-800 dark:text-slate-200">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
-                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-slate-850 dark:text-slate-150">{formatCurrency(item.salary)}</td>
+                      <td className="px-4 py-2 align-middle text-right font-mono font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(item.salary)}</td>
                       <td className="px-4 py-2 align-middle text-center text-slate-800 dark:text-slate-200">{item.monthsWorked} meses</td>
                       <td className="px-4 py-2 align-middle text-right font-bold text-[#003366] dark:text-[#799dd6] font-mono">
                         {formatCurrency(item.amount)}
