@@ -500,22 +500,22 @@ export default function SettlementsPage() {
                     <table className="w-full text-left">
                       <thead className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
                         <tr>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Empleado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Código</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha Salida</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Cesantía/Preaviso</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Total Liquidado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center w-24">Estado</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right w-24">Acciones</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Empleado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Código</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Fecha Salida</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Cesantía/Preaviso</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest whitespace-nowrap">Total Liquidado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-center w-24">Estado</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest text-right w-24">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {settlements.map((set) => (
-                          <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-700 dark:text-slate-200">
+                          <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-900 dark:text-slate-100">
                             <td className="px-4 py-2 align-middle font-semibold text-[#003366] dark:text-[#799dd6]">{set.firstName} {set.lastName}</td>
-                            <td className="px-4 py-2 align-middle font-mono">{set.employeeCode}</td>
-                            <td className="px-4 py-2 align-middle">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
-                            <td className="px-4 py-2 align-middle font-mono">
+                            <td className="px-4 py-2 align-middle font-mono text-slate-900 dark:text-slate-200">{set.employeeCode}</td>
+                            <td className="px-4 py-2 align-middle text-slate-900 dark:text-slate-200">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2 align-middle font-mono text-slate-900 dark:text-slate-200">
                               {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
                             </td>
                             <td className="px-4 py-2 align-middle font-bold text-[#003366] dark:text-slate-100 font-mono">{formatCurrency(set.total)}</td>
