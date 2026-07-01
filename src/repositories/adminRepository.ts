@@ -1,5 +1,5 @@
-import { db, users, roles } from '@/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { db, users, roles, subscriptions, plans } from '@/db';
+import { eq, and, desc, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 
@@ -43,7 +43,31 @@ export class AdminRepository {
 
   static async createUser(data: CreateUserInput) {
     return await db.transaction(async (tx) => {
-      // Check email exists
+      // 1. Check user limits from active subscription
+      const subscriptionInfo = await tx
+        .select({ maxUsers: plans.maxUsers })
+        .from(subscriptions)
+        .innerJoin(plans, eq(subscriptions.planId, plans.id))
+        .where(and(eq(subscriptions.companyId, data.companyId), eq(subscriptions.status, 'active')))
+        .limit(1);
+
+      if (subscriptionInfo.length > 0) {
+        const maxUsers = subscriptionInfo[0].maxUsers;
+        if (maxUsers !== -1) {
+          // Count active users in the company
+          const [activeUsersCount] = await tx
+            .select({ value: count() })
+            .from(users)
+            .where(and(eq(users.companyId, data.companyId), eq(users.status, 'active')));
+          
+          const currentCount = activeUsersCount?.value || 0;
+          if (currentCount >= maxUsers) {
+            throw new Error(`Límite de usuarios alcanzado (${maxUsers} usuarios permitidos en su plan actual).`);
+          }
+        }
+      }
+
+      // 2. Check email exists
       const existing = await tx.select().from(users).where(eq(users.email, data.email));
       if (existing.length > 0) throw new Error('El correo electrónico ya está en uso');
 
@@ -147,6 +171,30 @@ export class AdminRepository {
 
     const newStatus = userWithRole.user.status === 'active' ? 'inactive' : 'active';
     
+    if (newStatus === 'active') {
+      const subscriptionInfo = await db
+        .select({ maxUsers: plans.maxUsers })
+        .from(subscriptions)
+        .innerJoin(plans, eq(subscriptions.planId, plans.id))
+        .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
+        .limit(1);
+
+      if (subscriptionInfo.length > 0) {
+        const maxUsers = subscriptionInfo[0].maxUsers;
+        if (maxUsers !== -1) {
+          const [activeUsersCount] = await db
+            .select({ value: count() })
+            .from(users)
+            .where(and(eq(users.companyId, companyId), eq(users.status, 'active')));
+          
+          const currentCount = activeUsersCount?.value || 0;
+          if (currentCount >= maxUsers) {
+            throw new Error(`Límite de usuarios alcanzado (${maxUsers} usuarios permitidos en su plan actual). Desactive otro usuario antes de activar este.`);
+          }
+        }
+      }
+    }
+
     const [updated] = await db.update(users)
       .set({ status: newStatus, updatedAt: new Date() })
       .where(eq(users.id, userId))
