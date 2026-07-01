@@ -31,6 +31,7 @@ export default function SettingsPage() {
     maxUsers: number;
     maxWarehouses: number;
   } | null>(null);
+  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
 
   // Editable
   const [formData, setFormData] = useState({
@@ -100,6 +101,7 @@ export default function SettingsPage() {
         setHasMsellerApiKey(data.data.settings.hasMsellerApiKey);
         setHasMsellerPassword(data.data.settings.hasMsellerPassword);
         setSubscription(data.data.subscription || null);
+        setAvailablePlans(data.data.availablePlans || []);
         // Fetch accounts and mappings
         try {
           const [accRes, mapRes] = await Promise.all([
@@ -559,7 +561,8 @@ export default function SettingsPage() {
 
         {/* TAB: Plan & Suscripción */}
         {!loading && activeTab === 'suscripcion' && (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
               <Award className="w-5 h-5 text-[#C5A059]" />
               <h3 className="font-bold text-[#003366]">Plan y Suscripción</h3>
@@ -648,7 +651,60 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
-        )}
+
+          {/* Otros Planes Disponibles */}
+          {availablePlans.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#C5A059]" /> Planes Disponibles en ContFast
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {availablePlans.map((p) => {
+                  const isCurrent = subscription && subscription.planName.toLowerCase() === p.name.toLowerCase();
+                  return (
+                    <div 
+                      key={p.id} 
+                      className={`bg-white rounded-xl p-6 border shadow-sm flex flex-col justify-between transition-all relative overflow-hidden ${
+                        isCurrent ? 'border-[#C5A059] ring-2 ring-[#C5A059]/20' : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {isCurrent && (
+                        <div className="absolute top-0 right-0 bg-[#C5A059] text-white text-[9px] font-bold uppercase tracking-wider py-1 px-3 rounded-bl-lg">
+                          Plan Actual
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide">{p.name}</h4>
+                        <p className="text-xs text-slate-500 mt-1 min-h-[36px]">{p.description || 'Sin descripción'}</p>
+                        
+                        <div className="mt-4 flex items-baseline gap-1">
+                          <span className="text-xl font-bold text-[#003366]">${Number(p.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          <span className="text-slate-500 text-[10px] font-semibold">/ mes</span>
+                        </div>
+
+                        <ul className="mt-6 space-y-3.5 border-t border-slate-100 pt-4">
+                          <li className="flex items-center gap-2 text-xs text-slate-600">
+                            <FileText className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Límite e-CF: <strong>{p.maxEcfLimit === -1 ? 'Ilimitado' : `${p.maxEcfLimit} / mes`}</strong></span>
+                          </li>
+                          <li className="flex items-center gap-2 text-xs text-slate-600">
+                            <Users className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Límite Usuarios: <strong>{p.maxUsers === -1 ? 'Ilimitado' : `${p.maxUsers}`}</strong></span>
+                          </li>
+                          <li className="flex items-center gap-2 text-xs text-slate-600">
+                            <Layers className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Límite Almacenes: <strong>{p.maxWarehouses === -1 ? 'Ilimitado' : `${p.maxWarehouses}`}</strong></span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
         {/* TAB: Cuentas Puente */}
         {!loading && activeTab === 'puente' && (

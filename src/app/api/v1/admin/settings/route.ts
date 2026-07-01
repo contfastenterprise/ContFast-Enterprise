@@ -70,6 +70,20 @@ export async function GET(req: NextRequest) {
       .where(and(eq(subscriptions.companyId, session.companyId), eq(subscriptions.status, 'active')))
       .limit(1);
 
+    // Fetch all active plans from database
+    const activePlans = await db
+      .select({
+        id: plans.id,
+        name: plans.name,
+        description: plans.description,
+        price: plans.price,
+        maxEcfLimit: plans.maxEcfLimit,
+        maxUsers: plans.maxUsers,
+        maxWarehouses: plans.maxWarehouses,
+      })
+      .from(plans)
+      .where(eq(plans.active, true));
+
     return NextResponse.json({ 
       success: true, 
       data: { 
@@ -79,7 +93,8 @@ export async function GET(req: NextRequest) {
           hasMsellerApiKey: !!settings.hasMsellerApiKey,
           hasMsellerPassword: !!settings.hasMsellerPassword
         },
-        subscription: sub || null
+        subscription: sub || null,
+        availablePlans: activePlans
       } 
     });
   } catch (err: any) {
