@@ -451,7 +451,7 @@ export class DocumentTemplates {
     }
 
     const css = this.getBaseCss(layout);
-    const logoHtml = company.logoUrl && layout !== '58mm' 
+    const logoHtml = company.logoUrl && layout !== '58mm' && layout !== '80mm' 
       ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
       : '';
 
