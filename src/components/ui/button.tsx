@@ -1,161 +1,67 @@
-import React, { ButtonHTMLAttributes, forwardRef } from 'react';
-import { BorderRotate } from './animated-gradient-border';
-import { cn } from '@/utils/cn';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { Slot } from "radix-ui"
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'warning';
+import { cn } from "@/lib/utils"
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: 'sm' | 'md' | 'lg' | 'icon';
-  animated?: boolean;
-  animationMode?: 'auto-rotate' | 'rotate-on-hover' | 'stop-rotate-on-hover';
-  animationSpeed?: number;
-  gradientColors?: {
-    primary: string;
-    secondary: string;
-    accent: string;
-  };
+const buttonVariants = cva(
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        outline:
+          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+        ghost:
+          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        destructive:
+          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default:
+          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        icon: "size-8",
+        "icon-xs":
+          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm":
+          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+        "icon-lg": "size-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+function Button({
+  className,
+  variant = "default",
+  size = "default",
+  asChild = false,
+  ...props
+}: React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot.Root : "button"
+
+  return (
+    <Comp
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
 }
 
-const defaultColors: Record<ButtonVariant, { primary: string; secondary: string; accent: string; bg: string; text: string }> = {
-  primary: {
-    primary: '#003366',
-    secondary: '#C5A059',
-    accent: '#3b6998',
-    bg: '#003366',
-    text: 'text-white'
-  },
-  secondary: {
-    primary: '#003366',
-    secondary: '#C5A059',
-    accent: '#e2d1b0',
-    bg: '#C5A059',
-    text: 'text-slate-950'
-  },
-  outline: {
-    primary: '#cbd5e1',
-    secondary: '#94a3b8',
-    accent: '#64748b',
-    bg: '#ffffff',
-    text: 'text-slate-700 hover:bg-slate-50'
-  },
-  ghost: {
-    primary: '#cbd5e1',
-    secondary: '#94a3b8',
-    accent: '#64748b',
-    bg: 'transparent',
-    text: 'text-slate-700 hover:bg-slate-100'
-  },
-  danger: {
-    primary: '#dc2626',
-    secondary: '#f87171',
-    accent: '#fbcfe8',
-    bg: '#fdf2f8',
-    text: 'text-pink-700 hover:bg-pink-100/50'
-  },
-  success: {
-    primary: '#16a34a',
-    secondary: '#4ade80',
-    accent: '#bbf7d0',
-    bg: '#f0fdf4',
-    text: 'text-green-700 hover:bg-green-100/50'
-  },
-  warning: {
-    primary: '#ca8a04',
-    secondary: '#facc15',
-    accent: '#fef9c3',
-    bg: '#fefce8',
-    text: 'text-yellow-700 hover:bg-yellow-100/50'
-  }
-};
-
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      children,
-      variant = 'primary',
-      size = 'md',
-      animated = false,
-      animationMode = 'auto-rotate',
-      animationSpeed = 5,
-      gradientColors,
-      disabled,
-      ...props
-    },
-    ref
-  ) => {
-    const colors = defaultColors[variant];
-    const borderColors = gradientColors || {
-      primary: colors.primary,
-      secondary: colors.secondary,
-      accent: colors.accent
-    };
-
-    // Parse border radius based on size
-    const getBorderRadius = () => {
-      if (size === 'sm' || size === 'icon') return 8;
-      if (size === 'lg') return 16;
-      return 12; // md is default
-    };
-
-    const sizeClasses = {
-      sm: 'px-3 py-1.5 text-xs rounded-lg',
-      md: 'px-6 py-2.5 text-sm rounded-xl',
-      lg: 'px-8 py-3 text-base rounded-2xl',
-      icon: 'p-2 rounded-lg'
-    };
-
-    const buttonElement = (
-      <button
-        ref={ref}
-        disabled={disabled}
-        className={cn(
-          'inline-flex items-center justify-center font-bold transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
-          sizeClasses[size],
-          animated ? 'w-full h-full bg-transparent border-0' : `${colors.text} border`,
-          !animated && variant === 'primary' && 'bg-[#003366] hover:bg-[#002244] border-transparent text-white',
-          !animated && variant === 'secondary' && 'bg-[#C5A059] hover:bg-[#b08c4a] border-transparent text-slate-950',
-          !animated && variant === 'outline' && 'bg-white border-slate-300',
-          !animated && variant === 'ghost' && 'bg-transparent border-transparent',
-          !animated && variant === 'danger' && 'bg-pink-50 border-pink-200',
-          !animated && variant === 'success' && 'bg-green-50 border-green-200',
-          !animated && variant === 'warning' && 'bg-yellow-50 border-yellow-200',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </button>
-    );
-
-    if (animated) {
-      return (
-        <BorderRotate
-          animationMode={animationMode}
-          animationSpeed={animationSpeed}
-          gradientColors={borderColors}
-          backgroundColor={colors.bg}
-          borderRadius={getBorderRadius()}
-          className={cn(
-            'inline-flex items-center justify-center p-0',
-            size === 'sm' && 'rounded-lg',
-            size === 'md' && 'rounded-xl',
-            size === 'lg' && 'rounded-2xl',
-            size === 'icon' && 'rounded-lg',
-            disabled && 'opacity-50 pointer-events-none',
-            className
-          )}
-        >
-          {buttonElement}
-        </BorderRotate>
-      );
-    }
-
-    return buttonElement;
-  }
-);
-
-Button.displayName = 'Button';
-
-export { Button };
+export { Button, buttonVariants }
