@@ -7,7 +7,6 @@ import { DateRange } from "react-day-picker"
 import { es } from "date-fns/locale"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -48,11 +47,11 @@ export default function DateRangePicker({ from, to, onChange }: DateRangePickerP
     <div className="grid gap-2">
       <Popover>
         <PopoverTrigger asChild>
-          <Button
+          <button
             id="date"
-            variant="outline"
+            type="button"
             className={cn(
-              "w-[260px] justify-start text-left font-normal bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all rounded-lg py-2.5 px-4",
+              "w-full h-[38px] flex items-center justify-start text-left font-normal bg-surface-bright border border-outline-variant text-on-surface hover:bg-slate-50 transition-all rounded-xl px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary cursor-pointer",
               !dateRange && "text-muted-foreground"
             )}
           >
@@ -68,7 +67,7 @@ export default function DateRangePicker({ from, to, onChange }: DateRangePickerP
             ) : (
               <span>Seleccionar rango de fecha</span>
             )}
-          </Button>
+          </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 bg-white border border-slate-200 shadow-xl rounded-xl" align="start">
           <Calendar
