@@ -94,7 +94,7 @@ export default function SettingsPage() {
           maxCreditNoteApprovalAmount: Number(data.data.settings.maxCreditNoteApprovalAmount),
           maxCashOutApprovalAmount: Number(data.data.settings.maxCashOutApprovalAmount),
           msellerUrl: data.data.settings.msellerUrl || 'https://ecf.api.mseller.app/v1',
-          msellerEntorno: data.data.settings.msellerEntorno || 'test',
+          msellerEntorno: data.data.settings.dgiiEnv || 'test',
           msellerEmail: data.data.settings.msellerEmail || '',
           msellerApiKey: '',
           msellerPassword: ''
@@ -414,7 +414,7 @@ export default function SettingsPage() {
                   <select
                     disabled={!isSistemas}
                     value={formData.dgiiEnv}
-                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })}
+                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value, msellerEntorno: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
                     <option value="test">Pruebas (Sandbox)</option>
@@ -490,7 +490,7 @@ export default function SettingsPage() {
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
                     <select
-                      disabled={!isSistemas}
+                      disabled={true}
                       value={formData.msellerEntorno}
                       onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] font-medium text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
