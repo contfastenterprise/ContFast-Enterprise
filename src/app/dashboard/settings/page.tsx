@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 
@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string; avatarUrl?: string | null; avatarPath?: string | null } | null>(null);
   const [hasMsellerApiKey, setHasMsellerApiKey] = useState(false);
   const [hasMsellerPassword, setHasMsellerPassword] = useState(false);
+  const [showMsellerPassword, setShowMsellerPassword] = useState(false);
   const [subscription, setSubscription] = useState<{
     id: string;
     status: string;
@@ -525,14 +526,27 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
-                    <input
-                      type="password"
-                      disabled={!isSistemas}
-                      value={formData.msellerPassword}
-                      onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"}
-                    />
+                    <div className="relative">
+                      <input
+                        type={showMsellerPassword ? "text" : "password"}
+                        disabled={!isSistemas}
+                        value={formData.msellerPassword}
+                        onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })}
+                        className="w-full border border-slate-300 rounded-lg pl-3 pr-10 py-2 outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMsellerPassword(!showMsellerPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        {showMsellerPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
