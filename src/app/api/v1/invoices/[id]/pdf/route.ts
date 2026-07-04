@@ -223,7 +223,8 @@ export async function GET(
         email: settings?.msellerEmail || 'latindoors@gmail.com',
         logoUrl: settings?.logoUrl || undefined,
         settings: { 
-          printLayout: settings?.printLayout || 'carta' 
+          printLayout: settings?.printLayout || 'carta',
+          printCopies: 1
         }
       },
       customer: customer ? {

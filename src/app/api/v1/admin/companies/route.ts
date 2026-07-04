@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
         companyId: newComp.id,
         dgiiEnv: 'test',
         printLayout: 'carta',
+        printCopies: 2,
         msellerUrl: 'https://ecf.api.mseller.app/v1',
         msellerEntorno: 'test',
         autoDeliveryNotes: false,

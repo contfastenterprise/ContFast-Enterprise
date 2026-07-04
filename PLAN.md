@@ -1,8 +1,15 @@
-# Sistema ERP e-CF Dominicana - Plan de ImplementaciÃ³n
+# Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras completar exitosamente la compilaciÃ³n y optimizaciÃ³n de producciÃ³n de Next.js.
+El proyecto se encuentra **Verified & Polished** tras completar exitosamente la compilación y optimización de producción de Next.js, y tras implementar las mejoras de copias múltiples para formato Carta, modal de confirmación antes de emitir, y el refinamiento de los colores de estatus y códigos de seguridad de la DGII.
 
-## MÃ³dulos Implementados
+## Módulos Implementados
+
+### 0. Novedades de Impresión, Emisión y Diagnósticos
+- **Impresión Multi-copias (Layout Carta)**: Configuración en la tabla `company_settings` para persistir entre 1 y 5 copias impresas (2 por defecto en creación de empresas). Al renderizar el PDF de impresión Carta, el motor de plantillas HTML duplica la estructura con saltos de página CSS, rotulando como **ORIGINAL** la primera hoja y **COPIA** todas las subsecuentes. Se preserva una sola copia en la descarga directa de PDF (`/pdf`).
+- **Modal de Confirmación de Emisión**: Validación previa de todos los datos en el frontend y apertura de un modal descriptivo unificado (Nombre del Cliente, Tipo de Comprobante, Método de Pago y Monto Total) con opciones de Aceptar o Cancelar, protegiendo contra emisiones accidentales para todos los tipos de envío (estándar, imprimir, email).
+- **Corrección de Indicadores visuales de DGII**:
+  - En la pestaña "Cola DGII" y en "Detalles de Factura", se renombraron y corrigieron los badges para mostrar las respuestas exitosas de la DGII (ej: "Aceptado") en color verde esmeralda y solo los fallos reales en rojo.
+  - Se habilitó la recuperación y renderizado en pantalla del **Código de Seguridad oficial** emitido por la firma de la DGII, consultándolo directamente desde la transacción.
 
 ### 1. NÃºcleo Backend & Servicios
 - **XMLDSIG & node-forge**: Firma digital envelopada de facturas e-CF.

@@ -1118,7 +1118,7 @@ function ColaTab() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reintentos</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Error</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mensaje / Error</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
@@ -1136,7 +1136,13 @@ function ColaTab() {
                       {sub.retryCount}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-red-500 max-w-[240px] truncate">
+                  <td className={`px-4 py-3 text-xs max-w-[240px] truncate ${
+                    sub.status === 'accepted'
+                      ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                      : sub.status === 'rejected' || sub.status === 'error'
+                        ? 'text-red-500 font-medium'
+                        : 'text-gray-500 dark:text-gray-400'
+                  }`}>
                     {sub.responseMessage || '–'}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{formatDate(sub.createdAt)}</td>

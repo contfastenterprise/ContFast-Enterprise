@@ -28,6 +28,7 @@ export const companySettings = pgTable('company_settings', {
   msellerEmail: varchar('mseller_email', { length: 255 }),
   msellerPasswordEncrypted: text('mseller_password_encrypted'),
   printLayout: varchar('print_layout', { length: 50 }).default('carta').notNull(), // carta | 80mm | 58mm
+  printCopies: integer('print_copies').default(2).notNull(),
   autoDeliveryNotes: boolean('auto_delivery_notes').default(false).notNull(),
   maxCreditNoteApprovalAmount: decimal('max_credit_note_approval_amount', { precision: 15, scale: 2 }).default('10000.00').notNull(),
   maxCashOutApprovalAmount: decimal('max_cash_out_approval_amount', { precision: 15, scale: 2 }).default('5000.00').notNull(),

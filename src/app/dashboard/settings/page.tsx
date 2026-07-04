@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 
@@ -43,6 +43,7 @@ export default function SettingsPage() {
     logoUrl: '',
     dgiiEnv: 'test',
     printLayout: 'carta',
+    printCopies: 2,
     autoDeliveryNotes: false,
     maxCreditNoteApprovalAmount: 0,
     maxCashOutApprovalAmount: 0,
@@ -90,6 +91,7 @@ export default function SettingsPage() {
           logoUrl: data.data.settings.logoUrl || '',
           dgiiEnv: data.data.settings.dgiiEnv,
           printLayout: data.data.settings.printLayout,
+          printCopies: data.data.settings.printCopies ?? 2,
           autoDeliveryNotes: data.data.settings.autoDeliveryNotes,
           maxCreditNoteApprovalAmount: Number(data.data.settings.maxCreditNoteApprovalAmount),
           maxCashOutApprovalAmount: Number(data.data.settings.maxCashOutApprovalAmount),
@@ -430,6 +432,28 @@ export default function SettingsPage() {
                     <option value="58mm">Ticket 58mm</option>
                   </select>
                 </div>
+
+                {formData.printLayout === 'carta' && (
+                  <div>
+                    <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <Copy className="w-3 h-3" /> Cantidad de Copias (Solo Formato Carta)
+                    </label>
+                    <select
+                      value={formData.printCopies}
+                      onChange={e => setFormData({ ...formData, printCopies: parseInt(e.target.value) || 2 })}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium text-slate-900 bg-white"
+                    >
+                      <option value={1}>1 Copia (Solo Original)</option>
+                      <option value={2}>2 Copias (Original + Copia)</option>
+                      <option value={3}>3 Copias</option>
+                      <option value={4}>4 Copias</option>
+                      <option value={5}>5 Copias</option>
+                    </select>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Las copias adicionales se rotularán automáticamente como "COPIA".
+                    </p>
+                  </div>
+                )}
 
                 <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6 mt-2">
                   <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Límites y Automatizaciones</h4>

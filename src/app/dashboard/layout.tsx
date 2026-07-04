@@ -230,16 +230,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className={clsx(
           "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b",
           entorno === 'PROD' 
-            ? 'bg-white/95 text-slate-900 border-slate-200 top-0 shadow-sm' 
+            ? 'bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 top-0 shadow-lg' 
             : 'bg-primary/95 text-on-primary border-white/10 top-10'
         )}>
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
-              className={clsx(
-                "md:hidden p-2 rounded-lg transition-all",
-                entorno === 'PROD' ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-white'
-              )}
+              className="md:hidden p-2 rounded-lg transition-all hover:bg-white/10 text-white"
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
             >
@@ -251,11 +248,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const next = !prev;
                 localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
                 return next;
-              })}
-              className={clsx(
-                "hidden md:flex p-2 rounded-lg transition-all",
-                entorno === 'PROD' ? 'hover:bg-slate-100 text-slate-700' : 'hover:bg-white/10 text-white'
-              )}
+                })}
+              className="hidden md:flex p-2 rounded-lg transition-all hover:bg-white/10 text-white"
               title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               {sidebarCollapsed
@@ -267,10 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Company name — suppressHydrationWarning allows SSR/client content to differ */}
             <span
               suppressHydrationWarning
-              className={clsx(
-                "font-display-lg text-xl font-extrabold tracking-tight min-w-[80px]",
-                entorno === 'PROD' ? 'text-[#001e40]' : 'text-secondary-fixed'
-              )}
+              className="font-display-lg text-xl font-extrabold tracking-tight min-w-[80px] text-white"
             >
               {switching ? '' : companyName}
             </span>
@@ -280,16 +271,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
               <div className="hidden sm:flex flex-col text-right">
-                <span className={clsx(
-                  "text-[13px] font-semibold tracking-wide leading-tight",
-                  entorno === 'PROD' ? 'text-slate-900' : 'text-white'
-                )}>
+                <span className="text-[13px] font-semibold tracking-wide leading-tight text-white">
                   {user?.name || 'Usuario'}
                 </span>
-                <span className={clsx(
-                  "text-[10px] font-medium leading-none mt-0.5",
-                  entorno === 'PROD' ? 'text-slate-500' : 'text-white/60'
-                )}>
+                <span className="text-[10px] font-medium leading-none mt-0.5 text-blue-200/80">
                   {user?.role || ''}
                 </span>
               </div>
@@ -297,28 +282,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 src={user?.avatarUrl} 
                 name={user?.name || 'CF'} 
                 size={36} 
-                className={clsx(
-                  "border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer",
-                  entorno === 'PROD' ? 'border-slate-200' : 'border-white/20'
-                )}
+                className="border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer border-white/20"
               />
             </div>
             {/* ContFast logo */}
-            <div className={clsx(
-              "flex items-center gap-2 pl-3 border-l",
-              entorno === 'PROD' ? 'border-slate-200' : 'border-white/20'
-            )}>
+            <div className="flex items-center gap-2 pl-3 border-l border-white/20">
               <img
                 src="/contfast-logo.png"
                 alt="ContFast Enterprise"
                 className="h-9 w-9 rounded-xl object-cover shadow-md shadow-black/30 ring-1 ring-white/20 hover:scale-105 transition-transform"
               />
-              <span className={clsx(
-                "hidden lg:block text-xs font-bold leading-tight",
-                entorno === 'PROD' ? 'text-slate-700' : 'text-white/80'
-              )}>
+              <span className="hidden lg:block text-xs font-bold leading-tight text-white/80">
                 ContFast<br />
-                <span className={clsx("font-extrabold", entorno === 'PROD' ? 'text-[#001e40]' : 'text-amber-400')}>Enterprise</span>
+                <span className="font-extrabold text-amber-400">Enterprise</span>
               </span>
             </div>
           </div>

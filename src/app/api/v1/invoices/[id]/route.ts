@@ -3,6 +3,8 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { db, dgiiSubmissions } from '@/db';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
   req: NextRequest,
@@ -42,8 +44,29 @@ export async function GET(
       );
     }
 
+    let securityCode = '';
+    const [submission] = await db
+      .select({ responsePayload: dgiiSubmissions.responsePayload })
+      .from(dgiiSubmissions)
+      .where(eq(dgiiSubmissions.invoiceId, id))
+      .limit(1);
+
+    if (submission && submission.responsePayload) {
+      try {
+        const payload = JSON.parse(submission.responsePayload);
+        securityCode = payload.securityCode || payload.codigoSeguridad || '';
+      } catch (err) {
+        console.error('Error parsing responsePayload for security code:', err);
+      }
+    }
+
+    if (!securityCode) {
+      const crypto = require('crypto');
+      securityCode = crypto.createHash('sha256').update(invoice.id + invoice.ncf).digest('hex').substring(0, 16).toUpperCase();
+    }
+
     return NextResponse.json(
-      { success: true, data: invoice },
+      { success: true, data: { ...invoice, securityCode } },
       { headers: resHeaders }
     );
   } catch (error: any) {

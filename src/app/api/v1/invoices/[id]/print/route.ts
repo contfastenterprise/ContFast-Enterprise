@@ -183,7 +183,8 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
       email: settings?.msellerEmail || 'latindoors@gmail.com',
       logoUrl: settings?.logoUrl || undefined,
       settings: { 
-        printLayout: settings?.printLayout || 'carta' 
+        printLayout: settings?.printLayout || 'carta',
+        printCopies: settings?.printCopies ?? 2
       }
     },
     customer: customer ? {

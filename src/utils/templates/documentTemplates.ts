@@ -219,7 +219,7 @@ export class DocumentTemplates {
       // Lines processing nested by warehouse and category
       const linesHtml = warehousesList.map((warehouse) => {
         const warehouseHeaderRow = `
-          <tr style="background-color: #005E6A; color: white; border-bottom: 2px solid #004650;">
+          <tr style="background-color: #ffffff; color: #000000; border-bottom: 2px solid #000000; border-top: 1px solid #000000;">
             <td colspan="8" style="font-weight: bold; font-size: 9.5pt; padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
               Almacén: ${warehouse}
             </td>
@@ -349,50 +349,10 @@ export class DocumentTemplates {
         ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">` 
         : '';
 
-      return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Factura ${inv.ncf}</title>
-          <style>
-            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
-            .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
-            .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
-            .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: 2px; }
-            .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
-            .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
-            
-            .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
-            
-            .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: 20px; }
-            .client-info { white-space: pre; }
-            .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 2px; }
-            
-            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .invoice-table th { background-color: #005E6A; color: #fff; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 8px 6px; border: none; text-align: left; }
-            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 8px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
-            .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
-            .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
-            
-            .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 25px; margin-bottom: 40px; }
-            
-            .totals-table { width: 100%; border-collapse: collapse; }
-            .totals-table td { border: none; padding: 2px 0; }
-            .totals-table .grand-total-row { font-weight: bold; border-top: 1px solid #ccc; border-bottom: 3px double #000; }
-            .totals-table .grand-total-row td { padding: 4px 0; font-size: 11pt; }
-            
-            .signature-container { display: flex; gap: 40px; font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #555; align-items: flex-end; }
-            .signature-line { text-align: center; width: 150px; }
-            .signature-line-border { border-top: 1px solid #777; padding-top: 6px; }
-            
-            .qr-signature-section { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
-            .qr-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: monospace; font-size: 8.5pt; }
-            .qr-img { width: 100px; height: 100px; }
-          </style>
-        </head>
-        <body>
+      const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
+
+      const renderSingleCopy = (copyLabel: string) => {
+        return `
           <div class="header-container">
             <div>
               ${logoHtml}
@@ -404,6 +364,9 @@ export class DocumentTemplates {
               </div>
             </div>
             <div class="doc-info">
+              <div style="font-weight: bold; font-size: 11pt; border: 2px solid #005E6A; color: #005E6A; padding: 2px 8px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px; font-family: 'Inter', sans-serif;">
+                ${copyLabel}
+              </div>
               <div class="doc-title">${getEcfTypeName(inv.ecfType)}</div>
               <div class="doc-ncf">e-NCF: <span style="font-family: monospace;">${inv.ncf}</span></div>
               <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
@@ -503,6 +466,67 @@ export class DocumentTemplates {
               </div>
             </div>
           </div>
+        `;
+      };
+
+      const copiesHtmlArray = [];
+      for (let i = 0; i < copiesCount; i++) {
+        const label = i === 0 ? 'ORIGINAL' : 'COPIA';
+        copiesHtmlArray.push(`
+          <div class="invoice-wrapper ${i > 0 ? 'page-break' : ''}">
+            ${renderSingleCopy(label)}
+          </div>
+        `);
+      }
+      const copiesHtml = copiesHtmlArray.join('');
+
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Factura ${inv.ncf}</title>
+          <style>
+            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
+            .page-break { page-break-before: always; }
+            .invoice-wrapper { width: 100%; box-sizing: border-box; }
+            .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+            .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
+            .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
+            .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: 2px; }
+            .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
+            .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
+            
+            .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
+            
+            .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: 20px; }
+            .client-info { white-space: pre; }
+            .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 2px; }
+            
+            .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 8px 6px; border-bottom: 2px solid #000000; text-align: left; }
+            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 8px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+            .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
+            .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
+            
+            .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 25px; margin-bottom: 40px; }
+            
+            .totals-table { width: 100%; border-collapse: collapse; }
+            .totals-table td { border: none; padding: 2px 0; }
+            .totals-table .grand-total-row { font-weight: bold; border-top: 1px solid #ccc; border-bottom: 3px double #000; }
+            .totals-table .grand-total-row td { padding: 4px 0; font-size: 11pt; }
+            
+            .signature-container { display: flex; gap: 40px; font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #555; align-items: flex-end; }
+            .signature-line { text-align: center; width: 150px; }
+            .signature-line-border { border-top: 1px solid #777; padding-top: 6px; }
+            
+            .qr-signature-section { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
+            .qr-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: monospace; font-size: 8.5pt; }
+            .qr-img { width: 100px; height: 100px; }
+          </style>
+        </head>
+        <body>
+          ${copiesHtml}
         </body>
         </html>
       `;

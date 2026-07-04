@@ -45,6 +45,7 @@ interface InvoiceDetail {
   pdfPath: string | null;
   msellerTrackId: string | null;
   codigoFactura: string | null;
+  securityCode?: string;
   createdAt: string;
   customerName: string | null;
   customerRnc: string | null;
@@ -367,6 +368,15 @@ export default function InvoiceDetailPage() {
           </h3>
 
           <div className="space-y-3 text-sm">
+            {invoice.securityCode && (
+              <div className="space-y-1">
+                <span className="text-xs text-on-surface-variant">Código de Seguridad:</span>
+                <p className="font-mono text-xs bg-[#001e40]/5 p-2 rounded break-all border border-[#001e40]/10 font-bold text-primary">
+                  {invoice.securityCode}
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1">
               <span className="text-xs text-on-surface-variant">Track ID (DGII/MSeller):</span>
               <p className="font-mono text-xs bg-surface-container-high/50 p-2 rounded break-all border border-outline-variant/20">
@@ -375,9 +385,18 @@ export default function InvoiceDetailPage() {
             </div>
 
             {invoice.dgiiMessage && (
-              <div className="bg-rose-500/5 p-3 rounded-lg border border-rose-500/10 space-y-1">
-                <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" /> DGII Responde:
+              <div className={`${
+                invoice.status === 'accepted'
+                  ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'bg-rose-500/5 border-rose-500/10 text-rose-500'
+              } p-3 rounded-lg border space-y-1`}>
+                <span className="text-xs font-semibold flex items-center gap-1">
+                  {invoice.status === 'accepted' ? (
+                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  ) : (
+                    <AlertCircle className="h-3 w-3 text-rose-500" />
+                  )}
+                  DGII Responde:
                 </span>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   {invoice.dgiiMessage}
