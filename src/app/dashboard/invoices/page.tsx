@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import DashboardLayout from '@/app/dashboard/layout';
+
 import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
@@ -16,6 +16,8 @@ import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
 import DateRangePicker from '@/components/ui/date-range-picker';
+import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
+import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 
 function InvoicesList() {
   const router = useRouter();
@@ -29,6 +31,8 @@ function InvoicesList() {
   const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
+  const [pendingPostAction, setPendingPostAction] = useState<'print' | 'email' | undefined>(undefined);
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,21 +89,10 @@ function InvoicesList() {
   const [sequences, setSequences] = useState<any[]>([]);
   const activeSequences = sequences.filter((s: any) => s.status === 'active');
 
-  // Product Search Modal states
-  const [productSearchModalOpen, setProductSearchModalOpen] = useState(false);
-  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
+  // Form reference data states
   const [categories, setCategories] = useState<any[]>([]);
-  const [modalSearchTerm, setModalSearchTerm] = useState('');
-  const [modalWarehouseFilter, setModalWarehouseFilter] = useState('');
-  const [modalCategoryFilter, setModalCategoryFilter] = useState('');
-  const [modalProducts, setModalProducts] = useState<any[]>([]);
-  const [modalProductsLoading, setModalProductsLoading] = useState(false);
-
-  // Customer Search Modal states
-  const [customerSearchModalOpen, setCustomerSearchModalOpen] = useState(false);
-  const [modalCustomerSearch, setModalCustomerSearch] = useState('');
-  const [modalCustomers, setModalCustomers] = useState<any[]>([]);
-  const [modalCustomersLoading, setModalCustomersLoading] = useState(false);
+  const [activePriceTierSelectIdx, setActivePriceTierSelectIdx] = useState<number | null>(null);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
 
   // Create Customer Modal states
   const [createCustomerModalOpen, setCreateCustomerModalOpen] = useState(false);
@@ -115,35 +108,7 @@ function InvoicesList() {
   const [rncVerified, setRncVerified] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
-  const fetchModalCustomers = useCallback(async (search = '') => {
-    setModalCustomersLoading(true);
-    try {
-      const url = `/api/v1/customers?limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setModalCustomers(data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching customers for modal', error);
-    } finally {
-      setModalCustomersLoading(false);
-    }
-  }, []);
 
-  const openCustomerSearchModal = () => {
-    setModalCustomerSearch('');
-    setModalCustomers([]);
-    setCustomerSearchModalOpen(true);
-    fetchModalCustomers();
-  };
-
-  useEffect(() => {
-    const delay = setTimeout(() => {
-      fetchModalCustomers(modalCustomerSearch);
-    }, 450);
-    return () => clearTimeout(delay);
-  }, [modalCustomerSearch, fetchModalCustomers]);
 
   const handleNewCustomerSearchDGII = async () => {
     const rnc = newCustomerData.rncCedula.replace(/\D/g, '');
@@ -224,42 +189,9 @@ function InvoicesList() {
     setCustomerRnc(cust.rncCedula || '');
     setCustomerName(cust.name || '');
     setCustomerPhone(cust.phone || '');
-    setCustomerSearchModalOpen(false);
   };
 
-  const fetchModalProducts = useCallback(async (search = '', catId = '', whId = '') => {
-    setModalProductsLoading(true);
-    try {
-      let url = `/api/v1/products?per_page=50&search=${encodeURIComponent(search)}`;
-      if (catId) url += `&categoryId=${catId}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setModalProducts(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching modal products', error);
-    } finally {
-      setModalProductsLoading(false);
-    }
-  }, []);
 
-  const openProductSearchModal = (lineIdx: number) => {
-    setActiveLineIndex(lineIdx);
-    setModalWarehouseFilter(warehouseId);
-    setModalCategoryFilter('');
-    setModalSearchTerm('');
-    setProductSearchModalOpen(true);
-  };
-
-  useEffect(() => {
-    if (productSearchModalOpen) {
-      const delayDebounceFn = setTimeout(() => {
-        fetchModalProducts(modalSearchTerm, modalCategoryFilter, modalWarehouseFilter);
-      }, 300);
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [modalSearchTerm, modalCategoryFilter, modalWarehouseFilter, productSearchModalOpen, fetchModalProducts]);
 
   // Load products, warehouses and categories when form opens
   // Load sequences on mount (for filter bar and form default)
@@ -271,7 +203,7 @@ function InvoicesList() {
         if (data.success) {
           const seqs = data.data || [];
           setSequences(seqs);
-          
+
           const activeSeqs = seqs.filter((s: any) => s.status === 'active');
           if (activeSeqs.length > 0) {
             const isCurrentActive = activeSeqs.some((s: any) => s.ecfType === ecfType);
@@ -296,14 +228,16 @@ function InvoicesList() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [res, whRes, catRes] = await Promise.all([
+        const [res, whRes, catRes, custRes] = await Promise.all([
           fetch('/api/v1/products?per_page=100'),
           fetch('/api/v1/warehouses'),
-          fetch('/api/v1/categories')
+          fetch('/api/v1/categories'),
+          fetch('/api/v1/customers?limit=100')
         ]);
         const data = await res.json();
         const whData = await whRes.json();
         const catData = await catRes.json();
+        const custData = await custRes.json();
         if (data.success) {
           setDbProducts(data.data || []);
         }
@@ -315,6 +249,9 @@ function InvoicesList() {
         }
         if (catData.success) {
           setCategories(catData.data || []);
+        }
+        if (custData.success) {
+          setDbCustomers(custData.data || []);
         }
       } catch (error) {
         console.error('Error fetching form data', error);
@@ -377,8 +314,8 @@ function InvoicesList() {
       if (stored) {
         setCurrentUser(JSON.parse(stored));
       }
-    } catch(e) {}
-    
+    } catch (e) { }
+
     const fetchUser = async () => {
       try {
         const res = await fetch('/api/v1/auth/me');
@@ -386,7 +323,7 @@ function InvoicesList() {
         if (data.success && data.data?.user) {
           setCurrentUser(data.data.user);
         }
-      } catch (err) {}
+      } catch (err) { }
     };
     fetchUser();
   }, []);
@@ -703,6 +640,44 @@ function InvoicesList() {
     }
   };
 
+  const handleSubmitTrigger = (e?: React.FormEvent, postAction?: 'print' | 'email') => {
+    if (e) e.preventDefault();
+    try {
+      if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
+        throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
+      }
+      if (lines.length === 0 || lines.some((l) => !l.productId)) {
+        throw new Error('La factura debe tener al menos una línea de producto seleccionada.');
+      }
+      if (lines.some((l) => !l.productName)) {
+        throw new Error('Todos los artículos deben tener un nombre.');
+      }
+      if (lines.some((l) => Number(l.quantity) <= 0)) {
+        throw new Error('La cantidad debe ser mayor a cero.');
+      }
+
+      const isNote = ecfType === '33' || ecfType === '34';
+      if (isNote) {
+        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
+        if (!validIndicadores.includes(indicadorNotaCredito)) {
+          throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
+        }
+        if (!modifiedNcf) {
+          throw new Error('El NCF modificado es requerido para Notas de Crédito y Notas de Débito.');
+        }
+      }
+
+      if (paymentType === 'bank_transfer' && (!bankName || !transactionNumber)) {
+        throw new Error('El banco y número de transferencia son requeridos para pagos por transferencia.');
+      }
+
+      setPendingPostAction(postAction);
+      setShowPrintConfirmModal(true);
+    } catch (error: any) {
+      toast.error('Error de validación', { description: error.message });
+    }
+  };
+
   const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'email') => {
     e.preventDefault();
     setSaveDropdownOpen(false);
@@ -824,9 +799,25 @@ function InvoicesList() {
 
       // Post-action: print or email
       if (postAction === 'print') {
+        // 1. Open print window (Print)
         setTimeout(() => {
           window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
         }, 500);
+
+        // 2. Also send by email if customer exists
+        if (data.data.customerId) {
+          try {
+            const emailRes = await fetch(`/api/v1/invoices/${invoiceId}/email`, { method: 'POST' });
+            const emailData = await emailRes.json();
+            if (emailRes.ok && emailData.success) {
+              toast.success('Correo enviado', { description: emailData.message });
+            } else {
+              toast.error('Error al enviar correo', { description: emailData.error?.message });
+            }
+          } catch {
+            toast.error('Error de red al enviar el correo.');
+          }
+        }
       } else if (postAction === 'email') {
         if (!data.data.customerId) {
           toast.warning('No se puede enviar correo', { description: 'La factura no tiene un cliente con correo asociado.' });
@@ -935,7 +926,7 @@ function InvoicesList() {
               </div>
             </div>
 
-            <form onSubmit={handleIssueInvoice} className="space-y-8">
+            <form onSubmit={(e) => handleSubmitTrigger(e)} className="space-y-8">
               {/* General Settings */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
                 <div className="space-y-2">
@@ -1027,72 +1018,72 @@ function InvoicesList() {
                   </div>
                 )}
                 {modifiedNcf && (
-                   <div className="col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-2">
-                     <div className="flex items-center justify-between">
-                       <div>
-                         <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
-                         <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
-                       </div>
-                       <button
-                         type="button"
-                         onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
-                         className="text-xs text-rose-600 font-bold hover:underline"
-                       >
-                         Remover Referencia
-                       </button>
-                     </div>
+                  <div className="col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
+                        <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
+                        className="text-xs text-rose-600 font-bold hover:underline"
+                      >
+                        Remover Referencia
+                      </button>
+                    </div>
 
-                     {(ecfType === '33' || ecfType === '34') && (
-                        <div className="max-w-xs pt-2 border-t border-amber-200">
-                          <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            Motivo / Tipo de Ajuste
-                            <span className="text-rose-500 font-bold">*</span>
-                          </label>
-                          {ecfType === '34' ? (
-                            <select
-                              value={indicadorNotaCredito}
-                              onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                              required
-                              className={clsx(
-                                'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
-                                indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
-                              )}
-                            >
-                              <option value={0} disabled>— Seleccione el motivo —</option>
-                              <option value={1}>1 - Anulación completa</option>
-                              <option value={2}>2 - Corrección de texto</option>
-                              <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
-                            </select>
-                          ) : (
-                            <select
-                              value={indicadorNotaCredito}
-                              onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                              required
-                              className={clsx(
-                                'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
-                                indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
-                              )}
-                            >
-                              <option value={0} disabled>— Seleccione el motivo —</option>
-                              <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
-                              <option value={3}>3 - Ajuste de cantidad</option>
-                              <option value={4}>4 - Otros</option>
-                            </select>
-                          )}
-                          {indicadorNotaCredito === 0 && (
-                            <p className="mt-1 text-[10px] text-rose-500 font-semibold flex items-center gap-1">
-                              <span>⚠</span> Campo obligatorio
-                            </p>
-                          )}
-                        </div>
-                      )}
-                   </div>
-                 )}
+                    {(ecfType === '33' || ecfType === '34') && (
+                      <div className="max-w-xs pt-2 border-t border-amber-200">
+                        <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          Motivo / Tipo de Ajuste
+                          <span className="text-rose-500 font-bold">*</span>
+                        </label>
+                        {ecfType === '34' ? (
+                          <select
+                            value={indicadorNotaCredito}
+                            onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                            required
+                            className={clsx(
+                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                              indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                            )}
+                          >
+                            <option value={0} disabled>— Seleccione el motivo —</option>
+                            <option value={1}>1 - Anulación completa</option>
+                            <option value={2}>2 - Corrección de texto</option>
+                            <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
+                          </select>
+                        ) : (
+                          <select
+                            value={indicadorNotaCredito}
+                            onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                            required
+                            className={clsx(
+                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                              indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                            )}
+                          >
+                            <option value={0} disabled>— Seleccione el motivo —</option>
+                            <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
+                            <option value={3}>3 - Ajuste de cantidad</option>
+                            <option value={4}>4 - Otros</option>
+                          </select>
+                        )}
+                        {indicadorNotaCredito === 0 && (
+                          <p className="mt-1 text-[10px] text-rose-500 font-semibold flex items-center gap-1">
+                            <span>⚠</span> Campo obligatorio
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Customer Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-                <div className="col-span-1 md:col-span-3 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+                <div className="col-span-1 md:col-span-4 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-[#C5A059]" />
                     <div>
@@ -1100,33 +1091,16 @@ function InvoicesList() {
                       <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={openCustomerSearchModal}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
-                    >
-                      <Search className="h-3.5 w-3.5" />
-                      Buscar Cliente
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreateCustomerModalOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 border border-amber-600 rounded-lg text-xs font-bold text-slate-900 transition-all shadow-sm"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Nuevo Cliente
-                    </button>
-                  </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 md:col-span-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social</label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="Ej: Distribuidora Comercial S.A."
+                  <CustomerAutocomplete
+                    dbCustomers={dbCustomers}
+                    customerId={customerId}
+                    customerName={customerName}
+                    onSelect={(c) => applyCustomer(c)}
+                    onTextChange={(val) => setCustomerName(val)}
+                    onCreateNew={() => setCreateCustomerModalOpen(true)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1136,7 +1110,7 @@ function InvoicesList() {
                     value={customerRnc}
                     readOnly
                     className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="Buscar o crear cliente..."
+                    placeholder="222222222"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1146,7 +1120,7 @@ function InvoicesList() {
                     value={customerPhone}
                     readOnly
                     className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="Buscar o crear cliente..."
+                    placeholder="809-555-5555"
                   />
                 </div>
               </div>
@@ -1155,6 +1129,19 @@ function InvoicesList() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
+                </div>
+
+                {/* Table Header for desktop */}
+                <div className="hidden md:grid md:grid-cols-[3fr_1.2fr_0.8fr_1.2fr_1fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
+                  <div>Producto / Servicio</div>
+                  <div>Medida</div>
+                  <div>Cant.</div>
+                  <div>Nivel de Precio</div>
+                  <div>Precio Unit.</div>
+                  <div>Desc. Unit.</div>
+                  <div>ITBIS</div>
+                  <div className="text-right">Total</div>
+                  <div className="text-center">Acción</div>
                 </div>
 
                 <div className="space-y-3">
@@ -1166,183 +1153,161 @@ function InvoicesList() {
                     const lineTotal = lineTaxable + lineTax;
                     const hasProduct = !!line.productId;
 
+                    // Fetch dynamic price tiers from dbProducts if available
+                    const matchedProduct = dbProducts.find(p => p.id === line.productId);
+                    const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor) || parseFloat(matchedProduct.price) || 0) : null;
+                    const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista) || parseFloat(matchedProduct.price) || 0) : null;
+                    const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor) || parseFloat(matchedProduct.price) || 0) : null;
+
                     return (
-                      <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
-                        {/* Upper row: Selection, Name, Barcode & Image Preview */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
-
-                          {/* Image preview (if exists) */}
-                          <div className="md:col-span-1 flex items-center justify-center bg-white border border-slate-200 rounded-lg h-[42px] w-[42px] overflow-hidden self-end">
-                            {line.imageUrl ? (
-                              <img src={line.imageUrl} alt="preview" className="h-full w-full object-cover" />
-                            ) : (
-                              <FileText className="h-5 w-5 text-on-surface-variant/80" />
-                            )}
-                          </div>
-
-                          {/* Product Selection / Custom Name */}
-                          <div className="md:col-span-4 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openProductSearchModal(idx)}
-                                className="flex items-center px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-[#003366] transition-all"
-                                title="Buscar Producto"
-                              >
-                                <Search className="h-3.5 w-3.5" />
-                              </button>
-                              <input
-                                type="text"
-                                value={line.productName}
-                                onChange={(e) => handleLineChange(idx, 'productName', e.target.value)}
-                                className="flex-1 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                                placeholder="Nombre del producto o servicio"
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          {/* Warehouse Selector */}
-                          <div className="md:col-span-3 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Almacén</label>
-                            <select
-                              value={line.warehouseId || warehouseId}
-                              onChange={(e) => handleLineChange(idx, 'warehouseId', e.target.value)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                            >
-                              {warehouses.map(w => (
-                                <option key={w.id} value={w.id}>{w.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Barcode input */}
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Código de Barras</label>
-                            <input
-                              type="text"
-                              value={line.barcode || ''}
-                              onChange={(e) => handleBarcodeSearch(idx, e.target.value)}
-                              className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
-                              placeholder="Escanear o ingresar"
-                            />
-                          </div>
-
-                          {/* Unit of measure */}
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Medida</label>
-                            <select
-                              value={line.unitOfMeasure || 'unidad'}
-                              onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
-                              disabled={!hasProduct}
-                              className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                            >
-                              <option value="unidad">Unidad</option>
-                              <option value="pie">Pie</option>
-                              <option value="pieza">Pieza</option>
-                              <option value="centimetro">Centímetro</option>
-                              <option value="plancha">Plancha</option>
-                              <option value="otro">Otro</option>
-                            </select>
-                          </div>
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_1.2fr_0.8fr_1.2fr_1fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
+                        {/* Product Selection / Autocomplete */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
+                          <ProductAutocomplete
+                            dbProducts={dbProducts}
+                            categories={categories}
+                            warehouses={warehouses}
+                            valueName={line.productName}
+                            hasProduct={hasProduct}
+                            onSelect={(p) => applyProductToLine(idx, p)}
+                            onTextChange={(val) => handleLineChange(idx, 'productName', val)}
+                          />
                         </div>
 
-                        {/* Lower row: Quantities, Price tier, unitPrice, discount, taxRate, calculated total & delete button */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
-                          <div className="md:col-span-1 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
-                            <input
-                              type="number"
-                              value={line.quantity}
-                              onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                              disabled={!hasProduct}
-                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                              min={0.0001} step="any" required
-                            />
-                          </div>
+                        {/* Unit of measure */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Medida</label>
+                          <select
+                            value={line.unitOfMeasure || 'unidad'}
+                            onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
+                            disabled={!hasProduct}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                          >
+                            <option value="unidad">Unidad</option>
+                            <option value="pie">Pie</option>
+                            <option value="pieza">Pieza</option>
+                            <option value="centimetro">Centímetro</option>
+                            <option value="plancha">Plancha</option>
+                            <option value="otro">Otro</option>
+                          </select>
+                        </div>
 
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
-                            <select
-                              value={line.priceTier || 'consumidor'}
-                              onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
-                              disabled={!hasProduct}
-                              className={`w-full rounded-lg border py-2 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                            >
-                              <option value="consumidor">Consumidor (P1)</option>
-                              <option value="mayorista">Mayorista (P3)</option>
-                              <option value="proveedor">Proveedor (P2)</option>
-                            </select>
-                          </div>
+                        {/* Cant. */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
+                          <input
+                            type="number"
+                            value={line.quantity}
+                            onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                            disabled={!hasProduct}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                            min={0.0001} step="any" required
+                          />
+                        </div>
 
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
-                            <input
-                              type="number"
-                              value={line.unitPrice}
-                              readOnly
-                              className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2.5 px-2 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
-                              min={0} step="any" required
-                            />
-                          </div>
+                        {/* Price tier */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
+                          <select
+                            value={line.priceTier || 'consumidor'}
+                            onFocus={() => setActivePriceTierSelectIdx(idx)}
+                            onBlur={() => setActivePriceTierSelectIdx(null)}
+                            onChange={(e) => {
+                              handlePriceTierChange(idx, e.target.value as any);
+                              e.target.blur();
+                            }}
+                            disabled={!hasProduct}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                          >
+                            <option value="consumidor">
+                              {activePriceTierSelectIdx === idx
+                                ? 'Consumidor'
+                                : (priceConsumidor !== null ? priceConsumidor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Consumidor (P1)')}
+                            </option>
+                            <option value="mayorista">
+                              {activePriceTierSelectIdx === idx
+                                ? 'Mayorista'
+                                : (priceMayorista !== null ? priceMayorista.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Mayorista (P3)')}
+                            </option>
+                            <option value="proveedor">
+                              {activePriceTierSelectIdx === idx
+                                ? 'Proveedor'
+                                : (priceProveedor !== null ? priceProveedor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Proveedor (P2)')}
+                            </option>
+                          </select>
+                        </div>
 
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
-                            {(() => {
-                              const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
-                              const canEditDiscount = userRole.includes('sistema') || userRole.includes('admin');
+                        {/* Precio Unit. */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
+                          <input
+                            type="number"
+                            value={line.unitPrice}
+                            readOnly
+                            className="w-full rounded-lg bg-slate-100 border border-slate-300 py-1.5 px-2 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
+                            min={0} step="any" required
+                          />
+                        </div>
 
-                              return (
-                                <input
-                                  type="number"
-                                  value={line.discount || 0}
-                                  onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                  disabled={!hasProduct || !canEditDiscount}
-                                  className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${
-                                    !hasProduct
-                                      ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
-                                      : !canEditDiscount
-                                        ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
-                                        : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
+                        {/* Desc. Unit. */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
+                          {(() => {
+                            const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
+                            const canEditDiscount = userRole.includes('sistema') || userRole.includes('admin');
+
+                            return (
+                              <input
+                                type="number"
+                                value={line.discount || 0}
+                                onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                                disabled={!hasProduct || !canEditDiscount}
+                                className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct
+                                    ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
+                                    : !canEditDiscount
+                                      ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
+                                      : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
                                   }`}
-                                  min={0}
-                                  step="any"
-                                  title={!canEditDiscount ? 'Solo administradores pueden aplicar descuentos' : ''}
-                                />
-                              );
-                            })()}
-                          </div>
+                                min={0}
+                                step="any"
+                                title={!canEditDiscount ? 'Solo administradores pueden aplicar descuentos' : ''}
+                              />
+                            );
+                          })()}
+                        </div>
 
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
-                            <select
-                              value={line.taxRate}
-                              onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
-                              disabled={!hasProduct}
-                              className={`w-full rounded-lg border py-2.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                            >
-                              <option value="0.18">18% ITBIS</option>
-                              <option value="0.16">16% ITBIS</option>
-                              <option value="0.00">0% Exento</option>
-                            </select>
-                          </div>
+                        {/* ITBIS (Tasa) */}
+                        <div className="space-y-1.5 md:space-y-0">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
+                          <select
+                            value={line.taxRate}
+                            onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
+                            disabled={!hasProduct}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                          >
+                            <option value="0.18">18% ITBIS</option>
+                            <option value="0.16">16% ITBIS</option>
+                            <option value="0.00">0% Exento</option>
+                          </select>
+                        </div>
 
-                          <div className="md:col-span-2 space-y-1.5">
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Fila</label>
-                            <input
-                              type="text"
-                              value={`RD$ ${lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                              disabled
-                              className="w-full rounded-lg bg-slate-100 border border-slate-200 py-2.5 px-2 text-[#003366] text-xs font-semibold"
-                            />
-                          </div>
+                        {/* Total Fila */}
+                        <div className="space-y-1.5 md:space-y-0 text-right">
+                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-left">Total Fila</label>
+                          <input
+                            type="text"
+                            value={lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            disabled
+                            className="w-full rounded-lg bg-slate-100 border border-slate-200 py-1.5 px-2 text-[#003366] text-xs font-semibold md:text-right"
+                          />
+                        </div>
 
-                          <div className="md:col-span-1 flex justify-end">
-                            <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                        {/* Delete Button */}
+                        <div className="flex justify-end md:justify-center items-center">
+                          <button type="button" onClick={() => handleRemoveLine(idx)} className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -1499,8 +1464,7 @@ function InvoicesList() {
                               disabled={submitting}
                               onClick={() => {
                                 setSaveDropdownOpen(false);
-                                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                                handleIssueInvoice(fakeEvent, 'print');
+                                handleSubmitTrigger(undefined, 'print');
                               }}
                               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
                             >
@@ -1516,10 +1480,9 @@ function InvoicesList() {
                             <button
                               type="button"
                               disabled={submitting}
-                              onClick={(e) => {
+                              onClick={() => {
                                 setSaveDropdownOpen(false);
-                                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                                handleIssueInvoice(fakeEvent, 'email');
+                                handleSubmitTrigger(undefined, 'email');
                               }}
                               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 transition-colors text-left"
                             >
@@ -2172,266 +2135,9 @@ function InvoicesList() {
         )}
       </AnimatePresence>
 
-      {/* Product Search Modal (Size: 4xl) */}
-      <AnimatePresence>
-        {productSearchModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setProductSearchModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] z-10"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                  <Package className="h-5 w-5 text-[#C5A059]" /> Búsqueda de Productos
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setProductSearchModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
 
-              {/* Filters */}
-              <div className="p-4 bg-slate-100 border-b border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={modalSearchTerm}
-                    onChange={(e) => setModalSearchTerm(e.target.value)}
-                    placeholder="Buscar por nombre, SKU o barra..."
-                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#C5A059]"
-                  />
-                </div>
 
-                <select
-                  value={modalCategoryFilter}
-                  onChange={(e) => setModalCategoryFilter(e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
-                >
-                  <option value="">Todas las categorías</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
 
-                <select
-                  value={modalWarehouseFilter}
-                  onChange={(e) => setModalWarehouseFilter(e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#C5A059]"
-                >
-                  <option value="">Todos los almacenes</option>
-                  {warehouses.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* List */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {modalProductsLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-                  </div>
-                ) : modalProducts.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 text-sm">
-                    No se encontraron productos con los filtros seleccionados.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 text-[#003366] uppercase font-bold border-b border-slate-200">
-                          <th className="p-3">SKU / Código</th>
-                          <th className="p-3">Producto</th>
-                          <th className="p-3 text-center">Stock Físico</th>
-                          <th className="p-3 text-center">Existencia</th>
-                          <th className="p-3 text-right">Precio Consumidor</th>
-                          <th className="p-3 text-right">Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {modalProducts.map((p) => {
-                          let stockQty = 0;
-                          let availQty = 0;
-                          let showAllStock = !modalWarehouseFilter;
-                          if (modalWarehouseFilter) {
-                            const level = p.inventory?.find((l: any) => l.warehouseId === modalWarehouseFilter);
-                            stockQty = level ? parseFloat(level.quantity) : 0;
-                            availQty = level ? parseFloat(level.availableQuantity || level.quantity) : 0;
-                          } else {
-                            stockQty = p.inventory?.reduce((acc: number, cur: any) => acc + parseFloat(cur.quantity), 0) || 0;
-                            availQty = p.inventory?.reduce((acc: number, cur: any) => acc + parseFloat(cur.availableQuantity || cur.quantity), 0) || 0;
-                          }
-
-                          return (
-                            <tr 
-                              key={p.id} 
-                              className="hover:bg-slate-50 transition-colors cursor-pointer"
-                              onDoubleClick={() => {
-                                if (activeLineIndex !== null) {
-                                  applyProductToLine(activeLineIndex, p);
-                                  setProductSearchModalOpen(false);
-                                }
-                              }}
-                            >
-                              <td className="p-3 font-mono font-bold text-slate-500">{p.sku || p.barcode || '-'}</td>
-                              <td className="p-3">
-                                <span className="font-bold text-slate-800 block">{p.name}</span>
-                                {p.description && <span className="text-[10px] text-slate-400 block truncate max-w-[200px]">{p.description}</span>}
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] bg-slate-100 text-slate-700">
-                                  {stockQty.toFixed(2)} {p.unitOfMeasure || 'ud'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded font-bold text-[10px] ${availQty > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                                  {availQty.toFixed(2)} {p.unitOfMeasure || 'ud'}
-                                </span>
-                                {showAllStock && p.inventory?.length > 0 && (
-                                  <span className="block text-[8px] text-slate-400 mt-0.5">Total disponible</span>
-                                )}
-                              </td>
-                              <td className="p-3 text-right font-mono font-bold text-slate-700">RD$ {parseFloat(p.priceConsumidor || p.price || '0').toFixed(2)}</td>
-                              <td className="p-3 text-right">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (activeLineIndex !== null) {
-                                      applyProductToLine(activeLineIndex, p);
-                                      setProductSearchModalOpen(false);
-                                    }
-                                  }}
-                                  className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-1 px-3 rounded text-[10px] transition-colors"
-                                >
-                                  Seleccionar
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Customer Search Modal */}
-      <AnimatePresence>
-        {customerSearchModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCustomerSearchModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] z-10"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                  <Users className="h-5 w-5 text-[#C5A059]" /> Búsqueda de Clientes
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setCustomerSearchModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Search input */}
-              <div className="p-4 bg-slate-100 border-b border-slate-200">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={modalCustomerSearch}
-                    onChange={(e) => setModalCustomerSearch(e.target.value)}
-                    placeholder="Buscar por nombre, RNC o cédula de identidad..."
-                    className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:border-[#C5A059]"
-                  />
-                </div>
-              </div>
-
-              {/* List */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {modalCustomersLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-                  </div>
-                ) : modalCustomers.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 text-sm">
-                    No se encontraron clientes en el directorio.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-slate-50 text-[#003366] uppercase font-bold border-b border-slate-200">
-                          <th className="p-3">Nombre / Razón Social</th>
-                          <th className="p-3">RNC o Cédula</th>
-                          <th className="p-3">Contacto</th>
-                          <th className="p-3 text-right">Acción</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {modalCustomers.map((c) => (
-                          <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="p-3">
-                              <span className="font-bold text-slate-800 block">{c.name}</span>
-                              {c.address && <span className="text-[10px] text-slate-400 block truncate max-w-[250px]">{c.address}</span>}
-                            </td>
-                            <td className="p-3 font-mono text-slate-600">{c.rncCedula || '-'}</td>
-                            <td className="p-3 text-slate-500">
-                              {c.email && <div className="block">{c.email}</div>}
-                              {c.phone && <div className="block mt-0.5">{c.phone}</div>}
-                              {!c.email && !c.phone && <span className="text-slate-400">-</span>}
-                            </td>
-                            <td className="p-3 text-right">
-                              <button
-                                type="button"
-                                onClick={() => applyCustomer(c)}
-                                className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-1.5 px-3 rounded text-[10px] transition-colors"
-                              >
-                                Seleccionar
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Create Customer Modal */}
       <AnimatePresence>
@@ -2566,6 +2272,89 @@ function InvoicesList() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+
+        {showPrintConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPrintConfirmModal(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white border border-[#003366] rounded-2xl max-w-md w-full shadow-2xl z-10 overflow-hidden"
+            >
+              <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-4">
+                <h3 className="text-lg font-display font-bold text-white tracking-tight flex items-center gap-2">
+                  <Printer className="h-5 w-5 text-[#c5a059]" /> Confirmar Impresión
+                </h3>
+                <button onClick={() => setShowPrintConfirmModal(false)} className="text-white/70 hover:text-white transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-600">
+                  Por favor, verifique los datos del comprobante antes de proceder con la emisión e impresión:
+                </p>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3 font-medium text-sm">
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="text-slate-500 text-xs uppercase tracking-wider">Cliente:</span>
+                    <span className="text-slate-900 text-right font-semibold">{customerName || 'Consumidor Final'}</span>
+                  </div>
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="text-slate-500 text-xs uppercase tracking-wider">Comprobante:</span>
+                    <span className="text-slate-900 text-right font-semibold">
+                      {ecfType === '31' ? 'Crédito Fiscal (e-31)' :
+                       ecfType === '32' ? 'Consumo (e-32)' :
+                       ecfType === '33' ? 'Nota de Débito (e-33)' :
+                       ecfType === '34' ? 'Nota de Crédito (e-34)' :
+                       ecfType === '45' ? 'Gubernamental (e-45)' : 'Consumo (e-32)'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center gap-4">
+                    <span className="text-slate-500 text-xs uppercase tracking-wider">Método de Pago:</span>
+                    <span className="text-slate-900 text-right font-semibold">
+                      {paymentType === 'cash' ? 'Efectivo' :
+                       paymentType === 'credit' ? 'Crédito' :
+                       paymentType === 'bank_transfer' ? 'Transferencia Bancaria' : 'Efectivo'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center gap-4 pt-2 border-t border-slate-200 text-base font-bold">
+                    <span className="text-slate-900 text-xs uppercase tracking-wider">Monto Total:</span>
+                    <span className="text-emerald-600">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPrintConfirmModal(false)}
+                  className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPrintConfirmModal(false);
+                    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                    handleIssueInvoice(fakeEvent, pendingPostAction);
+                  }}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-xl text-xs font-bold transition-all shadow-md"
+                >
+                  Aceptar
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
