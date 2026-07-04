@@ -79,7 +79,11 @@ export default function DeliveryNotesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || 'Código aplicado con éxito.');
+        if (data.alreadyApproved) {
+          toast.warning(data.message || 'El conduce ya está aprobado.');
+        } else {
+          toast.success(data.message || 'Código aplicado con éxito.');
+        }
         setApplyCode('');
         // Refresh delivery notes list
         loadDeliveryNotes();

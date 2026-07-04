@@ -30,6 +30,7 @@ function InvoicesList() {
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
   const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
   const [pendingPostAction, setPendingPostAction] = useState<'print' | 'email' | undefined>(undefined);
@@ -493,6 +494,16 @@ function InvoicesList() {
     setLines(updated);
   };
 
+  const clearProductFromLine = (idx: number) => {
+    const updated = [...lines];
+    updated[idx].productId = '';
+    updated[idx].productName = '';
+    updated[idx].unitPrice = 0;
+    updated[idx].barcode = '';
+    updated[idx].imageUrl = '';
+    setLines(updated);
+  };
+
   const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
     const updated = [...lines];
     updated[idx].priceTier = tier;
@@ -572,6 +583,7 @@ function InvoicesList() {
     setIndicadorNotaCredito(0); // Reset to force explicit selection
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'consumidor', imageUrl: '' }]);
     setQuoteId('');
+    setEditingDraftId(null);
   };
 
   const buildInvoicePayload = () => ({
@@ -629,6 +641,13 @@ function InvoicesList() {
       toast.success('Factura guardada en Borrador', {
         description: `Código: ${data.data.codigoFactura}. Puedes emitirla más tarde.`
       });
+      if (editingDraftId) {
+        try {
+          await fetch(`/api/v1/invoices/${editingDraftId}`, { method: 'DELETE' });
+        } catch (e) {
+          console.error('Failed to clean up old draft', e);
+        }
+      }
       setShowForm(false);
       router.replace('/dashboard/invoices');
       resetForm();
@@ -640,7 +659,64 @@ function InvoicesList() {
     }
   };
 
-  const handleSubmitTrigger = (e?: React.FormEvent, postAction?: 'print' | 'email') => {
+  const handleLoadDraft = async (draftId: string) => {
+    try {
+      const res = await fetch(`/api/v1/invoices/${draftId}`);
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error?.message || 'No se pudo cargar el borrador.');
+      }
+      const draft = data.data;
+
+      setCustomerId(draft.customerId || '');
+      setCustomerName(draft.buyerName || draft.customerName || '');
+      setCustomerRnc(draft.buyerRnc || draft.customerRnc || '');
+      setCustomerPhone(draft.customerPhone || '');
+
+      setEcfType(draft.ecfType || '32');
+      setPaymentType(draft.paymentType || 'cash');
+      setBankName(draft.bankName || '');
+      setTransactionNumber(draft.transactionNumber || '');
+      setNotes(draft.notes || '');
+
+      const mappedLines = draft.lines.map((l: any) => ({
+        productId: l.productId,
+        productName: l.productName,
+        quantity: parseFloat(l.quantity) || 1,
+        unitPrice: parseFloat(l.unitPrice) || 0,
+        discount: parseFloat(l.discount) || 0,
+        taxRate: 0.18,
+        unitOfMeasure: l.unitOfMeasure || 'unidad',
+        barcode: l.barcode || '',
+        priceTier: 'consumidor',
+        warehouseId: l.warehouseId || draft.warehouseId
+      }));
+      setLines(mappedLines);
+
+      setEditingDraftId(draftId);
+      setShowForm(true);
+      toast.success('Borrador cargado correctamente');
+    } catch (error: any) {
+      toast.error('Error al cargar borrador', { description: error.message });
+    }
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar este borrador de forma permanente?')) return;
+    try {
+      const res = await fetch(`/api/v1/invoices/${draftId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || 'Error al eliminar borrador.');
+      }
+      toast.success('Borrador eliminado correctamente');
+      loadInvoices();
+    } catch (error: any) {
+      toast.error('Error al eliminar borrador', { description: error.message });
+    }
+  };
+
+  const handleSubmitTrigger = (e?: React.FormEvent, postAction: 'print' | 'email' = 'print') => {
     if (e) e.preventDefault();
     try {
       if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
@@ -774,6 +850,13 @@ function InvoicesList() {
               description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.`
             });
 
+            if (editingDraftId) {
+              try {
+                await fetch(`/api/v1/invoices/${editingDraftId}`, { method: 'DELETE' });
+              } catch (e) {
+                console.error('Failed to clean up draft', e);
+              }
+            }
             setShowForm(false);
             router.replace('/dashboard/invoices');
             resetForm();
@@ -792,6 +875,13 @@ function InvoicesList() {
 
       const invoiceId = data.data.id;
 
+      if (editingDraftId) {
+        try {
+          await fetch(`/api/v1/invoices/${editingDraftId}`, { method: 'DELETE' });
+        } catch (e) {
+          console.error('Failed to clean up draft', e);
+        }
+      }
       setShowForm(false);
       router.replace('/dashboard/invoices');
       resetForm();
@@ -1101,16 +1191,21 @@ function InvoicesList() {
                     onSelect={(c) => applyCustomer(c)}
                     onTextChange={(val) => setCustomerName(val)}
                     onCreateNew={() => setCreateCustomerModalOpen(true)}
+                    onClear={() => {
+                      setCustomerId('');
+                      setCustomerName('');
+                      setCustomerRnc('');
+                      setCustomerPhone('');
+                    }}
                   />
                 </div>
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
                   <input
                     type="text"
                     value={customerRnc}
                     readOnly
-                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="222222222"
+                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1119,8 +1214,7 @@ function InvoicesList() {
                     type="text"
                     value={customerPhone}
                     readOnly
-                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all placeholder:text-on-surface-variant/80"
-                    placeholder="809-555-5555"
+                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
                   />
                 </div>
               </div>
@@ -1172,6 +1266,9 @@ function InvoicesList() {
                             hasProduct={hasProduct}
                             onSelect={(p) => applyProductToLine(idx, p)}
                             onTextChange={(val) => handleLineChange(idx, 'productName', val)}
+                            selectedWarehouseId={line.warehouseId || warehouseId}
+                            onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
+                            onClear={() => clearProductFromLine(idx)}
                           />
                         </div>
 
@@ -1758,7 +1855,7 @@ function InvoicesList() {
                                 >
                                   <Printer className="h-3.5 w-3.5" />
                                 </button>
-                                {inv.customerId && (
+                                {inv.customerId && inv.status !== 'draft' && (
                                   <button
                                     onClick={() => handleResendEmail(inv.id)}
                                     disabled={resendingEmailId === inv.id}
@@ -1773,9 +1870,22 @@ function InvoicesList() {
                                   </button>
                                 )}
                                 {inv.status === 'draft' && (
-                                  <button className="p-1.5 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500" title="Eliminar Borrador">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
+                                  <>
+                                    <button
+                                      onClick={() => handleLoadDraft(inv.id)}
+                                      className="p-1.5 hover:bg-amber-500/20 rounded-lg transition-colors text-amber-500"
+                                      title="Editar Borrador"
+                                    >
+                                      <FilePlus className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteDraft(inv.id)}
+                                      className="p-1.5 hover:bg-rose-500/20 rounded-lg transition-colors text-rose-500"
+                                      title="Eliminar Borrador"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </td>

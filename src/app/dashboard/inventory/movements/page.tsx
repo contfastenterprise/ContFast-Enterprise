@@ -185,19 +185,22 @@ export default function MovementsPage() {
                 </tr>
               </thead>
               <tbody>
-                ${printMovements.map(mov => `
-                  <tr>
-                    <td>${new Date(mov.createdAt).toLocaleString('es-DO')}</td>
-                    <td><strong>${mov.productName || '-'}</strong>${mov.productSku ? `<br><small style="color: #666; font-family: monospace;">${mov.productSku}</small>` : ''}</td>
-                    <td>${mov.warehouseName || '-'}</td>
-                    <td>${getMovementTypeText(mov.type)}</td>
-                    <td class="text-right" style="font-weight: bold; color: ${parseFloat(mov.quantity) > 0 ? '#137333' : '#c5221f'};">
-                      ${parseFloat(mov.quantity) > 0 ? '+' : ''}${parseFloat(mov.quantity).toLocaleString()}
-                    </td>
-                    <td class="text-right">${parseFloat(mov.balanceAfter).toLocaleString()}</td>
-                    <td>${mov.userName || '-'}${mov.description ? ` - <small>${mov.description}</small>` : ''}</td>
-                  </tr>
-                `).join('')}
+                ${printMovements.map(mov => {
+                  const formattedDesc = getMovementDescription(mov);
+                  return `
+                    <tr>
+                      <td>${new Date(mov.createdAt).toLocaleString('es-DO')}</td>
+                      <td><strong>${mov.productName || '-'}</strong>${mov.productSku ? `<br><small style="color: #666; font-family: monospace;">${mov.productSku}</small>` : ''}</td>
+                      <td>${mov.warehouseName || '-'}</td>
+                      <td>${getMovementTypeText(mov.type)}</td>
+                      <td class="text-right" style="font-weight: bold; color: ${parseFloat(mov.quantity) > 0 ? '#137333' : '#c5221f'};">
+                        ${parseFloat(mov.quantity) > 0 ? '+' : ''}${parseFloat(mov.quantity).toLocaleString()}
+                      </td>
+                      <td class="text-right">${parseFloat(mov.balanceAfter).toLocaleString()}</td>
+                      <td>${mov.userName || '-'}${formattedDesc ? ` - <small>${formattedDesc}</small>` : ''}</td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody>
             </table>
             <div class="footer">
@@ -230,6 +233,21 @@ export default function MovementsPage() {
       case 'adjustment': return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">Ajuste</span>;
       default: return <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">{type}</span>;
     }
+  };
+
+  const getMovementDescription = (mov: Movement) => {
+    if (!mov.description) return '';
+    if (mov.type === 'transfer_in' && mov.description.startsWith('Transfer from ')) {
+      const sourceId = mov.description.replace('Transfer from ', '');
+      const sourceName = warehouses.find(w => w.id === sourceId)?.name || 'Almacén Desconocido';
+      return `Movido desde ${sourceName} a ${mov.warehouseName || 'Almacén Destino'}`;
+    }
+    if (mov.type === 'transfer_out' && mov.description.startsWith('Transfer to ')) {
+      const destId = mov.description.replace('Transfer to ', '');
+      const destName = warehouses.find(w => w.id === destId)?.name || 'Almacén Desconocido';
+      return `Movido desde ${mov.warehouseName || 'Almacén Origen'} a ${destName}`;
+    }
+    return mov.description;
   };
 
   return (
@@ -363,7 +381,7 @@ export default function MovementsPage() {
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Fecha / Hora</th>
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Producto</th>
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Almacén</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Tipo</th>
+                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold min-w-[140px]">Tipo</th>
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold text-right">Cantidad</th>
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold text-right">Balance</th>
                 <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Usuario / Detalle</th>
@@ -401,7 +419,7 @@ export default function MovementsPage() {
                       <td className="px-6 py-4">
                         <p className="text-xs font-bold text-on-surface-variant">{mov.userName}</p>
                         {mov.description && (
-                          <p className="text-[10px] text-on-surface-variant/60 max-w-[200px] truncate" title={mov.description}>{mov.description}</p>
+                          <p className="text-[10px] text-on-surface-variant/60 max-w-[200px] truncate" title={getMovementDescription(mov)}>{getMovementDescription(mov)}</p>
                         )}
                       </td>
                     </tr>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Shield, ShieldCheck, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban } from 'lucide-react';
+import { Shield, ShieldCheck, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -41,9 +41,11 @@ interface Plan {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'plans'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'sessions' | 'roles' | 'plans'>('users');
 
   const [users, setUsers] = useState<User[]>([]);
+  const [sessionsList, setSessionsList] = useState<any[]>([]);
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscription, setSubscription] = useState<{
@@ -109,12 +111,13 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [meRes, uRes, rRes, pRes, sRes] = await Promise.all([
+      const [meRes, uRes, rRes, pRes, sRes, sessRes] = await Promise.all([
         fetch('/api/v1/auth/me'),
         activeTab === 'users' ? fetch('/api/v1/admin/users') : Promise.resolve(null),
         (activeTab === 'users' || activeTab === 'roles') ? fetch('/api/v1/admin/roles') : Promise.resolve(null),
         activeTab === 'plans' ? fetch('/api/v1/admin/plans') : Promise.resolve(null),
-        activeTab === 'plans' ? fetch('/api/v1/admin/settings') : Promise.resolve(null)
+        activeTab === 'plans' ? fetch('/api/v1/admin/settings') : Promise.resolve(null),
+        activeTab === 'sessions' ? fetch('/api/v1/admin/sessions') : Promise.resolve(null)
       ]);
 
       const meData = await meRes.json();
@@ -141,11 +144,57 @@ export default function AdminPage() {
         const sData = await sRes.json();
         if (sData.success) setSubscription(sData.data.subscription || null);
       }
+
+      if (sessRes) {
+        const sessData = await sessRes.json();
+        if (sessData.success) setSessionsList(sessData.data);
+      }
     } catch (err) {
       toast.error('Error al cargar datos administrativos');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTerminateSession = async (sessionId: string) => {
+    if (!window.confirm('¿Está seguro de que desea cerrar la sesión de este usuario de forma remota?')) return;
+    try {
+      const res = await fetch(`/api/v1/admin/sessions?id=${sessionId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Sesión finalizada exitosamente.');
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al finalizar sesión');
+      }
+    } catch {
+      toast.error('Error de red al finalizar sesión');
+    }
+  };
+
+  const groupSessionsByDay = () => {
+    const groups: Record<string, any[]> = {};
+    sessionsList.forEach(session => {
+      const dateStr = new Date(session.createdAt).toLocaleDateString('es-DO', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const capitalizedDateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+      if (!groups[capitalizedDateStr]) {
+        groups[capitalizedDateStr] = [];
+      }
+      groups[capitalizedDateStr].push(session);
+    });
+    return groups;
+  };
+
+  const toggleDayExpanded = (day: string) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [day]: !prev[day]
+    }));
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -374,6 +423,14 @@ export default function AdminPage() {
           >
             <div className="flex items-center gap-2"><UsersIcon className="w-4 h-4" /> Usuarios</div>
           </button>
+          {currentUserRole === 'sistemas' && (
+            <button
+              onClick={() => setActiveTab('sessions')}
+              className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'sessions' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
+            >
+              <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Sesiones Activas</div>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('roles')}
             className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'roles' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
@@ -470,6 +527,99 @@ export default function AdminPage() {
                           </td>
                         </tr>
                       ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {activeTab === 'sessions' && currentUserRole === 'sistemas' && (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-[10px] tracking-widest text-on-surface-variant uppercase font-bold">
+                    <tr>
+                      <th className="px-6 py-4">Usuario</th>
+                      <th className="px-6 py-4">Rol</th>
+                      <th className="px-6 py-4">Fecha / Hora de Inicio</th>
+                      <th className="px-6 py-4">Navegador / Dispositivo</th>
+                      <th className="px-6 py-4 text-center">Estado</th>
+                      <th className="px-6 py-4 text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {sessionsList.length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant/70">No hay sesiones registradas.</td></tr>
+                    ) : (
+                      Object.entries(groupSessionsByDay()).map(([day, daySessions]) => {
+                        const isExpanded = expandedDays[day] || false;
+                        return (
+                          <Fragment key={day}>
+                            <tr 
+                              onClick={() => toggleDayExpanded(day)}
+                              className="bg-slate-100/70 hover:bg-slate-100 font-bold border-y border-slate-200 cursor-pointer select-none transition-colors"
+                            >
+                              <td colSpan={6} className="px-6 py-2.5 text-[#003366] text-xs font-black uppercase tracking-wider">
+                                <div className="flex items-center gap-2">
+                                  {isExpanded ? <ChevronDown className="w-4 h-4 text-[#003366]" /> : <ChevronRight className="w-4 h-4 text-[#003366]" />}
+                                  {day}
+                                  <span className="ml-2 bg-[#003366]/10 text-[#003366] text-[10px] px-2 py-0.5 rounded-full">
+                                    {daySessions.length} {daySessions.length === 1 ? 'sesión' : 'sesiones'}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && daySessions.map(session => {
+                              const isExpired = new Date(session.expiresAt) < new Date();
+                              const isClosed = session.invalidatedAt !== null || isExpired;
+                              return (
+                                <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
+                                  <td className="px-6 py-4">
+                                    <div>
+                                      <p className="font-bold text-[#003366]">{session.userName}</p>
+                                      <p className="text-xs text-on-surface-variant/70">{session.userEmail}</p>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[#003366]/5 text-[#003366] text-xs font-bold capitalize">
+                                      <Shield className="w-3 h-3" /> {session.roleName}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <p className="font-bold text-xs text-slate-700">{new Date(session.createdAt).toLocaleDateString('es-DO')}</p>
+                                    <p className="text-[10px] text-on-surface-variant/70 font-mono">{new Date(session.createdAt).toLocaleTimeString('es-DO')}</p>
+                                  </td>
+
+                                  <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate" title={session.userAgent || ''}>
+                                    {session.userAgent || 'Desconocido'}
+                                  </td>
+                                  <td className="px-6 py-4 text-center">
+                                    {isClosed ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500 uppercase">
+                                        Cerrada
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700 uppercase">
+                                        Activa
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-center">
+                                    {!isClosed && (
+                                      <button
+                                        onClick={() => handleTerminateSession(session.id)}
+                                        className="p-1.5 hover:bg-rose-50 text-rose-600 hover:text-rose-700 rounded-md transition-colors"
+                                        title="Cerrar sesión de forma remota"
+                                      >
+                                        <UserX className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </Fragment>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

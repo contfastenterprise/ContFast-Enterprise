@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         );
       } else if (existingNote.status === 'approved') {
         return NextResponse.json(
-          { success: true, message: `El conduce ${existingNote.deliveryNumber} ya está aprobado y su stock fue descontado.` },
+          { success: true, message: `El conduce ${existingNote.deliveryNumber} ya está aprobado y su stock fue descontado.`, alreadyApproved: true },
           { headers: resHeaders }
         );
       } else {

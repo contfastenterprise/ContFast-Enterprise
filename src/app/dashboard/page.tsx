@@ -227,13 +227,6 @@ export default function DashboardPage() {
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold">Dashboard Principal</h1>
           <p className="font-body-lg text-on-surface-variant/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
-        <button
-          onClick={() => router.push('/dashboard/invoices')}
-          className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 active:scale-95 group"
-        >
-          <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform" />
-          <span className="font-label-md text-sm font-bold">Nueva Factura</span>
-        </button>
       </header>
 
       {/* ── Warning Banner for Due Guarantee Checks ────────────────────────── */}
@@ -379,8 +372,8 @@ export default function DashboardPage() {
             className={clsx(
               "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
               chartPeriod === 'semana'
-                ? "bg-primary text-white shadow-md shadow-primary/20"
-                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-primary"
+                ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
+                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
           >
             Vista Semanal
@@ -390,8 +383,8 @@ export default function DashboardPage() {
             className={clsx(
               "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
               chartPeriod === 'mes'
-                ? "bg-primary text-white shadow-md shadow-primary/20"
-                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-primary"
+                ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
+                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
           >
             Vista Mensual

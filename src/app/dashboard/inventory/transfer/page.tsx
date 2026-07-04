@@ -36,6 +36,28 @@ export default function TransferPage() {
   // Selector state
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedQuantity, setSelectedQuantity] = useState('');
+  const [availableQty, setAvailableQty] = useState<number | null>(null);
+  const [loadingQty, setLoadingQty] = useState(false);
+
+  useEffect(() => {
+    if (selectedProduct && sourceWarehouse) {
+      setLoadingQty(true);
+      fetch(`/api/v1/products/${selectedProduct}/inventory`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            const wh = data.data.find((w: any) => w.warehouseId === sourceWarehouse);
+            setAvailableQty(wh ? parseFloat(wh.quantity) : 0);
+          } else {
+            setAvailableQty(0);
+          }
+        })
+        .catch(() => setAvailableQty(0))
+        .finally(() => setLoadingQty(false));
+    } else {
+      setAvailableQty(null);
+    }
+  }, [selectedProduct, sourceWarehouse]);
 
   useEffect(() => {
     fetchInitialData();
@@ -62,6 +84,9 @@ export default function TransferPage() {
   const addItem = () => {
     if (!selectedProduct) return toast.error('Seleccione un producto');
     if (!selectedQuantity || Number(selectedQuantity) <= 0) return toast.error('Ingrese una cantidad válida');
+    if (availableQty !== null && Number(selectedQuantity) > availableQty) {
+      return toast.error(`No hay suficiente stock. Disponible en origen: ${availableQty}`);
+    }
 
     const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
@@ -188,6 +213,12 @@ export default function TransferPage() {
                     <option value="">Buscar producto...</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.sku ? `[${p.sku}] ` : ''}{p.name}</option>)}
                   </select>
+                  {availableQty !== null && (
+                    <div className="mt-1.5 text-xs font-semibold text-slate-500 flex items-center justify-between px-1">
+                      <span>Stock disponible en origen:</span>
+                      <span className="font-mono text-primary font-bold">{loadingQty ? 'Cargando...' : availableQty.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-on-surface mb-1.5">Cantidad</label>

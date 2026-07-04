@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { db, dgiiSubmissions } from '@/db';
+import { db, dgiiSubmissions, invoices } from '@/db';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
@@ -76,6 +76,57 @@ export async function GET(
     return NextResponse.json(
       { success: false, error: { code, message: error.message } },
       { status, headers: resHeaders }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<any> }
+) {
+  const resHeaders = new Headers();
+  const auth = await verifyAuth(req, resHeaders);
+
+  if (!auth) {
+    return NextResponse.json(
+      { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const { id } = await params;
+    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+
+    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    if (!invoice) {
+      return NextResponse.json(
+        { success: false, error: { code: 'NOT_FOUND', message: 'Borrador no encontrado.' } },
+        { status: 404, headers: resHeaders }
+      );
+    }
+
+    if (invoice.status !== 'draft') {
+      return NextResponse.json(
+        { success: false, error: { code: 'BAD_REQUEST', message: 'Solo se pueden eliminar facturas en estado borrador.' } },
+        { status: 400, headers: resHeaders }
+      );
+    }
+
+    await db
+      .update(invoices)
+      .set({ deletedAt: new Date() })
+      .where(eq(invoices.id, id));
+
+    return NextResponse.json(
+      { success: true, message: 'Borrador eliminado correctamente.' },
+      { headers: resHeaders }
+    );
+  } catch (error: any) {
+    console.error('Error in DELETE /api/v1/invoices/[id]:', error);
+    return NextResponse.json(
+      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { status: 500, headers: resHeaders }
     );
   }
 }

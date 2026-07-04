@@ -1,5 +1,5 @@
 import { db, invoices, checks } from '@/db';
-import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, lte, ne, isNull } from 'drizzle-orm';
 
 export class DashboardRepository {
   
@@ -21,7 +21,13 @@ export class DashboardRepository {
       createdAt: invoices.createdAt,
       dgiiMessage: invoices.dgiiMessage
     }).from(invoices)
-    .where(eq(invoices.companyId, companyId));
+    .where(
+      and(
+        eq(invoices.companyId, companyId),
+        ne(invoices.status, 'draft'),
+        isNull(invoices.deletedAt)
+      )
+    );
 
     let invoicesToday = 0;
     let invoicesTodayAmount = 0;
@@ -218,7 +224,13 @@ export class DashboardRepository {
       buyerName: invoices.buyerName,
       buyerRnc: invoices.buyerRnc
     }).from(invoices)
-    .where(eq(invoices.companyId, companyId))
+    .where(
+      and(
+        eq(invoices.companyId, companyId),
+        ne(invoices.status, 'draft'),
+        isNull(invoices.deletedAt)
+      )
+    )
     .orderBy(desc(invoices.createdAt))
     .limit(10);
   }

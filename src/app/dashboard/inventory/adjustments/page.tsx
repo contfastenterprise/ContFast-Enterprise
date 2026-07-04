@@ -416,14 +416,14 @@ export default function InventoryAdjustmentsPage() {
                         <button
                           onClick={() => handleTableAdjust(p.id)}
                           disabled={isRowLoading || inputVal === '' || isNaN(newQty) || newQty === currentStock}
-                          className="bg-primary text-on-primary hover:shadow-md hover:shadow-primary/20 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-bold transition-all disabled:opacity-40"
+                          className="bg-primary text-on-primary hover:shadow-md hover:shadow-primary/20 p-2 rounded-lg inline-flex items-center justify-center transition-all disabled:opacity-40"
+                          title="Establecer cantidad"
                         >
                           {isRowLoading ? (
                             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                           ) : (
                             <Save className="h-3.5 w-3.5" />
                           )}
-                          Establecer
                         </button>
                       </td>
                     </tr>
