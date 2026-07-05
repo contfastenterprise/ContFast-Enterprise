@@ -267,23 +267,23 @@ export default function DashboardPage() {
             secondary: '#3b82f6',
             accent: '#1d4ed8'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <div className="bg-blue-100 p-3 rounded-2xl group-hover:bg-blue-600 transition-colors">
-                <FileText className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
+          <div className="py-4 px-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-blue-100 p-2.5 rounded-xl group-hover:bg-blue-600 transition-colors">
+                <FileText className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
               </div>
               <span className={clsx(
-                "text-[11px] px-2 py-1 rounded-full font-bold transition-all",
+                "text-[11px] px-2 py-0.5 rounded-full font-bold transition-all",
                 (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
               )}>
                 {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
               </span>
             </div>
             <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
-            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.invoicesToday}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
+            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.invoicesToday}</h3>
+            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
           </div>
         </BorderRotate>
 
@@ -296,20 +296,20 @@ export default function DashboardPage() {
             secondary: '#f59e0b',
             accent: '#b45309'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <div className="bg-amber-100 p-3 rounded-2xl group-hover:bg-amber-500 transition-colors">
-                <RefreshCw className="h-6 w-6 text-amber-600 group-hover:text-white transition-colors" />
+          <div className="py-4 px-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-amber-100 p-2.5 rounded-xl group-hover:bg-amber-500 transition-colors">
+                <RefreshCw className="h-5 w-5 text-amber-600 group-hover:text-white transition-colors" />
               </div>
               {stats.pendingDgii > 0 && (
-                <span className="px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
+                <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
               )}
             </div>
             <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
-            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{stats.pendingDgii}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
+            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.pendingDgii}</h3>
+            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
           </div>
         </BorderRotate>
 
@@ -322,20 +322,20 @@ export default function DashboardPage() {
             secondary: '#10b981',
             accent: '#047857'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <div className="bg-emerald-100 p-3 rounded-2xl group-hover:bg-emerald-600 transition-colors">
-                <TrendingUp className="h-6 w-6 text-emerald-600 group-hover:text-white transition-colors" />
+          <div className="py-4 px-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-emerald-100 p-2.5 rounded-xl group-hover:bg-emerald-600 transition-colors">
+                <TrendingUp className="h-5 w-5 text-emerald-600 group-hover:text-white transition-colors" />
               </div>
             </div>
             <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
-            <h3 className="font-display-lg text-3xl font-extrabold text-primary mt-1">{fmt(stats.monthlySales, true)}</h3>
-            <div className="w-full bg-surface-container h-2 rounded-full mt-5 overflow-hidden">
+            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{fmt(stats.monthlySales, true)}</h3>
+            <div className="w-full bg-surface-container h-1.5 rounded-full mt-3.5 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
             </div>
-            <p className="font-body-sm text-on-surface-variant/80 mt-3 font-medium">{salesPct}% de la meta mensual</p>
+            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">{salesPct}% de la meta mensual</p>
           </div>
         </BorderRotate>
 
@@ -348,18 +348,18 @@ export default function DashboardPage() {
             secondary: '#ef4444',
             accent: '#b91c1c'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-2xl transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
         >
-          <div className="p-6 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
-            <div className="flex justify-between items-start mb-6">
-              <div className="bg-red-100 p-3 rounded-2xl group-hover:bg-red-600 transition-colors">
-                <AlertCircle className="h-6 w-6 text-red-600 group-hover:text-white transition-colors" />
+          <div className="py-4 px-6 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-red-100 p-2.5 rounded-xl group-hover:bg-red-600 transition-colors">
+                <AlertCircle className="h-5 w-5 text-red-600 group-hover:text-white transition-colors" />
               </div>
-              {stats.alertCount > 0 && <span className="flex h-3 w-3 rounded-full bg-error animate-ping"></span>}
+              {stats.alertCount > 0 && <span className="flex h-2.5 w-2.5 rounded-full bg-error animate-ping"></span>}
             </div>
             <p className="font-label-md text-error/70 uppercase tracking-[0.1em] text-[10px] font-bold">Alertas</p>
-            <h3 className="font-display-lg text-3xl font-extrabold text-error mt-1">{stats.alertCount}</h3>
-            <p className="font-body-sm text-error/80 mt-3 font-bold">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema en óptimas condiciones'}</p>
+            <h3 className="font-display-lg text-[25px] font-extrabold text-error mt-0.5">{stats.alertCount}</h3>
+            <p className="font-body-sm text-error/80 mt-2.5 font-bold text-[13px]">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema en óptimas condiciones'}</p>
           </div>
         </BorderRotate>
       </section>
