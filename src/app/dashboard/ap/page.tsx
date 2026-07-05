@@ -363,7 +363,7 @@ export default function AccountsPayablePage() {
 
       {/* Environment Indicator */}
       <div className="bg-[#002b49] w-full px-8 py-1.5 flex justify-end items-center border-b border-outline-variant/30">
-        <span className="text-primary text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <Landmark className="h-3.5 w-3.5 text-amber-500" /> Cuentas por Pagar & Garantías
         </span>
       </div>
@@ -373,11 +373,11 @@ export default function AccountsPayablePage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-primary tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-[#003366] dark:text-white tracking-tight flex items-center gap-2">
               <Receipt className="h-8 w-8 text-amber-500" />
               Módulo de Cuentas por Pagar
             </h1>
-            <p className="text-on-surface-variant text-sm mt-1.5">
+            <p className="text-on-surface-variant dark:text-white/70 text-sm mt-1.5">
               Gestione balances pendientes de proveedores, configure asientos contables y aplique cheques en garantía diferidos.
             </p>
           </div>

@@ -49,7 +49,7 @@ export default function RetentionsPage() {
   }, []);
 
   const userRole = (currentUser?.role || currentUser?.roleName || '').toLowerCase();
-  const hasAccess = userRole.includes('sistema') || userRole.includes('admin');
+  const hasAccess = userRole.includes('sistema') || userRole.includes('admin') || userRole.includes('conta') || userRole.includes('auditor');
 
   const fetchRetentions = async () => {
     try {
@@ -82,7 +82,7 @@ export default function RetentionsPage() {
         </div>
         <h2 className="text-xl font-bold text-[#003366] mb-2">Acceso Restringido</h2>
         <p className="text-slate-500 text-sm max-w-md">
-          Solo los roles de <strong>Administración</strong> y <strong>Sistemas</strong> pueden gestionar las retenciones fiscales.
+          Solo los roles de <strong>Administración</strong>, <strong>Sistemas</strong> y <strong>Contabilidad</strong> pueden gestionar las retenciones fiscales.
         </p>
         <a href="/dashboard" className="mt-6 text-sm font-semibold text-[#003366] hover:underline">← Volver al inicio</a>
       </div>

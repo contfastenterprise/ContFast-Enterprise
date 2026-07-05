@@ -6,7 +6,7 @@ import { Shield, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
-import AppSidebar from '@/components/ui/app-sidebar';
+import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { RbacProvider } from '@/components/providers/rbacContext';
 
@@ -301,7 +301,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
   
         {/* AppSidebar */}
-        <AppSidebar
+        <NewAppSidebar
           user={user}
           companies={companies}
           companyName={companyName}
@@ -318,7 +318,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className={clsx(
             'flex flex-col min-h-screen pt-24 transition-[margin] duration-300 ease-in-out',
-            sidebarCollapsed ? 'md:ml-[64px]' : 'md:ml-[260px]'
+            sidebarCollapsed ? 'md:ml-[70px]' : 'md:ml-[260px]'
           )}
         >
           <main className="flex-1 p-4 md:p-8 w-full min-w-0 dashboard-main-content">

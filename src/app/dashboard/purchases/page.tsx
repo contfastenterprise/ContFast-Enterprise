@@ -639,7 +639,7 @@ export default function PurchasesPage() {
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
-                className="bg-primary text-on-primary px-8 py-3 rounded-2xl flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-primary/25 transition-all active:scale-95 disabled:opacity-50"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white px-8 py-3 rounded-2xl flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition-all active:scale-95 disabled:opacity-50"
               >
                 {searchLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 <span className="font-bold text-xs">Buscar Registros</span>
@@ -657,7 +657,7 @@ export default function PurchasesPage() {
               </p>
               <button
                 onClick={() => setActiveTab('nuevo')}
-                className="bg-primary text-on-primary px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
               >
                 <Plus className="h-4 w-4" /> Registrar Compra o Gasto
               </button>
