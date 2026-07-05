@@ -312,3 +312,7 @@ html {
     @apply font-sans;
   }
 }
+
+.dashboard-main-content > div {
+  max-width: 100% !important;
+}

@@ -20,10 +20,24 @@ export default function WarehousesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentWarehouse, setCurrentWarehouse] = useState<Warehouse | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
   useEffect(() => {
     fetchWarehouses();
+    fetchUserRole();
   }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const res = await fetch('/api/v1/auth/me');
+      const data = await res.json();
+      if (data.data?.user?.role) {
+        setCurrentUserRole(data.data.user.role.toLowerCase());
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+    }
+  };
 
   const filteredWarehouses = warehouses.filter((w) =>
     w.name.toLowerCase().includes(searchTerm.toLowerCase()) || w.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -180,6 +194,33 @@ export default function WarehousesPage() {
     }
   };
 
+  const handleToggleStatus = async (warehouse: Warehouse) => {
+    const nextStatus = warehouse.status === 'active' ? 'inactive' : 'active';
+    const actionText = nextStatus === 'active' ? 'habilitar' : 'deshabilitar';
+    if (!confirm(`¿Está seguro que desea ${actionText} este almacén?`)) return;
+
+    try {
+      const res = await fetch(`/api/v1/warehouses/${warehouse.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: warehouse.name,
+          code: warehouse.code,
+          address: warehouse.address,
+          status: nextStatus,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error al ${actionText}`);
+
+      toast.success(nextStatus === 'active' ? 'Almacén habilitado' : 'Almacén deshabilitado');
+      fetchWarehouses();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -257,21 +298,33 @@ export default function WarehousesPage() {
                   <span className="truncate">{warehouse.address || 'Sin dirección registrada'}</span>
                 </div>
 
-                <div className="flex gap-2 mt-auto">
+                <div className="flex gap-2 mt-auto items-center justify-end">
                   <button
                     onClick={() => {
                       setCurrentWarehouse(warehouse);
                       setIsModalOpen(true);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-surface-variant text-on-surface-variant hover:bg-primary/10 hover:text-primary py-2.5 rounded-xl font-label-md transition-colors"
+                    className="p-2.5 rounded-xl transition-colors bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-950/20 dark:text-green-400"
+                    title="Editar"
                   >
                     <Edit2 className="w-4 h-4" />
-                    Editar
                   </button>
-                  {warehouse.status === 'active' && (
+                  <button
+                    onClick={() => handleToggleStatus(warehouse)}
+                    className="p-2.5 rounded-xl transition-colors bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/20 dark:text-amber-400"
+                    title={warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'}
+                  >
+                    {warehouse.status === 'active' ? (
+                      <XCircle className="w-4 h-4" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                  </button>
+                  {(currentUserRole === 'sistemas' || currentUserRole === 'sistema') && (
                     <button
                       onClick={() => handleDelete(warehouse.id)}
-                      className="p-2.5 bg-surface-variant text-error hover:bg-error/10 rounded-xl transition-colors"
+                      className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-xl transition-colors"
+                      title="Eliminar permanentemente"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

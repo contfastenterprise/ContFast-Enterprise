@@ -992,7 +992,7 @@ function InvoicesList() {
 
   return (
 
-    <div className=" pb-12 max-w-7xl mx-10 w-280">
+    <div className="pb-12 w-full">
       <AnimatePresence mode="wait">
         {showForm ? (
           /* ==============================================================================

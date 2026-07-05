@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             sidebarCollapsed ? 'md:ml-[64px]' : 'md:ml-[260px]'
           )}
         >
-          <main className="flex-1 p-4 md:p-8 w-full min-w-0">
+          <main className="flex-1 p-4 md:p-8 w-full min-w-0 dashboard-main-content">
             {children}
           </main>
   

@@ -198,7 +198,7 @@ export default function NewQuote() {
   };
 
   return (
-    <div className="pb-12 max-w-7xl mx-10 w-280">
+    <div className="pb-12 w-full">
       <motion.div
         key="form"
         initial={{ opacity: 0, x: 20 }}
