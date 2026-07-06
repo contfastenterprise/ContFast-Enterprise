@@ -331,6 +331,7 @@ export default function NewQuote() {
                         selectedWarehouseId={line.warehouseId || warehouseId}
                         onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
                         onClear={() => clearProductFromLine(idx)}
+                        allowOutOfStock={true}
                       />
                     </div>
 

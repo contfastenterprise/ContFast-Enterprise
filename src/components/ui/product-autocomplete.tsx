@@ -16,6 +16,7 @@ interface ProductAutocompleteProps {
   selectedWarehouseId?: string;
   onWarehouseChange?: (warehouseId: string) => void;
   onClear?: () => void;
+  allowOutOfStock?: boolean;
 }
 
 export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
@@ -29,7 +30,8 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   placeholder = "Escriba para buscar o seleccionar...",
   selectedWarehouseId,
   onWarehouseChange,
-  onClear
+  onClear,
+  allowOutOfStock = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
@@ -164,7 +166,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                       <div className="space-y-0.5 mt-1">
                         {prods.map(p => {
                           const totalStock = getProductTotalStock(p);
-                          const isOutOfStock = totalStock <= 0;
+                          const isOutOfStock = allowOutOfStock ? false : totalStock <= 0;
                           const activeWId = getActiveWarehouseId(p);
 
                           return (
@@ -193,7 +195,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                 <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">
                                     <span className="font-semibold text-[#003366] truncate">{p.name}</span>
-                                    {isOutOfStock && (
+                                    {totalStock <= 0 && (
                                       <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-rose-100 text-rose-800 uppercase shrink-0">
                                         Sin Stock
                                       </span>
@@ -211,7 +213,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                   const inv = p.inventory?.find((i: any) => i.warehouseId === w.id);
                                   const qty = inv ? parseFloat(inv.quantity) : 0;
                                   const isSelected = activeWId === w.id && qty > 0;
-                                  const isWarehouseDisabled = qty <= 0;
+                                  const isWarehouseDisabled = allowOutOfStock ? false : qty <= 0;
 
                                   return (
                                     <button
