@@ -79,10 +79,15 @@ export default function NewQuote() {
 
   const applyProductToLine = (idx: number, product: any) => {
     const newLines = [...lines];
-    const currentTier = newLines[idx].priceTier || 'consumidor';
-    let priceToApply = Number(product.price || 0);
-    if (currentTier === 'proveedor') priceToApply = Number(product.priceProveedor || product.price || 0);
-    else if (currentTier === 'mayorista') priceToApply = Number(product.priceMayorista || product.price || 0);
+    const tier = newLines[idx].priceTier || 'consumidor';
+    let priceToApply = 0;
+    if (tier === 'consumidor') {
+      priceToApply = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+    } else if (tier === 'proveedor') {
+      priceToApply = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+    } else if (tier === 'mayorista') {
+      priceToApply = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+    }
 
     newLines[idx] = {
       ...newLines[idx],
@@ -127,9 +132,14 @@ export default function NewQuote() {
     // Fetch productData dynamically from dbProducts first or line object
     const prod = updated[idx].productData || dbProducts.find(p => p.id === updated[idx].productId);
     if (prod) {
-      let priceToApply = Number(prod.price || 0);
-      if (tier === 'proveedor') priceToApply = Number(prod.priceProveedor || prod.price || 0);
-      else if (tier === 'mayorista') priceToApply = Number(prod.priceMayorista || prod.price || 0);
+      let priceToApply = 0;
+      if (tier === 'consumidor') {
+        priceToApply = parseFloat(prod.priceConsumidor) || parseFloat(prod.price) || 0;
+      } else if (tier === 'proveedor') {
+        priceToApply = parseFloat(prod.priceProveedor) || parseFloat(prod.price) || 0;
+      } else if (tier === 'mayorista') {
+        priceToApply = parseFloat(prod.priceMayorista) || parseFloat(prod.price) || 0;
+      }
       
       updated[idx].unitPrice = priceToApply;
     }
