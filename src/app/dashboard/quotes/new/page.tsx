@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Search, Save, X, Trash2, ArrowLeft,
-  Building2, Package, Check, FileText, RefreshCw
+  Plus, X, Trash2, ArrowLeft, Check, RefreshCw
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
+import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 
 export default function NewQuote() {
   const router = useRouter();
@@ -16,10 +17,14 @@ export default function NewQuote() {
   
   // App state
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [dbProducts, setDbProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
   
   // Form state
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [selectedCustomerData, setSelectedCustomerData] = useState<any>(null);
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [notes, setNotes] = useState('');
@@ -33,19 +38,14 @@ export default function NewQuote() {
       taxRate: 0.18,
       priceTier: 'consumidor',
       productData: null,
+      warehouseId: '',
     },
   ]);
 
-  // Modals state
-  const [productSearchOpen, setProductSearchOpen] = useState(false);
-  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
-  const [modalProducts, setModalProducts] = useState<any[]>([]);
-  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
-  const [modalCustomers, setModalCustomers] = useState<any[]>([]);
+  const [activePriceTierSelectIdx, setActivePriceTierSelectIdx] = useState<number | null>(null);
 
-  // Fetch Session & Warehouses
+  // Fetch Session, Products, Categories, Customers & Warehouses
   useEffect(() => {
-    // Try local storage for user role first
     try {
       const stored = localStorage.getItem('cf_user');
       if (stored) {
@@ -53,67 +53,80 @@ export default function NewQuote() {
       }
     } catch(e) {}
 
-    fetch('/api/v1/auth/me')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && d.data?.user) setCurrentUser(d.data.user);
-      })
-      .catch(() => {});
-      
-    fetch('/api/v1/warehouses')
-      .then(r => r.json())
-      .then(d => {
-        if (d.data) {
-          setWarehouses(d.data);
-          if (d.data.length > 0) setWarehouseId(d.data[0].id);
-        }
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/v1/products?per_page=100').then(r => r.json()),
+      fetch('/api/v1/categories').then(r => r.json()),
+      fetch('/api/v1/customers?limit=100').then(r => r.json()),
+      fetch('/api/v1/warehouses').then(r => r.json()),
+      fetch('/api/v1/auth/me').then(r => r.json()),
+    ]).then(([prod, cat, cust, wh, me]) => {
+      if (prod.success) setDbProducts(prod.data || []);
+      if (cat.success) setCategories(cat.data || []);
+      if (cust.success) setDbCustomers(cust.data || []);
+      if (wh.data) {
+        setWarehouses(wh.data);
+        if (wh.data.length > 0) setWarehouseId(wh.data[0].id);
+      }
+      if (me.success && me.data?.user) setCurrentUser(me.data.user);
+    }).catch(() => {});
   }, []);
 
-  const searchProducts = async (term: string) => {
-    try {
-      const res = await fetch(`/api/v1/products?search=${encodeURIComponent(term)}&per_page=50`);
-      const d = await res.json();
-      if (d.success) setModalProducts(d.data || []);
-    } catch (err) {}
+  const applyCustomer = (customer: any) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setSelectedCustomerData(customer);
   };
 
-  const searchCustomers = async (term: string) => {
-    try {
-      const res = await fetch(`/api/v1/customers?search=${encodeURIComponent(term)}&limit=50`);
-      const d = await res.json();
-      if (d.success) setModalCustomers(d.data || []);
-    } catch (err) {}
+  const applyProductToLine = (idx: number, product: any) => {
+    const newLines = [...lines];
+    const currentTier = newLines[idx].priceTier || 'consumidor';
+    let priceToApply = Number(product.price || 0);
+    if (currentTier === 'proveedor') priceToApply = Number(product.priceProveedor || product.price || 0);
+    else if (currentTier === 'mayorista') priceToApply = Number(product.priceMayorista || product.price || 0);
+
+    newLines[idx] = {
+      ...newLines[idx],
+      productId: product.id,
+      productName: product.name,
+      unitPrice: priceToApply,
+      taxRate: Number(product.taxRate ?? 0.18),
+      productData: product,
+    };
+    setLines(newLines);
   };
 
-  const selectProduct = (product: any) => {
-    if (activeLineIndex !== null) {
-      const newLines = [...lines];
-      const currentTier = newLines[activeLineIndex].priceTier || 'consumidor';
-      let priceToApply = Number(product.price || 0);
-      if (currentTier === 'proveedor') priceToApply = Number(product.priceProveedor || product.price || 0);
-      else if (currentTier === 'mayorista') priceToApply = Number(product.priceMayorista || product.price || 0);
+  const clearProductFromLine = (idx: number) => {
+    const newLines = [...lines];
+    newLines[idx] = {
+      productId: '',
+      productName: '',
+      quantity: 1,
+      unitPrice: 0,
+      discount: 0,
+      taxRate: 0.18,
+      priceTier: 'consumidor',
+      productData: null,
+      warehouseId: '',
+    };
+    setLines(newLines);
+  };
 
-      newLines[activeLineIndex] = {
-        ...newLines[activeLineIndex],
-        productId: product.id,
-        productName: product.name,
-        unitPrice: priceToApply,
-        taxRate: Number(product.taxRate ?? 0.18),
-        productData: product,
-      };
-      setLines(newLines);
-    }
-    setProductSearchOpen(false);
+  const handleLineChange = (idx: number, field: string, val: any) => {
+    const newLines = [...lines];
+    newLines[idx] = {
+      ...newLines[idx],
+      [field]: val,
+    };
+    setLines(newLines);
   };
 
   const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
     const updated = [...lines];
     updated[idx].priceTier = tier;
     
-    if (updated[idx].productData) {
-      const prod = updated[idx].productData;
+    // Fetch productData dynamically from dbProducts first or line object
+    const prod = updated[idx].productData || dbProducts.find(p => p.id === updated[idx].productId);
+    if (prod) {
       let priceToApply = Number(prod.price || 0);
       if (tier === 'proveedor') priceToApply = Number(prod.priceProveedor || prod.price || 0);
       else if (tier === 'mayorista') priceToApply = Number(prod.priceMayorista || prod.price || 0);
@@ -193,7 +206,7 @@ export default function NewQuote() {
   const handleAddLine = () => {
     setLines([
       ...lines,
-      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, priceTier: 'consumidor', productData: null }
+      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, priceTier: 'consumidor', productData: null, warehouseId: '' }
     ]);
   };
 
@@ -219,54 +232,57 @@ export default function NewQuote() {
 
         <form onSubmit={saveQuote} className="space-y-8">
           {/* General Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Almacén Origen</label>
-              <select
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-                required
-                className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
-              >
-                <option value="">Seleccione Almacén...</option>
-                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-            </div>
-            
+          <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200 space-y-4">
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Cliente (Receptor)</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setCustomerSearchOpen(true); searchCustomers(''); }}
-                  className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
-                >
-                  <Search className="h-3.5 w-3.5" />
-                  Buscar Cliente
-                </button>
-                <input
-                  type="text"
-                  readOnly
-                  value={customerName || 'Consumidor Final (Opcional)'}
-                  className="flex-1 rounded-lg bg-slate-50 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
-                />
-                {customerId && (
-                  <button
-                    type="button"
-                    onClick={() => { setCustomerId(''); setCustomerName(''); }}
-                    className="p-3 text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <CustomerAutocomplete
+                dbCustomers={dbCustomers}
+                customerId={customerId}
+                customerName={customerName}
+                onSelect={(c) => applyCustomer(c)}
+                onTextChange={(val) => setCustomerName(val)}
+                onClear={() => {
+                  setCustomerId('');
+                  setCustomerName('');
+                  setSelectedCustomerData(null);
+                }}
+              />
             </div>
+
+            {customerId && selectedCustomerData && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-200/60">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[#003366] uppercase tracking-wider block">RNC / Cédula</span>
+                  <span className="text-xs font-semibold text-slate-700">{selectedCustomerData.rncCedula || selectedCustomerData.rnc || 'No especificado'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[#003366] uppercase tracking-wider block">Teléfono</span>
+                  <span className="text-xs font-semibold text-slate-700">{selectedCustomerData.phone || 'No especificado'}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[#003366] uppercase tracking-wider block">Correo Electrónico</span>
+                  <span className="text-xs font-semibold text-slate-700">{selectedCustomerData.email || 'No especificado'}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Item Lines */}
           <div className="space-y-4">
             <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
             
+            {/* Table Header for desktop */}
+            <div className="hidden md:grid md:grid-cols-[3fr_0.8fr_1.2fr_1fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
+              <div>Producto / Servicio</div>
+              <div>Cant.</div>
+              <div>Nivel de Precio</div>
+              <div>Precio Unit.</div>
+              <div>Desc. Unit.</div>
+              <div>ITBIS</div>
+              <div className="text-right">Total</div>
+              <div className="text-center">Acción</div>
+            </div>
+
             <div className="space-y-3">
               {lines.map((line, idx) => {
                 const lineSubtotal = line.quantity * line.unitPrice;
@@ -277,106 +293,117 @@ export default function NewQuote() {
                 const hasProduct = !!line.productId;
 
                 return (
-                  <div key={idx} className="flex flex-col gap-4 bg-slate-50/60 p-4 rounded-xl border border-slate-200">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 w-full items-end">
-                      {/* Product search & show */}
-                      <div className="md:col-span-5 space-y-1.5">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-[#003366] transition-all"
-                          >
-                            <Search className="h-3.5 w-3.5" />
-                            Buscar
-                          </button>
-                          <input
-                            type="text"
-                            readOnly
-                            value={line.productName}
-                            className="flex-1 rounded-lg bg-slate-50 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
-                            placeholder="Seleccione un producto..."
-                            required
-                          />
-                        </div>
-                      </div>
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_0.8fr_1.2fr_1fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
+                    {/* Product Selection / Autocomplete */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
+                      <ProductAutocomplete
+                        dbProducts={dbProducts}
+                        categories={categories}
+                        warehouses={warehouses}
+                        valueName={line.productName}
+                        hasProduct={hasProduct}
+                        onSelect={(p) => applyProductToLine(idx, p)}
+                        onTextChange={(val) => handleLineChange(idx, 'productName', val)}
+                        selectedWarehouseId={line.warehouseId || warehouseId}
+                        onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
+                        onClear={() => clearProductFromLine(idx)}
+                      />
+                    </div>
 
-                      {/* Quantity */}
-                      <div className="md:col-span-1 space-y-1.5">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
-                        <input
-                          type="number"
-                          value={line.quantity}
-                          onChange={(e) => {
-                            const n = [...lines]; n[idx].quantity = parseFloat(e.target.value) || 0; setLines(n);
-                          }}
-                          disabled={!hasProduct}
-                          className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          min={1} step="any" required
-                        />
-                      </div>
+                    {/* Quantity */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
+                      <input
+                        type="number"
+                        value={line.quantity}
+                        onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                        disabled={!hasProduct}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        min={0.0001} step="any" required
+                      />
+                    </div>
 
-                      {/* Price Tier */}
-                      <div className="md:col-span-2 space-y-1.5">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel</label>
-                        <select
-                          value={line.priceTier || 'consumidor'}
-                          onChange={(e) => handlePriceTierChange(idx, e.target.value as any)}
-                          disabled={!hasProduct}
-                          className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                        >
-                          <option value="consumidor">Consumidor</option>
-                          <option value="mayorista">Mayorista</option>
-                          <option value="proveedor">Proveedor</option>
-                        </select>
-                      </div>
+                    {/* Price Tier */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel</label>
+                      <select
+                        value={line.priceTier || 'consumidor'}
+                        onFocus={() => setActivePriceTierSelectIdx(idx)}
+                        onBlur={() => setActivePriceTierSelectIdx(null)}
+                        onChange={(e) => {
+                          handlePriceTierChange(idx, e.target.value as any);
+                          e.target.blur();
+                        }}
+                        disabled={!hasProduct}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                      >
+                        <option value="consumidor">Consumidor</option>
+                        <option value="mayorista">Mayorista</option>
+                        <option value="proveedor">Proveedor</option>
+                      </select>
+                    </div>
 
-                      {/* Unit Price */}
-                      <div className="md:col-span-1 space-y-1.5">
-                        <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio U.</label>
-                        <input
-                          type="number"
-                          value={line.unitPrice}
-                          onChange={(e) => {
-                            const n = [...lines]; n[idx].unitPrice = parseFloat(e.target.value) || 0; setLines(n);
-                          }}
-                          disabled={!hasProduct}
-                          className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          min={0} step="any" required
-                        />
-                      </div>
+                    {/* Unit Price */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
+                      <input
+                        type="number"
+                        value={line.unitPrice}
+                        onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                        disabled={!hasProduct}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        min={0} step="any" required
+                      />
+                    </div>
 
-                      {/* Discount */}
-                      <div className="md:col-span-2 space-y-1.5 relative group">
-                        <label className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
-                          Desc. Unit.
-                          {!canEditDiscount && hasProduct && (
-                            <span className="text-[9px] text-red-500 normal-case bg-red-50 px-1.5 py-0.5 rounded font-semibold">Solo admin</span>
-                          )}
-                        </label>
-                        <input
-                          type="number"
-                          disabled={!hasProduct || !canEditDiscount}
-                          value={line.discount}
-                          onChange={(e) => {
-                            const n = [...lines]; n[idx].discount = parseFloat(e.target.value) || 0; setLines(n);
-                          }}
-                          className={`w-full rounded-lg border py-2 px-3 outline-none text-xs transition-all ${(!hasProduct || !canEditDiscount) ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          min={0} step="any"
-                        />
-                      </div>
+                    {/* Discount */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
+                      <input
+                        type="number"
+                        disabled={!hasProduct || !canEditDiscount}
+                        value={line.discount}
+                        onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${(!hasProduct || !canEditDiscount) ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        min={0} step="any"
+                      />
+                    </div>
 
-                      {/* Actions */}
-                      <div className="md:col-span-1 flex justify-end pb-1.5">
-                        <button
-                          type="button"
-                          onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                    {/* Tax Rate (ITBIS) */}
+                    <div className="space-y-1.5 md:space-y-0">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS</label>
+                      <select
+                        value={line.taxRate}
+                        onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value) || 0)}
+                        disabled={!hasProduct}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                      >
+                        <option value={0.18}>18% ITBIS</option>
+                        <option value={0.16}>16% ITBIS</option>
+                        <option value={0.08}>8% ITBIS</option>
+                        <option value={0}>Exento (0%)</option>
+                      </select>
+                    </div>
+
+                    {/* Line Total */}
+                    <div className="space-y-1.5 md:space-y-0 text-right">
+                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Total</label>
+                      <span className="text-xs font-mono font-bold text-[#003366] pr-2">
+                        RD$ {lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    {/* Action */}
+                    <div className="space-y-1.5 md:space-y-0 text-center">
+                      <button
+                        type="button"
+                        onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
+                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors inline-flex items-center justify-center"
+                        title="Eliminar línea"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -451,97 +478,6 @@ export default function NewQuote() {
           </div>
         </form>
       </motion.div>
-
-      {/* Product Search Modal */}
-      <AnimatePresence>
-        {productSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
-              <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
-                <Search className="w-5 h-5 text-on-surface-variant/80" />
-                <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="Buscar producto..." 
-                  onChange={(e) => searchProducts(e.target.value)}
-                  className="flex-1 bg-transparent text-[#003366] outline-none text-sm"
-                />
-                <button onClick={() => setProductSearchOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-              </div>
-              <div className="overflow-auto flex-1 p-3 divide-y divide-slate-100">
-                {modalProducts.map(p => (
-                  <button 
-                    type="button"
-                    key={p.id}
-                    onClick={() => selectProduct(p)}
-                    className="w-full text-left py-3 hover:bg-slate-50 rounded-lg flex justify-between items-center px-3 group transition-colors"
-                  >
-                    <div>
-                      <div className="text-[#003366] font-semibold text-sm group-hover:text-[#C5A059] transition-colors">{p.name}</div>
-                      <div className="text-xs text-on-surface-variant/80 mt-0.5">SKU: {p.sku || '-'}</div>
-                    </div>
-                    <div className="text-[#003366] font-bold text-sm">
-                      RD$ {Number(p.price || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                    </div>
-                  </button>
-                ))}
-                {modalProducts.length === 0 && (
-                  <div className="p-8 text-center text-on-surface-variant/70 text-sm">Escriba para buscar productos.</div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Customer Search Modal */}
-      <AnimatePresence>
-        {customerSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
-              <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
-                <Search className="w-5 h-5 text-on-surface-variant/80" />
-                <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="Buscar cliente..." 
-                  onChange={(e) => searchCustomers(e.target.value)}
-                  className="flex-1 bg-transparent text-[#003366] outline-none text-sm"
-                />
-                <button onClick={() => setCustomerSearchOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-              </div>
-              <div className="overflow-auto flex-1 p-3 divide-y divide-slate-100">
-                {modalCustomers.map(c => (
-                  <button 
-                    type="button"
-                    key={c.id}
-                    onClick={() => { setCustomerId(c.id); setCustomerName(c.name); setCustomerSearchOpen(false); }}
-                    className="w-full text-left py-3 hover:bg-slate-50 rounded-lg flex justify-between items-center px-3 group transition-colors"
-                  >
-                    <div>
-                      <div className="text-[#003366] font-semibold text-sm group-hover:text-[#C5A059] transition-colors">{c.name}</div>
-                      <div className="text-xs text-on-surface-variant/80 mt-0.5">RNC/Cédula: {c.rncCedula || '-'}</div>
-                    </div>
-                  </button>
-                ))}
-                {modalCustomers.length === 0 && (
-                  <div className="p-8 text-center text-on-surface-variant/70 text-sm">Escriba para buscar clientes.</div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
