@@ -195,10 +195,10 @@ export default function SuppliersPage() {
       const res = await fetch(`/api/v1/dgii/rnc/${rnc}`);
       const data = await res.json();
 
-      if (data.success && data.data) {
+      if (data.success && data.name) {
         setFormData(prev => ({
           ...prev,
-          name: data.data.name,
+          name: data.name,
           status: 'active'
         }));
         setRncVerified(true);
