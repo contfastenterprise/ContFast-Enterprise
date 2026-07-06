@@ -106,51 +106,60 @@ export default function NewQuote() {
 
   const applyProductToLine = (idx: number, product: any) => {
     console.log('[Telemetry] Selected Product:', product, 'for line:', idx);
-    const newLines = [...lines];
-    const tier = newLines[idx].priceTier || 'consumidor';
-    let priceToApply = 0;
-    if (tier === 'consumidor') {
-      priceToApply = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
-    } else if (tier === 'proveedor') {
-      priceToApply = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
-    } else if (tier === 'mayorista') {
-      priceToApply = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
-    }
+    setLines(prevLines => {
+      const newLines = [...prevLines];
+      if (!newLines[idx]) return prevLines;
+      const tier = newLines[idx].priceTier || 'consumidor';
+      let priceToApply = 0;
+      if (tier === 'consumidor') {
+        priceToApply = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+      } else if (tier === 'proveedor') {
+        priceToApply = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+      } else if (tier === 'mayorista') {
+        priceToApply = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+      }
 
-    newLines[idx] = {
-      ...newLines[idx],
-      productId: product.id,
-      productName: product.name,
-      unitPrice: priceToApply,
-      taxRate: Number(product.taxRate ?? 0.18),
-      productData: product,
-    };
-    setLines(newLines);
+      newLines[idx] = {
+        ...newLines[idx],
+        productId: product.id,
+        productName: product.name,
+        unitPrice: priceToApply,
+        taxRate: Number(product.taxRate ?? 0.18),
+        productData: product,
+      };
+      return newLines;
+    });
   };
 
   const clearProductFromLine = (idx: number) => {
-    const newLines = [...lines];
-    newLines[idx] = {
-      productId: '',
-      productName: '',
-      quantity: 1,
-      unitPrice: 0,
-      discount: 0,
-      taxRate: 0.18,
-      priceTier: 'consumidor',
-      productData: null,
-      warehouseId: '',
-    };
-    setLines(newLines);
+    setLines(prevLines => {
+      const newLines = [...prevLines];
+      if (!newLines[idx]) return prevLines;
+      newLines[idx] = {
+        productId: '',
+        productName: '',
+        quantity: 1,
+        unitPrice: 0,
+        discount: 0,
+        taxRate: 0.18,
+        priceTier: 'consumidor',
+        productData: null,
+        warehouseId: '',
+      };
+      return newLines;
+    });
   };
 
   const handleLineChange = (idx: number, field: string, val: any) => {
-    const newLines = [...lines];
-    newLines[idx] = {
-      ...newLines[idx],
-      [field]: val,
-    };
-    setLines(newLines);
+    setLines(prevLines => {
+      const newLines = [...prevLines];
+      if (!newLines[idx]) return prevLines;
+      newLines[idx] = {
+        ...newLines[idx],
+        [field]: val,
+      };
+      return newLines;
+    });
   };
 
   const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
