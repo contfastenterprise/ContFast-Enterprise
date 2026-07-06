@@ -203,6 +203,8 @@ export default function NewQuote() {
   const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
   const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole);
 
+  console.log('[Telemetry] Current Lines state in NewQuote render:', JSON.stringify(lines.map(l => ({ id: l.productId, name: l.productName, price: l.unitPrice }))));
+
   const saveQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lines.some(l => !l.productId)) {
