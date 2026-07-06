@@ -55,42 +55,57 @@ export default function NewQuote() {
 
     fetch('/api/v1/products?per_page=100')
       .then(r => r.json())
-      .then(d => { if (d.success) setDbProducts(d.data || []); })
-      .catch(() => {});
+      .then(d => { 
+        console.log('[Telemetry] Products loaded:', d.data?.length, d.success);
+        if (d.success) setDbProducts(d.data || []); 
+      })
+      .catch((err) => console.error('[Telemetry] Fetch products error:', err));
 
     fetch('/api/v1/categories')
       .then(r => r.json())
-      .then(d => { if (d.success) setCategories(d.data || []); })
-      .catch(() => {});
+      .then(d => { 
+        console.log('[Telemetry] Categories loaded:', d.data?.length, d.success);
+        if (d.success) setCategories(d.data || []); 
+      })
+      .catch((err) => console.error('[Telemetry] Fetch categories error:', err));
 
     fetch('/api/v1/customers?limit=100')
       .then(r => r.json())
-      .then(d => { if (d.success) setDbCustomers(d.data || []); })
-      .catch(() => {});
+      .then(d => { 
+        console.log('[Telemetry] Customers loaded:', d.data?.length, d.success);
+        if (d.success) setDbCustomers(d.data || []); 
+      })
+      .catch((err) => console.error('[Telemetry] Fetch customers error:', err));
 
     fetch('/api/v1/warehouses')
       .then(r => r.json())
       .then(d => {
+        console.log('[Telemetry] Warehouses loaded:', d.data?.length);
         if (d.data) {
           setWarehouses(d.data);
           if (d.data.length > 0) setWarehouseId(d.data[0].id);
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error('[Telemetry] Fetch warehouses error:', err));
 
     fetch('/api/v1/auth/me')
       .then(r => r.json())
-      .then(d => { if (d.success && d.data?.user) setCurrentUser(d.data.user); })
-      .catch(() => {});
+      .then(d => { 
+        console.log('[Telemetry] Auth loaded:', d.data?.user?.email, d.success);
+        if (d.success && d.data?.user) setCurrentUser(d.data.user); 
+      })
+      .catch((err) => console.error('[Telemetry] Fetch auth error:', err));
   }, []);
 
   const applyCustomer = (customer: any) => {
+    console.log('[Telemetry] Selected Customer:', customer);
     setCustomerId(customer.id);
     setCustomerName(customer.name);
     setSelectedCustomerData(customer);
   };
 
   const applyProductToLine = (idx: number, product: any) => {
+    console.log('[Telemetry] Selected Product:', product, 'for line:', idx);
     const newLines = [...lines];
     const tier = newLines[idx].priceTier || 'consumidor';
     let priceToApply = 0;
