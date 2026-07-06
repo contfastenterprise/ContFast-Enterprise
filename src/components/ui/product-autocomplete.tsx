@@ -180,9 +180,6 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                 type="button"
                                 disabled={isOutOfStock}
                                 onClick={() => {
-                                  // Single click focuses the row (optional, no action in state other than default behavior)
-                                }}
-                                onDoubleClick={() => {
                                   onSelect(p);
                                   if (onWarehouseChange && activeWId) {
                                     onWarehouseChange(activeWId);
@@ -191,7 +188,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                   setSearchQuery(null);
                                 }}
                                 className="flex-1 text-left px-2 py-1.5 flex items-center min-w-0 pr-2 outline-none disabled:cursor-not-allowed select-none"
-                                title="Doble clic para seleccionar"
+                                title="Clic para seleccionar"
                               >
                                 <div className="flex flex-col min-w-0">
                                   <div className="flex items-center gap-1.5 min-w-0">

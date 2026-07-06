@@ -53,22 +53,35 @@ export default function NewQuote() {
       }
     } catch(e) {}
 
-    Promise.all([
-      fetch('/api/v1/products?per_page=100').then(r => r.json()),
-      fetch('/api/v1/categories').then(r => r.json()),
-      fetch('/api/v1/customers?limit=100').then(r => r.json()),
-      fetch('/api/v1/warehouses').then(r => r.json()),
-      fetch('/api/v1/auth/me').then(r => r.json()),
-    ]).then(([prod, cat, cust, wh, me]) => {
-      if (prod.success) setDbProducts(prod.data || []);
-      if (cat.success) setCategories(cat.data || []);
-      if (cust.success) setDbCustomers(cust.data || []);
-      if (wh.data) {
-        setWarehouses(wh.data);
-        if (wh.data.length > 0) setWarehouseId(wh.data[0].id);
-      }
-      if (me.success && me.data?.user) setCurrentUser(me.data.user);
-    }).catch(() => {});
+    fetch('/api/v1/products?per_page=100')
+      .then(r => r.json())
+      .then(d => { if (d.success) setDbProducts(d.data || []); })
+      .catch(() => {});
+
+    fetch('/api/v1/categories')
+      .then(r => r.json())
+      .then(d => { if (d.success) setCategories(d.data || []); })
+      .catch(() => {});
+
+    fetch('/api/v1/customers?limit=100')
+      .then(r => r.json())
+      .then(d => { if (d.success) setDbCustomers(d.data || []); })
+      .catch(() => {});
+
+    fetch('/api/v1/warehouses')
+      .then(r => r.json())
+      .then(d => {
+        if (d.data) {
+          setWarehouses(d.data);
+          if (d.data.length > 0) setWarehouseId(d.data[0].id);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/v1/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.user) setCurrentUser(d.data.user); })
+      .catch(() => {});
   }, []);
 
   const applyCustomer = (customer: any) => {
