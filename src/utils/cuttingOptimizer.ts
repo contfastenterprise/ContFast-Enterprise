@@ -40,124 +40,151 @@ export function optimizeGlassCutting(
     }
   });
 
-  // Sort by Height mainly, but try to keep them together (Best-Fit Height)
+  // Sort by max dimension descending, then by area descending
   expandedPieces.sort((a, b) => {
-    const maxH_A = Math.max(a.width, a.height);
-    const maxH_B = Math.max(b.width, b.height);
-    if (maxH_B !== maxH_A) return maxH_B - maxH_A;
+    const maxA = Math.max(a.width, a.height);
+    const maxB = Math.max(b.width, b.height);
+    if (maxB !== maxA) return maxB - maxA;
     return (b.width * b.height) - (a.width * a.height);
   });
 
   const sheets: SheetResult[] = [];
   const unplaced: GlassPiece[] = [];
 
-  // Tracking for each sheet: { columns: { x, width, usedHeight }[] }
-  const sheetTracker: {
-    columns: { x: number; width: number; usedHeight: number }[]
-  }[] = [];
+  // Track free rectangles for each sheet
+  interface FreeRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+  const sheetFreeRects: FreeRect[][] = [];
 
   expandedPieces.forEach(piece => {
-    let placed = false;
+    const pw = piece.width;
+    const ph = piece.height;
 
-    // Try to find the BEST fit across all existing columns (Best-Fit Height)
     let bestSheetIdx = -1;
-    let bestColIdx = -1;
-    let bestRotate = false;
-    let minRemainingHeight = Infinity;
+    let bestFreeRectIdx = -1;
+    let bestRotated = false;
+    let bestScore = Infinity;
 
+    // Find the best fit across all existing sheets and their free rectangles
     for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
-      const tracker = sheetTracker[sIdx];
-      for (let cIdx = 0; cIdx < tracker.columns.length; cIdx++) {
-        const col = tracker.columns[cIdx];
+      const freeRects = sheetFreeRects[sIdx];
+      for (let fIdx = 0; fIdx < freeRects.length; fIdx++) {
+        const F = freeRects[fIdx];
 
-        // Try Normal (Width is fixed for this column)
-        if (piece.width <= col.width && col.usedHeight + piece.height + bladeWidth <= sheetHeight) {
-          const rem = sheetHeight - (col.usedHeight + piece.height + bladeWidth);
-          if (rem < minRemainingHeight) {
-            minRemainingHeight = rem;
+        // Check normal
+        if (pw <= F.w && ph <= F.h) {
+          const remW = F.w - pw;
+          const remH = F.h - ph;
+          const score = Math.min(remW, remH);
+          if (score < bestScore) {
+            bestScore = score;
             bestSheetIdx = sIdx;
-            bestColIdx = cIdx;
-            bestRotate = false;
+            bestFreeRectIdx = fIdx;
+            bestRotated = false;
           }
         }
-        // Try Rotated
-        if (piece.height <= col.width && col.usedHeight + piece.width + bladeWidth <= sheetHeight) {
-          const rem = sheetHeight - (col.usedHeight + piece.width + bladeWidth);
-          if (rem < minRemainingHeight) {
-            minRemainingHeight = rem;
+
+        // Check rotated
+        if (ph <= F.w && pw <= F.h) {
+          const remW = F.w - ph;
+          const remH = F.h - pw;
+          const score = Math.min(remW, remH);
+          if (score < bestScore) {
+            bestScore = score;
             bestSheetIdx = sIdx;
-            bestColIdx = cIdx;
-            bestRotate = true;
+            bestFreeRectIdx = fIdx;
+            bestRotated = true;
           }
         }
       }
+
+      // First-fit sheet heuristic: if we found a fit in this sheet, don't look at later sheets
+      if (bestSheetIdx !== -1) {
+        break;
+      }
     }
 
-    // 1. If found a column, place it
     if (bestSheetIdx !== -1) {
+      // Place in existing sheet
       const sheet = sheets[bestSheetIdx];
-      const col = sheetTracker[bestSheetIdx].columns[bestColIdx];
+      const freeRects = sheetFreeRects[bestSheetIdx];
+      const F = freeRects[bestFreeRectIdx];
+
+      // Remove the chosen free rect
+      freeRects.splice(bestFreeRectIdx, 1);
+
+      // Width and height of the placed piece
+      const w = bestRotated ? ph : pw;
+      const h = bestRotated ? pw : ph;
+
+      // Add to placed pieces
       sheet.placed.push({
         ...piece,
-        x: col.x,
-        y: col.usedHeight,
-        rotated: bestRotate
+        x: F.x,
+        y: F.y,
+        rotated: bestRotated
       });
-      col.usedHeight += (bestRotate ? piece.width : piece.height) + bladeWidth;
-      placed = true;
-    }
 
-    // 2. If no existing column fits, try to create a new column in existing sheets
-    if (!placed) {
-      for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
-        const tracker = sheetTracker[sIdx];
-        const lastCol = tracker.columns[tracker.columns.length - 1];
-        const nextX = lastCol ? (lastCol.x + lastCol.width + bladeWidth) : 0;
+      // Split the free rect
+      const remW = F.w - w;
+      const remH = F.h - h;
 
-        // Prioritize orientation that makes the column THINNER (saves width for remnants)
-        const fitsNormal = nextX + piece.width <= sheetWidth && piece.height <= sheetHeight;
-        const fitsRotated = nextX + piece.height <= sheetWidth && piece.width <= sheetHeight;
+      // Guillotine split: Shorter Axis Split Rule (SAS)
+      const splitHorizontal = remW > remH;
 
-        if (fitsNormal || fitsRotated) {
-          let rotate = false;
-          if (fitsNormal && fitsRotated) {
-            // Choose the one that uses less width
-            rotate = piece.height < piece.width;
-          } else {
-            rotate = !fitsNormal && fitsRotated;
-          }
-
-          const colW = rotate ? piece.height : piece.width;
-          const colH = (rotate ? piece.width : piece.height) + bladeWidth;
-
-          tracker.columns.push({ x: nextX, width: colW, usedHeight: colH });
-          sheets[sIdx].placed.push({
-            ...piece,
-            x: nextX,
-            y: 0,
-            rotated: rotate
-          });
-          placed = true;
-          break;
-        }
+      if (splitHorizontal) {
+        // Horizontal cut: split horizontally first
+        const rTop = {
+          x: F.x,
+          y: F.y + h + bladeWidth,
+          w: F.w,
+          h: F.h - h - bladeWidth
+        };
+        const rRight = {
+          x: F.x + w + bladeWidth,
+          y: F.y,
+          w: F.w - w - bladeWidth,
+          h: h
+        };
+        if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
+        if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
+      } else {
+        // Vertical cut: split vertically first
+        const rRight = {
+          x: F.x + w + bladeWidth,
+          y: F.y,
+          w: F.w - w - bladeWidth,
+          h: F.h
+        };
+        const rTop = {
+          x: F.x,
+          y: F.y + h + bladeWidth,
+          w: w,
+          h: F.h - h - bladeWidth
+        };
+        if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
+        if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
       }
-    }
+    } else {
+      // Try to open a new sheet
+      const fitsNormal = pw <= sheetWidth && ph <= sheetHeight;
+      const fitsRotated = ph <= sheetWidth && pw <= sheetHeight;
 
-    // 3. Create a NEW sheet if still not placed
-    if (!placed) {
-      const fitsAtAllNormal = piece.width <= sheetWidth && piece.height <= sheetHeight;
-      const fitsAtAllRotated = piece.height <= sheetWidth && piece.width <= sheetHeight;
-
-      if (fitsAtAllNormal || fitsAtAllRotated) {
+      if (fitsNormal || fitsRotated) {
+        // Choose orientation that minimizes width or just fits
         let rotate = false;
-        if (fitsAtAllNormal && fitsAtAllRotated) {
-          rotate = piece.height < piece.width; // Use thinner width
+        if (fitsNormal && fitsRotated) {
+          rotate = ph < pw; // prefer orientation where physical width is smaller
         } else {
-          rotate = !fitsAtAllNormal && fitsAtAllRotated;
+          rotate = !fitsNormal && fitsRotated;
         }
 
-        const colW = rotate ? piece.height : piece.width;
-        const colH = (rotate ? piece.width : piece.height) + bladeWidth;
+        const w = rotate ? ph : pw;
+        const h = rotate ? pw : ph;
 
         const newSheet: SheetResult = {
           id: sheets.length + 1,
@@ -172,10 +199,47 @@ export function optimizeGlassCutting(
         };
 
         sheets.push(newSheet);
-        sheetTracker.push({
-          columns: [{ x: 0, width: colW, usedHeight: colH }]
-        });
-        placed = true;
+
+        // Initial free rects for new sheet after placing the first piece
+        const freeRects: FreeRect[] = [];
+        const remW = sheetWidth - w;
+        const remH = sheetHeight - h;
+
+        const splitHorizontal = remW > remH;
+
+        if (splitHorizontal) {
+          const rTop = {
+            x: 0,
+            y: h + bladeWidth,
+            w: sheetWidth,
+            h: sheetHeight - h - bladeWidth
+          };
+          const rRight = {
+            x: w + bladeWidth,
+            y: 0,
+            w: sheetWidth - w - bladeWidth,
+            h: h
+          };
+          if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
+          if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
+        } else {
+          const rRight = {
+            x: w + bladeWidth,
+            y: 0,
+            w: sheetWidth - w - bladeWidth,
+            h: sheetHeight
+          };
+          const rTop = {
+            x: 0,
+            y: h + bladeWidth,
+            w: w,
+            h: sheetHeight - h - bladeWidth
+          };
+          if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
+          if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
+        }
+
+        sheetFreeRects.push(freeRects);
       } else {
         unplaced.push(piece);
       }

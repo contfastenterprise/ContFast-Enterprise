@@ -7,10 +7,10 @@ import { parseFraction, formatFraction } from '@/utils/calculos';
 import { optimizeGlassCutting, type GlassPiece } from '@/utils/cuttingOptimizer';
 
 export default function GlassCuttingPage() {
+  const [mounted, setMounted] = useState(false);
   // Main sheet dimensions in inches (stored as strings for fraction entry)
   const [sheetWidthInput, setSheetWidthInput] = useState<string>('96');
   const [sheetHeightInput, setSheetHeightInput] = useState<string>('72');
-  const [bladeWidthInput, setBladeWidthInput] = useState<string>('0.125'); // default 1/8"
 
   // List of pieces to cut
   const [pieces, setPieces] = useState<GlassPiece[]>([]);
@@ -24,6 +24,7 @@ export default function GlassCuttingPage() {
 
   // Load from localstorage on mount
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem('cf_glass_cutting_pieces');
     if (saved) {
       try {
@@ -41,7 +42,7 @@ export default function GlassCuttingPage() {
   // Parsed numeric values for calculations
   const sheetWidth = useMemo(() => parseFraction(sheetWidthInput), [sheetWidthInput]);
   const sheetHeight = useMemo(() => parseFraction(sheetHeightInput), [sheetHeightInput]);
-  const bladeWidth = useMemo(() => parseFraction(bladeWidthInput), [bladeWidthInput]);
+  const bladeWidth = 0;
 
   const addPiece = () => {
     const widthVal = parseFraction(newWidth);
@@ -134,6 +135,19 @@ export default function GlassCuttingPage() {
       setIsPrinting(false);
     }
   };
+  
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <div className="text-center space-y-4">
+          <RotateCw className="h-8 w-8 animate-spin text-[#003366] mx-auto" />
+          <p className="text-sm font-bold text-[#003366] uppercase tracking-wider">
+            Cargando Optimizador...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
@@ -202,15 +216,6 @@ export default function GlassCuttingPage() {
                       className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
                     />
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Grosor de Sierra / Desperdicio (in)</label>
-                  <input
-                    type="text"
-                    value={bladeWidthInput}
-                    onChange={(e) => setBladeWidthInput(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
-                  />
                 </div>
               </div>
             </div>

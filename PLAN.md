@@ -5,7 +5,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 ## Módulos Implementados
 
 ### 0. Novedades de Impresión, Emisión y Diagnósticos
-- **Impresión Multi-copias (Layout Carta)**: Configuración en la tabla `company_settings` para persistir entre 1 y 5 copias impresas (2 por defecto en creación de empresas). Al renderizar el PDF de impresión Carta, el motor de plantillas HTML duplica la estructura con saltos de página CSS, rotulando como **ORIGINAL** la primera hoja y **COPIA** todas las subsecuentes. Se preserva una sola copia en la descarga directa de PDF (`/pdf`).
+- **Impresión Multi-copias (Layout Carta)**: Configuración en la tabla `company_settings` para persistir entre 1 y 5 copias impresas (2 por defecto en creación de empresas). Al renderizar el PDF de impresión Carta, el motor de plantillas HTML duplica la estructura con saltos de página CSS, rotulando como **ORIGINAL** la primera hoja y **COPIA** todas las subsecuentes. Se preserva una sola copia en la descarga directa de PDF (`/pdf`). Además, al reimprimir una factura desde la vista de detalles o desde la lista del dashboard, se fuerza a que solo se imprima la copia original (usando el parámetro `?reprint=true`), mientras que la impresión inmediata tras generar la factura mantiene las copias múltiples configuradas.
+- **Visualización de Stock en Impresión del Catálogo de Productos**: Integrado un selector de modo de impresión ("Sin Stock" o "Con Stock") directamente dentro del botón de impresión como un botón dividido (split button) en la barra de acciones del catálogo de productos. Al seleccionar "Con Stock" e imprimir, se inyecta dinámicamente una columna de "Stock" en la cabecera y el cuerpo del reporte de catálogo de productos en formato PDF de impresión, calculando en tiempo real las existencias acumuladas de todos los almacenes para cada artículo.
 - **Modal de Confirmación de Emisión**: Validación previa de todos los datos en el frontend y apertura de un modal descriptivo unificado (Nombre del Cliente, Tipo de Comprobante, Método de Pago y Monto Total) con opciones de Aceptar o Cancelar, protegiendo contra emisiones accidentales para todos los tipos de envío (estándar, imprimir, email).
 - **Corrección de Indicadores visuales de DGII**:
   - En la pestaña "Cola DGII" y en "Detalles de Factura", se renombraron y corrigieron los badges para mostrar las respuestas exitosas de la DGII (ej: "Aceptado") en color verde esmeralda y solo los fallos reales en rojo.
@@ -409,6 +410,16 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 ### 57. Corrección de Advertencia de React y Validación de RNC Opcional en APIs de Contactos
 - **Prevenir Valor Null en Inputs Controlados**: Modificación de las vistas de `/dashboard/customers` y `/dashboard/suppliers` para asegurar que el input de RNC o Cédula (que ahora puede ser de valor `null` tras la flexibilización de contactos) siempre reciba un valor de cadena de texto vacío `''` como fallback tanto al inicializar el formulario en `openEditModal` (`supplier.rnc || ''`, `customer.rncCedula || ''`) como al enlazar la propiedad `value` en el elemento JSX (`formData.rnc || ''`, `formData.rncCedula || ''`). Esto elimina por completo el error de consola de React sobre propiedades de valor `null` en elementos controlados.
 - **Flexibilización de Esquemas Zod y Tipos de Repositorio**: Actualización de los esquemas de validación Zod en `src/app/api/v1/customers/[id]/route.ts`, `src/app/api/v1/suppliers/[id]/route.ts` y `src/app/api/v1/suppliers/route.ts` para permitir explícitamente `rnc`/`rncCedula` opcional o vacío (utilizando `.optional().or(z.literal(''))`). Asimismo, se adaptaron las interfaces de TypeScript de los métodos de creación en `CustomerRepository` y `SupplierRepository` para aceptar campos `rnc`/`rncCedula` opcionales, previniendo errores de compilación y respondiendo correctamente con código HTTP 200 en lugar de HTTP 400 (Bad Request).
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+
+### 58. Optimizador de Corte de Vidrio y UI Mejorada
+- **Algoritmo Guillotine Split Packer**: Reemplazo de la lógica de empaquetado anterior (basada en columnas estáticas) por un algoritmo de guillotina dinámico con la regla *Shorter Axis Split (SAS)*. Ahora las piezas sobrantes de cada corte se dividen en rectángulos libres utilizables de forma que se optimiza al máximo el material de cada lámina de vidrio antes de abrir una nueva.
+- **Simplificación de Parámetros de Corte**: Remoción del input de "Grosor de Sierra / Desperdicio (in)" en la interfaz de usuario, estableciendo la constante `bladeWidth = 0` directamente para adecuarse a la física del corte de vidrio (marcado y quebrado sin pérdida de material por aserrín).
+- **Control de Hidratación en Carga**: Integración del estado `mounted` para prevenir errores de hidratación (hydration mismatch) y mostrar un spinner de carga en Next.js mientras se restauran las piezas desde `localStorage`.
 
 * * Verified & Polished * *  
 * * Verified & Polished * *  
