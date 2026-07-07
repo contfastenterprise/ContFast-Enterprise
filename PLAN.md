@@ -406,8 +406,9 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
-### 57. Corrección de Advertencia de React: Valor Null en Inputs de Contactos
+### 57. Corrección de Advertencia de React y Validación de RNC Opcional en APIs de Contactos
 - **Prevenir Valor Null en Inputs Controlados**: Modificación de las vistas de `/dashboard/customers` y `/dashboard/suppliers` para asegurar que el input de RNC o Cédula (que ahora puede ser de valor `null` tras la flexibilización de contactos) siempre reciba un valor de cadena de texto vacío `''` como fallback tanto al inicializar el formulario en `openEditModal` (`supplier.rnc || ''`, `customer.rncCedula || ''`) como al enlazar la propiedad `value` en el elemento JSX (`formData.rnc || ''`, `formData.rncCedula || ''`). Esto elimina por completo el error de consola de React sobre propiedades de valor `null` en elementos controlados.
+- **Flexibilización de Esquemas Zod y Tipos de Repositorio**: Actualización de los esquemas de validación Zod en `src/app/api/v1/customers/[id]/route.ts`, `src/app/api/v1/suppliers/[id]/route.ts` y `src/app/api/v1/suppliers/route.ts` para permitir explícitamente `rnc`/`rncCedula` opcional o vacío (utilizando `.optional().or(z.literal(''))`). Asimismo, se adaptaron las interfaces de TypeScript de los métodos de creación en `CustomerRepository` y `SupplierRepository` para aceptar campos `rnc`/`rncCedula` opcionales, previniendo errores de compilación y respondiendo correctamente con código HTTP 200 en lugar de HTTP 400 (Bad Request).
 
 * * Verified & Polished * *  
 * * Verified & Polished * *  

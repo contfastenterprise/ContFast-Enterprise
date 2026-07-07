@@ -6,7 +6,7 @@ import { SupplierRepository } from '@/repositories/supplierRepository';
 import { z } from 'zod';
 
 const updateSupplierSchema = z.object({
-  rnc: z.string().min(9).max(15).optional(),
+  rnc: z.string().min(9).max(15).optional().or(z.literal('')),
   name: z.string().min(2).optional(),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),

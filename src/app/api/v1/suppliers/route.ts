@@ -6,7 +6,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { z } from 'zod';
 
 const createSupplierSchema = z.object({
-  rnc: z.string().min(9, 'El RNC es muy corto').max(15, 'El RNC es muy largo'),
+  rnc: z.string().min(9, 'El RNC es muy corto').max(15, 'El RNC es muy largo').optional().or(z.literal('')),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),

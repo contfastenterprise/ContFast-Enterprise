@@ -3,7 +3,7 @@ import { eq, and, or, ilike, desc, sql, isNull, inArray } from 'drizzle-orm';
 
 export interface CreateCustomerInput {
   companyId: string;
-  rncCedula: string;
+  rncCedula?: string;
   name: string;
   email?: string | null;
   phone?: string | null;

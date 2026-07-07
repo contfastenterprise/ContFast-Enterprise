@@ -8,7 +8,7 @@ import { syncCustomerToGoogleContacts } from '@/services/googleContactsService';
 import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 
 const updateCustomerSchema = z.object({
-  rncCedula: z.string().min(9).max(15).optional(),
+  rncCedula: z.string().min(9).max(15).optional().or(z.literal('')),
   name: z.string().min(2).optional(),
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),

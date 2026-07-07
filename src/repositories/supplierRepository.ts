@@ -69,7 +69,7 @@ export class SupplierRepository {
 
   static async create(data: {
     companyId: string;
-    rnc: string;
+    rnc?: string;
     name: string;
     email?: string;
     phone?: string;
