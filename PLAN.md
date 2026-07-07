@@ -398,8 +398,10 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 56. Corrección de Ruta de Chromium en Vista de Impresión (Vercel)
+- **Tracing de Binarios de Chromium**: Configuración de `outputFileTracingIncludes` en `next.config.ts` para resolver el error de bundler/relocación de `@sparticuz/chromium`. Esto fuerza a Next.js/Vercel a rastrear e incluir explícitamente los archivos comprimidos de Chromium (`./node_modules/@sparticuz/chromium/**/*`) en el paquete de funciones del servidor `/api/**/*`, permitiendo su descompresión exitosa en `/tmp` a nivel de producción.
 
-
-
-
-
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *

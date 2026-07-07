@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit", "puppeteer", "puppeteer-core", "@sparticuz/chromium"],
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./node_modules/@sparticuz/chromium/**/*"],
+  },
   async headers() {
     return [
       {
