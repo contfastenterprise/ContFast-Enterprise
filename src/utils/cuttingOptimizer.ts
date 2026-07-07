@@ -27,6 +27,13 @@ export interface OptimizationResult {
   totalSheets: number;
 }
 
+interface FreeRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export function optimizeGlassCutting(
   pieces: GlassPiece[],
   sheetWidth: number,
@@ -40,25 +47,39 @@ export function optimizeGlassCutting(
     }
   });
 
-  // Sort by max dimension descending, then by area descending
-  expandedPieces.sort((a, b) => {
-    const maxA = Math.max(a.width, a.height);
-    const maxB = Math.max(b.width, b.height);
-    if (maxB !== maxA) return maxB - maxA;
-    return (b.width * b.height) - (a.width * a.height);
-  });
+  // NO SORTING to preserve user input order:
+  // "cada ves que el usuario envie una medida se deve evaluar desde la plancha 1 para ver si se puede introducir"
 
   const sheets: SheetResult[] = [];
   const unplaced: GlassPiece[] = [];
-
-  // Track free rectangles for each sheet
-  interface FreeRect {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-  }
   const sheetFreeRects: FreeRect[][] = [];
+
+  function cleanFreeRects(freeRects: FreeRect[]): FreeRect[] {
+    const result: FreeRect[] = [];
+    for (let i = 0; i < freeRects.length; i++) {
+      const F1 = freeRects[i];
+      if (F1.w <= 0 || F1.h <= 0) continue;
+      
+      let contained = false;
+      for (let j = 0; j < freeRects.length; j++) {
+        if (i === j) continue;
+        const F2 = freeRects[j];
+        if (
+          F1.x >= F2.x &&
+          F1.y >= F2.y &&
+          F1.x + F1.w <= F2.x + F2.w &&
+          F1.y + F1.h <= F2.y + F2.h
+        ) {
+          contained = true;
+          break;
+        }
+      }
+      if (!contained) {
+        result.push(F1);
+      }
+    }
+    return result;
+  }
 
   expandedPieces.forEach(piece => {
     const pw = piece.width;
@@ -69,7 +90,7 @@ export function optimizeGlassCutting(
     let bestRotated = false;
     let bestScore = Infinity;
 
-    // Find the best fit across all existing sheets and their free rectangles
+    // Search existing sheets starting from Sheet 1 (index 0)
     for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
       const freeRects = sheetFreeRects[sIdx];
       for (let fIdx = 0; fIdx < freeRects.length; fIdx++) {
@@ -102,83 +123,94 @@ export function optimizeGlassCutting(
         }
       }
 
-      // First-fit sheet heuristic: if we found a fit in this sheet, don't look at later sheets
+      // First-fit sheet: if it fits on this sheet, we do NOT open/search later sheets.
+      // This guarantees that we place in the earliest possible sheet.
       if (bestSheetIdx !== -1) {
         break;
       }
     }
 
     if (bestSheetIdx !== -1) {
-      // Place in existing sheet
+      // Place piece in the selected sheet
       const sheet = sheets[bestSheetIdx];
       const freeRects = sheetFreeRects[bestSheetIdx];
-      const F = freeRects[bestFreeRectIdx];
+      const chosenRect = freeRects[bestFreeRectIdx];
 
-      // Remove the chosen free rect
-      freeRects.splice(bestFreeRectIdx, 1);
-
-      // Width and height of the placed piece
+      // Placed piece coordinates and dimensions
+      const px = chosenRect.x;
+      const py = chosenRect.y;
       const w = bestRotated ? ph : pw;
       const h = bestRotated ? pw : ph;
 
-      // Add to placed pieces
+      // Add to placed list
       sheet.placed.push({
         ...piece,
-        x: F.x,
-        y: F.y,
+        x: px,
+        y: py,
         rotated: bestRotated
       });
 
-      // Split the free rect
-      const remW = F.w - w;
-      const remH = F.h - h;
+      // Split all free rectangles in this sheet that intersect the new piece
+      const newFreeRects: FreeRect[] = [];
+      const P = { x: px, y: py, w, h };
 
-      // Guillotine split: Shorter Axis Split Rule (SAS)
-      const splitHorizontal = remW > remH;
+      freeRects.forEach(F => {
+        // Intersection check
+        const intersects = P.x < F.x + F.w && P.x + P.w > F.x && P.y < F.y + F.h && P.y + P.h > F.y;
+        if (intersects) {
+          // Left remnant
+          if (P.x > F.x) {
+            newFreeRects.push({
+              x: F.x,
+              y: F.y,
+              w: P.x - F.x - bladeWidth,
+              h: F.h
+            });
+          }
+          // Right remnant
+          if (P.x + P.w < F.x + F.w) {
+            newFreeRects.push({
+              x: P.x + P.w + bladeWidth,
+              y: F.y,
+              w: F.x + F.w - (P.x + P.w + bladeWidth),
+              h: F.h
+            });
+          }
+          // Bottom remnant
+          if (P.y > F.y) {
+            newFreeRects.push({
+              x: F.x,
+              y: F.y,
+              w: F.w,
+              h: P.y - F.y - bladeWidth
+            });
+          }
+          // Top remnant
+          if (P.y + P.h < F.y + F.h) {
+            newFreeRects.push({
+              x: F.x,
+              y: P.y + P.h + bladeWidth,
+              w: F.w,
+              h: F.y + F.h - (P.y + P.h + bladeWidth)
+            });
+          }
+        } else {
+          // Keep as is
+          newFreeRects.push(F);
+        }
+      });
 
-      if (splitHorizontal) {
-        // Horizontal cut: split horizontally first
-        const rTop = {
-          x: F.x,
-          y: F.y + h + bladeWidth,
-          w: F.w,
-          h: F.h - h - bladeWidth
-        };
-        const rRight = {
-          x: F.x + w + bladeWidth,
-          y: F.y,
-          w: F.w - w - bladeWidth,
-          h: h
-        };
-        if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
-        if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
-      } else {
-        // Vertical cut: split vertically first
-        const rRight = {
-          x: F.x + w + bladeWidth,
-          y: F.y,
-          w: F.w - w - bladeWidth,
-          h: F.h
-        };
-        const rTop = {
-          x: F.x,
-          y: F.y + h + bladeWidth,
-          w: w,
-          h: F.h - h - bladeWidth
-        };
-        if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
-        if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
-      }
+      sheetFreeRects[bestSheetIdx] = cleanFreeRects(newFreeRects);
+
     } else {
-      // Try to open a new sheet
+      // Piece did not fit in any existing sheet. Check if it fits in a brand new sheet.
       const fitsNormal = pw <= sheetWidth && ph <= sheetHeight;
       const fitsRotated = ph <= sheetWidth && pw <= sheetHeight;
 
       if (fitsNormal || fitsRotated) {
-        // Choose orientation that minimizes width or just fits
         let rotate = false;
         if (fitsNormal && fitsRotated) {
-          rotate = ph < pw; // prefer orientation where physical width is smaller
+          rotate = ph < pw; // Prefer orientation where physical width is smaller
         } else {
           rotate = !fitsNormal && fitsRotated;
         }
@@ -200,46 +232,29 @@ export function optimizeGlassCutting(
 
         sheets.push(newSheet);
 
-        // Initial free rects for new sheet after placing the first piece
+        // Initial free rectangles after placing first piece on a new sheet
         const freeRects: FreeRect[] = [];
-        const remW = sheetWidth - w;
-        const remH = sheetHeight - h;
-
-        const splitHorizontal = remW > remH;
-
-        if (splitHorizontal) {
-          const rTop = {
-            x: 0,
-            y: h + bladeWidth,
-            w: sheetWidth,
-            h: sheetHeight - h - bladeWidth
-          };
-          const rRight = {
-            x: w + bladeWidth,
-            y: 0,
-            w: sheetWidth - w - bladeWidth,
-            h: h
-          };
-          if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
-          if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
-        } else {
-          const rRight = {
+        
+        // Right remnant
+        if (w < sheetWidth) {
+          freeRects.push({
             x: w + bladeWidth,
             y: 0,
             w: sheetWidth - w - bladeWidth,
             h: sheetHeight
-          };
-          const rTop = {
+          });
+        }
+        // Top remnant
+        if (h < sheetHeight) {
+          freeRects.push({
             x: 0,
             y: h + bladeWidth,
-            w: w,
+            w: sheetWidth,
             h: sheetHeight - h - bladeWidth
-          };
-          if (rRight.w > 0 && rRight.h > 0) freeRects.push(rRight);
-          if (rTop.w > 0 && rTop.h > 0) freeRects.push(rTop);
+          });
         }
 
-        sheetFreeRects.push(freeRects);
+        sheetFreeRects.push(cleanFreeRects(freeRects));
       } else {
         unplaced.push(piece);
       }
