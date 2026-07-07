@@ -37,7 +37,7 @@ export async function GET(
     const result = await DGIIService.lookupRNC(cleanRnc);
 
     if (!result.success) {
-      return NextResponse.json(result, { status: 404 });
+      return NextResponse.json(result, { status: 200 });
     }
 
     return NextResponse.json(result);

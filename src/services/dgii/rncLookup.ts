@@ -26,7 +26,7 @@ export class DGIIService {
       const url = `${API_URL}/rnc/${rnc}`;
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
       
       const response = await fetch(url, {
         method: 'GET',

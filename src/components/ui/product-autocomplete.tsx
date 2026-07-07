@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -17,6 +18,7 @@ interface ProductAutocompleteProps {
   onWarehouseChange?: (warehouseId: string) => void;
   onClear?: () => void;
   allowOutOfStock?: boolean;
+  showWarehouses?: boolean;
 }
 
 export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
@@ -31,16 +33,50 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
   selectedWarehouseId,
   onWarehouseChange,
   onClear,
-  allowOutOfStock = false
+  allowOutOfStock = false,
+  showWarehouses = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
   const [localSelectedWarehouse, setLocalSelectedWarehouse] = useState<Record<string, string>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateCoords = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      updateCoords();
+      window.addEventListener('scroll', updateCoords, true);
+      window.addEventListener('resize', updateCoords);
+    }
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('resize', updateCoords);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        const dropdownElement = document.querySelector('.product-autocomplete-dropdown');
+        if (dropdownElement && dropdownElement.contains(e.target as Node)) {
+          return;
+        }
         setIsOpen(false);
         setSearchQuery(null);
       }
@@ -103,7 +139,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             value={displayValue}
             onFocus={() => {
               setIsOpen(true);
-              setSearchQuery(valueName);
+              setSearchQuery('');
             }}
             onChange={(e) => {
               const val = e.target.value;
@@ -134,17 +170,26 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
           )}
 
           {/* Autocomplete Dropdown Panel */}
-          {isOpen && (() => {
-            return (
-              <div className="absolute left-0 z-50 mt-1 max-h-60 w-[200%] md:w-[600px] overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl divide-y divide-slate-100 text-sm">
-                {/* Sticky Dropdown Table Header */}
-                <div className="sticky top-0 bg-slate-100 border-b border-slate-200 px-3 py-1.5 flex flex-col gap-0.5 z-10 select-none">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-[#003366] uppercase tracking-wider">
-                    <span className="w-1/2">Producto (Doble Clic para añadir)</span>
-                    <span className="w-1/2 text-right text-[8px] text-[#C5A059] uppercase tracking-widest font-extrabold">Existencias en Almacenes</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-wider border-t border-slate-200/60 pt-0.5 mt-0.5">
-                    <span className="w-1/2 font-normal text-slate-400 text-[8px]">Nombre / SKU</span>
+          {mounted && isOpen && createPortal(
+            <div 
+              style={{
+                position: 'absolute',
+                top: `${coords.top}px`,
+                left: `${coords.left}px`,
+                width: `${showWarehouses ? Math.max(450, coords.width) : coords.width}px`,
+                zIndex: 9999
+              }}
+              className="product-autocomplete-dropdown max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl divide-y divide-slate-100 text-sm"
+            >
+              {/* Sticky Dropdown Table Header */}
+              <div className="sticky top-0 bg-slate-100 border-b border-slate-200 px-3 py-1.5 flex flex-col gap-0.5 z-10 select-none">
+                <div className="flex items-center justify-between text-[10px] font-bold text-[#003366] uppercase tracking-wider">
+                  <span className={showWarehouses ? "w-1/2" : "w-full"}>Producto (Doble Clic para añadir)</span>
+                  {showWarehouses && <span className="w-1/2 text-right text-[8px] text-[#C5A059] uppercase tracking-widest font-extrabold">Existencias en Almacenes</span>}
+                </div>
+                <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase tracking-wider border-t border-slate-200/60 pt-0.5 mt-0.5">
+                  <span className={showWarehouses ? "w-1/2 font-normal text-slate-400 text-[8px]" : "w-full font-normal text-slate-400 text-[8px]"}>Nombre / SKU</span>
+                  {showWarehouses && (
                     <div className="flex gap-4 w-1/2 justify-end">
                       {warehouses.map(w => (
                         <span key={w.id} className="w-20 text-right truncate" title={w.name}>
@@ -152,62 +197,64 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                         </span>
                       ))}
                     </div>
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                {Object.keys(groupedProducts).length === 0 ? (
-                  <div className="p-3 text-slate-500 text-center">No se encontraron productos</div>
-                ) : (
-                  Object.entries(groupedProducts).map(([categoryName, prods]) => (
-                    <div key={categoryName} className="p-1">
-                      <div className="px-2 py-1 text-[10px] font-bold text-[#C5A059] uppercase bg-slate-50 rounded">
-                        {categoryName}
-                      </div>
-                      <div className="space-y-0.5 mt-1">
-                        {prods.map(p => {
-                          const totalStock = getProductTotalStock(p);
-                          const isOutOfStock = allowOutOfStock ? false : totalStock <= 0;
-                          const activeWId = getActiveWarehouseId(p);
+              {Object.keys(groupedProducts).length === 0 ? (
+                <div className="p-3 text-slate-500 text-center">No se encontraron productos</div>
+              ) : (
+                Object.entries(groupedProducts).map(([categoryName, prods]) => (
+                  <div key={categoryName} className="p-1">
+                    <div className="px-2 py-1 text-[10px] font-bold text-[#C5A059] uppercase bg-slate-50 rounded">
+                      {categoryName}
+                    </div>
+                    <div className="space-y-0.5 mt-1">
+                      {prods.map(p => {
+                        const totalStock = getProductTotalStock(p);
+                        const isOutOfStock = allowOutOfStock ? false : totalStock <= 0;
+                        const activeWId = getActiveWarehouseId(p);
 
-                          return (
-                            <div
-                              key={p.id}
-                              className={clsx(
-                                "w-full flex items-center justify-between border-b border-slate-100 py-0.5",
-                                isOutOfStock ? "opacity-50 bg-slate-50/50" : "hover:bg-slate-50/50"
-                              )}
+                        return (
+                          <div
+                            key={p.id}
+                            className={clsx(
+                              "w-full flex items-center justify-between border-b border-slate-100 py-0.5",
+                              isOutOfStock ? "opacity-50 bg-slate-50/50" : "hover:bg-slate-50/50"
+                            )}
+                          >
+                            {/* Product Info (Double click to select) */}
+                            <button
+                              type="button"
+                              disabled={isOutOfStock}
+                              onClick={() => {
+                                onSelect(p);
+                                if (onWarehouseChange && activeWId) {
+                                  onWarehouseChange(activeWId);
+                                }
+                                setIsOpen(false);
+                                setSearchQuery(null);
+                              }}
+                              className="flex-1 text-left px-2 py-1.5 flex items-center min-w-0 pr-2 outline-none disabled:cursor-not-allowed select-none"
+                              title="Clic para seleccionar"
                             >
-                              {/* Product Info (Double click to select) */}
-                              <button
-                                type="button"
-                                disabled={isOutOfStock}
-                                onClick={() => {
-                                  onSelect(p);
-                                  if (onWarehouseChange && activeWId) {
-                                    onWarehouseChange(activeWId);
-                                  }
-                                  setIsOpen(false);
-                                  setSearchQuery(null);
-                                }}
-                                className="flex-1 text-left px-2 py-1.5 flex items-center min-w-0 pr-2 outline-none disabled:cursor-not-allowed select-none"
-                                title="Clic para seleccionar"
-                              >
-                                <div className="flex flex-col min-w-0">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <span className="font-semibold text-[#003366] truncate">{p.name}</span>
-                                    {totalStock <= 0 && (
-                                      <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-rose-100 text-rose-800 uppercase shrink-0">
-                                        Sin Stock
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-[10px] text-slate-400 font-mono truncate">
-                                    {p.sku ? `SKU: ${p.sku}` : ''} {p.barcode ? `| Bar: ${p.barcode}` : ''}
-                                  </span>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="font-semibold text-[#003366] truncate">{p.name}</span>
+                                  {totalStock <= 0 && (
+                                    <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-rose-100 text-rose-800 uppercase shrink-0">
+                                      Sin Stock
+                                    </span>
+                                  )}
                                 </div>
-                              </button>
+                                <span className="text-[10px] text-slate-400 font-mono truncate">
+                                  {p.sku ? `SKU: ${p.sku}` : ''} {p.barcode ? `| Bar: ${p.barcode}` : ''}
+                                </span>
+                              </div>
+                            </button>
 
-                              {/* Warehouse Options (Single click checks, Double click selects) */}
+                            {/* Warehouse Options (Single click checks, Double click selects) */}
+                            {showWarehouses && (
                               <div className="flex gap-4 items-center pr-2">
                                 {warehouses.map(w => {
                                   const inv = p.inventory?.find((i: any) => i.warehouseId === w.id);
@@ -257,16 +304,17 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                   );
                                 })}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))
-                )}
-              </div>
-            );
-          })()}
+                  </div>
+                ))
+              )}
+            </div>,
+            document.body
+          )}
         </div>
       </div>
     </div>
