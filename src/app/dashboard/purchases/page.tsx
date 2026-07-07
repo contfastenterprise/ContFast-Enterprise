@@ -1815,7 +1815,7 @@ function GuaranteeChecksView() {
       const res = await fetch('/api/v1/ap?payments=true');
       const data = await res.json();
       if (data.success) {
-        setPaymentsList(data.data || []);
+        setPaymentsList(data.data?.items || data.data || []);
       } else {
         toast.error('Error al obtener cheques en garantía');
       }
