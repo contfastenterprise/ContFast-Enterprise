@@ -175,7 +175,7 @@ export default function CustomersPage() {
   const openEditModal = (customer: Customer) => {
     setEditId(customer.id);
     setFormData({
-      rncCedula: customer.rncCedula,
+      rncCedula: customer.rncCedula || '',
       name: customer.name,
       email: customer.email || '',
       phone: customer.phone || '',
@@ -433,7 +433,7 @@ export default function CustomersPage() {
                     <div className="relative flex items-center">
                       <input
                         type="text"
-                        value={formData.rncCedula}
+                        value={formData.rncCedula || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, rncCedula: e.target.value });
                           setRncVerified(false);

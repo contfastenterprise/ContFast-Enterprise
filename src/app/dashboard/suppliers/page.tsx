@@ -170,7 +170,7 @@ export default function SuppliersPage() {
   const openEditModal = (supplier: Supplier) => {
     setEditId(supplier.id);
     setFormData({
-      rnc: supplier.rnc,
+      rnc: supplier.rnc || '',
       name: supplier.name,
       email: supplier.email || '',
       phone: supplier.phone || '',
@@ -423,7 +423,7 @@ export default function SuppliersPage() {
                     <div className="relative flex items-center">
                       <input
                         type="text"
-                        value={formData.rnc}
+                        value={formData.rnc || ''}
                         onChange={(e) => {
                           setFormData({ ...formData, rnc: e.target.value });
                           setRncVerified(false);

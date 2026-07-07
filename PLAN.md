@@ -405,3 +405,11 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
+
+### 57. Corrección de Advertencia de React: Valor Null en Inputs de Contactos
+- **Prevenir Valor Null en Inputs Controlados**: Modificación de las vistas de `/dashboard/customers` y `/dashboard/suppliers` para asegurar que el input de RNC o Cédula (que ahora puede ser de valor `null` tras la flexibilización de contactos) siempre reciba un valor de cadena de texto vacío `''` como fallback tanto al inicializar el formulario en `openEditModal` (`supplier.rnc || ''`, `customer.rncCedula || ''`) como al enlazar la propiedad `value` en el elemento JSX (`formData.rnc || ''`, `formData.rncCedula || ''`). Esto elimina por completo el error de consola de React sobre propiedades de valor `null` en elementos controlados.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
