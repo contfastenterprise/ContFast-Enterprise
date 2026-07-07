@@ -1542,45 +1542,45 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="bg-primary text-on-primary rounded-3xl p-6 shadow-xl shadow-primary/20">
-              <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2">
-                <Tag className="h-4 w-4" /> Resumen Total
+            <div className="bg-[#f8fafc] border border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md shadow-slate-100/50">
+              <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2 text-slate-900">
+                <Tag className="h-4 w-4 text-primary" /> Resumen Total
               </h3>
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-on-primary/80">Subtotal</span>
-                  <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-sm font-medium text-slate-600">Subtotal</span>
+                  <span className="font-mono-data font-bold text-slate-900">RD$ {totalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-on-primary/80">ITBIS (18%)</span>
-                  <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="text-sm font-medium text-slate-600">ITBIS (18%)</span>
+                  <span className="font-mono-data font-bold text-slate-900">RD$ {totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
+                  <span className="text-sm font-medium text-slate-600 flex items-center gap-2">ISC <span className="text-[10px] opacity-70 text-slate-500">(Combustibles)</span></span>
                   <input
                     type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-primary outline-none text-slate-900"
                   />
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
+                  <span className="text-sm font-medium text-slate-600">Otros Impuestos</span>
                   <input
                     type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
+                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-primary outline-none text-slate-900"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-white/20 flex justify-between items-center mb-6">
-                <span className="text-sm font-bold">TOTAL NETO</span>
-                <span className="font-display-lg text-2xl font-black">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <div className="pt-4 border-t border-slate-200/80 flex justify-between items-center mb-6">
+                <span className="text-sm font-bold text-slate-800">TOTAL NETO</span>
+                <span className="font-display-lg text-2xl font-black text-primary">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
 
               <button
                 onClick={saveExpense}
                 disabled={loading}
-                className="w-full bg-white text-primary py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
+                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                 <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
@@ -1590,7 +1590,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={cancelEdit}
-                  className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-98"
+                  className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-98"
                 >
                   Cancelar Edición
                 </button>
