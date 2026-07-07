@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  RefreshCw, Search, Plus, Save, Trash2, Box, Store, Banknote, Calendar, 
+import {
+  RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Store, Banknote, Calendar,
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
   DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
-  Camera, Scan
+  Camera, Scan, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { roundMoney } from '@/utils/calculos';
 import InvoiceImageUploader from '@/components/InvoiceImageUploader';
 import { OcrInvoiceData } from '@/utils/ocrParser';
 import DateRangePicker from '@/components/ui/date-range-picker';
+import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -91,7 +92,8 @@ export default function PurchasesPage() {
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
-  
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+
   // General Amount mode state
   const [isGeneralAmount, setIsGeneralAmount] = useState(false);
   const [generalTotal, setGeneralTotal] = useState<string>('');
@@ -104,7 +106,7 @@ export default function PurchasesPage() {
 
   const handleOcrComplete = (data: OcrInvoiceData) => {
     setIsMinorExpense(false);
-    
+
     if (data.rnc) {
       const matched = suppliers.find(s => s.rnc.replace(/[\s-]/g, '') === data.rnc.replace(/[\s-]/g, ''));
       if (matched) {
@@ -114,23 +116,23 @@ export default function PurchasesPage() {
         toast.warning(`No se encontró proveedor con RNC: ${data.rnc}`);
       }
     }
-    
+
     if (data.ncf) setNcf(data.ncf);
     if (data.date) setIssueDate(data.date);
-    
+
     setIsGeneralAmount(true);
     setGeneralTotal(data.total.toString());
     setGeneralSubtotal(data.subtotal);
     setGeneralItbis(data.itbis);
-    
+
     if (data.supplier) {
       setDescription(`Compra / Gasto importado automáticamente vía OCR del proveedor: ${data.supplier}`);
     }
-    
+
     setShowOcrModal(false);
     toast.success('Datos cargados al formulario.');
   };
-  
+
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
 
@@ -138,6 +140,7 @@ export default function PurchasesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   // Filters State
   const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonthString());
@@ -180,11 +183,12 @@ export default function PurchasesPage() {
       .catch(err => console.error("Error loading bank accounts", err));
 
     Promise.all([
-      fetch('/api/v1/products?limit=1000').then(r => r.json()),
+      fetch(`/api/v1/products?per_page=5000&t=${Date.now()}`).then(r => r.json()),
       fetch('/api/v1/suppliers').then(r => r.json()),
       fetch('/api/v1/warehouses').then(r => r.json()),
-      fetch('/api/v1/accounting/accounts').then(r => r.json())
-    ]).then(([pr, sp, wh, ac]) => {
+      fetch('/api/v1/accounting/accounts').then(r => r.json()),
+      fetch('/api/v1/categories').then(r => r.json())
+    ]).then(([pr, sp, wh, ac, cat]) => {
       if (pr.success) setProducts(pr.data.items || pr.data || []);
       if (sp.success) setSuppliers(sp.data || []);
       if (wh.success || wh.data) {
@@ -199,6 +203,7 @@ export default function PurchasesPage() {
           setDebitAccountId(defaultAcc.id);
         }
       }
+      if (cat.success) setCategories(cat.data || []);
     }).catch(err => console.error("Error loading lookup data", err));
   }, []);
 
@@ -316,6 +321,101 @@ export default function PurchasesPage() {
     }
   };
 
+  const handleEditFromList = async (id: string) => {
+    setDetailLoading(true);
+    try {
+      const res = await fetch(`/api/v1/expenses/${id}`);
+      const data = await res.json();
+      if (data.success) {
+        startEditExpense(data.data);
+      } else {
+        toast.error('Error al cargar detalle para editar', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const startEditExpense = (expense: any) => {
+    setEditingExpenseId(expense.id);
+    
+    setIsMinorExpense(expense.isMinorExpense || false);
+    setSupplierId(expense.supplierId || '');
+    setNcf(expense.ncf || '');
+    setExpenseType(expense.expenseType || '02');
+    setIssueDate(expense.issueDate);
+    setPaymentMethod(expense.paymentMethod || '01');
+    setWarehouseId(expense.warehouseId || '');
+    setDescription(expense.description || '');
+
+    const hasDetailedLines = expense.lines && expense.lines.length > 0;
+    if (!hasDetailedLines) {
+      setIsGeneralAmount(true);
+      setGeneralTotal((parseFloat(expense.amount) + parseFloat(expense.itbis || '0')).toFixed(2));
+      setGeneralSubtotal(parseFloat(expense.amount) || 0);
+      setGeneralItbis(parseFloat(expense.itbis) || 0);
+      setNoItbis(parseFloat(expense.itbis) === 0);
+      setDebitAccountId(expense.debitAccountId || '');
+      setLines([]);
+    } else {
+      setIsGeneralAmount(false);
+      setGeneralTotal('');
+      setGeneralSubtotal(0);
+      setGeneralItbis(0);
+      setNoItbis(expense.lines.every((l: any) => parseFloat(l.itbis) === 0));
+      setLines(expense.lines.map((l: any) => ({
+        id: l.id,
+        productId: l.productId || '',
+        desc: l.description || '',
+        quantity: parseFloat(l.quantity) || 1,
+        unitCost: parseFloat(l.unitCost) || 0,
+        subtotal: parseFloat(l.subtotal) || 0,
+        itbis: parseFloat(l.itbis) || 0,
+        total: parseFloat(l.total) || 0
+      })));
+    }
+
+    setGlobalIsc(parseFloat(expense.isc) || 0);
+    setGlobalOtherTaxes(parseFloat(expense.otherTaxes) || 0);
+
+    setHasGuaranteeCheck(false);
+    setGcBankAccountId('');
+    setGcCheckNumber('');
+    setGcAmount(0);
+    setGcIssueDate(getLocalDateString());
+    setGcDueDate('');
+
+    setActiveTab('nuevo');
+    setSelectedExpense(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingExpenseId(null);
+    setIsMinorExpense(false);
+    setSupplierId('');
+    setNcf('');
+    setExpenseType('02');
+    setIssueDate(getLocalDateString());
+    setPaymentMethod('01');
+    setWarehouseId('');
+    setDescription('');
+    setIsGeneralAmount(false);
+    setGeneralTotal('');
+    setGeneralSubtotal(0);
+    setGeneralItbis(0);
+    setNoItbis(false);
+    setDebitAccountId('');
+    setLines([]);
+    setGlobalIsc(0);
+    setGlobalOtherTaxes(0);
+    setHasGuaranteeCheck(false);
+    setGcBankAccountId('');
+    setGcCheckNumber('');
+    setGcAmount(0);
+  };
+
   // Delete/void expense
   const handleDeleteExpense = async (id: string) => {
     if (!window.confirm('¿Está seguro de que desea eliminar permanentemente este registro de compra/gasto? Esta acción no se puede deshacer y revertirá los niveles de stock correspondientes.')) {
@@ -341,11 +441,50 @@ export default function PurchasesPage() {
     setLines([...lines, { id: Math.random().toString(), productId: '', desc: '', quantity: 1, unitCost: 0, subtotal: 0, itbis: 0, total: 0 }]);
   };
 
+  const applyProductToLine = (lineId: string, prod: any) => {
+    setLines(lines.map(l => {
+      if (l.id === lineId) {
+        const newLine = {
+          ...l,
+          productId: prod.id,
+          desc: prod.name,
+          unitCost: parseFloat(prod.cost) || 0,
+        };
+        newLine.subtotal = roundMoney(newLine.quantity * newLine.unitCost);
+        if (noItbis) {
+          newLine.itbis = 0;
+        } else {
+          newLine.itbis = roundMoney(newLine.subtotal * 0.18);
+        }
+        newLine.total = roundMoney(newLine.subtotal + newLine.itbis);
+        return newLine;
+      }
+      return l;
+    }));
+  };
+
+  const clearProductFromLine = (lineId: string) => {
+    setLines(lines.map(l => {
+      if (l.id === lineId) {
+        return {
+          ...l,
+          productId: '',
+          desc: '',
+          unitCost: 0,
+          subtotal: 0,
+          itbis: 0,
+          total: 0
+        };
+      }
+      return l;
+    }));
+  };
+
   const updateLine = (id: string, field: string, value: any) => {
     setLines(lines.map(l => {
       if (l.id === id) {
         const newLine = { ...l, [field]: value };
-        
+
         if (field === 'productId' && value) {
           const prod = products.find(p => p.id === value);
           if (prod) {
@@ -355,18 +494,18 @@ export default function PurchasesPage() {
         }
 
         if (field === 'productId' || field === 'quantity' || field === 'unitCost' || field === 'itbis') {
-          newLine.subtotal = newLine.quantity * newLine.unitCost;
+          newLine.subtotal = roundMoney(newLine.quantity * newLine.unitCost);
           if (noItbis) {
             newLine.itbis = 0;
           } else {
             if (field === 'productId' || field === 'quantity' || field === 'unitCost') {
-              newLine.itbis = newLine.subtotal * 0.18;
+              newLine.itbis = roundMoney(newLine.subtotal * 0.18);
             } else if (field === 'itbis') {
-              newLine.itbis = value;
+              newLine.itbis = roundMoney(value);
             }
           }
         }
-        newLine.total = newLine.subtotal + newLine.itbis;
+        newLine.total = roundMoney(newLine.subtotal + newLine.itbis);
         return newLine;
       }
       return l;
@@ -392,7 +531,7 @@ export default function PurchasesPage() {
       if (!ncf) return toast.error('Ingresa el NCF de la factura');
     }
     if (!issueDate) return toast.error('Selecciona fecha de factura');
-    
+
     if (isGeneralAmount) {
       if (generalSubtotal <= 0) return toast.error('El subtotal de la compra debe ser mayor a 0');
       if (!description.trim()) return toast.error('El concepto general (descripción) es obligatorio');
@@ -443,16 +582,20 @@ export default function PurchasesPage() {
         } : null
       };
 
-      const res = await fetch('/api/v1/expenses', {
-        method: 'POST',
+      const url = editingExpenseId ? `/api/v1/expenses/${editingExpenseId}` : '/api/v1/expenses';
+      const method = editingExpenseId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      
+
       if (data.success) {
-        toast.success('Compra / Gasto guardado exitosamente');
+        toast.success(editingExpenseId ? 'Compra / Gasto actualizado exitosamente' : 'Compra / Gasto guardado exitosamente');
         // Reset
+        setEditingExpenseId(null);
         setLines([]);
         setNcf('');
         setDescription('');
@@ -469,7 +612,7 @@ export default function PurchasesPage() {
         setActiveTab('historial');
         handleSearch(); // Refresh list if searched before
       } else {
-        toast.error('Error guardando gasto', { description: data.error?.message });
+        toast.error(editingExpenseId ? 'Error al actualizar' : 'Error guardando gasto', { description: data.error?.message });
       }
     } catch (err: any) {
       toast.error('Error de red', { description: err.message });
@@ -487,9 +630,9 @@ export default function PurchasesPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in-up pb-10">
+    <div className="space-y-8 animate-fade-in-up pb-10 w-full max-w-none">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
         <div>
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
             <Banknote className="h-8 w-8 text-primary" /> Compras y Gastos
@@ -504,31 +647,28 @@ export default function PurchasesPage() {
           <div className="bg-surface-container-high p-1 rounded-2xl flex gap-1 border border-white/20">
             <button
               onClick={() => setActiveTab('historial')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'historial'
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'historial'
                   ? 'bg-white text-primary shadow-sm'
                   : 'text-on-surface-variant/70 hover:text-on-surface'
-              }`}
+                }`}
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
               onClick={() => setActiveTab('nuevo')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'nuevo'
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'nuevo'
                   ? 'bg-white text-primary shadow-sm'
                   : 'text-on-surface-variant/70 hover:text-on-surface'
-              }`}
+                }`}
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
             <button
               onClick={() => setActiveTab('cheques')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                activeTab === 'cheques'
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'cheques'
                   ? 'bg-white text-primary shadow-sm'
                   : 'text-on-surface-variant/70 hover:text-on-surface'
-              }`}
+                }`}
             >
               <Banknote className="h-4 w-4 inline mr-1.5" /> Cheques
             </button>
@@ -537,9 +677,9 @@ export default function PurchasesPage() {
       </header>
 
       {activeTab === 'historial' ? (
-        <div className="space-y-8">
+        <div className="space-y-8 w-full max-w-none">
           {/* Advanced Filter Panel */}
-          <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+          <section className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full">
             <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
               <Filter className="h-4 w-4" /> Filtros de Búsqueda
             </h3>
@@ -672,13 +812,13 @@ export default function PurchasesPage() {
               <div className="h-80 bg-surface-container-high animate-pulse rounded-3xl"></div>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-8 w-full max-w-none">
               {/* KPI Cards Dashboard */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Compras de Inventario</p>
-                    <h3 className="text-2xl font-black text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                    <h3 className="text-2xl font-black text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-emerald-500/20 p-3 rounded-2xl text-emerald-800">
                     <ShoppingCart className="h-6 w-6" />
@@ -688,7 +828,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-6 rounded-3xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Gastos de Operación</p>
-                    <h3 className="text-2xl font-black text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                    <h3 className="text-2xl font-black text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-blue-500/20 p-3 rounded-2xl text-blue-800">
                     <Activity className="h-6 w-6" />
@@ -698,7 +838,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-6 rounded-3xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-purple-800 tracking-wider">ITBIS Soportado</p>
-                    <h3 className="text-2xl font-black text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                    <h3 className="text-2xl font-black text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-800">
                     <DollarSign className="h-6 w-6" />
@@ -714,143 +854,183 @@ export default function PurchasesPage() {
                     <FileText className="h-6 w-6" />
                   </div>
                 </div>
-              </div>
 
-              {/* Lists Split Panel (Compras / Gastos por separado) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              </div>
+              {/* Lists Split Panel (Compras / Gastos por separado, uno debajo de otro) */}
+              <div className="flex flex-col gap-8 w-full max-w-none">
                 {/* Compras de Inventario (Comprobantes) */}
-                <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-                  <h3 className="font-extrabold text-primary mb-4 flex items-center justify-between text-base">
+                <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full max-w-none">
+                  <h3 className="font-extrabold text-primary mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5" /> 1. Compras (Con Suplidor / Inventario)
+                      <ShoppingCart className="h-5 w-5 text-emerald-500" /> 1. Compras (Con Suplidor / Inventario)
                     </span>
-                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold">
                       {searchResults.filter(e => !e.isMinorExpense).length} Comprobantes
                     </span>
                   </h3>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
-                          <th className="py-3 px-2">Suplidor / RNC</th>
-                          <th className="py-3 px-2">NCF</th>
-                          <th className="py-3 px-2">Fecha</th>
-                          <th className="py-3 px-2 text-right">Total</th>
-                          <th className="py-3 px-2 text-center">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {searchResults.filter(e => !e.isMinorExpense).map(e => (
-                          <tr key={e.id} className="border-b border-surface-container-low hover:bg-surface-container-low/55 transition-colors">
-                            <td className="py-3 px-2">
-                              <p className="font-bold text-xs text-primary">{e.supplierName || 'Desconocido'}</p>
-                              <p className="text-[10px] text-on-surface-variant">{e.supplierRnc || '-'}</p>
-                            </td>
-                            <td className="py-3 px-2 font-mono text-xs">{e.ncf || 'Sin NCF'}</td>
-                            <td className="py-3 px-2 text-xs">{e.issueDate}</td>
-                            <td className="py-3 px-2 text-right font-bold font-mono-data text-xs">
-                              RD${parseFloat(e.amount).toFixed(2)}
-                            </td>
-                            <td className="py-3 px-2 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <button
-                                  onClick={() => viewDetails(e.id)}
-                                  className="p-1 text-primary hover:bg-primary/10 rounded-lg"
-                                  title="Ver Detalles"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                  className="p-1 text-[#005E63] hover:bg-[#005E63]/10 rounded-lg"
-                                  title="Imprimir"
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
+                  <div className="border border-outline-variant/20 rounded-2xl overflow-hidden mt-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
+                            <th className="py-3 px-2">Suplidor / RNC</th>
+                            <th className="py-3 px-2">NCF</th>
+                            <th className="py-3 px-2">Fecha</th>
+                            <th className="py-3 px-2 text-right">Total</th>
+                            <th className="py-3 px-2 text-center">Acciones</th>
                           </tr>
-                        ))}
-                        {searchResults.filter(e => !e.isMinorExpense).length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
-                              No hay compras comerciales en el rango de búsqueda.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant/20">
+                          {searchResults.filter(e => !e.isMinorExpense).map(e => (
+                            <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
+                              <td className="py-3 px-2">
+                                <p className="font-bold text-xs text-primary">{e.supplierName || 'Desconocido'}</p>
+                                <p className="text-[10px] text-on-surface-variant/80">{e.supplierRnc || '-'}</p>
+                              </td>
+                              <td className="py-3 px-2 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
+                              <td className="py-3 px-2 text-xs text-on-surface-variant/90">{e.issueDate}</td>
+                              <td className="py-3 px-2 text-right font-bold font-mono-data text-xs text-emerald-600">
+                                RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                              </td>
+                              <td className="py-3 px-2 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => viewDetails(e.id)}
+                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                    title="Ver Detalles"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                    className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                    title="Imprimir"
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </button>
+                                  {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                    <button
+                                      onClick={() => handleEditFromList(e.id)}
+                                      className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                      title="Editar Compra"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  {userRole === 'sistemas' && (
+                                    <button
+                                      onClick={() => handleDeleteExpense(e.id)}
+                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                      title="Eliminar Compra"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {searchResults.filter(e => !e.isMinorExpense).length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
+                                No hay compras comerciales en el rango de búsqueda.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
                 {/* Gastos Menores / Caja Chica */}
-                <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-                  <h3 className="font-extrabold text-primary mb-4 flex items-center justify-between text-base">
+                <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full max-w-none">
+                  <h3 className="font-extrabold text-primary mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" /> 2. Gastos Menores / Caja Chica
+                      <Activity className="h-5 w-5 text-blue-500" /> 2. Gastos Menores / Caja Chica
                     </span>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">
                       {searchResults.filter(e => e.isMinorExpense).length} Transacciones
                     </span>
                   </h3>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
-                          <th className="py-3 px-2">Concepto / NCF</th>
-                          <th className="py-3 px-2">Tipo de Gasto</th>
-                          <th className="py-3 px-2">Fecha</th>
-                          <th className="py-3 px-2 text-right">Total</th>
-                          <th className="py-3 px-2 text-center">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {searchResults.filter(e => e.isMinorExpense).map(e => (
-                          <tr key={e.id} className="border-b border-surface-container-low hover:bg-surface-container-low/55 transition-colors">
-                            <td className="py-3 px-2">
-                              <p className="font-bold text-xs text-primary">{e.description || 'Gasto General'}</p>
-                              {e.ncf && <p className="text-[10px] font-mono text-on-surface-variant">{e.ncf}</p>}
-                            </td>
-                            <td className="py-3 px-2">
-                              <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
-                                {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-xs">{e.issueDate}</td>
-                            <td className="py-3 px-2 text-right font-bold font-mono-data text-xs">
-                              RD${parseFloat(e.amount).toFixed(2)}
-                            </td>
-                            <td className="py-3 px-2 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <button
-                                  onClick={() => viewDetails(e.id)}
-                                  className="p-1 text-primary hover:bg-primary/10 rounded-lg"
-                                  title="Ver Detalles"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                  className="p-1 text-[#005E63] hover:bg-[#005E63]/10 rounded-lg"
-                                  title="Imprimir"
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
+                  <div className="border border-outline-variant/20 rounded-2xl overflow-hidden mt-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
+                            <th className="py-3 px-2">Concepto / NCF</th>
+                            <th className="py-3 px-2">Tipo de Gasto</th>
+                            <th className="py-3 px-2">Fecha</th>
+                            <th className="py-3 px-2 text-right">Total</th>
+                            <th className="py-3 px-2 text-center">Acciones</th>
                           </tr>
-                        ))}
-                        {searchResults.filter(e => e.isMinorExpense).length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
-                              No hay gastos registrados en el rango de búsqueda.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant/20">
+                          {searchResults.filter(e => e.isMinorExpense).map(e => (
+                            <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
+                              <td className="py-3 px-2">
+                                <p className="font-bold text-xs text-primary">{e.description || 'Gasto General'}</p>
+                                {e.ncf && <p className="text-[10px] font-mono text-on-surface-variant/80">{e.ncf}</p>}
+                              </td>
+                              <td className="py-3 px-2">
+                                <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-semibold inline-block">
+                                  {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
+                                </span>
+                              </td>
+                              <td className="py-3 px-2 text-xs text-on-surface-variant/90">{e.issueDate}</td>
+                              <td className="py-3 px-2 text-right font-bold font-mono-data text-xs text-blue-600">
+                                RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                              </td>
+                              <td className="py-3 px-2 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => viewDetails(e.id)}
+                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                    title="Ver Detalles"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                    className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                    title="Imprimir"
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </button>
+                                  {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                    <button
+                                      onClick={() => handleEditFromList(e.id)}
+                                      className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                      title="Editar Gasto"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  {userRole === 'sistemas' && (
+                                    <button
+                                      onClick={() => handleDeleteExpense(e.id)}
+                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                      title="Eliminar Gasto"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {searchResults.filter(e => e.isMinorExpense).length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-xs text-on-surface-variant">
+                                No hay gastos registrados en el rango de búsqueda.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -875,9 +1055,9 @@ export default function PurchasesPage() {
                   <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div 
+                <div
                   className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-surface-container-low rounded-2xl cursor-pointer hover:bg-surface-container transition-all"
                   onClick={() => setIsMinorExpense(!isMinorExpense)}
                 >
@@ -891,7 +1071,7 @@ export default function PurchasesPage() {
                 {!isMinorExpense && (
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
-                    <select 
+                    <select
                       value={supplierId} onChange={e => setSupplierId(e.target.value)}
                       className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                     >
@@ -903,7 +1083,7 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">NCF (Opcional si es Gasto Menor)</label>
-                   <input 
+                  <input
                     type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
                     value={ncf} onChange={e => setNcf(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none font-mono uppercase"
@@ -912,7 +1092,7 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Fecha Emisión</label>
-                   <input 
+                  <input
                     type="date"
                     value={issueDate} onChange={e => setIssueDate(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
@@ -921,7 +1101,7 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Tipo de Gasto (Formato 606)</label>
-                   <select 
+                  <select
                     value={expenseType} onChange={e => setExpenseType(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                   >
@@ -934,7 +1114,7 @@ export default function PurchasesPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Concepto General</label>
-                <textarea 
+                <textarea
                   rows={2} placeholder="Descripción de la compra..."
                   value={description} onChange={e => setDescription(e.target.value)}
                   className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
@@ -1006,7 +1186,31 @@ export default function PurchasesPage() {
                       type="number"
                       step="0.01"
                       value={generalSubtotal || ''}
-                      onChange={e => setGeneralSubtotal(parseFloat(e.target.value) || 0)}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setGeneralSubtotal(val);
+                        if (noItbis) {
+                          setGeneralItbis(0);
+                          setGeneralTotal(val.toString());
+                        } else {
+                          const itb = roundMoney(val * 0.18);
+                          setGeneralItbis(itb);
+                          setGeneralTotal(roundMoney(val + itb).toString());
+                        }
+                      }}
+                      onBlur={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const sub = roundMoney(val);
+                        setGeneralSubtotal(sub);
+                        if (noItbis) {
+                          setGeneralItbis(0);
+                          setGeneralTotal(sub.toString());
+                        } else {
+                          const itb = roundMoney(sub * 0.18);
+                          setGeneralItbis(itb);
+                          setGeneralTotal(roundMoney(sub + itb).toString());
+                        }
+                      }}
                       disabled={noItbis}
                       className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
                     />
@@ -1020,7 +1224,17 @@ export default function PurchasesPage() {
                       type="number"
                       step="0.01"
                       value={generalItbis || ''}
-                      onChange={e => setGeneralItbis(parseFloat(e.target.value) || 0)}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        setGeneralItbis(val);
+                        setGeneralTotal(roundMoney(generalSubtotal + val).toString());
+                      }}
+                      onBlur={e => {
+                        const val = parseFloat(e.target.value) || 0;
+                        const itb = roundMoney(val);
+                        setGeneralItbis(itb);
+                        setGeneralTotal(roundMoney(generalSubtotal + itb).toString());
+                      }}
                       disabled={noItbis}
                       className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
                     />
@@ -1056,7 +1270,7 @@ export default function PurchasesPage() {
                   <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
                     <Box className="h-4 w-4" /> Líneas de Compra / Gasto
                   </h3>
-                  <button 
+                  <button
                     onClick={addLine}
                     className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
                   >
@@ -1079,44 +1293,66 @@ export default function PurchasesPage() {
                     <tbody>
                       {lines.map(l => (
                         <tr key={l.id} className="border-b border-surface-container-low align-middle">
-                          <td className="py-3 px-2 space-y-1.5 min-w-[200px]">
-                            <select 
-                              value={l.productId} onChange={e => updateLine(l.id, 'productId', e.target.value)}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
-                            >
-                              <option value="">-- Servicio o ítem manual --</option>
-                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                            <input 
-                              type="text" placeholder="Descripción de la línea..."
-                              value={l.desc} onChange={e => updateLine(l.id, 'desc', e.target.value)}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-medium text-on-surface"
-                            />
+                          <td className="py-2 pl-0 pr-2 min-w-[240px]">
+                            <div className="w-full relative [&_input]:w-full text-xs">
+                              <ProductAutocomplete
+                                dbProducts={products}
+                                categories={categories}
+                                warehouses={warehouses}
+                                valueName={l.desc}
+                                hasProduct={!!l.productId}
+                                onSelect={(p: any) => applyProductToLine(l.id, p)}
+                                onTextChange={(val: string) => updateLine(l.id, 'desc', val)}
+                                selectedWarehouseId={warehouseId}
+                                onClear={() => clearProductFromLine(l.id)}
+                                allowOutOfStock={true}
+                                showWarehouses={false}
+                              />
+                            </div>
                           </td>
-                          <td className="py-3 px-2">
-                            <input 
-                              type="number" min="1" value={l.quantity} onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs text-center font-bold focus:ring-1 focus:ring-primary outline-none"
-                            />
+                          <td className="py-2 px-2 text-center">
+                            <div className="inline-flex items-center bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm w-28 mx-auto">
+                              <button
+                                type="button"
+                                onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-on-surface-variant outline-none"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <input 
+                                type="number" 
+                                min="1" 
+                                value={l.quantity} 
+                                onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 1)}
+                                className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-on-surface-variant outline-none"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </td>
-                          <td className="py-3 px-2">
+                          <td className="py-2 px-2 min-w-[130px]">
                             <input 
                               type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none font-mono-data"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-primary focus:border-primary outline-none font-mono-data"
                             />
                           </td>
-                          <td className="py-3 px-2">
+                          <td className="py-2 px-2 min-w-[120px]">
                             <input 
                               type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
                               disabled={noItbis}
-                              className="w-full bg-surface-container-high border-none rounded-xl px-2 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-mono-data disabled:opacity-50"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right focus:ring-1 focus:ring-primary focus:border-primary outline-none font-mono-data disabled:opacity-50 disabled:bg-slate-50"
                             />
                           </td>
-                          <td className="py-3 px-2 text-right">
+                          <td className="py-2 px-2 text-right min-w-[130px] pr-4">
                             <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
                           </td>
-                          <td className="py-3 px-2 text-center">
-                            <button onClick={() => removeLine(l.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                          <td className="py-2 px-2 text-center">
+                            <button onClick={() => removeLine(l.id)} className="p-1 text-red-500 hover:bg-red-50 rounded-lg">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </td>
@@ -1142,7 +1378,7 @@ export default function PurchasesPage() {
               <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
                 <Store className="h-4 w-4" /> Configuración
               </h3>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/15 select-none mb-2">
                   <div>
@@ -1165,7 +1401,7 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
-                  <select 
+                  <select
                     value={isGeneralAmount ? "" : warehouseId} onChange={e => setWarehouseId(e.target.value)}
                     disabled={isGeneralAmount}
                     className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1180,7 +1416,7 @@ export default function PurchasesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Método de Pago</label>
-                  <select 
+                  <select
                     value={paymentMethod} onChange={e => {
                       setPaymentMethod(e.target.value);
                       if (e.target.value !== '04') {
@@ -1199,9 +1435,9 @@ export default function PurchasesPage() {
                 {paymentMethod === '04' && (
                   <div className="mt-4 border-t border-dashed border-outline-variant/35 pt-4 space-y-4">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input 
-                        type="checkbox" 
-                        checked={hasGuaranteeCheck} 
+                      <input
+                        type="checkbox"
+                        checked={hasGuaranteeCheck}
                         onChange={e => setHasGuaranteeCheck(e.target.checked)}
                         className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
                       />
@@ -1209,14 +1445,14 @@ export default function PurchasesPage() {
                     </label>
 
                     {hasGuaranteeCheck && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         className="space-y-4 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/20"
                       >
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Banco / Cuenta de Origen</label>
-                          <select 
+                          <select
                             value={gcBankAccountId} onChange={e => setGcBankAccountId(e.target.value)}
                             className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                           >
@@ -1232,8 +1468,8 @@ export default function PurchasesPage() {
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
                               Número de Cheque <span className="text-red-500 font-bold">* (Obligatorio)</span>
                             </label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={gcCheckNumber} onChange={e => setGcCheckNumber(e.target.value)}
                               className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                               placeholder="Ej: 10023"
@@ -1242,10 +1478,10 @@ export default function PurchasesPage() {
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 text-primary">Monto Cheque</label>
-                            <input 
+                            <input
                               type="number"
                               step="0.01"
-                              value={gcAmount || ''} 
+                              value={gcAmount || ''}
                               onChange={e => setGcAmount(parseFloat(e.target.value) || 0)}
                               onBlur={e => {
                                 const val = parseFloat(e.target.value);
@@ -1260,7 +1496,7 @@ export default function PurchasesPage() {
                                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                                 <div>
                                   <span className="font-bold block mb-0.5">Monto Modificado</span>
-                                  El monto del cheque difiere del total de la compra (RD$ {roundMoney(grandTotal).toLocaleString(undefined, {minimumFractionDigits: 2})}). Asegúrese de que esta diferencia sea intencional.
+                                  El monto del cheque difiere del total de la compra (RD$ {roundMoney(grandTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}). Asegúrese de que esta diferencia sea intencional.
                                 </div>
                               </div>
                             )}
@@ -1270,8 +1506,8 @@ export default function PurchasesPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Fecha Emisión</label>
-                            <input 
-                              type="date" 
+                            <input
+                              type="date"
                               value={gcIssueDate} onChange={e => setGcIssueDate(e.target.value)}
                               className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                             />
@@ -1280,8 +1516,8 @@ export default function PurchasesPage() {
                             <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
                               Fecha de Cobro <span className="text-red-500 font-bold">* (Obligatorio)</span>
                             </label>
-                            <input 
-                              type="date" 
+                            <input
+                              type="date"
                               value={gcDueDate} onChange={e => setGcDueDate(e.target.value)}
                               className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                               required
@@ -1291,8 +1527,8 @@ export default function PurchasesPage() {
 
                         <div>
                           <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Beneficiario (Autocompletado)</label>
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={gcPayee}
                             disabled
                             className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-3 py-2 text-xs text-on-surface-variant/70 outline-none cursor-not-allowed font-medium"
@@ -1310,35 +1546,35 @@ export default function PurchasesPage() {
               <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2">
                 <Tag className="h-4 w-4" /> Resumen Total
               </h3>
-              
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80">Subtotal</span>
-                  <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                  <span className="font-mono-data font-bold">RD$ {totalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80">ITBIS (18%)</span>
-                  <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                  <span className="font-mono-data font-bold">RD$ {totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80 flex items-center gap-2">ISC <span className="text-[10px] opacity-70">(Combustibles)</span></span>
-                   <input 
+                  <input
                     type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
                     className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
                   />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-on-primary/80">Otros Impuestos</span>
-                   <input 
+                  <input
                     type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
                     className="w-24 bg-white/10 border-none rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-white outline-none"
                   />
                 </div>
               </div>
-              
+
               <div className="pt-4 border-t border-white/20 flex justify-between items-center mb-6">
                 <span className="text-sm font-bold">TOTAL NETO</span>
-                <span className="font-display-lg text-2xl font-black">RD$ {grandTotal.toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                <span className="font-display-lg text-2xl font-black">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
 
               <button
@@ -1347,14 +1583,24 @@ export default function PurchasesPage() {
                 className="w-full bg-white text-primary py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                <span>Guardar Compra / Gasto</span>
+                <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
               </button>
+
+              {editingExpenseId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="w-full mt-3 bg-white/20 hover:bg-white/30 text-white py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-98"
+                >
+                  Cancelar Edición
+                </button>
+              )}
             </div>
-            </section>
-          </div>
-        ) : (
-          <GuaranteeChecksView />
-        )}
+          </section>
+        </div>
+      ) : (
+        <GuaranteeChecksView />
+      )}
 
       {/* OCR Lector Modal */}
       {showOcrModal && (
@@ -1377,7 +1623,7 @@ export default function PurchasesPage() {
       <AnimatePresence>
         {selectedExpense && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -1393,7 +1639,7 @@ export default function PurchasesPage() {
                     ID Transacción: {selectedExpense.id}
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setSelectedExpense(null)}
                   className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition-all"
                 >
@@ -1481,33 +1727,33 @@ export default function PurchasesPage() {
                   <div className="w-full max-w-sm bg-surface-container-low p-5 rounded-2xl space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant">Subtotal</span>
-                      <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                      <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant">ITBIS Soportado</span>
-                      <span className="font-bold font-mono-data text-emerald-600">RD$ {parseFloat(selectedExpense.itbis).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                      <span className="font-bold font-mono-data text-emerald-600">RD$ {parseFloat(selectedExpense.itbis).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     {parseFloat(selectedExpense.isc) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-on-surface-variant">ISC (Combustibles)</span>
-                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.isc).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.isc).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
                     {parseFloat(selectedExpense.otherTaxes) > 0 && (
                       <div className="flex justify-between">
                         <span className="text-on-surface-variant">Otros Impuestos</span>
-                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.otherTaxes).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.otherTaxes).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
                     <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-black text-primary">
                       <span>TOTAL GENERAL</span>
                       <span className="font-mono-data">
                         RD$ {(
-                          parseFloat(selectedExpense.amount) + 
-                          parseFloat(selectedExpense.itbis) + 
-                          parseFloat(selectedExpense.isc) + 
+                          parseFloat(selectedExpense.amount) +
+                          parseFloat(selectedExpense.itbis) +
+                          parseFloat(selectedExpense.isc) +
                           parseFloat(selectedExpense.otherTaxes)
-                        ).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -1529,9 +1775,17 @@ export default function PurchasesPage() {
                     <span>Solo usuarios con rol de sistema pueden eliminar transacciones</span>
                   </div>
                 )}
+                {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                  <button
+                    onClick={() => startEditExpense(selectedExpense)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
+                  >
+                    <Edit className="h-4 w-4" /> Editar Transacción
+                  </button>
+                )}
                 <button
                   onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank')}
-                  className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 ml-auto mr-2"
+                  className={`bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
                 >
                   <Printer className="h-4 w-4" /> Imprimir
                 </button>
@@ -1660,7 +1914,7 @@ function GuaranteeChecksView() {
                               {p.dueDate}
                             </td>
                             <td className="px-6 py-4 text-right font-mono font-bold text-primary">
-                              RD$ {parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                              RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 text-center">
                               <button
@@ -1713,7 +1967,7 @@ function GuaranteeChecksView() {
                           <td className="px-6 py-4 font-mono text-on-surface-variant/70">{p.paymentDate}</td>
                           <td className="px-6 py-4 font-mono font-medium">{p.dueDate}</td>
                           <td className="px-6 py-4 text-right font-mono font-bold text-on-surface-variant">
-                            RD$ {parseFloat(p.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-250">

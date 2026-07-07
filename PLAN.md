@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras completar exitosamente la compilación y optimización de producción de Next.js, y tras implementar las mejoras de copias múltiples para formato Carta, modal de confirmación antes de emitir, y el refinamiento de los colores de estatus y códigos de seguridad de la DGII.
+El proyecto se encuentra **Verified & Polished** tras completar la implementación de la vista de registro y edición de compras con sincronización de inventarios y asientos contables, soporte para modificar cantidades y costos, y restricciones de roles de usuario (Sistemas puede borrar y editar, Administradores solo editar) con botones de acción rápida en las tablas de historial.
 
 ## Módulos Implementados
 
