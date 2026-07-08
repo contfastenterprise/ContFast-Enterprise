@@ -47,8 +47,15 @@ export function optimizeGlassCutting(
     }
   });
 
-  // NO SORTING to preserve user input order:
-  // "cada ves que el usuario envie una medida se deve evaluar desde la plancha 1 para ver si se puede introducir"
+  // Sort by area descending, then by max dimension descending to minimize waste (First-Fit Decreasing Area)
+  expandedPieces.sort((a, b) => {
+    const areaA = a.width * a.height;
+    const areaB = b.width * b.height;
+    if (areaB !== areaA) return areaB - areaA;
+    const maxA = Math.max(a.width, a.height);
+    const maxB = Math.max(b.width, b.height);
+    return maxB - maxA;
+  });
 
   const sheets: SheetResult[] = [];
   const unplaced: GlassPiece[] = [];
