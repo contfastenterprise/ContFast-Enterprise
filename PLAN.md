@@ -422,6 +422,13 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Control de Hidratación en Carga**: Integración del estado `mounted` para prevenir errores de hidratación (hydration mismatch) y mostrar un spinner de carga en Next.js mientras se restauran las piezas desde `localStorage`.
 
 * * Verified & Polished * *  
+* * Verified & Polished * *
+
+### 59. Ampliación del Catálogo de Cuentas por Defecto
+- **Nuevas Cuentas de Gasto Operativo**: Se agregaron al inicializador de catálogo por defecto (`AccountingRepository.seedDefaultChartOfAccounts`) las cuentas transaccionales de *Gastos de Combustible y Transporte* (`6.1.02.03`), *Alquileres / Arrendamientos* (`6.1.02.04`), *Reparación y Mantenimiento* (`6.1.02.05`) y *Gastos Diversos* (`6.1.02.06`).
+- **Migración de Datos**: Se ejecutó un script de migración en la base de datos de producción para poblar estas nuevas cuentas en todas las empresas preexistentes bajo su respectiva cuenta padre *Gastos Administrativos* (`6.1.02`), habilitándolas de forma inmediata en los selectores de gastos y compras.
+
+* * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *

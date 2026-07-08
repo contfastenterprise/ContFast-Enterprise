@@ -516,6 +516,10 @@ export class AccountingRepository {
         { code: '6.1.02', name: 'Gastos Administrativos', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1.02.01', name: 'Gastos de Energía Eléctrica', type: 'expense', nature: 'debit', isTransactional: true },
         { code: '6.1.02.02', name: 'Gastos de Teléfono e Internet', type: 'expense', nature: 'debit', isTransactional: true },
+        { code: '6.1.02.03', name: 'Gastos de Combustible y Transporte', type: 'expense', nature: 'debit', isTransactional: true },
+        { code: '6.1.02.04', name: 'Alquileres / Arrendamientos', type: 'expense', nature: 'debit', isTransactional: true },
+        { code: '6.1.02.05', name: 'Reparación y Mantenimiento', type: 'expense', nature: 'debit', isTransactional: true },
+        { code: '6.1.02.06', name: 'Gastos Diversos', type: 'expense', nature: 'debit', isTransactional: true },
       ];
 
       // Track inserted account IDs by code to map parentId
