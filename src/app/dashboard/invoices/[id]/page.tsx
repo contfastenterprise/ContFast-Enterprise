@@ -197,7 +197,7 @@ export default function InvoiceDetailPage() {
   };
 
   const handlePrint = () => {
-    window.open(`/api/v1/invoices/${id}/print`, '_blank');
+    window.open(`/api/v1/invoices/${id}/print?reprint=true`, '_blank');
   };
 
   const handleDownloadPdf = () => {

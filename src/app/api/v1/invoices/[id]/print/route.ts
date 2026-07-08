@@ -6,7 +6,7 @@ import { db, invoices, companies, companySettings, customers, invoiceLines, invo
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
-async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
+async function getInvoicePdfBuffer(invoiceId: string, companyId: string, isReprint: boolean = false) {
   // 1. Fetch invoice from DB
   const [invoiceRecordDb] = await db
     .select()
@@ -184,7 +184,7 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string) {
       logoUrl: settings?.logoUrl || undefined,
       settings: { 
         printLayout: settings?.printLayout || 'carta',
-        printCopies: settings?.printCopies ?? 2
+        printCopies: isReprint ? 1 : (settings?.printCopies ?? 2)
       }
     },
     customer: customer ? {
@@ -225,7 +225,9 @@ export async function GET(
     }
 
     const { id: invoiceId } = await params;
-    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId, session.companyId);
+    const { searchParams } = new URL(request.url);
+    const isReprint = searchParams.get('reprint') === 'true';
+    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId, session.companyId, isReprint);
 
     const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');

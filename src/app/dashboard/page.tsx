@@ -170,7 +170,7 @@ export default function DashboardPage() {
 
   const handleViewPdf = (invoiceId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+    window.open(`/api/v1/invoices/${invoiceId}/print?reprint=true`, '_blank');
   };
 
   const handleResendEmail = async (invoiceId: string, e: React.MouseEvent) => {

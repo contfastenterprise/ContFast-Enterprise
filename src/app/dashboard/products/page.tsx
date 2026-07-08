@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface Product {
   priceMayorista?: string;
   priceProveedor?: string;
   status: string;
+  inventory?: { warehouseId: string, warehouseName: string, quantity: string, availableQuantity?: string }[];
 }
 
 export default function ProductsPage() {
@@ -52,6 +53,9 @@ export default function ProductsPage() {
   const [warehouses, setWarehouses] = useState<{ id: string, name: string }[]>([]);
   const [inlineAdjustForm, setInlineAdjustForm] = useState<Record<string, string>>({});
   const [submittingAdjustId, setSubmittingAdjustId] = useState<string | null>(null);
+
+  const [showStockInPrint, setShowStockInPrint] = useState(false);
+  const [printDropdownOpen, setPrintDropdownOpen] = useState(false);
 
   // Form state
   const [manualPricesEnabled, setManualPricesEnabled] = useState(false);
@@ -319,7 +323,8 @@ export default function ProductsPage() {
     }).format(Number(amount));
   };
 
-  const handlePrintList = async () => {
+  const handlePrintList = async (overrideShowStock?: boolean) => {
+    const useStock = overrideShowStock !== undefined ? overrideShowStock : showStockInPrint;
     const toastId = toast.loading('Preparando plantilla de impresión...');
     try {
       const res = await fetch('/api/v1/company/settings');
@@ -376,26 +381,31 @@ export default function ProductsPage() {
                   <th>SKU / Código</th>
                   <th>Nombre</th>
                   <th>Medida</th>
+                  ${useStock ? '<th class="text-right">Stock</th>' : ''}
                   <th class="text-right">Costo</th>
                   <th class="text-right">Precio Venta</th>
                   <th class="text-center">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                ${products.map(p => `
-                  <tr>
-                    <td class="font-mono">${p.sku || 'N/A'}</td>
-                    <td class="font-bold">${p.name}</td>
-                    <td style="text-transform: capitalize;">${p.unitOfMeasure}</td>
-                    <td class="text-right">${formatCurrency(p.cost)}</td>
-                    <td class="text-right font-bold" style="color: #16a34a;">${formatCurrency(p.price)}</td>
-                    <td class="text-center">
-                      <span style="padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; background-color: ${p.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${p.status === 'active' ? '#137333' : '#5f6368'};">
-                        ${p.status === 'active' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                  </tr>
-                `).join('')}
+                ${products.map(p => {
+                  const stockTotal = (p.inventory || []).reduce((acc: number, item: any) => acc + Number(item.quantity || 0), 0);
+                  return `
+                    <tr>
+                      <td class="font-mono">${p.sku || 'N/A'}</td>
+                      <td class="font-bold">${p.name}</td>
+                      <td style="text-transform: capitalize;">${p.unitOfMeasure}</td>
+                      ${useStock ? `<td class="text-right font-mono font-bold">${stockTotal}</td>` : ''}
+                      <td class="text-right">${formatCurrency(p.cost)}</td>
+                      <td class="text-right font-bold" style="color: #16a34a;">${formatCurrency(p.price)}</td>
+                      <td class="text-center">
+                        <span style="padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; background-color: ${p.status === 'active' ? '#e6f4ea' : '#f1f3f4'}; color: ${p.status === 'active' ? '#137333' : '#5f6368'};">
+                          ${p.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody>
             </table>
             <div class="footer">
@@ -498,14 +508,89 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrintList}
-              className="bg-white hover:bg-slate-50 text-slate-900 border border-slate-350 px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-              title="Imprimir listado filtrado"
-            >
-              <Printer className="w-4 h-4 text-[#c5a059]" />
-              <span>Imprimir</span>
-            </button>
+            <div className="relative flex items-center h-[38px] z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  setPrintDropdownOpen(false);
+                  handlePrintList(showStockInPrint);
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-l-lg border border-r-0 border-slate-350 bg-white px-4 h-full text-xs font-bold text-slate-900 hover:bg-slate-50 transition-all active:scale-[0.98] outline-none"
+                title="Imprimir listado filtrado"
+              >
+                <Printer className="w-4 h-4 text-[#c5a059]" />
+                <span>Imprimir</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPrintDropdownOpen(v => !v);
+                }}
+                className="flex items-center justify-center rounded-r-lg border border-slate-350 bg-white px-2.5 h-full text-slate-900 hover:bg-slate-50 transition-all active:scale-[0.98] outline-none"
+                title="Más opciones de impresión"
+              >
+                <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+              </button>
+
+              <AnimatePresence>
+                {printDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setPrintDropdownOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[210px]"
+                    >
+                      <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Opciones de Impresión</p>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrintDropdownOpen(false);
+                          setShowStockInPrint(false);
+                          handlePrintList(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left font-semibold ${!showStockInPrint ? 'bg-slate-50/70 border-l-2 border-[#003366]' : ''}`}
+                      >
+                        <div className="flex-shrink-0 w-6 h-6 rounded bg-slate-100 flex items-center justify-center">
+                          <Printer className="h-3.5 w-3.5 text-slate-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800 text-xs">Imprimir Normal</p>
+                          <p className="text-[9px] text-slate-400 font-medium">Sin columna de stock</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrintDropdownOpen(false);
+                          setShowStockInPrint(true);
+                          handlePrintList(true);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left font-semibold ${showStockInPrint ? 'bg-slate-50/70 border-l-2 border-[#003366]' : ''}`}
+                      >
+                        <div className="flex-shrink-0 w-6 h-6 rounded bg-amber-100 flex items-center justify-center">
+                          <Layers className="h-3.5 w-3.5 text-amber-700" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800 text-xs">Imprimir con Stock</p>
+                          <p className="text-[9px] text-slate-400 font-medium">Incluye existencias totales</p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
             <button onClick={() => fetchProducts(search, selectedCategory, page)} className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
             </button>
