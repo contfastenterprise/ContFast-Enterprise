@@ -259,9 +259,23 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
         filename: path.basename(resolvedPath),
         path: resolvedPath,
       });
-      Logger.info(`[JobRunner] Attaching PDF file: ${resolvedPath}`);
+      Logger.info(`[JobRunner] Attaching local PDF file: ${resolvedPath}`);
     } else {
-      Logger.warn(`[JobRunner] PDF file not found at path: ${resolvedPath}`);
+      try {
+        const { StorageService } = await import('@/services/storageService');
+        const { bucketName, filePath } = StorageService.parseDbPath(pdfPath);
+        Logger.info(`[JobRunner] Downloading PDF attachment from Supabase Storage: bucket=${bucketName}, path=${filePath}`);
+        const fileBuffer = await StorageService.downloadFile(bucketName, filePath);
+        
+        attachments.push({
+          filename: filePath.split('/').pop() || 'factura.pdf',
+          content: fileBuffer,
+          contentType: 'application/pdf',
+        });
+        Logger.info(`[JobRunner] Attached PDF from Supabase Storage successfully.`);
+      } catch (err: any) {
+        Logger.error(`[JobRunner] Failed to download PDF attachment from Supabase Storage: ${pdfPath}`, err);
+      }
     }
   }
 

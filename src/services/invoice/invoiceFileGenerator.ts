@@ -38,37 +38,7 @@ export class InvoiceFileGenerator {
         securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
       }
 
-      let msellerXmlContent = '';
-      if (submission.msellerResponsePayload) {
-        const raw = submission.msellerResponsePayload;
-        const rawXml = raw.xml || raw.xmlFirmado || raw.xml_firmado || raw.xmlBase64 || raw.signedXmlBase64 || raw.xmlPayload || raw.xml_content || raw.xmlContent;
-        if (rawXml) {
-          if (typeof rawXml === 'string' && !rawXml.trim().startsWith('<')) {
-            try {
-              const decoded = Buffer.from(rawXml, 'base64').toString('utf8');
-              if (decoded.trim().startsWith('<')) {
-                msellerXmlContent = decoded;
-              }
-            } catch (e) {
-              Logger.error('[InvoiceFileGenerator] Error decoding base64 XML from mseller:', e);
-            }
-          } else if (typeof rawXml === 'string') {
-            msellerXmlContent = rawXml;
-          }
-        }
-      }
-
-      if (!fs.existsSync(invoicesDir)) {
-        fs.mkdirSync(invoicesDir, { recursive: true });
-      }
-      fs.writeFileSync(xmlPath, rawXml);
-      fs.writeFileSync(signedXmlPath, signedXml);
-
-      if (msellerXmlContent) {
-        fs.writeFileSync(msellerXmlPath, msellerXmlContent);
-      } else {
-        fs.writeFileSync(msellerXmlPath, '<?xml version="1.0" encoding="utf-8"?><ECF>XML de mSeller no disponible</ECF>');
-      }
+      // Only upload PDF file to Supabase Storage. XML is handled directly from mSeller path.
 
       // Fetch real product SKUs and units of measure
       const productIds = totals.itemLines.map((l) => l.productId).filter(Boolean);
@@ -156,7 +126,9 @@ export class InvoiceFileGenerator {
       const layout = (settings?.printLayout as 'carta' | '80mm' | '58mm') || 'carta';
       const html = DocumentTemplates.renderInvoice(formattedInvoiceRecord, layout, qrBase64);
       const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
-      fs.writeFileSync(pdfPath, pdfBuffer);
+      const { StorageService } = await import('@/services/storageService');
+      const { bucketName: pdfBucket, filePath: pdfFile } = StorageService.parseDbPath(pdfPath);
+      await StorageService.uploadFile(pdfBucket, pdfFile, pdfBuffer, 'application/pdf');
 
       // Send invoice email if customer has a registered email
       if (data.customerId) {

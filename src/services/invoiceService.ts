@@ -65,13 +65,16 @@ export class InvoiceService {
       throw err;
     }
 
-    // Paths for file storage
-    const storageDir = process.env.STORAGE_PATH || './storage';
-    const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
-    const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
-    const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
-    const msellerXmlPath = path.join(invoicesDir, `${ncf}_mseller.xml`);
-    const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
+    // Extract signedXml path from mseller response if available
+    let msellerXmlPath = '';
+    if (submission.msellerResponsePayload) {
+      const raw = submission.msellerResponsePayload;
+      msellerXmlPath = raw.signedXml || raw.summarySignedXml || '';
+    }
+
+    const xmlPath = '';
+    const signedXmlPath = '';
+    const pdfPath = `invoices/${data.companyId}/${ncf}.pdf`;
 
     // ── 5. Perform main transactional operations (Fase 3) ──────────────────────
     const dbResult = await InvoiceDbBooker.executeDbTransaction(
@@ -95,7 +98,7 @@ export class InvoiceService {
       totals,
       submission,
       dbResult.invoice.codigoFactura,
-      invoicesDir,
+      '',
       xmlPath,
       signedXmlPath,
       pdfPath,

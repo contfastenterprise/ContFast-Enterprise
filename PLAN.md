@@ -439,3 +439,14 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
+
+### 61. Corrección en la Descarga Programática del XML de Facturas (mSeller)
+- **Implementación de Autenticación de Portal**: Se actualizó `MSellerClient` para permitir el inicio de sesión programático en el portal web de mSeller (`https://ecf.mseller.app`) utilizando las credenciales de la empresa. Esto adquiere y mantiene en caché una cookie de sesión NextAuth válida.
+- **Flujo de Descarga de XML Firmado**: Se modificó el método `downloadXml` para consultar el endpoint de descarga del portal (`/api/documents/download?file=...`) enviando la cookie de sesión NextAuth. Este endpoint devuelve un enlace firmado (`presignedUrl`) de S3, el cual se descarga a continuación para obtener y retornar el contenido del archivo XML firmado de forma transparente.
+- **Sincronización Transparente**: Se mantiene el guardado automático de la ruta del XML (`msellerXmlPath`) en la base de datos de facturas para optimizar consultas futuras.
+
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *
+

@@ -96,6 +96,11 @@ interface TokenCache {
   expiresAt: number;
 }
 
+interface SessionCookieCache {
+  cookie: string;
+  expiresAt: number;
+}
+
 // Legacy interface kept for backward compatibility
 export interface MSellerInvoicePayload {
   companyRnc: string;
@@ -120,6 +125,7 @@ export class MSellerClient {
   private password: string;
   private apiKeyEncrypted: string;
   private tokenCache: TokenCache | null = null;
+  private sessionCookieCache: SessionCookieCache | null = null;
 
   constructor(config: {
     baseUrl: string;
@@ -644,6 +650,83 @@ export class MSellerClient {
     };
 
     return payload as ECFPayload;
+  }
+
+  private async getPortalSessionCookie(): Promise<string> {
+    if (this.sessionCookieCache && Date.now() < this.sessionCookieCache.expiresAt) {
+      return this.sessionCookieCache.cookie;
+    }
+
+    const domain = 'https://ecf.mseller.app';
+    const csrfRes = await fetch(`${domain}/api/auth/csrf`);
+    if (!csrfRes.ok) {
+      throw new Error(`Failed to get CSRF token from mSeller portal: ${csrfRes.statusText}`);
+    }
+
+    const { csrfToken } = await csrfRes.json();
+    const csrfCookie = csrfRes.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+
+    const loginRes = await fetch(`${domain}/api/auth/callback/credentials`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': csrfCookie,
+      },
+      body: new URLSearchParams({
+        csrfToken,
+        username: this.email,
+        email: this.email,
+        password: this.password,
+        json: 'true',
+        redirect: 'false',
+      }).toString(),
+    });
+
+    if (!loginRes.ok) {
+      throw new Error(`Failed to log in to mSeller portal: ${loginRes.statusText}`);
+    }
+
+    const loginCookies = loginRes.headers.getSetCookie();
+    const sessionCookie = loginCookies.map(c => c.split(';')[0]).join('; ');
+
+    if (!sessionCookie || !sessionCookie.includes('session-token')) {
+      throw new Error('Failed to obtain NextAuth session cookie from mSeller portal.');
+    }
+
+    // Cache session cookie for 50 minutes
+    this.sessionCookieCache = {
+      cookie: sessionCookie,
+      expiresAt: Date.now() + 50 * 60 * 1000,
+    };
+
+    return sessionCookie;
+  }
+
+  async downloadXml(signedXmlPath: string): Promise<string> {
+    const sessionCookie = await this.getPortalSessionCookie();
+    const downloadUrl = `https://ecf.mseller.app/api/documents/download?file=${signedXmlPath}`;
+
+    const downloadRes = await fetch(downloadUrl, {
+      headers: {
+        'Cookie': sessionCookie,
+      },
+    });
+
+    if (!downloadRes.ok) {
+      throw new Error(`Failed to fetch pre-signed URL from mSeller portal: ${downloadRes.statusText}`);
+    }
+
+    const { presignedUrl } = await downloadRes.json();
+    if (!presignedUrl) {
+      throw new Error('mSeller download API did not return a presigned URL.');
+    }
+
+    const xmlRes = await fetch(presignedUrl);
+    if (!xmlRes.ok) {
+      throw new Error(`Failed to download XML from pre-signed URL: ${xmlRes.statusText}`);
+    }
+
+    return await xmlRes.text();
   }
 
   /**
