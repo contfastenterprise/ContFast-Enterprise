@@ -75,17 +75,6 @@ export default function ReceivablesPage() {
   const [statementReceipts, setStatementReceipts] = useState<any[]>([]);
   const [statementLoading, setStatementLoading] = useState(false);
   const [statementSearch, setStatementSearch] = useState('');
-  const [printingStatement, setPrintingStatement] = useState(false);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'customer_statement' && statementCustomers.length === 0) {
-      fetchStatementCustomers();
-    }
-  }, [activeTab]);
 
   const fetchStatementCustomers = async () => {
     try {
@@ -98,6 +87,33 @@ export default function ReceivablesPage() {
       console.error('Error fetching customers for statement:', err);
     }
   };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/v1/ar');
+      const data = await res.json();
+      if (data.success) {
+        setCustomers(data.data);
+      } else {
+        toast.error('Error al cargar cuentas por cobrar');
+      }
+    } catch (err) {
+      toast.error('Error de red al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'customer_statement' && statementCustomers.length === 0) {
+      fetchStatementCustomers();
+    }
+  }, [activeTab]);
 
   const fetchCustomerStatement = async (customerId: string) => {
     if (!customerId) return;
@@ -160,10 +176,15 @@ export default function ReceivablesPage() {
     }
   };
 
-  const handlePrintReceipt = async (receiptId: string) => {
+  const handlePrintReceipt = async (receiptId: string, options?: { hideBalance?: boolean }) => {
     const toastId = toast.loading('Generando PDF del recibo...');
     try {
-      const res = await fetch(`/api/v1/ar/receipts/${receiptId}/print`, {
+      const queryParams = new URLSearchParams();
+      if (options?.hideBalance) {
+        queryParams.append('hideBalance', 'true');
+      }
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+      const res = await fetch(`/api/v1/ar/receipts/${receiptId}/print${queryString}`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -178,49 +199,9 @@ export default function ReceivablesPage() {
     }
   };
 
-  const handlePrintStatement = async () => {
-    if (!selectedStatementCustomerId) return;
-    const toastId = toast.loading('Generando PDF del estado de cuenta...');
-    setPrintingStatement(true);
-    try {
-      const res = await fetch('/api/v1/ar/receipts/by-customer/print', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          customerId: selectedStatementCustomerId,
-          search: statementSearch
-        })
-      });
-      const data = await res.json();
-      if (data.success && data.url) {
-        toast.success('PDF del estado de cuenta generado con éxito', { id: toastId });
-        window.open(data.url, '_blank');
-      } else {
-        toast.error(data.error?.message || 'Error al generar PDF del estado', { id: toastId });
-      }
-    } catch (err) {
-      toast.error('Error de red al generar PDF del estado', { id: toastId });
-    } finally {
-      setPrintingStatement(false);
-    }
-  };
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/v1/ar');
-      const data = await res.json();
-      if (data.success) {
-        setCustomers(data.data);
-      } else {
-        toast.error('Error al cargar cuentas por cobrar');
-      }
-    } catch (err) {
-      toast.error('Error de red al cargar datos');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
 
   const handlePrintCustomerStatement = async (customerId: string) => {
     setPrintingCustomerId(customerId);
@@ -648,7 +629,7 @@ export default function ReceivablesPage() {
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handlePrintReceipt(rec.id)}
+                                  onClick={() => handlePrintReceipt(rec.id, { hideBalance: true })}
                                   className="p-1.5 hover:bg-slate-100 text-[#003366] rounded transition-colors"
                                   title="Imprimir PDF"
                                 >
@@ -707,19 +688,19 @@ export default function ReceivablesPage() {
                 </div>
               </div>
 
-              {selectedStatementCustomerId && statementReceipts.length > 0 && (
+              {selectedStatementCustomerId && (
                 <button
                   type="button"
-                  disabled={printingStatement}
-                  onClick={handlePrintStatement}
+                  disabled={printingCustomerId === selectedStatementCustomerId}
+                  onClick={() => handlePrintCustomerStatement(selectedStatementCustomerId)}
                   className="w-full md:w-auto bg-[#003366] hover:bg-[#002244] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {printingStatement ? (
+                  {printingCustomerId === selectedStatementCustomerId ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <Printer className="w-4 h-4" />
                   )}
-                  {printingStatement ? 'Generando...' : 'Imprimir Estado'}
+                  {printingCustomerId === selectedStatementCustomerId ? 'Generando...' : 'Imprimir Estado'}
                 </button>
               )}
             </div>
@@ -1134,7 +1115,7 @@ export default function ReceivablesPage() {
                 </button>
                 {selectedReceipt && (
                   <button
-                    onClick={() => handlePrintReceipt(selectedReceipt.id)}
+                    onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}
                     className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors"
                   >
                     <Printer className="w-4 h-4" /> Imprimir Recibo

@@ -31,6 +31,7 @@ export async function POST(
     await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
 
     const { id: receiptId } = await params;
+    const hideBalance = req.nextUrl.searchParams.get('hideBalance') === 'true';
     const receipt = await ArRepository.getReceiptDetails(session.companyId, receiptId);
 
     if (!receipt) {
@@ -72,7 +73,7 @@ export async function POST(
       reference: receipt.reference,
       notes: receipt.notes,
       appliedInvoices: receipt.appliedInvoices,
-      customerTotalBalance: receipt.customerTotalBalance,
+      customerTotalBalance: hideBalance ? undefined : receipt.customerTotalBalance,
       company: {
         name: company.name,
         rnc: company.rnc,

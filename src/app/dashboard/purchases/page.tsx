@@ -227,7 +227,8 @@ export default function PurchasesPage() {
   }, [supplierId, suppliers]);
 
   // Filter and search action
-  const handleSearch = async () => {
+  const handleSearch = async (silent: boolean | any = false) => {
+    const isSilent = silent === true;
     setSearchLoading(true);
     setHasSearched(true);
     try {
@@ -251,7 +252,9 @@ export default function PurchasesPage() {
       const data = await res.json();
       if (data.success) {
         setSearchResults(data.data || []);
-        toast.success(`Se encontraron ${data.data.length} transacciones`);
+        if (!isSilent) {
+          toast.success(`Se encontraron ${data.data.length} transacciones`);
+        }
       } else {
         toast.error('Error al realizar búsqueda', { description: data.error?.message });
       }
@@ -264,7 +267,7 @@ export default function PurchasesPage() {
 
   // Load initial search results automatically on mount
   useEffect(() => {
-    handleSearch();
+    handleSearch(true);
   }, []);
 
   // Recalculate ITBIS / Subtotal when noItbis changes
