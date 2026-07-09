@@ -432,7 +432,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *
 
 ### 60. Corrección de Directorio Temporal para Vercel (EROFS)
-- **Uso de Directorio Temporal del Sistema (os.tmpdir)**: Modificación de [documentService.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/print/documentService.ts) y [reportQueue.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/jobs/reportQueue.ts) para almacenar los archivos temporales (PDFs de facturas, recibos y planchas de corte) en `path.join(os.tmpdir(), 'contfast-temp-docs')` en lugar del directorio relativo del proyecto `./storage/temp-docs`. Esto corrige los errores del sistema de archivos de solo lectura (`EROFS: read-only file system`) al generar documentos en funciones serverless en Vercel.
+- **Uso de Directorio Temporal del Sistema (os.tmpdir)**: Modificación de [documentService.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/print/documentService.ts) y [reportQueue.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/jobs/reportQueue.ts) para almacenar los archivos temporales (PDFs de facturas, recibos y planchas de corte) en `path.join(os.tmpdir(), 'contfast-temp-docs')` en lugar del directorio relativo del proyecto `./storage/temp-docs`. Esto corrige los errores del sistema de archivos de solo lectura (`EROFS: read-only file system` / `ENOENT`) al generar documentos en funciones serverless en Vercel.
+- **Forzado Automático en Producción**: Añadido detector de entorno (`isProduction`) en ambos archivos. En Vercel / producción, el sistema ahora ignora automáticamente la variable de entorno relativa `PDF_TEMP_DIR` (que suele venir configurada como `./storage/temp-docs` en el archivo `.env`) y fuerza el uso del directorio `/tmp` seguro para escritura de Node.js.
 
 * * Verified & Polished * *  
 * * Verified & Polished * *  

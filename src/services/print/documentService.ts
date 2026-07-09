@@ -4,7 +4,10 @@ import path from 'path';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 
-const PDF_TEMP_DIR = process.env.PDF_TEMP_DIR || path.join(os.tmpdir(), 'contfast-temp-docs');
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+const PDF_TEMP_DIR = isProduction
+  ? path.join(os.tmpdir(), 'contfast-temp-docs')
+  : (process.env.PDF_TEMP_DIR || path.join(os.tmpdir(), 'contfast-temp-docs'));
 const URL_SIGNATURE_SECRET = process.env.URL_SIGNATURE_SECRET || 'default_secret';
 
 export class DocumentService {
