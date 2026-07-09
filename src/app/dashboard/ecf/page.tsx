@@ -910,7 +910,7 @@ function ComprobantesTab() {
           </button>
           <button
             onClick={fetchInvoices}
-            className="flex items-center justify-center gap-2 bg-secondary text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 group whitespace-nowrap cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-6 py-2.5 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 group whitespace-nowrap cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             <span>ACTUALIZAR DATOS</span>
