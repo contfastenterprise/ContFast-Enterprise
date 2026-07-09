@@ -2,8 +2,9 @@ import { Queue, Worker, Job } from 'bullmq';
 import { redis } from '@/infrastructure/redis';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
-const PDF_TEMP_DIR = process.env.PDF_TEMP_DIR || './storage/temp-docs';
+const PDF_TEMP_DIR = process.env.PDF_TEMP_DIR || path.join(os.tmpdir(), 'contfast-temp-docs');
 
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
 

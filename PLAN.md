@@ -429,6 +429,12 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Migración de Datos**: Se ejecutó un script de migración en la base de datos de producción para poblar estas nuevas cuentas en todas las empresas preexistentes bajo su respectiva cuenta padre *Gastos Administrativos* (`6.1.02`), habilitándolas de forma inmediata en los selectores de gastos y compras.
 
 * * Verified & Polished * *  
+* * Verified & Polished * *
+
+### 60. Corrección de Directorio Temporal para Vercel (EROFS)
+- **Uso de Directorio Temporal del Sistema (os.tmpdir)**: Modificación de [documentService.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/print/documentService.ts) y [reportQueue.ts](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/services/jobs/reportQueue.ts) para almacenar los archivos temporales (PDFs de facturas, recibos y planchas de corte) en `path.join(os.tmpdir(), 'contfast-temp-docs')` en lugar del directorio relativo del proyecto `./storage/temp-docs`. Esto corrige los errores del sistema de archivos de solo lectura (`EROFS: read-only file system`) al generar documentos en funciones serverless en Vercel.
+
+* * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
