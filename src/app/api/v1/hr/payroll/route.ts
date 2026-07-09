@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { HRRepository } from '@/repositories/hrRepository';
 import { z } from 'zod';
+import { hasActivePlan } from '@/utils/subscriptionHelper';
 
 const createPayrollSchema = z.object({
   periodStart: z.string().min(1, 'La fecha de inicio es obligatoria'),
@@ -52,6 +53,15 @@ export async function POST(req: NextRequest) {
     const session = await verifyAuth(req);
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
+    }
+
+    // Enforce active plan subscription
+    const active = await hasActivePlan(session.companyId);
+    if (!active) {
+      return NextResponse.json(
+        { success: false, error: { code: 'PLAN_REQUIRED', message: 'Se requiere un plan activo y vigente para generar nóminas.' } },
+        { status: 403 }
+      );
     }
 
     const body = await req.json();

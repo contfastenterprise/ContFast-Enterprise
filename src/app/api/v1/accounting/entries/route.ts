@@ -5,6 +5,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, journalEntries, journalEntryLines, chartOfAccounts, auditLogs } from '@/db';
 import { eq, and, isNull, gte, lte, desc, count, inArray } from 'drizzle-orm';
 import { AccountRepository } from '@/repositories/accountRepository';
+import { hasActivePlan } from '@/utils/subscriptionHelper';
 
 const createJournalEntrySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -153,6 +154,15 @@ export async function POST(req: NextRequest) {
   try {
     // Enforce "contabilidad:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'contabilidad', 'write');
+
+    // Enforce active plan subscription
+    const active = await hasActivePlan(auth.companyId);
+    if (!active) {
+      return NextResponse.json(
+        { success: false, error: { code: 'PLAN_REQUIRED', message: 'Se requiere un plan activo y vigente para generar entradas de diario.' } },
+        { status: 403, headers: resHeaders }
+      );
+    }
 
     const body = await req.json();
     const result = createJournalEntrySchema.safeParse(body);
