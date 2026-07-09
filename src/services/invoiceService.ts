@@ -70,6 +70,7 @@ export class InvoiceService {
     const invoicesDir = path.join(storageDir, 'invoices', data.companyId);
     const xmlPath = path.join(invoicesDir, `${ncf}.xml`);
     const signedXmlPath = path.join(invoicesDir, `${ncf}_signed.xml`);
+    const msellerXmlPath = path.join(invoicesDir, `${ncf}_mseller.xml`);
     const pdfPath = path.join(invoicesDir, `${ncf}.pdf`);
 
     // ── 5. Perform main transactional operations (Fase 3) ──────────────────────
@@ -81,7 +82,8 @@ export class InvoiceService {
       submission,
       xmlPath,
       signedXmlPath,
-      pdfPath
+      pdfPath,
+      msellerXmlPath
     );
 
     // ── 6. File generation outside the transaction block to avoid lockups ──────
@@ -96,7 +98,8 @@ export class InvoiceService {
       invoicesDir,
       xmlPath,
       signedXmlPath,
-      pdfPath
+      pdfPath,
+      msellerXmlPath
     );
 
     // ── 7. Post-emission tasks (conduces, quotes) ──────────────────────────────

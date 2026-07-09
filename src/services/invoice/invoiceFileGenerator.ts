@@ -26,7 +26,8 @@ export class InvoiceFileGenerator {
     invoicesDir: string,
     xmlPath: string,
     signedXmlPath: string,
-    pdfPath: string
+    pdfPath: string,
+    msellerXmlPath: string
   ) {
     try {
       const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
@@ -37,11 +38,37 @@ export class InvoiceFileGenerator {
         securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
       }
 
+      let msellerXmlContent = '';
+      if (submission.msellerResponsePayload) {
+        const raw = submission.msellerResponsePayload;
+        const rawXml = raw.xml || raw.xmlFirmado || raw.xml_firmado || raw.xmlBase64 || raw.signedXmlBase64 || raw.xmlPayload || raw.xml_content || raw.xmlContent;
+        if (rawXml) {
+          if (typeof rawXml === 'string' && !rawXml.trim().startsWith('<')) {
+            try {
+              const decoded = Buffer.from(rawXml, 'base64').toString('utf8');
+              if (decoded.trim().startsWith('<')) {
+                msellerXmlContent = decoded;
+              }
+            } catch (e) {
+              Logger.error('[InvoiceFileGenerator] Error decoding base64 XML from mseller:', e);
+            }
+          } else if (typeof rawXml === 'string') {
+            msellerXmlContent = rawXml;
+          }
+        }
+      }
+
       if (!fs.existsSync(invoicesDir)) {
         fs.mkdirSync(invoicesDir, { recursive: true });
       }
       fs.writeFileSync(xmlPath, rawXml);
       fs.writeFileSync(signedXmlPath, signedXml);
+
+      if (msellerXmlContent) {
+        fs.writeFileSync(msellerXmlPath, msellerXmlContent);
+      } else {
+        fs.writeFileSync(msellerXmlPath, '<?xml version="1.0" encoding="utf-8"?><ECF>XML de mSeller no disponible</ECF>');
+      }
 
       // Fetch real product SKUs and units of measure
       const productIds = totals.itemLines.map((l) => l.productId).filter(Boolean);

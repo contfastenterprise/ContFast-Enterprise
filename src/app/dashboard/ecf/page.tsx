@@ -25,6 +25,7 @@ import {
   CreditCard,
   BarChart3,
   Pencil,
+  FileCode,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -47,6 +48,9 @@ interface Invoice {
   dgiiMessage?: string;
   customerId?: string;
   createdAt: string;
+  xmlPath?: string | null;
+  signedXmlPath?: string | null;
+  msellerXmlPath?: string | null;
 }
 
 interface ECFStats {
@@ -969,6 +973,9 @@ function ComprobantesTab() {
                     <td className="py-4 px-6 text-right">
                       <div className="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                         <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary"><Eye className="h-4 w-4" /></button>
+                        {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
+                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary"><FileCode className="h-4 w-4" /></button>
+                        )}
                         <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
                         {['rejected', 'failed'].includes(inv.status) && (
                           <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 hover:bg-error-container text-error rounded transition-colors"><ArrowRight className="h-4 w-4" /></button>

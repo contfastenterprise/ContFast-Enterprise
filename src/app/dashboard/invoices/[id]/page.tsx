@@ -42,6 +42,7 @@ interface InvoiceDetail {
   dgiiMessage: string | null;
   xmlPath: string | null;
   signedXmlPath: string | null;
+  msellerXmlPath: string | null;
   pdfPath: string | null;
   msellerTrackId: string | null;
   codigoFactura: string | null;
@@ -204,6 +205,10 @@ export default function InvoiceDetailPage() {
     window.open(`/api/v1/invoices/${id}/pdf`, '_blank');
   };
 
+  const handleDownloadXml = () => {
+    window.open(`/api/v1/invoices/${id}/xml`, '_blank');
+  };
+
   if (loading) {
     return (
       <div className="flex h-[80vh] items-center justify-center max-w-7xl mx-auto w-full">
@@ -276,6 +281,16 @@ export default function InvoiceDetailPage() {
               <Download className="h-4 w-4" />
               Descargar e-CF
             </button>
+
+            {(invoice.msellerXmlPath || invoice.signedXmlPath || invoice.xmlPath) && (
+              <button
+                onClick={handleDownloadXml}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2.5 rounded-lg transition-all text-sm font-medium shadow-lg"
+              >
+                <FileCode className="h-4 w-4" />
+                Descargar XML
+              </button>
+            )}
           </div>
         </div>
       </div>

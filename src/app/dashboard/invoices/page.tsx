@@ -7,7 +7,7 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users, FileMinus, FilePlus, ChevronDown, Save
+  Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -948,6 +948,10 @@ function InvoicesList() {
     window.open(`/api/v1/invoices/${inv.id}/pdf`, '_blank');
   };
 
+  const handleDownloadXml = (inv: any) => {
+    window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank');
+  };
+
   const handleResendEmail = async (invoiceId: string) => {
     setResendingEmailId(invoiceId);
     try {
@@ -1855,6 +1859,15 @@ function InvoicesList() {
                                 >
                                   <Printer className="h-3.5 w-3.5" />
                                 </button>
+                                {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
+                                  <button
+                                    onClick={() => handleDownloadXml(inv)}
+                                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-on-surface-variant/80 hover:text-[#003366]"
+                                    title="Descargar XML"
+                                  >
+                                    <FileCode className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                                 {inv.customerId && inv.status !== 'draft' && (
                                   <button
                                     onClick={() => handleResendEmail(inv.id)}

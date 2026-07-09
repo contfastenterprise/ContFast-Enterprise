@@ -92,6 +92,9 @@ export async function GET(req: NextRequest) {
         modifiedNcf: invoices.modifiedNcf,
         modifiedInvoiceId: invoices.modifiedInvoiceId,
         createdAt: invoices.createdAt,
+        xmlPath: invoices.xmlPath,
+        signedXmlPath: invoices.signedXmlPath,
+        msellerXmlPath: invoices.msellerXmlPath,
       })
       .from(invoices)
       .where(whereClause)

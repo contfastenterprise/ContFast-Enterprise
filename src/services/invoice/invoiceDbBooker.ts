@@ -152,7 +152,8 @@ export class InvoiceDbBooker {
     submission: DgiiSubmissionResult,
     xmlPath: string,
     signedXmlPath: string,
-    pdfPath: string
+    pdfPath: string,
+    msellerXmlPath: string
   ) {
     return await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
@@ -245,6 +246,7 @@ export class InvoiceDbBooker {
         totalNet: totals.totalNet,
         xmlPath,
         signedXmlPath,
+        msellerXmlPath,
         pdfPath,
         msellerTrackId: submission.msellerTrackId || undefined,
         dgiiMessage: submission.dgiiMessage || undefined,

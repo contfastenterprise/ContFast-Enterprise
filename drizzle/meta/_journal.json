@@ -176,6 +176,13 @@
       "when": 1782938503006,
       "tag": "0024_petite_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1783632285472,
+      "tag": "0025_wide_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

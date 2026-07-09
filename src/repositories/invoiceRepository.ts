@@ -22,6 +22,7 @@ export interface CreateInvoiceInput {
   totalNet?: number;
   xmlPath?: string;
   signedXmlPath?: string;
+  msellerXmlPath?: string;
   pdfPath?: string;
   msellerTrackId?: string;
   dgiiMessage?: string;
@@ -86,6 +87,7 @@ export class InvoiceRepository {
           totalNet: (data.totalNet ?? data.total).toString(),
           xmlPath: data.xmlPath,
           signedXmlPath: data.signedXmlPath,
+          msellerXmlPath: data.msellerXmlPath,
           pdfPath: data.pdfPath,
           msellerTrackId: data.msellerTrackId,
           dgiiMessage: data.dgiiMessage,
@@ -180,6 +182,7 @@ export class InvoiceRepository {
         totalNet: invoices.totalNet,
         xmlPath: invoices.xmlPath,
         signedXmlPath: invoices.signedXmlPath,
+        msellerXmlPath: invoices.msellerXmlPath,
         pdfPath: invoices.pdfPath,
         msellerTrackId: invoices.msellerTrackId,
         buyerRnc: invoices.buyerRnc,
@@ -324,6 +327,7 @@ export class InvoiceRepository {
         total: invoices.total,
         xmlPath: invoices.xmlPath,
         signedXmlPath: invoices.signedXmlPath,
+        msellerXmlPath: invoices.msellerXmlPath,
         pdfPath: invoices.pdfPath,
         msellerTrackId: invoices.msellerTrackId,
         buyerRnc: invoices.buyerRnc,
@@ -406,7 +410,7 @@ export class InvoiceRepository {
   /**
    * Updates an invoice status.
    */
-  static async updateStatus(id: string, companyId: string, status: string, paths?: { xmlPath?: string; signedXmlPath?: string; pdfPath?: string }) {
+  static async updateStatus(id: string, companyId: string, status: string, paths?: { xmlPath?: string; signedXmlPath?: string; msellerXmlPath?: string; pdfPath?: string }) {
     const [updated] = await db
       .update(invoices)
       .set({

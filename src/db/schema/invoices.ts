@@ -102,6 +102,7 @@ export const invoices = pgTable('invoices', {
   total: decimal('total', { precision: 15, scale: 2 }).default('0.00').notNull(),
   xmlPath: text('xml_path'),
   signedXmlPath: text('signed_xml_path'),
+  msellerXmlPath: text('mseller_xml_path'),
   pdfPath: text('pdf_path'),
   msellerTrackId: varchar('mseller_track_id', { length: 255 }),
   buyerRnc: varchar('buyer_rnc', { length: 15 }),
