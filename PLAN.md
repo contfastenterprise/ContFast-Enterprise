@@ -450,3 +450,11 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *
 
+### 62. Manejo de Errores de Conexión en Autenticación
+- **Detección de Errores de Red y Servidor**: Se modificaron los controladores de envío en las vistas de inicio de sesión (`src/app/auth/login/page.tsx`) y registro (`src/app/auth/register/page.tsx`) para interceptar respuestas con código de estado HTTP 500 (Internal Server Error) y errores de conexión/red (como `Failed to fetch`, `NetworkError` o fallas al cargar recursos).
+- **Mensaje de Usuario Amigable**: En caso de error, en lugar de mostrar los detalles técnicos del fallo del servidor, el sistema presenta un mensaje toast indicando que "No hay conexión a internet.", brindando una mejor experiencia de usuario cuando el servidor central no responde.
+
+* * Verified & Polished * *
+* * Verified & Polished * *
+* * Verified & Polished * *
+* * Verified & Polished * *

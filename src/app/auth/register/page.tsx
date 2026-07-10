@@ -47,7 +47,16 @@ export default function RegisterPage() {
         }),
       });
 
-      const data = await response.json();
+      if (response.status === 500) {
+        throw new Error('No hay conexión a internet.');
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        throw new Error('No hay conexión a internet.');
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error?.message || 'Error en el registro.');
@@ -59,8 +68,18 @@ export default function RegisterPage() {
 
       setSuccess(true);
     } catch (err: any) {
+      let errorMessage = err.message;
+      if (
+        errorMessage === 'Failed to fetch' ||
+        errorMessage?.toLowerCase().includes('failed to fetch') ||
+        errorMessage?.toLowerCase().includes('networkerror') ||
+        errorMessage?.toLowerCase().includes('load resource')
+      ) {
+        errorMessage = 'No hay conexión a internet.';
+      }
+
       toast.error('Error de registro', {
-        description: err.message,
+        description: errorMessage,
       });
       setLoading(false);
     }
