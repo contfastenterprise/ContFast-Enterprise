@@ -77,7 +77,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       .from(expenses)
       .leftJoin(suppliers, eq(expenses.supplierId, suppliers.id))
       .leftJoin(warehouses, eq(expenses.warehouseId, warehouses.id))
-      .where(and(eq(expenses.id, id), eq(expenses.companyId, session.companyId)))
+      .where(and(
+        eq(expenses.id, id),
+        eq(expenses.companyId, session.companyId),
+        eq(expenses.modo, session.modo)
+      ))
       .limit(1);
 
     if (expenseResult.length === 0) {
@@ -151,7 +155,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       const expHeaders = await tx
         .select({ id: expenses.id, warehouseId: expenses.warehouseId })
         .from(expenses)
-        .where(and(eq(expenses.id, id), eq(expenses.companyId, session.companyId)));
+        .where(and(
+          eq(expenses.id, id),
+          eq(expenses.companyId, session.companyId),
+          eq(expenses.modo, session.modo)
+        ));
 
       if (expHeaders.length === 0) {
         return null;
@@ -176,7 +184,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
               .from(inventoryLevels)
               .where(and(
                 eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId)
+                eq(inventoryLevels.warehouseId, warehouseId),
+                eq(inventoryLevels.modo, session.modo)
               ));
             
             if (levelResult.length > 0) {
@@ -303,7 +312,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       const existing = await tx
         .select({ id: expenses.id, warehouseId: expenses.warehouseId })
         .from(expenses)
-        .where(and(eq(expenses.id, id), eq(expenses.companyId, session.companyId)));
+        .where(and(
+          eq(expenses.id, id),
+          eq(expenses.companyId, session.companyId),
+          eq(expenses.modo, session.modo)
+        ));
 
       if (existing.length === 0) {
         throw new Error('Compra/Gasto no encontrado');
@@ -327,7 +340,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               .from(inventoryLevels)
               .where(and(
                 eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, oldWarehouseId)
+                eq(inventoryLevels.warehouseId, oldWarehouseId),
+                eq(inventoryLevels.modo, session.modo)
               ));
             
             if (levelResult.length > 0) {
@@ -417,7 +431,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               .from(inventoryLevels)
               .where(and(
                 eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId)
+                eq(inventoryLevels.warehouseId, warehouseId),
+                eq(inventoryLevels.modo, session.modo)
               ));
             
             let balanceAfter = qty;
@@ -432,6 +447,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               await tx.insert(inventoryLevels).values({
                 id: uuidv4(),
                 companyId: session.companyId,
+                modo: session.modo,
                 productId: line.productId,
                 warehouseId: warehouseId,
                 quantity: qty.toString(),
@@ -442,6 +458,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
             await tx.insert(inventoryMovements).values({
               id: uuidv4(),
               companyId: session.companyId,
+              modo: session.modo,
               productId: line.productId,
               warehouseId: warehouseId,
               userId: session.userId,
@@ -515,6 +532,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
 
         await AccountRepository.createJournalEntry(tx, {
           companyId: session.companyId,
+          modo: session.modo,
           reference: id,
           date: new Date(issueDate),
           description: `Asiento Automático de Compra NCF: ${ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'} (Editado)`,
