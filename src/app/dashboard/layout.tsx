@@ -31,34 +31,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [companies, setCompanies] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
 
-  // Read environment cookie on mount
-  useEffect(() => {
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop()?.split(';').shift();
-      return null;
-    };
-    const savedEnv = getCookie('cf_environment') as 'PRODUCCION' | 'PRUEBA' | null;
-    if (savedEnv === 'PRUEBA' || savedEnv === 'PRODUCCION') {
-      setActiveEnvironment(savedEnv);
-    } else {
-      // Default to PRODUCCION and set cookie
-      document.cookie = 'cf_environment=PRODUCCION; path=/; max-age=31536000; SameSite=Strict';
-      setActiveEnvironment('PRODUCCION');
-    }
-  }, []);
-
-  const handleToggleEnvironment = (newEnv: 'PRODUCCION' | 'PRUEBA') => {
-    if (newEnv === activeEnvironment) return;
-    document.cookie = `cf_environment=${newEnv}; path=/; max-age=31536000; SameSite=Strict`;
-    setActiveEnvironment(newEnv);
-    toast.success(`Cambiando a ambiente de ${newEnv === 'PRUEBA' ? 'PRUEBA (SANDBOX)' : 'PRODUCCIÓN'}...`);
-    setTimeout(() => {
-      window.location.reload();
-    }, 600);
-  };
-
   useEffect(() => {
     const checkSetupAndFetchUser = async () => {
       try {
@@ -95,6 +67,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           if (env === 'production') setEntorno('PROD');
           else if (env === 'cert') setEntorno('CERT');
           else setEntorno('TEST');
+
+          // Auto-sync working environment with company settings
+          const targetEnv = env === 'production' ? 'PRODUCCION' : 'PRUEBA';
+          const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+            return null;
+          };
+          const savedEnv = getCookie('cf_environment');
+          if (savedEnv !== targetEnv) {
+            document.cookie = `cf_environment=${targetEnv}; path=/; max-age=31536000; SameSite=Strict`;
+            setActiveEnvironment(targetEnv);
+            // Refresh to apply new RLS mode globally in Next.js
+            window.location.reload();
+          } else {
+            setActiveEnvironment(targetEnv);
+          }
         }
       } catch (err) {
         console.error('Error fetching company settings', err);
@@ -240,18 +230,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Toaster position="top-right" richColors />
   
         {/* Environment Stripe */}
-        {activeEnvironment === 'PRUEBA' ? (
+        {activeEnvironment === 'PRUEBA' && (
           <div className="w-full h-11 bg-[repeating-linear-gradient(45deg,#ef4444,#ef4444_15px,#f97316_15px,#f97316_30px)] text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md border-b-2 border-red-700 select-none">
             <span className="font-label-md text-sm font-black flex items-center gap-2 uppercase tracking-widest text-white drop-shadow-md">
               <Shield className="h-5 w-5 animate-pulse text-white" />
               MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS
-            </span>
-          </div>
-        ) : (
-          <div className="w-full h-8 bg-emerald-600 text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-sm select-none">
-            <span className="font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 text-white">
-              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
-              Trabajando en PRODUCCIÓN
             </span>
           </div>
         )}
@@ -261,7 +244,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition-all duration-300",
           activeEnvironment === 'PRUEBA'
             ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
-            : 'top-8 bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 shadow-lg'
+            : 'top-0 bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 shadow-lg'
         )}>
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
@@ -298,31 +281,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
   
           <div className="flex items-center gap-4">
-            {/* Environment Toggle Switch */}
-            <div className="flex items-center gap-1 bg-black/40 rounded-full p-1 border border-white/10 shadow-inner mr-2 select-none">
-              <button
-                onClick={() => handleToggleEnvironment('PRODUCCION')}
-                className={clsx(
-                  "px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 uppercase",
-                  activeEnvironment === 'PRODUCCION'
-                    ? "bg-emerald-600 text-white shadow-md"
-                    : "text-white/50 hover:text-white"
-                )}
+            {/* Environment Indicator Badge */}
+            {activeEnvironment === 'PRUEBA' && (
+              <div 
+                onClick={() => toast.info('El ambiente está enlazado a la configuración de la empresa. Cámbielo en Ajustes.')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider border mr-2 select-none cursor-pointer transition-all duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
               >
-                PROD
-              </button>
-              <button
-                onClick={() => handleToggleEnvironment('PRUEBA')}
-                className={clsx(
-                  "px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 uppercase",
-                  activeEnvironment === 'PRUEBA'
-                    ? "bg-red-500 text-white shadow-md animate-pulse"
-                    : "text-white/50 hover:text-white"
-                )}
-              >
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                 SANDBOX
-              </button>
-            </div>
+              </div>
+            )}
 
             {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
@@ -374,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div
           className={clsx(
             'flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out',
-            activeEnvironment === 'PRUEBA' ? 'pt-24' : 'pt-20',
+            activeEnvironment === 'PRUEBA' ? 'pt-24' : 'pt-14',
             sidebarCollapsed ? 'md:ml-[70px]' : 'md:ml-[260px]'
           )}
         >
