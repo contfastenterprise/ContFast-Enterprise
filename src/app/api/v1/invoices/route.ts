@@ -112,8 +112,8 @@ export async function GET(req: NextRequest) {
       ecfType,
       startDate,
       endDate,
-    });
-    const stats = await InvoiceRepository.getStats(auth.companyId);
+    }, auth.modo);
+    const stats = await InvoiceRepository.getStats(auth.companyId, auth.modo);
 
     return NextResponse.json(
       { success: true, data: result.data, meta: result.meta, stats },
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check invoice limits from subscription
+    // Check invoice limits from subscription (only count production invoices)
     const subscriptionInfo = await db
       .select({ maxEcfLimit: plans.maxEcfLimit })
       .from(subscriptions)
@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
     if (subscriptionInfo.length > 0) {
       const maxEcfLimit = subscriptionInfo[0].maxEcfLimit;
       if (maxEcfLimit !== -1) {
-        // Count existing invoices for this month
+        // Count existing invoices for this month in this environment mode
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
           .where(
             and(
               eq(invoices.companyId, auth.companyId),
+              eq(invoices.modo, auth.modo),
               gte(invoices.createdAt, startOfMonth),
               lte(invoices.createdAt, endOfMonth)
             )
@@ -207,6 +208,7 @@ export async function POST(req: NextRequest) {
     // Call service layer to perform all database transactions and PDF/XMLDSIG generation
     const { invoice, msellerResponse } = await InvoiceService.issueInvoice({
       companyId: auth.companyId,
+      modo: auth.modo,
       userId: auth.userId,
       ...result.data,
     });

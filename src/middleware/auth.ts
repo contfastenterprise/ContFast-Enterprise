@@ -26,6 +26,7 @@ export interface AuthPayload {
   sessionId: string;
   allowedWarehouses: string[];
   permissions: string[];
+  modo: 'PRODUCCION' | 'PRUEBA';
 }
 
 // Helpers for hash generation
@@ -60,8 +61,9 @@ export async function verifyAuth(
   const roleId = req.headers.get('x-role-id');
   const sessionId = req.headers.get('x-session-id') || '';
   const allowedWarehousesHeader = req.headers.get('x-allowed-warehouses');
-
   const permissionsHeader = req.headers.get('x-user-permissions');
+  const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
+  const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
 
   if (userId && companyId && role && roleId) {
     let allowedWarehouses: string[] = [];
@@ -88,6 +90,7 @@ export async function verifyAuth(
       sessionId,
       allowedWarehouses,
       permissions,
+      modo,
     };
   }
 
@@ -98,6 +101,8 @@ export async function verifyAuth(
   if (accessToken) {
     try {
       const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
+      const environmentCookie = req.cookies.get('cf_environment')?.value;
+      const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
       return {
         userId: decoded.userId,
         companyId: decoded.companyId,
@@ -106,6 +111,7 @@ export async function verifyAuth(
         sessionId: decoded.sessionId,
         allowedWarehouses: decoded.allowedWarehouses || [],
         permissions: decoded.permissions || [],
+        modo: reqModo,
       };
     } catch (err: any) {
       // If access token is expired, proceed to refresh token validation
@@ -224,6 +230,8 @@ export async function verifyAuth(
       `refreshToken=${newRefreshToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=604800`
     );
 
+    const environmentCookie = req.cookies.get('cf_environment')?.value;
+    const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
     return {
       userId: userWithRole.id,
       companyId: session.companyId,
@@ -232,6 +240,7 @@ export async function verifyAuth(
       sessionId: newSessionId,
       allowedWarehouses,
       permissions: permissionsList,
+      modo: reqModo,
     };
   } catch (error) {
     return null;

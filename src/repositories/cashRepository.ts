@@ -171,6 +171,7 @@ export class CashRepository {
     amount: number;
     description?: string;
     reference?: string;
+    modo?: 'PRODUCCION' | 'PRUEBA';
   }) {
     // 1. Insert Cash Movement
     const [movement] = await tx
@@ -183,6 +184,7 @@ export class CashRepository {
         amount: data.amount.toString(),
         description: data.description,
         reference: data.reference,
+        modo: data.modo || 'PRODUCCION',
       })
       .returning();
 

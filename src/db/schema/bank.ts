@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, timestamp, decimal, date, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
+import { environmentMode } from './system';
 
 export const bankAccounts = pgTable('bank_accounts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -22,6 +23,7 @@ export const bankAccounts = pgTable('bank_accounts', {
 export const bankTransactions = pgTable('bank_transactions', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   bankAccountId: uuid('bank_account_id').notNull().references(() => bankAccounts.id),
   date: date('date').notNull(),
   type: varchar('type', { length: 50 }).notNull(), // deposit | withdrawal | transfer_in | transfer_out | fee
@@ -35,11 +37,13 @@ export const bankTransactions = pgTable('bank_transactions', {
 }, (table) => ({
   companyIdx: index('bank_txs_company_idx').on(table.companyId),
   accountIdx: index('bank_txs_account_idx').on(table.bankAccountId),
+  companyModoIdx: index('bank_txs_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const bankReconciliations = pgTable('bank_reconciliations', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   bankAccountId: uuid('bank_account_id').notNull().references(() => bankAccounts.id),
   startDate: date('start_date').notNull(),
   endDate: date('end_date').notNull(),
@@ -52,4 +56,5 @@ export const bankReconciliations = pgTable('bank_reconciliations', {
 }, (table) => ({
   companyIdx: index('bank_recon_company_idx').on(table.companyId),
   accountIdx: index('bank_recon_account_idx').on(table.bankAccountId),
+  companyModoIdx: index('bank_recon_company_modo_idx').on(table.companyId, table.modo),
 }));

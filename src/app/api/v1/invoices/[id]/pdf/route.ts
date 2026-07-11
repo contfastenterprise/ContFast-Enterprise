@@ -24,6 +24,7 @@ export async function GET(
     const token = searchParams.get('token');
 
     let companyId: string | null = null;
+    let modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION';
     const resHeaders = new Headers();
 
     // 1. Authenticate either via JWT token parameter or session cookies
@@ -34,6 +35,7 @@ export async function GET(
           return new NextResponse('Token de descarga inválido.', { status: 400 });
         }
         companyId = decoded.companyId;
+        modo = decoded.modo || 'PRODUCCION';
       } catch (err: any) {
         return new NextResponse(`Token de descarga expirado o inválido: ${err.message}`, { status: 401 });
       }
@@ -50,6 +52,7 @@ export async function GET(
       try {
         await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
         companyId = auth.companyId;
+        modo = auth.modo;
       } catch (err: any) {
         return NextResponse.json(
           { success: false, error: { code: 'FORBIDDEN', message: err.message } },
@@ -62,7 +65,7 @@ export async function GET(
       return new NextResponse('No autorizado', { status: 401 });
     }
 
-    const invoice = await InvoiceRepository.getById(id, companyId);
+    const invoice = await InvoiceRepository.getById(id, companyId, modo);
     if (!invoice) {
       return new NextResponse('Factura no encontrada.', { status: 404 });
     }

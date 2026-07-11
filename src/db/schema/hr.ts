@@ -1,6 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
+import { environmentMode } from './system';
 
 export const departments = pgTable('departments', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -61,6 +62,7 @@ export const employees = pgTable('employees', {
 export const payrolls = pgTable('payrolls', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   periodStart: date('period_start').notNull(),
   periodEnd: date('period_end').notNull(),
   paymentDate: date('payment_date').notNull(),
@@ -72,11 +74,13 @@ export const payrolls = pgTable('payrolls', {
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('payrolls_company_idx').on(table.companyId),
+  companyModoIdx: index('payrolls_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const payrollDetails = pgTable('payroll_details', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   payrollId: uuid('payroll_id').notNull().references(() => payrolls.id),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   baseSalary: decimal('base_salary', { precision: 18, scale: 2 }).notNull(),
@@ -100,11 +104,13 @@ export const payrollDetails = pgTable('payroll_details', {
   companyIdx: index('payroll_details_company_idx').on(table.companyId),
   payrollIdx: index('payroll_details_payroll_idx').on(table.payrollId),
   employeeIdx: index('payroll_details_employee_idx').on(table.employeeId),
+  companyModoIdx: index('payroll_details_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const overtimeRecords = pgTable('overtime_records', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   dateWorked: date('date_worked').notNull(),
   hours: decimal('hours', { precision: 6, scale: 2 }).notNull(),
@@ -115,11 +121,13 @@ export const overtimeRecords = pgTable('overtime_records', {
 }, (table) => ({
   companyIdx: index('overtime_records_company_idx').on(table.companyId),
   employeeIdx: index('overtime_records_employee_idx').on(table.employeeId),
+  companyModoIdx: index('overtime_records_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const employeeIncome = pgTable('employee_income', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   type: varchar('type', { length: 50 }).notNull(), // productividad | comision | transporte | combustible | incentivo | otro
   description: text('description'),
@@ -130,11 +138,13 @@ export const employeeIncome = pgTable('employee_income', {
 }, (table) => ({
   companyIdx: index('employee_income_company_idx').on(table.companyId),
   employeeIdx: index('employee_income_employee_idx').on(table.employeeId),
+  companyModoIdx: index('employee_income_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const employeeDeductions = pgTable('employee_deductions', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   type: varchar('type', { length: 50 }).notNull(), // prestamo | cooperativa | seguro | embargo | otro
   description: text('description'),
@@ -145,11 +155,13 @@ export const employeeDeductions = pgTable('employee_deductions', {
 }, (table) => ({
   companyIdx: index('employee_deductions_company_idx').on(table.companyId),
   employeeIdx: index('employee_deductions_employee_idx').on(table.employeeId),
+  companyModoIdx: index('employee_deductions_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const employeeVacations = pgTable('employee_vacations', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   generatedDays: integer('generated_days').default(0).notNull(),
   takenDays: integer('taken_days').default(0).notNull(),
@@ -158,12 +170,13 @@ export const employeeVacations = pgTable('employee_vacations', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   companyIdx: index('employee_vacations_company_idx').on(table.companyId),
-  employeeIdx: uniqueIndex('employee_vacations_employee_idx').on(table.employeeId),
+  employeeIdx: uniqueIndex('employee_vacations_employee_modo_idx').on(table.employeeId, table.modo),
 }));
 
 export const employeeLeaves = pgTable('employee_leaves', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   type: varchar('type', { length: 50 }).notNull(), // maternidad | paternidad | enfermedad | accidente | permiso
   startDate: date('start_date').notNull(),
@@ -174,11 +187,13 @@ export const employeeLeaves = pgTable('employee_leaves', {
 }, (table) => ({
   companyIdx: index('employee_leaves_company_idx').on(table.companyId),
   employeeIdx: index('employee_leaves_employee_idx').on(table.employeeId),
+  companyModoIdx: index('employee_leaves_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const employeeSettlements = pgTable('employee_settlements', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   preaviso: decimal('preaviso', { precision: 18, scale: 2 }).default('0.00').notNull(),
   cesantia: decimal('cesantia', { precision: 18, scale: 2 }).default('0.00').notNull(),
@@ -192,6 +207,7 @@ export const employeeSettlements = pgTable('employee_settlements', {
 }, (table) => ({
   companyIdx: index('employee_settlements_company_idx').on(table.companyId),
   employeeIdx: index('employee_settlements_employee_idx').on(table.employeeId),
+  companyModoIdx: index('employee_settlements_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const isrBrackets = pgTable('isr_brackets', {

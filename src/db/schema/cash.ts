@@ -2,6 +2,7 @@ import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex } 
 import { companies } from './companies';
 import { users } from './auth';
 import { invoices } from './invoices';
+import { environmentMode } from './system';
 
 export const cashRegisters = pgTable('cash_registers', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -20,6 +21,7 @@ export const cashRegisters = pgTable('cash_registers', {
 export const cashSessions = pgTable('cash_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   cashRegisterId: uuid('cash_register_id').notNull().references(() => cashRegisters.id),
   userId: uuid('user_id').notNull().references(() => users.id),
   status: varchar('status', { length: 50 }).default('open').notNull(), // open | closed
@@ -37,11 +39,13 @@ export const cashSessions = pgTable('cash_sessions', {
 }, (table) => ({
   companyIdx: index('cash_sessions_company_idx').on(table.companyId),
   cashierActiveIdx: index('cash_sessions_cashier_active_idx').on(table.userId, table.status),
+  companyModoIdx: index('cash_sessions_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const cashMovements = pgTable('cash_movements', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   cashSessionId: uuid('cash_session_id').notNull().references(() => cashSessions.id),
   invoiceId: uuid('invoice_id').references(() => invoices.id), // Nullable if manual input/output/conducto
   type: varchar('type', { length: 50 }).notNull(), // sale | refund | cash_in | cash_out
@@ -53,11 +57,13 @@ export const cashMovements = pgTable('cash_movements', {
 }, (table) => ({
   companyIdx: index('cash_movements_company_idx').on(table.companyId),
   sessionIdx: index('cash_movements_session_idx').on(table.cashSessionId),
+  companyModoIdx: index('cash_movements_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const cashSessionSummary = pgTable('cash_session_summary', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   cashSessionId: uuid('cash_session_id').notNull().references(() => cashSessions.id),
   initialBalance: decimal('initial_balance', { precision: 15, scale: 2 }).notNull(),
   totalCashIn: decimal('total_cash_in', { precision: 15, scale: 2 }).default('0.00').notNull(),
@@ -71,4 +77,5 @@ export const cashSessionSummary = pgTable('cash_session_summary', {
 }, (table) => ({
   companyIdx: index('cash_session_summary_company_idx').on(table.companyId),
   sessionIdx: uniqueIndex('cash_session_summary_sess_idx').on(table.cashSessionId),
+  companyModoIdx: index('cash_session_summary_company_modo_idx').on(table.companyId, table.modo),
 }));

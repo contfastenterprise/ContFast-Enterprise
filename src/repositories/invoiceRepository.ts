@@ -1,8 +1,9 @@
-import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions } from '@/db';
+import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions, RepositoryContext, withTenantMode } from '@/db';
 import { eq, and, or, isNull, desc, count, notInArray, gte, lte, ilike, inArray, sql } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   warehouseId: string;
   customerId?: string;
   userId: string;
@@ -71,6 +72,7 @@ export class InvoiceRepository {
         .insert(invoices)
         .values({
           companyId: data.companyId,
+          modo: data.modo || 'PRODUCCION',
           warehouseId: data.warehouseId,
           customerId: data.customerId,
           userId: data.userId,
@@ -161,7 +163,8 @@ export class InvoiceRepository {
   /**
    * Fetches an invoice by ID, ensuring tenancy checks.
    */
-  static async getById(id: string, companyId: string) {
+  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const [invoice] = await db
       .select({
         id: invoices.id,
@@ -184,16 +187,16 @@ export class InvoiceRepository {
         signedXmlPath: invoices.signedXmlPath,
         msellerXmlPath: invoices.msellerXmlPath,
         pdfPath: invoices.pdfPath,
-        msellerTrackId: invoices.msellerTrackId,
-        buyerRnc: invoices.buyerRnc,
-        buyerName: invoices.buyerName,
-        notes: invoices.notes,
-        dgiiMessage: invoices.dgiiMessage,
+        msellerTrackId: invoices.msellerTrackId || null,
+        buyerRnc: invoices.buyerRnc || null,
+        buyerName: invoices.buyerName || null,
+        notes: invoices.notes || null,
+        dgiiMessage: invoices.dgiiMessage || null,
         paymentType: invoices.paymentType,
-        bankName: invoices.bankName,
-        transactionNumber: invoices.transactionNumber,
-        modifiedNcf: invoices.modifiedNcf,
-        modifiedInvoiceId: invoices.modifiedInvoiceId,
+        bankName: invoices.bankName || null,
+        transactionNumber: invoices.transactionNumber || null,
+        modifiedNcf: invoices.modifiedNcf || null,
+        modifiedInvoiceId: invoices.modifiedInvoiceId || null,
         codigoFactura: invoices.codigoFactura,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
@@ -204,7 +207,7 @@ export class InvoiceRepository {
       })
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
-      .where(and(eq(invoices.id, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)))
+      .where(withTenantMode(invoices, ctx, eq(invoices.id, id), isNull(invoices.deletedAt)))
       .limit(1);
 
     if (!invoice) return null;
@@ -233,7 +236,7 @@ export class InvoiceRepository {
       .from(invoiceTaxes)
       .where(eq(invoiceTaxes.invoiceId, id));
 
-    const retentionsData = await db
+    const retentions = await db
       .select()
       .from(invoiceRetentions)
       .where(eq(invoiceRetentions.invoiceId, id));
@@ -242,7 +245,7 @@ export class InvoiceRepository {
       ...invoice,
       lines,
       taxes,
-      retentions: retentionsData,
+      retentions,
     };
   }
 
@@ -260,12 +263,13 @@ export class InvoiceRepository {
       ecfType?: string;
       startDate?: string;
       endDate?: string;
-    }
+    },
+    modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
   ) {
+    const ctx = { companyId, modo };
     const offset = (page - 1) * perPage;
 
     const baseConditions = [
-      eq(invoices.companyId, companyId),
       isNull(invoices.deletedAt),
     ];
 
@@ -274,7 +278,7 @@ export class InvoiceRepository {
     }
 
     if (options?.status) {
-      baseConditions.push(eq(invoices.status, options.status));
+      baseConditions.push(eq(invoices.status, options.status as any));
     }
 
     if (options?.ecfType) {
@@ -306,7 +310,7 @@ export class InvoiceRepository {
       .select({ value: count() })
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
-      .where(and(...baseConditions));
+      .where(withTenantMode(invoices, ctx, ...baseConditions));
 
     const data = await db
       .select({
@@ -352,7 +356,7 @@ export class InvoiceRepository {
       })
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
-      .where(and(...baseConditions))
+      .where(withTenantMode(invoices, ctx, ...baseConditions))
       .orderBy(desc(invoices.createdAt))
       .limit(perPage)
       .offset(offset);
@@ -373,7 +377,8 @@ export class InvoiceRepository {
   /**
    * Retrieves dynamic invoice stats for the current month and pending count.
    */
-  static async getStats(companyId: string) {
+  static async getStats(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -382,8 +387,9 @@ export class InvoiceRepository {
       .select({ value: sql<string>`coalesce(sum(${invoices.total}), '0')` })
       .from(invoices)
       .where(
-        and(
-          eq(invoices.companyId, companyId),
+        withTenantMode(
+          invoices,
+          ctx,
           isNull(invoices.deletedAt),
           gte(invoices.createdAt, startOfMonth),
           notInArray(invoices.ecfType, ['33', '34', '03', '04'])
@@ -394,23 +400,31 @@ export class InvoiceRepository {
       .select({ value: count() })
       .from(invoices)
       .where(
-        and(
-          eq(invoices.companyId, companyId),
+        withTenantMode(
+          invoices,
+          ctx,
           isNull(invoices.deletedAt),
           inArray(invoices.status, ['draft', 'signed', 'submitted'])
         )
       );
 
     return {
-      totalMonth: parseFloat(monthTotalResult?.value || '0'),
-      pending: pendingResult?.value || 0,
+      monthTotal: parseFloat(monthTotalResult?.value || '0'),
+      pendingCount: pendingResult?.value || 0,
     };
   }
 
   /**
    * Updates an invoice status.
    */
-  static async updateStatus(id: string, companyId: string, status: string, paths?: { xmlPath?: string; signedXmlPath?: string; msellerXmlPath?: string; pdfPath?: string }) {
+  static async updateStatus(
+    id: string,
+    companyId: string,
+    status: string,
+    paths?: { xmlPath?: string; signedXmlPath?: string; msellerXmlPath?: string; pdfPath?: string },
+    modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  ) {
+    const ctx = { companyId, modo };
     const [updated] = await db
       .update(invoices)
       .set({
@@ -418,7 +432,7 @@ export class InvoiceRepository {
         ...paths,
         updatedAt: new Date(),
       })
-      .where(and(eq(invoices.id, id), eq(invoices.companyId, companyId)))
+      .where(withTenantMode(invoices, ctx, eq(invoices.id, id)))
       .returning();
 
     return updated;

@@ -458,3 +458,14 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *
 * * Verified & Polished * *
 * * Verified & Polished * *
+
+### 63. Aislamiento entre Modo Producción y Modo Prueba (Sandbox)
+- **Aislamiento a Nivel de Datos**: Añadida la columna `modo` (de tipo enum `environment_mode`) en todas las tablas transaccionales de facturación, contabilidad, bancos, caja, inventario, auditoría e ingresos de recursos humanos. Las restricciones únicas compuestas fueron actualizadas para incluir la columna `modo`, previniendo colisiones de claves primarias o secuencias NCF duplicadas.
+- **Seguridad Activa vía Postgres RLS**: Configuración de políticas dinámicas Row Level Security (RLS) en base de datos para todas las tablas transaccionales. Estas validan tanto `company_id` como `modo = current_setting('app.current_environment')` en tiempo de ejecución de transacciones.
+- **Evitación de Submit en Producción DGII**: Implementado un candado en `InvoiceSubmissionService` que fuerza la API de simulación de DGII (`TesteCF`) y el cliente mSeller en modo sandbox de pruebas si la factura tiene `modo = 'PRUEBA'`, previniendo que cualquier transacción de prueba adquiera validez fiscal real.
+- **Interfaz de Usuario Visual Premium**: Integración de una franja de advertencia animada gruesa con rayas de peligro en color rojo/naranja cuando se trabaja en `SANDBOX`, y una franja verde esmeralda discreta en `PRODUCCIÓN`. Se añadió un selector interactivo ("PROD" vs "SANDBOX") directamente en la barra superior del panel que guarda y alterna la cookie de ambiente (`cf_environment`) y refresca la página de forma premium y fluida.
+
+* * Verified & Polished * *
+* * Verified & Polished * *
+* * Verified & Polished * *
+* * Verified & Polished * *

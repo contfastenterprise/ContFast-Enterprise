@@ -34,6 +34,7 @@ export class InvoiceSubmissionService {
     if (msellerEmail && msellerPassword && msellerApiKeyEncrypted) {
       try {
         const resolveEntorno = (env?: string) => {
+          if (data.modo === 'PRUEBA') return 'TesteCF';
           if (env === 'production' || env === '1') return 'eCF';
           return 'TesteCF';
         };
@@ -57,6 +58,7 @@ export class InvoiceSubmissionService {
             and(
               eq(ecfSequences.companyId, data.companyId),
               eq(ecfSequences.ecfType, data.ecfType),
+              eq(ecfSequences.modo, data.modo || 'PRODUCCION'),
               eq(ecfSequences.status, 'active'),
               isNull(ecfSequences.deletedAt)
             )
@@ -82,7 +84,12 @@ export class InvoiceSubmissionService {
           const [originalInvoice] = await db
             .select({ total: invoices.total, createdAt: invoices.createdAt })
             .from(invoices)
-            .where(eq(invoices.id, data.modifiedInvoiceId))
+            .where(
+              and(
+                eq(invoices.id, data.modifiedInvoiceId),
+                eq(invoices.modo, data.modo || 'PRODUCCION')
+              )
+            )
             .limit(1);
           if (originalInvoice) {
             originalInvoiceTotal = Number(originalInvoice.total);

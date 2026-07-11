@@ -1,5 +1,6 @@
 export interface IssueInvoiceInput {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   warehouseId: string;
   customerId?: string;
   userId: string;

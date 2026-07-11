@@ -5,10 +5,12 @@ import { customers } from './contacts';
 import { users } from './auth';
 import { cashSessions } from './cash';
 import { products } from './products';
+import { environmentMode } from './system';
 
 export const ecfSequences = pgTable('ecf_sequences', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   ecfType: varchar('ecf_type', { length: 5 }).notNull(), // 31 (Fiscal), 32 (Consumo), 33 (ND), 34 (NC), etc.
   prefix: varchar('prefix', { length: 5 }).default('E').notNull(), // Always starts with E in DR
   currentSequence: integer('current_sequence').notNull(),
@@ -20,24 +22,26 @@ export const ecfSequences = pgTable('ecf_sequences', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
-  companySeqIdx: index('ecf_seq_company_type_idx').on(table.companyId, table.ecfType),
+  companySeqIdx: uniqueIndex('ecf_seq_company_type_modo_idx').on(table.companyId, table.ecfType, table.modo),
   statusIdx: index('ecf_seq_status_idx').on(table.status),
 }));
 
 export const quoteSequences = pgTable('quote_sequences', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   currentYear: integer('current_year').notNull(),
   currentSequence: integer('current_sequence').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  companyYearIdx: uniqueIndex('quote_seq_company_year_idx').on(table.companyId, table.currentYear),
+  companyYearIdx: uniqueIndex('quote_seq_company_year_modo_idx').on(table.companyId, table.currentYear, table.modo),
 }));
 
 export const quotes = pgTable('quotes', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   warehouseId: uuid('warehouse_id').references(() => warehouses.id),
   customerId: uuid('customer_id').references(() => customers.id),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -53,7 +57,7 @@ export const quotes = pgTable('quotes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
-  companySeqIdx: uniqueIndex('quotes_company_seq_idx').on(table.companyId, table.sequenceNumber),
+  companySeqIdx: uniqueIndex('quotes_company_seq_modo_idx').on(table.companyId, table.sequenceNumber, table.modo),
   statusIdx: index('quotes_status_idx').on(table.status),
 }));
 
@@ -87,6 +91,7 @@ export const quoteTaxes = pgTable('quote_taxes', {
 export const invoices = pgTable('invoices', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   warehouseId: uuid('warehouse_id').references(() => warehouses.id),
   customerId: uuid('customer_id').references(() => customers.id),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -123,11 +128,11 @@ export const invoices = pgTable('invoices', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
-  companyNcfIdx: uniqueIndex('invoices_company_ncf_idx').on(table.companyId, table.ncf),
+  companyNcfIdx: uniqueIndex('invoices_company_ncf_modo_idx').on(table.companyId, table.ncf, table.modo),
   statusIdx: index('invoices_status_idx').on(table.status),
   createdIdx: index('invoices_created_idx').on(table.createdAt),
-  codigoFacturaIdx: uniqueIndex('invoices_codigo_factura_idx').on(table.codigoFactura),
-  companyStatusCreatedIdx: index('invoices_comp_status_created_idx').on(table.companyId, table.status, table.createdAt),
+  codigoFacturaIdx: uniqueIndex('invoices_codigo_factura_modo_idx').on(table.codigoFactura, table.modo),
+  companyStatusCreatedIdx: index('invoices_comp_status_created_modo_idx').on(table.companyId, table.status, table.createdAt, table.modo),
 }));
 
 export const invoiceLines = pgTable('invoice_lines', {
@@ -161,6 +166,7 @@ export const invoiceTaxes = pgTable('invoice_taxes', {
 export const creditDebitNotes = pgTable('credit_debit_notes', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   userId: uuid('user_id').notNull().references(() => users.id),
   type: varchar('type', { length: 5 }).notNull(), // 33 (Debit), 34 (Credit)
@@ -175,11 +181,13 @@ export const creditDebitNotes = pgTable('credit_debit_notes', {
 }, (table) => ({
   companyIdx: index('credit_debit_notes_company_idx').on(table.companyId),
   invoiceIdx: index('credit_debit_notes_invoice_idx').on(table.invoiceId),
+  companyModoIdx: index('credit_debit_notes_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const deliveryNotes = pgTable('delivery_notes', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   userId: uuid('user_id').notNull().references(() => users.id),
   deliveryNumber: varchar('delivery_number', { length: 50 }).notNull(),
@@ -200,7 +208,7 @@ export const deliveryNotes = pgTable('delivery_notes', {
 }, (table) => ({
   companyIdx: index('delivery_notes_company_idx').on(table.companyId),
   invoiceIdx: index('delivery_notes_invoice_idx').on(table.invoiceId),
-  deliveryNumIdx: uniqueIndex('delivery_notes_num_idx').on(table.companyId, table.deliveryNumber),
+  deliveryNumIdx: uniqueIndex('delivery_notes_num_modo_idx').on(table.companyId, table.deliveryNumber, table.modo),
 }));
 
 export const deliveryNoteLines = pgTable('delivery_note_lines', {
@@ -217,6 +225,7 @@ export const deliveryNoteLines = pgTable('delivery_note_lines', {
 export const dgiiSubmissions = pgTable('dgii_submissions', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   trackId: varchar('track_id', { length: 255 }),
   status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | processing | accepted | rejected | failed
@@ -231,6 +240,7 @@ export const dgiiSubmissions = pgTable('dgii_submissions', {
   companyIdx: index('dgii_submissions_company_idx').on(table.companyId),
   invoiceIdx: index('dgii_submissions_invoice_idx').on(table.invoiceId),
   statusIdx: index('dgii_submissions_status_idx').on(table.status),
+  companyModoIdx: index('dgii_submissions_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const retentions = pgTable('retentions', {

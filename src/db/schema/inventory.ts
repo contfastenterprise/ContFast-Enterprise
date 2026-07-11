@@ -2,6 +2,7 @@ import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex } 
 import { companies } from './companies';
 import { users } from './auth';
 import { products } from './products';
+import { environmentMode } from './system';
 
 export const warehouses = pgTable('warehouses', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -32,6 +33,7 @@ export const userWarehouses = pgTable('user_warehouses', {
 export const inventoryLevels = pgTable('inventory_levels', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   productId: uuid('product_id').notNull().references(() => products.id),
   warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
   quantity: decimal('quantity', { precision: 15, scale: 4 }).default('0.0000').notNull(),
@@ -39,13 +41,15 @@ export const inventoryLevels = pgTable('inventory_levels', {
   maxStock: decimal('max_stock', { precision: 15, scale: 4 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  prodWhIdx: uniqueIndex('inventory_levels_prod_wh_idx').on(table.productId, table.warehouseId),
+  prodWhIdx: uniqueIndex('inventory_levels_prod_wh_modo_idx').on(table.productId, table.warehouseId, table.modo),
   companyIdx: index('inventory_levels_company_idx').on(table.companyId),
+  companyModoIdx: index('inventory_levels_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const inventoryMovements = pgTable('inventory_movements', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   productId: uuid('product_id').notNull().references(() => products.id),
   warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -59,11 +63,13 @@ export const inventoryMovements = pgTable('inventory_movements', {
   companyIdx: index('inv_movements_company_idx').on(table.companyId),
   prodWhIdx: index('inv_movements_prod_wh_idx').on(table.productId, table.warehouseId),
   createdIdx: index('inv_movements_created_idx').on(table.createdAt),
+  companyModoIdx: index('inv_movements_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const inventoryTransfers = pgTable('inventory_transfers', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   sourceWarehouseId: uuid('source_warehouse_id').notNull().references(() => warehouses.id),
   destinationWarehouseId: uuid('destination_warehouse_id').notNull().references(() => warehouses.id),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -73,6 +79,7 @@ export const inventoryTransfers = pgTable('inventory_transfers', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   companyIdx: index('inv_transfers_company_idx').on(table.companyId),
+  companyModoIdx: index('inv_transfers_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const inventoryTransferLines = pgTable('inventory_transfer_lines', {

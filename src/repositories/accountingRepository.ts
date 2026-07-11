@@ -29,6 +29,7 @@ export interface JournalLineInput {
 
 export interface NewJournalEntry {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   date: string;
   reference?: string;
   description: string;
@@ -37,6 +38,7 @@ export interface NewJournalEntry {
 
 export interface CreateJournalEntryInput {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   reference?: string;
   date: Date | string;
   description: string;
@@ -287,6 +289,7 @@ export class AccountingRepository {
         .values({
           id: entryId,
           companyId: data.companyId,
+          modo: data.modo || 'PRODUCCION',
           reference: data.reference || null,
           date: formattedDate,
           description: data.description,
@@ -299,6 +302,7 @@ export class AccountingRepository {
         data.lines.map((line) => ({
           id: uuidv4(),
           companyId: data.companyId,
+          modo: data.modo || 'PRODUCCION',
           journalEntryId: entryId,
           accountId: line.accountId,
           debit: line.debit.toString(),
@@ -327,6 +331,7 @@ export class AccountingRepository {
     invoiceId: string;
     amount: number;
     dueDate: Date | string;
+    modo?: 'PRODUCCION' | 'PRUEBA';
   }) {
     const [ar] = await tx
       .insert(accountsReceivable)
@@ -338,6 +343,7 @@ export class AccountingRepository {
         balance: data.amount.toString(),
         dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
+        modo: data.modo || 'PRODUCCION',
       })
       .returning();
     return ar;
@@ -348,6 +354,7 @@ export class AccountingRepository {
     supplierId: string;
     amount: number;
     dueDate: Date | string;
+    modo?: 'PRODUCCION' | 'PRUEBA';
   }) {
     const [ap] = await tx
       .insert(accountsPayable)
@@ -358,9 +365,9 @@ export class AccountingRepository {
         balance: data.amount.toString(),
         dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
+        modo: data.modo || 'PRODUCCION',
       })
       .returning();
-    return ap;
   }
 
   // ==========================================

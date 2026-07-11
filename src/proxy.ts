@@ -267,6 +267,10 @@ export async function proxy(req: NextRequest) {
             
             // Set request headers for downstream controllers
             const requestHeaders = new Headers(req.headers);
+            const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
+            const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+            requestHeaders.set('x-environment', environment);
+
             if (decodedNew) {
               // Enforce RBAC permissions check on rotated token
               const isAllowed = checkRbacPermission(pathname, method, decodedNew);

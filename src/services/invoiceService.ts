@@ -35,7 +35,7 @@ export class InvoiceService {
     const totals = InvoiceCalculator.calculateTotalsAndRetentions(data);
 
     // ── 3. Predict next NCF without incrementing database sequence yet ────────
-    const { ncf } = await InvoiceDbBooker.predictNextNcf(data.companyId, data.ecfType);
+    const { ncf } = await InvoiceDbBooker.predictNextNcf(data.companyId, data.ecfType, data.modo);
 
     // Load company settings
     const settings = await CompanyRepository.getSettings(data.companyId);

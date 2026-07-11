@@ -183,6 +183,13 @@
       "when": 1783632285472,
       "tag": "0025_wide_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1783736001048,
+      "tag": "0026_glorious_serpent_society",
+      "breakpoints": true
     }
   ]
 }

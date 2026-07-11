@@ -35,7 +35,7 @@ export async function POST(
     // Enforce "facturacion:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
     if (!invoice) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Factura no encontrada.' } },

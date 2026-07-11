@@ -14,10 +14,14 @@ import {
 import { eq, and, sql, inArray, not, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getProvisionalStock(productId: string, warehouseId: string, tx: any = db): Promise<number> {
+export async function getProvisionalStock(productId: string, warehouseId: string, tx: any = db, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
-    and(eq(inventoryLevels.productId, productId), eq(inventoryLevels.warehouseId, warehouseId))
+    and(
+      eq(inventoryLevels.productId, productId), 
+      eq(inventoryLevels.warehouseId, warehouseId),
+      eq(inventoryLevels.modo, modo)
+    )
   );
   const physicalStock = level ? Number(level.quantity) : 0;
 
@@ -30,6 +34,7 @@ export async function getProvisionalStock(productId: string, warehouseId: string
     .where(
       and(
         eq(invoices.warehouseId, warehouseId),
+        eq(invoices.modo, modo),
         inArray(invoices.status, ['signed', 'submitted', 'accepted']),
         inArray(invoices.ecfType, ['31', '32', '45']),
         not(eq(invoices.deliveryStatus, 'delivered')),
@@ -97,15 +102,20 @@ export async function checkStock(
   warehouseId: string,
   quantityNeeded: number,
   tx: any = db,
-  useProvisional = false
+  useProvisional = false,
+  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ): Promise<boolean> {
   if (useProvisional) {
-    const provStock = await getProvisionalStock(productId, warehouseId, tx);
+    const provStock = await getProvisionalStock(productId, warehouseId, tx, modo);
     return provStock >= quantityNeeded;
   }
 
   const [level] = await tx.select().from(inventoryLevels).where(
-    and(eq(inventoryLevels.productId, productId), eq(inventoryLevels.warehouseId, warehouseId))
+    and(
+      eq(inventoryLevels.productId, productId), 
+      eq(inventoryLevels.warehouseId, warehouseId),
+      eq(inventoryLevels.modo, modo)
+    )
   );
 
   if (!level) return false;
@@ -121,11 +131,16 @@ export async function addStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db
+  tx: any = db,
+  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ) {
   // Ensure level exists
   let [level] = await tx.select().from(inventoryLevels).where(
-    and(eq(inventoryLevels.productId, productId), eq(inventoryLevels.warehouseId, warehouseId))
+    and(
+      eq(inventoryLevels.productId, productId), 
+      eq(inventoryLevels.warehouseId, warehouseId),
+      eq(inventoryLevels.modo, modo)
+    )
   );
 
   if (!level) {
@@ -134,6 +149,7 @@ export async function addStock(
       companyId,
       productId,
       warehouseId,
+      modo,
       quantity: '0.0000',
     }).returning();
     level = newLevel[0];
@@ -154,6 +170,7 @@ export async function addStock(
     warehouseId,
     userId,
     type,
+    modo,
     quantity: quantity.toString(),
     balanceAfter: newQuantity.toString(),
     referenceId,
@@ -170,9 +187,10 @@ export async function deductStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db
+  tx: any = db,
+  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ) {
-  await addStock(companyId, productId, warehouseId, -quantity, userId, type, referenceId, description, tx);
+  await addStock(companyId, productId, warehouseId, -quantity, userId, type, referenceId, description, tx, modo);
 }
 
 export async function transferStock(
@@ -181,7 +199,8 @@ export async function transferStock(
   destinationWarehouseId: string,
   items: { productId: string, quantity: number }[],
   userId: string,
-  reason?: string
+  reason?: string,
+  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ) {
   return await db.transaction(async (tx) => {
     const transferId = uuidv4();
@@ -195,12 +214,17 @@ export async function transferStock(
       userId,
       status: 'completed',
       reason,
+      modo,
     });
 
     for (const item of items) {
       // 1. Check stock
       const [sourceLevel] = await tx.select().from(inventoryLevels).where(
-        and(eq(inventoryLevels.productId, item.productId), eq(inventoryLevels.warehouseId, sourceWarehouseId))
+        and(
+          eq(inventoryLevels.productId, item.productId), 
+          eq(inventoryLevels.warehouseId, sourceWarehouseId),
+          eq(inventoryLevels.modo, modo)
+        )
       );
 
       if (!sourceLevel || Number(sourceLevel.quantity) < item.quantity) {
@@ -228,6 +252,7 @@ export async function transferStock(
         warehouseId: sourceWarehouseId,
         userId,
         type: 'transfer_out',
+        modo,
         quantity: (-item.quantity).toString(),
         balanceAfter: newSourceQuantity.toString(),
         referenceId: transferId,
@@ -236,7 +261,11 @@ export async function transferStock(
 
       // 4. Add to destination
       let [destLevel] = await tx.select().from(inventoryLevels).where(
-        and(eq(inventoryLevels.productId, item.productId), eq(inventoryLevels.warehouseId, destinationWarehouseId))
+        and(
+          eq(inventoryLevels.productId, item.productId), 
+          eq(inventoryLevels.warehouseId, destinationWarehouseId),
+          eq(inventoryLevels.modo, modo)
+        )
       );
 
       if (!destLevel) {
@@ -245,6 +274,7 @@ export async function transferStock(
           companyId,
           productId: item.productId,
           warehouseId: destinationWarehouseId,
+          modo,
           quantity: '0.0000',
         }).returning();
         destLevel = newLevel[0];
@@ -262,6 +292,7 @@ export async function transferStock(
         warehouseId: destinationWarehouseId,
         userId,
         type: 'transfer_in',
+        modo,
         quantity: item.quantity.toString(),
         balanceAfter: newDestQuantity.toString(),
         referenceId: transferId,

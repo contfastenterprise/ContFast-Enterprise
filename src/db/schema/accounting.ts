@@ -6,6 +6,7 @@ import { bankAccounts } from './bank';
 import { warehouses } from './inventory';
 import { products } from './products';
 import { users } from './auth';
+import { environmentMode } from './system';
 
 export const chartOfAccounts = pgTable('chart_of_accounts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -29,6 +30,7 @@ export const chartOfAccounts = pgTable('chart_of_accounts', {
 export const journalEntries = pgTable('journal_entries', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   reference: varchar('reference', { length: 255 }), // Invoice ID, check ID, etc.
   date: date('date').notNull(),
   description: text('description'),
@@ -40,11 +42,13 @@ export const journalEntries = pgTable('journal_entries', {
   companyIdx: index('journal_entries_company_idx').on(table.companyId),
   dateIdx: index('journal_entries_date_idx').on(table.date),
   companyStatusDateIdx: index('journal_entries_comp_status_date_idx').on(table.companyId, table.status, table.date),
+  companyModoIdx: index('journal_entries_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const journalEntryLines = pgTable('journal_entry_lines', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   journalEntryId: uuid('journal_entry_id').notNull().references(() => journalEntries.id),
   accountId: uuid('account_id').notNull().references(() => chartOfAccounts.id),
   debit: decimal('debit', { precision: 15, scale: 2 }).default('0.00').notNull(),
@@ -57,11 +61,13 @@ export const journalEntryLines = pgTable('journal_entry_lines', {
   companyIdx: index('journal_entry_lines_company_idx').on(table.companyId),
   companyAccountIdx: index('journal_entry_lines_comp_acc_idx').on(table.companyId, table.accountId),
   accCreatedIdx: index('journal_entry_lines_acc_created_idx').on(table.accountId, table.createdAt),
+  companyModoIdx: index('journal_entry_lines_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const accountsReceivable = pgTable('accounts_receivable', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   customerId: uuid('customer_id').notNull().references(() => customers.id),
   invoiceId: uuid('invoice_id').notNull().references(() => invoices.id),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
@@ -75,11 +81,13 @@ export const accountsReceivable = pgTable('accounts_receivable', {
   companyIdx: index('ar_company_idx').on(table.companyId),
   customerIdx: index('ar_customer_idx').on(table.customerId),
   invoiceIdx: index('ar_invoice_idx').on(table.invoiceId),
+  companyModoIdx: index('ar_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const customerReceipts = pgTable('customer_receipts', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   customerId: uuid('customer_id').notNull().references(() => customers.id),
   date: date('date').notNull(),
   paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | bank | check
@@ -93,6 +101,7 @@ export const customerReceipts = pgTable('customer_receipts', {
   companyIdx: index('cust_receipts_company_idx').on(table.companyId),
   customerIdx: index('cust_receipts_customer_idx').on(table.customerId),
   dateIdx: index('cust_receipts_date_idx').on(table.date),
+  companyModoIdx: index('cust_receipts_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const customerReceiptApplied = pgTable('customer_receipt_applied', {
@@ -109,6 +118,7 @@ export const customerReceiptApplied = pgTable('customer_receipt_applied', {
 export const accountsPayable = pgTable('accounts_payable', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   supplierId: uuid('supplier_id').notNull().references(() => suppliers.id),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   balance: decimal('balance', { precision: 15, scale: 2 }).notNull(),
@@ -120,11 +130,13 @@ export const accountsPayable = pgTable('accounts_payable', {
 }, (table) => ({
   companyIdx: index('ap_company_idx').on(table.companyId),
   supplierIdx: index('ap_supplier_idx').on(table.supplierId),
+  companyModoIdx: index('ap_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const supplierPayments = pgTable('supplier_payments', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   supplierId: uuid('supplier_id').notNull().references(() => suppliers.id),
   date: date('date').notNull(),
   paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | bank | check
@@ -138,6 +150,7 @@ export const supplierPayments = pgTable('supplier_payments', {
   companyIdx: index('supp_pay_company_idx').on(table.companyId),
   supplierIdx: index('supp_pay_supplier_idx').on(table.supplierId),
   dateIdx: index('supp_pay_date_idx').on(table.date),
+  companyModoIdx: index('supp_pay_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const supplierPaymentApplied = pgTable('supplier_payment_applied', {
@@ -154,6 +167,7 @@ export const supplierPaymentApplied = pgTable('supplier_payment_applied', {
 export const checks = pgTable('checks', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   bankAccountId: uuid('bank_account_id').notNull().references(() => bankAccounts.id),
   checkNumber: varchar('check_number', { length: 100 }).notNull(),
   payee: varchar('payee', { length: 255 }).notNull(),
@@ -167,7 +181,7 @@ export const checks = pgTable('checks', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
-  companyCheckIdx: uniqueIndex('checks_company_num_idx').on(table.companyId, table.checkNumber),
+  companyCheckIdx: uniqueIndex('checks_company_num_modo_idx').on(table.companyId, table.checkNumber, table.modo),
   statusIdx: index('checks_status_idx').on(table.status),
   apIdx: index('checks_ap_idx').on(table.apId),
 }));
@@ -175,6 +189,7 @@ export const checks = pgTable('checks', {
 export const apPayments = pgTable('ap_payments', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   apId: uuid('ap_id').notNull().references(() => accountsPayable.id),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   paymentMethod: varchar('payment_method', { length: 50 }).notNull(), // cash | transfer | check
@@ -189,11 +204,13 @@ export const apPayments = pgTable('ap_payments', {
   companyIdx: index('ap_payments_company_idx').on(table.companyId),
   apIdx: index('ap_payments_ap_idx').on(table.apId),
   statusIdx: index('ap_payments_status_idx').on(table.status),
+  companyModoIdx: index('ap_payments_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const expenses = pgTable('expenses', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   warehouseId: uuid('warehouse_id').references(() => warehouses.id),
   supplierId: uuid('supplier_id').references(() => suppliers.id), // Made nullable for minor expenses without supplier
   expenseType: varchar('expense_type', { length: 2 }).notNull(), // '01' to '11'
@@ -220,6 +237,7 @@ export const expenses = pgTable('expenses', {
   supplierIdx: index('expense_supplier_idx').on(table.supplierId),
   issueDateIdx: index('expense_issue_date_idx').on(table.issueDate),
   companyIssueDateIdx: index('expense_comp_issue_date_idx').on(table.companyId, table.issueDate),
+  companyModoIdx: index('expense_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const expenseLines = pgTable('expense_lines', {
@@ -241,6 +259,7 @@ export const expenseLines = pgTable('expense_lines', {
 export const accountingPeriods = pgTable('accounting_periods', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   name: varchar('name', { length: 100 }).notNull(), // e.g. "Junio 2026"
   startDate: date('start_date').notNull(),
   endDate: date('end_date').notNull(),
@@ -252,6 +271,7 @@ export const accountingPeriods = pgTable('accounting_periods', {
 }, (table) => ({
   companyIdx: index('accounting_periods_company_idx').on(table.companyId),
   statusIdx: index('accounting_periods_status_idx').on(table.status),
+  companyModoIdx: index('accounting_periods_company_modo_idx').on(table.companyId, table.modo),
 }));
 
 export const accountingMappings = pgTable('accounting_mappings', {
@@ -268,6 +288,7 @@ export const accountingMappings = pgTable('accounting_mappings', {
 export const financialMovements = pgTable('financial_movements', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
   entityType: varchar('entity_type', { length: 50 }).notNull(), // 'customer' | 'supplier'
   customerId: uuid('customer_id').references(() => customers.id),
   supplierId: uuid('supplier_id').references(() => suppliers.id),
@@ -292,5 +313,6 @@ export const financialMovements = pgTable('financial_movements', {
   supplierIdx: index('fin_mov_supplier_idx').on(table.companyId, table.supplierId),
   dateIdx: index('fin_mov_date_idx').on(table.date),
   createdAtIdx: index('fin_mov_created_at_idx').on(table.createdAt),
+  companyModoIdx: index('fin_mov_company_modo_idx').on(table.companyId, table.modo),
 }));
 

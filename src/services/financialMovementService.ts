@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface RegisterMovementInput {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   entityType: 'customer' | 'supplier';
   customerId?: string | null;
   supplierId?: string | null;
@@ -48,6 +49,7 @@ export class FinancialMovementService {
       .values({
         id: uuidv4(),
         companyId: input.companyId,
+        modo: input.modo || 'PRODUCCION',
         entityType: input.entityType,
         customerId: input.customerId || null,
         supplierId: input.supplierId || null,
@@ -72,7 +74,7 @@ export class FinancialMovementService {
       ? input.customerId! 
       : input.supplierId!;
 
-    await this.rebuildBalances(dbClient, input.companyId, input.entityType, entityId);
+    await this.rebuildBalances(dbClient, input.companyId, input.entityType, entityId, input.modo || 'PRODUCCION');
 
     return movement;
   }
@@ -84,7 +86,8 @@ export class FinancialMovementService {
     tx: any,
     companyId: string,
     entityType: 'customer' | 'supplier',
-    entityId: string
+    entityId: string,
+    modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
   ) {
     const dbClient = tx || db;
 
@@ -96,6 +99,7 @@ export class FinancialMovementService {
         and(
           eq(financialMovements.companyId, companyId),
           eq(financialMovements.entityType, entityType),
+          eq(financialMovements.modo, modo),
           entityType === 'customer'
             ? eq(financialMovements.customerId, entityId)
             : eq(financialMovements.supplierId, entityId),

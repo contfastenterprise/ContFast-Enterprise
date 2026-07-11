@@ -24,18 +24,21 @@ if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
 export const db = drizzle(conn, { schema });
 
 /**
- * Executes operations in a database transaction with app.current_company_id set
- * to enforce Row Level Security (RLS) tenant isolation.
+ * Executes operations in a database transaction with app.current_company_id and app.current_environment set
+ * to enforce Row Level Security (RLS) tenant and environment isolation.
  */
 export async function withTenantContext<T>(
   companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
   fn: (tx: any) => Promise<T>
 ): Promise<T> {
   return await db.transaction(async (tx) => {
-    // Set the tenant context locally in the transaction
+    // Set the tenant and environment context locally in the transaction
     await tx.execute(sql`SELECT set_config('app.current_company_id', ${companyId}, true)`);
+    await tx.execute(sql`SELECT set_config('app.current_environment', ${modo}, true)`);
     return await fn(tx);
   });
 }
 
 export * from './schema';
+export * from './db-helper';

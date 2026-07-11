@@ -61,7 +61,7 @@ export class CompanyRepository {
   /**
    * Fetches the active e-CF sequence for a given type, e.g. '31' (Fiscal).
    */
-  static async getSequence(companyId: string, ecfType: string) {
+  static async getSequence(companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
     const [sequence] = await db
       .select()
       .from(ecfSequences)
@@ -69,6 +69,7 @@ export class CompanyRepository {
         and(
           eq(ecfSequences.companyId, companyId),
           eq(ecfSequences.ecfType, ecfType),
+          eq(ecfSequences.modo, modo),
           eq(ecfSequences.status, 'active'),
           isNull(ecfSequences.deletedAt)
         )
@@ -96,7 +97,7 @@ export class CompanyRepository {
   /**
    * Programmatic transaction-safe sequence allocator.
    */
-  static async allocateNextNcf(tx: any, companyId: string, ecfType: string): Promise<string> {
+  static async allocateNextNcf(tx: any, companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<string> {
     const [seq] = await tx
       .select()
       .from(ecfSequences)
@@ -104,6 +105,7 @@ export class CompanyRepository {
         and(
           eq(ecfSequences.companyId, companyId),
           eq(ecfSequences.ecfType, ecfType),
+          eq(ecfSequences.modo, modo),
           eq(ecfSequences.status, 'active'),
           isNull(ecfSequences.deletedAt)
         )
@@ -113,11 +115,11 @@ export class CompanyRepository {
       .for('update'); // Row locking for thread safety!
 
     if (!seq) {
-      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType}.`);
+      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType} en ambiente ${modo}.`);
     }
 
     if (seq.currentSequence >= seq.maxSequence) {
-      throw new Error(`La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seq.maxSequence}). Solicite una nueva autorización SACF.`);
+      throw new Error(`La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seq.maxSequence}) en ambiente ${modo}. Solicite una nueva autorización SACF.`);
     }
 
     // Expiry check — ONLY when DGII supplied a date. If null, no constraint applies.
@@ -126,7 +128,7 @@ export class CompanyRepository {
       const expiryDate = new Date(yyyy, mm - 1, dd, 23, 59, 59, 999);
       if (new Date() > expiryDate) {
         throw new Error(
-          `La secuencia e-CF tipo ${ecfType} venció el ${seq.sequenceExpiry}. Renueve la autorización SACF antes de emitir comprobantes.`
+          `La secuencia e-CF tipo ${ecfType} venció el ${seq.sequenceExpiry} en ambiente ${modo}. Renueve la autorización SACF antes de emitir comprobantes.`
         );
       }
     }
@@ -152,7 +154,7 @@ export class CompanyRepository {
 
     if (ncf.length !== expectedLength) {
       throw new Error(
-        `Error de validación NCF: El comprobante generado ${ncf} tiene una longitud de ${ncf.length} caracteres, pero se esperaba ${expectedLength} caracteres para comprobantes ${isElectronic ? 'electrónicos' : 'tradicionales'}.`
+        `Error de validación NCF: El comprobante generado ${ncf} tiene una longitud de ${ncf.length} caracteres, pero se esperaba ${expectedLength} caracteres para comprobantes ${isElectronic ? 'electrónicos' : 'tradicionales'} en ambiente ${modo}.`
       );
     }
 

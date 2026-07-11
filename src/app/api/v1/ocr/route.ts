@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'Imagen requerida en formato Base64' } }, { status: 400 });
     }
 
-    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY?.trim();
 
     if (geminiApiKey) {
       Logger.info('[OCR-Server] Enrutando procesamiento visual a la API de Gemini 1.5 Flash...');

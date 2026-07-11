@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { db, dgiiSubmissions, invoices } from '@/db';
+import { db, dgiiSubmissions, invoices, withTenantMode } from '@/db';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
@@ -35,7 +35,7 @@ export async function GET(
     // Enforce "facturacion:read" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
 
     if (!invoice) {
       return NextResponse.json(
@@ -98,7 +98,7 @@ export async function DELETE(
     const { id } = await params;
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
     if (!invoice) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Borrador no encontrado.' } },
@@ -116,7 +116,7 @@ export async function DELETE(
     await db
       .update(invoices)
       .set({ deletedAt: new Date() })
-      .where(eq(invoices.id, id));
+      .where(withTenantMode(invoices, auth, eq(invoices.id, id)));
 
     return NextResponse.json(
       { success: true, message: 'Borrador eliminado correctamente.' },

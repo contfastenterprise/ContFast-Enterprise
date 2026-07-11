@@ -55,14 +55,14 @@ export class InvoiceDbBooker {
   /**
    * Predicts the next NCF.
    */
-  static async predictNextNcf(companyId: string, ecfType: string) {
-    const seqRecord = await CompanyRepository.getSequence(companyId, ecfType);
+  static async predictNextNcf(companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const seqRecord = await CompanyRepository.getSequence(companyId, ecfType, modo);
     if (!seqRecord) {
-      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType}.`);
+      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType} en ambiente ${modo}.`);
     }
     if (seqRecord.currentSequence >= seqRecord.maxSequence) {
       throw new Error(
-        `La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}). Solicite una nueva autorización SACF.`
+        `La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}) en ambiente ${modo}. Solicite una nueva autorización SACF.`
       );
     }
 
@@ -86,7 +86,7 @@ export class InvoiceDbBooker {
     errMsg: string
   ) {
     return await db.transaction(async (tx) => {
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
+      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo || 'PRODUCCION');
       if (allocatedNcf !== ncf) {
         throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
       }
@@ -100,6 +100,7 @@ export class InvoiceDbBooker {
         .where(
           and(
             eq(invoices.companyId, data.companyId),
+            eq(invoices.modo, data.modo || 'PRODUCCION'),
             sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
           )
         );
@@ -108,6 +109,7 @@ export class InvoiceDbBooker {
 
       await InvoiceRepository.create({
         companyId: data.companyId,
+        modo: data.modo || 'PRODUCCION',
         warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
@@ -157,7 +159,7 @@ export class InvoiceDbBooker {
   ) {
     return await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType);
+      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo || 'PRODUCCION');
       if (allocatedNcf !== ncf) {
         throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
       }
@@ -171,6 +173,7 @@ export class InvoiceDbBooker {
         .where(
           and(
             eq(invoices.companyId, data.companyId),
+            eq(invoices.modo, data.modo || 'PRODUCCION'),
             sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
           )
         );
@@ -180,7 +183,7 @@ export class InvoiceDbBooker {
       // Verify Stock Availability (Skip for Credit Notes since it increases stock)
       if (data.ecfType !== '34') {
         for (const line of totals.itemLines) {
-          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true);
+          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true, data.modo || 'PRODUCCION');
           if (!hasStock) {
             throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
           }
@@ -210,6 +213,7 @@ export class InvoiceDbBooker {
                 and(
                   eq(accountsReceivable.customerId, data.customerId),
                   eq(accountsReceivable.companyId, data.companyId),
+                  eq(accountsReceivable.modo, data.modo || 'PRODUCCION'),
                   isNull(accountsReceivable.deletedAt)
                 )
               );
@@ -227,6 +231,7 @@ export class InvoiceDbBooker {
       // Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
         companyId: data.companyId,
+        modo: data.modo || 'PRODUCCION',
         warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
@@ -274,6 +279,7 @@ export class InvoiceDbBooker {
 
         await FinancialMovementService.registerMovement(tx, {
           companyId: data.companyId,
+          modo: data.modo || 'PRODUCCION',
           entityType: 'customer',
           customerId: data.customerId,
           date: new Date(),
@@ -296,6 +302,7 @@ export class InvoiceDbBooker {
         if (isCash && !isCreditNote) {
           await FinancialMovementService.registerMovement(tx, {
             companyId: data.companyId,
+            modo: data.modo || 'PRODUCCION',
             entityType: 'customer',
             customerId: data.customerId,
             date: new Date(),
@@ -323,7 +330,8 @@ export class InvoiceDbBooker {
             'return',
             invoice.id,
             `Devolución Nota de Crédito ${ncf}`,
-            tx
+            tx,
+            data.modo || 'PRODUCCION'
           );
         }
       }
@@ -392,8 +400,9 @@ export class InvoiceDbBooker {
 
       await AccountRepository.createJournalEntry(tx, {
         companyId: data.companyId,
+        modo: data.modo || 'PRODUCCION',
         reference: invoice.id,
-        date: new Date(),
+        date: new Date().toISOString().split('T')[0],
         description: `Facturación Automática e-CF NCF: ${ncf}`,
         lines: journalLines,
       });
@@ -413,6 +422,7 @@ export class InvoiceDbBooker {
             ? `Nota de Débito e-CF Comprobante: ${ncf}`
             : `Venta e-CF Comprobante: ${ncf}`,
           reference: ncf,
+          modo: data.modo || 'PRODUCCION',
         });
       }
 
@@ -423,7 +433,12 @@ export class InvoiceDbBooker {
           const [existingAr] = await tx
             .select()
             .from(accountsReceivable)
-            .where(eq(accountsReceivable.invoiceId, data.modifiedInvoiceId))
+            .where(
+              and(
+                eq(accountsReceivable.invoiceId, data.modifiedInvoiceId),
+                eq(accountsReceivable.modo, data.modo || 'PRODUCCION')
+              )
+            )
             .limit(1);
           if (existingAr) {
             const newBalance = Math.max(0, parseFloat(existingAr.balance || '0') - totals.totalNet);
@@ -446,6 +461,7 @@ export class InvoiceDbBooker {
             invoiceId: invoice.id,
             amount: totals.totalNet,
             dueDate,
+            modo: data.modo || 'PRODUCCION',
           });
         }
       }
@@ -459,6 +475,7 @@ export class InvoiceDbBooker {
         entityId: invoice.id,
         newValues: { ncf, total: totals.total, customerId: data.customerId },
         ipAddress: 'server',
+        modo: data.modo || 'PRODUCCION',
       });
 
       // Register submission or queue asynchronous submission to DGII
@@ -471,6 +488,7 @@ export class InvoiceDbBooker {
           responseMessage: submission.dgiiMessage,
           responsePayload: JSON.stringify(submission.msellerResponsePayload),
           retryCount: 0,
+          modo: data.modo || 'PRODUCCION',
         });
       } else if (submission.finalStatus === 'signed') {
         await tx.insert(dgiiSubmissions).values({
@@ -478,6 +496,7 @@ export class InvoiceDbBooker {
           invoiceId: invoice.id,
           status: 'pending',
           retryCount: 0,
+          modo: data.modo || 'PRODUCCION',
         });
 
         await import('@/infrastructure/queue').then(async ({ addJob }) => {

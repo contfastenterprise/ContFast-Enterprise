@@ -27,8 +27,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string>('');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
+  const [activeEnvironment, setActiveEnvironment] = useState<'PRODUCCION' | 'PRUEBA'>('PRODUCCION');
   const [companies, setCompanies] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
+
+  // Read environment cookie on mount
+  useEffect(() => {
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return null;
+    };
+    const savedEnv = getCookie('cf_environment') as 'PRODUCCION' | 'PRUEBA' | null;
+    if (savedEnv === 'PRUEBA' || savedEnv === 'PRODUCCION') {
+      setActiveEnvironment(savedEnv);
+    } else {
+      // Default to PRODUCCION and set cookie
+      document.cookie = 'cf_environment=PRODUCCION; path=/; max-age=31536000; SameSite=Strict';
+      setActiveEnvironment('PRODUCCION');
+    }
+  }, []);
+
+  const handleToggleEnvironment = (newEnv: 'PRODUCCION' | 'PRUEBA') => {
+    if (newEnv === activeEnvironment) return;
+    document.cookie = `cf_environment=${newEnv}; path=/; max-age=31536000; SameSite=Strict`;
+    setActiveEnvironment(newEnv);
+    toast.success(`Cambiando a ambiente de ${newEnv === 'PRUEBA' ? 'PRUEBA (SANDBOX)' : 'PRODUCCIÓN'}...`);
+    setTimeout(() => {
+      window.location.reload();
+    }, 600);
+  };
 
   useEffect(() => {
     const checkSetupAndFetchUser = async () => {
@@ -211,27 +240,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Toaster position="top-right" richColors />
   
         {/* Environment Stripe */}
-        {entorno !== 'PROD' && (
-          <div
-            className={`environment-stripe w-full h-10 flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md ${
-              entorno === 'TEST'
-                ? 'bg-[repeating-linear-gradient(45deg,#fed488,#fed488_20px,#e9c176_20px,#e9c176_40px)]'
-                : 'bg-[repeating-linear-gradient(45deg,#bfdbfe,#bfdbfe_20px,#93c5fd_20px,#93c5fd_40px)]'
-            }`}
-          >
-            <span className="font-label-md text-on-secondary-fixed flex items-center gap-2 uppercase tracking-widest font-bold text-gray-800">
-              <Shield className="h-4 w-4" />
-              {entorno === 'TEST' ? 'ENTORNO DE PRUEBAS - SIN VALOR FISCAL' : 'ENTORNO DE CERTIFICACIÓN'}
+        {activeEnvironment === 'PRUEBA' ? (
+          <div className="w-full h-11 bg-[repeating-linear-gradient(45deg,#ef4444,#ef4444_15px,#f97316_15px,#f97316_30px)] text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md border-b-2 border-red-700 select-none">
+            <span className="font-label-md text-sm font-black flex items-center gap-2 uppercase tracking-widest text-white drop-shadow-md">
+              <Shield className="h-5 w-5 animate-pulse text-white" />
+              MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS
+            </span>
+          </div>
+        ) : (
+          <div className="w-full h-8 bg-emerald-600 text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-sm select-none">
+            <span className="font-semibold text-xs tracking-wider uppercase flex items-center gap-1.5 text-white">
+              <span className="h-2 w-2 rounded-full bg-white animate-ping" />
+              Trabajando en PRODUCCIÓN
             </span>
           </div>
         )}
   
         {/* TopNavBar */}
         <nav className={clsx(
-          "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b",
-          entorno === 'PROD' 
-            ? 'bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 top-0 shadow-lg' 
-            : 'bg-primary/95 text-on-primary border-white/10 top-10'
+          "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition-all duration-300",
+          activeEnvironment === 'PRUEBA'
+            ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
+            : 'top-8 bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 shadow-lg'
         )}>
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
@@ -268,6 +298,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
   
           <div className="flex items-center gap-4">
+            {/* Environment Toggle Switch */}
+            <div className="flex items-center gap-1 bg-black/40 rounded-full p-1 border border-white/10 shadow-inner mr-2 select-none">
+              <button
+                onClick={() => handleToggleEnvironment('PRODUCCION')}
+                className={clsx(
+                  "px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 uppercase",
+                  activeEnvironment === 'PRODUCCION'
+                    ? "bg-emerald-600 text-white shadow-md"
+                    : "text-white/50 hover:text-white"
+                )}
+              >
+                PROD
+              </button>
+              <button
+                onClick={() => handleToggleEnvironment('PRUEBA')}
+                className={clsx(
+                  "px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 uppercase",
+                  activeEnvironment === 'PRUEBA'
+                    ? "bg-red-500 text-white shadow-md animate-pulse"
+                    : "text-white/50 hover:text-white"
+                )}
+              >
+                SANDBOX
+              </button>
+            </div>
+
             {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
               <div className="hidden sm:flex flex-col text-right">
@@ -317,7 +373,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Main Content Wrapper */}
         <div
           className={clsx(
-            'flex flex-col min-h-screen pt-24 transition-[margin] duration-300 ease-in-out',
+            'flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out',
+            activeEnvironment === 'PRUEBA' ? 'pt-24' : 'pt-20',
             sidebarCollapsed ? 'md:ml-[70px]' : 'md:ml-[260px]'
           )}
         >
