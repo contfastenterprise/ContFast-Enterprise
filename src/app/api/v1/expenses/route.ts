@@ -347,7 +347,10 @@ export async function GET(req: NextRequest) {
     const warehouseId = searchParams.get('warehouseId');
     const ncf = searchParams.get('ncf');
 
-    const filters: any[] = [eq(expenses.companyId, session.companyId)];
+    const filters: any[] = [
+      eq(expenses.companyId, session.companyId),
+      eq(expenses.modo, session.modo)
+    ];
 
     if (startDate && endDate) {
       filters.push(between(expenses.issueDate, startDate, endDate));

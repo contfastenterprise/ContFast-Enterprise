@@ -412,7 +412,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Ambiente de Facturación (e-CF)</label>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Ambiente Sandbox/Produccion</label>
                   <select
                     disabled={!isSistemas}
                     value={formData.dgiiEnv}
