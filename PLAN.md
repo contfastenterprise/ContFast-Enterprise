@@ -485,4 +485,10 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *
 * * Verified & Polished * *
 * * Verified & Polished * *
+
+### 66. Supresión de Alertas de Envío de Correo sin Dirección Registrada
+- **Silenciado de Errores e-mail**: Se modificó el controlador frontend en la emisión de facturas (`src/app/dashboard/invoices/page.tsx`) para suprimir cualquier notificación flotante (`toast`) si el cliente no posee un correo electrónico registrado al intentar emitir y enviar.
+- **Identificador de Error Específico**: Se actualizó el endpoint de envío de correo de facturas (`src/app/api/v1/invoices/[id]/email/route.ts`) para retornar el código de error `NO_EMAIL` cuando no se detecta dirección en la ficha del contacto. El frontend utiliza este código y filtrados de mensajes por texto para identificar el caso y evitar alertar al emisor.
+- **Alertas de Errores Reales**: Las notificaciones de error se siguen arrojando de manera habitual ante fallas de envío SMTP reales en clientes con correos válidos.
+
 * * Verified & Polished * *

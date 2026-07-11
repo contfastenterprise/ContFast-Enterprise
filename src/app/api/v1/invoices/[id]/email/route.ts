@@ -60,7 +60,7 @@ export async function POST(
 
     if (!customer.email) {
       return NextResponse.json(
-        { success: false, error: { code: 'BAD_REQUEST', message: 'El cliente no tiene un correo electrónico registrado.' } },
+        { success: false, error: { code: 'NO_EMAIL', message: 'El cliente no tiene un correo electrónico registrado.' } },
         { status: 400, headers: resHeaders }
       );
     }

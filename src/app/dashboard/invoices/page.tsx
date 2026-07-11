@@ -902,23 +902,31 @@ function InvoicesList() {
             if (emailRes.ok && emailData.success) {
               toast.success('Correo enviado', { description: emailData.message });
             } else {
-              toast.error('Error al enviar correo', { description: emailData.error?.message });
+              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' || 
+                                 emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
+                                 emailData.error?.message?.toLowerCase().includes('no tiene correo');
+              if (!hasNoEmail) {
+                toast.error('Error al enviar correo', { description: emailData.error?.message });
+              }
             }
           } catch {
             toast.error('Error de red al enviar el correo.');
           }
         }
       } else if (postAction === 'email') {
-        if (!data.data.customerId) {
-          toast.warning('No se puede enviar correo', { description: 'La factura no tiene un cliente con correo asociado.' });
-        } else {
+        if (data.data.customerId) {
           try {
             const emailRes = await fetch(`/api/v1/invoices/${invoiceId}/email`, { method: 'POST' });
             const emailData = await emailRes.json();
             if (emailRes.ok && emailData.success) {
               toast.success('Correo enviado', { description: emailData.message });
             } else {
-              toast.error('Error al enviar correo', { description: emailData.error?.message });
+              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' || 
+                                 emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
+                                 emailData.error?.message?.toLowerCase().includes('no tiene correo');
+              if (!hasNoEmail) {
+                toast.error('Error al enviar correo', { description: emailData.error?.message });
+              }
             }
           } catch {
             toast.error('Error de red al enviar el correo.');
