@@ -30,7 +30,7 @@ import {
   supplierPayments,
   supplierPaymentApplied
 } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { delCache } from '@/infrastructure/redis';
 
 export async function POST(
@@ -63,21 +63,46 @@ export async function POST(
 
       // Order of deletion to avoid foreign key violations:
       
-      // 1. Receipts application & payments
-      await tx.delete(customerReceiptApplied).where(cond(customerReceiptApplied));
+      // 1. Fetch sandbox receipts, supplier payments, and expenses to clean junction tables first
+      const sandboxReceipts = await tx
+        .select({ id: customerReceipts.id })
+        .from(customerReceipts)
+        .where(cond(customerReceipts));
+      const receiptIds = sandboxReceipts.map((r: any) => r.id);
+      if (receiptIds.length > 0) {
+        await tx.delete(customerReceiptApplied).where(inArray(customerReceiptApplied.receiptId, receiptIds));
+      }
+
+      const sandboxSupplierPayments = await tx
+        .select({ id: supplierPayments.id })
+        .from(supplierPayments)
+        .where(cond(supplierPayments));
+      const supplierPaymentIds = sandboxSupplierPayments.map((sp: any) => sp.id);
+      if (supplierPaymentIds.length > 0) {
+        await tx.delete(supplierPaymentApplied).where(inArray(supplierPaymentApplied.paymentId, supplierPaymentIds));
+      }
+
+      const sandboxExpenses = await tx
+        .select({ id: expenses.id })
+        .from(expenses)
+        .where(cond(expenses));
+      const expenseIds = sandboxExpenses.map((e: any) => e.id);
+      if (expenseIds.length > 0) {
+        await tx.delete(expenseLines).where(inArray(expenseLines.expenseId, expenseIds));
+      }
+
+      // 2. Receipts, supplier payments & AP payments
       await tx.delete(customerReceipts).where(cond(customerReceipts));
-      await tx.delete(supplierPaymentApplied).where(cond(supplierPaymentApplied));
       await tx.delete(supplierPayments).where(cond(supplierPayments));
       await tx.delete(apPayments).where(cond(apPayments));
       
-      // 2. Receivables, payables & checks
+      // 3. Receivables, payables & checks
       await tx.delete(accountsReceivable).where(cond(accountsReceivable));
       await tx.delete(accountsPayable).where(cond(accountsPayable));
       await tx.delete(checks).where(cond(checks));
 
-      // 3. Invoices, quotes, delivery notes & expenses
+      // 4. Invoices, expenses, quotes & delivery notes
       await tx.delete(invoices).where(cond(invoices));
-      await tx.delete(expenseLines).where(cond(expenseLines));
       await tx.delete(expenses).where(cond(expenses));
       await tx.delete(quotes).where(cond(quotes));
       await tx.delete(deliveryNotes).where(cond(deliveryNotes));
