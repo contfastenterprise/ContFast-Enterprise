@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
       await tx.insert(expenses).values({
         id: newExpenseId,
         companyId: session.companyId,
+        modo: session.modo,
         warehouseId: warehouseId || null,
         supplierId: supplierId || null,
         expenseType,
@@ -140,7 +141,8 @@ export async function POST(req: NextRequest) {
               .from(inventoryLevels)
               .where(and(
                 eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId)
+                eq(inventoryLevels.warehouseId, warehouseId),
+                eq(inventoryLevels.modo, session.modo)
               ));
             
             let balanceAfter = qty;
@@ -151,12 +153,14 @@ export async function POST(req: NextRequest) {
                 .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
                 .where(and(
                   eq(inventoryLevels.productId, line.productId),
-                  eq(inventoryLevels.warehouseId, warehouseId)
+                  eq(inventoryLevels.warehouseId, warehouseId),
+                  eq(inventoryLevels.modo, session.modo)
                 ));
             } else {
               await tx.insert(inventoryLevels).values({
                 id: uuidv4(),
                 companyId: session.companyId,
+                modo: session.modo,
                 productId: line.productId,
                 warehouseId: warehouseId,
                 quantity: qty.toString(),
@@ -167,6 +171,7 @@ export async function POST(req: NextRequest) {
             await tx.insert(inventoryMovements).values({
               id: uuidv4(),
               companyId: session.companyId,
+              modo: session.modo,
               productId: line.productId,
               warehouseId: warehouseId,
               userId: session.userId,
@@ -188,6 +193,7 @@ export async function POST(req: NextRequest) {
         await tx.insert(accountsPayable).values({
           id: apId,
           companyId: session.companyId,
+          modo: session.modo,
           supplierId: supplierId,
           amount: amount.toString(), // Total with taxes ideally, but using amount + taxes
           balance: apBalanceVal.toString(),
@@ -203,6 +209,7 @@ export async function POST(req: NextRequest) {
           await tx.insert(checks).values({
             id: checkId,
             companyId: session.companyId,
+            modo: session.modo,
             bankAccountId: guaranteeCheck.bankAccountId,
             checkNumber: guaranteeCheck.checkNumber,
             payee: guaranteeCheck.payee || 'Proveedor',
@@ -220,6 +227,7 @@ export async function POST(req: NextRequest) {
           await tx.insert(apPayments).values({
             id: uuidv4(),
             companyId: session.companyId,
+            modo: session.modo,
             apId: apId,
             amount: checkAmount.toString(),
             paymentMethod: 'check',
@@ -292,6 +300,7 @@ export async function POST(req: NextRequest) {
 
         await AccountRepository.createJournalEntry(tx, {
           companyId: session.companyId,
+          modo: session.modo,
           reference: newExpenseId,
           date: new Date(issueDate),
           description: `Asiento Automático de Compra NCF: ${ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'}`,
