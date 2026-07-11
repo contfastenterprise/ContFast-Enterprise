@@ -136,13 +136,13 @@ export class FinancialMovementService {
    * Performs an auto-seeding process if no financial movements exist for a company.
    * Reads existing invoices, receipts, expenses, payments and recreates movements chronologically.
    */
-  static async autoSeedMovements(companyId: string) {
+  static async autoSeedMovements(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
     return await db.transaction(async (tx) => {
       // Check if movements already exist
       const [existing] = await tx
         .select({ id: financialMovements.id })
         .from(financialMovements)
-        .where(eq(financialMovements.companyId, companyId))
+        .where(and(eq(financialMovements.companyId, companyId), eq(financialMovements.modo, modo)))
         .limit(1);
 
       if (existing) {
@@ -150,7 +150,7 @@ export class FinancialMovementService {
         return { success: true, message: 'La base de datos ya contiene movimientos financieros.' };
       }
 
-      console.log(`[Auto-Seeding] Starting financial movements reconstruction for company: ${companyId}`);
+      console.log(`[Auto-Seeding] Starting financial movements reconstruction for company: ${companyId} under mode: ${modo}`);
 
       interface SeedEvent {
         date: string;
@@ -177,6 +177,7 @@ export class FinancialMovementService {
         .where(
           and(
             eq(invoices.companyId, companyId),
+            eq(invoices.modo, modo),
             isNull(invoices.deletedAt),
             sql`${invoices.status} NOT IN ('draft', 'rejected')`
           )
@@ -242,6 +243,7 @@ export class FinancialMovementService {
         .where(
           and(
             eq(customerReceipts.companyId, companyId),
+            eq(customerReceipts.modo, modo),
             isNull(customerReceipts.deletedAt)
           )
         );
@@ -270,6 +272,7 @@ export class FinancialMovementService {
         .where(
           and(
             eq(expenses.companyId, companyId),
+            eq(expenses.modo, modo),
             isNull(expenses.deletedAt)
           )
         );
@@ -325,6 +328,7 @@ export class FinancialMovementService {
         .where(
           and(
             eq(apPayments.companyId, companyId),
+            eq(apPayments.modo, modo),
             eq(apPayments.status, 'applied')
           )
         );
@@ -365,6 +369,7 @@ export class FinancialMovementService {
         return {
           id: uuidv4(),
           companyId,
+          modo,
           entityType: e.entityType,
           customerId: e.customerId || null,
           supplierId: e.supplierId || null,
@@ -403,7 +408,7 @@ export class FinancialMovementService {
       
       console.log(`[Auto-Seeding] Rebuilding balances for ${companyCustomers.length} customers...`);
       for (const cust of companyCustomers) {
-        await this.rebuildBalances(tx, companyId, 'customer', cust.id);
+        await this.rebuildBalances(tx, companyId, 'customer', cust.id, modo);
       }
 
       // Rebuild balances for all affected suppliers
@@ -414,7 +419,7 @@ export class FinancialMovementService {
 
       console.log(`[Auto-Seeding] Rebuilding balances for ${companySuppliers.length} suppliers...`);
       for (const supp of companySuppliers) {
-        await this.rebuildBalances(tx, companyId, 'supplier', supp.id);
+        await this.rebuildBalances(tx, companyId, 'supplier', supp.id, modo);
       }
 
       console.log(`[Auto-Seeding] Completed successfully! Reconstructed ${inserts.length} movements.`);

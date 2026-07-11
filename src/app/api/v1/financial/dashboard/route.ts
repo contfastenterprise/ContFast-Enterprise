@@ -37,9 +37,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Auto-seed movements if empty for self-healing
-    await FinancialMovementService.autoSeedMovements(session.companyId);
+    await FinancialMovementService.autoSeedMovements(session.companyId, session.modo);
 
-    const data = await FinancialRepository.getFinancialDashboard(session.companyId);
+    const data = await FinancialRepository.getFinancialDashboard(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {

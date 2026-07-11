@@ -1,10 +1,11 @@
-import { db, invoices, checks } from '@/db';
+import { db, invoices, checks, expenses, withTenantMode } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull } from 'drizzle-orm';
 
 export class DashboardRepository {
   
-  static async getStats(companyId: string) {
-        const today = new Date();
+  static async getStats(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const yesterday = new Date(today);
@@ -22,8 +23,9 @@ export class DashboardRepository {
       dgiiMessage: invoices.dgiiMessage
     }).from(invoices)
     .where(
-      and(
-        eq(invoices.companyId, companyId),
+      withTenantMode(
+        invoices,
+        ctx,
         ne(invoices.status, 'draft'),
         isNull(invoices.deletedAt)
       )
@@ -95,12 +97,15 @@ export class DashboardRepository {
       payee: checks.payee,
       amount: checks.amount
     }).from(checks)
-    .where(and(
-      eq(checks.companyId, companyId),
-      eq(checks.isGuarantee, true),
-      eq(checks.status, 'pending'),
-      lte(checks.dueDate, formattedToday)
-    ));
+    .where(
+      withTenantMode(
+        checks,
+        ctx,
+        eq(checks.isGuarantee, true),
+        eq(checks.status, 'pending'),
+        lte(checks.dueDate, formattedToday)
+      )
+    );
     const dueGuaranteeChecksCount = dueChecks.length;
     
     for (const check of dueChecks) {
@@ -128,7 +133,8 @@ export class DashboardRepository {
     };
   }
 
-  static async getWeeklyChart(companyId: string, days: number = 7) {
+  static async getWeeklyChart(companyId: string, days: number = 7, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
 
@@ -139,10 +145,13 @@ export class DashboardRepository {
       total: invoices.total,
       createdAt: invoices.createdAt
     }).from(invoices)
-    .where(and(
-      eq(invoices.companyId, companyId),
-      gte(invoices.createdAt, startOfRange)
-    ));
+    .where(
+      withTenantMode(
+        invoices,
+        ctx,
+        gte(invoices.createdAt, startOfRange)
+      )
+    );
 
     if (days === 28) {
       const chartData = [];
@@ -212,8 +221,8 @@ export class DashboardRepository {
     }));
   }
 
-  static async getRecentActivity(companyId: string) {
-    // Recent invoices
+  static async getRecentActivity(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     return await db.select({
       id: invoices.id,
       ncf: invoices.ncf,
@@ -225,8 +234,9 @@ export class DashboardRepository {
       buyerRnc: invoices.buyerRnc
     }).from(invoices)
     .where(
-      and(
-        eq(invoices.companyId, companyId),
+      withTenantMode(
+        invoices,
+        ctx,
         ne(invoices.status, 'draft'),
         isNull(invoices.deletedAt)
       )
@@ -235,7 +245,8 @@ export class DashboardRepository {
     .limit(10);
   }
 
-  static async getComparisonChart(companyId: string, days: number = 7) {
+  static async getComparisonChart(companyId: string, days: number = 7, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
 
@@ -246,20 +257,25 @@ export class DashboardRepository {
       total: invoices.total,
       createdAt: invoices.createdAt
     }).from(invoices)
-    .where(and(
-      eq(invoices.companyId, companyId),
-      gte(invoices.createdAt, startOfRange)
-    ));
+    .where(
+      withTenantMode(
+        invoices,
+        ctx,
+        gte(invoices.createdAt, startOfRange)
+      )
+    );
 
-    const { expenses } = await import('@/db');
     const weekExpenses = await db.select({
       amount: expenses.amount,
       createdAt: expenses.createdAt
     }).from(expenses)
-    .where(and(
-      eq(expenses.companyId, companyId),
-      gte(expenses.createdAt, startOfRange)
-    ));
+    .where(
+      withTenantMode(
+        expenses,
+        ctx,
+        gte(expenses.createdAt, startOfRange)
+      )
+    );
 
     if (days === 28) {
       const chartData = [];
@@ -338,7 +354,8 @@ export class DashboardRepository {
     return chartData;
   }
 
-  static async getTopCustomers(companyId: string) {
+  static async getTopCustomers(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -346,10 +363,13 @@ export class DashboardRepository {
       total: invoices.total,
       buyerName: invoices.buyerName
     }).from(invoices)
-    .where(and(
-      eq(invoices.companyId, companyId),
-      gte(invoices.createdAt, startOfMonth)
-    ));
+    .where(
+      withTenantMode(
+        invoices,
+        ctx,
+        gte(invoices.createdAt, startOfMonth)
+      )
+    );
 
     const customerTotals: Record<string, number> = {};
     for (const inv of monthInvoices) {

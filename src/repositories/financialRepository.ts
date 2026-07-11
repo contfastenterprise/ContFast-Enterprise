@@ -1,4 +1,4 @@
-import { db } from '@/db';
+import { db, withTenantMode } from '@/db';
 import { 
   financialMovements, invoices, expenses, accountsReceivable, accountsPayable,
   customerReceipts, customerReceiptApplied, apPayments, customers, suppliers, 
@@ -511,7 +511,8 @@ export class FinancialRepository {
   /**
    * Retrieves data for the financial statement dashboard.
    */
-  static async getFinancialDashboard(companyId: string) {
+  static async getFinancialDashboard(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
     const today = new Date().toISOString().split('T')[0];
 
     // 1. Clientes con mayor deuda (Top debtors)
@@ -521,7 +522,7 @@ export class FinancialRepository {
              COALESCE(SUM(CASE WHEN ar.due_date < ${today} THEN ar.balance ELSE 0 END), 0)::float as overdue_balance
       FROM customers c
       JOIN accounts_receivable ar ON c.id = ar.customer_id
-      WHERE c.company_id = ${companyId} AND ar.balance > 0 AND ar.deleted_at IS NULL AND c.deleted_at IS NULL
+      WHERE c.company_id = ${companyId} AND ar.balance > 0 AND ar.deleted_at IS NULL AND c.deleted_at IS NULL AND ar.modo = ${modo}
       GROUP BY c.id, c.name, c.rnc_cedula
       ORDER BY pending_balance DESC
       LIMIT 5
@@ -533,7 +534,7 @@ export class FinancialRepository {
         COUNT(DISTINCT CASE WHEN ar.due_date < ${today} THEN c.id END)::int as morosos_count,
         COUNT(DISTINCT CASE WHEN ar.due_date >= ${today} AND ar.balance > 0 THEN c.id END)::int as al_dia_count
       FROM customers c
-      LEFT JOIN accounts_receivable ar ON c.id = ar.customer_id AND ar.balance > 0 AND ar.deleted_at IS NULL
+      LEFT JOIN accounts_receivable ar ON c.id = ar.customer_id AND ar.balance > 0 AND ar.deleted_at IS NULL AND ar.modo = ${modo}
       WHERE c.company_id = ${companyId} AND c.deleted_at IS NULL
     `);
 
@@ -544,7 +545,7 @@ export class FinancialRepository {
              COUNT(inv.id)::int as invoice_count
       FROM customers c
       JOIN invoices inv ON c.id = inv.customer_id
-      WHERE c.company_id = ${companyId} AND inv.deleted_at IS NULL AND inv.status = 'accepted'
+      WHERE c.company_id = ${companyId} AND inv.deleted_at IS NULL AND inv.status = 'accepted' AND inv.modo = ${modo}
       GROUP BY c.id, c.name, c.rnc_cedula
       ORDER BY total_invoiced DESC
       LIMIT 5
@@ -557,7 +558,7 @@ export class FinancialRepository {
              COALESCE(SUM(CASE WHEN ap.due_date < ${today} THEN ap.balance ELSE 0 END), 0)::float as overdue_balance
       FROM suppliers s
       JOIN accounts_payable ap ON s.id = ap.supplier_id
-      WHERE s.company_id = ${companyId} AND ap.balance > 0 AND ap.deleted_at IS NULL AND s.deleted_at IS NULL
+      WHERE s.company_id = ${companyId} AND ap.balance > 0 AND ap.deleted_at IS NULL AND s.deleted_at IS NULL AND ap.modo = ${modo}
       GROUP BY s.id, s.name, s.rnc
       ORDER BY pending_balance DESC
       LIMIT 5
@@ -570,7 +571,7 @@ export class FinancialRepository {
              COUNT(exp.id)::int as purchase_count
       FROM suppliers s
       JOIN expenses exp ON s.id = exp.supplier_id
-      WHERE s.company_id = ${companyId} AND exp.deleted_at IS NULL
+      WHERE s.company_id = ${companyId} AND exp.deleted_at IS NULL AND exp.modo = ${modo}
       GROUP BY s.id, s.name, s.rnc
       ORDER BY total_purchased DESC
       LIMIT 5
@@ -583,7 +584,14 @@ export class FinancialRepository {
         overdue: sql<string>`COALESCE(SUM(CASE WHEN due_date < ${today} THEN balance ELSE 0 END), 0)`
       })
       .from(accountsReceivable)
-      .where(and(eq(accountsReceivable.companyId, companyId), sql`accounts_receivable.balance > 0`, isNull(accountsReceivable.deletedAt)));
+      .where(
+        withTenantMode(
+          accountsReceivable,
+          ctx,
+          sql`accounts_receivable.balance > 0`,
+          isNull(accountsReceivable.deletedAt)
+        )
+      );
 
     const [cxpSummary] = await db
       .select({
@@ -591,7 +599,14 @@ export class FinancialRepository {
         overdue: sql<string>`COALESCE(SUM(CASE WHEN due_date < ${today} THEN balance ELSE 0 END), 0)`
       })
       .from(accountsPayable)
-      .where(and(eq(accountsPayable.companyId, companyId), sql`accounts_payable.balance > 0`, isNull(accountsPayable.deletedAt)));
+      .where(
+        withTenantMode(
+          accountsPayable,
+          ctx,
+          sql`accounts_payable.balance > 0`,
+          isNull(accountsPayable.deletedAt)
+        )
+      );
 
     return {
       cxc: {
