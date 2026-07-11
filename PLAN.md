@@ -470,6 +470,10 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 * * Verified & Polished * *
 * * Verified & Polished * *
-* * Verified & Polished * *
+
+### 64. Corrección de Valores Nulos en Resumen de Facturación
+- **Valores por Defecto en Estadísticas**: Modificación de la sección de visualización de estadísticas rápidas en la página de listado de comprobantes electrónicos [page.tsx](file:///c:/Users/gerso/OneDrive/Documentos/contfast_v.2/src/app/dashboard/invoices/page.tsx). Se implementaron fallbacks de tipo coalescente nulo (`stats?.totalMonth ?? 0` y `stats?.pending ?? 0`) para los contadores de "Total del Mes" y "Pendientes DGII".
+- **Garantía contra Valores Nulos**: Esto asegura que si el servidor o la base de datos devuelven valores nulos o indefinidos para el mes actual o las facturas pendientes de envío a la DGII, la interfaz de usuario renderice de forma segura `0` en su lugar (y `RD$ 0.00` para el importe del total del mes), previniendo roturas o renderizaciones vacías en pantalla.
+
 * * Verified & Polished * *
 
