@@ -35,11 +35,11 @@ export default function AdminCompaniesPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modals
   const [showNewCompanyModal, setShowNewCompanyModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [clearingSandbox, setClearingSandbox] = useState<string | null>(null);
 
   // Forms
   const [companyForm, setCompanyForm] = useState({
@@ -134,6 +134,41 @@ export default function AdminCompaniesPage() {
       }
     } catch (error) {
       toast.error('Error de red al eliminar empresa');
+    }
+  };
+
+  const handleClearSandboxData = async (company: Company) => {
+    // Interactive text prompt for confirmation
+    const confirmName = prompt(
+      `ATENCIÓN: Esta acción borrará permanentemente todos los datos de PRUEBA (Sandbox) de la empresa "${company.name}".\n\n` +
+      `Esto incluye facturas, cotizaciones, asientos contables, inventario, movimientos de caja y nóminas en modo Sandbox.\n` +
+      `Los datos de producción y otras empresas NO serán afectados.\n\n` +
+      `Para confirmar, escriba el nombre de la empresa a continuación:`
+    );
+
+    if (confirmName !== company.name) {
+      if (confirmName !== null) {
+        toast.error('Confirmación inválida. No se borraron los datos.');
+      }
+      return;
+    }
+
+    setClearingSandbox(company.id);
+    try {
+      const res = await fetch(`/api/v1/admin/companies/${company.id}/clear-sandbox`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Datos de prueba de "${company.name}" eliminados exitosamente.`);
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'Error al limpiar datos de prueba.');
+      }
+    } catch (err) {
+      toast.error('Error de red al limpiar datos de prueba.');
+    } finally {
+      setClearingSandbox(null);
     }
   };
 
@@ -305,13 +340,26 @@ export default function AdminCompaniesPage() {
                             <CreditCard className="h-4 w-4" />
                           </button>
                           {company.status === 'active' && (
-                            <button
-                              onClick={() => handleDeleteCompany(company.id)}
-                              className="p-1.5 hover:bg-red-100 text-red-600 rounded transition-colors"
-                              title="Desactivar Empresa"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <>
+                              <button
+                                disabled={clearingSandbox !== null}
+                                onClick={() => handleClearSandboxData(company)}
+                                className={clsx(
+                                  "p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors",
+                                  clearingSandbox === company.id && "animate-pulse"
+                                )}
+                                title="Limpiar Datos de Prueba (Sandbox)"
+                              >
+                                <RefreshCw className={clsx("h-4 w-4", clearingSandbox === company.id && "animate-spin")} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCompany(company.id)}
+                                className="p-1.5 hover:bg-red-100 text-red-600 rounded transition-colors"
+                                title="Desactivar Empresa"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
