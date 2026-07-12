@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.supabase.co http://127.0.0.1:54321; font-src 'self' data:; connect-src 'self' https://mpveesrcspollujmgzgy.supabase.co; worker-src 'self' blob:; manifest-src 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.supabase.co http://127.0.0.1:54321; font-src 'self' data:; connect-src 'self' https://mpveesrcspollujmgzgy.supabase.co;",
           },
           {
             key: "X-Frame-Options",
