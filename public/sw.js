@@ -1,44 +1,16 @@
-const CACHE_NAME = 'contfast-cache-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/contfast-logo.png'
-];
+// Service Worker minimal para permitir la instalación de la PWA
+// sin interferir con las peticiones de red del servidor (pass-through).
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-  
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
-  );
+  // Pass-through: No interferir con las peticiones. Esto evita errores de red (ERR_FAILED)
+  // en páginas dinámicas o redirecciones de autenticación en Next.js.
+  return;
 });
