@@ -1,0 +1,18 @@
+{
+  "name": "ContFast Enterprise",
+  "short_name": "ContFast",
+  "description": "Sistema de facturación electrónica e-CF multi-empresa homologado con la DGII de República Dominicana.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#003366",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/contfast-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

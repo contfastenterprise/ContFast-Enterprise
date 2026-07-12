@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Hanken_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -18,6 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "ContFast Enterprise | Facturación Electrónica e-CF DGII",
   description: "Sistema de facturación electrónica e-CF multi-empresa homologado con la DGII de República Dominicana. Rápido, seguro e institucional.",
+  manifest: "/manifest.json",
   icons: {
     icon: '/contfast-logo.png',
     apple: '/contfast-logo.png',
@@ -37,6 +39,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
         {children}
+        <PwaInstallPrompt />
       </body>
     </html>
   );
