@@ -327,12 +327,27 @@ export default function ProductsPage() {
     const useStock = overrideShowStock !== undefined ? overrideShowStock : showStockInPrint;
     const toastId = toast.loading('Preparando plantilla de impresión...');
     try {
-      const res = await fetch('/api/v1/company/settings');
-      const settingsData = await res.json();
+      let productsUrl = `/api/v1/products?search=${search}&page=1&per_page=100000`;
+      if (selectedCategory) {
+        productsUrl += `&categoryId=${selectedCategory}`;
+      }
+
+      const [settingsRes, productsRes] = await Promise.all([
+        fetch('/api/v1/company/settings'),
+        fetch(productsUrl)
+      ]);
+
+      const settingsData = await settingsRes.json();
+      const productsData = await productsRes.json();
+
       const company = settingsData.data || {};
+      const allProducts = productsData.data || [];
       
       const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
+      if (!printWindow) {
+        toast.error('No se pudo abrir la ventana de impresión. Verifique el bloqueador de ventanas emergentes.', { id: toastId });
+        return;
+      }
 
       const logoHtml = company.logoUrl 
         ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
@@ -371,7 +386,7 @@ export default function ProductsPage() {
               <div class="doc-info">
                 <div class="subtitle">CATÁLOGO DE PRODUCTOS</div>
                 <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
-                <div><strong>Productos Filtrados:</strong> ${products.length}</div>
+                <div><strong>Productos Filtrados:</strong> ${allProducts.length}</div>
               </div>
             </div>
 
@@ -388,7 +403,7 @@ export default function ProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                ${products.map(p => {
+                ${allProducts.map((p: any) => {
                   const stockTotal = (p.inventory || []).reduce((acc: number, item: any) => acc + Number(item.quantity || 0), 0);
                   return `
                     <tr>

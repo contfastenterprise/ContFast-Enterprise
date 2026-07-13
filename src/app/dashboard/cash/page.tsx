@@ -366,8 +366,16 @@ export default function CashPage() {
   };
 
   const handleTabChange = (newView: CashView) => {
+    if (newView === 'arqueo' && !session) {
+      toast.error('Debe abrir una sesión de caja para realizar el arqueo.');
+      return;
+    }
     if (newView === 'historico') loadHistory();
-    setView(newView);
+    if (newView === 'gestion' && !session) {
+      setView('apertura');
+    } else {
+      setView(newView);
+    }
   };
 
   // ─── Loading skeleton ────────────────────────────────────────────────────
@@ -381,248 +389,6 @@ export default function CashPage() {
           <RefreshCw className="w-8 h-8 text-blue-900" />
         </motion.div>
       </div>
-
-    );
-  }
-
-  // ─── APERTURA VIEW (modal overlay) ────────────────────────────────────────
-  if (view === 'apertura') {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().slice(0, 5);
-
-    return (
-      <div className="relative min-h-[calc(100vh-160px)] flex items-center justify-center bg-gray-50">
-        {/* Blurred background suggestion */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none grid grid-cols-3 gap-6 p-8">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-300 h-40" />
-          ))}
-        </div>
-
-        {/* Apertura Modal */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative w-full max-w-2xl bg-surface-bright border border-outline-variant/30 rounded-3xl shadow-2xl overflow-hidden z-10"
-        >
-          {/* Modal Header */}
-          <div className="p-6 border-b border-outline-variant/20 bg-primary flex justify-between items-center text-on-primary">
-            <div>
-              <h2 className="font-headline-sm text-xl font-bold text-on-primary">
-                Apertura de Turno de Caja
-              </h2>
-              <p className="text-sm text-on-primary/80 mt-1">
-                Inicie su jornada laboral validando los datos de la terminal.
-              </p>
-            </div>
-            <div className="w-14 h-14 bg-on-primary/10 rounded-2xl flex items-center justify-center text-on-primary shadow-inner">
-              <Wallet className="w-7 h-7" />
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleOpenSession} className="p-6 space-y-4">
-            {/* Terminal + Date row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-sm font-bold text-on-surface mb-0">
-                    Punto de Venta <span className="text-error">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowNewRegisterModal(true)}
-                    className={`text-xs font-bold px-2 py-0.5 rounded transition-all ${
-                      registers.length === 0
-                        ? 'bg-[#003366] text-white hover:bg-[#002244] animate-pulse hover:animate-none'
-                        : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
-                    }`}
-                  >
-                    + Nueva Terminal
-                  </button>
-                </div>
-                <select
-                  value={selectedRegisterId}
-                  onChange={(e) => setSelectedRegisterId(e.target.value)}
-                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-on-surface"
-                  required
-                >
-                  {registers.length === 0 && (
-                    <option value="">Sin terminales configuradas</option>
-                  )}
-                  {registers.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-1.5">
-                  Fecha de Apertura
-                </label>
-                <input
-                  type="date"
-                  defaultValue={dateStr}
-                  readOnly
-                  className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Time row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-on-surface mb-1.5">
-                  Hora de Inicio
-                </label>
-                <input
-                  type="time"
-                  defaultValue={timeStr}
-                  readOnly
-                  className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
-                />
-              </div>
-              <div className="flex items-end pb-0.5">
-                <div className="flex items-center gap-2 text-green-700 text-xs font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-xl w-full justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Conexión segura activa
-                </div>
-              </div>
-            </div>
-
-            {/* Opening Balance */}
-            <div className="space-y-1.5 pt-2">
-              <label className="block text-sm font-bold text-on-surface">
-                Monto de Apertura (Fondo de Caja) <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant text-lg">
-                  RD$
-                </div>
-                <input
-                  type="number"
-                  value={initialBalance}
-                  onChange={(e) => setInitialBalance(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
-                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl pl-14 pr-4 py-4 text-on-surface font-mono text-2xl font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  required
-                />
-              </div>
-              <p className="text-xs text-on-surface-variant/80 pl-1">
-                Sugerencia: Monto base operativo (RD$ 5,000.00)
-              </p>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-4 pt-6 border-t border-outline-variant/20">
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 py-3 px-5 rounded-xl font-bold text-on-surface-variant border border-outline-variant hover:bg-surface-variant transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || registers.length === 0}
-                className={clsx(
-                  'flex-[2] py-3 bg-primary text-on-primary font-bold text-base rounded-xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all',
-                  (submitting || registers.length === 0) && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                {submitting ? (
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                    <RefreshCw className="w-5 h-5" />
-                  </motion.div>
-                ) : (
-                  <Lock className="w-5 h-5" />
-                )}
-                {submitting ? 'Procesando...' : 'Abrir Caja'}
-              </button>
-            </div>
-          </form>
-
-          {/* Status bar */}
-          <div className="bg-surface-variant/10 border-t border-outline-variant/10 px-6 py-3 flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">
-              Esperando autorización de terminal...
-            </p>
-          </div>
-        </motion.div>
-
-        {/* ── New POS Terminal Modal ────────────────────────────────────── */}
-        <AnimatePresence>
-          {showNewRegisterModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden"
-              >
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                  <div>
-                    <h3 className="text-base font-bold text-gray-800">Nueva Terminal de Caja</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Configure una nueva terminal para su empresa.</p>
-                  </div>
-                  <button onClick={() => setShowNewRegisterModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <form onSubmit={handleCreateRegister} className="p-6 space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-gray-700 block">Nombre de la Terminal <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={newRegisterForm.name}
-                      onChange={e => setNewRegisterForm({ ...newRegisterForm, name: e.target.value })}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors"
-                      placeholder="Ej. Caja Principal, Terminal 1"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-semibold text-gray-700 block">Código Único <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      value={newRegisterForm.code}
-                      onChange={e => setNewRegisterForm({ ...newRegisterForm, code: e.target.value.toUpperCase() })}
-                      className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors font-mono uppercase"
-                      placeholder="Ej. CAJA-01"
-                    />
-                    <p className="text-[11px] text-gray-400">Identificador único interno para esta terminal.</p>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={() => setShowNewRegisterModal(false)}
-                      className="px-5 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={creatingRegister}
-                      className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
-                    >
-                      {creatingRegister ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Terminal
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
     );
   }
 
@@ -632,6 +398,10 @@ export default function CashPage() {
     { id: 'arqueo', label: 'Arqueo y Cierre', icon: <Scale className="w-4 h-4" /> },
     { id: 'historico', label: 'Histórico de Cierres', icon: <History className="w-4 h-4" /> },
   ];
+
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const timeStr = now.toTimeString().slice(0, 5);
 
   return (
     <div className="space-y-0">
@@ -643,7 +413,7 @@ export default function CashPage() {
             onClick={() => handleTabChange(tab.id)}
             className={clsx(
               'flex items-center gap-2 px-5 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all rounded-t-lg',
-              view === tab.id
+              (view === tab.id || (tab.id === 'gestion' && view === 'apertura'))
                 ? 'border-[#775a19] text-[#775a19] bg-amber-50'
                 : 'border-transparent text-on-surface-variant/70 hover:text-slate-700 hover:bg-gray-50'
             )}
@@ -656,6 +426,234 @@ export default function CashPage() {
 
       {/* ── GESTIÓN VIEW ──────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
+        {view === 'apertura' && (
+          <motion.div
+            key="apertura"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="p-6 flex items-center justify-center min-h-[calc(100vh-240px)] bg-gray-50"
+          >
+            {/* Apertura Card */}
+            <div className="relative w-full max-w-2xl bg-surface-bright border border-outline-variant/30 rounded-3xl shadow-2xl overflow-hidden z-10">
+              {/* Modal Header */}
+              <div className="p-6 border-b border-outline-variant/20 bg-primary flex justify-between items-center text-on-primary">
+                <div>
+                  <h2 className="font-headline-sm text-xl font-bold text-on-primary">
+                    Apertura de Turno de Caja
+                  </h2>
+                  <p className="text-sm text-on-primary/80 mt-1">
+                    Inicie su jornada laboral validando los datos de la terminal.
+                  </p>
+                </div>
+                <div className="w-14 h-14 bg-on-primary/10 rounded-2xl flex items-center justify-center text-on-primary shadow-inner">
+                  <Wallet className="w-7 h-7" />
+                </div>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleOpenSession} className="p-6 space-y-4">
+                {/* Terminal + Date row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-sm font-bold text-on-surface mb-0">
+                        Punto de Venta <span className="text-error">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewRegisterModal(true)}
+                        className={`text-xs font-bold px-2 py-0.5 rounded transition-all ${
+                          registers.length === 0
+                            ? 'bg-[#003366] text-white hover:bg-[#002244] animate-pulse hover:animate-none'
+                            : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+                        }`}
+                      >
+                        + Nueva Terminal
+                      </button>
+                    </div>
+                    <select
+                      value={selectedRegisterId}
+                      onChange={(e) => setSelectedRegisterId(e.target.value)}
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-on-surface"
+                      required
+                    >
+                      {registers.length === 0 && (
+                        <option value="">Sin terminales configuradas</option>
+                      )}
+                      {registers.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-1.5">
+                      Fecha de Apertura
+                    </label>
+                    <input
+                      type="date"
+                      defaultValue={dateStr}
+                      readOnly
+                      className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Time row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface mb-1.5">
+                      Hora de Inicio
+                    </label>
+                    <input
+                      type="time"
+                      defaultValue={timeStr}
+                      readOnly
+                      className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
+                    />
+                  </div>
+                  <div className="flex items-end pb-0.5">
+                    <div className="flex items-center gap-2 text-green-700 text-xs font-semibold bg-green-50 border border-green-200 px-4 py-2 rounded-xl w-full justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Conexión segura activa
+                    </div>
+                  </div>
+                </div>
+
+                {/* Opening Balance */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="block text-sm font-bold text-on-surface">
+                    Monto de Apertura (Fondo de Caja) <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant text-lg">
+                      RD$
+                    </div>
+                    <input
+                      type="number"
+                      value={initialBalance}
+                      onChange={(e) => setInitialBalance(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl pl-14 pr-4 py-4 text-on-surface font-mono text-2xl font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-on-surface-variant/80 pl-1">
+                    Sugerencia: Monto base operativo (RD$ 5,000.00)
+                  </p>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex items-center gap-4 pt-6 border-t border-outline-variant/20">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/dashboard')}
+                    className="flex-1 py-3 px-5 rounded-xl font-bold text-on-surface-variant border border-outline-variant hover:bg-surface-variant transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || registers.length === 0}
+                    className={clsx(
+                      'flex-[2] py-3 bg-primary text-on-primary font-bold text-base rounded-xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all',
+                      (submitting || registers.length === 0) && 'opacity-50 cursor-not-allowed'
+                    )}
+                  >
+                    {submitting ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                        <RefreshCw className="w-5 h-5" />
+                      </motion.div>
+                    ) : (
+                      <Lock className="w-5 h-5" />
+                    )}
+                    {submitting ? 'Procesando...' : 'Abrir Caja'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Status bar */}
+              <div className="bg-surface-variant/10 border-t border-outline-variant/10 px-6 py-3 flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">
+                  Esperando autorización de terminal...
+                </p>
+              </div>
+            </div>
+
+            {/* ── New POS Terminal Modal ────────────────────────────────────── */}
+            <AnimatePresence>
+              {showNewRegisterModal && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden bg-white text-gray-800"
+                  >
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-800">Nueva Terminal de Caja</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Configure una nueva terminal para su empresa.</p>
+                      </div>
+                      <button onClick={() => setShowNewRegisterModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <form onSubmit={handleCreateRegister} className="p-6 space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-semibold text-gray-700 block">Nombre de la Terminal <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={newRegisterForm.name}
+                          onChange={e => setNewRegisterForm({ ...newRegisterForm, name: e.target.value })}
+                          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors"
+                          placeholder="Ej. Caja Principal, Terminal 1"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-semibold text-gray-700 block">Código Único <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          required
+                          value={newRegisterForm.code}
+                          onChange={e => setNewRegisterForm({ ...newRegisterForm, code: e.target.value.toUpperCase() })}
+                          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors font-mono uppercase"
+                          placeholder="Ej. CAJA-01"
+                        />
+                        <p className="text-[11px] text-gray-400">Identificador único interno para esta terminal.</p>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                        <button
+                          type="button"
+                          onClick={() => setShowNewRegisterModal(false)}
+                          className="px-5 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors bg-gray-100 rounded-lg"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={creatingRegister}
+                          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+                        >
+                          {creatingRegister ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Terminal
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
         {view === 'gestion' && (
           <motion.div
             key="gestion"

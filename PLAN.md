@@ -492,3 +492,19 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Alertas de Errores Reales**: Las notificaciones de error se siguen arrojando de manera habitual ante fallas de envío SMTP reales en clientes con correos válidos.
 
 * * Verified & Polished * *
+
+### 67. Soporte de Instalación PWA (Progressive Web App)
+- **Manifiesto e Iconos PWA**: Implementación de `public/manifest.json` configurando el nombre de la app, colores de tema corporativos (`#003366`) y vinculación del logotipo oficial como icono instalable.
+- **Service Worker de Paso Libre (Pass-through)**: Creación de `public/sw.js` con un evento `fetch` simplificado tipo pass-through. Esto cumple con los criterios de los navegadores para la instalación de aplicaciones web progresivas sin interferir ni bloquear las redirecciones de autenticación ni el tráfico dinámico del servidor, previniendo errores de conexión (`ERR_FAILED`).
+- **Prompt de Instalación Premium Animado**: Diseño e integración del componente cliente `PwaInstallPrompt.tsx` con Framer Motion y Lucide Icons, que de forma elegante e interactiva guía al usuario para instalar la app si el dispositivo lo permite.
+- **Registro y Configuración CSP**: Vinculación de los metadatos PWA globales en el layout base `src/app/layout.tsx` y supresión de bloqueos de directiva CSP en `next.config.ts`.
+
+* * Verified & Polished * *
+
+### 68. Mejoras de Caja e Impresión de Reportes de Inventario y Contactos
+- **Gestión de Caja sin Turno Abierto**: Se reestructuró la página de control de caja para prevenir el bloqueo total por pantalla modal cuando el turno está cerrado. Las pestañas superiores de navegación se mantienen visibles permitiendo el acceso directo e inmediato al historial de cierres anteriores sin necesidad de abrir un turno. Al intentar acceder al arqueo sin sesión iniciada se notifica apropiadamente al usuario mediante alertas flotantes.
+- **Impresión Completa de Catálogos (Productos, Clientes y Suplidores)**: Corrección en las funciones de impresión de listados de productos, clientes y suplidores. Se reemplazó el uso directo del estado local de visualización paginada (que limitaba la impresión a la página activa) por una consulta API dedicada con límites de búsqueda extendidos (`limit=100000`/`per_page=100000`), permitiendo imprimir la totalidad de los registros resultantes del filtro activo.
+- **Diseño Simplificado en Detalle de Facturas**: Se eliminó el botón duplicado de "Descargar e-CF" en la pantalla de detalle de factura `/dashboard/invoices/[id]`. A su vez, se actualizó la estética del botón principal "Imprimir / Ver PDF" asignándole la paleta dorada premium (`#c5a059`/`#b08e4f`) con ícono blanco para un mejor contraste visual.
+
+* * Verified & Polished * *
+

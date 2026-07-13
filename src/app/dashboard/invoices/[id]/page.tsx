@@ -268,18 +268,10 @@ export default function InvoiceDetailPage() {
             <button
               onClick={handlePrint}
               disabled={printing}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#003366] hover:bg-[#004883] text-white px-4 py-2.5 rounded-lg border border-[#004883] transition-all text-sm font-medium disabled:opacity-50"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#b08e4f] text-white px-4 py-2.5 rounded-lg border border-[#c5a059]/20 transition-all text-sm font-medium disabled:opacity-50 shadow-lg"
             >
-              {printing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 text-[#c5a059]" />}
+              {printing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 text-white" />}
               Imprimir / Ver PDF
-            </button>
-
-            <button
-              onClick={handleDownloadPdf}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#b08e4f] text-white px-4 py-2.5 rounded-lg transition-all text-sm font-medium shadow-lg"
-            >
-              <Download className="h-4 w-4" />
-              Descargar e-CF
             </button>
 
             {(invoice.msellerXmlPath || invoice.signedXmlPath || invoice.xmlPath) && (

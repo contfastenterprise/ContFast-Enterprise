@@ -49,12 +49,21 @@ export default function SuppliersPage() {
   const handlePrintList = async () => {
     const toastId = toast.loading('Preparando plantilla de impresión...');
     try {
-      const res = await fetch('/api/v1/company/settings');
-      const settingsData = await res.json();
+      const suppliersUrl = `/api/v1/suppliers?limit=100000${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+      const [settingsRes, suppliersRes] = await Promise.all([
+        fetch('/api/v1/company/settings'),
+        fetch(suppliersUrl)
+      ]);
+      const settingsData = await settingsRes.json();
+      const suppliersData = await suppliersRes.json();
       const company = settingsData.data || {};
+      const allSuppliers = suppliersData.data || [];
       
       const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
+      if (!printWindow) {
+        toast.error('No se pudo abrir la ventana de impresión. Verifique el bloqueador de ventanas emergentes.', { id: toastId });
+        return;
+      }
 
       const logoHtml = company.logoUrl 
         ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
@@ -91,7 +100,7 @@ export default function SuppliersPage() {
               <div class="doc-info">
                 <div class="subtitle">DIRECTORIO DE SUPLIDORES</div>
                 <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
-                <div><strong>Total Suplidores:</strong> ${suppliers.length}</div>
+                <div><strong>Total Suplidores:</strong> ${allSuppliers.length}</div>
               </div>
             </div>
 
@@ -107,7 +116,7 @@ export default function SuppliersPage() {
                 </tr>
               </thead>
               <tbody>
-                ${suppliers.map(s => `
+                ${allSuppliers.map((s: any) => `
                   <tr>
                     <td><strong>${s.name}</strong></td>
                     <td class="font-mono">${s.rnc || '-'}</td>
