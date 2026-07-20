@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
 
       // 4. Accounts Payable (if Credit -> Payment Method '04')
       if (paymentMethod === '04' && supplierId) {
-        const apId = uuidv4();
+        const apId = newExpenseId;
         const apBalanceVal = (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0));
         
         await tx.insert(accountsPayable).values({
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
           companyId: session.companyId,
           modo: session.modo,
           supplierId: supplierId,
-          amount: amount.toString(), // Total with taxes ideally, but using amount + taxes
+          amount: apBalanceVal.toString(), // Store the total original debt amount (with taxes)
           balance: apBalanceVal.toString(),
           dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
           status: 'pending',

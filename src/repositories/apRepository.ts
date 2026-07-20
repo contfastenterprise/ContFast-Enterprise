@@ -25,7 +25,8 @@ export class ApRepository {
   static async findAll(companyId: string) {
     const results = await db.select({
       ap: accountsPayable,
-      supplier: suppliers
+      supplier: suppliers,
+      paymentsSum: sql<string>`COALESCE((SELECT SUM(amount) FROM ap_payments WHERE ap_payments.ap_id = accounts_payable.id AND ap_payments.status = 'applied'), '0.00')`
     })
     .from(accountsPayable)
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
@@ -35,11 +36,18 @@ export class ApRepository {
     ))
     .orderBy(desc(accountsPayable.dueDate));
 
-    return results.map(r => ({
-      ...r.ap,
-      supplierName: r.supplier.name,
-      supplierRnc: r.supplier.rnc
-    }));
+    return results.map(r => {
+      const balanceVal = parseFloat(r.ap.balance);
+      const paymentsVal = parseFloat(r.paymentsSum);
+      const computedOriginalAmount = balanceVal + paymentsVal;
+
+      return {
+        ...r.ap,
+        amount: computedOriginalAmount.toString(),
+        supplierName: r.supplier.name,
+        supplierRnc: r.supplier.rnc
+      };
+    });
   }
 
   /**
@@ -48,7 +56,8 @@ export class ApRepository {
   static async findById(id: string, companyId: string) {
     const result = await db.select({
       ap: accountsPayable,
-      supplier: suppliers
+      supplier: suppliers,
+      paymentsSum: sql<string>`COALESCE((SELECT SUM(amount) FROM ap_payments WHERE ap_payments.ap_id = accounts_payable.id AND ap_payments.status = 'applied'), '0.00')`
     })
     .from(accountsPayable)
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
@@ -60,8 +69,14 @@ export class ApRepository {
     .limit(1);
 
     if (result.length === 0) return null;
+    
+    const balanceVal = parseFloat(result[0].ap.balance);
+    const paymentsVal = parseFloat(result[0].paymentsSum);
+    const computedOriginalAmount = balanceVal + paymentsVal;
+
     return {
       ...result[0].ap,
+      amount: computedOriginalAmount.toString(),
       supplierName: result[0].supplier.name,
       supplierRnc: result[0].supplier.rnc
     };

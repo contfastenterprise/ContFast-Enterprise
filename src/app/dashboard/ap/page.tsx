@@ -506,7 +506,13 @@ export default function AccountsPayablePage() {
                                   <td className="px-6 py-4">
                                     <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/20 text-rose-400 border border-rose-500/10' : 'text-on-surface-variant')}>
                                       {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-400" />}
-                                      {new Date(bill.dueDate).toLocaleDateString('es-DO')}
+                                      {(() => {
+                                        if (!bill.dueDate) return '';
+                                        const parts = bill.dueDate.split('-');
+                                        if (parts.length !== 3) return bill.dueDate;
+                                        const [year, month, day] = parts;
+                                        return `${day}/${month}/${year}`;
+                                      })()}
                                     </span>
                                   </td>
                                   <td className="px-6 py-4 text-right text-on-surface-variant font-mono">{fmt(bill.amount)}</td>

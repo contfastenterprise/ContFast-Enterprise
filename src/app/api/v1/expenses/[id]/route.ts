@@ -568,7 +568,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
             .update(accountsPayable)
             .set({
               supplierId,
-              amount: amount.toString(),
+              amount: apBalanceVal.toString(), // Store the total original debt amount (with taxes)
               balance: apBalanceVal.toString(),
               dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
               status: 'pending',
@@ -582,7 +582,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
             companyId: session.companyId,
             modo: session.modo,
             supplierId: supplierId,
-            amount: amount.toString(),
+            amount: apBalanceVal.toString(), // Store the total original debt amount (with taxes)
             balance: apBalanceVal.toString(),
             dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
             status: 'pending',
