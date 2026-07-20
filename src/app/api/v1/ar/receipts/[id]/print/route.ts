@@ -103,8 +103,20 @@ export async function POST(
     // Save temporary document
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');
 
+    const customerName = receiptRecord.customer?.name || 'Cliente';
+    const reason = 'Recibo de Ingreso';
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanCustomerName = customerName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const cleanNum = receiptId.slice(0, 8).toUpperCase();
+    const finalFilename = `${cleanCustomerName} - ${reason} - ${cleanNum} - ${printDate}.pdf`;
+
     // Generate signed URL
-    const signedUrl = DocumentService.generateSignedUrl(documentId, 10); // 10 minute expiration
+    const signedUrl = DocumentService.generateSignedUrl(documentId, 10, finalFilename); // 10 minute expiration
 
     return NextResponse.json({
       success: true,
