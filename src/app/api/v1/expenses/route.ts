@@ -197,7 +197,18 @@ export async function POST(req: NextRequest) {
           supplierId: supplierId,
           amount: apBalanceVal.toString(), // Store the total original debt amount (with taxes)
           balance: apBalanceVal.toString(),
-          dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+          dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : (() => {
+            const parts = issueDate.split('-');
+            if (parts.length === 3) {
+              const [y, m, d] = parts.map(Number);
+              const date = new Date(Date.UTC(y, m - 1, d));
+              date.setUTCDate(date.getUTCDate() + 30);
+              return date.toISOString().split('T')[0];
+            }
+            const date = new Date();
+            date.setDate(date.getDate() + 30);
+            return date.toISOString().split('T')[0];
+          })(),
           status: 'pending',
         });
 
