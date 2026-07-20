@@ -597,7 +597,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           const checkAmount = parseFloat(guaranteeCheck.amount) || apBalanceVal;
 
           // Check if a guarantee check already exists for this AP record
-          const [existingCheck] = await tx
+          let [existingCheck] = await tx
             .select()
             .from(checks)
             .where(and(
@@ -607,6 +607,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               eq(checks.modo, session.modo)
             ))
             .limit(1);
+
+          // If not found by AP ID, check by check number (backward compatibility & unique index constraint safety)
+          if (!existingCheck && guaranteeCheck.checkNumber) {
+            const [foundByNum] = await tx
+              .select()
+              .from(checks)
+              .where(and(
+                eq(checks.checkNumber, guaranteeCheck.checkNumber),
+                eq(checks.isGuarantee, true),
+                eq(checks.companyId, session.companyId),
+                eq(checks.modo, session.modo)
+              ))
+              .limit(1);
+            existingCheck = foundByNum;
+          }
 
           if (existingCheck) {
             // Update existing guarantee check
@@ -619,6 +634,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
                 amount: checkAmount.toString(),
                 issueDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
                 dueDate: new Date(guaranteeCheck.dueDate).toISOString().split('T')[0],
+                apId: activeApId,
                 updatedAt: new Date()
               })
               .where(eq(checks.id, existingCheck.id));
