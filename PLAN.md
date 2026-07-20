@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras completar la implementación de la vista de registro y edición de compras con sincronización de inventarios y asientos contables, soporte para modificar cantidades y costos, restricciones de roles de usuario, depuración de duplicados en Cuentas por Pagar (CXP), inserción de pagos diferidos para visualización correcta de cheques en garantía, y el fallback automático de la fecha de vencimiento al vencimiento de cobro del cheque en garantía.
+El proyecto se encuentra **Verified & Polished** tras completar la implementación de la vista de registro y edición de compras con sincronización de inventarios y asientos contables, soporte para modificar cantidades y costos, restricciones de roles de usuario, depuración de duplicados en Cuentas por Pagar (CXP), inserción de pagos diferidos para visualización correcta de cheques en garantía, el fallback automático de la fecha de vencimiento al vencimiento de cobro del cheque en garantía, y el formateo dinámico y descriptivo de nombres de archivos PDF al imprimir o descargar (especificando Cliente/Proveedor, Tipo de Documento/Motivo y Fecha de Impresión).
 
 ## Módulos Implementados
 
