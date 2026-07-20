@@ -508,3 +508,10 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 * * Verified & Polished * *
 
+### 69. Carga y Sincronización de Cheques en Garantía al Editar Compras
+- **Carga de Datos de Cheques (Backend/GET)**: Se modificó el controlador GET de `src/app/api/v1/expenses/[id]/route.ts` para consultar y retornar los detalles del cheque en garantía (`guaranteeCheck`) correspondiente. Utiliza un diseño de resolución directa por ID con fallback por coincidencia de atributos para total retrocompatibilidad.
+- **Carga de Formulario (Frontend)**: Se actualizó `startEditExpense` en `src/app/dashboard/purchases/page.tsx` para rellenar de forma reactiva la sección del formulario de cheques en garantía cuando se carga la compra a editar.
+- **Sincronización en Transacción (Backend/PUT)**: Se integró en la operación transaccional PUT la actualización o creación/remoción dinámica de los registros vinculados en `accounts_payable`, `checks` y `ap_payments`, garantizando consistencia referencial y contable.
+
+* * Verified & Polished * *
+

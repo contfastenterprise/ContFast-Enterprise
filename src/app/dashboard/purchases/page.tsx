@@ -383,12 +383,21 @@ export default function PurchasesPage() {
     setGlobalIsc(parseFloat(expense.isc) || 0);
     setGlobalOtherTaxes(parseFloat(expense.otherTaxes) || 0);
 
-    setHasGuaranteeCheck(false);
-    setGcBankAccountId('');
-    setGcCheckNumber('');
-    setGcAmount(0);
-    setGcIssueDate(getLocalDateString());
-    setGcDueDate('');
+    if (expense.guaranteeCheck) {
+      setHasGuaranteeCheck(true);
+      setGcBankAccountId(expense.guaranteeCheck.bankAccountId || '');
+      setGcCheckNumber(expense.guaranteeCheck.checkNumber || '');
+      setGcAmount(expense.guaranteeCheck.amount || 0);
+      setGcIssueDate(expense.guaranteeCheck.issueDate || getLocalDateString());
+      setGcDueDate(expense.guaranteeCheck.dueDate || '');
+    } else {
+      setHasGuaranteeCheck(false);
+      setGcBankAccountId('');
+      setGcCheckNumber('');
+      setGcAmount(0);
+      setGcIssueDate(getLocalDateString());
+      setGcDueDate('');
+    }
 
     setActiveTab('nuevo');
     setSelectedExpense(null);

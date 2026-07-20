@@ -35,6 +35,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const checkSetupAndFetchUser = async () => {
       try {
         const setupRes = await fetch('/api/v1/setup/status');
+        if (!setupRes.ok) {
+          throw new Error(`Setup status request failed with status ${setupRes.status}`);
+        }
+        const setupContentType = setupRes.headers.get('content-type') || '';
+        if (!setupContentType.includes('application/json')) {
+          throw new TypeError('Setup status response is not JSON');
+        }
         const setupData = await setupRes.json();
         if (setupData.success && !setupData.data.initialized) {
           router.push('/setup');
@@ -42,6 +49,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         const res = await fetch('/api/v1/auth/me');
+        if (!res.ok) {
+          throw new Error(`Auth me request failed with status ${res.status}`);
+        }
+        const authContentType = res.headers.get('content-type') || '';
+        if (!authContentType.includes('application/json')) {
+          throw new TypeError('Auth me response is not JSON');
+        }
         const data = await res.json();
         if (data.success && data.data?.user) {
           setUser(data.data.user);
@@ -50,6 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       } catch (err) {
         console.error('Error in init sequence', err);
+        router.push('/auth/login');
       }
     };
     checkSetupAndFetchUser();
@@ -59,6 +74,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/v1/company/settings');
+        if (!res.ok) {
+          throw new Error(`Company settings request failed with status ${res.status}`);
+        }
+        const settingsContentType = res.headers.get('content-type') || '';
+        if (!settingsContentType.includes('application/json')) {
+          throw new TypeError('Company settings response is not JSON');
+        }
         const data = await res.json();
         if (data.success) {
           if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);

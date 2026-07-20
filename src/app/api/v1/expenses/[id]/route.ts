@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts } from '@/db';
+import { db, expenses, expenseLines, suppliers, warehouses, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
@@ -114,12 +114,68 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       }
     }
 
+    // Load guarantee check if it exists
+    let guaranteeCheck = null;
+    let [checkRecord] = await db
+      .select()
+      .from(checks)
+      .where(and(
+        eq(checks.apId, id),
+        eq(checks.isGuarantee, true),
+        eq(checks.companyId, session.companyId),
+        eq(checks.modo, session.modo)
+      ))
+      .limit(1);
+
+    // Fallback: search via matching accountsPayable record for backward compatibility
+    if (!checkRecord && expenseResult[0].supplierId) {
+      const apRecords = await db
+        .select({ id: accountsPayable.id })
+        .from(accountsPayable)
+        .where(and(
+          eq(accountsPayable.supplierId, expenseResult[0].supplierId),
+          eq(accountsPayable.amount, expenseResult[0].amount),
+          eq(accountsPayable.companyId, session.companyId),
+          eq(accountsPayable.modo, session.modo),
+          isNull(accountsPayable.deletedAt)
+        ));
+
+      for (const ap of apRecords) {
+        const [foundCheck] = await db
+          .select()
+          .from(checks)
+          .where(and(
+            eq(checks.apId, ap.id),
+            eq(checks.isGuarantee, true),
+            eq(checks.companyId, session.companyId),
+            eq(checks.modo, session.modo)
+          ))
+          .limit(1);
+        if (foundCheck) {
+          checkRecord = foundCheck;
+          break;
+        }
+      }
+    }
+
+    if (checkRecord) {
+      guaranteeCheck = {
+        bankAccountId: checkRecord.bankAccountId,
+        checkNumber: checkRecord.checkNumber,
+        payee: checkRecord.payee,
+        amount: parseFloat(checkRecord.amount),
+        issueDate: checkRecord.issueDate,
+        dueDate: checkRecord.dueDate,
+      };
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         ...expenseResult[0],
         lines,
-        debitAccountId
+        debitAccountId,
+        guaranteeCheck
       }
     });
   } catch (err: any) {
@@ -290,7 +346,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       description,
       warehouseId,
       lines, // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
-      debitAccountId
+      debitAccountId,
+      guaranteeCheck
     } = body;
 
     // Validation
@@ -469,6 +526,214 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               description: `Edición de Compra a suplidor / Gasto`
             });
           }
+        }
+      }
+
+      // 8.5. Accounts Payable (CXP) & Guarantee Check Synchronization
+      const isCredit = paymentMethod === '04';
+      const apId = id; // Use the expense ID as the accounts_payable ID
+
+      if (isCredit && supplierId) {
+        const apBalanceVal = (parseFloat(amount) + parseFloat(itbis || 0) + parseFloat(otherTaxes || 0) - parseFloat(itbisRetained || 0) - parseFloat(isrRetained || 0));
+
+        // Try to find if an accounts_payable entry already exists (by expense ID or matching details)
+        let [existingAp] = await tx
+          .select()
+          .from(accountsPayable)
+          .where(and(
+            eq(accountsPayable.id, apId),
+            eq(accountsPayable.companyId, session.companyId),
+            eq(accountsPayable.modo, session.modo)
+          ));
+
+        // If not found by direct ID (backward compatibility), try to locate it by matching details
+        if (!existingAp) {
+          const [foundByMatch] = await tx
+            .select()
+            .from(accountsPayable)
+            .where(and(
+              eq(accountsPayable.supplierId, supplierId),
+              eq(accountsPayable.amount, amount.toString()),
+              eq(accountsPayable.companyId, session.companyId),
+              eq(accountsPayable.modo, session.modo),
+              isNull(accountsPayable.deletedAt)
+            ))
+            .limit(1);
+          existingAp = foundByMatch;
+        }
+
+        if (existingAp) {
+          // Update existing Accounts Payable record
+          await tx
+            .update(accountsPayable)
+            .set({
+              supplierId,
+              amount: amount.toString(),
+              balance: apBalanceVal.toString(),
+              dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+              status: 'pending',
+              updatedAt: new Date()
+            })
+            .where(eq(accountsPayable.id, existingAp.id));
+        } else {
+          // Create new Accounts Payable record
+          await tx.insert(accountsPayable).values({
+            id: apId,
+            companyId: session.companyId,
+            modo: session.modo,
+            supplierId: supplierId,
+            amount: amount.toString(),
+            balance: apBalanceVal.toString(),
+            dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+            status: 'pending',
+          });
+        }
+
+        // Get the active AP ID
+        const activeApId = existingAp ? existingAp.id : apId;
+
+        // Process guarantee check
+        if (guaranteeCheck) {
+          const checkAmount = parseFloat(guaranteeCheck.amount) || apBalanceVal;
+
+          // Check if a guarantee check already exists for this AP record
+          const [existingCheck] = await tx
+            .select()
+            .from(checks)
+            .where(and(
+              eq(checks.apId, activeApId),
+              eq(checks.isGuarantee, true),
+              eq(checks.companyId, session.companyId),
+              eq(checks.modo, session.modo)
+            ))
+            .limit(1);
+
+          if (existingCheck) {
+            // Update existing guarantee check
+            await tx
+              .update(checks)
+              .set({
+                bankAccountId: guaranteeCheck.bankAccountId,
+                checkNumber: guaranteeCheck.checkNumber,
+                payee: guaranteeCheck.payee || 'Proveedor',
+                amount: checkAmount.toString(),
+                issueDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+                dueDate: new Date(guaranteeCheck.dueDate).toISOString().split('T')[0],
+                updatedAt: new Date()
+              })
+              .where(eq(checks.id, existingCheck.id));
+
+            // Update corresponding apPayment if exists
+            await tx
+              .update(apPayments)
+              .set({
+                amount: checkAmount.toString(),
+                paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+              })
+              .where(eq(apPayments.checkId, existingCheck.id));
+          } else {
+            // Create new guarantee check
+            const checkId = uuidv4();
+            await tx.insert(checks).values({
+              id: checkId,
+              companyId: session.companyId,
+              modo: session.modo,
+              bankAccountId: guaranteeCheck.bankAccountId,
+              checkNumber: guaranteeCheck.checkNumber,
+              payee: guaranteeCheck.payee || 'Proveedor',
+              amount: checkAmount.toString(),
+              issueDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+              dueDate: new Date(guaranteeCheck.dueDate).toISOString().split('T')[0],
+              isGuarantee: true,
+              apId: activeApId,
+              status: 'pending',
+            });
+
+            const accAp = await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability');
+            const accBank = await getOrCreateAccount(tx, session.companyId, '1.1.02', 'Efectivo en Bancos', 'asset');
+
+            await tx.insert(apPayments).values({
+              id: uuidv4(),
+              companyId: session.companyId,
+              modo: session.modo,
+              apId: activeApId,
+              amount: checkAmount.toString(),
+              paymentMethod: 'check',
+              checkId: checkId,
+              debitAccountId: accAp.id,
+              creditAccountId: accBank.id,
+              paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
+              status: 'pending_guarantee',
+            });
+          }
+        } else {
+          // If no guarantee check is provided, delete any existing guarantee checks and payments for this AP
+          const existingChecks = await tx
+            .select({ id: checks.id })
+            .from(checks)
+            .where(and(
+              eq(checks.apId, activeApId),
+              eq(checks.isGuarantee, true),
+              eq(checks.companyId, session.companyId),
+              eq(checks.modo, session.modo)
+            ));
+
+          for (const chk of existingChecks) {
+            await tx
+              .delete(apPayments)
+              .where(eq(apPayments.checkId, chk.id));
+            await tx
+              .delete(checks)
+              .where(eq(checks.id, chk.id));
+          }
+        }
+      } else {
+        // If payment method is not credit or supplierId is missing, delete associated AP entries, checks, and payments
+        // to avoid orphaned records
+        let [existingAp] = await tx
+          .select({ id: accountsPayable.id })
+          .from(accountsPayable)
+          .where(and(
+            eq(accountsPayable.id, apId),
+            eq(accountsPayable.companyId, session.companyId),
+            eq(accountsPayable.modo, session.modo)
+          ));
+
+        if (!existingAp && supplierId) {
+          const [foundByMatch] = await tx
+            .select({ id: accountsPayable.id })
+            .from(accountsPayable)
+            .where(and(
+              eq(accountsPayable.supplierId, supplierId),
+              eq(accountsPayable.amount, amount.toString()),
+              eq(accountsPayable.companyId, session.companyId),
+              eq(accountsPayable.modo, session.modo),
+              isNull(accountsPayable.deletedAt)
+            ))
+            .limit(1);
+          existingAp = foundByMatch;
+        }
+
+        if (existingAp) {
+          // Delete checks and apPayments
+          const associatedChecks = await tx
+            .select({ id: checks.id })
+            .from(checks)
+            .where(eq(checks.apId, existingAp.id));
+
+          for (const chk of associatedChecks) {
+            await tx
+              .delete(apPayments)
+              .where(eq(apPayments.checkId, chk.id));
+            await tx
+              .delete(checks)
+              .where(eq(checks.id, chk.id));
+          }
+
+          // Delete accountsPayable record
+          await tx
+            .delete(accountsPayable)
+            .where(eq(accountsPayable.id, existingAp.id));
         }
       }
 
