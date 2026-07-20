@@ -35,6 +35,8 @@ export class ApRepository {
     const results = await db.select({
       ap: accountsPayable,
       supplier: suppliers,
+      ncf: sql<string>`(SELECT ncf FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
+      issueDate: sql<string>`(SELECT issue_date FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
       paymentsSum: sql<string>`COALESCE((SELECT SUM(amount) FROM ap_payments WHERE ap_payments.ap_id = accounts_payable.id AND ap_payments.status = 'applied'), '0.00')`
     })
     .from(accountsPayable)
@@ -53,6 +55,8 @@ export class ApRepository {
       return {
         ...r.ap,
         amount: computedOriginalAmount.toString(),
+        ncf: r.ncf,
+        issueDate: formatUtcDateString(r.issueDate),
         supplierName: r.supplier.name,
         supplierRnc: r.supplier.rnc
       };

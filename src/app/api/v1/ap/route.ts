@@ -90,6 +90,8 @@ export async function GET(req: NextRequest) {
         amount: parseFloat(item.amount),
         balance: balanceNum,
         dueDate: formatDbDateString(item.dueDate),
+        ncf: item.ncf,
+        issueDate: formatDbDateString(item.issueDate),
         status: item.status
       });
     }
