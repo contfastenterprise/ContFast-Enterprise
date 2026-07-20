@@ -98,9 +98,22 @@ export async function GET(
     const html = DocumentTemplates.renderPurchase(docData);
     const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, 'carta');
 
+    const supplierName = expense.supplierName || 'Proveedor';
+    const reason = expense.isMinorExpense ? 'Gasto' : 'Compra';
+
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanSupplierName = supplierName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const cleanNcf = (expense.ncf || expense.id.slice(0, 8)).replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const finalFilename = `${cleanSupplierName} - ${reason} - ${cleanNcf} - ${printDate}.pdf`;
+
     const headers = new Headers();
     headers.set('Content-Type', 'application/pdf');
-    headers.set('Content-Disposition', `inline; filename="compra_${expense.id.slice(0, 8)}.pdf"`);
+    headers.set('Content-Disposition', `inline; filename="${finalFilename}"`);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

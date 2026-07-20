@@ -45,10 +45,29 @@ export async function GET(
 
     const pdfBuffer = await PdfGenerator.generatePayrollReceipts(companyInfo, payroll, details);
 
+    let targetName = 'General';
+    if (employeeId && details.length > 0) {
+      const firstDetail = details[0] as any;
+      targetName = firstDetail.employeeName || `${firstDetail.firstName || ''} ${firstDetail.lastName || ''}`.trim() || 'Empleado';
+    } else {
+      targetName = payroll.periodStart && payroll.periodEnd 
+        ? `Nomina_${payroll.periodStart}_al_${payroll.periodEnd}` 
+        : `Nomina_${payrollId.slice(0, 8)}`;
+    }
+    const reason = 'Volante de Nomina';
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanTargetName = targetName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const finalFilename = `${cleanTargetName} - ${reason} - ${printDate}.pdf`;
+
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="volante_nomina_${payrollId}.pdf"`,
+        'Content-Disposition': `inline; filename="${finalFilename}"`,
       },
     });
   } catch (error: any) {

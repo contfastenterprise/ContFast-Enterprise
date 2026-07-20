@@ -176,9 +176,21 @@ export async function GET(
     const html = DocumentTemplates.renderDeliveryNote(docRecord);
     const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, 'carta');
 
+    const customerName = customerData.name || 'Cliente';
+    const reason = 'Conduce';
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanCustomerName = customerName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const cleanNum = note.deliveryNumber.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const finalFilename = `${cleanCustomerName} - ${reason} - ${cleanNum} - ${printDate}.pdf`;
+
     const headers = new Headers();
     headers.set('Content-Type', 'application/pdf');
-    headers.set('Content-Disposition', `inline; filename="conduce_${note.deliveryNumber}.pdf"`);
+    headers.set('Content-Disposition', `inline; filename="${finalFilename}"`);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,

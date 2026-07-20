@@ -207,9 +207,24 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, isRepri
   // 5. Convertir HTML a PDF en memoria
   const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, layout);
 
+  const customerName = invoiceRecord.customer?.name || 'Cliente';
+  let reason = 'Factura';
+  if (invoiceRecord.ecfType === '34') reason = 'Nota de Credito';
+  else if (invoiceRecord.ecfType === '33') reason = 'Nota de Debito';
+
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  const printDate = `${day}-${month}-${year}`;
+
+  const cleanCustomerName = customerName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+  const cleanNcf = (invoiceRecord.ncf || invoiceId).replace(/[/\\?%*:|"<>]/g, '_').trim();
+  const finalFilename = `${cleanCustomerName} - ${reason} - ${cleanNcf} - ${printDate}.pdf`;
+
   return {
     pdfBuffer,
-    filename: `invoice_${invoiceRecord.ncf || invoiceId}.pdf`
+    filename: finalFilename
   };
 }
 

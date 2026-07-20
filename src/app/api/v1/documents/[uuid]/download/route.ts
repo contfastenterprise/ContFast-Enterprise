@@ -34,14 +34,18 @@ export async function GET(
   try {
     const fileBuffer = await fs.readFile(filePath);
     
+    const customFilename = searchParams.get('filename');
+
     // Configurar Content-Type y Headers
     const headers = new Headers();
     if (isExcel) {
       headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      headers.set('Content-Disposition', `attachment; filename="document_${uuid}.xlsx"`);
+      const filenameStr = customFilename || `document_${uuid}.xlsx`;
+      headers.set('Content-Disposition', `attachment; filename="${filenameStr}"`);
     } else {
       headers.set('Content-Type', 'application/pdf');
-      headers.set('Content-Disposition', 'inline; filename="document.pdf"'); // 'inline' para ver en el navegador o 'attachment' para descargar
+      const filenameStr = customFilename || 'document.pdf';
+      headers.set('Content-Disposition', `inline; filename="${filenameStr}"`);
     }
 
     const response = new NextResponse(fileBuffer, {

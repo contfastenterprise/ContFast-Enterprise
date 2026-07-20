@@ -80,10 +80,21 @@ export async function GET(
       otros
     );
 
+    const employeeName = `${employeeData.firstName} ${employeeData.lastName}`.trim() || 'Empleado';
+    const reason = 'Liquidacion';
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanEmployeeName = employeeName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const finalFilename = `${cleanEmployeeName} - ${reason} - ${printDate}.pdf`;
+
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="liquidacion_${settlementId}.pdf"`,
+        'Content-Disposition': `inline; filename="${finalFilename}"`,
       },
     });
   } catch (error: any) {

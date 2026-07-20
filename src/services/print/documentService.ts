@@ -16,7 +16,7 @@ export class DocumentService {
    * @param documentId The UUID of the document
    * @param expiresInMinutes Expiration time in minutes
    */
-  static generateSignedUrl(documentId: string, expiresInMinutes: number = 10): string {
+  static generateSignedUrl(documentId: string, expiresInMinutes: number = 10, filename?: string): string {
     const expiresAt = Date.now() + expiresInMinutes * 60 * 1000;
     
     // Create HMAC SHA256 of the documentId and expiresAt
@@ -25,7 +25,11 @@ export class DocumentService {
     const signature = hmac.digest('hex');
 
     // The endpoint will be /api/v1/documents/[uuid]/download?expiresAt=...&signature=...
-    return `/api/v1/documents/${documentId}/download?expiresAt=${expiresAt}&signature=${signature}`;
+    let url = `/api/v1/documents/${documentId}/download?expiresAt=${expiresAt}&signature=${signature}`;
+    if (filename) {
+      url += `&filename=${encodeURIComponent(filename)}`;
+    }
+    return url;
   }
 
   /**

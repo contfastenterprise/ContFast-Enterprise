@@ -133,8 +133,19 @@ export async function POST(req: NextRequest) {
     // Save temporary document
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');
 
+    const supplierName = supplier.name || 'Proveedor';
+    const reason = 'Estado de Cuenta';
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    const printDate = `${day}-${month}-${year}`;
+
+    const cleanSupplierName = supplierName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    const finalFilename = `${cleanSupplierName} - ${reason} - ${printDate}.pdf`;
+
     // Generate signed URL
-    const signedUrl = DocumentService.generateSignedUrl(documentId, 10); // 10 minutes
+    const signedUrl = DocumentService.generateSignedUrl(documentId, 10, finalFilename); // 10 minutes
 
     return NextResponse.json({
       success: true,
