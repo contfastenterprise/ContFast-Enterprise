@@ -63,6 +63,15 @@ export async function GET(req: NextRequest) {
       bills: any[];
     }> = {};
 
+    const formatDbDateString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      const d = typeof date === 'string' ? new Date(date) : date;
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     for (const item of flatData) {
       const balanceNum = parseFloat(item.balance);
       if (balanceNum <= 0.01) continue;
@@ -80,7 +89,7 @@ export async function GET(req: NextRequest) {
         apId: item.id,
         amount: parseFloat(item.amount),
         balance: balanceNum,
-        dueDate: item.dueDate,
+        dueDate: formatDbDateString(item.dueDate),
         status: item.status
       });
     }

@@ -591,7 +591,13 @@ export default function AccountsPayablePage() {
                               <td className="px-6 py-4 text-primary font-bold">{payment.supplierName}</td>
                               <td className="px-6 py-4 text-right font-mono font-bold text-primary">{fmt(parseFloat(payment.amount))}</td>
                               <td className="px-6 py-4 text-center text-on-surface-variant font-mono">
-                                {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('es-DO') : '-'}
+                                 {(() => {
+                                  if (!payment.dueDate) return '-';
+                                  const parts = payment.dueDate.split('-');
+                                  if (parts.length !== 3) return payment.dueDate;
+                                  const [year, month, day] = parts;
+                                  return `${day}/${month}/${year}`;
+                                })()}
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <span className={clsx(
@@ -681,7 +687,15 @@ export default function AccountsPayablePage() {
                     ) : (
                       paymentsList.map(p => (
                         <tr key={p.id} className="hover:bg-slate-850/30 transition-colors">
-                          <td className="px-6 py-4 text-on-surface-variant text-xs font-mono">{new Date(p.paymentDate).toLocaleDateString('es-DO')}</td>
+                          <td className="px-6 py-4 text-on-surface-variant text-xs font-mono">
+                            {(() => {
+                              if (!p.paymentDate) return '';
+                              const parts = p.paymentDate.split('-');
+                              if (parts.length !== 3) return p.paymentDate;
+                              const [year, month, day] = parts;
+                              return `${day}/${month}/${year}`;
+                            })()}
+                          </td>
                           <td className="px-6 py-4 text-primary font-bold">{p.supplierName}</td>
                           <td className="px-6 py-4">
                             <span className="capitalize text-on-surface-variant text-xs">

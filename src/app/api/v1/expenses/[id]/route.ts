@@ -158,14 +158,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       }
     }
 
+    const formatDbDateString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      const d = typeof date === 'string' ? new Date(date) : date;
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     if (checkRecord) {
       guaranteeCheck = {
         bankAccountId: checkRecord.bankAccountId,
         checkNumber: checkRecord.checkNumber,
         payee: checkRecord.payee,
         amount: parseFloat(checkRecord.amount),
-        issueDate: checkRecord.issueDate,
-        dueDate: checkRecord.dueDate,
+        issueDate: formatDbDateString(checkRecord.issueDate),
+        dueDate: formatDbDateString(checkRecord.dueDate),
       };
     }
 
@@ -173,6 +182,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       success: true,
       data: {
         ...expenseResult[0],
+        issueDate: formatDbDateString(expenseResult[0].issueDate),
+        paymentDate: formatDbDateString(expenseResult[0].paymentDate),
         lines,
         debitAccountId,
         guaranteeCheck

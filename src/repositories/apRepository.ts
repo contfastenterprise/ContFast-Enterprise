@@ -18,6 +18,15 @@ function formatLocalDate(date: Date | string | undefined | null): string | undef
   return `${year}-${month}-${day}`;
 }
 
+function formatUtcDateString(date: Date | string | null | undefined): string | null {
+  if (!date) return null;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export class ApRepository {
   /**
    * Find all accounts payable for a company, with supplier details.
@@ -239,13 +248,14 @@ export class ApRepository {
     
     const items = results.map(r => ({
       ...r.payment,
+      paymentDate: formatUtcDateString(r.payment.paymentDate) || '',
       supplierName: r.supplier.name,
       debitAccountName: r.debit.name,
       debitAccountCode: r.debit.code,
       creditAccountName: r.credit.name,
       creditAccountCode: r.credit.code,
       checkNumber: r.check?.checkNumber,
-      dueDate: r.check?.dueDate,
+      dueDate: formatUtcDateString(r.check?.dueDate) || undefined,
       checkStatus: r.check?.status,
       checkBankAccountId: r.check?.bankAccountId,
     }));
