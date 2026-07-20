@@ -18,6 +18,8 @@ interface BillAP {
   amount: number;
   balance: number;
   dueDate: string;
+  ncf?: string | null;
+  issueDate?: string | null;
   status: string;
 }
 
@@ -491,6 +493,8 @@ export default function AccountsPayablePage() {
                           <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
                             <tr>
                               <th className="px-6 py-3.5">Referencia CXP</th>
+                              <th className="px-6 py-3.5">Factura / NCF</th>
+                              <th className="px-6 py-3.5">Emisión</th>
                               <th className="px-6 py-3.5">Vencimiento</th>
                               <th className="px-6 py-3.5 text-right">Monto Original</th>
                               <th className="px-6 py-3.5 text-right">Balance Pendiente</th>
@@ -503,6 +507,16 @@ export default function AccountsPayablePage() {
                               return (
                                 <tr key={bill.apId} className="hover:bg-slate-850/30 transition-colors">
                                   <td className="px-6 py-4 font-mono font-bold text-amber-500">{bill.apId.slice(0, 8).toUpperCase()}</td>
+                                  <td className="px-6 py-4 font-mono text-xs">{bill.ncf || 'S/N'}</td>
+                                  <td className="px-6 py-4 text-xs font-mono">
+                                    {(() => {
+                                      if (!bill.issueDate) return '-';
+                                      const parts = bill.issueDate.split('-');
+                                      if (parts.length !== 3) return bill.issueDate;
+                                      const [year, month, day] = parts;
+                                      return `${day}/${month}/${year}`;
+                                    })()}
+                                  </td>
                                   <td className="px-6 py-4">
                                     <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/20 text-rose-400 border border-rose-500/10' : 'text-on-surface-variant')}>
                                       {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-400" />}

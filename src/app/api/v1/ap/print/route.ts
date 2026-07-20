@@ -5,8 +5,8 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
-import { db, companies, companySettings, suppliers, accountsPayable } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
+import { db, companies, companySettings, suppliers, accountsPayable, expenses } from '@/db';
+import { eq, and, isNull, sql, or } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,9 +61,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'NOT_FOUND', message: 'Perfil de compañía no encontrado' } }, { status: 404 });
     }
 
-    // Fetch all pending bills for this supplier
+    // Fetch all pending bills for this supplier with computed true original amount, ncf, and issueDate
     const pendingBills = await db
-      .select()
+      .select({
+        ap: accountsPayable,
+        ncf: sql<string>`(SELECT ncf FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
+        issueDate: sql<string>`(SELECT issue_date FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
+        paymentsSum: sql<string>`COALESCE((SELECT SUM(amount) FROM ap_payments WHERE ap_payments.ap_id = accounts_payable.id AND ap_payments.status = 'applied'), '0.00')`
+      })
       .from(accountsPayable)
       .where(and(
         eq(accountsPayable.companyId, session.companyId),
@@ -72,16 +77,34 @@ export async function POST(req: NextRequest) {
       ))
       .orderBy(accountsPayable.dueDate);
 
+    // Format utility
+    const formatDbDateString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      const d = typeof date === 'string' ? new Date(date) : date;
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     // Filter to non-paid bills and map
     const filteredBills = pendingBills
-      .filter(bill => parseFloat(bill.balance) > 0.01)
-      .map(bill => ({
-        apId: bill.id,
-        amount: parseFloat(bill.amount),
-        balance: parseFloat(bill.balance),
-        dueDate: bill.dueDate,
-        status: bill.status
-      }));
+      .filter(row => parseFloat(row.ap.balance) > 0.01)
+      .map(row => {
+        const balanceNum = parseFloat(row.ap.balance);
+        const paymentsVal = parseFloat(row.paymentsSum);
+        const computedOriginalAmount = balanceNum + paymentsVal;
+
+        return {
+          apId: row.ap.id,
+          amount: computedOriginalAmount,
+          balance: balanceNum,
+          dueDate: formatDbDateString(row.ap.dueDate),
+          issueDate: formatDbDateString(row.issueDate),
+          ncf: row.ncf || 'S/N',
+          status: row.ap.status
+        };
+      });
 
     const totalBalance = filteredBills.reduce((sum, bill) => sum + bill.balance, 0);
 

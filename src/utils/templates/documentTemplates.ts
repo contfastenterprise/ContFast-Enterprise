@@ -1057,10 +1057,29 @@ export class DocumentTemplates {
 
     const linesHtml = items.map((item: any) => {
       const isOverdue = new Date(item.dueDate) < new Date();
+      
+      const formattedIssueDate = (() => {
+        if (!item.issueDate) return '-';
+        const parts = item.issueDate.split('-');
+        if (parts.length !== 3) return item.issueDate;
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+      })();
+
+      const formattedDueDate = (() => {
+        if (!item.dueDate) return '-';
+        const parts = item.dueDate.split('-');
+        if (parts.length !== 3) return item.dueDate;
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+      })();
+
       return `
         <tr>
           <td class="font-mono">${item.apId.slice(0, 8).toUpperCase()}</td>
-          <td>${new Date(item.dueDate).toLocaleDateString('es-DO')}</td>
+          <td>${item.ncf || 'S/N'}</td>
+          <td>${formattedIssueDate}</td>
+          <td>${formattedDueDate}</td>
           <td class="text-right font-mono">$${formatNum(item.amount)}</td>
           <td class="text-right font-mono" style="font-weight: bold; color: #dc3545;">$${formatNum(item.balance)}</td>
           <td>
@@ -1108,6 +1127,8 @@ export class DocumentTemplates {
           <thead>
             <tr style="background-color: #f8f9fa;">
               <th>Referencia CXP</th>
+              <th>Factura / NCF</th>
+              <th>Emisión</th>
               <th>Vencimiento</th>
               <th class="text-right">Monto Original</th>
               <th class="text-right">Balance Pendiente</th>
