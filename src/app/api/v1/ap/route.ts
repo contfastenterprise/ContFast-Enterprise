@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
         apId: item.id,
         amount: parseFloat(item.amount),
         balance: balanceNum,
-        dueDate: formatDbDateString(item.dueDate),
+        dueDate: formatDbDateString(item.checkDueDate || item.dueDate),
         ncf: item.ncf,
         issueDate: formatDbDateString(item.issueDate),
         status: item.status

@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
         ap: accountsPayable,
         ncf: sql<string>`(SELECT ncf FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
         issueDate: sql<string>`(SELECT issue_date FROM expenses WHERE expenses.id = accounts_payable.id OR (expenses.supplier_id = accounts_payable.supplier_id AND expenses.amount = accounts_payable.amount AND expenses.company_id = accounts_payable.company_id AND expenses.deleted_at IS NULL) LIMIT 1)`,
+        checkDueDate: sql<string>`(SELECT due_date FROM checks WHERE checks.ap_id = accounts_payable.id AND checks.is_guarantee = true AND checks.status = 'pending' LIMIT 1)`,
         paymentsSum: sql<string>`COALESCE((SELECT SUM(amount) FROM ap_payments WHERE ap_payments.ap_id = accounts_payable.id AND ap_payments.status = 'applied'), '0.00')`
       })
       .from(accountsPayable)
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
           apId: row.ap.id,
           amount: computedOriginalAmount,
           balance: balanceNum,
-          dueDate: formatDbDateString(row.ap.dueDate),
+          dueDate: formatDbDateString(row.checkDueDate || row.ap.dueDate),
           issueDate: formatDbDateString(row.issueDate),
           ncf: row.ncf || 'S/N',
           status: row.ap.status
