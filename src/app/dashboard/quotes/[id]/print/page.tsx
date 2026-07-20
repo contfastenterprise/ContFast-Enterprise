@@ -47,6 +47,29 @@ export default function PrintQuotePage({ params }: { params: Promise<{ id: strin
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    if (quote) {
+      const customerName = quote.customerName || 'Cliente';
+      const reason = 'Cotizacion';
+      const sequenceNumber = quote.sequenceNumber || id.slice(0, 8).toUpperCase();
+      
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const printDate = `${day}-${month}-${year}`;
+
+      const cleanCustomerName = customerName.replace(/[/\\?%*:|"<>]/g, '_').trim();
+      const cleanNum = String(sequenceNumber).replace(/[/\\?%*:|"<>]/g, '_').trim();
+      
+      document.title = `${cleanCustomerName} - ${reason} - ${cleanNum} - ${printDate}`;
+    }
+  }, [quote, id]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) {
     return <div className="p-10 text-center">Cargando plantilla...</div>;
   }
@@ -54,10 +77,6 @@ export default function PrintQuotePage({ params }: { params: Promise<{ id: strin
   if (!quote) {
     return <div className="p-10 text-center text-red-500">Cotización no encontrada.</div>;
   }
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 print:bg-white text-black font-sans">
