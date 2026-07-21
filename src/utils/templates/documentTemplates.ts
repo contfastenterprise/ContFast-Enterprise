@@ -468,9 +468,6 @@ export class DocumentTemplates {
                 Fecha Firma: ${formattedSigDate}
               </div>
             </div>
-            <div style="font-size: 8pt; font-family: 'Inter', sans-serif; color: #64748b; font-weight: bold; text-align: right;">
-              e-CF: ${inv.ncf}
-            </div>
           </div>
         `;
       };
