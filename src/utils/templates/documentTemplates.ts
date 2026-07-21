@@ -3475,8 +3475,8 @@ export class DocumentTemplates {
             margin-bottom: 4px;
           }
           .section-title-bar {
-            background-color: #002D62;
-            color: white;
+            background-color: white;
+            color: black;
             font-weight: bold;
             font-size: 10pt;
             text-align: center;
