@@ -532,6 +532,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Impresión Avanzada por Cantidad y Selección**: Incorporación del diálogo avanzado de impresión en la página de gestión unificada. Permite seleccionar uno o múltiples productos mediante checkboxes y definir la cantidad exacta de etiquetas a imprimir para cada ítem, con soporte para tamaños de etiqueta estándar y personalizados.
 
+- **Selector de Formato e Indicador de Falta de Datos**: Integración de una opción interactiva de 'Formato de Código' (Code 128, EAN-13, EAN-8, UPC-A, QR Code) dentro del configurador de etiquetas. En caso de que el producto no posea un código asignado, se despliega una advertencia visual `[ Sin código asignado ]` en la vista previa del sticker para guiar al usuario.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
