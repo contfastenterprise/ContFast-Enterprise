@@ -378,6 +378,10 @@ export class DocumentTemplates {
                    </div>`
                 : ''
               }
+              <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
+                ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
+                <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
+              </div>
             </div>
           </div>
 
@@ -446,14 +450,11 @@ export class DocumentTemplates {
           </div>
 
           <div class="qr-signature-section">
-            <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
-              ${qrBase64 ? `<img src="${qrBase64}" class="qr-img" alt="QR">` : ''}
-            </div>
-            <div class="signature-container">
+            <div class="signature-container" style="width: 100%; justify-content: flex-end;">
               <div class="signature-line">
                 <div class="signature-line-border">Recibido conforme</div>
               </div>
-              <div class="signature-line">
+              <div class="signature-line" style="margin-left: 40px;">
                 <div class="signature-line-border">Revisado por</div>
               </div>
             </div>
@@ -461,10 +462,7 @@ export class DocumentTemplates {
 
           <div class="invoice-footer-repeated">
             <div style="display: flex; align-items: center; gap: 15px;">
-              <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
-                <div class="barcode-text-repeated">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
-              </div>
+              ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
                 Código de seguridad: ${inv.securityCode || 'N/A'}<br>
                 Fecha Firma: ${formattedSigDate}
@@ -534,7 +532,7 @@ export class DocumentTemplates {
             .qr-signature-section { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
             .qr-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: monospace; font-size: 8.5pt; }
             .qr-img { width: 100px; height: 100px; }
-            .invoice-footer-repeated {
+             .invoice-footer-repeated {
               position: fixed;
               bottom: 0px;
               left: 0;
@@ -545,14 +543,11 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 45px;
+              height: 60px;
             }
-            .barcode-text-repeated {
-              font-family: monospace;
-              font-size: 7.5pt;
-              color: #555;
-              text-align: center;
-              margin-top: 1px;
+            .qr-img-repeated {
+              width: 55px;
+              height: 55px;
             }
           </style>
         </head>
