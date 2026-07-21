@@ -299,7 +299,7 @@ function SidebarContent({
         items.push({
           name: 'Barcode',
           href: '/dashboard/products/barcodes',
-          icon: getIconComponent('Printer'),
+          icon: getIconComponent('Barcode'),
         });
       }
     });
