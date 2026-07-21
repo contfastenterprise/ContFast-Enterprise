@@ -547,6 +547,9 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 * * Verified & Polished * *
 
+- **Ajustes de Márgenes y Desborde de Páginas en PDF**: Remoción de los márgenes por defecto a 0 en `pdfGenerator.ts` para los formatos tipo label y escalamiento de la clase CSS `.label-page` a `100vw` y `100vh` en el endpoint. Esto evita de forma definitiva que micro-desbordes decimales de tamaño generen páginas en blanco extra en el PDF.
+
+* * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
