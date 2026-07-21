@@ -3334,7 +3334,412 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderSupplierOrder(data: any): string {
+    const order = data.order || data;
+    const company = data.company || {};
+    const lines = data.lines || [];
+
+    const ordDate = new Date(order.orderDate || new Date());
+    const formattedDate = `${String(ordDate.getDate()).padStart(2, '0')}-${String(ordDate.getMonth() + 1).padStart(2, '0')}-${ordDate.getFullYear()}`;
+
+    const totalQty = lines.reduce((acc: number, line: any) => acc + Number(line.cantidad || 0), 0);
+
+    const conditions = order.generalConditions 
+      ? order.generalConditions.split('\n').filter((c: string) => c.trim().length > 0)
+      : [
+          'Este pedido está sujeto a disponibilidad y tiempos de producción.',
+          'Confirmar cantidades y fecha de entrega.',
+          'Cualquier cambio debe ser notificado por escrito.'
+        ];
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain;" alt="Logo">`
+      : `<div style="font-size: 20px; font-weight: bold; color: #002D62;">${company.name || 'Latin Doors'}</div>`;
+
+    const subTitleLogo = company.name?.toLowerCase().includes('latin doors')
+      ? '<div style="font-size: 11pt; color: #002D62; margin-top: 5px; font-weight: 500;">la innovación del nuevo siglo</div>'
+      : '';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Pedido ${order.orderNumber}</title>
+        <style>
+          @page {
+            margin: 12mm 12mm 12mm 12mm;
+          }
+          body {
+            font-family: 'Inter', Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+          }
+          .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+          }
+          .logo-area {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .right-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 230px;
+          }
+          .title-text {
+            font-size: 16pt;
+            font-weight: 800;
+            color: #002D62;
+            text-align: right;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .card {
+            border: 1px solid #002D62;
+            border-radius: 6px;
+            overflow: hidden;
+            text-align: center;
+          }
+          .card-header {
+            background-color: #002D62;
+            color: white;
+            font-weight: bold;
+            font-size: 8.5pt;
+            padding: 4px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .card-body {
+            background-color: white;
+            color: #000;
+            font-weight: bold;
+            font-size: 12pt;
+            padding: 6px 0;
+            font-family: monospace;
+          }
+          .divider {
+            border-top: 1px solid #ddd;
+            margin: 15px 0;
+          }
+          .info-columns {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+          }
+          .info-column {
+            width: 48%;
+          }
+          .info-title {
+            color: #002D62;
+            font-weight: bold;
+            font-size: 9pt;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1.5px solid #002D62;
+            padding-bottom: 3px;
+            display: inline-block;
+          }
+          .info-body {
+            font-size: 9.5pt;
+            line-height: 1.6;
+          }
+          .info-name {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 5px;
+            color: #000;
+          }
+          .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+          }
+          .section-title-bar {
+            background-color: #002D62;
+            color: white;
+            font-weight: bold;
+            font-size: 10pt;
+            text-align: center;
+            padding: 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+          }
+          .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+          }
+          .order-table th {
+            border: 1px solid #002D62;
+            background-color: #002D62;
+            color: white;
+            font-weight: bold;
+            font-size: 8.5pt;
+            padding: 8px 6px;
+            text-align: center;
+            text-transform: uppercase;
+          }
+          .order-table td {
+            border: 1px solid #bbb;
+            padding: 8px 6px;
+            font-size: 9pt;
+            color: #111;
+          }
+          .order-table td.center {
+            text-align: center;
+          }
+          .total-bar-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 25px;
+          }
+          .total-bar {
+            display: flex;
+            border: 1px solid #002D62;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 250px;
+          }
+          .total-label {
+            background-color: #002D62;
+            color: white;
+            font-weight: bold;
+            font-size: 9pt;
+            padding: 6px 12px;
+            text-transform: uppercase;
+            flex: 1;
+            text-align: center;
+          }
+          .total-value {
+            background-color: white;
+            color: #000;
+            font-weight: bold;
+            font-size: 11pt;
+            padding: 6px 15px;
+            min-width: 60px;
+            text-align: center;
+          }
+          .bottom-boxes {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            gap: 20px;
+          }
+          .bottom-box {
+            width: 50%;
+            border: 1px solid #002D62;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+          .bottom-box-header {
+            background-color: #002D62;
+            color: white;
+            font-weight: bold;
+            font-size: 9pt;
+            text-align: center;
+            padding: 5px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .bottom-box-body {
+            padding: 12px;
+            font-size: 9pt;
+            flex: 1;
+            background-color: #fafafa;
+            min-height: 80px;
+          }
+          .bottom-box-body ul {
+            margin: 0;
+            padding-left: 18px;
+          }
+          .bottom-box-body li {
+            margin-bottom: 6px;
+          }
+          .signature-section {
+            margin-top: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .signature-title {
+            font-size: 8.5pt;
+            font-weight: bold;
+            color: #002D62;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+            width: 100%;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
+          }
+          .signature-name {
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            font-size: 14pt;
+            margin-bottom: 4px;
+            color: #222;
+          }
+          .signature-title-detail {
+            border-top: 1px solid #555;
+            display: inline-block;
+            padding-top: 4px;
+            min-width: 250px;
+            font-size: 8.5pt;
+            color: #555;
+          }
+          .footer-banner {
+            background-color: #002D62;
+            color: white;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 9.5pt;
+            font-weight: bold;
+            font-style: italic;
+            border-radius: 4px;
+            margin-top: 30px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <div class="logo-area">
+            ${logoHtml}
+            ${subTitleLogo}
+          </div>
+          <div class="right-cards">
+            <div class="title-text">Pedido de Puertas</div>
+            <div class="card">
+              <div class="card-header">Número de Pedido</div>
+              <div class="card-body">${order.orderNumber}</div>
+            </div>
+            <div class="card">
+              <div class="card-header">Fecha</div>
+              <div class="card-body">${formattedDate}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="info-columns">
+          <div class="info-column" style="border-right: 1px solid #ddd; padding-right: 15px;">
+            <div class="info-title">Realizado Por:</div>
+            <div class="info-body">
+              <div class="info-name">${company.name || 'Latin Doors SRL'}</div>
+              <div class="info-item">
+                <span style="color: #002D62; font-weight: bold;">📍 Dirección:</span>
+                <span>${company.address || 'Santiago, República Dominicana.'}</span>
+              </div>
+              <div class="info-item">
+                <span style="color: #002D62; font-weight: bold;">📞 Tel:</span>
+                <span>${company.phone || '829-214-4128'}</span>
+              </div>
+              <div class="info-item">
+                <span style="color: #002D62; font-weight: bold;">✉️ Correo:</span>
+                <span>${company.email || 'latindoors@gmail.com'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="info-column" style="padding-left: 20px;">
+            <div class="info-title">Para:</div>
+            <div class="info-body">
+              <div class="info-name">${order.supplierName || 'Everlast Doors'}</div>
+              <div style="color: #555; font-style: italic; margin-bottom: 5px;">Proveedor de Puertas</div>
+              ${order.supplierRnc ? `<div><strong>RNC:</strong> ${order.supplierRnc}</div>` : ''}
+              ${order.supplierPhone ? `<div><strong>Tel:</strong> ${order.supplierPhone}</div>` : ''}
+              ${order.supplierEmail ? `<div><strong>Email:</strong> ${order.supplierEmail}</div>` : ''}
+              ${order.supplierAddress ? `<div><strong>Dirección:</strong> ${order.supplierAddress}</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title-bar">Detalle del Pedido</div>
+
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 15%;">Modelo</th>
+              <th style="width: 15%;">Medida (cm)</th>
+              <th style="width: 15%;">Color / Acabado</th>
+              <th style="width: 15%;">Línea</th>
+              <th style="width: 15%;">N° de Huecos Cerradura<br><span style="font-size: 7pt; font-weight: normal; text-transform: none;">(2H = 2 huecos / 1H = 1 hueco)</span></th>
+              <th style="width: 8%;">Cantidad</th>
+              <th style="width: 17%;">Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lines.map((line: any, idx: number) => `
+              <tr>
+                <td class="center">${idx + 1}</td>
+                <td>${line.modelo || 'Deluxe'}</td>
+                <td class="center">${line.medida || ''}</td>
+                <td>${line.colorAcabado || ''}</td>
+                <td>${line.linea || ''}</td>
+                <td class="center">${line.numHuecosCerradura || ''}</td>
+                <td class="center" style="font-weight: bold;">${line.cantidad}</td>
+                <td>${line.observaciones || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="total-bar-container">
+          <div class="total-bar">
+            <div class="total-label">Total Unidades</div>
+            <div class="total-value">${totalQty}</div>
+          </div>
+        </div>
+
+        <div class="bottom-boxes">
+          <div class="bottom-box">
+            <div class="bottom-box-header">Observaciones</div>
+            <div class="bottom-box-body" style="white-space: pre-wrap;">${order.observations || 'Mandar a ser.'}</div>
+          </div>
+          <div class="bottom-box">
+            <div class="bottom-box-header">Condiciones Generales</div>
+            <div class="bottom-box-body">
+              <ul>
+                ${conditions.map((c: string) => `<li>${c}</li>`).join('')}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <div class="signature-title">Orden Realizada Por</div>
+          <div class="signature-name">${order.userName || 'Gerson González'}</div>
+          <div class="signature-title-detail">
+            <strong>${order.userName || 'Gerson González'}</strong><br>
+            Ventas / ${company.name || 'Latin Doors SRL'}
+          </div>
+        </div>
+
+        <div class="footer-banner">
+          Gracias por su confianza.
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
+
 
 // Auto-wrap all static render methods to automatically escape input data
 for (const key of Object.getOwnPropertyNames(DocumentTemplates)) {

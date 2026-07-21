@@ -674,6 +674,21 @@ export default function BarcodeDashboardPage() {
                   )}
 
                   <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Formato de Código</label>
+                    <select
+                      value={barcodeType}
+                      onChange={(e) => setBarcodeType(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none"
+                    >
+                      <option value="code128">Code 128 (Alfanumérico)</option>
+                      <option value="ean13">EAN-13 (13 dígitos)</option>
+                      <option value="ean8">EAN-8 (8 dígitos)</option>
+                      <option value="upca">UPC-A (12 dígitos)</option>
+                      <option value="qrcode">Código QR</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Tamaño Etiqueta</label>
                     <select
                       value={labelSize}
@@ -822,9 +837,15 @@ export default function BarcodeDashboardPage() {
                     {labelVisibleFields.sku && labelSelectedProduct.sku && (
                       <div className="text-[6.5px] font-mono text-slate-400 mb-0.5">SKU: {labelSelectedProduct.sku}</div>
                     )}
-                    {labelVisibleFields.barcode && labelSelectedProduct.barcode && (
+                    {labelVisibleFields.barcode && (
                       <div className="my-0.5 max-w-full font-mono">
-                        <BarcodeRenderer value={labelSelectedProduct.barcode} type={barcodeType} height={18} width={1.2} showText={labelVisibleFields.code} />
+                        {labelSelectedProduct.barcode ? (
+                          <BarcodeRenderer value={labelSelectedProduct.barcode} type={barcodeType} height={18} width={1.2} showText={labelVisibleFields.code} />
+                        ) : (
+                          <div className="text-[8px] text-rose-500 font-bold border border-dashed border-rose-200 bg-rose-50 px-1 py-0.5 rounded text-center">
+                            [ Sin código asignado ]
+                          </div>
+                        )}
                       </div>
                     )}
                     {labelVisibleFields.qr && (
