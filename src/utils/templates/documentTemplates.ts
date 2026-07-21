@@ -3678,8 +3678,8 @@ export class DocumentTemplates {
                 <td class="center">${idx + 1}</td>
                 <td>${line.productSku || '-'}</td>
                 <td>${line.productName || ''}</td>
-                <td class="center">N/A</td>
-                <td class="center">N/A</td>
+                <td>${line.brand || ''}</td>
+                <td>${line.model || ''}</td>
                 <td class="center" style="font-weight: bold;">${line.quantityRequested}</td>
                 <td>${line.observations || ''}</td>
               </tr>

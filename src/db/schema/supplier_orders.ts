@@ -43,6 +43,8 @@ export const purchaseOrderItems = pgTable('purchase_order_items', {
   id: uuid('id').defaultRandom().primaryKey(),
   purchaseOrderId: uuid('purchase_order_id').notNull().references(() => purchaseOrders.id),
   productId: uuid('product_id').notNull().references(() => products.id),
+  brand: varchar('brand', { length: 100 }),
+  model: varchar('model', { length: 100 }),
   quantityRequested: integer('quantity_requested').notNull(),
   quantityReceived: integer('quantity_received').default(0).notNull(),
   observations: text('observations'),

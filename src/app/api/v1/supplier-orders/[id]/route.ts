@@ -13,6 +13,8 @@ const updateOrderSchema = z.object({
   lines: z.array(
     z.object({
       productId: z.string().uuid('El producto seleccionado no es válido'),
+      brand: z.string().optional().nullable(),
+      model: z.string().optional().nullable(),
       quantityRequested: z.number().int().positive('La cantidad debe ser mayor a cero'),
       observations: z.string().optional().nullable(),
     })

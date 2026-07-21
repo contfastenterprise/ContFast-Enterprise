@@ -12,6 +12,8 @@ interface OrderLine {
   productSku: string;
   barcode: string;
   unitOfMeasure: string;
+  brand?: string;
+  model?: string;
   quantityRequested: number;
   quantityReceived: number;
   observations: string;
@@ -390,6 +392,8 @@ export default function PurchaseOrdersPage() {
       productSku: product.sku || '',
       barcode: product.barcode || '',
       unitOfMeasure: product.unitOfMeasure || 'unidad',
+      brand: '',
+      model: '',
       quantityRequested: 1,
       quantityReceived: 0,
       observations: ''
@@ -418,6 +422,22 @@ export default function PurchaseOrdersPage() {
     setLines(prev => {
       const copy = [...prev];
       copy[index].observations = val;
+      return copy;
+    });
+  };
+
+  const handleLineBrandChange = (index: number, val: string) => {
+    setLines(prev => {
+      const copy = [...prev];
+      copy[index].brand = val;
+      return copy;
+    });
+  };
+
+  const handleLineModelChange = (index: number, val: string) => {
+    setLines(prev => {
+      const copy = [...prev];
+      copy[index].model = val;
       return copy;
     });
   };
@@ -452,6 +472,8 @@ export default function PurchaseOrdersPage() {
           observations,
           lines: lines.map(l => ({
             productId: l.productId,
+            brand: l.brand || '',
+            model: l.model || '',
             quantityRequested: l.quantityRequested,
             observations: l.observations
           }))
@@ -767,8 +789,8 @@ export default function PurchaseOrdersPage() {
                             <tr key={idx} className="border-t border-slate-200">
                               <td className="p-3 font-mono text-slate-600">{line.productSku || '-'}</td>
                               <td className="p-3 font-semibold text-[#003366]">{line.productName}</td>
-                              <td className="p-3 text-slate-500">N/A</td>
-                              <td className="p-3 text-slate-500">N/A</td>
+                              <td className="p-3 text-slate-700">{line.brand || '-'}</td>
+                              <td className="p-3 text-slate-700">{line.model || '-'}</td>
                               <td className="p-3 text-center">{line.unitOfMeasure}</td>
                               <td className="p-3 text-center font-bold">{line.quantityRequested}</td>
                               <td className="p-3 text-center text-emerald-600 font-bold">{line.quantityReceived}</td>
@@ -1118,8 +1140,24 @@ export default function PurchaseOrdersPage() {
                             <tr key={idx} className="border-t border-slate-200 text-xs">
                               <td className="p-3 font-mono text-slate-650">{line.productSku || '-'}</td>
                               <td className="p-3 font-semibold text-[#003366]">{line.productName}</td>
-                              <td className="p-3 text-slate-500">N/A</td>
-                              <td className="p-3 text-slate-500">N/A</td>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={line.brand || ''}
+                                  placeholder="Marca"
+                                  onChange={e => handleLineBrandChange(idx, e.target.value)}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-slate-900"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={line.model || ''}
+                                  placeholder="Modelo"
+                                  onChange={e => handleLineModelChange(idx, e.target.value)}
+                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-slate-900"
+                                />
+                              </td>
                               <td className="p-3 text-center">
                                 <input
                                   type="number"

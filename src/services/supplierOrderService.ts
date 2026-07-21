@@ -5,6 +5,8 @@ import { addStock } from '@/services/inventoryService';
 
 export interface PurchaseOrderItemInput {
   productId: string;
+  brand?: string | null;
+  model?: string | null;
   quantityRequested: number;
   observations?: string | null;
 }
@@ -115,6 +117,8 @@ export class SupplierOrderService {
         id: uuidv4(),
         purchaseOrderId: orderId,
         productId: line.productId,
+        brand: line.brand || '',
+        model: line.model || '',
         quantityRequested: line.quantityRequested,
         quantityReceived: 0,
         observations: line.observations || '',
@@ -235,6 +239,8 @@ export class SupplierOrderService {
       .select({
         id: purchaseOrderItems.id,
         productId: purchaseOrderItems.productId,
+        brand: purchaseOrderItems.brand,
+        model: purchaseOrderItems.model,
         quantityRequested: purchaseOrderItems.quantityRequested,
         quantityReceived: purchaseOrderItems.quantityReceived,
         observations: purchaseOrderItems.observations,
@@ -327,6 +333,8 @@ export class SupplierOrderService {
           id: uuidv4(),
           purchaseOrderId: id,
           productId: line.productId,
+          brand: line.brand || '',
+          model: line.model || '',
           quantityRequested: line.quantityRequested,
           quantityReceived: 0,
           observations: line.observations || '',
@@ -545,6 +553,8 @@ export class SupplierOrderService {
         id: uuidv4(),
         purchaseOrderId: newOrderId,
         productId: line.productId!,
+        brand: line.brand || '',
+        model: line.model || '',
         quantityRequested: line.quantityRequested,
         quantityReceived: 0,
         observations: line.observations || '',

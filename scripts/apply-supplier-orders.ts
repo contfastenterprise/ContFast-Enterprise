@@ -55,6 +55,9 @@ async function run() {
         "change_details" text,
         "created_at" timestamp DEFAULT now() NOT NULL
       );
+
+      ALTER TABLE "purchase_order_items" ADD COLUMN IF NOT EXISTS "brand" varchar(100);
+      ALTER TABLE "purchase_order_items" ADD COLUMN IF NOT EXISTS "model" varchar(100);
     `);
 
     console.log('Creating indexes...');
