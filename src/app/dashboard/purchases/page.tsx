@@ -158,6 +158,11 @@ export default function PurchasesPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // Pagination State for Historial
+  const [purchasesPage, setPurchasesPage] = useState(1);
+  const [expensesPage, setExpensesPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Load metadata and user info
   useEffect(() => {
     fetch('/api/v1/auth/me')
@@ -231,6 +236,8 @@ export default function PurchasesPage() {
     const isSilent = silent === true;
     setSearchLoading(true);
     setHasSearched(true);
+    setPurchasesPage(1);
+    setExpensesPage(1);
     try {
       let url = `/api/v1/expenses?startDate=${filterStartDate}&endDate=${filterEndDate}`;
       if (filterType === 'purchases') {
@@ -641,6 +648,19 @@ export default function PurchasesPage() {
     totalTransactions: searchResults.length,
   };
 
+  const filteredPurchases = searchResults.filter(e => !e.isMinorExpense);
+  const filteredExpenses = searchResults.filter(e => e.isMinorExpense);
+
+  const purchasesStart = (purchasesPage - 1) * itemsPerPage;
+  const purchasesEnd = purchasesStart + itemsPerPage;
+  const paginatedPurchases = filteredPurchases.slice(purchasesStart, purchasesEnd);
+  const totalPurchasesPages = Math.ceil(filteredPurchases.length / itemsPerPage);
+
+  const expensesStart = (expensesPage - 1) * itemsPerPage;
+  const expensesEnd = expensesStart + itemsPerPage;
+  const paginatedExpenses = filteredExpenses.slice(expensesStart, expensesEnd);
+  const totalExpensesPages = Math.ceil(filteredExpenses.length / itemsPerPage);
+
   return (
     <div className="space-y-8 animate-fade-in-up pb-10 w-full max-w-none">
       {/* Header */}
@@ -894,7 +914,7 @@ export default function PurchasesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
-                          {searchResults.filter(e => !e.isMinorExpense).map(e => (
+                          {paginatedPurchases.map(e => (
                             <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
                               <td className="py-3 px-2">
                                 <p className="font-bold text-xs text-primary">{e.supplierName || 'Desconocido'}</p>
@@ -943,7 +963,7 @@ export default function PurchasesPage() {
                               </td>
                             </tr>
                           ))}
-                          {searchResults.filter(e => !e.isMinorExpense).length === 0 && (
+                          {filteredPurchases.length === 0 && (
                             <tr>
                               <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
                                 No hay compras comerciales en el rango de búsqueda.
@@ -954,6 +974,32 @@ export default function PurchasesPage() {
                       </table>
                     </div>
                   </div>
+                  {totalPurchasesPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/10 gap-3 text-xs">
+                      <span className="text-on-surface-variant/70 text-center sm:text-left">
+                        Mostrando {purchasesStart + 1} a {Math.min(purchasesEnd, filteredPurchases.length)} de {filteredPurchases.length} compras
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setPurchasesPage(p => Math.max(1, p - 1))}
+                          disabled={purchasesPage === 1}
+                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                        >
+                          Anterior
+                        </button>
+                        <span className="font-semibold text-primary px-2">
+                          Pág. {purchasesPage} de {totalPurchasesPages}
+                        </span>
+                        <button
+                          onClick={() => setPurchasesPage(p => Math.min(totalPurchasesPages, p + 1))}
+                          disabled={purchasesPage === totalPurchasesPages}
+                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Gastos Menores / Caja Chica */}
@@ -963,7 +1009,7 @@ export default function PurchasesPage() {
                       <Activity className="h-5 w-5 text-blue-500" /> 2. Gastos Menores / Caja Chica
                     </span>
                     <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">
-                      {searchResults.filter(e => e.isMinorExpense).length} Transacciones
+                      {filteredExpenses.length} Transacciones
                     </span>
                   </h3>
 
@@ -980,7 +1026,7 @@ export default function PurchasesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
-                          {searchResults.filter(e => e.isMinorExpense).map(e => (
+                          {paginatedExpenses.map(e => (
                             <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
                               <td className="py-3 px-2">
                                 <p className="font-bold text-xs text-primary">{e.description || 'Gasto General'}</p>
@@ -1033,7 +1079,7 @@ export default function PurchasesPage() {
                               </td>
                             </tr>
                           ))}
-                          {searchResults.filter(e => e.isMinorExpense).length === 0 && (
+                          {filteredExpenses.length === 0 && (
                             <tr>
                               <td colSpan={5} className="p-8 text-center text-xs text-on-surface-variant">
                                 No hay gastos registrados en el rango de búsqueda.
@@ -1044,6 +1090,32 @@ export default function PurchasesPage() {
                       </table>
                     </div>
                   </div>
+                  {totalExpensesPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/10 gap-3 text-xs">
+                      <span className="text-on-surface-variant/70 text-center sm:text-left">
+                        Mostrando {expensesStart + 1} a {Math.min(expensesEnd, filteredExpenses.length)} de {filteredExpenses.length} gastos
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setExpensesPage(p => Math.max(1, p - 1))}
+                          disabled={expensesPage === 1}
+                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                        >
+                          Anterior
+                        </button>
+                        <span className="font-semibold text-primary px-2">
+                          Pág. {expensesPage} de {totalExpensesPages}
+                        </span>
+                        <button
+                          onClick={() => setExpensesPage(p => Math.min(totalExpensesPages, p + 1))}
+                          disabled={expensesPage === totalExpensesPages}
+                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                        >
+                          Siguiente
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1821,6 +1893,11 @@ function GuaranteeChecksView() {
   const [paymentsList, setPaymentsList] = useState<any[]>([]);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
+  // Pagination states
+  const [pendingPage, setPendingPage] = useState(1);
+  const [appliedPage, setAppliedPage] = useState(1);
+  const itemsPerPage = 10;
+
   const fetchChecks = async () => {
     setLoading(true);
     try {
@@ -1828,6 +1905,8 @@ function GuaranteeChecksView() {
       const data = await res.json();
       if (data.success) {
         setPaymentsList(data.data?.items || data.data || []);
+        setPendingPage(1);
+        setAppliedPage(1);
       } else {
         toast.error('Error al obtener cheques en garantía');
       }
@@ -1872,6 +1951,16 @@ function GuaranteeChecksView() {
   const pendingChecks = guaranteePayments.filter(p => p.status === 'pending_guarantee');
   const appliedChecks = guaranteePayments.filter(p => p.status === 'applied');
 
+  const pendingStart = (pendingPage - 1) * itemsPerPage;
+  const pendingEnd = pendingStart + itemsPerPage;
+  const paginatedPending = pendingChecks.slice(pendingStart, pendingEnd);
+  const totalPendingPages = Math.ceil(pendingChecks.length / itemsPerPage);
+
+  const appliedStart = (appliedPage - 1) * itemsPerPage;
+  const appliedEnd = appliedStart + itemsPerPage;
+  const paginatedApplied = appliedChecks.slice(appliedStart, appliedEnd);
+  const totalAppliedPages = Math.ceil(appliedChecks.length / itemsPerPage);
+
   return (
     <div className="space-y-6">
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
@@ -1914,7 +2003,7 @@ function GuaranteeChecksView() {
                         </td>
                       </tr>
                     ) : (
-                      pendingChecks.map(p => {
+                      paginatedPending.map(p => {
                         const isDue = p.dueDate <= getLocalDateString();
                         return (
                           <tr key={p.id} className={isDue ? "bg-amber-50/30" : ""}>
@@ -1944,6 +2033,32 @@ function GuaranteeChecksView() {
                   </tbody>
                 </table>
               </div>
+              {totalPendingPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-on-surface-variant/70 gap-3">
+                  <span>
+                    Mostrando {pendingStart + 1} a {Math.min(pendingEnd, pendingChecks.length)} de {pendingChecks.length} cheques pendientes
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPendingPage(p => Math.max(1, p - 1))}
+                      disabled={pendingPage === 1}
+                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                    >
+                      Anterior
+                    </button>
+                    <span className="font-semibold text-primary px-2">
+                      Pág. {pendingPage} de {totalPendingPages}
+                    </span>
+                    <button
+                      onClick={() => setPendingPage(p => Math.min(totalPendingPages, p + 1))}
+                      disabled={pendingPage === totalPendingPages}
+                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Aplicados */}
@@ -1972,7 +2087,7 @@ function GuaranteeChecksView() {
                         </td>
                       </tr>
                     ) : (
-                      appliedChecks.map(p => (
+                      paginatedApplied.map(p => (
                         <tr key={p.id}>
                           <td className="px-6 py-4 font-bold text-on-surface-variant">{p.supplierName}</td>
                           <td className="px-6 py-4 font-mono font-medium">{p.checkNumber || 'S/N'}</td>
@@ -1992,6 +2107,32 @@ function GuaranteeChecksView() {
                   </tbody>
                 </table>
               </div>
+              {totalAppliedPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-on-surface-variant/70 gap-3">
+                  <span>
+                    Mostrando {appliedStart + 1} a {Math.min(appliedEnd, appliedChecks.length)} de {appliedChecks.length} cheques aplicados
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setAppliedPage(p => Math.max(1, p - 1))}
+                      disabled={appliedPage === 1}
+                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                    >
+                      Anterior
+                    </button>
+                    <span className="font-semibold text-primary px-2">
+                      Pág. {appliedPage} de {totalAppliedPages}
+                    </span>
+                    <button
+                      onClick={() => setAppliedPage(p => Math.min(totalAppliedPages, p + 1))}
+                      disabled={appliedPage === totalAppliedPages}
+                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
