@@ -457,6 +457,9 @@ export class DocumentTemplates {
                 Fecha Firma: ${formattedSigDate}
               </div>
             </div>
+          </div>
+
+          <div class="last-page-signatures" style="position: absolute; bottom: 0px; right: 0px; z-index: 10;">
             <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
               <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Recibido conforme</div>
