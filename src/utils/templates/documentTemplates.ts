@@ -459,7 +459,7 @@ export class DocumentTemplates {
             </div>
           </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: 0px; right: 0px; z-index: 10;">
+          <div class="last-page-signatures">
             <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
               <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Recibido conforme</div>
@@ -495,7 +495,14 @@ export class DocumentTemplates {
             }
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 17mm; }
             .page-break { page-break-before: always; }
-            .invoice-wrapper { width: 100%; box-sizing: border-box; position: relative; }
+            .invoice-wrapper {
+              width: 100%;
+              box-sizing: border-box;
+              position: relative;
+              display: flex;
+              flex-direction: column;
+              min-height: 245mm;
+            }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
             .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
@@ -545,6 +552,12 @@ export class DocumentTemplates {
             .qr-img-repeated {
               width: 55px;
               height: 55px;
+            }
+            .last-page-signatures {
+              margin-top: auto;
+              display: flex;
+              justify-content: flex-end;
+              padding-bottom: 2px;
             }
           </style>
         </head>
