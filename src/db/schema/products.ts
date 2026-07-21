@@ -1,6 +1,7 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex, pgView } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex, pgView, integer } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { companies } from './companies';
+import { users } from './auth';
 
 export const productCategories = pgTable('product_categories', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -114,3 +115,31 @@ export const vPublicProducts = pgView('v_public_products', {
   WHERE p.status = 'active' AND p.deleted_at IS NULL
     AND pl.is_public = true AND pl.status = 'active' AND pl.deleted_at IS NULL
 `);
+
+export const productBarcodes = pgTable('product_barcodes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  barcode: varchar('barcode', { length: 100 }).notNull(),
+  barcodeType: varchar('barcode_type', { length: 30 }).notNull(),
+  isPrimary: boolean('is_primary').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('prod_barcodes_company_idx').on(table.companyId),
+  productIdx: index('prod_barcodes_product_idx').on(table.productId),
+  barcodeIdx: uniqueIndex('prod_barcodes_barcode_idx').on(table.companyId, table.barcode),
+}));
+
+export const barcodePrintLogs = pgTable('barcode_print_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  productId: uuid('product_id').notNull().references(() => products.id),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  quantity: integer('quantity').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('barcode_print_logs_company_idx').on(table.companyId),
+  productIdx: index('barcode_print_logs_product_idx').on(table.productId),
+}));
+

@@ -51,7 +51,10 @@ export default function SettingsPage() {
     msellerEntorno: 'test',
     msellerEmail: '',
     msellerApiKey: '',
-    msellerPassword: ''
+    msellerPassword: '',
+    barcodeDefaultType: 'code128',
+    barcodePrefix: 'COD',
+    barcodeLength: 9
   });
 
   const isSistemas = userRole === 'sistemas' || userRole?.toLowerCase().includes('sistema');
@@ -99,7 +102,10 @@ export default function SettingsPage() {
           msellerEntorno: data.data.settings.dgiiEnv || 'test',
           msellerEmail: data.data.settings.msellerEmail || '',
           msellerApiKey: '',
-          msellerPassword: ''
+          msellerPassword: '',
+          barcodeDefaultType: data.data.settings.barcodeDefaultType || 'code128',
+          barcodePrefix: data.data.settings.barcodePrefix || 'COD',
+          barcodeLength: data.data.settings.barcodeLength ?? 9
         });
         setHasMsellerApiKey(data.data.settings.hasMsellerApiKey);
         setHasMsellerPassword(data.data.settings.hasMsellerPassword);
@@ -584,6 +590,53 @@ export default function SettingsPage() {
                       placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"}
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloque: Configuración de Códigos de Barra */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                <Layers className="w-5 h-5 text-[#003366]" />
+                <h3 className="font-bold text-[#003366]">Configuración de Códigos de Barra</h3>
+              </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Tipo Predeterminado</label>
+                  <select
+                    value={formData.barcodeDefaultType}
+                    onChange={e => setFormData({ ...formData, barcodeDefaultType: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] font-medium text-slate-900 bg-white"
+                  >
+                    <option value="code128">Code 128 (Predeterminado)</option>
+                    <option value="ean13">EAN-13</option>
+                    <option value="ean8">EAN-8</option>
+                    <option value="upca">UPC-A</option>
+                    <option value="qrcode">Código QR</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Prefijo para Auto-Generación</label>
+                  <input
+                    type="text"
+                    value={formData.barcodePrefix}
+                    onChange={e => setFormData({ ...formData, barcodePrefix: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
+                    placeholder="COD"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Longitud de Código Automático</label>
+                  <input
+                    type="number"
+                    min="4"
+                    max="20"
+                    value={formData.barcodeLength}
+                    onChange={e => setFormData({ ...formData, barcodeLength: parseInt(e.target.value) || 9 })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-mono"
+                  />
                 </div>
               </div>
             </div>

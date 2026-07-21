@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 interface Product { id: string; name: string; sku: string; }
 interface Warehouse { id: string; name: string; }
@@ -33,6 +34,30 @@ export default function InventoryAdjustmentsPage() {
   const [tableInventory, setTableInventory] = useState<Record<string, number>>({});
   const [tableInputs, setTableInputs] = useState<Record<string, string>>({});
   const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
+
+  useBarcodeScanner({
+    onScan: async (barcode) => {
+      const toastId = toast.loading(`Buscando producto escaneado: ${barcode}...`);
+      try {
+        const res = await fetch(`/api/v1/products?barcode=${encodeURIComponent(barcode)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          const product = data.data[0];
+          setSelectedProduct(product);
+          toast.success(`Producto "${product.name}" seleccionado`, { id: toastId });
+          setTimeout(() => {
+            const input = document.getElementById('new-quantity-input');
+            if (input) input.focus();
+          }, 100);
+        } else {
+          toast.error(`Producto con código "${barcode}" no encontrado`, { id: toastId });
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al buscar código de barras escaneado', { id: toastId });
+      }
+    }
+  });
 
   useEffect(() => {
     fetch('/api/v1/warehouses').then(r => r.json()).then(data => {
@@ -299,6 +324,7 @@ export default function InventoryAdjustmentsPage() {
               <div>
                 <label className="block text-xs font-bold text-primary mb-1">Nueva Cantidad Física</label>
                 <input 
+                  id="new-quantity-input"
                   type="number" step="0.01" min="0" placeholder="0.00"
                   value={newQuantity} onChange={e => setNewQuantity(e.target.value)}
                   className="w-full bg-white border border-primary/30 rounded-xl px-4 py-3 text-xl font-mono font-bold text-primary focus:ring-2 focus:ring-primary outline-none"

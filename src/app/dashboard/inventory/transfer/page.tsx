@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, Search, Plus, Trash2, Building2, Package, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 interface Warehouse {
   id: string;
@@ -38,6 +39,53 @@ export default function TransferPage() {
   const [selectedQuantity, setSelectedQuantity] = useState('');
   const [availableQty, setAvailableQty] = useState<number | null>(null);
   const [loadingQty, setLoadingQty] = useState(false);
+
+  useBarcodeScanner({
+    onScan: async (barcode) => {
+      const toastId = toast.loading(`Buscando producto escaneado: ${barcode}...`);
+      try {
+        const res = await fetch(`/api/v1/products?barcode=${encodeURIComponent(barcode)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          const product = data.data[0];
+
+          let stock = 999999;
+          if (sourceWarehouse) {
+            const stockRes = await fetch(`/api/v1/products/${product.id}/inventory`);
+            const stockData = await stockRes.json();
+            if (stockData.success) {
+              const wh = stockData.data.find((w: any) => w.warehouseId === sourceWarehouse);
+              stock = wh ? parseFloat(wh.quantity) : 0;
+            }
+          }
+
+          const existingItemIdx = items.findIndex(i => i.product.id === product.id);
+          if (existingItemIdx >= 0) {
+            const newQty = items[existingItemIdx].quantity + 1;
+            if (sourceWarehouse && newQty > stock) {
+              toast.error(`No hay suficiente stock. Disponible: ${stock}`, { id: toastId });
+              return;
+            }
+            const updated = [...items];
+            updated[existingItemIdx].quantity = newQty;
+            setItems(updated);
+            toast.success(`Cantidad incrementada para ${product.name}`, { id: toastId });
+          } else {
+            if (sourceWarehouse && stock < 1) {
+              toast.warning(`Stock insuficiente en origen (Disponible: ${stock}) pero se añade a la lista`, { id: toastId });
+            }
+            setItems([...items, { product, quantity: 1 }]);
+            toast.success(`${product.name} añadido a la transferencia`, { id: toastId });
+          }
+        } else {
+          toast.error(`Producto con código "${barcode}" no encontrado`, { id: toastId });
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al buscar código de barras escaneado', { id: toastId });
+      }
+    }
+  });
 
   useEffect(() => {
     if (selectedProduct && sourceWarehouse) {

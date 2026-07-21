@@ -10,8 +10,9 @@ import {
   Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
 import clsx from 'clsx';
+import { toast } from 'sonner';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -88,6 +89,61 @@ function InvoicesList() {
   ]);
   const [quoteId, setQuoteId] = useState('');
   const [sequences, setSequences] = useState<any[]>([]);
+
+  useBarcodeScanner({
+    enabled: showForm,
+    onScan: async (barcode) => {
+      const toastId = toast.loading(`Buscando producto escaneado: ${barcode}...`);
+      try {
+        const res = await fetch(`/api/v1/products?barcode=${encodeURIComponent(barcode)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          const product = data.data[0];
+          
+          setDbProducts(prev => {
+            if (!prev.some(p => p.id === product.id)) return [...prev, product];
+            return prev;
+          });
+
+          const existingLineIdx = lines.findIndex(l => l.productId === product.id);
+          if (existingLineIdx >= 0) {
+            const updated = [...lines];
+            updated[existingLineIdx].quantity = Number(updated[existingLineIdx].quantity) + 1;
+            setLines(updated);
+            toast.success(`Cantidad incrementada para ${product.name}`, { id: toastId });
+          } else {
+            const firstEmptyIdx = lines.findIndex(l => !l.productId);
+            const updated = [...lines];
+            const newLine = {
+              productId: product.id,
+              productName: product.name,
+              quantity: 1,
+              discount: 0,
+              taxRate: 0.18,
+              unitOfMeasure: product.unitOfMeasure || 'unidad',
+              barcode: product.barcode || '',
+              priceTier: 'consumidor',
+              unitPrice: parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0,
+              imageUrl: product.imageUrl || ''
+            };
+            
+            if (firstEmptyIdx >= 0) {
+              updated[firstEmptyIdx] = newLine;
+            } else {
+              updated.push(newLine);
+            }
+            setLines(updated);
+            toast.success(`${product.name} agregado a la factura`, { id: toastId });
+          }
+        } else {
+          toast.error(`Producto con código "${barcode}" no encontrado`, { id: toastId });
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al procesar el código de barras escaneado', { id: toastId });
+      }
+    }
+  });
   const activeSequences = sequences.filter((s: any) => s.status === 'active');
 
   // Form reference data states

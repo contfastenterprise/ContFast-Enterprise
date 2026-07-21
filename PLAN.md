@@ -513,5 +513,13 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Carga de Formulario (Frontend)**: Se actualizó `startEditExpense` en `src/app/dashboard/purchases/page.tsx` para rellenar de forma reactiva la sección del formulario de cheques en garantía cuando se carga la compra a editar.
 - **Sincronización en Transacción (Backend/PUT)**: Se integró en la operación transaccional PUT la actualización o creación/remoción dinámica de los registros vinculados en `accounts_payable`, `checks` y `ap_payments`, garantizando consistencia referencial y contable.
 
-* * Verified & Polished * *
+### 70. Módulo de Códigos de Barras y Lectura por Escáner Físico
+- **Estructura de Base de Datos y Repositorio**: Definición de las tablas `product_barcodes` y `barcode_print_logs` en el esquema Drizzle con migración exitosa en Postgres. El repositorio `ProductRepository` permite la resolución ágil de productos a partir de códigos primarios o secundarios, y soporta el cálculo secuencial de códigos automáticos por empresa.
+- **Configuración Global y Vista Previa de Códigos**: Incorporación de configuraciones a nivel de empresa para tipo predeterminado (Code 128, EAN-13, EAN-8, UPC-A, QR Code), prefijo y longitud. Vista previa interactiva en tiempo real usando el componente `<BarcodeRenderer>` en el formulario de creación/edición.
+- **Impresión de Etiquetas Personalizada**: Diálogo avanzado de impresión en masa o individual con soporte para tamaños estándar y personalizados (30x20, 50x25, 50x30, 60x40 mm), y visibilidad configurable de campos (marca, nombre, precio, SKU, código de barras y QR) con diseño optimizado para `@media print` en rollo físico.
+- **Hook de Escaneo Global de Hardware**: Creación del hook `useBarcodeScanner` que detecta la velocidad de entrada rápida del teclado (indicativo de un escáner láser físico) para interceptar y procesar lecturas automáticamente en Invoices, Purchases, Inventory Adjustments e Inventory Transfers, agregando ítems o incrementando cantidades sin botones adicionales.
 
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *  
+* * Verified & Polished * *

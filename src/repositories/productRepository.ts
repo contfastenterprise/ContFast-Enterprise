@@ -1,5 +1,5 @@
-import { db, products } from '@/db';
-import { eq, and, isNull, desc, count, or, ilike } from 'drizzle-orm';
+import { db, products, productBarcodes, barcodePrintLogs, companySettings } from '@/db';
+import { eq, and, isNull, desc, count, or, ilike, inArray } from 'drizzle-orm';
 
 export interface CreateProductInput {
   companyId: string;
@@ -16,6 +16,7 @@ export interface CreateProductInput {
   imageUrl?: string | null;
   barcode?: string | null;
   status?: string;
+  secondaryBarcodes?: { barcode: string; barcodeType: string }[];
 }
 
 export interface UpdateProductInput {
@@ -99,6 +100,19 @@ export class ProductRepository {
         status: data.status || 'active',
       })
       .returning();
+
+    if (product && data.secondaryBarcodes && data.secondaryBarcodes.length > 0) {
+      await db.insert(productBarcodes).values(
+        data.secondaryBarcodes.map((b) => ({
+          companyId: data.companyId,
+          productId: product.id,
+          barcode: b.barcode,
+          barcodeType: b.barcodeType,
+          isPrimary: false,
+        }))
+      );
+    }
+
     return product;
   }
 
@@ -112,12 +126,32 @@ export class ProductRepository {
   }
 
   static async getByBarcode(barcode: string, companyId: string) {
+    // 1. Search in products table first (primary barcode)
     const [product] = await db
       .select()
       .from(products)
       .where(and(eq(products.barcode, barcode), eq(products.companyId, companyId), isNull(products.deletedAt)))
       .limit(1);
-    return product || null;
+    
+    if (product) return product;
+
+    // 2. If not found, search in product_barcodes (secondary barcodes)
+    const [secBarcode] = await db
+      .select({ productId: productBarcodes.productId })
+      .from(productBarcodes)
+      .where(and(eq(productBarcodes.barcode, barcode), eq(productBarcodes.companyId, companyId)))
+      .limit(1);
+
+    if (secBarcode) {
+      const [prod] = await db
+        .select()
+        .from(products)
+        .where(and(eq(products.id, secBarcode.productId), eq(products.companyId, companyId), isNull(products.deletedAt)))
+        .limit(1);
+      return prod || null;
+    }
+
+    return null;
   }
 
   static async list(companyId: string, page = 1, perPage = 20, search?: string, categoryId?: string) {
@@ -126,13 +160,27 @@ export class ProductRepository {
     let searchFilter = and(eq(products.companyId, companyId), isNull(products.deletedAt));
 
     if (search) {
+      // Find matching secondary barcodes to include their products
+      const matchedBarcodes = await db
+        .select({ productId: productBarcodes.productId })
+        .from(productBarcodes)
+        .where(and(eq(productBarcodes.companyId, companyId), ilike(productBarcodes.barcode, `%${search}%`)));
+
+      const barcodeProductIds = matchedBarcodes.map(b => b.productId);
+
+      const orConditions = [
+        ilike(products.name, `%${search}%`),
+        ilike(products.sku, `%${search}%`),
+        ilike(products.barcode, `%${search}%`)
+      ];
+
+      if (barcodeProductIds.length > 0) {
+        orConditions.push(inArray(products.id, barcodeProductIds));
+      }
+
       searchFilter = and(
         searchFilter,
-        or(
-          ilike(products.name, `%${search}%`),
-          ilike(products.sku, `%${search}%`),
-          ilike(products.barcode, `%${search}%`)
-        )
+        or(...orConditions)
       );
     }
 
@@ -164,6 +212,130 @@ export class ProductRepository {
         total_pages: Math.ceil(total / perPage),
       },
     };
+  }
+
+  static async getBarcodesByProductId(productId: string, companyId: string) {
+    return await db
+      .select()
+      .from(productBarcodes)
+      .where(and(eq(productBarcodes.productId, productId), eq(productBarcodes.companyId, companyId)))
+      .orderBy(desc(productBarcodes.createdAt));
+  }
+
+  static async addBarcode(productId: string, companyId: string, barcode: string, barcodeType: string, isPrimary = false) {
+    // Check duplicate in products
+    const [existingProduct] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.barcode, barcode), eq(products.companyId, companyId), isNull(products.deletedAt)))
+      .limit(1);
+
+    // Check duplicate in productBarcodes
+    const [existingSecBarcode] = await db
+      .select({ id: productBarcodes.id })
+      .from(productBarcodes)
+      .where(and(eq(productBarcodes.barcode, barcode), eq(productBarcodes.companyId, companyId)))
+      .limit(1);
+
+    if (existingProduct || existingSecBarcode) {
+      throw new Error('El código de barras ya existe en el sistema.');
+    }
+
+    const [newBarcode] = await db
+      .insert(productBarcodes)
+      .values({
+        productId,
+        companyId,
+        barcode,
+        barcodeType,
+        isPrimary
+      })
+      .returning();
+    
+    return newBarcode;
+  }
+
+  static async removeBarcode(barcodeId: string, companyId: string) {
+    const [deleted] = await db
+      .delete(productBarcodes)
+      .where(and(eq(productBarcodes.id, barcodeId), eq(productBarcodes.companyId, companyId)))
+      .returning();
+    return deleted || null;
+  }
+
+  static async logBarcodePrint(productId: string, companyId: string, userId: string, quantity: number) {
+    const [log] = await db
+      .insert(barcodePrintLogs)
+      .values({
+        productId,
+        companyId,
+        userId,
+        quantity
+      })
+      .returning();
+    return log;
+  }
+
+  static async getBarcodePrintLogs(companyId: string, page = 1, perPage = 20) {
+    const offset = (page - 1) * perPage;
+    return await db
+      .select({
+        id: barcodePrintLogs.id,
+        productId: barcodePrintLogs.productId,
+        productName: products.name,
+        quantity: barcodePrintLogs.quantity,
+        createdAt: barcodePrintLogs.createdAt,
+      })
+      .from(barcodePrintLogs)
+      .innerJoin(products, eq(barcodePrintLogs.productId, products.id))
+      .where(eq(barcodePrintLogs.companyId, companyId))
+      .orderBy(desc(barcodePrintLogs.createdAt))
+      .limit(perPage)
+      .offset(offset);
+  }
+
+  static async getNextBarcode(companyId: string) {
+    const [settings] = await db
+      .select({
+        prefix: companySettings.barcodePrefix,
+        length: companySettings.barcodeLength,
+      })
+      .from(companySettings)
+      .where(eq(companySettings.companyId, companyId))
+      .limit(1);
+
+    const prefix = settings?.prefix || 'COD';
+    const length = settings?.length || 9;
+
+    const allBarcodes = await db
+      .select({ barcode: products.barcode })
+      .from(products)
+      .where(and(eq(products.companyId, companyId), ilike(products.barcode, `${prefix}-%`), isNull(products.deletedAt)));
+
+    const secBarcodes = await db
+      .select({ barcode: productBarcodes.barcode })
+      .from(productBarcodes)
+      .where(and(eq(productBarcodes.companyId, companyId), ilike(productBarcodes.barcode, `${prefix}-%`)));
+
+    const barcodes = [...allBarcodes.map(b => b.barcode), ...secBarcodes.map(b => b.barcode)];
+
+    let maxNum = 0;
+    const regex = new RegExp(`^${prefix}-(\\d+)$`);
+    for (const code of barcodes) {
+      if (code) {
+        const match = code.match(regex);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    }
+
+    const nextNum = maxNum + 1;
+    const nextBarcode = `${prefix}-${String(nextNum).padStart(length, '0')}`;
+    return nextBarcode;
   }
 
   static async update(id: string, companyId: string, data: UpdateProductInput) {

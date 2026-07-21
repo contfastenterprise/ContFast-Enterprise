@@ -22,6 +22,10 @@ const createProductSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   barcode: z.string().max(100).nullable().optional(),
   status: z.string().max(50).default('active'),
+  secondaryBarcodes: z.array(z.object({
+    barcode: z.string().min(1),
+    barcodeType: z.string()
+  })).optional()
 });
 
 export async function GET(req: NextRequest) {

@@ -23,7 +23,10 @@ const settingsSchema = z.object({
   msellerEntorno: z.enum(['test', 'production']).optional(),
   msellerEmail: z.string().email().optional().or(z.literal('')),
   msellerApiKey: z.string().optional(),
-  msellerPassword: z.string().optional()
+  msellerPassword: z.string().optional(),
+  barcodeDefaultType: z.string().default('code128').optional(),
+  barcodePrefix: z.string().default('COD').optional(),
+  barcodeLength: z.number().int().min(1).default(9).optional()
 });
 
 export async function GET(req: NextRequest) {
@@ -53,7 +56,10 @@ export async function GET(req: NextRequest) {
       msellerEntorno: companySettings.msellerEntorno,
       msellerEmail: companySettings.msellerEmail,
       hasMsellerApiKey: companySettings.msellerApiKeyEncrypted,
-      hasMsellerPassword: companySettings.msellerPasswordEncrypted
+      hasMsellerPassword: companySettings.msellerPasswordEncrypted,
+      barcodeDefaultType: companySettings.barcodeDefaultType,
+      barcodePrefix: companySettings.barcodePrefix,
+      barcodeLength: companySettings.barcodeLength
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
 
     // Fetch active subscription for the company
@@ -134,7 +140,10 @@ export async function PATCH(req: NextRequest) {
       msellerEntorno, 
       msellerEmail, 
       msellerApiKey, 
-      msellerPassword 
+      msellerPassword,
+      barcodeDefaultType,
+      barcodePrefix,
+      barcodeLength
     } = parsed.data;
 
     // Obtener estado actual
@@ -219,7 +228,6 @@ export async function PATCH(req: NextRequest) {
           .where(eq(companies.id, session.companyId));
       }
 
-      // Update Settings
       const settingsUpdate: any = {
         logoUrl,
         dgiiEnv,
@@ -228,6 +236,9 @@ export async function PATCH(req: NextRequest) {
         autoDeliveryNotes,
         maxCreditNoteApprovalAmount: maxCreditNoteApprovalAmount.toString(),
         maxCashOutApprovalAmount: maxCashOutApprovalAmount.toString(),
+        barcodeDefaultType,
+        barcodePrefix,
+        barcodeLength,
         updatedAt: new Date()
       };
 

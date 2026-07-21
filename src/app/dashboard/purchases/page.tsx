@@ -14,6 +14,7 @@ import InvoiceImageUploader from '@/components/InvoiceImageUploader';
 import { OcrInvoiceData } from '@/utils/ocrParser';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
+import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -103,6 +104,72 @@ export default function PurchasesPage() {
   const [debitAccountId, setDebitAccountId] = useState('');
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [noItbis, setNoItbis] = useState(false);
+
+  useBarcodeScanner({
+    enabled: activeTab === 'nuevo',
+    onScan: async (barcode) => {
+      const toastId = toast.loading(`Buscando producto escaneado: ${barcode}...`);
+      try {
+        const res = await fetch(`/api/v1/products?barcode=${encodeURIComponent(barcode)}`);
+        const data = await res.json();
+        if (data.success && data.data && data.data.length > 0) {
+          const product = data.data[0];
+
+          setProducts(prev => {
+            if (!prev.some(p => p.id === product.id)) return [...prev, product];
+            return prev;
+          });
+
+          const existingLineIdx = lines.findIndex(l => l.productId === product.id);
+          if (existingLineIdx >= 0) {
+            const updated = [...lines];
+            const qty = Number(updated[existingLineIdx].quantity) + 1;
+            updated[existingLineIdx].quantity = qty;
+            updated[existingLineIdx].subtotal = roundMoney(qty * updated[existingLineIdx].unitCost);
+            if (noItbis) {
+              updated[existingLineIdx].itbis = 0;
+            } else {
+              updated[existingLineIdx].itbis = roundMoney(updated[existingLineIdx].subtotal * 0.18);
+            }
+            updated[existingLineIdx].total = roundMoney(updated[existingLineIdx].subtotal + updated[existingLineIdx].itbis);
+            setLines(updated);
+            toast.success(`Cantidad incrementada para ${product.name}`, { id: toastId });
+          } else {
+            const firstEmptyIdx = lines.findIndex(l => !l.productId);
+            const updated = [...lines];
+            
+            const subtotal = roundMoney(1 * (parseFloat(product.cost) || 0));
+            const itbis = noItbis ? 0 : roundMoney(subtotal * 0.18);
+            const total = roundMoney(subtotal + itbis);
+            
+            const newLine = {
+              id: Math.random().toString(),
+              productId: product.id,
+              desc: product.name,
+              quantity: 1,
+              unitCost: parseFloat(product.cost) || 0,
+              subtotal,
+              itbis,
+              total
+            };
+
+            if (firstEmptyIdx >= 0) {
+              updated[firstEmptyIdx] = newLine;
+            } else {
+              updated.push(newLine);
+            }
+            setLines(updated);
+            toast.success(`${product.name} agregado a la compra`, { id: toastId });
+          }
+        } else {
+          toast.error(`Producto con código "${barcode}" no encontrado`, { id: toastId });
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al procesar el código de barras escaneado', { id: toastId });
+      }
+    }
+  });
 
   const handleOcrComplete = (data: OcrInvoiceData) => {
     setIsMinorExpense(false);
