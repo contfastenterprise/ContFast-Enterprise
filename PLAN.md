@@ -534,6 +534,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Selector de Formato e Indicador de Falta de Datos**: Integración de una opción interactiva de 'Formato de Código' (Code 128, EAN-13, EAN-8, UPC-A, QR Code) dentro del configurador de etiquetas. En caso de que el producto no posea un código asignado, se despliega una advertencia visual `[ Sin código asignado ]` en la vista previa del sticker para guiar al usuario.
 
+- **Corrección Definitiva de Selectores de Impresión**: Se reemplazó el selector de ocultamiento global `body *` por `body > *:not(.print-area)` en los bloques de estilos de impresión. Esto soluciona de forma definitiva el error por el cual las hojas salían en blanco, asegurando que los elementos internos del sticker (códigos de barra SVG, canvas de QR, textos y precios) no sufran ocultación en cascada por parte del navegador.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
