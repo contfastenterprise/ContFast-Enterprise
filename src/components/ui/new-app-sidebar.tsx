@@ -289,18 +289,25 @@ function SidebarContent({
 
   const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '').map(g => {
     const items: { name: string; href: string; icon: any }[] = [];
+    const seenHrefs = new Set<string>();
     g.items.forEach(item => {
+      if (seenHrefs.has(item.href)) return;
+      seenHrefs.add(item.href);
       items.push({
         name: item.name,
         href: item.href,
         icon: getIconComponent(item.iconName),
       });
       if (item.name === 'Productos') {
-        items.push({
-          name: 'Barcode',
-          href: '/dashboard/products/barcodes',
-          icon: getIconComponent('Barcode'),
-        });
+        const barcodeHref = '/dashboard/products/barcodes';
+        if (!seenHrefs.has(barcodeHref)) {
+          seenHrefs.add(barcodeHref);
+          items.push({
+            name: 'Barcode',
+            href: barcodeHref,
+            icon: getIconComponent('Barcode'),
+          });
+        }
       }
     });
     return {

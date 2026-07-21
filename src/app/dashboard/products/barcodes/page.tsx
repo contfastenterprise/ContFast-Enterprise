@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Search, RefreshCw, Printer, Plus, Check, X,
-  Layers, Package, AlertCircle, Edit2, Save
+  Layers, Package, AlertCircle, Edit2, Save,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -412,23 +413,44 @@ export default function BarcodeDashboardPage() {
         {/* Pagination controls */}
         {totalPages > 1 && (
           <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200">
-            <button
-              onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors disabled:opacity-40"
-            >
-              Anterior
-            </button>
-            <span className="text-xs text-slate-500 font-medium">
-              Página {page} de {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={page === totalPages}
-              className="px-3.5 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors disabled:opacity-40"
-            >
-              Siguiente
-            </button>
+            <div className="text-xs text-slate-500 font-medium">
+              Mostrando página <span className="text-[#003366] font-bold">{page}</span> de <span className="text-[#003366] font-bold">{totalPages}</span>
+              {' '}({filterType === 'all' ? totalCount : filterType === 'with_code' ? withCodeCount : withoutCodeCount} registros en total)
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage(1)} disabled={page === 1}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="flex gap-1 mx-2">
+                <button className="w-8 h-8 rounded-lg bg-[#C5A059] text-slate-950 font-bold text-xs flex items-center justify-center">
+                  {page}
+                </button>
+              </div>
+
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setPage(totalPages)} disabled={page >= totalPages}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
