@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle } from 'lucide-react';
+import { FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { SearchBar } from '@/components/ui/search-bar';
 
 interface OrderLine {
   id?: string;
@@ -55,7 +53,7 @@ export default function SupplierOrdersPage() {
     'Este pedido está sujeto a disponibilidad y tiempos de producción.\nConfirmar cantidades y fecha de entrega.\nCualquier cambio debe ser notificado por escrito.'
   );
   const [lines, setLines] = useState<OrderLine[]>([
-    { modelo: 'Deluxe', medida: '105 x 210', colorAcabado: 'Blanco', linea: 'Deluxe', numHuecosCerradura: '2H', cantidad: 1, observaciones: '' }
+    { modelo: 'Deluxe', medida: '105 x 210', colorAcabado: 'Blanco', linea: 'Deluxe', numHuecosCerradura: '2H', cantidad: 10, observaciones: 'Mandar a ser' }
   ]);
 
   useEffect(() => {
@@ -66,7 +64,7 @@ export default function SupplierOrdersPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const url = `/api/v1/supplier-orders?limit=50${statusFilter ? `&status=${statusFilter}` : ''}`;
+      const url = `/api/v1/supplier-orders?limit=100${statusFilter ? `&status=${statusFilter}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
@@ -129,6 +127,12 @@ export default function SupplierOrdersPage() {
 
   const handlePrint = (id: string) => {
     window.open(`/api/v1/supplier-orders/${id}/pdf`, '_blank');
+  };
+
+  const handlePrintAll = () => {
+    const queryParams = new URLSearchParams();
+    if (statusFilter) queryParams.append('status', statusFilter);
+    window.open(`/api/v1/supplier-orders/report?${queryParams.toString()}`, '_blank');
   };
 
   const handleAddLine = () => {
@@ -228,28 +232,36 @@ export default function SupplierOrdersPage() {
             Gestión y control de pedidos de producción y puertas.
           </p>
         </div>
-        <Button onClick={openNewModal} size="lg" className="shadow-lg hover:shadow-xl transition-all gap-2">
-          <Plus className="h-5 w-5" /> Nuevo Pedido
-        </Button>
+        <button
+          onClick={openNewModal}
+          className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center gap-2 border border-[#005E63] shadow-md cursor-pointer"
+        >
+          <Plus className="h-4 w-4" />
+          NUEVO PEDIDO
+        </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar por número de pedido o suplidor..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border-0 rounded-xl focus:ring-2 focus:ring-primary text-sm outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
-          />
+      <div className="flex flex-wrap gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex-1 min-w-[240px] w-full">
+          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Buscar Suplidor / No. Pedido</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Ej: LD-2026 o Nombre"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary text-xs outline-none text-slate-900 dark:text-white placeholder:text-slate-400 h-[38px]"
+            />
+          </div>
         </div>
         <div className="w-full md:w-48">
+          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Filtrar por Estado</label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border-0 rounded-xl focus:ring-2 focus:ring-primary text-sm outline-none text-slate-900 dark:text-white"
+            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary text-xs outline-none text-slate-900 dark:text-white h-[38px]"
           >
             <option value="">Todos los Estados</option>
             <option value="pending">Pendiente</option>
@@ -258,62 +270,99 @@ export default function SupplierOrdersPage() {
             <option value="cancelled">Cancelado</option>
           </select>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => { setSearch(''); setStatusFilter(''); }} className="shrink-0">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <button
+          onClick={fetchOrders}
+          className="w-full md:w-auto bg-slate-100 text-[#003366] px-6 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-[38px] flex items-center justify-center gap-2 border border-slate-300 cursor-pointer"
+        >
+          <Filter className="h-4 w-4" />
+          FILTRAR
+        </button>
+        {filteredOrders.length > 0 && (
+          <button
+            type="button"
+            onClick={handlePrintAll}
+            className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Printer className="h-4 w-4" />
+            REPORTE PDF
+          </button>
+        )}
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
         {loading ? (
-          <div className="p-16 text-center text-slate-500">Cargando pedidos...</div>
+          <div className="p-16 text-center text-slate-500">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+              <span className="text-on-surface-variant/80 text-sm font-medium">Cargando pedidos...</span>
+            </div>
+          </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="p-16 text-center text-slate-500">No se encontraron pedidos.</div>
+          <div className="p-16 text-center text-slate-500 text-sm">No se encontraron pedidos.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-500 text-xs font-semibold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-950/50">
-                  <th className="py-4 px-6">No. Pedido</th>
-                  <th className="py-4 px-6">Fecha</th>
-                  <th className="py-4 px-6">Suplidor / Proveedor</th>
-                  <th className="py-4 px-6">Realizado Por</th>
-                  <th className="py-4 px-6 text-center">Estado</th>
-                  <th className="py-4 px-6 text-right">Acciones</th>
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/80 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">No. Pedido</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Suplidor / Proveedor</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Realizado Por</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              <tbody className="divide-y divide-outline-variant/20/80">
                 {filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-900 dark:text-white">{order.orderNumber}</td>
-                    <td className="py-4 px-6 text-slate-500">{new Date(order.orderDate).toLocaleDateString('es-DO')}</td>
-                    <td className="py-4 px-6 font-medium text-slate-800 dark:text-slate-200">
-                      <div>{order.supplierName}</div>
-                      {order.supplierRnc && <div className="text-xs font-mono text-slate-400 mt-0.5">RNC: {order.supplierRnc}</div>}
+                  <tr key={order.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                    <td className="px-4 py-2 align-middle">
+                      <span className="font-mono text-xs text-slate-700 whitespace-nowrap">
+                        {new Date(order.orderDate).toLocaleDateString('es-DO')}
+                      </span>
                     </td>
-                    <td className="py-4 px-6 text-slate-600 dark:text-slate-400">{order.userName}</td>
-                    <td className="py-4 px-6 text-center">
-                      <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold ${
-                        order.status === 'completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' :
-                        order.status === 'sent' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400' :
-                        order.status === 'cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400' :
-                        'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                    <td className="px-4 py-2 align-middle">
+                      <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors text-xs">
+                        {order.orderNumber}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 align-middle">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-[#003366] block truncate max-w-[150px] md:max-w-xs text-xs">
+                          {order.supplierName}
+                        </span>
+                        {order.supplierRnc && (
+                          <span className="text-[10px] text-on-surface-variant/70 font-mono block whitespace-nowrap">
+                            RNC: {order.supplierRnc}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 align-middle text-slate-600 dark:text-slate-400 text-xs">
+                      {order.userName}
+                    </td>
+                    <td className="px-4 py-2 align-middle text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${
+                        order.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        order.status === 'sent' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        order.status === 'cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                        'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {order.status === 'completed' ? 'Completado' :
                          order.status === 'sent' ? 'Enviado' :
                          order.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-right space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => handlePrint(order.id)} className="h-8 w-8 text-primary border-primary/20 bg-primary/5 hover:bg-primary/10">
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => openEditModal(order.id)} className="h-8 w-8">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleDelete(order.id, order.orderNumber)} className="h-8 w-8 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <td className="px-4 py-2 align-middle text-right space-x-1.5 whitespace-nowrap">
+                      <button onClick={() => handlePrint(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] transition-colors cursor-pointer" title="Imprimir PDF">
+                        <Printer className="h-4 w-4 inline" />
+                      </button>
+                      <button onClick={() => openEditModal(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#C5A059] transition-colors cursor-pointer" title="Editar">
+                        <Edit2 className="h-4 w-4 inline" />
+                      </button>
+                      <button onClick={() => handleDelete(order.id, order.orderNumber)} className="p-1 text-xs text-slate-400 hover:text-rose-600 transition-colors cursor-pointer" title="Eliminar">
+                        <Trash2 className="h-4 w-4 inline" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -331,29 +380,29 @@ export default function SupplierOrdersPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+              className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800">
-                <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileText className="h-6 w-6 text-primary" />
+              <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50">
+                <h2 className="text-lg font-black text-[#003366] flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-[#005E63]" />
                   {editId ? `Editar Pedido: ${editId.substring(0, 8)}` : 'Nuevo Pedido a Suplidor'}
                 </h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowModal(false)}>
+                <button onClick={() => setShowModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                   <X className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</label>
+                    <label className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Suplidor / Proveedor</label>
                     <select
                       value={supplierId}
                       onChange={e => setSupplierId(e.target.value)}
                       required
-                      className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-slate-900 dark:text-white"
+                      className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
                     >
                       <option value="">Seleccione un suplidor...</option>
                       {suppliers.map(s => (
@@ -366,21 +415,25 @@ export default function SupplierOrdersPage() {
                 {/* Door specs lines */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Detalle del Pedido (Puertas)</h3>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddLine} className="gap-1.5">
-                      <Plus className="h-4 w-4" /> Agregar Línea
-                    </Button>
+                    <h3 className="text-xs font-bold text-[#003366] uppercase tracking-wider">Detalle del Pedido (Puertas)</h3>
+                    <button
+                      type="button"
+                      onClick={handleAddLine}
+                      className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Agregar Línea
+                    </button>
                   </div>
 
-                  <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-slate-950/20">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-950/80 text-left text-xs font-bold text-slate-500 uppercase">
+                        <tr className="bg-slate-50/80 border-b border-slate-200 text-left text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
                           <th className="p-3 w-[15%]">Modelo</th>
                           <th className="p-3 w-[12%]">Medida (cm)</th>
                           <th className="p-3 w-[15%]">Color/Acabado</th>
                           <th className="p-3 w-[12%]">Línea</th>
-                          <th className="p-3 w-[12%]">Huecos Cerradura</th>
+                          <th className="p-3 w-[15%]">Huecos Cerradura</th>
                           <th className="p-3 w-[10%] text-center">Cant.</th>
                           <th className="p-3 w-[20%]">Observaciones</th>
                           <th className="p-3 w-[4%] text-center"></th>
@@ -388,7 +441,7 @@ export default function SupplierOrdersPage() {
                       </thead>
                       <tbody>
                         {lines.map((line, index) => (
-                          <tr key={index} className="border-t border-slate-100 dark:border-slate-800 text-sm">
+                          <tr key={index} className="border-t border-slate-200 dark:border-slate-850 text-xs">
                             <td className="p-2">
                               <input
                                 type="text"
@@ -396,7 +449,7 @@ export default function SupplierOrdersPage() {
                                 onChange={e => handleLineChange(index, 'modelo', e.target.value)}
                                 placeholder="Deluxe"
                                 required
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               />
                             </td>
                             <td className="p-2">
@@ -406,7 +459,7 @@ export default function SupplierOrdersPage() {
                                 onChange={e => handleLineChange(index, 'medida', e.target.value)}
                                 placeholder="105 x 210"
                                 required
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               />
                             </td>
                             <td className="p-2">
@@ -416,7 +469,7 @@ export default function SupplierOrdersPage() {
                                 onChange={e => handleLineChange(index, 'colorAcabado', e.target.value)}
                                 placeholder="Blanco"
                                 required
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               />
                             </td>
                             <td className="p-2">
@@ -425,14 +478,14 @@ export default function SupplierOrdersPage() {
                                 value={line.linea}
                                 onChange={e => handleLineChange(index, 'linea', e.target.value)}
                                 placeholder="Deluxe"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               />
                             </td>
                             <td className="p-2">
                               <select
                                 value={line.numHuecosCerradura}
                                 onChange={e => handleLineChange(index, 'numHuecosCerradura', e.target.value)}
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               >
                                 <option value="2H">2H (2 huecos)</option>
                                 <option value="1H">1H (1 hueco)</option>
@@ -446,7 +499,7 @@ export default function SupplierOrdersPage() {
                                 min="1"
                                 onChange={e => handleLineChange(index, 'cantidad', parseInt(e.target.value) || 1)}
                                 required
-                                className="w-full text-center px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white font-bold"
+                                className="w-full text-center px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 font-bold"
                               />
                             </td>
                             <td className="p-2">
@@ -455,13 +508,13 @@ export default function SupplierOrdersPage() {
                                 value={line.observaciones}
                                 onChange={e => handleLineChange(index, 'observaciones', e.target.value)}
                                 placeholder="Notas específicas"
-                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 dark:text-white"
+                                className="w-full px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900"
                               />
                             </td>
                             <td className="p-2 text-center">
-                              <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveLine(index)} className="h-8 w-8 text-rose-500 hover:bg-rose-50">
+                              <button type="button" onClick={() => handleRemoveLine(index)} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
                                 <X className="h-4 w-4" />
-                              </Button>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -473,35 +526,43 @@ export default function SupplierOrdersPage() {
                 {/* Bottom details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observaciones Generales</label>
+                    <label className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Observaciones Generales</label>
                     <textarea
                       value={observations}
                       onChange={e => setObservations(e.target.value)}
                       rows={4}
                       placeholder="Indique especificaciones adicionales o detalles..."
-                      className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-slate-900 dark:text-white resize-none"
+                      className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 resize-none"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Condiciones Generales</label>
+                    <label className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Condiciones Generales</label>
                     <textarea
                       value={generalConditions}
                       onChange={e => setGeneralConditions(e.target.value)}
                       rows={4}
                       placeholder="Términos y condiciones del pedido..."
-                      className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none text-slate-900 dark:text-white resize-none"
+                      className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-900 resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-6 py-2 rounded-lg border border-slate-350 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer h-[38px] flex items-center justify-center text-xs"
+                  >
                     Cancelar
-                  </Button>
-                  <Button type="submit" disabled={submitting}>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-[#005E63] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  >
                     {submitting ? 'Guardando...' : 'Guardar Pedido'}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </motion.div>

@@ -3738,6 +3738,94 @@ export class DocumentTemplates {
       </html>
     `;
   }
+
+  static renderSupplierOrderListReport(data: any): string {
+    const { company, items, filters } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
+      : '';
+
+    const companyTitleHtml = logoHtml
+      ? ''
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
+
+    const linesHtml = items.map((item: any, idx: number) => {
+      const statusLabel = item.status === 'completed' ? 'Completado' :
+                          item.status === 'sent' ? 'Enviado' :
+                          item.status === 'cancelled' ? 'Cancelado' : 'Pendiente';
+      return `
+        <tr>
+          <td class="text-center">${idx + 1}</td>
+          <td class="font-mono text-center"><strong>${item.orderNumber}</strong></td>
+          <td class="text-center">${new Date(item.orderDate).toLocaleDateString('es-DO')}</td>
+          <td>
+            <strong>${item.supplierName}</strong>${item.supplierRnc ? ` (${item.supplierRnc})` : ''}
+          </td>
+          <td>${item.userName}</td>
+          <td class="text-center">${statusLabel}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Pedidos a Suplidores</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-bold { font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 5px 8px !important; 
+            font-size: 8pt !important; 
+            border-bottom: 1px solid #e2e8f0;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 8.5pt !important; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            <div>Dirección: ${company.address}</div>
+          </div>
+          <div class="doc-info">
+            <div class="subtitle">Reporte de Pedidos a Suplidores</div>
+            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Total Pedidos: ${items.length}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 15%;">No. Pedido</th>
+              <th style="width: 15%;">Fecha</th>
+              <th style="width: 35%;">Suplidor</th>
+              <th style="width: 15%;">Creado Por</th>
+              <th style="width: 15%;" class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.length === 0 ? '<tr><td colspan="6" class="text-center" style="padding: 20px !important;">No existen pedidos registrados.</td></tr>' : linesHtml}
+          </tbody>
+        </table>
+
+        <div class="footer" style="margin-top: 50px;">
+          Reporte de Pedidos a Suplidores - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
 
 
