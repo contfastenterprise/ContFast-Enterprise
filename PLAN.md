@@ -530,6 +530,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Iconografía Oficial de Código de Barras**: Se registró el icono de tipo **Barcode** de Lucide en la colección de componentes de seguridad RBAC (`src/utils/rbacHelpers.ts`), enlazándose dinámicamente con el menú lateral.
 
+- **Impresión Avanzada por Cantidad y Selección**: Incorporación del diálogo avanzado de impresión en la página de gestión unificada. Permite seleccionar uno o múltiples productos mediante checkboxes y definir la cantidad exacta de etiquetas a imprimir para cada ítem, con soporte para tamaños de etiqueta estándar y personalizados.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
