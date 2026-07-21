@@ -981,10 +981,10 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
-              <div className="flex justify-between items-center p-6 border-b border-[#003366] bg-[#001733]">
-                <h2 className="text-xl font-bold text-white font-display">
+              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
+                <h2 className="text-lg font-bold text-white font-display">
                   {editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
@@ -992,40 +992,40 @@ export default function ProductsPage() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#001e40]">Código SKU <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
+              <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Código SKU <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
                     <input
                       type="text"
                       value={formData.sku}
                       onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                       placeholder="PROD-001"
                     />
                   </div>
 
-                  <div className="space-y-3 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-semibold text-[#001e40]">Código de Barra Principal</label>
+                      <label className="text-xs font-semibold text-[#001e40]">Código de Barra Principal</label>
                       <button
                         type="button"
                         onClick={handleGenerateBarcode}
                         disabled={generatingBarcode}
-                        className="text-xs flex items-center gap-1 bg-[#003366] text-white px-2.5 py-1 rounded-md font-bold hover:bg-[#002244] transition-colors disabled:opacity-50"
+                        className="text-[11px] flex items-center gap-1 bg-[#003366] text-white px-2 py-1 rounded-md font-bold hover:bg-[#002244] transition-colors disabled:opacity-50"
                       >
                         {generatingBarcode ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                         Generar Automático
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <input
                           type="text"
                           value={formData.barcode}
                           onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                           placeholder="Ingresa código o genera uno"
                         />
                       </div>
@@ -1034,7 +1034,7 @@ export default function ProductsPage() {
                         <select
                           value={barcodeType}
                           onChange={(e) => setBarcodeType(e.target.value)}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         >
                           <option value="code128">Code 128 (Estándar)</option>
                           <option value="ean13">EAN-13 (Productos internacionales)</option>
@@ -1046,15 +1046,15 @@ export default function ProductsPage() {
                     </div>
 
                     {formData.barcode && (
-                      <div className="mt-3 flex justify-center border-t border-slate-200/60 pt-3">
-                        <div className="flex flex-col items-center gap-1 bg-white p-2.5 rounded-lg border border-slate-100 shadow-inner">
-                          <p className="text-[10px] uppercase font-bold text-slate-400">Vista Previa del Código</p>
-                          <BarcodeRenderer value={formData.barcode} type={barcodeType} height={35} />
+                      <div className="mt-2 flex justify-center border-t border-slate-200/60 pt-2">
+                        <div className="flex flex-col items-center gap-1 bg-white p-1.5 rounded-lg border border-slate-100 shadow-inner">
+                          <p className="text-[9px] uppercase font-bold text-slate-400">Vista Previa del Código</p>
+                          <BarcodeRenderer value={formData.barcode} type={barcodeType} height={30} />
                         </div>
                       </div>
                     )}
 
-                    <div className="border-t border-slate-200/60 pt-3 mt-2">
+                    <div className="border-t border-slate-200/60 pt-2 mt-1">
                       <button
                         type="button"
                         onClick={() => setShowSecondarySection(!showSecondarySection)}
@@ -1066,7 +1066,7 @@ export default function ProductsPage() {
                       </button>
 
                       {showSecondarySection && (
-                        <div className="mt-3 space-y-3 pl-2 border-l-2 border-[#c5a059] bg-slate-50/50 p-3 rounded-r-lg">
+                        <div className="mt-2 space-y-2 pl-2 border-l-2 border-[#c5a059] bg-slate-50/50 p-2 rounded-r-lg">
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -1096,12 +1096,12 @@ export default function ProductsPage() {
                           </div>
 
                           {secondaryBarcodes.length > 0 && (
-                            <div className="max-h-36 overflow-y-auto space-y-2 mt-2">
+                            <div className="max-h-24 overflow-y-auto space-y-1.5 mt-1.5">
                               {secondaryBarcodes.map((b, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                                <div key={idx} className="flex justify-between items-center bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm">
                                   <div className="flex flex-col">
                                     <span className="text-xs font-mono font-bold text-slate-700">{b.barcode}</span>
-                                    <span className="text-[9px] uppercase font-bold text-slate-400">{b.barcodeType}</span>
+                                    <span className="text-[8px] uppercase font-bold text-slate-400">{b.barcodeType}</span>
                                   </div>
                                   <button
                                     type="button"
@@ -1119,21 +1119,21 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 col-span-1 md:col-span-2">
-                    <label className="text-sm font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
+                  <div className="space-y-1 col-span-1 md:col-span-2">
+                    <label className="text-xs font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="flex justify-between items-center">
-                      <label className="text-sm font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
+                      <label className="text-xs font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
                       <button
                         type="button"
                         onClick={() => setShowCategoryModal(true)}
@@ -1146,47 +1146,47 @@ export default function ProductsPage() {
                       required
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                     >
                       <option value="">Selecciona una categoría...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center min-h-[20px]">
-                      <label className="text-sm font-semibold text-[#001e40]">Costo de Compra <span className="text-[#c5a059]">*</span></label>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center min-h-[18px]">
+                      <label className="text-xs font-semibold text-[#001e40]">Costo de Compra <span className="text-[#c5a059]">*</span></label>
                     </div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">RD$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-xs">RD$</span>
                       <input
                         type="number"
                         step="0.01"
                         required
                         value={formData.cost}
                         onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         placeholder="0.00"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <label className="text-sm font-semibold text-[#001e40]">Precios de Venta</label>
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-md shadow-sm" title="Importante: Los precios no incluyen ITBIS">
-                          <AlertTriangle className="h-3 w-3 shrink-0" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">Sin ITBIS</span>
+                        <label className="text-xs font-semibold text-[#001e40]">Precios de Venta</label>
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm" title="Importante: Los precios no incluyen ITBIS">
+                          <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                          <span>Sin ITBIS</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#001e40]">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-[#001e40]">
                           <input
                             type="checkbox"
                             checked={!manualPricesEnabled}
                             onChange={(e) => setManualPricesEnabled(!e.target.checked)}
-                            className="rounded border-slate-300 text-primary focus:ring-primary"
+                            className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
                           />
                           Autocalcular
                         </label>
@@ -1196,7 +1196,7 @@ export default function ProductsPage() {
                             setManualPricesEnabled(true);
                             setShowPricesModal(true);
                           }}
-                          className="text-xs flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-3 py-1.5 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
+                          className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-2 py-1 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
                         >
                           <Edit2 className="h-3 w-3" />
                           {manualPricesEnabled ? 'Editar Precios' : 'Ajustar Manual'}
@@ -1204,48 +1204,48 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <div className="relative">
-                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Consumidor (+20%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
+                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (+20%)</label>
+                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceConsumidor || formData.price}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
                       <div className="relative">
-                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Mayorista (+15%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
+                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Mayorista (+15%)</label>
+                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceMayorista}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
 
                       <div className="relative">
-                        <label className="text-xs text-slate-650 font-medium block mb-1">P. Proveedor (+10%)</label>
-                        <span className="absolute left-3 top-10 -translate-y-1/2 text-emerald-650 font-bold z-10">RD$</span>
+                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Proveedor (+10%)</label>
+                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
                         <input
                           type="number"
                           readOnly
                           value={formData.priceProveedor}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-2 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#001e40]">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
                     <select
                       value={formData.unitOfMeasure}
                       onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="unidad">Unidad</option>
                       <option value="pie">Pie (pie)</option>
@@ -1254,12 +1254,12 @@ export default function ProductsPage() {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-[#001e40]">Estado</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Estado</label>
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
                     >
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
@@ -1267,12 +1267,12 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer"
+                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer text-xs px-3 py-1.5"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -1280,7 +1280,7 @@ export default function ProductsPage() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer text-xs px-3 py-1.5"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
