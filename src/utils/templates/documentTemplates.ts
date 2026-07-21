@@ -3662,7 +3662,7 @@ export class DocumentTemplates {
               <th style="width: 5%;">#</th>
               <th style="width: 20%;">Código (SKU)</th>
               <th style="width: 45%;">Nombre del Producto</th>
-              <th style="width: 12%;">Cant. Solicitada</th>
+              <th style="width: 12%;">Cant</th>
               <th style="width: 18%;">Observaciones</th>
             </tr>
           </thead>
