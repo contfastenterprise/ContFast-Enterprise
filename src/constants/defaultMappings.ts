@@ -29,7 +29,9 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   
   // 5. Egresos
   { id: '17', routePattern: '/dashboard/purchases%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Compras y Gastos', groupName: 'Egresos', iconName: 'Banknote', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
+  { id: '18b', routePattern: '/dashboard/purchases/orders%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Pedidos a Suplidores', groupName: 'Egresos', iconName: 'FileText', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
   { id: '18', routePattern: '/dashboard/ap%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Cuentas por Pagar', groupName: 'Egresos', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+
   
   // 6. Finanzas
   { id: '36', routePattern: '/dashboard/financial%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Dashboard Financiero', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 5, createdAt: new Date(), updatedAt: new Date() },

@@ -878,18 +878,17 @@ export default function BarcodeDashboardPage() {
       <div className="print-area" style={{ display: 'none' }}>
         <style>{`
           @media print {
-            body * {
+            body > *:not(.print-area) {
               display: none !important;
             }
-            .print-area, .print-area * {
-              display: flex !important;
-            }
             .print-area {
+              display: block !important;
               position: absolute;
               left: 0;
               top: 0;
-              flex-direction: column !important;
               width: 100% !important;
+              height: auto !important;
+              background: white !important;
             }
             .label-card {
               width: ${labelSize === 'custom' ? labelCustomWidth : labelSize.split('x')[0]}mm !important;
