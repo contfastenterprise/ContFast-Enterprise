@@ -540,12 +540,3 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
-
-### 72. Módulo de Pedidos a Suplidores
-- **Estructura de Base de Datos y Secuenciación**: Definición de las tablas `supplier_orders`, `supplier_order_lines` y `supplier_order_sequences` en el esquema de Drizzle. Implementación exitosa de las migraciones en Postgres. Las secuencias auto-incrementales adoptan el formato `[PREFIX]-[YEAR]-[SEQ]` derivando el prefijo automáticamente a partir del perfil de la empresa (ej. `LD` para Latin Doors).
-- **Controlador API y CRUD**: Creación de las rutas `/api/v1/supplier-orders` y `/api/v1/supplier-orders/[id]` para listar pedidos con filtros de estados (pendiente, enviado, completado, cancelado) y gestionar de forma aislada por tenant las modificaciones y eliminaciones controladas.
-- **Renderizador de PDF y Plantillas Formales**: Implementación del renderizado de PDFs en `/api/v1/supplier-orders/[id]/pdf` con la plantilla HTML/CSS en `documentTemplates.ts`. El diseño replica con exactitud el esquema solicitado: cabeceras azul oscuro, tarjetas para número/fecha, paneles divididos para Realizado Por / Para, tabla de especificaciones técnicas detalladas del producto (modelo, medida, acabado, línea, cerraduras y cantidad), observaciones, términos y sección para firmas.
-- **Interfaz de Usuario e Integración en Egresos**: Creación de la página `/dashboard/purchases/orders` y su registro dinámico bajo el menú lateral **Egresos** de la barra de navegación lateral. Cuenta con listado interactivo, filtros y modal de creación/edición con campos especializados y autocompletado de suplidores.
-
-* * Verified & Polished * *
-
