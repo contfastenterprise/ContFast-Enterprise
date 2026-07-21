@@ -1,5 +1,5 @@
 import { db, products, productBarcodes, barcodePrintLogs, companySettings } from '@/db';
-import { eq, and, isNull, desc, count, or, ilike, inArray } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, or, ilike, inArray, isNotNull } from 'drizzle-orm';
 
 export interface CreateProductInput {
   companyId: string;
@@ -154,10 +154,18 @@ export class ProductRepository {
     return null;
   }
 
-  static async list(companyId: string, page = 1, perPage = 20, search?: string, categoryId?: string) {
+  static async list(companyId: string, page = 1, perPage = 20, search?: string, categoryId?: string, hasBarcode?: boolean) {
     const offset = (page - 1) * perPage;
 
     let searchFilter = and(eq(products.companyId, companyId), isNull(products.deletedAt));
+
+    if (hasBarcode !== undefined) {
+      if (hasBarcode) {
+        searchFilter = and(searchFilter, isNotNull(products.barcode));
+      } else {
+        searchFilter = and(searchFilter, isNull(products.barcode));
+      }
+    }
 
     if (search) {
       // Find matching secondary barcodes to include their products

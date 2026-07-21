@@ -519,6 +519,13 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Impresión de Etiquetas Personalizada**: Diálogo avanzado de impresión en masa o individual con soporte para tamaños estándar y personalizados (30x20, 50x25, 50x30, 60x40 mm), y visibilidad configurable de campos (marca, nombre, precio, SKU, código de barras y QR) con diseño optimizado para `@media print` en rollo físico.
 - **Hook de Escaneo Global de Hardware**: Creación del hook `useBarcodeScanner` que detecta la velocidad de entrada rápida del teclado (indicativo de un escáner láser físico) para interceptar y procesar lecturas automáticamente en Invoices, Purchases, Inventory Adjustments e Inventory Transfers, agregando ítems o incrementando cantidades sin botones adicionales.
 
+* * Verified & Polished * *
+
+### 71. Dashboard de Gestión Unificada de Códigos
+- **Ruta de Acceso Centralizada**: Creación de la página `/dashboard/products/barcodes` y botón de acceso en el catálogo principal de productos, unificando la administración de códigos en un único panel.
+- **Auditoría e Indicadores Visuales**: Incorporación de contadores de control (Total de productos, con códigos, sin códigos) y filtros rápidos para buscar de forma inmediata los registros que necesitan asignación.
+- **Asignación Inline y Generación Masiva**: Implementación de controles interactivos por fila para autogenerar códigos secuenciales con un clic o agregarlos manualmente de manera instantánea. Añadida la opción para realizar la generación automática secuencial en lote para todos los productos faltantes simultáneamente.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  

@@ -57,6 +57,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || undefined;
     const categoryId = searchParams.get('categoryId') || undefined;
     const barcode = searchParams.get('barcode') || undefined;
+    const hasBarcodeParam = searchParams.get('has_barcode');
+    const hasBarcode = hasBarcodeParam === 'true' ? true : hasBarcodeParam === 'false' ? false : undefined;
 
     if (barcode) {
       const cacheKeyBarcode = `cache:products:${auth.companyId}:barcode_${barcode}`;
@@ -104,13 +106,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(responseData, { headers: resHeaders });
     }
 
-    const cacheKeyList = `cache:products:${auth.companyId}:page_${page}:perPage_${perPage}:search_${search || ''}:cat_${categoryId || ''}`;
+    const cacheKeyList = `cache:products:${auth.companyId}:page_${page}:perPage_${perPage}:search_${search || ''}:cat_${categoryId || ''}:hb_${hasBarcodeParam || ''}`;
     const cachedList = await getCache(cacheKeyList);
     if (cachedList) {
       return NextResponse.json(JSON.parse(cachedList), { headers: resHeaders });
     }
 
-    const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId);
+    const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId, hasBarcode);
     
     // Batch fetch inventory levels for all products in list
     const productIds = result.data.map((p: any) => p.id);
