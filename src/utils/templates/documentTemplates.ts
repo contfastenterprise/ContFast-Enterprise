@@ -2623,6 +2623,151 @@ export class DocumentTemplates {
     `;
   }
 
+  static renderGuaranteeChecksReport(data: any): string {
+    const { company, pendingChecks, appliedChecks, filters } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl 
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+      : '';
+
+    const companyTitleHtml = logoHtml 
+      ? '' 
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
+
+    const formatNum = (val: number | string) => {
+      const num = typeof val === 'string' ? parseFloat(val) : val;
+      return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const formatDateStr = (dateStr: string | null | undefined) => {
+      if (!dateStr) return '-';
+      const parts = dateStr.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return dateStr;
+    };
+
+    const pendingRowsHtml = pendingChecks.map((p: any, idx: number) => `
+      <tr>
+        <td class="text-center">${idx + 1}</td>
+        <td><strong>${p.supplierName}</strong></td>
+        <td class="font-mono text-center">${p.checkNumber || 'S/N'}</td>
+        <td class="text-center">${formatDateStr(p.paymentDate)}</td>
+        <td class="text-center font-bold" style="color: #b45309;">${formatDateStr(p.dueDate)}</td>
+        <td class="text-right font-mono">RD$ ${formatNum(p.amount)}</td>
+      </tr>
+    `).join('');
+
+    const appliedRowsHtml = appliedChecks.map((p: any, idx: number) => `
+      <tr>
+        <td class="text-center">${idx + 1}</td>
+        <td><strong>${p.supplierName}</strong></td>
+        <td class="font-mono text-center">${p.checkNumber || 'S/N'}</td>
+        <td class="text-center">${formatDateStr(p.paymentDate)}</td>
+        <td class="text-center">${formatDateStr(p.dueDate)}</td>
+        <td class="text-right font-mono" style="color: #047857;">RD$ ${formatNum(p.amount)}</td>
+      </tr>
+    `).join('');
+
+    const totalPendingAmount = pendingChecks.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+    const totalAppliedAmount = appliedChecks.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Cheques en Garantía</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          .font-bold { font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 5px 8px !important; 
+            font-size: 8pt !important; 
+            white-space: nowrap !important;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 8pt !important; }
+          h3 { font-size: 11pt; color: #003366; margin-top: 25px; margin-bottom: 10px; border-bottom: 2px solid #003366; padding-bottom: 5px; text-transform: uppercase; }
+          .total-box { display: flex; justify-content: flex-end; margin-top: 10px; margin-bottom: 20px; }
+          .total-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; min-width: 180px; text-align: right; }
+          .total-label { font-size: 7.5pt; color: #64748b; text-transform: uppercase; font-weight: bold; }
+          .total-value { font-size: 11pt; font-weight: bold; color: #003366; font-family: monospace; margin-top: 2px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8.5pt; color: #475569; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE CHEQUES EN GARANTÍA</div>
+            <div><strong>Rango:</strong> ${formatDateStr(filters.startDate)} al ${formatDateStr(filters.endDate)}</div>
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <h3>1. Cheques Pendientes por Cobrar</h3>
+        <table>
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 5%;">#</th>
+              <th>Suplidor / Beneficiario</th>
+              <th class="text-center" style="width: 15%;">Cheque #</th>
+              <th class="text-center" style="width: 15%;">Fecha Emisión</th>
+              <th class="text-center" style="width: 18%;">Fecha de Cobro</th>
+              <th class="text-right" style="width: 18%;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pendingRowsHtml || '<tr><td colspan="6" class="text-center" style="color: #64748b; font-style: italic; padding: 15px;">No hay cheques pendientes registrados en este rango.</td></tr>'}
+          </tbody>
+        </table>
+        <div class="total-box">
+          <div class="total-card">
+            <div class="total-label">Total Pendientes</div>
+            <div class="total-value">RD$ ${formatNum(totalPendingAmount)}</div>
+          </div>
+        </div>
+
+        <h3>2. Historial de Cheques Aplicados</h3>
+        <table>
+          <thead>
+            <tr>
+              <th class="text-center" style="width: 5%;">#</th>
+              <th>Suplidor / Beneficiario</th>
+              <th class="text-center" style="width: 15%;">Cheque #</th>
+              <th class="text-center" style="width: 15%;">Fecha Emisión</th>
+              <th class="text-center" style="width: 18%;">Fecha Cobrado</th>
+              <th class="text-right" style="width: 18%;">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${appliedRowsHtml || '<tr><td colspan="6" class="text-center" style="color: #64748b; font-style: italic; padding: 15px;">No hay cheques aplicados registrados en este rango.</td></tr>'}
+          </tbody>
+        </table>
+        <div class="total-box">
+          <div class="total-card">
+            <div class="total-label">Total Aplicados</div>
+            <div class="total-value" style="color: #047857;">RD$ ${formatNum(totalAppliedAmount)}</div>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Reporte de Cheques en Garantía - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   static renderInvoicesReport(data: any): string {
     const { company, items, filters } = data;
     const css = this.getBaseCss('carta');

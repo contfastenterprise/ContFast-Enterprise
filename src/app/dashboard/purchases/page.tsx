@@ -1893,6 +1893,10 @@ function GuaranteeChecksView() {
   const [paymentsList, setPaymentsList] = useState<any[]>([]);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
+  // Date filters
+  const [startDate, setStartDate] = useState(getFirstDayOfMonthString());
+  const [endDate, setEndDate] = useState(getLocalDateString());
+
   // Pagination states
   const [pendingPage, setPendingPage] = useState(1);
   const [appliedPage, setAppliedPage] = useState(1);
@@ -1901,7 +1905,7 @@ function GuaranteeChecksView() {
   const fetchChecks = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/ap?payments=true');
+      const res = await fetch(`/api/v1/ap?payments=true&startDate=${startDate}&endDate=${endDate}&pageSize=1000`);
       const data = await res.json();
       if (data.success) {
         setPaymentsList(data.data?.items || data.data || []);
@@ -1919,7 +1923,7 @@ function GuaranteeChecksView() {
 
   useEffect(() => {
     fetchChecks();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleApplyCheck = async (paymentId: string, checkId: string, checkNumber: string) => {
     if (!confirm(`¿Estás seguro de que deseas aplicar contablemente el cheque #${checkNumber}? Esta operación deducirá el balance de CXP y registrará la salida del banco.`)) return;
@@ -1970,6 +1974,43 @@ function GuaranteeChecksView() {
         <p className="text-xs text-on-surface-variant/80 mb-6">
           Aquí se listan todos los cheques dejados en garantía de compras a crédito. Puedes aplicarlos contablemente de manera manual cuando el suplidor confirme su cobro.
         </p>
+
+        {/* Date Filter Panel */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-8 pb-6 border-b border-outline-variant/20">
+          <div className="w-full max-w-md">
+            <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Rango de Fechas</label>
+            <div className="w-full [&>div]:w-full [&_button]:w-full">
+              <DateRangePicker
+                from={startDate}
+                to={endDate}
+                onChange={({ from, to }) => {
+                  setStartDate(from);
+                  setEndDate(to);
+                }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={fetchChecks}
+            disabled={loading}
+            className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 h-10 self-start sm:self-auto"
+          >
+            {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+            Buscar
+          </button>
+          {!loading && (
+            <button
+              type="button"
+              onClick={() => {
+                window.open(`/api/v1/ap/payments/report?startDate=${startDate}&endDate=${endDate}`, '_blank');
+              }}
+              className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 h-10 self-start sm:self-auto animate-fade-in"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Imprimir Reporte
+            </button>
+          )}
+        </div>
 
         {loading ? (
           <div className="py-12 flex justify-center items-center">
