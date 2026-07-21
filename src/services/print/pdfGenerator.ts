@@ -72,7 +72,7 @@ export class PdfGenerator {
    * @param html The HTML content
    * @param layout The printer layout ('carta' | '80mm' | '58mm')
    */
-  static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm', landscape: boolean = false): Promise<Buffer> {
+  static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm' | string, landscape: boolean = false): Promise<Buffer> {
     const pdfServiceUrl = process.env.PDF_SERVICE_URL;
     const generatorMode = process.env.PDF_GENERATOR_MODE || 'local';
 
@@ -98,6 +98,16 @@ export class PdfGenerator {
         if (landscape) {
           formData.append('landscape', 'true');
         }
+      } else if (layout.startsWith('label:')) {
+        const [_, w, h] = layout.split(':');
+        const widthInches = (parseFloat(w.replace('mm', '')) * 0.03937).toFixed(2);
+        const heightInches = (parseFloat(h.replace('mm', '')) * 0.03937).toFixed(2);
+        formData.append('paperWidth', widthInches);
+        formData.append('paperHeight', heightInches);
+        formData.append('marginTop', '0.04');
+        formData.append('marginBottom', '0.04');
+        formData.append('marginLeft', '0.04');
+        formData.append('marginRight', '0.04');
       } else {
         // Cash session receipts rolls (80mm / 58mm)
         const width = layout === '80mm' ? '3.15' : '2.28';
@@ -155,6 +165,16 @@ export class PdfGenerator {
           if (landscape) {
             formData.append('landscape', 'true');
           }
+        } else if (layout.startsWith('label:')) {
+          const [_, w, h] = layout.split(':');
+          const widthInches = (parseFloat(w.replace('mm', '')) * 0.03937).toFixed(2);
+          const heightInches = (parseFloat(h.replace('mm', '')) * 0.03937).toFixed(2);
+          formData.append('paperWidth', widthInches);
+          formData.append('paperHeight', heightInches);
+          formData.append('marginTop', '0.04');
+          formData.append('marginBottom', '0.04');
+          formData.append('marginLeft', '0.04');
+          formData.append('marginRight', '0.04');
         } else {
           // Cash session receipts rolls (80mm / 58mm)
           const width = layout === '80mm' ? '3.15' : '2.28';
@@ -216,6 +236,15 @@ export class PdfGenerator {
           format: 'Letter',
           landscape,
           margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+          printBackground: true,
+          displayHeaderFooter: false,
+        };
+      } else if (layout.startsWith('label:')) {
+        const [_, w, h] = layout.split(':');
+        pdfOptions = {
+          width: w,
+          height: h,
+          margin: { top: '1mm', right: '1mm', bottom: '1mm', left: '1mm' },
           printBackground: true,
           displayHeaderFooter: false,
         };

@@ -602,6 +602,17 @@ export default function ProductsPage() {
       return;
     }
 
+    const activeIds = labelPrintMode === 'single' && labelSelectedProduct 
+      ? [labelSelectedProduct.id]
+      : labelPrintMode === 'selected' 
+        ? selectedProductIds
+        : products.map(p => p.id);
+
+    if (activeIds.length === 0) {
+      toast.error('No hay productos para imprimir');
+      return;
+    }
+
     const toastId = toast.loading('Registrando historial de impresión...');
     try {
       const uniqueProds = Array.from(new Set(list.map(p => p.id)));
@@ -620,9 +631,23 @@ export default function ProductsPage() {
       toast.dismiss(toastId);
     }
 
-    setTimeout(() => {
-      window.print();
-    }, 300);
+    const fields = Object.entries(labelVisibleFields)
+      .filter(([_, v]) => v)
+      .map(([k]) => k)
+      .join(',');
+
+    const queryParams = new URLSearchParams({
+      ids: activeIds.join(','),
+      quantity: String(labelQuantity),
+      size: labelSize,
+      customWidth: String(labelCustomWidth),
+      customHeight: String(labelCustomHeight),
+      brandText: labelBrandText,
+      format: barcodeType,
+      fields
+    });
+
+    window.open(`/api/v1/products/barcodes/pdf?${queryParams.toString()}`, '_blank');
   };
 
   // Metrics calculation (Mock/derived from current page for demo purposes)

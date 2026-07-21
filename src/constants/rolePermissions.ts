@@ -50,4 +50,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> =
     'clientes:read': true,
     'catalogo:read': true,
   },
+  compras: {
+    'proveedores:read': true,
+    'proveedores:write': true,
+    'proveedores:delete': true,
+  },
 };
