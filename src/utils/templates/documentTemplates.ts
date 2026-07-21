@@ -3358,8 +3358,8 @@ export class DocumentTemplates {
         ];
 
     const logoHtml = company.logoUrl
-      ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain;" alt="Logo">`
-      : `<div style="font-size: 20px; font-weight: bold; color: #002D62;">${company.name || 'Latin Doors'}</div>`;
+      ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain; margin-left: -3px;" alt="Logo">`
+      : `<div style="font-size: 20px; font-weight: bold; color: #002D62; margin-left: -3px;">${company.name || 'Latin Doors'}</div>`;
 
     const subTitleLogo = '';
 
@@ -3396,7 +3396,6 @@ export class DocumentTemplates {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            margin-left: -3px;
           }
           .company-info {
             font-family: monospace;
@@ -3629,9 +3628,7 @@ export class DocumentTemplates {
           <div class="logo-area">
             ${logoHtml}
             ${subTitleLogo}
-            <div class="company-info">
-  ${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
-            </div>
+            <div class="company-info">${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}</div>
           </div>
           <div class="right-cards">
             <div class="title-text" style="font-size: 13pt; font-weight: bold;">Pedido</div>
