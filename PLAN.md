@@ -528,6 +528,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Enlace en Barra de Navegación**: Inyección de la opción **Barcode** directamente debajo de **Productos** en el menú lateral (`new-app-sidebar.tsx`) para asegurar el acceso inmediato.
 
+- **Iconografía Oficial de Código de Barras**: Se registró el icono de tipo **Barcode** de Lucide en la colección de componentes de seguridad RBAC (`src/utils/rbacHelpers.ts`), enlazándose dinámicamente con el menú lateral.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
