@@ -114,11 +114,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const initAll = async () => {
       await Promise.all([checkSetupAndFetchUser(), fetchSettings()]);
-      setLoadingInit(false);
-      try {
-        sessionStorage.removeItem('cf_post_login_logo');
-        sessionStorage.removeItem('cf_post_login_name');
-      } catch (e) {}
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setLoadingInit(false);
+          try {
+            sessionStorage.removeItem('cf_post_login_logo');
+            sessionStorage.removeItem('cf_post_login_name');
+          } catch (e) {}
+        }, 400);
+      });
     };
 
     initAll();
@@ -259,22 +263,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pendingLogo = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_logo') : null;
   const pendingName = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_name') : null;
   const activeLogo = pendingLogo || logoUrl;
-
-  if (loadingInit || !user) {
-    if (activeLogo && typeof activeLogo === 'string' && activeLogo.trim() !== '') {
-      return (
-        <PageLoader
-          logoUrl={activeLogo}
-          companyName={pendingName || companyName}
-          message="Cargando panel principal..."
-          fullScreen
-        />
-      );
-    }
-  }
+  const showLoaderOverlay = (loadingInit || !user) && activeLogo && typeof activeLogo === 'string' && activeLogo.trim() !== '';
 
   return (
     <RbacProvider initialUser={user}>
+      {/* Overlay de Carga (PageLoader) en Primer Plano mientras la página principal carga en Segundo Plano */}
+      <AnimatePresence>
+        {showLoaderOverlay && (
+          <motion.div
+            key="page-loader-overlay"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex items-center justify-center pointer-events-auto"
+          >
+            <PageLoader
+              logoUrl={activeLogo}
+              companyName={pendingName || companyName}
+              message="Cargando panel principal..."
+              fullScreen={false}
+              className="w-full h-full"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
         <Toaster position="top-right" richColors />
   
