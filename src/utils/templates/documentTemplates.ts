@@ -459,7 +459,7 @@ export class DocumentTemplates {
             </div>
           </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: -12mm; right: 0px; z-index: 10; height: 60px; display: flex; align-items: center;">
+          <div class="last-page-signatures" style="position: absolute; bottom: 0px; right: 0px; z-index: 10;">
             <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end;">
               <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Recibido conforme</div>
