@@ -3720,9 +3720,7 @@ export class DocumentTemplates {
           </div>
         </div>
 
-        <div class="footer-banner">
-          Documento Logístico - No válido para Crédito Fiscal
-        </div>
+
       </body>
       </html>
     `;
