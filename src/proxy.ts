@@ -91,7 +91,6 @@ const STATIC_ROUTE_MAPPINGS = [
   { pattern: /^\/dashboard\/admin/, module: 'administracion', action: 'read' },
   { pattern: /^\/api\/v1\/admin/, module: 'administracion', action: null },
   { pattern: /^\/dashboard\/settings/, module: 'administracion', action: 'read' },
-  { pattern: /^\/api\/v1\/company\/settings/, module: 'administracion', action: null },
   { pattern: /^\/dashboard\/hr/, module: 'nomina', action: 'read' },
   { pattern: /^\/api\/v1\/hr/, module: 'nomina', action: null },
   { pattern: /^\/dashboard\/retentions/, module: 'retenciones', action: 'read' },
