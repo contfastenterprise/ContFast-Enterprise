@@ -28,7 +28,7 @@ export function PageLoader({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-all duration-300 select-none overflow-hidden',
+        'flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-all duration-300 select-none overflow-hidden',
         fullScreen ? 'fixed inset-0 z-50' : 'w-full h-full min-h-[300px]',
         className
       )}
@@ -53,17 +53,17 @@ export function PageLoader({
               ease: 'easeInOut',
             },
           }}
-          className="relative flex items-center justify-center p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 ring-2 ring-[#003366]/15"
+          className="relative flex items-center justify-center"
         >
-          <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center overflow-hidden rounded-2xl">
+          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center">
             <Image
               src={logoUrl}
               alt={companyName || 'Logo de la Empresa'}
-              width={320}
-              height={320}
+              width={350}
+              height={350}
               priority
               unoptimized={isRemoteUrl || logoUrl.startsWith('data:')}
-              className="object-contain w-full h-full p-2"
+              className="object-contain w-full h-full"
             />
           </div>
         </motion.div>
