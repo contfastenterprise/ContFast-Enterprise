@@ -519,8 +519,8 @@ export class DocumentTemplates {
             .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 2px; }
             
             .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 8px 6px; border-bottom: 2px solid #000000; text-align: left; }
-            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 8px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+            .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 4px 6px; border-bottom: 2px solid #000000; text-align: left; }
+            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 4px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
             .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
             .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
             
@@ -549,11 +549,11 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 60px;
+              height: 75px;
             }
             .qr-img-repeated {
-              width: 55px;
-              height: 55px;
+              width: 70px;
+              height: 70px;
             }
           </style>
         </head>
