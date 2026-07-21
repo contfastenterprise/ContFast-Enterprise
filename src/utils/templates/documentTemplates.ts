@@ -3358,8 +3358,8 @@ export class DocumentTemplates {
         ];
 
     const logoHtml = company.logoUrl
-      ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain; margin-left: -3px;" alt="Logo">`
-      : `<div style="font-size: 20px; font-weight: bold; color: #002D62; margin-left: -3px;">${company.name || 'Latin Doors'}</div>`;
+      ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain; margin-left: -5px;" alt="Logo">`
+      : `<div style="font-size: 20px; font-weight: bold; color: #002D62; margin-left: -5px;">${company.name || 'Latin Doors'}</div>`;
 
     const subTitleLogo = '';
 
@@ -3402,7 +3402,7 @@ export class DocumentTemplates {
             font-size: 9.5pt;
             line-height: 1.5;
             white-space: pre;
-            margin-top: -15px;
+            margin-top: -12px;
             color: #333;
           }
           .right-cards {
