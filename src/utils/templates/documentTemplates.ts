@@ -3392,6 +3392,7 @@ export class DocumentTemplates {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            margin-left: -3px;
           }
           .right-cards {
             display: flex;
@@ -3491,13 +3492,13 @@ export class DocumentTemplates {
             color: white;
             font-weight: bold;
             font-size: 8.5pt;
-            padding: 8px 6px;
+            padding: 4px 6px;
             text-align: center;
             text-transform: uppercase;
           }
           .order-table td {
             border: 1px solid #bbb;
-            padding: 8px 6px;
+            padding: 4px 6px;
             font-size: 9pt;
             color: #111;
           }
