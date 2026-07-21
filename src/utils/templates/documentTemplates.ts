@@ -3398,6 +3398,14 @@ export class DocumentTemplates {
             align-items: flex-start;
             margin-left: -3px;
           }
+          .company-info {
+            font-family: monospace;
+            font-size: 9.5pt;
+            line-height: 1.5;
+            white-space: pre;
+            margin-top: -15px;
+            color: #333;
+          }
           .right-cards {
             display: flex;
             flex-direction: column;
@@ -3621,8 +3629,7 @@ export class DocumentTemplates {
           <div class="logo-area">
             ${logoHtml}
             ${subTitleLogo}
-            <div style="font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: 5px; color: #333;">
-              <div style="font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; color: #002D62; margin-bottom: 5px; white-space: normal;">${company.name || ''}</div>
+            <div class="company-info">
   ${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
             </div>
           </div>
