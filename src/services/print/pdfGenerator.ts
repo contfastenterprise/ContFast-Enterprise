@@ -104,10 +104,10 @@ export class PdfGenerator {
         const heightInches = (parseFloat(h.replace('mm', '')) * 0.03937).toFixed(2);
         formData.append('paperWidth', widthInches);
         formData.append('paperHeight', heightInches);
-        formData.append('marginTop', '0.04');
-        formData.append('marginBottom', '0.04');
-        formData.append('marginLeft', '0.04');
-        formData.append('marginRight', '0.04');
+        formData.append('marginTop', '0');
+        formData.append('marginBottom', '0');
+        formData.append('marginLeft', '0');
+        formData.append('marginRight', '0');
       } else {
         // Cash session receipts rolls (80mm / 58mm)
         const width = layout === '80mm' ? '3.15' : '2.28';
@@ -171,10 +171,10 @@ export class PdfGenerator {
           const heightInches = (parseFloat(h.replace('mm', '')) * 0.03937).toFixed(2);
           formData.append('paperWidth', widthInches);
           formData.append('paperHeight', heightInches);
-          formData.append('marginTop', '0.04');
-          formData.append('marginBottom', '0.04');
-          formData.append('marginLeft', '0.04');
-          formData.append('marginRight', '0.04');
+          formData.append('marginTop', '0');
+          formData.append('marginBottom', '0');
+          formData.append('marginLeft', '0');
+          formData.append('marginRight', '0');
         } else {
           // Cash session receipts rolls (80mm / 58mm)
           const width = layout === '80mm' ? '3.15' : '2.28';
@@ -244,7 +244,7 @@ export class PdfGenerator {
         pdfOptions = {
           width: w,
           height: h,
-          margin: { top: '1mm', right: '1mm', bottom: '1mm', left: '1mm' },
+          margin: { top: '0', right: '0', bottom: '0', left: '0' },
           printBackground: true,
           displayHeaderFooter: false,
         };

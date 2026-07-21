@@ -3349,13 +3349,13 @@ export class DocumentTemplates {
 
     const totalQty = lines.reduce((acc: number, line: any) => acc + Number(line.quantityRequested || 0), 0);
 
-    const conditions = order.generalConditions 
+    const conditions = order.generalConditions
       ? order.generalConditions.split('\n').filter((c: string) => c.trim().length > 0)
       : [
-          'Este pedido está sujeto a disponibilidad y tiempos de producción.',
-          'Confirmar cantidades y fecha de entrega.',
-          'Cualquier cambio debe ser notificado por escrito.'
-        ];
+        'Este pedido está sujeto a disponibilidad y tiempos de producción.',
+        'Confirmar cantidades y fecha de entrega.',
+        'Cualquier cambio debe ser notificado por escrito.'
+      ];
 
     const logoHtml = company.logoUrl
       ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain; margin-left: -5px;" alt="Logo">`
@@ -3364,9 +3364,9 @@ export class DocumentTemplates {
     const subTitleLogo = '';
 
     const statusLabel = order.status === 'Draft' ? 'Borrador' :
-                        order.status === 'Sent' ? 'Enviado' :
-                        order.status === 'Partial' ? 'Parcial' :
-                        order.status === 'Received' ? 'Recibido' : 'Cancelado';
+      order.status === 'Sent' ? 'Enviado' :
+        order.status === 'Partial' ? 'Parcial' :
+          order.status === 'Received' ? 'Recibido' : 'Cancelado';
 
     return `
       <!DOCTYPE html>
@@ -3396,13 +3396,15 @@ export class DocumentTemplates {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+           
           }
+        
           .company-info {
             font-family: monospace;
             font-size: 9.5pt;
             line-height: 1.5;
             white-space: pre;
-            margin-top: -12px;
+            margin-top: 5px;
             color: #333;
           }
           .right-cards {
@@ -3627,10 +3629,11 @@ export class DocumentTemplates {
         <div class="header-container">
           <div class="logo-area">
             ${logoHtml}
-            ${subTitleLogo}
+           
             <div class="company-info">${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}</div>
+            
           </div>
-          <div class="right-cards" style="margin-top: -15px;">
+          <div class="right-cards" >
             <div class="card">
               <div class="card-header">Número de Pedido</div>
               <div class="card-body" style="font-size: 11pt; padding: 8px 0;">
@@ -3743,9 +3746,9 @@ export class DocumentTemplates {
 
     const linesHtml = items.map((item: any, idx: number) => {
       const statusLabel = item.status === 'Draft' ? 'Borrador' :
-                          item.status === 'Sent' ? 'Enviado' :
-                          item.status === 'Partial' ? 'Parcial' :
-                          item.status === 'Received' ? 'Recibido' : 'Cancelado';
+        item.status === 'Sent' ? 'Enviado' :
+          item.status === 'Partial' ? 'Parcial' :
+            item.status === 'Received' ? 'Recibido' : 'Cancelado';
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>

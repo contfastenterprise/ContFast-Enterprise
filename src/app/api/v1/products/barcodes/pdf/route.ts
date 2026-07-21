@@ -130,8 +130,8 @@ export async function GET(req: NextRequest) {
           }
           
           .label-page {
-            width: ${width}mm;
-            height: ${height}mm;
+            width: 100vw;
+            height: 100vh;
             box-sizing: border-box;
             padding: 1.5mm;
             display: flex;
