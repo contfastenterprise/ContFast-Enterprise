@@ -1821,7 +1821,7 @@ export default function ProductsPage() {
       </AnimatePresence>
 
       {/* Elementos Imprimibles Ocultos */}
-      <div className="print-area hidden">
+      <div className="print-area" style={{ display: 'none' }}>
         <style>{`
           @media print {
             body * {
