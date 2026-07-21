@@ -3340,6 +3340,10 @@ export class DocumentTemplates {
     const company = data.company || {};
     const lines = data.lines || [];
 
+    const padDots = (label: string, length: number) => {
+      return label.padEnd(length, '.') + ':';
+    };
+
     const ordDate = new Date(order.orderDate || new Date());
     const formattedDate = `${String(ordDate.getDate()).padStart(2, '0')}-${String(ordDate.getMonth() + 1).padStart(2, '0')}-${ordDate.getFullYear()}`;
 
@@ -3617,12 +3621,9 @@ export class DocumentTemplates {
           <div class="logo-area">
             ${logoHtml}
             ${subTitleLogo}
-            <div style="font-size: 8.5pt; color: #444; margin-top: 8px; line-height: 1.4; font-family: sans-serif;">
-              <div style="font-weight: bold; font-size: 10.5pt; color: #002D62; margin-bottom: 2px;">${company.name || ''}</div>
-              ${company.rnc ? `<div><strong>RNC:</strong> ${company.rnc}</div>` : ''}
-              ${company.address ? `<div><strong>Dirección:</strong> ${company.address}</div>` : ''}
-              ${company.email ? `<div><strong>Correo:</strong> ${company.email}</div>` : ''}
-              ${company.phone ? `<div><strong>Tel:</strong> ${company.phone}</div>` : ''}
+            <div style="font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: 5px; color: #333;">
+              <div style="font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; color: #002D62; margin-bottom: 5px; white-space: normal;">${company.name || ''}</div>
+  ${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
             </div>
           </div>
           <div class="right-cards">
