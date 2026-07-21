@@ -526,6 +526,8 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Auditoría e Indicadores Visuales**: Incorporación de contadores de control (Total de productos, con códigos, sin códigos) y filtros rápidos para buscar de forma inmediata los registros que necesitan asignación.
 - **Asignación Inline y Generación Masiva**: Implementación de controles interactivos por fila para autogenerar códigos secuenciales con un clic o agregarlos manualmente de manera instantánea. Añadida la opción para realizar la generación automática secuencial en lote para todos los productos faltantes simultáneamente.
 
+- **Enlace en Barra de Navegación**: Inyección de la opción **Barcode** directamente debajo de **Productos** en el menú lateral (`new-app-sidebar.tsx`) para asegurar el acceso inmediato.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  

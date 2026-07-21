@@ -287,15 +287,28 @@ function SidebarContent({
   const pathname = usePathname();
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
-  const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '').map(g => ({
-    title: g.title,
-    icon: getGroupIcon(g.title),
-    items: g.items.map(item => ({
-      name: item.name,
-      href: item.href,
-      icon: getIconComponent(item.iconName),
-    })),
-  }));
+  const dynamicGroups: NavGroupDef[] = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '').map(g => {
+    const items: { name: string; href: string; icon: any }[] = [];
+    g.items.forEach(item => {
+      items.push({
+        name: item.name,
+        href: item.href,
+        icon: getIconComponent(item.iconName),
+      });
+      if (item.name === 'Productos') {
+        items.push({
+          name: 'Barcode',
+          href: '/dashboard/products/barcodes',
+          icon: getIconComponent('Printer'),
+        });
+      }
+    });
+    return {
+      title: g.title,
+      icon: getGroupIcon(g.title),
+      items
+    };
+  });
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};

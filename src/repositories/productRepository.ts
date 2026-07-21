@@ -1,5 +1,5 @@
 import { db, products, productBarcodes, barcodePrintLogs, companySettings } from '@/db';
-import { eq, and, isNull, desc, count, or, ilike, inArray, isNotNull } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, or, ilike, inArray, isNotNull, ne } from 'drizzle-orm';
 
 export interface CreateProductInput {
   companyId: string;
@@ -161,9 +161,9 @@ export class ProductRepository {
 
     if (hasBarcode !== undefined) {
       if (hasBarcode) {
-        searchFilter = and(searchFilter, isNotNull(products.barcode));
+        searchFilter = and(searchFilter, isNotNull(products.barcode), ne(products.barcode, ''));
       } else {
-        searchFilter = and(searchFilter, isNull(products.barcode));
+        searchFilter = and(searchFilter, or(isNull(products.barcode), eq(products.barcode, '')));
       }
     }
 
