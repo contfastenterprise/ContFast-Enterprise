@@ -876,6 +876,8 @@ export default function ReceivablesPage() {
           </>
         )}
 
+      </div>
+
       {/* MODAL: REGISTRAR COBRO */}
       <AnimatePresence>
         {showPaymentModal && selectedCustomer && (
