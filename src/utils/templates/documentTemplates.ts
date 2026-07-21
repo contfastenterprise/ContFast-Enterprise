@@ -2627,6 +2627,10 @@ export class DocumentTemplates {
     const { company, pendingChecks, appliedChecks, filters } = data;
     const css = this.getBaseCss('carta');
 
+    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
+    const displayPhone = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
+    const displayAddress = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+
     const logoHtml = company.logoUrl 
       ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
       : '';
@@ -2704,8 +2708,8 @@ export class DocumentTemplates {
             ${logoHtml}
             ${companyTitleHtml}
             <div>RNC: ${company.rnc}</div>
-            ${company.address ? `<div>${company.address}</div>` : ''}
-            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+            ${displayAddress ? `<div>${displayAddress}</div>` : ''}
+            ${displayPhone ? `<div>Tel: ${displayPhone}</div>` : ''}
           </div>
           <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE CHEQUES EN GARANTÍA</div>
