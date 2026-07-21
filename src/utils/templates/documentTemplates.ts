@@ -3618,6 +3618,13 @@ export class DocumentTemplates {
           <div class="logo-area">
             ${logoHtml}
             ${subTitleLogo}
+            <div style="font-size: 8.5pt; color: #444; margin-top: 8px; line-height: 1.4; font-family: sans-serif;">
+              <div style="font-weight: bold; font-size: 10.5pt; color: #002D62; margin-bottom: 2px;">${company.name || ''}</div>
+              ${company.rnc ? `<div><strong>RNC:</strong> ${company.rnc}</div>` : ''}
+              ${company.address ? `<div><strong>Dirección:</strong> ${company.address}</div>` : ''}
+              ${company.email ? `<div><strong>Correo:</strong> ${company.email}</div>` : ''}
+              ${company.phone ? `<div><strong>Tel:</strong> ${company.phone}</div>` : ''}
+            </div>
           </div>
           <div class="right-cards">
             <div class="title-text">Pedido de Mercancía</div>
@@ -3639,28 +3646,10 @@ export class DocumentTemplates {
         <div class="divider"></div>
 
         <div class="info-columns">
-          <div class="info-column" style="border-right: 1px solid #ddd; padding-right: 15px;">
-            <div class="info-title">Datos de la Empresa:</div>
-            <div class="info-body">
-              <div class="info-name">${company.name || 'Latin Doors SRL'}</div>
-              <div class="info-item">
-                <span style="color: #002D62; font-weight: bold;">📍 Dirección:</span>
-                <span>${company.address || 'Santiago, República Dominicana.'}</span>
-              </div>
-              <div class="info-item">
-                <span style="color: #002D62; font-weight: bold;">📞 Tel:</span>
-                <span>${company.phone || '829-214-4128'}</span>
-              </div>
-              <div class="info-item">
-                <span style="color: #002D62; font-weight: bold;">✉️ Correo:</span>
-                <span>${company.email || 'latindoors@gmail.com'}</span>
-              </div>
-            </div>
-          </div>
-          <div class="info-column" style="padding-left: 20px;">
+          <div class="info-column" style="width: 100%;">
             <div class="info-title">Datos del Suplidor:</div>
             <div class="info-body">
-              <div class="info-name">${order.supplierName || 'Everlast Doors'}</div>
+              <div class="info-name">${order.supplierName || ''}</div>
               ${order.supplierRnc ? `<div><strong>RNC:</strong> ${order.supplierRnc}</div>` : ''}
               ${order.supplierPhone ? `<div><strong>Tel:</strong> ${order.supplierPhone}</div>` : ''}
               ${order.supplierEmail ? `<div><strong>Email:</strong> ${order.supplierEmail}</div>` : ''}

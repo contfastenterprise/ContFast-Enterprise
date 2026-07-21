@@ -50,9 +50,9 @@ export async function GET(
     const companyData = {
       name: company.name,
       rnc: company.rnc,
-      address: company.address || 'Santiago, R.D.',
-      phone: '829-214-4128',
-      email: settings?.msellerEmail || company.email || 'latindoors@gmail.com',
+      address: company.address || '',
+      phone: '',
+      email: settings?.msellerEmail || company.email || '',
       logoUrl: settings?.logoUrl || undefined,
     };
 
