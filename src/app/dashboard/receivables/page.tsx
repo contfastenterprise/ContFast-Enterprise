@@ -1019,7 +1019,7 @@ export default function ReceivablesPage() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3.5 px-8 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                       {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                       Procesar Recibo
                     </button>
