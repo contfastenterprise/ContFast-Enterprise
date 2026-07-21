@@ -16,6 +16,7 @@ interface Product {
   id: string;
   name: string;
   sku: string | null;
+  barcode: string | null;
   unitOfMeasure: string;
 }
 
@@ -39,6 +40,8 @@ export default function TransferPage() {
   const [selectedQuantity, setSelectedQuantity] = useState('');
   const [availableQty, setAvailableQty] = useState<number | null>(null);
   const [loadingQty, setLoadingQty] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
 
   useBarcodeScanner({
     onScan: async (barcode) => {
@@ -108,6 +111,15 @@ export default function TransferPage() {
   }, [selectedProduct, sourceWarehouse]);
 
   useEffect(() => {
+    if (selectedProduct) {
+      const p = products.find(prod => prod.id === selectedProduct);
+      if (p) {
+        setSearchQuery(p.barcode ? `[CB: ${p.barcode}] ${p.name}` : (p.sku ? `[${p.sku}] ${p.name}` : p.name));
+      }
+    }
+  }, [selectedProduct, products]);
+
+  useEffect(() => {
     fetchInitialData();
   }, []);
 
@@ -146,6 +158,7 @@ export default function TransferPage() {
     setItems([...items, { product, quantity: Number(selectedQuantity) }]);
     setSelectedProduct('');
     setSelectedQuantity('');
+    setSearchQuery('');
   };
 
   const removeItem = (productId: string) => {
@@ -189,16 +202,23 @@ export default function TransferPage() {
     }
   };
 
+  const filteredProducts = products.filter(p => {
+    const term = searchQuery.toLowerCase();
+    return p.name.toLowerCase().includes(term) || 
+      (p.sku && p.sku.toLowerCase().includes(term)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(term));
+  });
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4">
       {/* Header */}
-      <div className="bg-surface-bright p-6 rounded-3xl border border-outline-variant/30 shadow-sm flex items-center gap-4">
-        <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner">
-          <ArrowRightLeft className="w-7 h-7" />
+      <div className="bg-surface-bright p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex items-center gap-4">
+        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner">
+          <ArrowRightLeft className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="font-display-sm text-2xl font-bold text-on-surface">Traslados de Mercancía</h1>
-          <p className="font-body-md text-on-surface-variant">
+          <h1 className="font-display-sm text-xl font-bold text-on-surface">Traslados de Mercancía</h1>
+          <p className="text-xs text-on-surface-variant">
             Mueve inventario entre tus diferentes almacenes.
           </p>
         </div>
@@ -207,36 +227,36 @@ export default function TransferPage() {
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           
           {/* Left Column: Form & Selection */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
-              <h3 className="font-headline-sm text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-primary" />
+          <div className="lg:col-span-1 space-y-4">
+            <div className="bg-surface-bright border border-outline-variant/30 rounded-2xl p-4 shadow-sm">
+              <h3 className="font-headline-sm text-sm font-bold text-on-surface mb-3 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-primary" />
                 Ruta del Traslado
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-1.5">Almacén Origen</label>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Almacén Origen</label>
                   <select
                     value={sourceWarehouse}
                     onChange={(e) => setSourceWarehouse(e.target.value)}
-                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary outline-none"
+                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary outline-none"
                   >
                     <option value="">Seleccione Origen...</option>
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
                   </select>
                 </div>
-                <div className="flex justify-center text-on-surface-variant/50">
-                  <ArrowRightLeft className="w-6 h-6 rotate-90" />
+                <div className="flex justify-center text-on-surface-variant/50 py-0.5">
+                  <ArrowRightLeft className="w-4 h-4 rotate-90" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-1.5">Almacén Destino</label>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Almacén Destino</label>
                   <select
                     value={destinationWarehouse}
                     onChange={(e) => setDestinationWarehouse(e.target.value)}
-                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary outline-none"
+                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary outline-none"
                   >
                     <option value="">Seleccione Destino...</option>
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
@@ -245,87 +265,137 @@ export default function TransferPage() {
               </div>
             </div>
 
-            <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm">
-              <h3 className="font-headline-sm text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5 text-primary" />
+            <div className="bg-surface-bright border border-outline-variant/30 rounded-2xl p-4 shadow-sm">
+              <h3 className="font-headline-sm text-sm font-bold text-on-surface mb-3 flex items-center gap-2">
+                <Package className="w-4 h-4 text-primary" />
                 Agregar Producto
               </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-on-surface mb-1.5">Producto</label>
-                  <select
-                    value={selectedProduct}
-                    onChange={(e) => setSelectedProduct(e.target.value)}
-                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary outline-none"
-                  >
-                    <option value="">Buscar producto...</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.sku ? `[${p.sku}] ` : ''}{p.name}</option>)}
-                  </select>
+              <div className="space-y-3">
+                <div className="relative">
+                  <label className="block text-xs font-bold text-on-surface mb-1">Producto</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Buscar producto por nombre, SKU o código..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setIsOpen(true);
+                      }}
+                      onFocus={() => setIsOpen(true)}
+                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl pl-9 pr-8 py-2 text-xs focus:border-primary outline-none"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-on-surface-variant/50" />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedProduct('');
+                          setIsOpen(false);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-on-surface text-sm"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {isOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+                      <div className="absolute z-40 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-52 overflow-y-auto text-xs py-1">
+                        {filteredProducts.length === 0 ? (
+                          <div className="p-3 text-slate-500 text-center">No se encontraron productos</div>
+                        ) : (
+                          filteredProducts.slice(0, 50).map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedProduct(p.id);
+                                setSearchQuery(p.barcode ? `[CB: ${p.barcode}] ${p.name}` : (p.sku ? `[${p.sku}] ${p.name}` : p.name));
+                                setIsOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex flex-col gap-0.5"
+                            >
+                              <span className="font-bold text-slate-700 dark:text-slate-200">{p.name}</span>
+                              <div className="flex gap-2 text-[10px] text-slate-500 font-mono">
+                                {p.sku && <span>SKU: {p.sku}</span>}
+                                {p.barcode && <span>CB: {p.barcode}</span>}
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+
                   {availableQty !== null && (
-                    <div className="mt-1.5 text-xs font-semibold text-slate-500 flex items-center justify-between px-1">
-                      <span>Stock disponible en origen:</span>
+                    <div className="mt-1.5 text-[11px] font-semibold text-slate-500 flex items-center justify-between px-1">
+                      <span>Stock disponible:</span>
                       <span className="font-mono text-primary font-bold">{loadingQty ? 'Cargando...' : availableQty.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-1.5">Cantidad</label>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Cantidad</label>
                   <input
                     type="number"
                     min="0.01"
                     step="0.01"
                     value={selectedQuantity}
                     onChange={(e) => setSelectedQuantity(e.target.value)}
-                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary outline-none"
+                    className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary outline-none"
                     placeholder="0.00"
                   />
                 </div>
                 <button
                   onClick={addItem}
-                  className="w-full bg-surface-variant text-on-surface hover:bg-primary/10 hover:text-primary font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-[#003366] text-white hover:bg-[#002244] font-bold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-4 h-4" /> Agregar a Lista
+                  <Plus className="w-3.5 h-3.5" /> Agregar a Lista
                 </button>
               </div>
             </div>
           </div>
 
           {/* Right Column: List and Submit */}
-          <div className="lg:col-span-2 space-y-6 flex flex-col h-full">
-            <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm flex-1 flex flex-col">
-              <h3 className="font-headline-sm text-lg font-bold text-on-surface mb-4">
+          <div className="lg:col-span-2 space-y-4 flex flex-col h-full">
+            <div className="bg-surface-bright border border-outline-variant/30 rounded-2xl p-4 shadow-sm flex-1 flex flex-col">
+              <h3 className="font-headline-sm text-sm font-bold text-on-surface mb-3">
                 Artículos a Trasladar
               </h3>
               
-              <div className="flex-1 bg-surface-variant/20 border border-outline-variant/30 rounded-2xl overflow-hidden">
+              <div className="flex-1 bg-surface-variant/20 border border-outline-variant/30 rounded-xl overflow-hidden">
                 <table className="w-full text-left">
                   <thead className="bg-surface-container-low border-b border-outline-variant/30">
                     <tr>
-                      <th className="p-4 font-bold text-sm text-on-surface-variant">Producto</th>
-                      <th className="p-4 font-bold text-sm text-on-surface-variant text-right">Cantidad</th>
-                      <th className="p-4"></th>
+                      <th className="p-3 font-bold text-xs text-on-surface-variant">Producto</th>
+                      <th className="p-3 font-bold text-xs text-on-surface-variant text-right">Cantidad</th>
+                      <th className="p-3"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="p-12 text-center text-on-surface-variant/60">
+                        <td colSpan={3} className="p-8 text-center text-xs text-on-surface-variant/60">
                           No se han agregado productos al traslado.
                         </td>
                       </tr>
                     ) : (
                       items.map((item, idx) => (
                         <tr key={idx} className="border-b border-outline-variant/10 last:border-0 hover:bg-surface-variant/30">
-                          <td className="p-4 text-sm font-bold text-on-surface">
+                          <td className="p-3 text-xs font-bold text-on-surface">
                             {item.product.name}
-                            <span className="block text-xs font-normal text-on-surface-variant mt-0.5">{item.product.sku || 'Sin SKU'}</span>
+                            <span className="block text-[10px] font-normal text-on-surface-variant mt-0.5">{item.product.sku || 'Sin SKU'}</span>
                           </td>
-                          <td className="p-4 text-sm font-bold text-primary text-right">
-                            {item.quantity} <span className="text-xs font-normal text-on-surface-variant">{item.product.unitOfMeasure}</span>
+                          <td className="p-3 text-xs font-bold text-primary text-right">
+                            {item.quantity} <span className="text-[10px] font-normal text-on-surface-variant">{item.product.unitOfMeasure}</span>
                           </td>
-                          <td className="p-4 text-right">
-                            <button onClick={() => removeItem(item.product.id)} className="p-2 text-error hover:bg-error/10 rounded-lg transition-colors">
-                              <Trash2 className="w-4 h-4" />
+                          <td className="p-3 text-right">
+                            <button onClick={() => removeItem(item.product.id)} className="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
@@ -335,13 +405,13 @@ export default function TransferPage() {
                 </table>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-bold text-on-surface mb-1.5">Motivo del Traslado (Opcional)</label>
+              <div className="mt-3">
+                <label className="block text-xs font-bold text-on-surface mb-1">Motivo del Traslado (Opcional)</label>
                 <input
                   type="text"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary outline-none"
+                  className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary outline-none"
                   placeholder="Ej. Reabastecimiento sucursal norte"
                 />
               </div>
@@ -349,9 +419,9 @@ export default function TransferPage() {
               <button
                 onClick={handleTransfer}
                 disabled={submitting || items.length === 0}
-                className="mt-6 w-full bg-primary text-on-primary font-bold py-4 rounded-2xl shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="mt-4 w-full bg-[#003366] text-white font-bold py-2.5 rounded-xl shadow hover:bg-[#002244] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
-                {submitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
+                {submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {submitting ? 'Procesando...' : 'Confirmar Traslado'}
               </button>
             </div>

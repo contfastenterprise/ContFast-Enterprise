@@ -2,6 +2,20 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 
+// Leer imágenes de mockup y convertirlas a Base64 para incrustarlas en el HTML del PDF
+const transferMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'transfer_mockup.jpg')).toString('base64');
+const productFormMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'product_form_mockup.jpg')).toString('base64');
+const dashboardMainMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'dashboard_main_mockup.jpg')).toString('base64');
+const invoicesListMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'invoices_list_mockup.jpg')).toString('base64');
+const newInvoiceFormMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'new_invoice_form_mockup.jpg')).toString('base64');
+const productsListMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'products_list_mockup.jpg')).toString('base64');
+const accountingLedgerMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'accounting_ledger_mockup.jpg')).toString('base64');
+const barcodesPrintMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'barcodes_print_mockup.jpg')).toString('base64');
+const suppliersListMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'suppliers_list_mockup.jpg')).toString('base64');
+const receivablesStatementMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'receivables_statement_mockup.jpg')).toString('base64');
+const payrollListMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'payroll_list_mockup.jpg')).toString('base64');
+const chequesGarantiaMockupBase64 = fs.readFileSync(path.join(__dirname, '..', 'public', 'cheques_garantia_mockup.jpg')).toString('base64');
+
 const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
@@ -10,6 +24,17 @@ const htmlContent = `
   <title>Manual de Usuario y Operaciones - ContFast Enterprise</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    .manual-img {
+      max-width: 90%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin: 14px auto;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      display: block;
+    }
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -340,7 +365,7 @@ const htmlContent = `
         <span class="toc-page">Pág. 8</span>
       </li>
       <li class="toc-item">
-        <span class="toc-name">6. Cuentas por Cobrar e Historial de Clientes</span>
+        <span class="toc-name">6. Cuentas por Cobrar, Auxiliares e Historial Financiero</span>
         <span class="toc-dots"></span>
         <span class="toc-page">Pág. 10</span>
       </li>
@@ -355,7 +380,7 @@ const htmlContent = `
         <span class="toc-page">Pág. 12</span>
       </li>
       <li class="toc-item">
-        <span class="toc-name">9. Herramientas Técnicas de Taller y Producción</span>
+        <span class="toc-name">9. Herramientas Técnicas de Taller, Códigos de Barra y Traslados</span>
         <span class="toc-dots"></span>
         <span class="toc-page">Pág. 14</span>
       </li>
@@ -363,6 +388,11 @@ const htmlContent = `
         <span class="toc-name">10. Configuración del Sistema, Roles y Contingencias</span>
         <span class="toc-dots"></span>
         <span class="toc-page">Pág. 15</span>
+      </li>
+      <li class="toc-item">
+        <span class="toc-name">11. Pantalla de Transición Post-Login y Carga de Empresa (PageLoader)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page">Pág. 16</span>
       </li>
     </ul>
   </div>
@@ -383,6 +413,7 @@ const htmlContent = `
 
     <h3 class="subsection-title">Contabilidad de Doble Entrada Automatizada</h3>
     <p>Toda acción operativa en el sistema genera automáticamente su contrapartida contable en el Diario General (ledger) respetando el catálogo de cuentas de la empresa. Al facturar, cobrar, registrar gastos o pagar nóminas, el sistema genera de forma invisible los asientos de Débito y Crédito correspondientes, garantizando que el Balance General y el Estado de Resultados estén actualizados en tiempo real.</p>
+    <img src="data:image/jpeg;base64,${dashboardMainMockupBase64}" class="manual-img" alt="Página Principal del ERP - ContFast Dashboard" />
   </div>
 
   <!-- SECTION 2 -->
@@ -422,6 +453,7 @@ const htmlContent = `
         </tr>
       </tbody>
     </table>
+    <img src="data:image/jpeg;base64,${invoicesListMockupBase64}" class="manual-img" alt="Historial y Lista de Comprobantes e-CF Emitidos" />
 
     <h3 class="subsection-title">Flujo paso a paso para la emisión de una Factura</h3>
     <ol class="step-list">
@@ -450,6 +482,7 @@ const htmlContent = `
         <strong>Procesar y Emitir:</strong> Presione "Emitir Factura". El sistema firmará digitalmente el archivo XML mediante llaves criptográficas y lo enviará al servicio mSeller conectado a la DGII.
       </li>
     </ol>
+    <img src="data:image/jpeg;base64,${newInvoiceFormMockupBase64}" class="manual-img" alt="Formulario de Nueva Factura e-CF con Notas y Descuentos" />
   </div>
 
   <!-- SECTION 2 PART 2 -->
@@ -562,7 +595,7 @@ const htmlContent = `
       <li><strong>Cálculo Automático por Total:</strong> Al digitar el importe total en el campo <em>Total de la Compra</em>, el sistema de-agrega de forma reactiva e inmediata el <em>Monto sin ITBIS (Subtotal = Total / 1.18)</em> y el <em>ITBIS (18%)</em> utilizando redondeo decimal preciso. Ambos campos de desglose permanecen editables para permitir ajustes manuales detallados si la factura contiene montos exentos u otros impuestos.</li>
       <li><strong>Selector de Cuenta Contable:</strong> Permite elegir de manera explícita en qué cuenta del catálogo contable de costos o gastos se registrará la transacción de débito en el libro mayor. Por defecto, está configurada en <strong>Costo de Ventas (5.1.01)</strong>, pero puede cambiarse a cualquier otra cuenta (ej. Gastos de Personal, Otros Impuestos, etc.).</li>
       <li><strong>Fila Virtual en Detalles:</strong> En el listado histórico de compras, al abrir los detalles de una compra por monto general, el sistema muestra una fila virtual con el concepto general y desglose para preservar la consistencia visual y la fácil lectura de los datos.</li>
-    </ul>
+    <img src="data:image/jpeg;base64,${suppliersListMockupBase64}" class="manual-img" alt="Directorio y Auxiliares de Suplidores" />
   </div>
 
   <!-- SECTION 5 -->
@@ -589,6 +622,7 @@ const htmlContent = `
 
     <h3 class="subsection-title">Estado de Registro Inicial</h3>
     <p>Al guardar la compra, el sistema inserta el gasto, reconoce la deuda en Cuentas por Pagar (CXP) y registra el cheque en la base de datos en estado <strong>pending (pendiente)</strong>, mientras que el registro de pago se marca como <strong>pending_guarantee</strong>. El saldo bancario y el libro mayor del banco no se ven afectados en este punto, manteniendo la tesorería real intacta.</p>
+    <img src="data:image/jpeg;base64,${chequesGarantiaMockupBase64}" class="manual-img" alt="Módulo de Cheques en Garantía y CXP" />
   </div>
 
   <!-- SECTION 5 PART 2 -->
@@ -649,14 +683,22 @@ const htmlContent = `
 
   <!-- SECTION 6 -->
   <div class="page">
-    <h2 class="section-title">6. Cuentas por Cobrar e Historial de Clientes</h2>
-    <p class="intro-lead">La administración del flujo de cobros contra facturas a crédito es fundamental para mantener la liquidez operativa de la empresa.</p>
+    <h2 class="section-title">6. Cuentas por Cobrar, Auxiliares e Historial Financiero</h2>
+    <p class="intro-lead">La administración del flujo de cobros contra facturas a crédito y el seguimiento detallado de los auxiliares de clientes y suplidores es fundamental para mantener la liquidez.</p>
 
     <h3 class="subsection-title">Registro de Recibos de Ingresos</h3>
     <p>Cuando un cliente efectúa un pago (completo o parcial) contra una factura emitida a crédito, el sistema permite registrar la transacción en el módulo de Cuentas por Cobrar (CXC):</p>
     <ul>
       <li><strong>Formulario de Cobro:</strong> Seleccione la factura pendiente, el método de pago utilizado (efectivo, transferencia o cheque) y el monto cobrado.</li>
       <li><strong>Generación del Recibo de Ingreso A4:</strong> Al guardar el cobro, el sistema genera de forma automática un Recibo de Ingreso en tamaño Carta (A4) que se puede imprimir o descargar. Cuenta con un diseño formal, espaciado de seguridad debajo del título para separar los metadatos y la alineación correcta del logotipo corporativo en la parte izquierda.</li>
+    </ul>
+
+    <h3 class="subsection-title">Movimientos Financieros Auxiliares (Auxiliares de Terceros)</h3>
+    <p>Para asegurar una consistencia absoluta en el historial de cuentas por cobrar y pagar, toda transacción (facturación, compras, cobros, notas de crédito/débito y pagos) se registra transaccionalmente en la tabla unificada de <code>financial_movements</code>. Esto permite:</p>
+    <ul>
+      <li><strong>Balance Progresivo:</strong> Reconstrucción interactiva del estado de cuenta donde cada débito o crédito calcula un balance acumulado progresivo línea por línea, evitando discrepancias en auditorías.</li>
+      <li><strong>Antigüedad de Saldos:</strong> Análisis automático de la cartera vencida estructurado en tramos de vencimiento (Al día, 1-30 días, 31-60 días, 61-90 días, y más de 90 días) para agilizar las gestiones de cobranza.</li>
+      <li><strong>Auxiliares de Suplidores:</strong> Control simétrico en Cuentas por Pagar (CXP) que detalla el historial de compras y pagos aplicados a cada proveedor.</li>
     </ul>
 
     <h3 class="subsection-title">Pestaña "Estado de Cuenta y Abonos por Cliente"</h3>
@@ -680,9 +722,10 @@ const htmlContent = `
       </li>
       <li class="step-item">
         <span class="step-number">5</span>
-        <strong>Exportación en PDF Premium:</strong> Presione "Imprimir Estado de Cuenta". Puppeteer renderizará una plantilla oficial Carta con cabeceras formales de la empresa, los saldos vencidos y las transacciones detalladas, lista para ser enviada por correo al cliente.
+        <strong>Exportación en PDF Premium:</strong> Presione "Imprimir Estado de Cuenta". Puppeteer renderizará una plantilla oficial Carta con cabeceras formales de la empresa, los saldos vencidos y las transacciones detalladas, lista para ser enviada por correo al cliente o suplidor.
       </li>
     </ol>
+    <img src="data:image/jpeg;base64,${receivablesStatementMockupBase64}" class="manual-img" alt="Historial Financiero y Estado de Cuenta con Antigüedad de Saldos" />
   </div>
 
   <!-- SECTION 7 -->
@@ -802,6 +845,7 @@ const htmlContent = `
 
     <h3 class="subsection-title">Configuración de Parámetros de Recursos Humanos</h3>
     <p>Para ajustar las retenciones o escalas ante cambios decretados por el Gobierno, navegue a <em>Recursos Humanos</em> > <em>Configuración</em>. Aquí podrá editar los topes de salarios mínimos de cotización de la TSS y los valores límites anuales de las escalas del ISR para garantizar que el cálculo se mantenga actualizado con la ley.</p>
+    <img src="data:image/jpeg;base64,${payrollListMockupBase64}" class="manual-img" alt="Procesamiento y Gestión de Nómina" />
   </div>
 
   <!-- SECTION 9 -->
@@ -837,6 +881,26 @@ const htmlContent = `
         <strong>Autoguardado:</strong> El listado de piezas se almacena automáticamente en el almacenamiento local de su navegador, evitando la pérdida de datos ante recargas fortuitas.
       </li>
     </ol>
+    <img src="data:image/jpeg;base64,${productsListMockupBase64}" class="manual-img" alt="Catálogo General de Productos e Inventarios" />
+
+    <h3 class="subsection-title">Gestión de Códigos de Barra en Productos</h3>
+    <p>El sistema unifica el control de códigos de barra para etiquetado e inventario físico de productos:</p>
+    <ul>
+      <li><strong>Formatos Soportados:</strong> Emisión de códigos Code 128 (estándar), EAN-13 (productos internacionales), EAN-8 (paquetes pequeños), UPC-A (América del Norte) y Códigos QR oficiales.</li>
+      <li><strong>Generación Automática:</strong> Al registrar un producto, el botón "Generar Automático" consume la secuencia de barra aprobada y dibuja una vista previa en tiempo real.</li>
+      <li><strong>Códigos de Barra Secundarios:</strong> Permite asociar múltiples códigos adicionales a una misma referencia de producto, facilitando la lectura de códigos de fábrica o de diferentes presentaciones comerciales.</li>
+      <li><strong>Formulario Compacto:</strong> El modal de registro de productos cuenta con espaciados y gaps compactos optimizados junto a barras de scroll inteligente para asegurar la visualización completa de los campos en pantallas de computadoras portátiles o tablets sin recortes visuales.</li>
+    </ul>
+    <img src="data:image/jpeg;base64,${productFormMockupBase64}" class="manual-img" alt="Formulario de Registro de Producto y Códigos de Barra" />
+    <img src="data:image/jpeg;base64,${barcodesPrintMockupBase64}" class="manual-img" alt="Módulo de Generación e Impresión de Etiquetas de Código de Barra" />
+
+    <h3 class="subsection-title">Traslados de Inventario con Buscador Auto-Completado</h3>
+    <p>Para mover mercancía de forma segura y veloz entre almacenes (Origen y Destino), la interfaz incluye un buscador avanzado:</p>
+    <ul>
+      <li><strong>Autocompletado de Producto:</strong> Se reemplazó el menú tradicional por un campo de texto inteligente. Al escribir, el sistema sugiere coincidencias en milisegundos buscando por Nombre de Producto, SKU o Código de Barra (ej. <code>CB-000000002</code>).</li>
+      <li><strong>Stock en Tiempo Real:</strong> Al seleccionar el producto y el almacén origen, se consulta de forma reactiva el stock disponible físico, mostrando advertencias si la cantidad a trasladar excede la existencia.</li>
+    </ul>
+    <img src="data:image/jpeg;base64,${transferMockupBase64}" class="manual-img" alt="Buscador Auto-Completado de Productos para Traslado de Inventario" />
   </div>
 
   <!-- SECTION 10 -->
@@ -868,6 +932,22 @@ const htmlContent = `
     <div class="alert-box success">
       <strong>Arquitectura Resiliente:</strong> Si el servidor de base de datos Redis del establecimiento local se desconecta (fallo de conexión o falta de memoria), el sistema conmuta automáticamente y realiza el encolado de envíos a la DGII y despacho de correos electrónicos en el Event Loop in-process de Node. Al restablecerse la conexión con Redis, las tareas pendientes se sincronizan sin intervención del usuario.
     </div>
+    <img src="data:image/jpeg;base64,${accountingLedgerMockupBase64}" class="manual-img" alt="Módulo de Contabilidad General y Auxiliares" />
+  </div>
+
+  <!-- SECTION 11 -->
+  <div class="page">
+    <h2 class="section-title">11. Pantalla de Transición Post-Login y Carga de Empresa</h2>
+    <p class="intro-lead">ContFast Enterprise personaliza la experiencia del usuario desde el momento del inicio de sesión, cargando la marca e identidad visual de la empresa seleccionada.</p>
+
+    <h3 class="subsection-title">Transición y Animación de Carga de Empresa (PageLoader)</h3>
+    <p>Al autenticarse con éxito en la pantalla de Login, el sistema ejecuta una transición fluida y elegante:</p>
+    <ul>
+      <li><strong>Identificación Visual:</strong> El backend devuelve el logotipo oficial y el nombre comercial de la empresa configurada en la base de datos para la sesión.</li>
+      <li><strong>Animaciones Fluidas:</strong> A través de un componente <code>PageLoader</code> dedicado basado en Framer Motion, se muestra una animación de pulso y escala del logotipo con un anillo circular concéntrico, acompañado del nombre de la empresa. Los colores corporativos de transición respetan el diseño institucional (azul marino profundo y dorado).</li>
+      <li><strong>Persistencia y Seguridad:</strong> La marca se almacena temporalmente en el almacenamiento local seguro y se muestra continuamente hasta que el tablero principal (Dashboard Layout) finaliza su inicialización completa y el estado de la aplicación es seguro.</li>
+      <li><strong>Comportamiento por Defecto (Fallback):</strong> Si la empresa aún no cuenta con un logotipo personalizado configurado, la transición se omite de forma fluida para ingresar de inmediato a la interfaz estándar del sistema sin generar demoras ni errores visuales.</li>
+    </ul>
   </div>
 
 </body>
@@ -886,7 +966,7 @@ const htmlContent = `
     const page = await browser.newPage();
     
     console.log('Cargando el contenido HTML de la documentación...');
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 0 });
     
     const pdfPath = path.join(__dirname, '..', 'manual_usuario_contfast.pdf');
     
