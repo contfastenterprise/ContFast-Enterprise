@@ -958,27 +958,45 @@ export default function ReceivablesPage() {
                     <table className="w-full text-sm text-left border-collapse">
                       <thead className="text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-100">
                         <tr>
-                          <th className="px-4 pb-3">Factura</th>
-                          <th className="px-4 pb-3">NCF / Documento</th>
-                          <th className="px-4 pb-3 text-right">Vencimiento</th>
-                          <th className="px-4 pb-3 text-right">Balance Original</th>
-                          <th className="px-4 pb-3 text-right w-40">Monto a Aplicar</th>
+                          <th className="px-2 pb-3 text-center w-12">Aplicar</th>
+                          <th className="px-3 pb-3">Factura</th>
+                          <th className="px-3 pb-3">NCF / Documento</th>
+                          <th className="px-3 pb-3 text-right">Vencimiento</th>
+                          <th className="px-3 pb-3 text-right">Monto Original</th>
+                          <th className="px-3 pb-3 text-right">Balance Pendiente</th>
+                          <th className="px-3 pb-3 text-right w-36">Monto a Aplicar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {selectedCustomer.invoices.map(inv => {
                           const applied = appliedInvoices[inv.arId] || 0;
+                          const isFullyApplied = Math.abs(applied - inv.balance) < 0.01;
                           return (
                             <tr key={inv.arId} className={clsx("transition-colors align-middle", applied > 0 ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50')}>
-                              <td className="px-4 py-3">
+                              <td className="px-2 py-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isFullyApplied}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      handleManualApplyChange(inv.arId, inv.balance.toString(), inv.balance);
+                                    } else {
+                                      handleManualApplyChange(inv.arId, '0', inv.balance);
+                                    }
+                                  }}
+                                  className="h-4 w-4 rounded border-slate-300 text-[#003366] focus:ring-[#003366] cursor-pointer"
+                                />
+                              </td>
+                              <td className="px-3 py-3">
                                 <span className="font-mono font-bold text-[#003366] block">{inv.codigoFactura || 'N/A'}</span>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-3">
                                 <span className="font-mono text-slate-600 block">{inv.invoiceNumber}</span>
                               </td>
-                              <td className="px-4 py-3 text-right text-slate-600 font-semibold">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
-                              <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
-                              <td className="px-4 py-3 text-right">
+                              <td className="px-3 py-3 text-right text-slate-600 font-semibold">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
+                              <td className="px-3 py-3 text-right font-mono text-slate-500">{fmt(inv.amount)}</td>
+                              <td className="px-3 py-3 text-right font-mono font-bold text-rose-600">{fmt(inv.balance)}</td>
+                              <td className="px-3 py-3 text-right">
                                 <input
                                   type="number"
                                   min="0"
