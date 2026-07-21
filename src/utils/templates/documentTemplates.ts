@@ -459,12 +459,12 @@ export class DocumentTemplates {
             </div>
           </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: -12mm; right: 0px; z-index: 10;">
-            <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 35px;">
+          <div class="last-page-signatures" style="position: absolute; bottom: -12mm; right: 0px; z-index: 10; height: 60px; display: flex; align-items: center;">
+            <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end;">
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Recibido conforme</div>
               </div>
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 35px;">
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Revisado por</div>
               </div>
             </div>
@@ -549,11 +549,11 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 42px;
+              height: 60px;
             }
             .qr-img-repeated {
-              width: 40px;
-              height: 40px;
+              width: 55px;
+              height: 55px;
             }
           </style>
         </head>
