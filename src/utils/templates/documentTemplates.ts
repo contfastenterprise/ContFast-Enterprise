@@ -459,13 +459,13 @@ export class DocumentTemplates {
             </div>
           </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: -17mm; right: 0px; z-index: 10;">
+          <div class="last-page-signatures" style="position: absolute; bottom: -12mm; right: 0px; z-index: 10;">
             <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
-                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Recibido conforme</div>
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 35px;">
+                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Recibido conforme</div>
               </div>
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
-                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Revisado por</div>
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 35px;">
+                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Revisado por</div>
               </div>
             </div>
           </div>
@@ -493,9 +493,9 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 15mm 15mm 17mm 15mm;
+              margin: 12mm 12mm 12mm 12mm;
             }
-            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 17mm; }
+            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 12mm; }
             .page-break { page-break-before: always; }
             .invoice-wrapper {
               width: 100%;
@@ -503,7 +503,7 @@ export class DocumentTemplates {
               position: relative;
               display: flex;
               flex-direction: column;
-              min-height: 245mm;
+              min-height: 255mm;
             }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
@@ -549,11 +549,11 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 60px;
+              height: 42px;
             }
             .qr-img-repeated {
-              width: 55px;
-              height: 55px;
+              width: 40px;
+              height: 40px;
             }
           </style>
         </head>
@@ -565,7 +565,7 @@ export class DocumentTemplates {
               wrappers.forEach(wrapper => {
                 wrapper.style.minHeight = '0px';
                 const contentHeight = wrapper.offsetHeight;
-                const pageHeight = 935; // Letter page height in pixels inside print printable area
+                const pageHeight = 965; // Letter page height in pixels inside print printable area
                 const pagesCount = Math.ceil(contentHeight / pageHeight);
                 wrapper.style.minHeight = (pagesCount * pageHeight) + 'px';
               });
