@@ -449,23 +449,20 @@ export class DocumentTemplates {
             </div>
           </div>
 
-          <div class="qr-signature-section">
-            <div class="signature-container" style="width: 100%; justify-content: flex-end;">
-              <div class="signature-line">
-                <div class="signature-line-border">Recibido conforme</div>
-              </div>
-              <div class="signature-line" style="margin-left: 40px;">
-                <div class="signature-line-border">Revisado por</div>
-              </div>
-            </div>
-          </div>
-
           <div class="invoice-footer-repeated">
             <div style="display: flex; align-items: center; gap: 15px;">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
                 Código de seguridad: ${inv.securityCode || 'N/A'}<br>
                 Fecha Firma: ${formattedSigDate}
+              </div>
+            </div>
+            <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
+                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Recibido conforme</div>
+              </div>
+              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
+                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Revisado por</div>
               </div>
             </div>
           </div>
