@@ -536,7 +536,17 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Corrección Definitiva de Selectores de Impresión**: Se reemplazó el selector de ocultamiento global `body *` por `body > *:not(.print-area)` en los bloques de estilos de impresión. Esto soluciona de forma definitiva el error por el cual las hojas salían en blanco, asegurando que los elementos internos del sticker (códigos de barra SVG, canvas de QR, textos y precios) no sufran ocultación en cascada por parte del navegador.
 
+- **Plantilla PDF de Impresión de Código de Barras**: Se creó una ruta de backend dedicada `/api/v1/products/barcodes/pdf` que genera un documento PDF de alta fidelidad. Cada página corresponde exactamente a una etiqueta con las dimensiones físicas configuradas en milímetros. Utiliza renderizado de vectores (JsBarcode/QRCode) dentro de Puppeteer y se abre directamente en una nueva pestaña del navegador, garantizando un resultado nítido y compatible con impresoras de etiquetas.
+
 * * Verified & Polished * *  
+
+### 72. Módulo de Pedidos a Suplidores (Puertas)
+- **Base de Datos y Modelos**: Creación de las tablas `supplier_orders`, `supplier_order_lines` y `supplier_order_sequences` en la base de datos de producción de Supabase, soportando persistencia de estados y especificaciones avanzadas de productos.
+- **Backend y API de Generación de Reportes**: Implementación de servicios de CRUD y endpoints para consulta y creación de pedidos, generación de PDF con el diseño exacto de Latin Doors, y ruta `/api/v1/supplier-orders/report` para imprimir todos los pedidos agrupados.
+- **Frontend Alineado con Invoices**: Interfaz gráfica en la sección de Egresos (`/dashboard/purchases/orders`) que replica exactamente la estructura de tablas de facturación (estilos, sombras, filas alternas, indicadores de estado) con botones de acción rápida, color de botón primario (`#005E63`), y soporte para imprimir reportes masivos de pedidos filtrados.
+
+* * Verified & Polished * *
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
