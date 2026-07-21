@@ -884,10 +884,10 @@ export default function ReceivablesPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-7xl relative z-10 flex flex-col max-h-[93vh] overflow-hidden">
-              <div className="bg-[#003366] px-6 py-5 flex justify-between items-center text-white shrink-0">
+              <div className="bg-[#003366] px-6 py-3 flex justify-between items-center text-white shrink-0">
                 <div>
-                  <h3 className="text-white font-display font-bold text-xl flex items-center gap-2"><HandCoins className="w-6 h-6 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
-                  <p className="text-white/80 text-sm mt-0.5">{selectedCustomer.customerName}</p>
+                  <h3 className="text-white font-display font-bold text-lg flex items-center gap-2"><HandCoins className="w-5 h-5 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
+                  <p className="text-[#C5A059] font-bold text-sm mt-0.5">{selectedCustomer.customerName}</p>
                 </div>
                 <button onClick={() => setShowPaymentModal(false)} className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl text-xs font-bold transition-all active:scale-95"><X className="w-5 h-5" /></button>
               </div>
