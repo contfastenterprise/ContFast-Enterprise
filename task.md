@@ -31,3 +31,10 @@
 - [x] Validar compilación de TypeScript (`npx tsc --noEmit`).
 - [ ] Validar construcción de producción de Next.js (`npm run build` o `npx next build`).
 - [ ] Crear y ejecutar script de seeding inicial/histórico de movimientos y verificar coherencia de saldos.
+
+## 7. Pantalla de Carga (PageLoader) Post-Login con Logo
+- [x] Crear componente reusable `src/components/ui/PageLoader.tsx` ('use client') con Framer Motion, next/image priority y colores `#003366` y `#C59B27`.
+- [x] Actualizar `POST /api/v1/auth/login` para devolver `companyLogo` y `companyName` si están configurados en BD.
+- [x] Integrar navegación inmediata sin demoras artificiales en `src/app/auth/login/page.tsx` usando `sessionStorage`.
+- [x] Mantener `PageLoader` activo continuamente en `src/app/dashboard/layout.tsx` hasta finalizar la inicialización y carga completa de la página principal.
+- [x] Garantizar que si la empresa NO tiene logo configurado en BD, el comportamiento continúe estándar sin activar la transición.

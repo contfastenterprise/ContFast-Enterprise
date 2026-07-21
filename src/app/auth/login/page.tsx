@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
 import { RippleBackground } from '@/components/ui/interactive-ripple-background';
+import { PageLoader } from '@/components/ui/PageLoader';
 
 const loginSchema = z.object({
   email: z.string().email('Formato de correo electrónico inválido'),
@@ -23,6 +24,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Company logo screen transition state
+  const [showCompanyLoader, setShowCompanyLoader] = useState(false);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
   // 1. Check if the system is initialized. If not, redirect to wizard.
   useEffect(() => {
@@ -75,13 +81,30 @@ export default function LoginPage() {
         throw new Error(data.error?.message || 'Acceso incorrecto.');
       }
 
+      const configuredLogo = data.data?.companyLogo || data.data?.logoUrl || null;
+      const configuredName = data.data?.companyName || null;
+
       toast.success('¡Acceso concedido!', {
         description: 'Redireccionando al panel principal...',
       });
 
-      setTimeout(() => {
+      // ONLY execute company logo loader transition if company has logo configured in DB
+      if (configuredLogo && typeof configuredLogo === 'string' && configuredLogo.trim() !== '') {
+        try {
+          sessionStorage.setItem('cf_post_login_logo', configuredLogo);
+          if (configuredName) sessionStorage.setItem('cf_post_login_name', configuredName);
+        } catch (e) {
+          console.error('SessionStorage error:', e);
+        }
+        setCompanyLogo(configuredLogo);
+        setCompanyName(configuredName);
+        setShowCompanyLoader(true);
+        // Immediate navigation - PageLoader in layout will keep screen smooth until dashboard fully loads
         router.push('/dashboard');
-      }, 1000);
+      } else {
+        // Otherwise, standard behavior continues as normal
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       let errorMessage = err.message;
       if (
@@ -99,6 +122,17 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (showCompanyLoader && companyLogo) {
+    return (
+      <PageLoader
+        logoUrl={companyLogo}
+        companyName={companyName}
+        message="Inicializando panel principal..."
+        fullScreen
+      />
+    );
+  }
 
   if (checkingStatus) {
     return (

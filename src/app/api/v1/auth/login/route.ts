@@ -5,6 +5,7 @@ import { db, users, roles, auditLogs } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { createSession } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { CompanyRepository } from '@/repositories/companyRepository';
 
 const loginSchema = z.object({
   email: z.string().email('Formato de correo electrónico inválido'),
@@ -94,7 +95,13 @@ export async function POST(req: NextRequest) {
       resHeaders
     );
 
-    // 5. Register audit log
+    // 5. Fetch company details & logo if configured in DB
+    const [companySettings, companyProfile] = await Promise.all([
+      CompanyRepository.getSettings(user.companyId).catch(() => null),
+      CompanyRepository.getProfile(user.companyId).catch(() => null),
+    ]);
+
+    // 6. Register audit log
     await db.insert(auditLogs).values({
       companyId: user.companyId,
       userId: user.id,
@@ -116,6 +123,8 @@ export async function POST(req: NextRequest) {
             role: user.roleName,
             companyId: user.companyId,
           },
+          companyLogo: companySettings?.logoUrl || null,
+          companyName: companyProfile?.name || null,
         },
       },
       { headers: resHeaders }

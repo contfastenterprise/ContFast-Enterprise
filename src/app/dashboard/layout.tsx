@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { RbacProvider } from '@/components/providers/rbacContext';
+import { PageLoader } from '@/components/ui/PageLoader';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [activeEnvironment, setActiveEnvironment] = useState<'PRODUCCION' | 'PRUEBA'>('PRODUCCION');
   const [companies, setCompanies] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
+  const [loadingInit, setLoadingInit] = useState(true);
 
   useEffect(() => {
     const checkSetupAndFetchUser = async () => {
@@ -67,9 +69,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push('/auth/login');
       }
     };
-    checkSetupAndFetchUser();
-
-    window.addEventListener('user-profile-updated', checkSetupAndFetchUser);
 
     const fetchSettings = async () => {
       try {
@@ -112,8 +111,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         console.error('Error fetching company settings', err);
       }
     };
-    fetchSettings();
 
+    const initAll = async () => {
+      await Promise.all([checkSetupAndFetchUser(), fetchSettings()]);
+      setLoadingInit(false);
+      try {
+        sessionStorage.removeItem('cf_post_login_logo');
+        sessionStorage.removeItem('cf_post_login_name');
+      } catch (e) {}
+    };
+
+    initAll();
+
+    window.addEventListener('user-profile-updated', checkSetupAndFetchUser);
     window.addEventListener('company-settings-updated', fetchSettings);
 
     return () => {
@@ -245,6 +255,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       toast.error('Error al cerrar sesión', { description: error.message });
     }
   };
+
+  const pendingLogo = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_logo') : null;
+  const pendingName = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_name') : null;
+  const activeLogo = pendingLogo || logoUrl;
+
+  if (loadingInit || !user) {
+    if (activeLogo && typeof activeLogo === 'string' && activeLogo.trim() !== '') {
+      return (
+        <PageLoader
+          logoUrl={activeLogo}
+          companyName={pendingName || companyName}
+          message="Cargando panel principal..."
+          fullScreen
+        />
+      );
+    }
+  }
 
   return (
     <RbacProvider initialUser={user}>
