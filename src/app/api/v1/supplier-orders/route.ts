@@ -8,18 +8,14 @@ import { eq } from 'drizzle-orm';
 
 const createOrderSchema = z.object({
   supplierId: z.string().uuid('El suplidor seleccionado no es válido'),
+  warehouseId: z.string().uuid('El almacén seleccionado no es válido'),
+  expectedDate: z.string().optional().nullable(),
   observations: z.string().optional(),
-  generalConditions: z.string().optional(),
   lines: z.array(
     z.object({
-      productId: z.string().uuid().optional().nullable(),
-      modelo: z.string().optional().nullable(),
-      medida: z.string().optional().nullable(),
-      colorAcabado: z.string().optional().nullable(),
-      linea: z.string().optional().nullable(),
-      numHuecosCerradura: z.string().optional().nullable(),
-      cantidad: z.number().int().positive('La cantidad debe ser mayor a cero'),
-      observaciones: z.string().optional().nullable(),
+      productId: z.string().uuid('El producto seleccionado no es válido'),
+      quantityRequested: z.number().int().positive('La cantidad debe ser mayor a cero'),
+      observations: z.string().optional().nullable(),
     })
   ).min(1, 'El pedido debe tener al menos una línea de producto'),
 });
@@ -100,8 +96,7 @@ export async function POST(req: NextRequest) {
       ...data,
       companyId: auth.companyId,
       modo: auth.modo,
-      userId: auth.userId,
-    }, company.name);
+    }, auth.userId, company.name);
 
     return NextResponse.json(
       { success: true, data: result },

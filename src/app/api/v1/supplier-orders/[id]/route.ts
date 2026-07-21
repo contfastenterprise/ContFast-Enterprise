@@ -6,19 +6,15 @@ import { SupplierOrderService } from '@/services/supplierOrderService';
 
 const updateOrderSchema = z.object({
   supplierId: z.string().uuid('El suplidor seleccionado no es válido').optional(),
+  warehouseId: z.string().uuid('El almacén seleccionado no es válido').optional(),
+  expectedDate: z.string().optional().nullable(),
   observations: z.string().optional(),
-  generalConditions: z.string().optional(),
   status: z.string().optional(),
   lines: z.array(
     z.object({
-      productId: z.string().uuid().optional().nullable(),
-      modelo: z.string().optional().nullable(),
-      medida: z.string().optional().nullable(),
-      colorAcabado: z.string().optional().nullable(),
-      linea: z.string().optional().nullable(),
-      numHuecosCerradura: z.string().optional().nullable(),
-      cantidad: z.number().int().positive('La cantidad debe ser mayor a cero'),
-      observaciones: z.string().optional().nullable(),
+      productId: z.string().uuid('El producto seleccionado no es válido'),
+      quantityRequested: z.number().int().positive('La cantidad debe ser mayor a cero'),
+      observations: z.string().optional().nullable(),
     })
   ).optional(),
 });
@@ -85,7 +81,7 @@ export async function PUT(
     const body = await req.json();
     const data = updateOrderSchema.parse(body);
 
-    const result = await SupplierOrderService.updateOrder(id, auth.companyId, auth.modo, data);
+    const result = await SupplierOrderService.updateOrder(id, auth.companyId, auth.modo, auth.userId, data);
 
     return NextResponse.json(
       { success: true, data: result },

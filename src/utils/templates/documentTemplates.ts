@@ -3343,7 +3343,7 @@ export class DocumentTemplates {
     const ordDate = new Date(order.orderDate || new Date());
     const formattedDate = `${String(ordDate.getDate()).padStart(2, '0')}-${String(ordDate.getMonth() + 1).padStart(2, '0')}-${ordDate.getFullYear()}`;
 
-    const totalQty = lines.reduce((acc: number, line: any) => acc + Number(line.cantidad || 0), 0);
+    const totalQty = lines.reduce((acc: number, line: any) => acc + Number(line.quantityRequested || 0), 0);
 
     const conditions = order.generalConditions 
       ? order.generalConditions.split('\n').filter((c: string) => c.trim().length > 0)
@@ -3360,6 +3360,11 @@ export class DocumentTemplates {
     const subTitleLogo = company.name?.toLowerCase().includes('latin doors')
       ? '<div style="font-size: 11pt; color: #002D62; margin-top: 5px; font-weight: 500;">la innovación del nuevo siglo</div>'
       : '';
+
+    const statusLabel = order.status === 'Draft' ? 'Borrador' :
+                        order.status === 'Sent' ? 'Enviado' :
+                        order.status === 'Partial' ? 'Parcial' :
+                        order.status === 'Received' ? 'Recibido' : 'Cancelado';
 
     return `
       <!DOCTYPE html>
@@ -3574,34 +3579,26 @@ export class DocumentTemplates {
             margin-top: 40px;
             text-align: center;
             display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            width: 100%;
+          }
+          .signature-box {
+            width: 40%;
+            display: flex;
             flex-direction: column;
             align-items: center;
           }
-          .signature-title {
-            font-size: 8.5pt;
-            font-weight: bold;
-            color: #002D62;
-            text-transform: uppercase;
-            margin-bottom: 30px;
-            letter-spacing: 1px;
+          .signature-line {
             width: 100%;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 6px;
-          }
-          .signature-name {
-            font-family: 'Georgia', serif;
-            font-style: italic;
-            font-size: 14pt;
-            margin-bottom: 4px;
-            color: #222;
+            border-top: 1px solid #333;
+            margin-top: 50px;
+            margin-bottom: 5px;
           }
           .signature-title-detail {
-            border-top: 1px solid #555;
-            display: inline-block;
-            padding-top: 4px;
-            min-width: 250px;
             font-size: 8.5pt;
             color: #555;
+            text-align: center;
           }
           .footer-banner {
             background-color: #002D62;
@@ -3623,10 +3620,14 @@ export class DocumentTemplates {
             ${subTitleLogo}
           </div>
           <div class="right-cards">
-            <div class="title-text">Pedido de Puertas</div>
+            <div class="title-text">Pedido de Mercancía</div>
             <div class="card">
               <div class="card-header">Número de Pedido</div>
               <div class="card-body">${order.orderNumber}</div>
+            </div>
+            <div class="card">
+              <div class="card-header">Estado</div>
+              <div class="card-body" style="font-size: 10pt; color: #002D62;">${statusLabel}</div>
             </div>
             <div class="card">
               <div class="card-header">Fecha</div>
@@ -3639,7 +3640,7 @@ export class DocumentTemplates {
 
         <div class="info-columns">
           <div class="info-column" style="border-right: 1px solid #ddd; padding-right: 15px;">
-            <div class="info-title">Realizado Por:</div>
+            <div class="info-title">Datos de la Empresa:</div>
             <div class="info-body">
               <div class="info-name">${company.name || 'Latin Doors SRL'}</div>
               <div class="info-item">
@@ -3657,10 +3658,9 @@ export class DocumentTemplates {
             </div>
           </div>
           <div class="info-column" style="padding-left: 20px;">
-            <div class="info-title">Para:</div>
+            <div class="info-title">Datos del Suplidor:</div>
             <div class="info-body">
               <div class="info-name">${order.supplierName || 'Everlast Doors'}</div>
-              <div style="color: #555; font-style: italic; margin-bottom: 5px;">Proveedor de Puertas</div>
               ${order.supplierRnc ? `<div><strong>RNC:</strong> ${order.supplierRnc}</div>` : ''}
               ${order.supplierPhone ? `<div><strong>Tel:</strong> ${order.supplierPhone}</div>` : ''}
               ${order.supplierEmail ? `<div><strong>Email:</strong> ${order.supplierEmail}</div>` : ''}
@@ -3675,26 +3675,24 @@ export class DocumentTemplates {
           <thead>
             <tr>
               <th style="width: 5%;">#</th>
-              <th style="width: 15%;">Modelo</th>
-              <th style="width: 15%;">Medida (cm)</th>
-              <th style="width: 15%;">Color / Acabado</th>
-              <th style="width: 15%;">Línea</th>
-              <th style="width: 15%;">N° de Huecos Cerradura<br><span style="font-size: 7pt; font-weight: normal; text-transform: none;">(2H = 2 huecos / 1H = 1 hueco)</span></th>
-              <th style="width: 8%;">Cantidad</th>
-              <th style="width: 17%;">Observaciones</th>
+              <th style="width: 15%;">Código (SKU)</th>
+              <th style="width: 25%;">Nombre del Producto</th>
+              <th style="width: 12%;">Marca</th>
+              <th style="width: 12%;">Modelo</th>
+              <th style="width: 12%;">Cant. Solicitada</th>
+              <th style="width: 19%;">Observaciones</th>
             </tr>
           </thead>
           <tbody>
             ${lines.map((line: any, idx: number) => `
               <tr>
                 <td class="center">${idx + 1}</td>
-                <td>${line.modelo || 'Deluxe'}</td>
-                <td class="center">${line.medida || ''}</td>
-                <td>${line.colorAcabado || ''}</td>
-                <td>${line.linea || ''}</td>
-                <td class="center">${line.numHuecosCerradura || ''}</td>
-                <td class="center" style="font-weight: bold;">${line.cantidad}</td>
-                <td>${line.observaciones || ''}</td>
+                <td>${line.productSku || '-'}</td>
+                <td>${line.productName || ''}</td>
+                <td class="center">N/A</td>
+                <td class="center">N/A</td>
+                <td class="center" style="font-weight: bold;">${line.quantityRequested}</td>
+                <td>${line.observations || ''}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -3709,8 +3707,8 @@ export class DocumentTemplates {
 
         <div class="bottom-boxes">
           <div class="bottom-box">
-            <div class="bottom-box-header">Observaciones</div>
-            <div class="bottom-box-body" style="white-space: pre-wrap;">${order.observations || 'Mandar a ser.'}</div>
+            <div class="bottom-box-header">Observaciones Generales</div>
+            <div class="bottom-box-body" style="white-space: pre-wrap;">${order.observations || 'Sin observaciones.'}</div>
           </div>
           <div class="bottom-box">
             <div class="bottom-box-header">Condiciones Generales</div>
@@ -3723,16 +3721,25 @@ export class DocumentTemplates {
         </div>
 
         <div class="signature-section">
-          <div class="signature-title">Orden Realizada Por</div>
-          <div class="signature-name">${order.userName || 'Gerson González'}</div>
-          <div class="signature-title-detail">
-            <strong>${order.userName || 'Gerson González'}</strong><br>
-            Ventas / ${company.name || 'Latin Doors SRL'}
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-title-detail">
+              <strong>Solicitado por:</strong><br>
+              ${order.userName || 'Usuario del Sistema'}<br>
+              ${company.name || 'Latin Doors SRL'}
+            </div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-title-detail">
+              <strong>Recibido por:</strong><br>
+              Firma y Sello del Suplidor
+            </div>
           </div>
         </div>
 
         <div class="footer-banner">
-          Gracias por su confianza.
+          Documento Logístico - No válido para Crédito Fiscal
         </div>
       </body>
       </html>
@@ -3752,9 +3759,10 @@ export class DocumentTemplates {
       : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
 
     const linesHtml = items.map((item: any, idx: number) => {
-      const statusLabel = item.status === 'completed' ? 'Completado' :
-                          item.status === 'sent' ? 'Enviado' :
-                          item.status === 'cancelled' ? 'Cancelado' : 'Pendiente';
+      const statusLabel = item.status === 'Draft' ? 'Borrador' :
+                          item.status === 'Sent' ? 'Enviado' :
+                          item.status === 'Partial' ? 'Parcial' :
+                          item.status === 'Received' ? 'Recibido' : 'Cancelado';
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
