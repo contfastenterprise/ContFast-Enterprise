@@ -894,21 +894,28 @@ export default function ReceivablesPage() {
 
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
                 {/* Left Column: Form Settings */}
-                <div className="md:w-1/3 bg-slate-50/50 border-r border-slate-200 p-6 space-y-5 overflow-y-auto shrink-0">
+                <div className="md:w-1/4 bg-slate-50/50 border-r border-slate-200 p-6 space-y-5 overflow-y-auto shrink-0">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"><Calendar className="w-3.5 h-3.5 inline mr-1 text-[#003366]" /> Fecha de Cobro</label>
                     <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none text-slate-800 transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"><CreditCard className="w-3.5 h-3.5 inline mr-1 text-[#003366]" /> Método de Pago</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm", paymentForm.paymentMethod === 'bank' ? 'bg-[#003366] text-white border-[#003366]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}>
-                        <Landmark className="w-4 h-4" /> Banco
-                      </button>
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash', reference: '' })} className={clsx("py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm", paymentForm.paymentMethod === 'cash' ? 'bg-[#003366] text-white border-[#003366]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}>
-                        <HandCoins className="w-4 h-4" /> Caja Chica
-                      </button>
-                    </div>
+                    <select
+                      value={paymentForm.paymentMethod}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPaymentForm({
+                          ...paymentForm,
+                          paymentMethod: val,
+                          reference: val === 'cash' ? '' : paymentForm.reference
+                        });
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none text-slate-800 transition-colors"
+                    >
+                      <option value="bank">Banco / Transferencia</option>
+                      <option value="cash">Caja Chica</option>
+                    </select>
                     {paymentForm.paymentMethod === 'cash' && (
                       <p className="text-[10px] text-amber-800 mt-2.5 font-bold flex items-start gap-1.5 bg-amber-50 p-3 rounded-xl border border-amber-250 leading-relaxed shadow-sm">
                         <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -949,7 +956,7 @@ export default function ReceivablesPage() {
                 </div>
 
                 {/* Right Column: Invoice Application */}
-                <div className="md:w-2/3 bg-white flex flex-col overflow-hidden">
+                <div className="md:w-3/4 bg-white flex flex-col overflow-hidden">
                   <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
                     <h4 className="font-bold text-slate-800 text-sm">Aplicación del Pago</h4>
                     <p className="text-xs text-slate-500">Distribuye el monto recibido en las facturas pendientes a continuación.</p>
