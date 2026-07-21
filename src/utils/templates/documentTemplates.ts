@@ -488,9 +488,9 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 15mm 15mm 28mm 15mm;
+              margin: 15mm 15mm 20mm 15mm;
             }
-            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 25mm; }
+            body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 18mm; }
             .page-break { page-break-before: always; }
             .invoice-wrapper { width: 100%; box-sizing: border-box; position: relative; }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
