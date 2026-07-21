@@ -34,10 +34,10 @@ export function PageLoader({
       )}
     >
       {/* Background Soft Glow with Corporate Colors (#003366 & #C59B27) */}
-      <div className="absolute w-72 h-72 rounded-full bg-gradient-to-tr from-[#003366]/10 via-amber-500/5 to-[#C59B27]/15 blur-3xl pointer-events-none animate-pulse" />
+      <div className="absolute w-[500px] h-[500px] sm:w-[650px] sm:h-[650px] rounded-full bg-gradient-to-tr from-[#003366]/20 via-amber-500/10 to-[#C59B27]/25 blur-3xl pointer-events-none animate-pulse" />
 
       {/* Main Content Container */}
-      <div className="relative z-10 flex flex-col items-center space-y-6 max-w-xs text-center px-4">
+      <div className="relative z-10 flex flex-col items-center space-y-8 max-w-md sm:max-w-lg text-center px-6">
         {/* Animated Logo Container with Gentle Breathing Effect (scale 0.98 - 1.02) */}
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
@@ -53,29 +53,29 @@ export function PageLoader({
               ease: 'easeInOut',
             },
           }}
-          className="relative flex items-center justify-center p-3 rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200/60 dark:border-slate-800 ring-1 ring-[#003366]/10"
+          className="relative flex items-center justify-center p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200/80 dark:border-slate-800 ring-2 ring-[#003366]/15"
         >
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center overflow-hidden rounded-xl">
+          <div className="relative w-48 h-48 sm:w-64 sm:h-64 md:w-72 md:h-72 flex items-center justify-center overflow-hidden rounded-2xl">
             <Image
               src={logoUrl}
               alt={companyName || 'Logo de la Empresa'}
-              width={112}
-              height={112}
+              width={320}
+              height={320}
               priority
               unoptimized={isRemoteUrl || logoUrl.startsWith('data:')}
-              className="object-contain w-full h-full p-1"
+              className="object-contain w-full h-full p-2"
             />
           </div>
         </motion.div>
 
         {/* Company Name & Status Message */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {companyName && (
             <motion.h3
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.4 }}
-              className="text-base font-semibold text-[#003366] dark:text-slate-100 tracking-tight"
+              className="text-2xl sm:text-3xl font-bold text-[#003366] dark:text-slate-100 tracking-tight"
             >
               {companyName}
             </motion.h3>
@@ -84,16 +84,16 @@ export function PageLoader({
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="text-xs text-slate-500 dark:text-slate-400 font-medium"
+            className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium"
           >
             {message}
           </motion.p>
         </div>
 
         {/* Bottom Indicator: Corporate Color Bounce Dots & Shimmer Bar */}
-        <div className="flex flex-col items-center space-y-3 pt-2">
+        <div className="flex flex-col items-center space-y-4 pt-2">
           {/* Subtle Progress Bar with Navy (#003366) and Gold (#C59B27) */}
-          <div className="w-36 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative">
+          <div className="w-56 sm:w-72 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#003366] via-[#C59B27] to-[#003366]"
               animate={{
@@ -108,20 +108,20 @@ export function PageLoader({
           </div>
 
           {/* Corporate Bounce Dots */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 pt-1">
             <motion.span
-              className="w-2 h-2 rounded-full bg-[#003366]"
-              animate={{ y: [0, -6, 0] }}
+              className="w-3 h-3 rounded-full bg-[#003366] shadow-sm"
+              animate={{ y: [0, -8, 0] }}
               transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut', delay: 0 }}
             />
             <motion.span
-              className="w-2 h-2 rounded-full bg-[#C59B27]"
-              animate={{ y: [0, -6, 0] }}
+              className="w-3 h-3 rounded-full bg-[#C59B27] shadow-sm"
+              animate={{ y: [0, -8, 0] }}
               transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
             />
             <motion.span
-              className="w-2 h-2 rounded-full bg-[#003366]"
-              animate={{ y: [0, -6, 0] }}
+              className="w-3 h-3 rounded-full bg-[#003366] shadow-sm"
+              animate={{ y: [0, -8, 0] }}
               transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
             />
           </div>
