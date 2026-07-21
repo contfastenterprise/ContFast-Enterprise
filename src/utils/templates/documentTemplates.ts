@@ -5,11 +5,11 @@ function deepEscape<T>(obj: T): T {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
+
   if (obj instanceof Date) {
     return obj;
   }
-  
+
   if (typeof obj === 'string') {
     const trimmed = obj.trim();
     if (trimmed.startsWith('<') || obj.startsWith('data:image/') || obj.startsWith('http://') || obj.startsWith('https://')) {
@@ -22,11 +22,11 @@ function deepEscape<T>(obj: T): T {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;') as unknown as T;
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => deepEscape(item)) as unknown as T;
   }
-  
+
   if (typeof obj === 'object') {
     const escapedObj: any = {};
     for (const key in obj) {
@@ -40,7 +40,7 @@ function deepEscape<T>(obj: T): T {
     }
     return escapedObj as T;
   }
-  
+
   return obj;
 }
 
@@ -248,8 +248,8 @@ export class DocumentTemplates {
             const rawDiscount = qty * discUnit;
             const rawTaxable = rawSubtotal - rawDiscount;
 
-            const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate 
-              ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100 
+            const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate
+              ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100
               : 0.18;
 
             const hasGlobalTaxes = Number(inv.totalTaxes) > 0;
@@ -345,8 +345,8 @@ export class DocumentTemplates {
         minute: '2-digit'
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
-      const logoHtml = company.logoUrl 
-        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">` 
+      const logoHtml = company.logoUrl
+        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
         : '';
 
       const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
@@ -373,11 +373,11 @@ export class DocumentTemplates {
                 Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
               </div>
               ${['31', '44', '45', '46'].includes(inv.ecfType) && inv.ncfExpiryDate
-                ? `<div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
+            ? `<div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
                     Fecha Vencimiento: <span style="font-family: monospace; font-weight: normal;">${inv.ncfExpiryDate}</span>
                    </div>`
-                : ''
-              }
+            : ''
+          }
               <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
                 ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
                 <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
@@ -457,9 +457,8 @@ export class DocumentTemplates {
                 Fecha Firma: ${formattedSigDate}
               </div>
             </div>
-          </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: -17mm; right: 0px; z-index: 10;">
+            <div class="last-page-signatures" style="position: flex; bottom: -17mm; right: 0px; z-index: 10;">
             <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end; height: 100%;">
               <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 45px;">
                 <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 4px;">Recibido conforme</div>
@@ -469,6 +468,9 @@ export class DocumentTemplates {
               </div>
             </div>
           </div>
+          </div>
+
+          
         `;
       };
 
@@ -557,14 +559,26 @@ export class DocumentTemplates {
         </head>
         <body>
           ${copiesHtml}
+          <script>
+            window.addEventListener('DOMContentLoaded', () => {
+              const wrappers = document.querySelectorAll('.invoice-wrapper');
+              wrappers.forEach(wrapper => {
+                wrapper.style.minHeight = '0px';
+                const contentHeight = wrapper.offsetHeight;
+                const pageHeight = 935; // Letter page height in pixels inside print printable area
+                const pagesCount = Math.ceil(contentHeight / pageHeight);
+                wrapper.style.minHeight = (pagesCount * pageHeight) + 'px';
+              });
+            });
+          </script>
         </body>
         </html>
       `;
     }
 
     const css = this.getBaseCss(layout);
-    const logoHtml = company.logoUrl && layout !== '58mm' && layout !== '80mm' 
-      ? `<img src="${company.logoUrl}" class="logo" alt="Logo">` 
+    const logoHtml = company.logoUrl && layout !== '58mm' && layout !== '80mm'
+      ? `<img src="${company.logoUrl}" class="logo" alt="Logo">`
       : '';
 
     // Group lines by category for ticket layout
@@ -714,16 +728,16 @@ export class DocumentTemplates {
   static renderReceipt(data: any, layout: 'carta' | '80mm' | '58mm'): string {
     const css = this.getBaseCss(layout);
     const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices, customerTotalBalance } = data;
-    
-    const logoHtml = company.logoUrl && layout !== '58mm' 
-      ? `<img src="${company.logoUrl}" class="logo" style="${layout === 'carta' ? 'margin-left: -20px;' : ''}" alt="Logo">` 
+
+    const logoHtml = company.logoUrl && layout !== '58mm'
+      ? `<img src="${company.logoUrl}" class="logo" style="${layout === 'carta' ? 'margin-left: -20px;' : ''}" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
 
-    const methodLabel = paymentMethod === 'cash' ? 'Efectivo / Caja Chica' : 
-                        paymentMethod === 'bank' ? 'Transferencia / Depósito' : 
-                        paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+    const methodLabel = paymentMethod === 'cash' ? 'Efectivo / Caja Chica' :
+      paymentMethod === 'bank' ? 'Transferencia / Depósito' :
+        paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
 
     const formatNum = (val: number) => {
       return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -866,11 +880,11 @@ export class DocumentTemplates {
       `;
     }).join('');
 
-    const statusBadge = deliveryNote.status === 'approved' 
+    const statusBadge = deliveryNote.status === 'approved'
       ? '<span style="background-color: #d1e7dd; color: #0f5132; padding: 4px 8px; border-radius: 4px; font-weight: bold;">APROBADO</span>'
       : deliveryNote.status === 'voided'
-      ? '<span style="background-color: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-weight: bold;">ANULADO</span>'
-      : '<span style="background-color: #fff3cd; color: #664d03; padding: 4px 8px; border-radius: 4px; font-weight: bold;">BORRADOR</span>';
+        ? '<span style="background-color: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-weight: bold;">ANULADO</span>'
+        : '<span style="background-color: #fff3cd; color: #664d03; padding: 4px 8px; border-radius: 4px; font-weight: bold;">BORRADOR</span>';
 
     return `
       <!DOCTYPE html>
@@ -988,8 +1002,8 @@ export class DocumentTemplates {
     const { company, customer, items } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -999,9 +1013,9 @@ export class DocumentTemplates {
     };
 
     const linesHtml = items.map((item: any) => {
-      const methodLabel = item.paymentMethod === 'cash' ? 'Efectivo' : 
-                          item.paymentMethod === 'bank' ? 'Banco' : 
-                          item.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
+      const methodLabel = item.paymentMethod === 'cash' ? 'Efectivo' :
+        item.paymentMethod === 'bank' ? 'Banco' :
+          item.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
       return `
         <tr>
           <td>${new Date(item.receiptDate).toLocaleDateString('es-DO')}</td>
@@ -1075,8 +1089,8 @@ export class DocumentTemplates {
     const { company, supplier, items, totalBalance } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1087,7 +1101,7 @@ export class DocumentTemplates {
 
     const linesHtml = items.map((item: any) => {
       const isOverdue = new Date(item.dueDate) < new Date();
-      
+
       const formattedIssueDate = (() => {
         if (!item.issueDate) return '-';
         const parts = item.issueDate.split('-');
@@ -1182,8 +1196,8 @@ export class DocumentTemplates {
     const { company, customer, openItems, totalPending } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1278,8 +1292,8 @@ export class DocumentTemplates {
     const { company, items } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1363,8 +1377,8 @@ export class DocumentTemplates {
     const { company, items } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1444,8 +1458,8 @@ export class DocumentTemplates {
     const { company, items } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1525,8 +1539,8 @@ export class DocumentTemplates {
     const { company, revenueAccounts, totalRevenue, costAccounts, totalCost, grossProfit, expenseAccounts, totalExpense, netIncome } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -1672,8 +1686,8 @@ export class DocumentTemplates {
     const { company, assetAccounts, totalAsset, liabilityAccounts, totalLiability, equityAccounts, totalEquity } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -2322,8 +2336,8 @@ export class DocumentTemplates {
     const { company, supplier, purchase, lines } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -2512,12 +2526,12 @@ export class DocumentTemplates {
     const { company, items, filters } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
       : '';
 
-    const companyTitleHtml = logoHtml 
-      ? '' 
+    const companyTitleHtml = logoHtml
+      ? ''
       : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
 
     const formatNum = (val: number | string) => {
@@ -2661,12 +2675,12 @@ export class DocumentTemplates {
     const displayPhone = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
     const displayAddress = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
       : '';
 
-    const companyTitleHtml = logoHtml 
-      ? '' 
+    const companyTitleHtml = logoHtml
+      ? ''
       : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
 
     const formatNum = (val: number | string) => {
@@ -2806,12 +2820,12 @@ export class DocumentTemplates {
     const { company, items, filters } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
       : '';
 
-    const companyTitleHtml = logoHtml 
-      ? '' 
+    const companyTitleHtml = logoHtml
+      ? ''
       : `<div class="font-bold" style="font-size: 13pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
 
     const formatNum = (val: number | string) => {
@@ -2961,8 +2975,8 @@ export class DocumentTemplates {
     const formatNum = (num: any) => new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(num) || 0);
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -3067,8 +3081,8 @@ export class DocumentTemplates {
     const { company, customer, movements, summary } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
@@ -3196,8 +3210,8 @@ export class DocumentTemplates {
     const { company, supplier, movements, summary } = data;
     const css = this.getBaseCss('carta');
 
-    const logoHtml = company.logoUrl 
-      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">` 
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
       : '';
 
     const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
