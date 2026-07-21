@@ -3357,9 +3357,7 @@ export class DocumentTemplates {
       ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain;" alt="Logo">`
       : `<div style="font-size: 20px; font-weight: bold; color: #002D62;">${company.name || 'Latin Doors'}</div>`;
 
-    const subTitleLogo = company.name?.toLowerCase().includes('latin doors')
-      ? '<div style="font-size: 11pt; color: #002D62; margin-top: 5px; font-weight: 500;">la innovación del nuevo siglo</div>'
-      : '';
+    const subTitleLogo = '';
 
     const statusLabel = order.status === 'Draft' ? 'Borrador' :
                         order.status === 'Sent' ? 'Enviado' :
@@ -3627,18 +3625,15 @@ export class DocumentTemplates {
             </div>
           </div>
           <div class="right-cards">
-            <div class="title-text">Pedido de Mercancía</div>
+            <div class="title-text" style="font-size: 13pt; font-weight: bold;">Pedido</div>
             <div class="card">
               <div class="card-header">Número de Pedido</div>
-              <div class="card-body">${order.orderNumber}</div>
-            </div>
-            <div class="card">
-              <div class="card-header">Estado</div>
-              <div class="card-body" style="font-size: 10pt; color: #002D62;">${statusLabel}</div>
-            </div>
-            <div class="card">
-              <div class="card-header">Fecha</div>
-              <div class="card-body">${formattedDate}</div>
+              <div class="card-body" style="font-size: 11pt; padding: 8px 0;">
+                ${order.orderNumber}
+                <div style="font-size: 8pt; font-weight: normal; color: #555; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 4px; font-family: sans-serif;">
+                  Fecha: ${formattedDate}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -3664,12 +3659,10 @@ export class DocumentTemplates {
           <thead>
             <tr>
               <th style="width: 5%;">#</th>
-              <th style="width: 15%;">Código (SKU)</th>
-              <th style="width: 25%;">Nombre del Producto</th>
-              <th style="width: 12%;">Marca</th>
-              <th style="width: 12%;">Modelo</th>
+              <th style="width: 20%;">Código (SKU)</th>
+              <th style="width: 45%;">Nombre del Producto</th>
               <th style="width: 12%;">Cant. Solicitada</th>
-              <th style="width: 19%;">Observaciones</th>
+              <th style="width: 18%;">Observaciones</th>
             </tr>
           </thead>
           <tbody>
@@ -3678,8 +3671,6 @@ export class DocumentTemplates {
                 <td class="center">${idx + 1}</td>
                 <td>${line.productSku || '-'}</td>
                 <td>${line.productName || ''}</td>
-                <td>${line.brand || ''}</td>
-                <td>${line.model || ''}</td>
                 <td class="center" style="font-weight: bold;">${line.quantityRequested}</td>
                 <td>${line.observations || ''}</td>
               </tr>
