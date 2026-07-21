@@ -876,86 +876,85 @@ export default function ReceivablesPage() {
           </>
         )}
 
-      </div>
-
       {/* MODAL: REGISTRAR COBRO */}
       <AnimatePresence>
         {showPaymentModal && selectedCustomer && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl w-full max-w-5xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden">
-              <div className="bg-[#001733] border-b border-[#003366] px-6 py-5 flex justify-between items-center shrink-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-5xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden">
+              <div className="bg-[#003366] px-6 py-5 flex justify-between items-center text-white shrink-0">
                 <div>
                   <h3 className="text-white font-display font-bold text-xl flex items-center gap-2"><HandCoins className="w-6 h-6 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
-                  <p className="text-[#c5a059]/80 text-sm mt-0.5">{selectedCustomer.customerName}</p>
+                  <p className="text-white/80 text-sm mt-0.5">{selectedCustomer.customerName}</p>
                 </div>
-                <button onClick={() => setShowPaymentModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-6 h-6" /></button>
+                <button onClick={() => setShowPaymentModal(false)} className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl text-xs font-bold transition-all active:scale-95"><X className="w-5 h-5" /></button>
               </div>
 
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
                 {/* Left Column: Form Settings */}
-                <div className="md:w-1/3 bg-surface-container-highest border-r border-outline/40 p-6 space-y-5 overflow-y-auto shrink-0">
+                <div className="md:w-1/3 bg-slate-50/50 border-r border-slate-200 p-6 space-y-5 overflow-y-auto shrink-0">
                   <div>
-                    <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><Calendar className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Fecha de Cobro</label>
-                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary transition-colors" />
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"><Calendar className="w-3.5 h-3.5 inline mr-1 text-[#003366]" /> Fecha de Cobro</label>
+                    <input type="date" required value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:ring-2 focus:ring-[#003366] focus:border-[#003366] outline-none text-slate-800 transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5"><CreditCard className="w-3 h-3 inline mr-1 text-[#C5A059]" /> Método de Pago</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"><CreditCard className="w-3.5 h-3.5 inline mr-1 text-[#003366]" /> Método de Pago</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'bank' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-white border-outline/40 text-[#001733] hover:text-[#c5a059]')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'bank' })} className={clsx("py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm", paymentForm.paymentMethod === 'bank' ? 'bg-[#003366] text-white border-[#003366]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}>
                         <Landmark className="w-4 h-4" /> Banco
                       </button>
-                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash', reference: '' })} className={clsx("py-2 px-3 rounded-lg border text-sm font-semibold flex items-center justify-center gap-2 transition-colors", paymentForm.paymentMethod === 'cash' ? 'bg-[#c5a059] border-[#c5a059] text-[#001733]' : 'bg-white border-outline/40 text-[#001733] hover:text-[#c5a059]')}>
+                      <button type="button" onClick={() => setPaymentForm({ ...paymentForm, paymentMethod: 'cash', reference: '' })} className={clsx("py-2.5 px-4 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm", paymentForm.paymentMethod === 'cash' ? 'bg-[#003366] text-white border-[#003366]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50')}>
                         <HandCoins className="w-4 h-4" /> Caja Chica
                       </button>
                     </div>
                     {paymentForm.paymentMethod === 'cash' && (
-                      <p className="text-[10px] text-amber-600 mt-2 font-medium flex items-center gap-1 bg-amber-50 p-2 rounded border border-amber-500/30">
-                        <AlertCircle className="w-3 h-3" /> Este cobro se agregará directamente al arqueo de tu sesión de caja actual.
+                      <p className="text-[10px] text-amber-800 mt-2.5 font-bold flex items-start gap-1.5 bg-amber-50 p-3 rounded-xl border border-amber-250 leading-relaxed shadow-sm">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <span>Este cobro se agregará directamente al arqueo de tu sesión de caja actual.</span>
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Monto Recibido</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Monto Recibido</label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                      <input type="number" min="0.01" step="0.01" required value={paymentForm.amount} onChange={handleAmountChange} className="w-full bg-white border border-outline/40 rounded-lg pl-8 pr-3 py-2.5 outline-none focus:border-[#C5A059] font-mono text-lg font-bold text-primary transition-colors" placeholder="0.00" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-bold">$</span>
+                      <input type="number" min="0.01" step="0.01" required value={paymentForm.amount} onChange={handleAmountChange} className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3.5 py-2.5 outline-none focus:ring-2 focus:ring-[#003366] focus:border-[#003366] font-mono text-lg font-bold text-slate-800 transition-colors" placeholder="0.00" />
                     </div>
                     <button
                       type="button"
                       onClick={handleDistributeAmount}
-                      className="w-full mt-2 bg-[#001733] hover:bg-[#00254d] text-[#C5A059] border border-[#003366] rounded-lg py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                      className="w-full mt-2.5 bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 rounded-xl py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                     >
-                      <Sparkles className="w-3.5 h-3.5" /> Distribuir en Facturas
+                      <Sparkles className="w-3.5 h-3.5 text-[#003366]" /> Distribuir en Facturas
                     </button>
-                    <p className="text-[10px] text-slate-500 mt-1">Presiona para auto-distribuir el monto en las facturas más antiguas.</p>
+                    <p className="text-[10px] text-slate-500 mt-1.5 ml-1 leading-normal">Presiona para auto-distribuir el monto en las facturas más antiguas.</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Referencia (Cheque/Transfer)</label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Referencia (Cheque/Transfer)</label>
                     <input
                       type="text"
                       disabled={paymentForm.paymentMethod !== 'bank'}
                       value={paymentForm.reference}
                       onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })}
-                      className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm font-mono text-primary transition-colors disabled:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-[#003366] text-xs font-semibold text-slate-800 transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
                       placeholder={paymentForm.paymentMethod === 'bank' ? "Ej. TX-98442" : "No requerido para caja chica"}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Nota Interna (Opcional)</label>
-                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-white border border-outline/40 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-sm text-primary resize-none transition-colors"></textarea>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nota Interna (Opcional)</label>
+                    <textarea value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} rows={2} className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-[#003366] text-xs font-semibold text-slate-800 resize-none transition-colors"></textarea>
                   </div>
                 </div>
 
                 {/* Right Column: Invoice Application */}
                 <div className="md:w-2/3 bg-white flex flex-col overflow-hidden">
-                  <div className="px-6 py-4 border-b border-[#003366] bg-[#001733] shrink-0">
-                    <h4 className="font-bold text-white">Aplicación del Pago</h4>
-                    <p className="text-xs text-[#c5a059]/80">Distribuye el monto recibido en las facturas pendientes a continuación.</p>
+                  <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+                    <h4 className="font-bold text-slate-800 text-sm">Aplicación del Pago</h4>
+                    <p className="text-xs text-slate-500">Distribuye el monto recibido en las facturas pendientes a continuación.</p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-[10px] text-[#001733] uppercase font-bold tracking-widest border-b border-slate-200">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead className="text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-100">
                         <tr>
                           <th className="px-4 pb-3">Factura</th>
                           <th className="px-4 pb-3">NCF / Documento</th>
@@ -968,16 +967,16 @@ export default function ReceivablesPage() {
                         {selectedCustomer.invoices.map(inv => {
                           const applied = appliedInvoices[inv.arId] || 0;
                           return (
-                            <tr key={inv.arId} className={clsx("transition-colors", applied > 0 ? 'bg-emerald-50' : 'hover:bg-slate-50')}>
-                              <td className="px-4 py-3.5">
-                                <span className="font-mono font-bold text-primary block">{inv.codigoFactura || 'N/A'}</span>
+                            <tr key={inv.arId} className={clsx("transition-colors align-middle", applied > 0 ? 'bg-emerald-50/40' : 'hover:bg-slate-50/50')}>
+                              <td className="px-4 py-3">
+                                <span className="font-mono font-bold text-[#003366] block">{inv.codigoFactura || 'N/A'}</span>
                               </td>
-                              <td className="px-4 py-3.5">
+                              <td className="px-4 py-3">
                                 <span className="font-mono text-slate-600 block">{inv.invoiceNumber}</span>
                               </td>
-                              <td className="px-4 py-3.5 text-right text-on-surface-variant">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
-                              <td className="px-4 py-3.5 text-right font-mono font-bold text-primary">{fmt(inv.balance)}</td>
-                              <td className="px-4 py-3.5 text-right">
+                              <td className="px-4 py-3 text-right text-slate-600 font-semibold">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
+                              <td className="px-4 py-3 text-right">
                                 <input
                                   type="number"
                                   min="0"
@@ -985,7 +984,7 @@ export default function ReceivablesPage() {
                                   step="0.01"
                                   value={applied || ''}
                                   onChange={(e) => handleManualApplyChange(inv.arId, e.target.value, inv.balance)}
-                                  className={clsx("w-full border rounded px-2 py-1.5 text-right font-mono text-sm outline-none focus:ring-1 transition-all", applied > 0 ? 'border-emerald-500 bg-emerald-50 focus:ring-emerald-500 text-emerald-700 font-bold' : 'border-outline/40 bg-white text-primary focus:border-[#c5a059]')}
+                                  className={clsx("w-full border rounded-xl px-3 py-1.5 text-right font-mono text-xs outline-none focus:ring-2 transition-all", applied > 0 ? 'border-emerald-500 bg-emerald-50/55 focus:ring-emerald-500 text-emerald-700 font-bold' : 'border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-[#003366]')}
                                   placeholder="0.00"
                                 />
                               </td>
@@ -997,20 +996,20 @@ export default function ReceivablesPage() {
                   </div>
 
                   {/* Summary Footer */}
-                  <div className="bg-[#001733] border-t border-[#003366] p-6 shrink-0 flex items-center justify-between">
+                  <div className="bg-slate-50 border-t border-slate-200 p-6 shrink-0 flex items-center justify-between">
                     <div className="flex gap-8">
                       <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Monto Recibido</p>
-                        <p className="font-mono text-xl font-bold text-white">{fmt(Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100)}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monto Recibido</p>
+                        <p className="font-mono text-xl font-bold text-slate-800">{fmt(Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Total Aplicado</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Aplicado</p>
                         {(() => {
                           const totalApplied = Math.round(Object.values(appliedInvoices).reduce((s, v) => s + v, 0) * 100) / 100;
                           const amountReceived = Math.round((parseFloat(paymentForm.amount) || 0) * 100) / 100;
                           const match = Math.abs(amountReceived - totalApplied) < 0.01;
                           return (
-                            <p className={clsx("font-mono text-xl font-bold", match ? 'text-emerald-400' : 'text-rose-400')}>
+                            <p className={clsx("font-mono text-xl font-bold", match ? 'text-emerald-600' : 'text-rose-600')}>
                               {fmt(totalApplied)}
                             </p>
                           );
@@ -1018,7 +1017,7 @@ export default function ReceivablesPage() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="bg-[#C5A059] hover:bg-[#b08c4a] text-[#001e40] font-bold py-3 px-8 rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-3.5 px-8 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                       {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                       Procesar Recibo
                     </button>
