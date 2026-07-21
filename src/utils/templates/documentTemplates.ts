@@ -567,7 +567,7 @@ export class DocumentTemplates {
                 const contentHeight = wrapper.offsetHeight;
                 const pageHeight = 965; // Letter page height in pixels inside print printable area
                 const pagesCount = Math.ceil(contentHeight / pageHeight);
-                wrapper.style.minHeight = (pagesCount * pageHeight) + 'px';
+                wrapper.style.minHeight = (pagesCount * pageHeight - 20) + 'px';
               });
             });
           </script>
