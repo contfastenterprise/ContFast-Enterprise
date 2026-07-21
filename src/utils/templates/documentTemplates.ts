@@ -3630,13 +3630,12 @@ export class DocumentTemplates {
             ${subTitleLogo}
             <div class="company-info">${company.rnc ? `${padDots('RNC', 12)} ${company.rnc}\n` : ''}${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}</div>
           </div>
-          <div class="right-cards">
-            <div class="title-text" style="font-size: 13pt; font-weight: bold;">Pedido</div>
+          <div class="right-cards" style="margin-top: -15px;">
             <div class="card">
               <div class="card-header">Número de Pedido</div>
               <div class="card-body" style="font-size: 11pt; padding: 8px 0;">
                 ${order.orderNumber}
-                <div style="font-size: 8pt; font-weight: normal; color: #555; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 4px; font-family: sans-serif;">
+                <div style="font-size: 8.5pt; font-weight: bold; color: #000; border-top: 1px solid #ddd; margin-top: 6px; padding-top: 4px; font-family: sans-serif;">
                   Fecha: ${formattedDate}
                 </div>
               </div>
