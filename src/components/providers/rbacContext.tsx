@@ -145,6 +145,9 @@ export function RbacProvider({
 
     if (userRole.includes('sistema')) return true;
 
+    // Base dashboard path is accessible to all authenticated users
+    if (path === '/dashboard' || path === '/dashboard/') return true;
+
     // Sort by pattern length descending to match most specific route first
     const sortedMappings = [...routeMappings].sort(
       (a, b) => b.routePattern.length - a.routePattern.length

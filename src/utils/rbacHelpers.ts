@@ -116,7 +116,8 @@ export function buildSidebar(
     const action = m.action || 'read';
     
     // Bypass inmediato para sistemas y administracion (acceso total a todas las vistas)
-    const isAllowed = isSistemas || isAdmin ? true : hasPermission(module, action);
+    // El inicio (/dashboard) siempre se permite a todos los usuarios
+    const isAllowed = isSistemas || isAdmin || m.routePattern === '/dashboard' ? true : hasPermission(module, action);
 
     if (!isAllowed) {
       continue;
