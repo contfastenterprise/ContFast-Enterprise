@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         name: company.name,
         rnc: company.rnc,
         address: company.address || '',
-        phone: '',
+        phone: '1-809-555-0199',
         logoUrl: settings?.logoUrl || undefined,
       },
       pendingChecks,
