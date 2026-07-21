@@ -493,7 +493,7 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 12mm 12mm 12mm 12mm;
+              margin: 12mm 12mm 25mm 12mm;
             }
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 0px; }
             .page-break { page-break-before: always; }
@@ -503,7 +503,7 @@ export class DocumentTemplates {
               position: relative;
               display: flex;
               flex-direction: column;
-              min-height: 255mm;
+              min-height: 242mm;
             }
             .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
@@ -549,11 +549,11 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 75px;
+              height: 90px;
             }
             .qr-img-repeated {
-              width: 70px;
-              height: 70px;
+              width: 85px;
+              height: 85px;
             }
           </style>
         </head>
@@ -565,7 +565,7 @@ export class DocumentTemplates {
               wrappers.forEach(wrapper => {
                 wrapper.style.minHeight = '0px';
                 const contentHeight = wrapper.offsetHeight;
-                const pageHeight = 965; // Letter page height in pixels inside print printable area
+                const pageHeight = 917; // Letter page height in pixels inside print printable area
                 const pagesCount = Math.ceil(contentHeight / pageHeight);
                 wrapper.style.minHeight = (pagesCount * pageHeight - 20) + 'px';
               });
