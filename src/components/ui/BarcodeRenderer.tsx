@@ -60,17 +60,37 @@ export default function BarcodeRenderer({
           else if (type === 'upca') format = 'UPC';
 
           // Basic checks to warn user
-          if (type === 'ean13' && value.length !== 13 && value.length !== 12) {
-            setError('EAN-13 requiere 12 o 13 dígitos');
-            return;
+          const isNumeric = /^\d+$/.test(value);
+
+          if (type === 'ean13') {
+            if (!isNumeric) {
+              setError('EAN-13 requiere solo números');
+              return;
+            }
+            if (value.length !== 13 && value.length !== 12) {
+              setError('EAN-13 requiere 12 o 13 dígitos');
+              return;
+            }
           }
-          if (type === 'ean8' && value.length !== 8 && value.length !== 7) {
-            setError('EAN-8 requiere 7 u 8 dígitos');
-            return;
+          if (type === 'ean8') {
+            if (!isNumeric) {
+              setError('EAN-8 requiere solo números');
+              return;
+            }
+            if (value.length !== 8 && value.length !== 7) {
+              setError('EAN-8 requiere 7 u 8 dígitos');
+              return;
+            }
           }
-          if (type === 'upca' && value.length !== 12 && value.length !== 11) {
-            setError('UPC-A requiere 11 o 12 dígitos');
-            return;
+          if (type === 'upca') {
+            if (!isNumeric) {
+              setError('UPC-A requiere solo números');
+              return;
+            }
+            if (value.length !== 12 && value.length !== 11) {
+              setError('UPC-A requiere 11 o 12 dígitos');
+              return;
+            }
           }
 
           JsBarcode(svgRef.current, value, {
