@@ -2432,8 +2432,8 @@ export class DocumentTemplates {
           <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">COMPROBANTE DE COMPRA</div>
             <div><strong>Referencia:</strong> <span class="font-mono">${purchase.id.toUpperCase()}</span></div>
-            <div><strong>Tipo Gasto:</strong> ${expenseTypes[purchase.expenseType] || purchase.expenseType || 'N/A'}</div>
             <div><strong>NCF:</strong> <span class="font-mono" style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${purchase.ncf || 'N/A'}</span></div>
+            <div><strong>Tipo:</strong> ${expenseTypes[purchase.expenseType] || purchase.expenseType || 'N/A'}</div>
             <div><strong>Fecha Emisión:</strong> ${issueDateStr}</div>
             <div><strong>Método Pago:</strong> ${paymentMethods[purchase.paymentMethod] || purchase.paymentMethod || 'Otros'}</div>
           </div>
