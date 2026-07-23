@@ -357,10 +357,10 @@ export class DocumentTemplates {
             <div>
               ${logoHtml}
               <div class="company-info">
-  ${padDots('RNC', 12)} ${company.rnc}
-  ${padDots('Teléfono', 12)} ${company.phone}
-  ${padDots('Email', 12)} ${company.email}
-  ${padDots('Dirección', 12)} ${company.address}
+  ${padDots('RNC', 12)} ${company.rnc || ''}
+  ${padDots('Teléfono', 12)} ${company.phone || ''}
+  ${padDots('Email', 12)} ${company.email || ''}
+  ${padDots('Dirección', 12)} ${company.address || ''}
               </div>
             </div>
             <div class="doc-info">
@@ -391,8 +391,8 @@ export class DocumentTemplates {
 
           <div class="client-section">
             <div class="client-info">
-  ${padDots('Razon Social', 18)} ${customer.name}
-  ${padDots('RNC/Cédula', 18)} ${customer.rncCedula}
+  ${padDots('Razon Social', 18)} ${customer.name || ''}
+  ${padDots('RNC/Cédula', 18)} ${customer.rncCedula || ''}
   ${padDots('Teléfono', 18)} ${customer.phone || ''}
   ${padDots('Dirección', 18)} ${customer.address || ''}
             </div>
@@ -505,18 +505,18 @@ export class DocumentTemplates {
               flex-direction: column;
               min-height: 242mm;
             }
-            .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+            .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: -5px; }
             .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
             .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
             .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: 2px; }
             .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
             .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
             
-            .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 6px 0; margin: 15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
+            .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 4px 0; margin: 0px 0 -15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
             
-            .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: 20px; }
+            .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: -8px; }
             .client-info { white-space: pre; }
-            .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 2px; }
+            .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 26px; }
             
             .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 4px 6px; border-bottom: 2px solid #000000; text-align: left; }
