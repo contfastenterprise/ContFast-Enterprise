@@ -2539,6 +2539,19 @@ export class DocumentTemplates {
       return isNaN(num) ? '0.00' : num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
+    const expenseTypes: Record<string, string> = {
+      '01': 'Gastos de Personal',
+      '02': 'Gastos por Trabajos, Suministros y Servicios',
+      '03': 'Arrendamientos',
+      '04': 'Gastos de Activos Fijos',
+      '05': 'Gastos de Representación',
+      '06': 'Otras Deducciones Admitidas',
+      '07': 'Gastos Financieros',
+      '08': 'Gastos Extraordinarios',
+      '09': 'Costo de Venta',
+      '10': 'Activos Fijos'
+    };
+
     let totalAmount = 0;
     let totalItbis = 0;
     let totalTaxed = 0;
@@ -2562,6 +2575,7 @@ export class DocumentTemplates {
             <strong>${supplierName}</strong>${supplierRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
+          <td class="text-center">${expenseTypes[item.expenseType] || item.expenseType || '-'}</td>
           <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
           <td class="text-right font-mono">$${formatNum(amount)}</td>
           <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
@@ -2629,6 +2643,7 @@ export class DocumentTemplates {
               <th class="text-center" style="width: 5%;">#</th>
               <th>Suplidor / Proveedor</th>
               <th class="text-center" style="width: 18%;">NCF</th>
+              <th class="text-center" style="width: 15%;">Tipo</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">ITBIS</th>
@@ -2636,7 +2651,7 @@ export class DocumentTemplates {
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="7" class="text-center">No se encontraron compras/gastos en el rango</td></tr>'}
+            ${linesHtml || '<tr><td colspan="8" class="text-center">No se encontraron compras/gastos en el rango</td></tr>'}
           </tbody>
         </table>
 
