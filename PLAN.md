@@ -1,6 +1,7 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras completar la implementación de tipos de gastos dinámicos y base de datos multi-tenant con RLS (Row Level Security), la re-estructuración de la base de datos para sembrar clasificaciones de la DGII en la creación de inquilinos, la carga dinámica y resolución de nombres en el frontend y en las plantillas de impresión de facturas y reportes, el reinicio automático del formulario de compras al presionar la pestaña de registrar, y la activación de políticas RLS en las tablas `expense_types` y `barcode_print_logs`.
+El proyecto se encuentra **Verified & Polished** tras completar la implementación de tipos de gastos dinámicos y base de datos multi-tenant con RLS (Row Level Security), la re-estructuración de la base de datos para sembrar clasificaciones de la DGII en la creación de inquilinos, la carga dinámica y resolución de nombres en el frontend y en las plantillas de impresión de facturas y reportes, el reinicio automático del formulario de compras al presionar la pestaña de registrar, la activación de políticas RLS en las tablas `expense_types` y `barcode_print_logs`, la creación de un panel de administración interactivo para tipos de gastos personalizados/estándares en Ajustes del Sistema, la validación estricta de formatos NCF (B, 11 chars) y e-NCF (E, 13 chars) en frontend/backend mediante expresiones regulares y helpers utilitarios, y la optimización de consultas del catálogo de gastos de cada inquilino mediante almacenamiento en caché en Redis con invalidación transaccional.
+
 
 ## Módulos Implementados
 

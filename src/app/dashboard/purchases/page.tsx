@@ -15,6 +15,7 @@ import { OcrInvoiceData } from '@/utils/ocrParser';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
+import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -89,7 +90,7 @@ export default function PurchasesPage() {
   const [supplierId, setSupplierId] = useState('');
   const [ncf, setNcf] = useState('');
   const [expenseType, setExpenseType] = useState('02'); // Gastos por Trabajos, Suministros y Servicios
-  const [expenseTypesList, setExpenseTypesList] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [expenseTypesList, setExpenseTypesList] = useState<{ id: string; code: string; name: string; status?: string }[]>([]);
   const [issueDate, setIssueDate] = useState(getLocalDateString());
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
   const [warehouseId, setWarehouseId] = useState('');
@@ -726,8 +727,11 @@ export default function PurchasesPage() {
     if (!isMinorExpense) {
       if (!supplierId) return toast.error('Selecciona un suplidor');
       if (!ncf) return toast.error('Ingresa el NCF de la factura');
+      if (!isValidNcfFormat(ncf)) {
+        return toast.error('El formato del NCF es inválido. Debe ser NCF de 11 caracteres (ej. B0100000001) o e-NCF de 13 caracteres (ej. E310100000001).');
+      }
     } else {
-      if (ncf && ncf.trim().length > 0) {
+      if (ncf && ncf.trim().length > 0 && isElectronicNcf(ncf)) {
         return toast.error('Esta compra no puede guardarse como gasto menor ya que tiene e-NCF');
       }
     }
@@ -1387,7 +1391,7 @@ export default function PurchasesPage() {
                     value={expenseType} onChange={e => setExpenseType(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                   >
-                    {expenseTypesList.map(t => (
+                    {expenseTypesList.filter(t => t.status === 'active' || t.code === expenseType).map(t => (
                       <option key={t.id} value={t.code}>{t.code} - {t.name}</option>
                     ))}
                   </select>

@@ -2,14 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy, Plus, Trash2, Edit, X } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'puente' | 'suscripcion'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'puente' | 'suscripcion' | 'gastos'>('perfil');
+
+  // Expense Types States
+  const [expenseTypes, setExpenseTypes] = useState<any[]>([]);
+  const [loadingExpenseTypes, setLoadingExpenseTypes] = useState(false);
+  const [showTypeModal, setShowTypeModal] = useState(false);
+  const [editingType, setEditingType] = useState<any | null>(null);
+  const [typeCode, setTypeCode] = useState('');
+  const [typeName, setTypeName] = useState('');
+  const [typeStatus, setTypeStatus] = useState<'active' | 'inactive'>('active');
+  const [savingType, setSavingType] = useState(false);
 
   // Mappings Tab States
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -62,9 +72,109 @@ export default function SettingsPage() {
   const isNameDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.name));
   const isRncDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.rnc));
 
+  const fetchExpenseTypes = async () => {
+    setLoadingExpenseTypes(true);
+    try {
+      const res = await fetch('/api/v1/expenses/types');
+      const data = await res.json();
+      if (data.success) {
+        setExpenseTypes(data.data || []);
+      }
+    } catch (e) {
+      console.error('Error loading expense types:', e);
+      toast.error('Error al cargar tipos de gastos');
+    } finally {
+      setLoadingExpenseTypes(false);
+    }
+  };
+
+  const handleOpenTypeModal = (type: any = null) => {
+    if (type) {
+      setEditingType(type);
+      setTypeCode(type.code);
+      setTypeName(type.name);
+      setTypeStatus(type.status);
+    } else {
+      setEditingType(null);
+      setTypeCode('');
+      setTypeName('');
+      setTypeStatus('active');
+    }
+    setShowTypeModal(true);
+  };
+
+  const handleSaveType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!typeCode.trim() || typeCode.trim().length !== 2 || isNaN(Number(typeCode))) {
+      return toast.error('El código debe tener exactamente 2 dígitos numéricos.');
+    }
+    if (!typeName.trim()) {
+      return toast.error('El nombre del tipo de gasto es requerido.');
+    }
+
+    setSavingType(true);
+    try {
+      const url = editingType ? `/api/v1/expenses/types/${editingType.id}` : '/api/v1/expenses/types';
+      const method = editingType ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: typeCode,
+          name: typeName,
+          status: typeStatus
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(editingType ? 'Tipo de gasto actualizado con éxito.' : 'Tipo de gasto creado con éxito.');
+        fetchExpenseTypes();
+        setShowTypeModal(false);
+      } else {
+        toast.error(data.error?.message || 'Error al guardar el tipo de gasto');
+      }
+    } catch (err) {
+      console.error('Error saving expense type:', err);
+      toast.error('Ocurrió un error al guardar');
+    } finally {
+      setSavingType(false);
+    }
+  };
+
+  const handleDeleteType = async (type: any) => {
+    const isStandard = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'].includes(type.code);
+    const confirmMessage = isStandard
+      ? `¿Estás seguro de que deseas desactivar el tipo de gasto estándar "${type.code} - ${type.name}"? Los tipos de gastos estándares no se eliminan físicamente, solo se desactivan de los desplegables.`
+      : `¿Estás seguro de que deseas eliminar permanentemente el tipo de gasto personalizado "${type.code} - ${type.name}"?`;
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const res = await fetch(`/api/v1/expenses/types/${type.id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(isStandard ? 'Tipo de gasto desactivado.' : 'Tipo de gasto eliminado.');
+        fetchExpenseTypes();
+      } else {
+        toast.error(data.error?.message || 'Error al eliminar');
+      }
+    } catch (err) {
+      console.error('Error deleting type:', err);
+      toast.error('Error al realizar la operación');
+    }
+  };
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'gastos') {
+      fetchExpenseTypes();
+    }
+  }, [activeTab]);
 
   const fetchSettings = async () => {
     try {
@@ -265,6 +375,18 @@ export default function SettingsPage() {
                 }`}
               >
                 Plan & Suscripción
+              </button>
+            )}
+            {(isAdministracion || isSistemas) && (
+              <button
+                onClick={() => setActiveTab('gastos')}
+                className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
+                  activeTab === 'gastos'
+                    ? 'border-[#003366] text-[#003366]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                Tipos de Gastos
               </button>
             )}
           </div>
@@ -845,6 +967,152 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* TAB: Tipos de Gastos */}
+        {!loading && activeTab === 'gastos' && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Layers className="w-5 h-5 text-[#C5A059]" />
+                <h3 className="font-bold text-[#003366]">Administración de Tipos de Gastos</h3>
+              </div>
+              <button
+                onClick={() => handleOpenTypeModal()}
+                className="bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Crear Tipo de Gasto
+              </button>
+            </div>
+            <div className="p-6">
+              {loadingExpenseTypes ? (
+                <div className="flex justify-center py-12">
+                  <RefreshCw className="h-6 w-6 animate-spin text-[#C5A059]" />
+                </div>
+              ) : expenseTypes.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  No hay tipos de gastos registrados.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-xs font-bold text-slate-400 uppercase">
+                        <th className="py-3 px-4">Código</th>
+                        <th className="py-3 px-4">Nombre</th>
+                        <th className="py-3 px-4">Estado</th>
+                        <th className="py-3 px-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {expenseTypes.map((type) => {
+                        const isStandard = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'].includes(type.code);
+                        return (
+                          <tr key={type.id} className="hover:bg-slate-50/50">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-700">{type.code}</td>
+                            <td className="py-3 px-4 font-medium text-slate-800">{type.name}</td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                type.status === 'active'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                  : 'bg-slate-50 text-slate-600 border border-slate-100'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${type.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                {type.status === 'active' ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right space-x-2">
+                              <button
+                                onClick={() => handleOpenTypeModal(type)}
+                                className="text-slate-500 hover:text-primary transition-colors font-semibold text-xs inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Edit className="w-3.5 h-3.5" /> Editar
+                              </button>
+                              <button
+                                onClick={() => handleDeleteType(type)}
+                                className="text-rose-500 hover:text-rose-700 transition-colors font-semibold text-xs inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> {isStandard ? 'Desactivar' : 'Eliminar'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Crear/Editar Tipo de Gasto */}
+        {showTypeModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#001733] border-b border-[#003366] px-6 py-4 flex items-center justify-between text-white">
+                <h3 className="font-bold">{editingType ? 'Editar Tipo de Gasto' : 'Crear Tipo de Gasto'}</h3>
+                <button onClick={() => setShowTypeModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleSaveType} className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">Código DGII</label>
+                  <input
+                    type="text"
+                    value={typeCode}
+                    onChange={e => setTypeCode(e.target.value)}
+                    disabled={!!editingType}
+                    maxLength={2}
+                    placeholder="Ej. 11"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 disabled:opacity-60 outline-none"
+                  />
+                  {!editingType && <p className="text-[10px] text-slate-400">Debe tener exactamente 2 dígitos numéricos.</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">Nombre</label>
+                  <input
+                    type="text"
+                    value={typeName}
+                    onChange={e => setTypeName(e.target.value)}
+                    placeholder="Ej. Gastos Especiales"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 outline-none"
+                  />
+                </div>
+                {editingType && (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">Estado</label>
+                    <select
+                      value={typeStatus}
+                      onChange={e => setTypeStatus(e.target.value as any)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm text-slate-800 outline-none"
+                    >
+                      <option value="active">Activo</option>
+                      <option value="inactive">Inactivo</option>
+                    </select>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowTypeModal(false)}
+                    className="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingType}
+                    className="bg-[#003366] text-white px-5 py-2 rounded-xl text-xs font-bold hover:bg-[#002244] transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {savingType ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    Guardar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>

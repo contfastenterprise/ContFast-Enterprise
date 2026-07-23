@@ -6,6 +6,7 @@ import { eq, and, sql, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
+import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
 async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
   const [acc] = await tx
@@ -373,8 +374,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       if (!ncf) {
         return NextResponse.json({ success: false, error: { message: 'El NCF es requerido para compras formales.' } }, { status: 400 });
       }
+      if (!isValidNcfFormat(ncf)) {
+        return NextResponse.json({ success: false, error: { message: 'El formato del NCF ingresado es inválido. Debe ser un NCF estándar de 11 caracteres (ej. B0100000001) o un e-NCF de 13 caracteres (ej. E310100000001).' } }, { status: 400 });
+      }
     } else {
-      if (ncf && ncf.trim().length > 0) {
+      if (ncf && ncf.trim().length > 0 && isElectronicNcf(ncf)) {
         return NextResponse.json({ success: false, error: { message: 'Esta compra no puede guardarse como gasto menor ya que tiene e-NCF' } }, { status: 400 });
       }
     }
