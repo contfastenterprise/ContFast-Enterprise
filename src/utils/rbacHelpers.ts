@@ -138,6 +138,11 @@ export function buildSidebar(
       continue;
     }
 
+    // Restricción banco: compras no debe ver la ruta de bancos en el sidebar
+    if (m.routePattern.includes('/dashboard/bank') && cleanRole === 'compras') {
+      continue;
+    }
+
     // Restricción dashboard/accounting: solo sistemas, administracion y contabilidad tienen acceso
     if (m.routePattern.includes('/dashboard/accounting') && !isSistemas && !isAdmin && cleanRole !== 'contabilidad') {
       continue;

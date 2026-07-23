@@ -55,5 +55,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Record<string, boolean>> =
     'proveedores:write': true,
     'proveedores:delete': true,
     'contabilidad:read': true,
+    'banco:read': true,
+    'banco:write': true,
   },
 };

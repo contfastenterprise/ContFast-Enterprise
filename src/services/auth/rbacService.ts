@@ -104,7 +104,7 @@ export class RbacService {
       const roleDefaults = DEFAULT_ROLE_PERMISSIONS[normalizedRole];
       if (roleDefaults && roleDefaults[permissionKey] === true) {
         effectivePermissions.push(permissionKey);
-      } else if (normalizedRole === 'compras' && permissionKey === 'contabilidad:read') {
+      } else if (normalizedRole === 'compras' && (permissionKey === 'contabilidad:read' || permissionKey === 'banco:read' || permissionKey === 'banco:write')) {
         effectivePermissions.push(permissionKey);
       }
     }

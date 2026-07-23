@@ -114,6 +114,11 @@ function checkRbacPermission(pathname: string, method: string, decoded: any): bo
   // Si es sistemas, tiene acceso total a todo
   if (isSistemas) return true;
 
+  // Guard to prevent compras role from accessing bank pages
+  if (userRole === 'compras' && pathname.startsWith('/dashboard/bank')) {
+    return false;
+  }
+
   for (const mapping of STATIC_ROUTE_MAPPINGS) {
     if (mapping.pattern.test(pathname)) {
       const module = mapping.module;

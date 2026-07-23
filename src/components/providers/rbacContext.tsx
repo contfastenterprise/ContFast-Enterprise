@@ -123,8 +123,8 @@ export function RbacProvider({
     const roleDefaults = DEFAULT_ROLE_PERMISSIONS[userRole];
     if (roleDefaults && roleDefaults[permissionKey] === true) return true;
 
-    // 5. Special fallback for compras role to read accounting
-    if (userRole === 'compras' && permissionKey === 'contabilidad:read') return true;
+    // 5. Special fallback for compras role to read accounting and bank
+    if (userRole === 'compras' && (permissionKey === 'contabilidad:read' || permissionKey === 'banco:read' || permissionKey === 'banco:write')) return true;
 
     return false;
   };
@@ -150,6 +150,11 @@ export function RbacProvider({
 
     // Base dashboard path is accessible to all authenticated users
     if (path === '/dashboard' || path === '/dashboard/') return true;
+
+    // Guard for compras: cannot access bank routes
+    if (userRole === 'compras' && path.startsWith('/dashboard/bank')) {
+      return false;
+    }
 
     // Sort by pattern length descending to match most specific route first
     const sortedMappings = [...routeMappings].sort(

@@ -54,9 +54,10 @@ export async function hasPermission(
     return true; // Full access to contabilidad, banco, caja, facturacion, etc.
   }
 
-  // 1b. Support for compras role to read accounting (for cost/expense accounts lookup)
-  if (normalizedRole === 'compras' && module === 'contabilidad' && action === 'read') {
-    return true;
+  // 1b. Support for compras role to read accounting and bank (lookup/recording)
+  if (normalizedRole === 'compras') {
+    if (module === 'contabilidad' && action === 'read') return true;
+    if (module === 'banco' && (action === 'read' || action === 'write')) return true;
   }
 
   // 2. Check User Override (user_permissions)

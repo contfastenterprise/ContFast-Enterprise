@@ -187,6 +187,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, pathname, router]);
 
+  // Guard for 'compras' role: Cannot access bank routes in UI
+  useEffect(() => {
+    if (user) {
+      const normalized = (user.role || '').toLowerCase();
+      if (normalized === 'compras') {
+        const isBankRoute = pathname.startsWith('/dashboard/bank');
+        if (isBankRoute) {
+          toast.error('Acceso denegado. No tiene permisos para acceder a Bancos.');
+          router.replace('/dashboard/purchases');
+        }
+      }
+    }
+  }, [user, pathname, router]);
+
   // Inactividad / Auto-logout automático al expirar el tiempo de inactividad
   useEffect(() => {
     // Configuración del tiempo máximo de inactividad (15 minutos)

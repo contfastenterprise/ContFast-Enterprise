@@ -527,15 +527,10 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 - **Asignación Inline y Generación Masiva**: Implementación de controles interactivos por fila para autogenerar códigos secuenciales con un clic o agregarlos manualmente de manera instantánea. Añadida la opción para realizar la generación automática secuencial en lote para todos los productos faltantes simultáneamente.
 
 - **Enlace en Barra de Navegación**: Inyección de la opción **Barcode** directamente debajo de **Productos** en el menú lateral (`new-app-sidebar.tsx`) para asegurar el acceso inmediato.
-
 - **Iconografía Oficial de Código de Barras**: Se registró el icono de tipo **Barcode** de Lucide en la colección de componentes de seguridad RBAC (`src/utils/rbacHelpers.ts`), enlazándose dinámicamente con el menú lateral.
-
 - **Impresión Avanzada por Cantidad y Selección**: Incorporación del diálogo avanzado de impresión en la página de gestión unificada. Permite seleccionar uno o múltiples productos mediante checkboxes y definir la cantidad exacta de etiquetas a imprimir para cada ítem, con soporte para tamaños de etiqueta estándar y personalizados.
-
 - **Selector de Formato e Indicador de Falta de Datos**: Integración de una opción interactiva de 'Formato de Código' (Code 128, EAN-13, EAN-8, UPC-A, QR Code) dentro del configurador de etiquetas. En caso de que el producto no posea un código asignado, se despliega una advertencia visual `[ Sin código asignado ]` en la vista previa del sticker para guiar al usuario.
-
 - **Corrección Definitiva de Selectores de Impresión**: Se reemplazó el selector de ocultamiento global `body *` por `body > *:not(.print-area)` en los bloques de estilos de impresión. Esto soluciona de forma definitiva el error por el cual las hojas salían en blanco, asegurando que los elementos internos del sticker (códigos de barra SVG, canvas de QR, textos y precios) no sufran ocultación en cascada por parte del navegador.
-
 - **Plantilla PDF de Impresión de Código de Barras**: Se creó una ruta de backend dedicada `/api/v1/products/barcodes/pdf` que genera un documento PDF de alta fidelidad. Cada página corresponde exactamente a una etiqueta con las dimensiones físicas configuradas en milímetros. Utiliza renderizado de vectores (JsBarcode/QRCode) dentro de Puppeteer y se abre directamente en una nueva pestaña del navegador, garantizando un resultado nítido y compatible con impresoras de etiquetas.
 
 * * Verified & Polished * *  
@@ -551,7 +546,14 @@ El proyecto se encuentra **Verified & Polished** tras completar la implementaci�
 
 - **Validación Estricta de Caracteres en Códigos**: Adición de una validación por expresión regular en `BarcodeRenderer.tsx` para evitar fallas en consola cuando secuencias con letras se intentan renderizar en formatos puramente numéricos (EAN-13, EAN-8 y UPC-A). Ahora intercepta e informa con un mensaje en pantalla, evitando errores en la librería de renderizado.
 
+### 73. Permisos de Compras, Suplidor Inline y Acceso Seguro a Bancos
+- **Carga de Catálogo de Cuentas**: Habilitado `'contabilidad:read': true` por defecto para el rol de `compras` con reglas de anulación dinámica, permitiendo que el formulario de compras cargue correctamente las cuentas de costos y gastos.
+- **Redirección de Dashboard**: Configurada la redirección automática para que los usuarios con rol de `compras` sean llevados inmediatamente a `/dashboard/purchases` al iniciar sesión o acceder a la raíz del panel.
+- **Creación Inline de Suplidor**: Botón `+` y modal premium integrado en el selector de suplidor que permite registrar nuevos proveedores sobre la marcha con un formulario de tipografía de 14px (`text-sm`) con etiquetas muy contrastadas (`text-on-surface`) y colores estándar del sistema (`bg-[#001733]`/`bg-[#003366]`).
+- **Acceso Silencioso a Bancos**: El rol de `compras` posee privilegios para consultar bancos e introducir transacciones contables bancarias bajo el capó (`banco:read`, `banco:write`), pero tiene estrictamente denegado el acceso visual y la navegación a la vista de bancos en el menú lateral, mediante bloqueos de cliente y del proxy middleware.
+
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *  
 * * Verified & Polished * *
+
