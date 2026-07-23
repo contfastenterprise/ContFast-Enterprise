@@ -123,6 +123,9 @@ export function RbacProvider({
     const roleDefaults = DEFAULT_ROLE_PERMISSIONS[userRole];
     if (roleDefaults && roleDefaults[permissionKey] === true) return true;
 
+    // 5. Special fallback for compras role to read accounting
+    if (userRole === 'compras' && permissionKey === 'contabilidad:read') return true;
+
     return false;
   };
 

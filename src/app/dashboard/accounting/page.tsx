@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
+import { useRbac } from '@/components/providers/rbacContext';
 import DashboardLayout from '@/app/dashboard/layout';
 import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,8 +58,21 @@ const fmt = (val: number | string) => {
 };
 
 export default function AccountingPage() {
+  const router = useRouter();
+  const { user, loading: rbacLoading } = useRbac();
   const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods'>('catalog');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!rbacLoading && user) {
+      const role = (user.role || '').toLowerCase();
+      const isAuth = role === 'sistemas' || role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
+      if (!isAuth) {
+        toast.error('Acceso denegado. No tiene permisos para acceder a Contabilidad.');
+        router.replace('/dashboard/purchases');
+      }
+    }
+  }, [user, rbacLoading, router]);
 
   // Data
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -96,8 +111,13 @@ export default function AccountingPage() {
   const [journalLines, setJournalLines] = useState([{ accountId: '', debit: 0, credit: 0 }, { accountId: '', debit: 0, credit: 0 }]);
 
   useEffect(() => {
+    if (rbacLoading || !user) return;
+    const role = (user.role || '').toLowerCase();
+    const isAuth = role === 'sistemas' || role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
+    if (!isAuth) return;
+
     fetchData();
-  }, [activeTab, startDate, endDate, selectedLedgerAccount]);
+  }, [activeTab, startDate, endDate, selectedLedgerAccount, user, rbacLoading]);
 
   const fetchData = async () => {
     setLoading(true);

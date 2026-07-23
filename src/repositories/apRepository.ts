@@ -187,7 +187,8 @@ export class ApRepository {
     endDate?: string, 
     search?: string, 
     limit?: number, 
-    offset?: number 
+    offset?: number,
+    status?: string
   }) {
     const debitAccount = alias(chartOfAccounts, 'debit_account');
     const creditAccount = alias(chartOfAccounts, 'credit_account');
@@ -195,6 +196,9 @@ export class ApRepository {
     let conditions: any[] = [
       eq(apPayments.companyId, companyId)
     ];
+    if (filters?.status) {
+      conditions.push(eq(apPayments.status, filters.status));
+    }
     if (filters?.apId) {
       conditions.push(eq(apPayments.apId, filters.apId));
     }

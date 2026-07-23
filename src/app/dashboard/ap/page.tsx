@@ -77,6 +77,7 @@ export default function AccountsPayablePage() {
   const [paymentsSearch, setPaymentsSearch] = useState('');
   const [paymentsStartDate, setPaymentsStartDate] = useState('');
   const [paymentsEndDate, setPaymentsEndDate] = useState('');
+  const [pendingGuarantees, setPendingGuarantees] = useState<PaymentHistory[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'bills' | 'guarantees' | 'history'>('bills');
@@ -108,9 +109,27 @@ export default function AccountsPayablePage() {
     notes: ''
   });
 
+  const fetchPendingGuarantees = async () => {
+    try {
+      const query = new URLSearchParams({
+        payments: 'true',
+        pageSize: '100',
+        status: 'pending_guarantee'
+      });
+      const res = await fetch(`/api/v1/ap?${query.toString()}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setPendingGuarantees(json.data.items || []);
+      }
+    } catch (err) {
+      console.error('Error loading pending guarantees:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchSecondaryData();
+    fetchPendingGuarantees();
   }, []);
 
   useEffect(() => {
@@ -125,7 +144,8 @@ export default function AccountsPayablePage() {
       const query = new URLSearchParams({
         payments: 'true',
         page: paymentsPage.toString(),
-        pageSize: '20'
+        pageSize: '20',
+        status: 'applied'
       });
       if (qSearch) query.append('search', qSearch);
       if (paymentsStartDate) query.append('startDate', paymentsStartDate);
@@ -321,6 +341,8 @@ export default function AccountsPayablePage() {
         );
         setShowPaymentModal(false);
         fetchData();
+        fetchPendingGuarantees();
+        fetchPaymentsData();
       } else {
         toast.error(data.error?.message || 'Error al procesar pago');
       }
@@ -343,6 +365,8 @@ export default function AccountsPayablePage() {
           description: data.message
         });
         fetchData();
+        fetchPendingGuarantees();
+        fetchPaymentsData();
       } else {
         toast.error(data.error?.message || 'Error al procesar cheques en garantía');
       }
@@ -356,8 +380,6 @@ export default function AccountsPayablePage() {
   const filteredSuppliers = suppliers.filter(s => s.supplierName.toLowerCase().includes(searchTerm.toLowerCase()));
   const globalTotalPending = suppliers.reduce((sum, s) => sum + s.totalBalance, 0);
 
-  // Filter pending guarantee checks
-  const pendingGuarantees = paymentsList.filter(p => p.status === 'pending_guarantee');
   const nowStr = new Date().toISOString().split('T')[0];
 
   return (

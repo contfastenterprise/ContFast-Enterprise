@@ -27,6 +27,8 @@ import {
   Pencil,
   FileCode,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 import DateRangePicker from '@/components/ui/date-range-picker';
@@ -1495,10 +1497,26 @@ const TABS = [
 ];
 
 export default function ECFPage() {
+  const router = useRouter();
+  const { user, loading: rbacLoading } = useRbac();
   const [activeTab, setActiveTab] = useState('comprobantes');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
 
   useEffect(() => {
+    if (!rbacLoading && user) {
+      const role = (user.role || '').toLowerCase();
+      if (role === 'facturacion') {
+        toast.error('Acceso denegado. Redireccionando a Facturación.');
+        router.replace('/dashboard/invoices');
+      }
+    }
+  }, [user, rbacLoading, router]);
+
+  useEffect(() => {
+    if (rbacLoading || !user) return;
+    const role = (user.role || '').toLowerCase();
+    if (role === 'facturacion') return;
+
     // Detect entorno from company settings
     const fetchEntorno = async () => {
       try {
@@ -1515,7 +1533,7 @@ export default function ECFPage() {
       }
     };
     fetchEntorno();
-  }, []);
+  }, [user, rbacLoading]);
 
   const entornoConfig = {
     TEST: { label: 'ENTORNO DE PRUEBA', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700' },

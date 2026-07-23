@@ -138,6 +138,31 @@ export function buildSidebar(
       continue;
     }
 
+    // Restricción dashboard/accounting: solo sistemas, administracion y contabilidad tienen acceso
+    if (m.routePattern.includes('/dashboard/accounting') && !isSistemas && !isAdmin && cleanRole !== 'contabilidad') {
+      continue;
+    }
+
+    // Restricción facturacion: no puede ver Inicio ni Comprobantes Fiscales
+    if (cleanRole === 'facturacion') {
+      if (m.routePattern === '/dashboard' || m.routePattern.includes('/dashboard/ecf')) {
+        continue;
+      }
+    }
+
+    // Restricción facturacion: no puede ver Inventario
+    if (cleanRole === 'facturacion') {
+      if (
+        m.groupName === 'Inventario' ||
+        m.routePattern.includes('/dashboard/inventory') ||
+        m.routePattern.includes('/dashboard/products') ||
+        m.routePattern.includes('/dashboard/warehouses') ||
+        m.routePattern.includes('/dashboard/delivery-notes')
+      ) {
+        continue;
+      }
+    }
+
     authorizedItems.push({
       name: m.displayName || 'Módulo',
       href: m.routePattern.replace(/%/g, ''), // Limpiamos wildcards

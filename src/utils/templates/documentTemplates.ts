@@ -2010,7 +2010,7 @@ export class DocumentTemplates {
           
           @page {
             size: letter landscape;
-            margin: 10mm;
+            margin: 10mm 0 10mm 25mm;
           }
           
           body {
@@ -2044,7 +2044,7 @@ export class DocumentTemplates {
             max-width: 200px;
             object-fit: contain;
             margin-bottom: 8px;
-            margin-left: -15px;
+            margin-left: -3px;
           }
           
           .company-info {
@@ -2304,7 +2304,7 @@ export class DocumentTemplates {
         
         <div class="summary-section">
           <div class="huecos-card">
-            <div class="card-title">Huecos por Tipo</div>
+            <div class="card-title">No. Hueco Por Tipo</div>
             ${huecosHtml}
           </div>
           

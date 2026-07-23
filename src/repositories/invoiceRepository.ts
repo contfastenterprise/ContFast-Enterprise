@@ -363,6 +363,12 @@ export class InvoiceRepository {
 
     const total = totalResult?.value || 0;
 
+    const [sumResult] = await db
+      .select({ value: sql<string>`coalesce(sum(${invoices.total}), '0')` })
+      .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
+      .where(withTenantMode(invoices, ctx, ...baseConditions));
+
     return {
       data,
       meta: {
@@ -370,6 +376,7 @@ export class InvoiceRepository {
         per_page: perPage,
         total,
         total_pages: Math.ceil(total / perPage),
+        totalAmount: parseFloat(sumResult?.value || '0'),
       },
     };
   }

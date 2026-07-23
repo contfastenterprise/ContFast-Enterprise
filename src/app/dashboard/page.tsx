@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import {
   FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X
@@ -93,7 +94,19 @@ const statusBadge = (status: string) => {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, loading: rbacLoading } = useRbac();
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!rbacLoading && user) {
+      const role = (user.role || '').toLowerCase();
+      if (role === 'facturacion') {
+        toast.error('Acceso denegado. Redireccionando a Facturación.');
+        router.replace('/dashboard/invoices');
+      }
+    }
+  }, [user, rbacLoading, router]);
+
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     invoicesToday: 0,
@@ -163,8 +176,12 @@ export default function DashboardPage() {
   }, [chartPeriod]);
 
   useEffect(() => {
+    if (rbacLoading || !user) return;
+    const role = (user.role || '').toLowerCase();
+    if (role === 'facturacion') return;
+
     loadDashboardData();
-  }, [loadDashboardData]);
+  }, [loadDashboardData, user, rbacLoading]);
 
   const [resendingId, setResendingId] = useState<string | null>(null);
 

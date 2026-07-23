@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       const startDate = url.searchParams.get('startDate') || undefined;
       const endDate = url.searchParams.get('endDate') || undefined;
       const search = url.searchParams.get('search') || undefined;
+      const status = url.searchParams.get('status') || undefined;
 
       const offset = (page - 1) * pageSize;
 
@@ -36,7 +37,8 @@ export async function GET(req: NextRequest) {
         endDate,
         search,
         limit: pageSize,
-        offset
+        offset,
+        status
       });
 
       return NextResponse.json(

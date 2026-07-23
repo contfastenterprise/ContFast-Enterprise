@@ -5,7 +5,7 @@ import {
   RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Store, Banknote, Calendar,
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
   DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
-  Camera, Scan, Edit
+  Camera, Scan, Edit, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -209,6 +209,15 @@ export default function PurchasesPage() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
+  // Add Supplier Modal State
+  const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [newSupplierRnc, setNewSupplierRnc] = useState('');
+  const [newSupplierEmail, setNewSupplierEmail] = useState('');
+  const [newSupplierPhone, setNewSupplierPhone] = useState('');
+  const [newSupplierAddress, setNewSupplierAddress] = useState('');
+  const [isSavingSupplier, setIsSavingSupplier] = useState(false);
+
   // Filters State
   const [filterStartDate, setFilterStartDate] = useState(getFirstDayOfMonthString());
   const [filterEndDate, setFilterEndDate] = useState(getLocalDateString());
@@ -297,6 +306,48 @@ export default function PurchasesPage() {
       }
     }
   }, [supplierId, suppliers]);
+
+  const handleAddSupplier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSupplierName.trim()) {
+      return toast.error('El nombre del suplidor es requerido');
+    }
+
+    setIsSavingSupplier(true);
+    try {
+      const res = await fetch('/api/v1/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSupplierName.trim(),
+          rnc: newSupplierRnc.trim(),
+          email: newSupplierEmail.trim() || undefined,
+          phone: newSupplierPhone.trim() || undefined,
+          address: newSupplierAddress.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.data) {
+        toast.success('Suplidor agregado exitosamente');
+        const created = data.data;
+        setSuppliers(prev => [...prev, created]);
+        setSupplierId(created.id);
+        setNewSupplierName('');
+        setNewSupplierRnc('');
+        setNewSupplierEmail('');
+        setNewSupplierPhone('');
+        setNewSupplierAddress('');
+        setShowAddSupplierModal(false);
+      } else {
+        toast.error('Error al agregar suplidor', { description: data.error?.message });
+      }
+    } catch (err: any) {
+      toast.error('Error de red', { description: err.message });
+    } finally {
+      setIsSavingSupplier(false);
+    }
+  };
 
   // Filter and search action
   const handleSearch = async (silent: boolean | any = false) => {
@@ -1222,13 +1273,23 @@ export default function PurchasesPage() {
                 {!isMinorExpense && (
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
-                    <select
-                      value={supplierId} onChange={e => setSupplierId(e.target.value)}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
-                    >
-                      <option value="">Selecciona un suplidor...</option>
-                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={supplierId} onChange={e => setSupplierId(e.target.value)}
+                        className="flex-1 bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        <option value="">Selecciona un suplidor...</option>
+                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddSupplierModal(true)}
+                        className="bg-primary/10 hover:bg-primary/20 text-primary transition-all p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
+                        title="Agregar Nuevo Proveedor"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1769,6 +1830,121 @@ export default function PurchasesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Agregar Proveedor */}
+      <AnimatePresence>
+        {showAddSupplierModal && (
+          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#003366]"
+            >
+              {/* Modal Header */}
+              <div className="bg-[#001733] text-white p-6 flex justify-between items-center border-b border-[#003366]">
+                <div>
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <Plus className="h-5 w-5" /> Agregar Nuevo Proveedor
+                  </h3>
+                  <p className="text-xs text-on-primary/80 mt-1">
+                    Crea un nuevo suplidor para utilizarlo de inmediato en tus compras.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddSupplierModal(false)}
+                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Modal Content / Form */}
+              <form onSubmit={handleAddSupplier} className="p-6 overflow-y-auto space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Nombre del Proveedor *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Distribuidora Dominicana S.A."
+                    value={newSupplierName}
+                    onChange={e => setNewSupplierName(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">RNC / Cédula (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. 131-12345-6"
+                    value={newSupplierRnc}
+                    onChange={e => setNewSupplierRnc(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Correo Electrónico (Opcional)</label>
+                  <input
+                    type="email"
+                    placeholder="Ej. contacto@proveedor.com"
+                    value={newSupplierEmail}
+                    onChange={e => setNewSupplierEmail(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Teléfono (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. 809-555-0199"
+                    value={newSupplierPhone}
+                    onChange={e => setNewSupplierPhone(e.target.value)}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Dirección (Opcional)</label>
+                  <textarea
+                    placeholder="Ej. Av. Winston Churchill #105, Santo Domingo"
+                    value={newSupplierAddress}
+                    onChange={e => setNewSupplierAddress(e.target.value)}
+                    rows={2}
+                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none resize-none text-on-surface"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-surface-variant/35">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSupplierModal(false)}
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-95"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingSupplier}
+                    className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50"
+                  >
+                    {isSavingSupplier ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Guardando...
+                      </>
+                    ) : (
+                      'Guardar Proveedor'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Premium Detail Modal for Expense/Purchase */}
       <AnimatePresence>

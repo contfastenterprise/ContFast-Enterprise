@@ -156,12 +156,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           cajero: '/dashboard/cash',
           contab: '/dashboard/accounting',
           banco: '/dashboard/bank',
+          compra: '/dashboard/purchases',
         };
         const match = Object.entries(roleRedirectMap).find(([r]) => normalized.includes(r));
         if (match) {
           router.replace(match[1]);
         } else {
           router.replace('/auth/login');
+        }
+      }
+    }
+  }, [user, pathname, router]);
+
+  // Guard for 'facturacion' role: Cannot access any Inventory route
+  useEffect(() => {
+    if (user) {
+      const normalized = (user.role || '').toLowerCase();
+      if (normalized === 'facturacion') {
+        const isInventoryRoute =
+          pathname.startsWith('/dashboard/warehouses') ||
+          pathname.startsWith('/dashboard/inventory') ||
+          pathname.startsWith('/dashboard/products') ||
+          pathname.startsWith('/dashboard/delivery-notes');
+        
+        if (isInventoryRoute) {
+          toast.error('Acceso denegado. No tiene permisos para acceder al Inventario.');
+          router.replace('/dashboard/invoices');
         }
       }
     }

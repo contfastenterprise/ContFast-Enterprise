@@ -54,6 +54,7 @@ function InvoicesList() {
 
   // Stats
   const [stats, setStats] = useState({ totalMonth: 0, pending: 0 });
+  const [filteredTotal, setFilteredTotal] = useState(0);
 
   // Form State
   const [ecfType, setEcfType] = useState('31'); // 31 (Fiscal), 32 (Consumo)
@@ -407,9 +408,13 @@ function InvoicesList() {
         setInvoices(data.data || []);
         setTotalPages(data.pagination?.total_pages || data.meta?.total_pages || 1);
         setTotalRecords(data.pagination?.total || data.meta?.total || 0);
+        setFilteredTotal(data.meta?.totalAmount ?? (data.data || []).reduce((acc: number, inv: any) => acc + parseFloat(inv.total), 0));
 
         if (data.stats) {
-          setStats(data.stats);
+          setStats({
+            totalMonth: data.stats.monthTotal ?? data.stats.totalMonth ?? 0,
+            pending: data.stats.pendingCount ?? data.stats.pending ?? 0,
+          });
         } else {
           const totalAmount = (data.data || []).reduce((acc: number, inv: any) => acc + parseFloat(inv.total), 0);
           const pendingCount = (data.data || []).filter((i: any) => ['submitted', 'draft', 'signed'].includes(i.status)).length;
@@ -1698,9 +1703,14 @@ function InvoicesList() {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
                   <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">
-                    {(stats?.totalMonth ?? 0) >= 1000000
-                      ? `RD$ ${((stats?.totalMonth ?? 0) / 1000000).toFixed(1)}M`
-                      : `RD$ ${new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stats?.totalMonth ?? 0)}`}
+                    {`RD$ ${new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stats?.totalMonth ?? 0)}`}
+                  </span>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                  <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Filtrado</span>
+                  <span className="block font-mono text-xl md:text-2xl font-bold text-emerald-600">
+                    {`RD$ ${new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(filteredTotal)}`}
                   </span>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
