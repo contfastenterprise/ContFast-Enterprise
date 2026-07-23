@@ -1536,32 +1536,32 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-5xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#0b1120]">
+              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-[#001733] text-white">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-[#c5a059]" /> Inventario: {selectedProduct.name}
                 </h3>
-                <button onClick={() => setShowInventoryModal(false)} className="text-on-surface-variant hover:text-primary">
+                <button onClick={() => setShowInventoryModal(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
               <div className="p-0 overflow-y-auto max-h-[70vh]">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-surface-container-low/80 border-b border-[#003366] sticky top-0 z-10">
+                  <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider">Almacén</th>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Físico</th>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Disponible</th>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-center">Stock Mín / Máx</th>
-                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right w-40">Ajustar</th>
+                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
+                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Físico</th>
+                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Disponible</th>
+                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stock Mín / Máx</th>
+                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right w-40">Ajustar</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant/20 bg-surface-container-highest">
+                  <tbody className="divide-y divide-slate-100 bg-white">
                     {warehouses.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-on-surface-variant/70">
-                          <Layers className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                        <td colSpan={5} className="p-8 text-center text-slate-500">
+                          <Layers className="h-8 w-8 mx-auto mb-2 opacity-40" />
                           No hay almacenes configurados en el sistema.
                         </td>
                       </tr>
@@ -1576,26 +1576,26 @@ export default function ProductsPage() {
                         const maxStk = level && (level as any).maxStock !== undefined && (level as any).maxStock !== null ? Number((level as any).maxStock).toString() : '';
                         
                         return (
-                          <tr key={w.id} className="hover:bg-surface-container-low/30 transition-colors">
+                          <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <div className="bg-primary/10 p-2 rounded-lg text-primary flex-shrink-0">
                                   <Building2 className="h-4 w-4" />
                                 </div>
-                                <span className="font-bold text-on-surface text-sm">{w.name}</span>
+                                <span className="font-bold text-slate-800 text-sm">{w.name}</span>
                               </div>
                             </td>
                             <td className="p-4 text-right">
-                              <span className="block text-md font-mono text-emerald-400">
+                              <span className="block text-md font-mono text-emerald-600 font-bold">
                                 {currentQuantity}
                               </span>
-                              <span className="text-[10px] text-on-surface-variant capitalize">{selectedProduct.unitOfMeasure}s</span>
+                              <span className="text-[10px] text-slate-400 capitalize font-medium">{selectedProduct.unitOfMeasure}s</span>
                             </td>
                             <td className="p-4 text-right">
-                              <span className="block text-md font-mono font-bold text-amber-400">
+                              <span className="block text-md font-mono font-bold text-amber-600">
                                 {availableQuantity}
                               </span>
-                              <span className="text-[10px] text-on-surface-variant">Disponibles</span>
+                              <span className="text-[10px] text-slate-400 font-medium">Disponibles</span>
                             </td>
                             <td className="p-4 text-center">
                               <div className="flex items-center gap-2 justify-center">
