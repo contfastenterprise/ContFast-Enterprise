@@ -316,3 +316,17 @@ export const financialMovements = pgTable('financial_movements', {
   companyModoIdx: index('fin_mov_company_modo_idx').on(table.companyId, table.modo),
 }));
 
+export const expenseTypes = pgTable('expense_types', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  code: varchar('code', { length: 2 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  status: varchar('status', { length: 50 }).default('active').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyCodeUniqueIdx: uniqueIndex('expense_types_company_code_idx').on(table.companyId, table.code),
+  companyIdx: index('expense_types_company_idx').on(table.companyId),
+}));
+
+

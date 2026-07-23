@@ -85,6 +85,10 @@ export async function POST(req: NextRequest) {
       if (!ncf) {
         return NextResponse.json({ success: false, error: { message: 'El NCF es requerido para compras formales.' } }, { status: 400 });
       }
+    } else {
+      if (ncf && ncf.trim().length > 0) {
+        return NextResponse.json({ success: false, error: { message: 'Esta compra no puede guardarse como gasto menor ya que tiene e-NCF' } }, { status: 400 });
+      }
     }
 
     const result = await db.transaction(async (tx) => {

@@ -6,7 +6,8 @@ import {
   accountsReceivable, 
   accountsPayable,
   accountingPeriods,
-  accountingMappings
+  accountingMappings,
+  expenseTypes
 } from '@/db';
 import { eq, and, desc, sql, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -786,5 +787,38 @@ export class AccountingRepository {
         }
       }
     };
+  }
+
+  public static async seedDefaultExpenseTypes(companyId: string, externalTx?: any) {
+    const execute = async (tx: any) => {
+      const defaultTypes = [
+        { code: '01', name: 'Gastos de Personal' },
+        { code: '02', name: 'Trabajos, Suministros y Servicios' },
+        { code: '03', name: 'Arrendamientos' },
+        { code: '04', name: 'Gastos de Activos Fijos' },
+        { code: '05', name: 'Gastos de Representación' },
+        { code: '06', name: 'Otras Deducciones Admitidas' },
+        { code: '07', name: 'Gastos Financieros' },
+        { code: '08', name: 'Gastos Extraordinarios' },
+        { code: '09', name: 'Costo de Venta' },
+        { code: '10', name: 'Activos Fijos' }
+      ];
+
+      for (const type of defaultTypes) {
+        await tx.insert(expenseTypes).values({
+          companyId,
+          code: type.code,
+          name: type.name
+        }).onConflictDoNothing();
+      }
+    };
+
+    if (externalTx) {
+      await execute(externalTx);
+    } else {
+      await db.transaction(async (tx) => {
+        await execute(tx);
+      });
+    }
   }
 }

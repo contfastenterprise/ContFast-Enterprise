@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
 
       // 5. Generate Default Chart of Accounts & Bridge Mappings for the new company
       await AccountingRepository.seedDefaultChartOfAccounts(newComp.id, tx);
+      await AccountingRepository.seedDefaultExpenseTypes(newComp.id, tx);
 
       // 6. Seed system permissions dynamically (11 modules * 5 actions = 55 permissions)
       const modules = [

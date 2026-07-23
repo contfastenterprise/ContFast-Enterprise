@@ -186,6 +186,7 @@ export async function POST(req: NextRequest) {
 
       // 2.5a. Seed default Dominican Chart of Accounts for the new company
       await AccountingRepository.seedDefaultChartOfAccounts(newCompany.id, tx);
+      await AccountingRepository.seedDefaultExpenseTypes(newCompany.id, tx);
 
       // The initial user is assigned to the 'sistemas' role
       const roleSistemas = globalRoles.find((r) => r.name === 'sistemas')!;

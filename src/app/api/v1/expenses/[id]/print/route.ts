@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, companies, companySettings, suppliers, warehouses } from '@/db';
+import { db, expenses, expenseLines, companies, companySettings, suppliers, warehouses, expenseTypes } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -52,7 +52,7 @@ export async function GET(
       return new NextResponse('Compra/Gasto no encontrado.', { status: 404 });
     }
 
-    const expense = expenseResult[0];
+    const expense = expenseResult[0] as any;
 
     // Fetch company profile and settings
     const [company] = await db
@@ -69,6 +69,22 @@ export async function GET(
 
     if (!company) {
       return new NextResponse('Perfil de compañía no encontrado.', { status: 404 });
+    }
+
+    // Fetch expense type name
+    let expenseTypeName = expense.expenseType || 'N/A';
+    if (expense.expenseType) {
+      const [typeRec] = await db
+        .select({ name: expenseTypes.name })
+        .from(expenseTypes)
+        .where(and(
+          eq(expenseTypes.companyId, session.companyId),
+          eq(expenseTypes.code, expense.expenseType)
+        ))
+        .limit(1);
+      if (typeRec) {
+        expenseTypeName = `${expense.expenseType} - ${typeRec.name}`;
+      }
     }
 
     // Fetch expense lines
@@ -91,7 +107,10 @@ export async function GET(
         rnc: expense.supplierRnc || 'N/A',
         address: expense.supplierAddress || '',
       },
-      purchase: expense,
+      purchase: {
+        ...expense,
+        expenseTypeName
+      },
       lines: lines,
     };
 

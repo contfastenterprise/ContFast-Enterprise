@@ -89,6 +89,7 @@ export default function PurchasesPage() {
   const [supplierId, setSupplierId] = useState('');
   const [ncf, setNcf] = useState('');
   const [expenseType, setExpenseType] = useState('02'); // Gastos por Trabajos, Suministros y Servicios
+  const [expenseTypesList, setExpenseTypesList] = useState<{ id: string; code: string; name: string }[]>([]);
   const [issueDate, setIssueDate] = useState(getLocalDateString());
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
   const [warehouseId, setWarehouseId] = useState('');
@@ -268,8 +269,9 @@ export default function PurchasesPage() {
       fetch('/api/v1/suppliers').then(r => r.json()),
       fetch('/api/v1/warehouses').then(r => r.json()),
       fetch('/api/v1/accounting/accounts').then(r => r.json()),
-      fetch('/api/v1/categories').then(r => r.json())
-    ]).then(([pr, sp, wh, ac, cat]) => {
+      fetch('/api/v1/categories').then(r => r.json()),
+      fetch('/api/v1/expenses/types').then(r => r.json())
+    ]).then(([pr, sp, wh, ac, cat, et]) => {
       if (pr.success) setProducts(pr.data.items || pr.data || []);
       if (sp.success) setSuppliers(sp.data || []);
       if (wh.success || wh.data) {
@@ -285,6 +287,13 @@ export default function PurchasesPage() {
         }
       }
       if (cat.success) setCategories(cat.data || []);
+      if (et.success) {
+        setExpenseTypesList(et.data || []);
+        if (et.data && et.data.length > 0) {
+          const defaultType = et.data.find((t: any) => t.code === '02') || et.data[0];
+          setExpenseType(defaultType.code);
+        }
+      }
     }).catch(err => console.error("Error loading lookup data", err));
   }, []);
 
@@ -553,6 +562,57 @@ export default function PurchasesPage() {
     setGcAmount(0);
   };
 
+  const resetForm = () => {
+    setEditingExpenseId(null);
+    setIsMinorExpense(false);
+    setSupplierId('');
+    setNcf('');
+    
+    if (expenseTypesList && expenseTypesList.length > 0) {
+      const defaultType = expenseTypesList.find((t: any) => t.code === '02') || expenseTypesList[0];
+      setExpenseType(defaultType.code);
+    } else {
+      setExpenseType('02');
+    }
+
+    setIssueDate(getLocalDateString());
+    setPaymentMethod('01');
+
+    if (warehouses.length > 0) {
+      setWarehouseId(warehouses[0].id);
+    } else {
+      setWarehouseId('');
+    }
+
+    setDescription('');
+    setIsGeneralAmount(false);
+    setGeneralTotal('');
+    setGeneralSubtotal(0);
+    setGeneralItbis(0);
+    setNoItbis(false);
+
+    const defaultAcc = accountsList.find((a: any) => a.code.startsWith('5.1.01') || a.name.toLowerCase().includes('costo de ventas'));
+    if (defaultAcc) {
+      setDebitAccountId(defaultAcc.id);
+    } else {
+      setDebitAccountId('');
+    }
+
+    setLines([]);
+    setGlobalIsc(0);
+    setGlobalOtherTaxes(0);
+    setHasGuaranteeCheck(false);
+
+    if (bankAccountsList.length > 0) {
+      setGcBankAccountId(bankAccountsList[0].id);
+    } else {
+      setGcBankAccountId('');
+    }
+
+    setGcCheckNumber('');
+    setGcAmount(0);
+  };
+
   // Delete/void expense
   const handleDeleteExpense = async (id: string) => {
     if (!window.confirm('¿Está seguro de que desea eliminar permanentemente este registro de compra/gasto? Esta acción no se puede deshacer y revertirá los niveles de stock correspondientes.')) {
@@ -666,6 +726,10 @@ export default function PurchasesPage() {
     if (!isMinorExpense) {
       if (!supplierId) return toast.error('Selecciona un suplidor');
       if (!ncf) return toast.error('Ingresa el NCF de la factura');
+    } else {
+      if (ncf && ncf.trim().length > 0) {
+        return toast.error('Esta compra no puede guardarse como gasto menor ya que tiene e-NCF');
+      }
     }
     if (!issueDate) return toast.error('Selecciona fecha de factura');
 
@@ -805,7 +869,10 @@ export default function PurchasesPage() {
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
-              onClick={() => setActiveTab('nuevo')}
+              onClick={() => {
+                resetForm();
+                setActiveTab('nuevo');
+              }}
               className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'nuevo'
                   ? 'bg-white text-primary shadow-sm'
                   : 'text-on-surface-variant/70 hover:text-on-surface'
@@ -946,7 +1013,10 @@ export default function PurchasesPage() {
                 No se muestran transacciones hasta que apliques los filtros de fecha/tipo y presiones el botón de **Buscar Registros**.
               </p>
               <button
-                onClick={() => setActiveTab('nuevo')}
+                onClick={() => {
+                  resetForm();
+                  setActiveTab('nuevo');
+                }}
                 className="bg-[#005E63] hover:bg-[#004d51] text-white px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
               >
                 <Plus className="h-4 w-4" /> Registrar Compra o Gasto
@@ -1317,10 +1387,9 @@ export default function PurchasesPage() {
                     value={expenseType} onChange={e => setExpenseType(e.target.value)}
                     className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="01">01 - Gastos de Personal</option>
-                    <option value="02">02 - Trabajos, Suministros y Servicios</option>
-                    <option value="09">09 - Compras de Mercancía (Inventario)</option>
-                    <option value="11">11 - Gastos Financieros</option>
+                    {expenseTypesList.map(t => (
+                      <option key={t.id} value={t.code}>{t.code} - {t.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>

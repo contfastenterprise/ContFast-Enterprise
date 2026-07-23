@@ -373,6 +373,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       if (!ncf) {
         return NextResponse.json({ success: false, error: { message: 'El NCF es requerido para compras formales.' } }, { status: 400 });
       }
+    } else {
+      if (ncf && ncf.trim().length > 0) {
+        return NextResponse.json({ success: false, error: { message: 'Esta compra no puede guardarse como gasto menor ya que tiene e-NCF' } }, { status: 400 });
+      }
     }
 
     const result = await db.transaction(async (tx) => {
@@ -388,6 +392,63 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
 
       if (existing.length === 0) {
         throw new Error('Compra/Gasto no encontrado');
+      }
+
+      // Check if there is an associated accountsPayable record and if it has any applied payments
+      const [existingApRecord] = await tx
+        .select({ id: accountsPayable.id })
+        .from(accountsPayable)
+        .where(and(
+          eq(accountsPayable.id, id),
+          eq(accountsPayable.companyId, session.companyId),
+          eq(accountsPayable.modo, session.modo)
+        ))
+        .limit(1);
+
+      let targetApId = id;
+      if (!existingApRecord && supplierId && amount !== undefined) {
+        const [foundByMatch] = await tx
+          .select({ id: accountsPayable.id })
+          .from(accountsPayable)
+          .where(and(
+            eq(accountsPayable.supplierId, supplierId),
+            eq(accountsPayable.amount, amount.toString()),
+            eq(accountsPayable.companyId, session.companyId),
+            eq(accountsPayable.modo, session.modo),
+            isNull(accountsPayable.deletedAt)
+          ))
+          .limit(1);
+        if (foundByMatch) {
+          targetApId = foundByMatch.id;
+        }
+      }
+
+      if (existingApRecord || targetApId !== id) {
+        const checkApId = existingApRecord ? existingApRecord.id : targetApId;
+        const appliedPaymentsList = await tx
+          .select()
+          .from(apPayments)
+          .where(and(
+            eq(apPayments.apId, checkApId),
+            eq(apPayments.status, 'applied')
+          ));
+
+        if (appliedPaymentsList.length > 0) {
+          throw new Error('No se puede editar esta compra porque ya tiene pagos aplicados. Debe anular o eliminar los pagos asociados en Cuentas por Pagar primero.');
+        }
+
+        const clearedChecksList = await tx
+          .select()
+          .from(checks)
+          .where(and(
+            eq(checks.apId, checkApId),
+            eq(checks.isGuarantee, true),
+            eq(checks.status, 'cleared')
+          ));
+
+        if (clearedChecksList.length > 0) {
+          throw new Error('No se puede editar esta compra porque el cheque en garantía ya fue cobrado en el banco. Debe anular la conciliación o cobro del cheque primero.');
+        }
       }
 
       const oldWarehouseId = existing[0].warehouseId;

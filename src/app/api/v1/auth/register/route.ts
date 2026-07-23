@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     if (isNewCompany) {
       await seedRolePermissionsForCompany(db, companyId, allRoles);
       await AccountingRepository.seedDefaultChartOfAccounts(companyId);
+      await AccountingRepository.seedDefaultExpenseTypes(companyId);
     }
 
     // Get the 'administracion' role for the new user

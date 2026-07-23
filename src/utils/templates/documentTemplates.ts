@@ -2433,7 +2433,7 @@ export class DocumentTemplates {
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">COMPROBANTE DE COMPRA</div>
             <div><strong>Referencia:</strong> <span class="font-mono">${purchase.id.toUpperCase()}</span></div>
             <div><strong>NCF:</strong> <span class="font-mono" style="font-weight: bold; font-size: 10.5pt; color: #0f172a;">${purchase.ncf || 'N/A'}</span></div>
-            <div><strong>Tipo:</strong> ${expenseTypes[purchase.expenseType] || purchase.expenseType || 'N/A'}</div>
+            <div><strong>Tipo:</strong> ${purchase.expenseTypeName || expenseTypes[purchase.expenseType] || purchase.expenseType || 'N/A'}</div>
             <div><strong>Fecha Emisión:</strong> ${issueDateStr}</div>
             <div><strong>Método Pago:</strong> ${paymentMethods[purchase.paymentMethod] || purchase.paymentMethod || 'Otros'}</div>
           </div>
@@ -2446,8 +2446,8 @@ export class DocumentTemplates {
               ${purchase.isMinorExpense ? `
                 <strong>Proveedor Informal / Caja Chica</strong>
               ` : `
-                <strong>${supplier?.name || 'N/A'}</strong><br>
-                RNC/Cedula: ${supplier?.rnc || 'N/A'}<br>
+                <strong>${supplier?.name || ''}</strong><br>
+                ${supplier?.rnc ? `RNC/Cedula: ${supplier.rnc}<br>` : ''}
                 ${supplier?.address ? `Dirección: ${supplier.address}` : ''}
               `}
             </div>
@@ -2565,7 +2565,7 @@ export class DocumentTemplates {
       totalItbis += itbis;
       totalTaxed += amount;
 
-      const supplierName = item.isMinorExpense ? 'Gastos Menores / Caja Chica' : (item.supplierName || 'N/A');
+      const supplierName = item.isMinorExpense ? 'Gastos Menores / Caja Chica' : (item.supplierName || '');
       const supplierRnc = item.supplierRnc ? ` (${item.supplierRnc})` : '';
 
       return `
@@ -2575,7 +2575,7 @@ export class DocumentTemplates {
             <strong>${supplierName}</strong>${supplierRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
-          <td class="text-center">${expenseTypes[item.expenseType] || item.expenseType || '-'}</td>
+          <td class="text-center">${(data.expenseTypesMap && data.expenseTypesMap[item.expenseType]) ? `${item.expenseType} - ${data.expenseTypesMap[item.expenseType]}` : (expenseTypes[item.expenseType] || item.expenseType || '-')}</td>
           <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
           <td class="text-right font-mono">$${formatNum(amount)}</td>
           <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>

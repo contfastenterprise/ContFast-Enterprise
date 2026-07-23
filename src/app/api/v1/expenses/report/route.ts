@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, suppliers, warehouses, companies, companySettings } from '@/db';
+import { db, expenses, suppliers, warehouses, companies, companySettings, expenseTypes } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -99,6 +99,20 @@ export async function GET(req: NextRequest) {
       return new NextResponse('Perfil de compañía no encontrado.', { status: 404 });
     }
 
+    // Fetch all active expense types for the company
+    const expTypesList = await db
+      .select({ code: expenseTypes.code, name: expenseTypes.name })
+      .from(expenseTypes)
+      .where(and(
+        eq(expenseTypes.companyId, session.companyId),
+        eq(expenseTypes.status, 'active')
+      ));
+    
+    const expenseTypesMap = expTypesList.reduce((acc, t) => {
+      acc[t.code] = t.name;
+      return acc;
+    }, {} as Record<string, string>);
+
     const docData = {
       company: {
         name: company.name,
@@ -109,6 +123,7 @@ export async function GET(req: NextRequest) {
         logoUrl: settings?.logoUrl || undefined,
       },
       items,
+      expenseTypesMap,
       filters: {
         startDate: startDate || 'Inicio',
         endDate: endDate || 'Hoy',
