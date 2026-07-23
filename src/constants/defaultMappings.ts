@@ -18,6 +18,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '8', routePattern: '/dashboard/inventory/transfer%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Traslados', groupName: 'Inventario', iconName: 'ArrowRightLeft', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
   { id: '9', routePattern: '/dashboard/inventory/adjustments%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Ajustes', groupName: 'Inventario', iconName: 'PackageMinus', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
   { id: '10', routePattern: '/dashboard/inventory/movements%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Movimientos', groupName: 'Inventario', iconName: 'HistoryIcon', orderIndex: 70, createdAt: new Date(), updatedAt: new Date() },
+  { id: '10b', routePattern: '/dashboard/inventory/reorder%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Sugerencias de Reorden', groupName: 'Inventario', iconName: 'AlertTriangle', orderIndex: 80, createdAt: new Date(), updatedAt: new Date() },
   
   // 4. Ingresos
   { id: '11', routePattern: '/dashboard/invoices%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Facturacion e-CF', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },

@@ -305,6 +305,42 @@ export default function PurchasesPage() {
       if (tabParam === 'cheques') {
         setActiveTab('cheques');
       }
+
+      const reorderProductId = params.get('reorderProductId');
+      const reorderQty = params.get('reorderQty');
+      const reorderWarehouseId = params.get('reorderWarehouseId');
+
+      if (reorderProductId && reorderQty) {
+        if (reorderWarehouseId) {
+          setWarehouseId(reorderWarehouseId);
+        }
+        setIsGeneralAmount(false); // Ir a modo detalle de líneas
+        setActiveTab('nuevo');
+
+        fetch('/api/v1/products')
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.data) {
+              const prod = data.data.find((p: any) => p.id === reorderProductId);
+              if (prod) {
+                const subtotal = Number(prod.cost || 0) * Number(reorderQty);
+                const newLine = {
+                  id: Math.random().toString(36).substring(2, 9),
+                  productId: prod.id,
+                  desc: prod.name,
+                  quantity: Number(reorderQty),
+                  unitCost: Number(prod.cost || 0),
+                  subtotal: subtotal,
+                  itbis: 0,
+                  total: subtotal
+                };
+                setLines([newLine]);
+                toast.success(`Producto ${prod.name} (Cant: ${reorderQty}) pre-cargado desde sugerencia de reorden.`);
+              }
+            }
+          })
+          .catch(err => console.error("Error pre-loading reorder product", err));
+      }
     }
   }, []);
 

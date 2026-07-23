@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/app/dashboard/layout';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
@@ -57,6 +57,9 @@ export default function ProductsPage() {
   const [warehouses, setWarehouses] = useState<{ id: string, name: string }[]>([]);
   const [inlineAdjustForm, setInlineAdjustForm] = useState<Record<string, string>>({});
   const [submittingAdjustId, setSubmittingAdjustId] = useState<string | null>(null);
+  const [inlineMinForm, setInlineMinForm] = useState<Record<string, string>>({});
+  const [inlineMaxForm, setInlineMaxForm] = useState<Record<string, string>>({});
+  const [submittingLimitId, setSubmittingLimitId] = useState<string | null>(null);
 
   const [showStockInPrint, setShowStockInPrint] = useState(false);
   const [printDropdownOpen, setPrintDropdownOpen] = useState(false);
@@ -442,6 +445,42 @@ export default function ProductsPage() {
       toast.error('Error de red');
     } finally {
       setSubmittingAdjustId(null);
+    }
+  };
+
+  const handleSaveLimits = async (warehouseId: string) => {
+    if (!selectedProduct) return;
+    const minVal = inlineMinForm[warehouseId];
+    const maxVal = inlineMaxForm[warehouseId];
+    
+    setSubmittingLimitId(warehouseId);
+    try {
+      const res = await fetch(`/api/v1/products/${selectedProduct.id}/inventory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          warehouseId,
+          minStock: minVal !== undefined ? Number(minVal) : undefined,
+          maxStock: maxVal !== undefined ? (maxVal === '' ? null : Number(maxVal)) : undefined,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Límites de stock actualizados');
+        
+        // Refresh inventory levels
+        const invRes = await fetch(`/api/v1/products/${selectedProduct.id}/inventory`);
+        const invData = await invRes.json();
+        if (invData.success) {
+          setInventoryLevels(invData.data);
+        }
+      } else {
+        toast.error(data.error?.message || 'Error al actualizar límites');
+      }
+    } catch (e) {
+      toast.error('Error de red');
+    } finally {
+      setSubmittingLimitId(null);
     }
   };
 
@@ -1514,6 +1553,7 @@ export default function ProductsPage() {
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider">Almacén</th>
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Físico</th>
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right">Disponible</th>
+                      <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-center">Stock Mín / Máx</th>
                       <th className="p-4 text-xs font-semibold text-primary uppercase tracking-wider text-right w-40">Ajustar</th>
                     </tr>
                   </thead>
@@ -1532,6 +1572,8 @@ export default function ProductsPage() {
                         const availableQuantity = level && level.availableQuantity !== undefined
                           ? Number(level.availableQuantity).toFixed(2)
                           : currentQuantity;
+                        const minStk = level && (level as any).minStock !== undefined ? Number((level as any).minStock).toString() : '0';
+                        const maxStk = level && (level as any).maxStock !== undefined && (level as any).maxStock !== null ? Number((level as any).maxStock).toString() : '';
                         
                         return (
                           <tr key={w.id} className="hover:bg-surface-container-low/30 transition-colors">
@@ -1554,6 +1596,39 @@ export default function ProductsPage() {
                                 {availableQuantity}
                               </span>
                               <span className="text-[10px] text-on-surface-variant">Disponibles</span>
+                            </td>
+                            <td className="p-4 text-center">
+                              <div className="flex items-center gap-2 justify-center">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase">Mín</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={inlineMinForm[w.id] !== undefined ? inlineMinForm[w.id] : minStk}
+                                    onChange={(e) => setInlineMinForm({ ...inlineMinForm, [w.id]: e.target.value })}
+                                    className="w-16 bg-white border border-slate-300 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span className="text-[9px] font-bold text-slate-400 uppercase">Máx</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={inlineMaxForm[w.id] !== undefined ? inlineMaxForm[w.id] : maxStk}
+                                    placeholder="Libre"
+                                    onChange={(e) => setInlineMaxForm({ ...inlineMaxForm, [w.id]: e.target.value })}
+                                    className="w-20 bg-white border border-slate-300 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleSaveLimits(w.id)}
+                                  disabled={submittingLimitId === w.id || (inlineMinForm[w.id] === undefined && inlineMaxForm[w.id] === undefined)}
+                                  className="p-1.5 bg-[#003366] hover:bg-[#002244] text-white rounded-md transition-colors disabled:opacity-30 self-end mb-0.5 cursor-pointer"
+                                  title="Guardar límites"
+                                >
+                                  {submittingLimitId === w.id ? <RefreshCw className="h-3.5 h-3.5 animate-spin" /> : <Save className="h-3.5 h-3.5" />}
+                                </button>
+                              </div>
                             </td>
                             <td className="p-4 text-right">
                               <div className="flex items-center gap-2 justify-end">

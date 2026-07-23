@@ -20,6 +20,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       warehouseId: warehouses.id,
       warehouseName: warehouses.name,
       quantity: inventoryLevels.quantity,
+      minStock: inventoryLevels.minStock,
+      maxStock: inventoryLevels.maxStock,
     })
     .from(inventoryLevels)
     .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
@@ -45,5 +47,64 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
     console.error('Error fetching inventory levels:', error);
     const status = error.status || 500;
     return NextResponse.json({ success: false, error: error.message || 'Failed to fetch inventory levels' }, { status });
+  }
+}
+
+export async function POST(req: NextRequest, { params }: { params: Promise<any> }) {
+  try {
+    const resHeaders = new Headers();
+    const auth = await verifyAuth(req, resHeaders);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+
+    const { id: productId } = await params;
+    const body = await req.json();
+    const { warehouseId, minStock, maxStock } = body;
+
+    if (!warehouseId) {
+      return NextResponse.json({ success: false, error: 'Warehouse ID is required' }, { status: 400 });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(inventoryLevels)
+      .where(
+        and(
+          eq(inventoryLevels.companyId, auth.companyId),
+          eq(inventoryLevels.productId, productId),
+          eq(inventoryLevels.warehouseId, warehouseId),
+          eq(inventoryLevels.modo, auth.modo)
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(inventoryLevels)
+        .set({
+          minStock: minStock !== undefined ? minStock.toString() : existing.minStock,
+          maxStock: maxStock !== undefined ? (maxStock === null ? null : maxStock.toString()) : existing.maxStock,
+          updatedAt: new Date()
+        })
+        .where(eq(inventoryLevels.id, existing.id));
+    } else {
+      await db
+        .insert(inventoryLevels)
+        .values({
+          companyId: auth.companyId,
+          productId,
+          warehouseId,
+          modo: auth.modo,
+          quantity: '0.0000',
+          minStock: minStock !== undefined ? minStock.toString() : '0.0000',
+          maxStock: maxStock !== undefined ? (maxStock === null ? null : maxStock.toString()) : null
+        });
+    }
+
+    return NextResponse.json({ success: true, message: 'Stock limits updated successfully' }, { headers: resHeaders });
+  } catch (error: any) {
+    console.error('Error updating stock limits:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Failed to update stock limits' }, { status: 500 });
   }
 }
