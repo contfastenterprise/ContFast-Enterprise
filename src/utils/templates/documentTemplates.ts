@@ -2571,12 +2571,12 @@ export class DocumentTemplates {
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
+          <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
           <td class="ellipsis">
             <strong>${supplierName}</strong>${supplierRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
-          <td class="text-center">${(data.expenseTypesMap && data.expenseTypesMap[item.expenseType]) ? `${item.expenseType} - ${data.expenseTypesMap[item.expenseType]}` : (expenseTypes[item.expenseType] || item.expenseType || '-')}</td>
-          <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
+          <td class="text-center">${(data.expenseTypesMap && data.expenseTypesMap[item.expenseType]) ? data.expenseTypesMap[item.expenseType] : (expenseTypes[item.expenseType] || item.expenseType || '-')}</td>
           <td class="text-right font-mono">$${formatNum(amount)}</td>
           <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
           <td class="text-right font-mono font-bold">$${formatNum(total)}</td>
@@ -2641,10 +2641,10 @@ export class DocumentTemplates {
           <thead>
             <tr>
               <th class="text-center" style="width: 5%;">#</th>
+              <th class="text-center" style="width: 12%;">Fecha</th>
               <th>Suplidor / Proveedor</th>
               <th class="text-center" style="width: 18%;">NCF</th>
               <th class="text-center" style="width: 15%;">Tipo</th>
-              <th class="text-center" style="width: 12%;">Fecha</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">ITBIS</th>
               <th class="text-right" style="width: 15%;">Total Neto</th>
