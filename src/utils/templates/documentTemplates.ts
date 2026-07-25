@@ -2941,6 +2941,13 @@ export class DocumentTemplates {
           </div>
         </div>
 
+        <div style="font-size: 8pt; color: #475569; margin-top: 15px; margin-bottom: -10px; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">
+          <strong>Leyenda de Métodos de Pago (MP):</strong> &nbsp;&nbsp;
+          <span style="font-weight: bold; color: #003366;">E</span> = Efectivo / Caja &nbsp;&nbsp;&nbsp;&nbsp;
+          <span style="font-weight: bold; color: #003366;">C</span> = Crédito &nbsp;&nbsp;&nbsp;&nbsp;
+          <span style="font-weight: bold; color: #003366;">T</span> = Transferencia Bancaria
+        </div>
+
         <table style="width: 100%; margin-top: 20px;">
           <thead>
             <tr>
@@ -2960,13 +2967,7 @@ export class DocumentTemplates {
           </tbody>
         </table>
 
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; border-top: 1px solid #dee2e6; padding-top: 15px;">
-          <div style="font-size: 8pt; color: #475569; padding-top: 4px;">
-            <strong>Leyenda de Métodos de Pago:</strong><br>
-            <span style="font-weight: bold; color: #003366;">E</span> = Efectivo / Caja &nbsp;&nbsp;
-            <span style="font-weight: bold; color: #003366;">C</span> = Crédito &nbsp;&nbsp;
-            <span style="font-weight: bold; color: #003366;">T</span> = Transferencia Bancaria
-          </div>
+        <div class="totals-container" style="margin-top: 20px; border-top: 1px solid #dee2e6; padding-top: 15px;">
           <div class="totals" style="width: 300px;">
             <table style="width: 100%; font-size: 9.5pt;">
               <tr>
