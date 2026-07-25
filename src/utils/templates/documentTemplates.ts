@@ -2953,7 +2953,7 @@ export class DocumentTemplates {
             <tr>
               <th class="text-center" style="width: 4%;">#</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
-              <th>Adquiriente / Cliente</th>
+              <th>Cliente/RNC</th>
               <th class="text-center" style="width: 18%;">e-NCF</th>
               <th class="text-center" style="width: 6%;">MP</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
