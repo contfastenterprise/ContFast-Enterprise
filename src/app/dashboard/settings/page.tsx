@@ -50,6 +50,7 @@ export default function SettingsPage() {
     rnc: '',
     businessActivity: '',
     address: '',
+    phone: '',
     logoUrl: '',
     dgiiEnv: 'test',
     printLayout: 'carta',
@@ -201,6 +202,7 @@ export default function SettingsPage() {
           rnc: rncVal,
           businessActivity: data.data.company.businessActivity || '',
           address: data.data.company.address || '',
+          phone: data.data.company.phone || '',
           logoUrl: data.data.settings.logoUrl || '',
           dgiiEnv: data.data.settings.dgiiEnv,
           printLayout: data.data.settings.printLayout,
@@ -491,6 +493,24 @@ export default function SettingsPage() {
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={e => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Teléfono de la Empresa</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
+                  />
+                </div>
                 <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
                   <div className="flex items-start gap-6 mt-2">
@@ -529,14 +549,9 @@ export default function SettingsPage() {
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <div className="col-span-1">
+                <div className="col-span-1 md:col-span-2">
                   <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
                   <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
-                </div>
-
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
-                  <input type="text" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white" />
                 </div>
 
                 <div>

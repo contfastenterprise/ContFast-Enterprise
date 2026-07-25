@@ -12,6 +12,7 @@ const settingsSchema = z.object({
   rnc: z.string().min(9, 'El RNC es requerido').max(11, 'El RNC debe tener entre 9 y 11 caracteres'),
   businessActivity: z.string().optional(),
   address: z.string().optional(),
+  phone: z.string().optional(),
   logoUrl: z.string().optional(),
   dgiiEnv: z.enum(['test', 'production']),
   printLayout: z.enum(['carta', '80mm', '58mm']),
@@ -41,7 +42,8 @@ export async function GET(req: NextRequest) {
       name: companies.name,
       rnc: companies.rnc,
       businessActivity: companies.businessActivity,
-      address: companies.address
+      address: companies.address,
+      phone: companies.phone
     }).from(companies).where(eq(companies.id, session.companyId));
 
     const [settings] = await db.select({
@@ -128,6 +130,7 @@ export async function PATCH(req: NextRequest) {
       name, 
       rnc, 
       address, 
+      phone,
       businessActivity, 
       logoUrl, 
       dgiiEnv, 
@@ -221,6 +224,7 @@ export async function PATCH(req: NextRequest) {
       if (rnc !== undefined) companyUpdate.rnc = rnc;
       if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
       if (address !== undefined) companyUpdate.address = address;
+      if (phone !== undefined) companyUpdate.phone = phone;
 
       if (Object.keys(companyUpdate).length > 0) {
         await tx.update(companies)
