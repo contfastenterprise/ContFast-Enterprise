@@ -478,7 +478,7 @@ export default function SettingsPage() {
                   <input
                     type="text"
                     disabled={isNameDisabled}
-                    value={formData.name}
+                    value={formData.name || ''}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold"
                   />
@@ -488,7 +488,7 @@ export default function SettingsPage() {
                   <input
                     type="text"
                     disabled={isRncDisabled}
-                    value={formData.rnc}
+                    value={formData.rnc || ''}
                     onChange={e => setFormData({ ...formData, rnc: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed font-semibold"
                   />
@@ -497,7 +497,7 @@ export default function SettingsPage() {
                   <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
                   <input
                     type="text"
-                    value={formData.address}
+                    value={formData.address || ''}
                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
                   />
@@ -506,7 +506,7 @@ export default function SettingsPage() {
                   <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5">Teléfono de la Empresa</label>
                   <input
                     type="text"
-                    value={formData.phone}
+                    value={formData.phone || ''}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
                   />
