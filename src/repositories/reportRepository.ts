@@ -9,6 +9,7 @@ export class ReportRepository {
         name: companies.name,
         rnc: companies.rnc,
         address: companies.address,
+        phone: companies.phone,
         businessActivity: companies.businessActivity,
         logoUrl: companySettings.logoUrl,
       })

@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         name: company.name,
         rnc: company.rnc,
         address: company.address || '',
-        phone: '1-809-555-0199',
+        phone: company.phone || '',
         email: settings?.msellerEmail || '',
         logoUrl: settings?.logoUrl || undefined,
       },

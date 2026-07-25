@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
           name: companyInfo.name,
           rnc: companyInfo.rnc,
           address: companyInfo.address || 'República Dominicana',
-          phone: '1-809-555-0199', // Placeholder
+          phone: companyInfo.phone || '',
           logoUrl: settings?.logoUrl || undefined
         },
         revenueAccounts: data.revenueAccounts,
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
           name: companyInfo.name,
           rnc: companyInfo.rnc,
           address: companyInfo.address || 'República Dominicana',
-          phone: '1-809-555-0199', // Placeholder
+          phone: companyInfo.phone || '',
           logoUrl: settings?.logoUrl || undefined
         },
         assetAccounts: data.assetAccounts,
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
           name: companyInfo.name,
           rnc: companyInfo.rnc,
           address: companyInfo.address || 'República Dominicana',
-          phone: '1-809-555-0199', // Placeholder
+          phone: companyInfo.phone || '',
           logoUrl: settings?.logoUrl || undefined
         },
         customer: {
