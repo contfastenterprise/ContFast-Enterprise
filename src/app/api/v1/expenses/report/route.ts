@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       .leftJoin(suppliers, eq(expenses.supplierId, suppliers.id))
       .leftJoin(warehouses, eq(expenses.warehouseId, warehouses.id))
       .where(and(...filters))
-      .orderBy(sql`${expenses.issueDate} DESC, ${expenses.createdAt} DESC`);
+      .orderBy(sql`${expenses.issueDate} ASC, ${expenses.createdAt} ASC`);
 
     // Fetch company profile and settings
     const [company] = await db

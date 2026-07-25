@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(and(...baseConditions))
-      .orderBy(sql`${invoices.createdAt} DESC`);
+      .orderBy(sql`${invoices.createdAt} ASC`);
 
     // Fetch company profile and settings
     const [company] = await db
