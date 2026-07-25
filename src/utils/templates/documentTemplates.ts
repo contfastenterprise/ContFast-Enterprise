@@ -2874,11 +2874,11 @@ export class DocumentTemplates {
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
+          <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
           <td class="ellipsis">
             <strong>${buyerName}</strong>${buyerRnc}
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
-          <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
           <td class="text-center font-bold" style="color: #475569;">${paymentInitial}</td>
           <td class="text-right font-mono">$${formatNum(subtotal)}</td>
           <td class="text-right font-mono" style="color: #ef4444;">$${formatNum(discount)}</td>
@@ -2952,9 +2952,9 @@ export class DocumentTemplates {
           <thead>
             <tr>
               <th class="text-center" style="width: 4%;">#</th>
-              <th>Adquiriente / Cliente</th>
-              <th class="text-center" style="width: 18%;">NCF</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
+              <th>Adquiriente / Cliente</th>
+              <th class="text-center" style="width: 18%;">e-NCF</th>
               <th class="text-center" style="width: 6%;">MP</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">Descuento</th>
