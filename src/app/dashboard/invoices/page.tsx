@@ -1837,6 +1837,7 @@ function InvoicesList() {
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Comprobante / Tipo</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cliente</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Método</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado DGII</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">MSeller Info</th>
@@ -1846,7 +1847,7 @@ function InvoicesList() {
                   <tbody className="divide-y divide-outline-variant/20/80">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-16 text-center">
+                        <td colSpan={8} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
                             <span className="text-on-surface-variant/80 text-sm font-medium">Cargando facturas electrónicas...</span>
@@ -1856,6 +1857,11 @@ function InvoicesList() {
                     ) : invoices.length > 0 ? (
                       invoices.map((inv) => {
                         const badge = getStatusBadge(inv.status);
+                        
+                        let methodInitial = 'E';
+                        if (inv.paymentType === 'credit') methodInitial = 'C';
+                        else if (inv.paymentType === 'bank_transfer') methodInitial = 'T';
+
                         return (
                           <motion.tr
                             key={inv.id}
@@ -1889,6 +1895,11 @@ function InvoicesList() {
                                   </span>
                                 )}
                               </div>
+                            </td>
+                            <td className="px-4 py-2 align-middle text-center">
+                              <span className="font-mono font-bold text-slate-600 text-xs" title={inv.paymentType === 'credit' ? 'Crédito' : inv.paymentType === 'bank_transfer' ? 'Transferencia Bancaria' : 'Efectivo / Caja'}>
+                                {methodInitial}
+                              </span>
                             </td>
                             <td className="px-4 py-2 align-middle text-right">
                               <span className="font-mono font-bold text-[#003366] text-xs whitespace-nowrap">
@@ -1980,7 +1991,7 @@ function InvoicesList() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={7} className="px-6 py-16 text-center">
+                        <td colSpan={8} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
                             <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas con los filtros actuales.</span>
@@ -2007,9 +2018,17 @@ function InvoicesList() {
 
               {/* Pagination Footer */}
               <div className="bg-slate-50/80 px-6 py-4 flex flex-col md:flex-row items-center justify-between border-t border-slate-200 gap-4">
-                <div className="text-xs text-on-surface-variant/70 font-medium">
-                  Mostrando página <span className="text-[#003366]">{page}</span> de <span className="text-[#003366]">{totalPages}</span>
-                  {' '}({totalRecords} registros en total)
+                <div className="flex flex-col gap-2">
+                  <div className="text-xs text-on-surface-variant/70 font-medium">
+                    Mostrando página <span className="text-[#003366]">{page}</span> de <span className="text-[#003366]">{totalPages}</span>
+                    {' '}({totalRecords} registros en total)
+                  </div>
+                  <div className="text-[10px] text-slate-500 flex gap-3 flex-wrap">
+                    <span><strong>Leyenda M. Pago:</strong></span>
+                    <span><strong className="text-[#003366]">E</strong> = Efectivo</span>
+                    <span><strong className="text-[#003366]">C</strong> = Crédito</span>
+                    <span><strong className="text-[#003366]">T</strong> = Transferencia</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">

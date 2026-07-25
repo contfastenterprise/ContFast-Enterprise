@@ -2867,6 +2867,10 @@ export class DocumentTemplates {
       const buyerName = item.buyerName || item.customerName || 'Consumidor Final';
       const buyerRnc = (item.buyerRnc || item.customerRnc) ? ` (${item.buyerRnc || item.customerRnc})` : '';
 
+      let paymentInitial = 'E';
+      if (item.paymentType === 'credit') paymentInitial = 'C';
+      else if (item.paymentType === 'bank_transfer') paymentInitial = 'T';
+
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
@@ -2875,6 +2879,7 @@ export class DocumentTemplates {
           </td>
           <td class="font-mono text-center">${item.ncf || '-'}</td>
           <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
+          <td class="text-center font-bold" style="color: #475569;">${paymentInitial}</td>
           <td class="text-right font-mono">$${formatNum(subtotal)}</td>
           <td class="text-right font-mono" style="color: #ef4444;">$${formatNum(discount)}</td>
           <td class="text-right font-mono" style="color: #059669;">$${formatNum(itbis)}</td>
@@ -2943,6 +2948,7 @@ export class DocumentTemplates {
               <th>Adquiriente / Cliente</th>
               <th class="text-center" style="width: 18%;">NCF</th>
               <th class="text-center" style="width: 12%;">Fecha</th>
+              <th class="text-center" style="width: 6%;">MP</th>
               <th class="text-right" style="width: 12%;">Subtotal</th>
               <th class="text-right" style="width: 12%;">Descuento</th>
               <th class="text-right" style="width: 12%;">ITBIS</th>
@@ -2950,12 +2956,18 @@ export class DocumentTemplates {
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="8" class="text-center">No se encontraron facturas en el rango</td></tr>'}
+            ${linesHtml || '<tr><td colspan="9" class="text-center">No se encontraron facturas en el rango</td></tr>'}
           </tbody>
         </table>
 
-        <div class="totals-container" style="margin-top: 20px;">
-          <div class="totals">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; border-top: 1px solid #dee2e6; padding-top: 15px;">
+          <div style="font-size: 8pt; color: #475569; padding-top: 4px;">
+            <strong>Leyenda de Métodos de Pago:</strong><br>
+            <span style="font-weight: bold; color: #003366;">E</span> = Efectivo / Caja &nbsp;&nbsp;
+            <span style="font-weight: bold; color: #003366;">C</span> = Crédito &nbsp;&nbsp;
+            <span style="font-weight: bold; color: #003366;">T</span> = Transferencia Bancaria
+          </div>
+          <div class="totals" style="width: 300px;">
             <table style="width: 100%; font-size: 9.5pt;">
               <tr>
                 <td>Subtotal Facturado:</td>

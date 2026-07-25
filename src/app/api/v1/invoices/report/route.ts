@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
         ecfType: invoices.ecfType,
         status: invoices.status,
         paymentStatus: invoices.paymentStatus,
+        paymentType: invoices.paymentType,
         subtotal: invoices.subtotal,
         discount: invoices.discount,
         totalTaxes: invoices.totalTaxes,
