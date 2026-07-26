@@ -89,7 +89,7 @@ export default function BankAccountsPage() {
     }
   }, [selectedAccount]);
 
-  const fetchAccounts = async () => {
+  async function fetchAccounts() {
     setLoading(true);
     try {
       const res = await fetch('/api/v1/bank/accounts');
@@ -107,7 +107,7 @@ export default function BankAccountsPage() {
     }
   };
 
-  const fetchTransactions = async (accountId: string) => {
+  async function fetchTransactions(accountId: string) {
     setLoadingTxs(true);
     try {
       const res = await fetch(`/api/v1/bank/transactions?accountId=${accountId}`);
@@ -122,7 +122,7 @@ export default function BankAccountsPage() {
     }
   };
 
-  const fetchChartOfAccounts = async () => {
+  async function fetchChartOfAccounts() {
     try {
       const res = await fetch('/api/v1/accounting/accounts');
       const data = await res.json();

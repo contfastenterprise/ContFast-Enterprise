@@ -22,7 +22,7 @@ export default function DepartmentsPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       const dRes = await fetch('/api/v1/hr/departments');

@@ -27,7 +27,7 @@ export default function WarehousesPage() {
     fetchUserRole();
   }, []);
 
-  const fetchUserRole = async () => {
+  async function fetchUserRole() {
     try {
       const res = await fetch('/api/v1/auth/me');
       const data = await res.json();
@@ -37,7 +37,7 @@ export default function WarehousesPage() {
     } catch (error) {
       console.error('Error fetching user role:', error);
     }
-  };
+  }
 
   const filteredWarehouses = warehouses.filter((w) =>
     w.name.toLowerCase().includes(searchTerm.toLowerCase()) || w.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -137,7 +137,7 @@ export default function WarehousesPage() {
     }
   };
 
-  const fetchWarehouses = async () => {
+  async function fetchWarehouses() {
     try {
       const res = await fetch('/api/v1/warehouses');
       const data = await res.json();
@@ -149,7 +149,7 @@ export default function WarehousesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

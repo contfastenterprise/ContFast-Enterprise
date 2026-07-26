@@ -167,17 +167,7 @@ export default function SettingsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'gastos') {
-      fetchExpenseTypes();
-    }
-  }, [activeTab]);
-
-  const fetchSettings = async () => {
+  async function fetchSettings() {
     try {
       // Cargar rol de usuario y perfil
       try {
@@ -193,7 +183,7 @@ export default function SettingsPage() {
 
       const res = await fetch('/api/v1/admin/settings');
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.data) {
         const nameVal = data.data.company.name || '';
         const rncVal = data.data.company.rnc || '';
         setInitialCompanyInfo({ name: nameVal, rnc: rncVal });
@@ -248,7 +238,17 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'gastos') {
+      fetchExpenseTypes();
+    }
+  }, [activeTab]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

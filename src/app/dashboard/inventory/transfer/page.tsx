@@ -119,11 +119,7 @@ export default function TransferPage() {
     }
   }, [selectedProduct, products]);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
+  async function fetchInitialData() {
     try {
       const [whRes, prRes] = await Promise.all([
         fetch('/api/v1/warehouses'),
@@ -140,6 +136,10 @@ export default function TransferPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, []);
 
   const addItem = () => {
     if (!selectedProduct) return toast.error('Seleccione un producto');

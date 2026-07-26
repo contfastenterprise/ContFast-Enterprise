@@ -152,12 +152,12 @@ export async function POST(req: NextRequest) {
       const actions = ['read', 'write', 'delete', 'execute', 'admin'] as const;
 
       const allPermissionsToUpsert = [];
-      for (const module of modules) {
+      for (const mod of modules) {
         for (const action of actions) {
           allPermissionsToUpsert.push({
-            module,
+            module: mod,
             action,
-            description: `Permiso de ${action} en módulo ${module}`,
+            description: `Permiso de ${action} en módulo ${mod}`,
           });
         }
       }

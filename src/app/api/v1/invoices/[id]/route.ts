@@ -61,7 +61,8 @@ export async function GET(
     }
 
     if (!securityCode) {
-      const crypto = require('crypto');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+const crypto = require('crypto');
       securityCode = crypto.createHash('sha256').update(invoice.id + invoice.ncf).digest('hex').substring(0, 16).toUpperCase();
     }
 

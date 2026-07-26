@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
 const path = require('path');

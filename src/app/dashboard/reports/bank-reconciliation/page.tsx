@@ -75,7 +75,7 @@ export default function BankReconciliationPage() {
     }
   }, [selectedAccount, startDate, endDate]);
 
-  const fetchAccounts = async () => {
+  async function fetchAccounts() {
     setLoading(true);
     try {
       const res = await fetch('/api/v1/bank/accounts');
@@ -91,9 +91,9 @@ export default function BankReconciliationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const fetchData = async (accountId: string) => {
+  async function fetchData(accountId: string) {
     setLoading(true);
     try {
       // Get all bank transactions
@@ -126,7 +126,7 @@ export default function BankReconciliationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // Math for reconciliation
   // 1. Book balance at the end date (Saldo en libros a la fecha de corte)

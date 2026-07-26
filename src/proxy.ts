@@ -100,9 +100,10 @@ const STATIC_ROUTE_MAPPINGS = [
 ];
 
 function checkRbacPermission(pathname: string, method: string, decoded: any): boolean {
-  // Gracefully handle pre-existing active session tokens that do not contain the permissions payload
+  // Security fix: tokens without the permissions field are legacy tokens.
+  // Deny access to force re-login and issuance of a token with full RBAC payload.
   if (decoded.permissions === undefined) {
-    return true;
+    return false;
   }
 
   const userPermissions: string[] = decoded.permissions || [];
@@ -121,7 +122,7 @@ function checkRbacPermission(pathname: string, method: string, decoded: any): bo
 
   for (const mapping of STATIC_ROUTE_MAPPINGS) {
     if (mapping.pattern.test(pathname)) {
-      const module = mapping.module;
+      const moduleName = mapping.module;
       let action: string;
 
       if (mapping.action) {
@@ -130,14 +131,14 @@ function checkRbacPermission(pathname: string, method: string, decoded: any): bo
         action = method === 'GET' ? 'read' : 'write';
       }
 
-      const requiredPermission = `${module}:${action}`;
+      const requiredPermission = `${moduleName}:${action}`;
 
       // Admin has full operational access except write/delete on auditoria
       if (isAdmin) {
-        if (module === 'auditoria') {
+        if (moduleName === 'auditoria') {
           return action === 'read';
         }
-        if (module === 'administracion') {
+        if (moduleName === 'administracion') {
           if (action === 'write') {
             return pathname.startsWith('/api/v1/admin/users') || pathname === '/api/v1/admin/settings';
           }

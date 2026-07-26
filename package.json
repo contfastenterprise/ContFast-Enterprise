@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx src/tests/payroll.test.ts",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:load": "artillery run tests/load-tests/artillery-config.yml"
   },
   "dependencies": {
@@ -64,6 +67,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
@@ -71,6 +75,7 @@
     "tailwindcss": "^4",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

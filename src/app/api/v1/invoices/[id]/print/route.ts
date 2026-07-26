@@ -124,7 +124,8 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, isRepri
   }
 
   // Fallbacks if not processed by worker yet (or if worker response didn't contain them)
-  const crypto = require('crypto');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+const crypto = require('crypto');
   if (!securityCode) {
     securityCode = crypto.createHash('sha256').update(invoiceRecordDb.id + invoiceRecordDb.ncf).digest('hex').substring(0, 16).toUpperCase();
   }

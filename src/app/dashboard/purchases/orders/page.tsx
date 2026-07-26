@@ -96,12 +96,6 @@ export default function PurchaseOrdersPage() {
   // Reception State
   const [receptions, setReceptions] = useState<{ itemId: string; productName: string; pending: number; toReceive: number }[]>([]);
 
-  useEffect(() => {
-    fetchOrders();
-    fetchSuppliers();
-    fetchWarehouses();
-  }, []);
-
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -141,6 +135,12 @@ export default function PurchaseOrdersPage() {
       console.error('Error al cargar almacenes:', error);
     }
   };
+
+  useEffect(() => {
+    fetchOrders();
+    fetchSuppliers();
+    fetchWarehouses();
+  }, []);
 
   const searchProducts = async (term: string) => {
     if (!term || term.length < 2) {

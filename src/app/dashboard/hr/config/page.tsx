@@ -32,7 +32,7 @@ export default function ConfigPage() {
     fetchConfig();
   }, []);
 
-  const fetchConfig = async () => {
+  async function fetchConfig() {
     try {
       setLoading(true);
       const res = await fetch('/api/v1/hr/config');

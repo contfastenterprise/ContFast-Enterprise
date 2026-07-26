@@ -45,7 +45,7 @@ export default function PayrollPage() {
     fetchPayrolls();
   }, []);
 
-  const fetchPayrolls = async () => {
+  async function fetchPayrolls() {
     try {
       setLoading(true);
       const res = await fetch('/api/v1/hr/payroll');

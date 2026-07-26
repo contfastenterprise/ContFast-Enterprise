@@ -31,7 +31,7 @@ export default function HRDashboard() {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  async function fetchDashboardData() {
     try {
       setLoading(true);
       // Fetch employees to aggregate metrics

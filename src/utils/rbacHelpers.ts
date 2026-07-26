@@ -112,12 +112,12 @@ export function buildSidebar(
   for (const m of menuMappings) {
     // Usamos hasPermission directamente con el module/action del mapeo de DB.
     // Esto evita el bug de pasar el patrón '/dashboard/X%' a canAccessRoute que usa regex.
-    const module = m.module;
+    const moduleName = m.module;
     const action = m.action || 'read';
     
     // Bypass inmediato para sistemas y administracion (acceso total a todas las vistas)
     // El inicio (/dashboard) siempre se permite a todos los usuarios
-    const isAllowed = isSistemas || isAdmin || m.routePattern === '/dashboard' ? true : hasPermission(module, action);
+    const isAllowed = isSistemas || isAdmin || m.routePattern === '/dashboard' ? true : hasPermission(moduleName, action);
 
     if (!isAllowed) {
       continue;

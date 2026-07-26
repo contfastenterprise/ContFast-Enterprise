@@ -153,7 +153,7 @@ export default function SuppliersPage() {
     }
   };
 
-  const fetchSuppliers = async () => {
+  async function fetchSuppliers() {
     try {
       setLoading(true);
       const url = `/api/v1/suppliers?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`;
@@ -167,7 +167,7 @@ export default function SuppliersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const openNewModal = () => {
     setEditId(null);

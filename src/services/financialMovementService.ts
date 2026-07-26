@@ -1,7 +1,12 @@
 import { db } from '@/db';
 import { financialMovements, invoices, expenses, customerReceipts, apPayments, customers, suppliers } from '@/db/schema';
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type * as schema from '@/db/schema';
+
+// Drizzle transaction type alias — avoids using `any` for tx parameters
+export type DbTx = Parameters<Parameters<NodePgDatabase<typeof schema>['transaction']>[0]>[0];
 
 export interface RegisterMovementInput {
   companyId: string;
@@ -26,10 +31,10 @@ export class FinancialMovementService {
    * Automatically calculates/rebuilds progressive running balances.
    */
   static async registerMovement(
-    tx: any,
+    tx: DbTx | null,
     input: RegisterMovementInput
   ) {
-    const dbClient = tx || db;
+    const dbClient = (tx as any) || db;
 
     const dateStr = typeof input.date === 'string' 
       ? input.date 
@@ -83,53 +88,52 @@ export class FinancialMovementService {
    * Recalculates progressive balances for a customer or supplier in chronological order.
    */
   static async rebuildBalances(
-    tx: any,
+    tx: DbTx | null,
     companyId: string,
     entityType: 'customer' | 'supplier',
     entityId: string,
     modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
   ) {
-    const dbClient = tx || db;
+    const dbClient = (tx as any) || db;
 
-    // Fetch all active movements for the customer/supplier sorted chronologically
-    const movementsList = await dbClient
-      .select()
-      .from(financialMovements)
-      .where(
-        and(
-          eq(financialMovements.companyId, companyId),
-          eq(financialMovements.entityType, entityType),
-          eq(financialMovements.modo, modo),
-          entityType === 'customer'
-            ? eq(financialMovements.customerId, entityId)
-            : eq(financialMovements.supplierId, entityId),
-          eq(financialMovements.status, 'active')
-        )
+    // Performance optimization: replace N individual UPDATE calls with a single SQL
+    // window function that computes all running balances in one pass, then batch-updates
+    // via a CTE. Reduces DB round-trips from O(n) to O(1).
+    const entityFilter = entityType === 'customer'
+      ? sql`customer_id = ${entityId}`
+      : sql`supplier_id = ${entityId}`;
+
+    // Direction of balance calculation:
+    //   customer: balance += debit - credit  (invoice adds, receipt subtracts)
+    //   supplier: balance += credit - debit  (purchase adds, payment subtracts)
+    const balanceDelta = entityType === 'customer'
+      ? sql`CAST(debit AS NUMERIC) - CAST(credit AS NUMERIC)`
+      : sql`CAST(credit AS NUMERIC) - CAST(debit AS NUMERIC)`;
+
+    await dbClient.execute(sql`
+      WITH ordered AS (
+        SELECT
+          id,
+          SUM(${balanceDelta})
+            OVER (
+              ORDER BY date ASC, time ASC, created_at ASC
+              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS running_balance
+        FROM financial_movements
+        WHERE
+          company_id    = ${companyId}
+          AND entity_type = ${entityType}
+          AND modo        = ${modo}
+          AND ${entityFilter}
+          AND status      = 'active'
       )
-      .orderBy(asc(financialMovements.date), asc(financialMovements.time), asc(financialMovements.createdAt));
-
-    let runningBalance = 0;
-
-    for (const mov of movementsList) {
-      const debit = parseFloat(mov.debit);
-      const credit = parseFloat(mov.credit);
-
-      if (entityType === 'customer') {
-        // Customer balance increases with Debit (invoice) and decreases with Credit (receipt)
-        runningBalance = runningBalance + debit - credit;
-      } else {
-        // Supplier balance increases with Credit (purchase) and decreases with Debit (payment)
-        runningBalance = runningBalance - debit + credit;
-      }
-
-      await dbClient
-        .update(financialMovements)
-        .set({
-          balance: runningBalance.toFixed(2),
-          updatedAt: new Date(),
-        })
-        .where(eq(financialMovements.id, mov.id));
-    }
+      UPDATE financial_movements AS fm
+      SET
+        balance    = ROUND(ordered.running_balance, 2),
+        updated_at = NOW()
+      FROM ordered
+      WHERE fm.id = ordered.id
+    `);
   }
 
   /**
@@ -428,6 +432,4 @@ export class FinancialMovementService {
   }
 }
 
-function isNull(col: any) {
-  return sql`${col} IS NULL`;
-}
+// isNull is imported from 'drizzle-orm' above — no local override needed.

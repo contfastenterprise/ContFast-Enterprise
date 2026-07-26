@@ -37,7 +37,7 @@ export default function OvertimeAndEntriesPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       // Fetch employees

@@ -136,7 +136,7 @@ export default function AccountsPayablePage() {
     fetchPaymentsData();
   }, [paymentsPage, paymentsStartDate, paymentsEndDate]); // Fetch when page or dates change
 
-  const fetchPaymentsData = async (searchOverride?: string) => {
+  async function fetchPaymentsData(searchOverride?: string) {
     setPaymentsLoading(true);
     try {
       const qSearch = searchOverride !== undefined ? searchOverride : paymentsSearch;
@@ -199,7 +199,7 @@ export default function AccountsPayablePage() {
     }
   };
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const apRes = await fetch('/api/v1/ap');
@@ -212,7 +212,7 @@ export default function AccountsPayablePage() {
     }
   };
 
-  const fetchSecondaryData = async () => {
+  async function fetchSecondaryData() {
     try {
       const [accountsRes, banksRes] = await Promise.all([
         fetch('/api/v1/accounting/accounts'),

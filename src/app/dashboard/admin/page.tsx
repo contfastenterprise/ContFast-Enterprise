@@ -108,7 +108,7 @@ export default function AdminPage() {
     fetchData();
   }, [activeTab]);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const [meRes, uRes, rRes, pRes, sRes, sessRes] = await Promise.all([

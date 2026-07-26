@@ -72,7 +72,7 @@ export default function EmployeesPage() {
     fetchData();
   }, [search]);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       const empRes = await fetch(`/api/v1/hr/employees?search=${encodeURIComponent(search)}`);

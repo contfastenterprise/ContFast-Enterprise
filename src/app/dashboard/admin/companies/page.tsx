@@ -60,7 +60,7 @@ export default function AdminCompaniesPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       const [compRes, plansRes] = await Promise.all([

@@ -171,11 +171,11 @@ export function RbacProvider({
         
       const regex = new RegExp(regexPattern, 'i');
       if (regex.test(path)) {
-        const module = mapping.module;
+        const moduleName = mapping.module;
         // Default action is read for views
         const action = mapping.action || 'read';
 
-        return hasPermission(module, action);
+        return hasPermission(moduleName, action);
       }
     }
 

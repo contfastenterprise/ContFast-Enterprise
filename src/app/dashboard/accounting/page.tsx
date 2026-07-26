@@ -119,7 +119,7 @@ export default function AccountingPage() {
     fetchData();
   }, [activeTab, startDate, endDate, selectedLedgerAccount, user, rbacLoading]);
 
-  const fetchData = async () => {
+  async function fetchData() {
     setLoading(true);
     try {
       // Pre-load accounts for dropdowns

@@ -38,7 +38,7 @@ export default function SettlementsPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       setLoading(true);
       // Fetch employees
