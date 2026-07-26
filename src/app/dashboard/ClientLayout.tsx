@@ -287,7 +287,7 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
   const showLoaderOverlay = (loadingInit || !user) && activeLogo && typeof activeLogo === 'string' && activeLogo.trim() !== '';
 
   return (
-    <RbacProvider initialUser={user}>
+    <RbacProvider initialUser={user} logoUrl={activeLogo} companyName={pendingName || companyName}>
       {/* Overlay de Carga (PageLoader) en Primer Plano mientras la página principal carga en Segundo Plano */}
       <AnimatePresence>
         {showLoaderOverlay && (

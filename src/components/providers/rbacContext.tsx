@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { UserProfile, RouteMapping } from '@/types/rbac';
 import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 import { DEFAULT_ROUTE_MAPPINGS } from '@/constants/defaultMappings';
+import { PageLoader } from '@/components/ui/PageLoader';
 
 export interface RbacContextType {
   user: UserProfile | null;
@@ -22,10 +23,14 @@ const RbacContext = createContext<RbacContextType | undefined>(undefined);
 
 export function RbacProvider({ 
   children,
-  initialUser = null
+  initialUser = null,
+  logoUrl = null,
+  companyName = null,
 }: { 
   children: React.ReactNode;
   initialUser?: UserProfile | null;
+  logoUrl?: string | null;
+  companyName?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -220,10 +225,19 @@ export function RbacProvider({
       }}
     >
       {loading ? (
-        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-4">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Cargando autorizaciones...</p>
-        </div>
+        logoUrl ? (
+          <PageLoader
+            logoUrl={logoUrl}
+            companyName={companyName}
+            message="Cargando autorizaciones..."
+            fullScreen
+          />
+        ) : (
+          <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-4">
+            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400 text-sm font-medium animate-pulse">Cargando autorizaciones...</p>
+          </div>
+        )
       ) : (
         children
       )}
