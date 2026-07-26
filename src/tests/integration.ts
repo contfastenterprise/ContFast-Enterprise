@@ -18,7 +18,9 @@ try {
       }
     });
     console.log('Forced .env variables loaded.');
-    console.log('DATABASE_URL env var:', process.env.DATABASE_URL);
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL env variable is required for tests.');
   }
 } catch (e) {
   console.warn('Could not manually load .env file:', e);

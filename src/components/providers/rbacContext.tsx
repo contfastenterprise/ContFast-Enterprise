@@ -97,7 +97,7 @@ export function RbacProvider({
     fetchSessionData();
   }, []);
 
-  const hasPermission = (module: string, action: string): boolean => {
+  const hasPermission = React.useCallback((module: string, action: string): boolean => {
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase().trim();
     const permissionKey = `${module.toLowerCase()}:${action.toLowerCase()}`;
@@ -127,9 +127,9 @@ export function RbacProvider({
     if (userRole === 'compras' && (permissionKey === 'contabilidad:read' || permissionKey === 'banco:read' || permissionKey === 'banco:write')) return true;
 
     return false;
-  };
+  }, [user, permissions]);
 
-  const hasRole = (roleName: string): boolean => {
+  const hasRole = React.useCallback((roleName: string): boolean => {
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase();
     const target = roleName.toLowerCase();
@@ -140,9 +140,13 @@ export function RbacProvider({
     }
     
     return userRole === target || userRole.includes(target);
-  };
+  }, [user]);
 
-  const canAccessRoute = (path: string): boolean => {
+  const sortedMappings = React.useMemo(() => {
+    return [...routeMappings].sort((a, b) => b.routePattern.length - a.routePattern.length);
+  }, [routeMappings]);
+
+  const canAccessRoute = React.useCallback((path: string): boolean => {
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase();
 
@@ -155,11 +159,6 @@ export function RbacProvider({
     if (userRole === 'compras' && path.startsWith('/dashboard/bank')) {
       return false;
     }
-
-    // Sort by pattern length descending to match most specific route first
-    const sortedMappings = [...routeMappings].sort(
-      (a, b) => b.routePattern.length - a.routePattern.length
-    );
 
     for (const mapping of sortedMappings) {
       const pattern = mapping.routePattern;
@@ -181,7 +180,7 @@ export function RbacProvider({
 
     // If no route mapping exists in database, fallback to allow access
     return true;
-  };
+  }, [user, sortedMappings, hasPermission]);
 
   // Perform client-side route protection checking in real-time
   useEffect(() => {

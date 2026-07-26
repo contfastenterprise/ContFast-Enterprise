@@ -222,6 +222,8 @@ export async function proxy(req: NextRequest) {
         const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
         requestHeaders.set('x-environment', environment);
 
+        const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
+        requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
         requestHeaders.set('x-user-id', decoded.userId);
         requestHeaders.set('x-company-id', decoded.companyId);
         requestHeaders.set('x-user-role', decoded.role);
@@ -293,6 +295,8 @@ export async function proxy(req: NextRequest) {
                 return NextResponse.redirect(new URL('/403', req.url));
               }
 
+              const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
+              requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
               requestHeaders.set('x-user-id', decodedNew.userId);
               requestHeaders.set('x-company-id', decodedNew.companyId);
               requestHeaders.set('x-user-role', decodedNew.role);

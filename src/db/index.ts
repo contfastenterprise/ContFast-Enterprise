@@ -3,7 +3,11 @@ import postgres from 'postgres';
 import * as schema from './schema';
 import { sql } from 'drizzle-orm';
 
-const connectionString = process.env.DATABASE_URL || '';
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is not defined. Failing fast.');
+}
 
 // Disable prefetching to avoid issues with transaction poolers (like Supabase connection pooler)
 // Cache the connection in development to prevent connection exhaustion during hot reloads.
@@ -23,6 +27,8 @@ if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
 
 export const db = drizzle(conn, { schema });
 
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /**
  * Executes operations in a database transaction with app.current_company_id and app.current_environment set
  * to enforce Row Level Security (RLS) tenant and environment isolation.
@@ -30,7 +36,7 @@ export const db = drizzle(conn, { schema });
 export async function withTenantContext<T>(
   companyId: string,
   modo: 'PRODUCCION' | 'PRUEBA',
-  fn: (tx: any) => Promise<T>
+  fn: (tx: DbTransaction) => Promise<T>
 ): Promise<T> {
   return await db.transaction(async (tx) => {
     // Set the tenant and environment context locally in the transaction

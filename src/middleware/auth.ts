@@ -64,8 +64,14 @@ export async function verifyAuth(
   const permissionsHeader = req.headers.get('x-user-permissions');
   const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
   const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+  const internalSignature = req.headers.get('x-internal-proxy-signature');
+  const expectedSignature = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
 
   if (userId && companyId && role && roleId) {
+    if (internalSignature !== expectedSignature) {
+      console.warn(`[Security] Spoofed internal headers detected from IP. Missing or invalid x-internal-proxy-signature.`);
+      return null;
+    }
     let allowedWarehouses: string[] = [];
     if (allowedWarehousesHeader) {
       try {

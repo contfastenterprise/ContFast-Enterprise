@@ -142,6 +142,9 @@ export class FinancialMovementService {
    */
   static async autoSeedMovements(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
     return await db.transaction(async (tx) => {
+      // Obtain an advisory transaction lock to prevent concurrent seeding for the same company and mode
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${companyId} || '-' || ${modo}))`);
+
       // Check if movements already exist
       const [existing] = await tx
         .select({ id: financialMovements.id })
