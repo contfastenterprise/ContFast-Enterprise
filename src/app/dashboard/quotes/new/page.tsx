@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, X, Trash2, ArrowLeft, Check, RefreshCw
+  Plus, X, Trash2, ArrowLeft, Check, RefreshCw, Printer, ChevronDown
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
@@ -14,6 +14,7 @@ import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 export default function NewQuote() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   
   // App state
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -205,8 +206,9 @@ export default function NewQuote() {
   const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
   const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole);
 
-  const saveQuote = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveQuote = async (e?: React.FormEvent, shouldPrint = false) => {
+    if (e) e.preventDefault();
+    setSaveDropdownOpen(false);
     if (lines.some(l => !l.productId)) {
       return toast.error('Hay líneas sin producto seleccionado.');
     }
@@ -232,6 +234,10 @@ export default function NewQuote() {
       const data = await res.json();
       if (data.success) {
         toast.success('Cotización creada exitosamente');
+        const quoteId = data.data?.id || data.quote?.id;
+        if (shouldPrint && quoteId) {
+          window.open(`/dashboard/quotes/${quoteId}/print`, '_blank');
+        }
         router.push('/dashboard/quotes');
       } else {
         toast.error('Error al crear', { description: data.error?.message });
@@ -503,17 +509,75 @@ export default function NewQuote() {
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 sm:flex-none flex justify-center items-center gap-2 rounded-xl bg-[#C5A059] px-8 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
-              >
-                {submitting ? (
-                  <><RefreshCw className="h-5 w-5 animate-spin" /> Procesando...</>
-                ) : (
-                  <><Check className="h-5 w-5" /> Guardar Cotización</>
-                )}
-              </button>
+              
+              <div className="relative flex items-center w-full sm:w-auto">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 sm:flex-none flex justify-center items-center gap-2 rounded-l-xl bg-[#C5A059] px-6 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                >
+                  {submitting ? (
+                    <><RefreshCw className="h-5 w-5 animate-spin" /> Procesando...</>
+                  ) : (
+                    <><Check className="h-5 w-5" /> Guardar Cotización</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
+                  className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-l border-slate-950/10"
+                  title="Más opciones de guardado"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+
+                <AnimatePresence>
+                  {saveDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setSaveDropdownOpen(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute bottom-full right-0 mb-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[220px]"
+                      >
+                        <div className="px-3 py-2 border-b border-slate-100">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => saveQuote(undefined, true)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left cursor-pointer"
+                        >
+                          <Printer className="h-4 w-4 text-[#C5A059]" />
+                          <div>
+                            <p className="font-semibold text-xs text-[#003366]">Guardar e Imprimir</p>
+                            <p className="text-[10px] text-slate-400">Crea la cotización y abre vista de impresión</p>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => saveQuote(undefined, false)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100 cursor-pointer"
+                        >
+                          <Check className="h-4 w-4 text-emerald-600" />
+                          <div>
+                            <p className="font-semibold text-xs text-[#003366]">Solo Guardar</p>
+                            <p className="text-[10px] text-slate-400">Guarda la cotización y regresa al listado</p>
+                          </div>
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </form>

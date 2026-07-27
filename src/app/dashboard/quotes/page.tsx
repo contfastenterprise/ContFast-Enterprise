@@ -246,6 +246,13 @@ export default function QuotesList() {
                             </button>
                           )}
                           <button
+                            onClick={() => window.open(`/dashboard/quotes/${quote.id}/print`, '_blank')}
+                            className="p-1.5 text-[#C5A059] hover:bg-[#C5A059]/10 rounded-lg transition-colors"
+                            title="Imprimir Cotización"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)}
                             className="p-1.5 text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
                             title="Ver / Editar"

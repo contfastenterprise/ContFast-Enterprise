@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Save, X, Trash2, ArrowLeft,
-  Building2, Package, Check
+  Building2, Package, Check, Printer, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   
   // App state
   const [userRole, setUserRole] = useState<string>('');
@@ -150,7 +151,8 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
   const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole.toLowerCase());
   const isEditable = quoteStatus === 'pending';
 
-  const saveQuote = async () => {
+  const saveQuote = async (shouldPrint = false) => {
+    setSaveDropdownOpen(false);
     if (!isEditable) return toast.error('Solo se pueden editar cotizaciones pendientes.');
     if (lines.some(l => !l.productId)) {
       return toast.error('Hay líneas sin producto seleccionado.');
@@ -174,6 +176,9 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
       const data = await res.json();
       if (data.success) {
         toast.success('Cotización actualizada exitosamente');
+        if (shouldPrint) {
+          window.open(`/dashboard/quotes/${id}/print`, '_blank');
+        }
         router.push('/dashboard/quotes');
       } else {
         toast.error('Error al actualizar', { description: data.error?.message });
@@ -212,14 +217,71 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
             )}
           </div>
           {isEditable && (
-            <button
-              onClick={saveQuote}
-              disabled={submitting}
-              className="flex items-center gap-2 px-6 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-lg font-medium"
-            >
-              {submitting ? 'Guardando...' : 'Guardar Cambios'}
-              <Save className="w-4 h-4" />
-            </button>
+            <div className="relative flex items-center">
+              <button
+                onClick={() => saveQuote(false)}
+                disabled={submitting}
+                className="flex items-center gap-2 px-5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-l-lg font-medium text-sm transition-all"
+              >
+                {submitting ? 'Guardando...' : 'Guardar Cambios'}
+                <Save className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
+                className="flex items-center justify-center px-2.5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-r-lg border-l border-white/20 text-sm transition-all"
+                title="Más opciones de guardado"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+
+              <AnimatePresence>
+                {saveDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setSaveDropdownOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full right-0 mt-2 z-40 bg-neutral-800 border border-white/10 rounded-xl shadow-xl overflow-hidden min-w-[220px]"
+                    >
+                      <div className="px-3 py-2 border-b border-white/10">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Opciones de Guardado</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => saveQuote(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-neutral-200 hover:bg-white/5 transition-colors text-left cursor-pointer"
+                      >
+                        <Printer className="h-4 w-4 text-amber-400" />
+                        <div>
+                          <p className="font-semibold text-xs text-white">Guardar e Imprimir</p>
+                          <p className="text-[10px] text-neutral-400">Guarda cambios y abre vista de impresión</p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => saveQuote(false)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-neutral-200 hover:bg-white/5 transition-colors text-left border-t border-white/10 cursor-pointer"
+                      >
+                        <Check className="h-4 w-4 text-emerald-400" />
+                        <div>
+                          <p className="font-semibold text-xs text-white">Solo Guardar</p>
+                          <p className="text-[10px] text-neutral-400">Guarda cambios y regresa al listado</p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
 
