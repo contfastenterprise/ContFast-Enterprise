@@ -422,18 +422,18 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-4 flex-1">
             {topCustomers.map((c, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-white hover:shadow-sm transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-surface-container-low hover:bg-white hover:shadow-sm transition-all">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
                     {i + 1}
                   </div>
-                  <div>
-                    <p className="font-label-md font-bold text-on-surface">{c.name}</p>
+                  <div className="min-w-0">
+                    <p className="font-label-md font-bold text-on-surface truncate">{c.name}</p>
                     <p className="text-xs text-on-surface-variant font-medium mt-0.5">Cliente Frecuente</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-mono-data font-bold text-primary">{fmt(c.total)}</p>
+                <div className="text-right shrink-0">
+                  <p className="font-mono-data font-bold text-primary text-sm sm:text-base tabular-nums whitespace-nowrap">{fmt(c.total)}</p>
                 </div>
               </div>
             ))}
