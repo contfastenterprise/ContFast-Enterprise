@@ -314,7 +314,7 @@ export default function CustomerStatementPage() {
             {/* Balance Card */}
             <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-5 space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Saldo Pendiente Actual</div>
-              <div className="text-2xl font-bold text-primary">{fmt(statementData.summary.currentBalance)}</div>
+              <div className="text-2xl font-bold text-primary">{fmt(statementData.summary.totalPending)}</div>
               <div className="text-xs text-neutral-500">
                 {fmt(statementData.summary.totalOverdue)} vencido
               </div>
