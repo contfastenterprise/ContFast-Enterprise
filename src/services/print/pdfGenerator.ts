@@ -68,6 +68,13 @@ export class PdfGenerator {
   }
 
   /**
+   * Alias for generatePdfFromHtml
+   */
+  static async generatePdf(html: string, layout: 'carta' | '80mm' | '58mm' | string = 'carta', landscape: boolean = false): Promise<Buffer> {
+    return this.generatePdfFromHtml(html, layout, landscape);
+  }
+
+  /**
    * Generates a PDF buffer from an HTML string using Puppeteer.
    * @param html The HTML content
    * @param layout The printer layout ('carta' | '80mm' | '58mm')
