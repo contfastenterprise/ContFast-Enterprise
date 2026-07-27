@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Save, X, Trash2, ArrowLeft,
-  Building2, Package, Check, Printer, ChevronDown
+  Building2, Package, Check, Printer, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -217,21 +217,25 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
             )}
           </div>
           {isEditable && (
-            <div className="relative flex items-center">
+            <div className="relative flex">
               <button
+                type="button"
                 onClick={() => saveQuote(false)}
                 disabled={submitting}
-                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
               >
-                {submitting ? 'Guardando...' : 'Guardar Cambios'}
-                <Save className="w-4 h-4" />
+                {submitting ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
+                ) : (
+                  <><Check className="h-4 w-4" /> Guardar Cambios</>
+                )}
               </button>
               <button
                 type="button"
                 disabled={submitting}
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3.5 py-3 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
-                title="Más opciones de guardado"
+                className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                title="Más opciones"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>

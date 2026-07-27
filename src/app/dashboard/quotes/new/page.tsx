@@ -510,12 +510,12 @@ export default function NewQuote() {
                 Cancelar
               </button>
               
-              <div className="relative flex items-center w-full sm:w-auto">
+              <div className="relative flex">
                 <button
                   type="submit"
                   disabled={submitting}
                   onClick={() => setSaveDropdownOpen(false)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                  className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
                 >
                   {submitting ? (
                     <><RefreshCw className="h-4 w-4 animate-spin" /> Procesando...</>
@@ -527,8 +527,8 @@ export default function NewQuote() {
                   type="button"
                   disabled={submitting}
                   onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                  className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3.5 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
-                  title="Más opciones de guardado"
+                  className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                  title="Más opciones"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </button>
