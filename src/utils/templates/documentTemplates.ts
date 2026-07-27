@@ -345,9 +345,13 @@ export class DocumentTemplates {
         minute: '2-digit'
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
-      const logoHtml = company.logoUrl
-        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
+      const companyNameHeader = company?.name
+        ? `<div style="font-size: 13pt; font-weight: bold; color: #005E6A; margin-bottom: 4px; font-family: 'Inter', sans-serif;">${company.name}</div>`
         : '';
+
+      const logoHtml = company?.logoUrl
+        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">${companyNameHeader}`
+        : (companyNameHeader || `<div style="font-size: 15pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif;">MI EMPRESA</div>`);
 
       const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
 
@@ -822,9 +826,13 @@ export class DocumentTemplates {
     const itbisVal = formatNum(Number(q.totalTaxes || 0));
     const totalVal = formatNum(Number(q.total || 0));
 
-    const logoHtml = company?.logoUrl
-      ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
+    const companyNameHeader = company?.name
+      ? `<div style="font-size: 13pt; font-weight: bold; color: #005E6A; margin-bottom: 4px; font-family: 'Inter', sans-serif;">${company.name}</div>`
       : '';
+
+    const logoHtml = company?.logoUrl
+      ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">${companyNameHeader}`
+      : (companyNameHeader || `<div style="font-size: 15pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif;">MI EMPRESA</div>`);
 
     const html = `<!DOCTYPE html>
 <html>
