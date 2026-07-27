@@ -1396,7 +1396,6 @@ export default function PurchasesPage() {
                           onChange={(id) => setSupplierId(id)}
                           placeholder="Buscar suplidor..."
                           className="w-full"
-                          inputClassName="bg-surface-container-high border-none"
                         />
                       </div>
                       <button
