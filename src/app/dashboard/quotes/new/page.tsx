@@ -236,7 +236,7 @@ export default function NewQuote() {
         toast.success('Cotización creada exitosamente');
         const quoteId = data.data?.id || data.quote?.id;
         if (shouldPrint && quoteId) {
-          window.open(`/dashboard/quotes/${quoteId}/print`, '_blank');
+          window.open(`/api/v1/quotes/${quoteId}/print`, '_blank');
         }
         router.push('/dashboard/quotes');
       } else {

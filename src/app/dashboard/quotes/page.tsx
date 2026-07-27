@@ -246,7 +246,7 @@ export default function QuotesList() {
                             </button>
                           )}
                           <button
-                            onClick={() => window.open(`/dashboard/quotes/${quote.id}/print`, '_blank')}
+                            onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')}
                             className="p-1.5 text-[#C5A059] hover:bg-[#C5A059]/10 rounded-lg transition-colors"
                             title="Imprimir Cotización"
                           >

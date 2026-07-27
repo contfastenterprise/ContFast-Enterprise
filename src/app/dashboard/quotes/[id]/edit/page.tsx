@@ -177,7 +177,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
       if (data.success) {
         toast.success('Cotización actualizada exitosamente');
         if (shouldPrint) {
-          window.open(`/dashboard/quotes/${id}/print`, '_blank');
+          window.open(`/api/v1/quotes/${id}/print`, '_blank');
         }
         router.push('/dashboard/quotes');
       } else {
