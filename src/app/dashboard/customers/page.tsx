@@ -446,7 +446,7 @@ export default function CustomersPage() {
                           setFormData({ ...formData, rncCedula: e.target.value });
                           setRncVerified(false);
                         }}
-                        className={`w-full bg-surface-container-highest border ${rncVerified ? 'border-emerald-500/50' : 'border-outline'} rounded-lg pl-3 pr-24 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors`}
+                        className={`w-full bg-surface-container-high border-none rounded-xl pl-3 pr-24 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none ${rncVerified ? 'ring-1 ring-emerald-500/50' : ''}`}
                         placeholder="Ej. 130123456"
                       />
                       <button
@@ -468,7 +468,7 @@ export default function CustomersPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       placeholder="Nombre de la empresa o persona"
                     />
                   </div>
@@ -479,7 +479,7 @@ export default function CustomersPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       placeholder="contacto@empresa.com"
                     />
                   </div>
@@ -490,7 +490,7 @@ export default function CustomersPage() {
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       placeholder="(809) 000-0000"
                     />
                   </div>
@@ -503,7 +503,7 @@ export default function CustomersPage() {
                       min="0"
                       value={formData.creditLimit}
                       onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       placeholder="0.00"
                     />
                   </div>
@@ -514,7 +514,7 @@ export default function CustomersPage() {
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-all"
+                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
@@ -525,7 +525,7 @@ export default function CustomersPage() {
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-primary focus:border-[#c5a059] outline-none text-xs transition-colors"
+                        className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>

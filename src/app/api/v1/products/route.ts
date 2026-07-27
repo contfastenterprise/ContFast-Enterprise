@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
             warehouseId: inventoryLevels.warehouseId,
             warehouseName: warehouses.name,
             quantity: inventoryLevels.quantity,
+            minStock: inventoryLevels.minStock,
           })
           .from(inventoryLevels)
           .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
@@ -91,6 +92,7 @@ export async function GET(req: NextRequest) {
             warehouseId: lvl.warehouseId,
             warehouseName: lvl.warehouseName,
             quantity: lvl.quantity,
+            minStock: lvl.minStock,
             availableQuantity: lvl.quantity,
           }))
         }];
@@ -124,6 +126,7 @@ export async function GET(req: NextRequest) {
           warehouseId: inventoryLevels.warehouseId,
           warehouseName: warehouses.name,
           quantity: inventoryLevels.quantity,
+          minStock: inventoryLevels.minStock,
         })
         .from(inventoryLevels)
         .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
@@ -142,6 +145,7 @@ export async function GET(req: NextRequest) {
           warehouseId: lvl.warehouseId,
           warehouseName: lvl.warehouseName,
           quantity: lvl.quantity,
+          minStock: lvl.minStock,
           availableQuantity: lvl.quantity,
         });
       });

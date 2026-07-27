@@ -105,11 +105,6 @@ export async function checkStock(
   useProvisional = false,
   modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ): Promise<boolean> {
-  if (useProvisional) {
-    const provStock = await getProvisionalStock(productId, warehouseId, tx, modo);
-    return provStock >= quantityNeeded;
-  }
-
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
       eq(inventoryLevels.productId, productId), 
@@ -118,8 +113,21 @@ export async function checkStock(
     )
   );
 
-  if (!level) return false;
-  return Number(level.quantity) >= quantityNeeded;
+  const minStock = level ? Number(level.minStock || 0) : 0;
+
+  // Rule: If minStock > 0, product cannot be sold if current stock <= minStock
+  if (minStock > 0) {
+    const currentStock = useProvisional
+      ? await getProvisionalStock(productId, warehouseId, tx, modo)
+      : (level ? Number(level.quantity || 0) : 0);
+
+    if (currentStock <= minStock) {
+      return false;
+    }
+  }
+
+  // If minStock === 0, product can always be sold (returning true)
+  return true;
 }
 
 export async function addStock(

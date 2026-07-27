@@ -100,6 +100,15 @@ function InvoicesList() {
         const data = await res.json();
         if (data.success && data.data && data.data.length > 0) {
           const product = data.data[0];
+          const targetWId = warehouseId || (warehouses[0]?.id || '');
+          const targetInv = product.inventory?.find((i: any) => i.warehouseId === targetWId);
+          const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
+          const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
+
+          if (currentMinStk > 0 && currentQty <= currentMinStk) {
+            toast.error(`No se puede vender "${product.name}". El stock actual (${currentQty}) es menor o igual al stock mínimo configurado (${currentMinStk}).`, { id: toastId });
+            return;
+          }
           
           setDbProducts(prev => {
             if (!prev.some(p => p.id === product.id)) return [...prev, product];
@@ -791,6 +800,23 @@ function InvoicesList() {
       }
       if (lines.some((l) => Number(l.quantity) <= 0)) {
         throw new Error('La cantidad debe ser mayor a cero.');
+      }
+
+      // Check minStock rule for non-Credit Notes (e-34)
+      if (ecfType !== '34') {
+        for (const line of lines) {
+          const prod = dbProducts.find((p) => p.id === line.productId);
+          if (prod) {
+            const lineWId = line.warehouseId || warehouseId;
+            const targetInv = prod.inventory?.find((i: any) => i.warehouseId === lineWId);
+            const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
+            const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
+
+            if (currentMinStk > 0 && currentQty <= currentMinStk) {
+              throw new Error(`El producto "${line.productName}" tiene un stock actual (${currentQty}) menor o igual al stock mínimo configurado (${currentMinStk}) y no se puede vender.`);
+            }
+          }
+        }
       }
 
       const isNote = ecfType === '33' || ecfType === '34';

@@ -211,9 +211,14 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                     </div>
                     <div className="space-y-0.5 mt-1">
                       {prods.map(p => {
-                        const totalStock = getProductTotalStock(p);
-                        const isOutOfStock = allowOutOfStock ? false : totalStock <= 0;
                         const activeWId = getActiveWarehouseId(p);
+                        const targetWId = selectedWarehouseId || activeWId;
+                        const targetInv = p.inventory?.find((i: any) => i.warehouseId === targetWId);
+                        const targetQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
+                        const targetMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
+
+                        // Rule: disabled ONLY if minStock > 0 AND quantity <= minStock
+                        const isOutOfStock = allowOutOfStock ? false : (targetMinStk > 0 && targetQty <= targetMinStk);
 
                         return (
                           <div
@@ -236,14 +241,14 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                 setSearchQuery(null);
                               }}
                               className="flex-1 text-left px-2 py-1.5 flex items-center min-w-0 pr-2 outline-none disabled:cursor-not-allowed select-none"
-                              title="Clic para seleccionar"
+                              title={isOutOfStock ? `Deshabilitado por Stock Mínimo (${targetQty} / Mín: ${targetMinStk})` : "Clic para seleccionar"}
                             >
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   <span className="font-semibold text-[#003366] truncate">{p.name}</span>
-                                  {totalStock <= 0 && (
+                                  {targetMinStk > 0 && targetQty <= targetMinStk && (
                                     <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-rose-100 text-rose-800 uppercase shrink-0">
-                                      Sin Stock
+                                      Bajo Mínimo (Mín: {targetMinStk})
                                     </span>
                                   )}
                                 </div>
@@ -258,9 +263,11 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                               <div className="flex gap-4 items-center pr-2">
                                 {warehouses.map(w => {
                                   const inv = p.inventory?.find((i: any) => i.warehouseId === w.id);
-                                  const qty = inv ? parseFloat(inv.quantity) : 0;
-                                  const isSelected = activeWId === w.id && qty > 0;
-                                  const isWarehouseDisabled = allowOutOfStock ? false : qty <= 0;
+                                  const qty = inv ? parseFloat(inv.quantity) || 0 : 0;
+                                  const minStk = inv ? parseFloat(inv.minStock) || 0 : 0;
+                                  const isSelected = activeWId === w.id;
+                                  // Disabled ONLY if minStock > 0 AND quantity <= minStock
+                                  const isWarehouseDisabled = allowOutOfStock ? false : (minStk > 0 && qty <= minStk);
 
                                   return (
                                     <button
@@ -284,10 +291,10 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                       className={clsx(
                                         "w-20 text-right font-mono flex items-center justify-end gap-1.5 px-1 py-1.5 rounded transition-colors text-xs outline-none select-none",
                                         isWarehouseDisabled
-                                          ? "text-slate-300 cursor-not-allowed"
+                                          ? "text-slate-300 cursor-not-allowed opacity-60"
                                           : "hover:bg-slate-200/60 text-slate-700 font-semibold"
                                       )}
-                                      title={`${w.name}: ${qty.toFixed(2)} (Doble clic para seleccionar)`}
+                                      title={minStk > 0 ? `${w.name}: ${qty.toFixed(2)} (Mín: ${minStk})` : `${w.name}: ${qty.toFixed(2)} (Sin límite mín)`}
                                     >
                                       <span>{qty.toFixed(2)}</span>
                                       <span className={clsx(
