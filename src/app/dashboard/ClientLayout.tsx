@@ -8,8 +8,64 @@ import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import Avatar from '@/components/ui/Avatar';
-import { RbacProvider } from '@/components/providers/rbacContext';
+import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { PageLoader } from '@/components/ui/PageLoader';
+
+/**
+ * Componente hijo que consume useRbac() para saber cuándo
+ * el RBAC terminó de cargar. Muestra un único splash hasta
+ * que TANTO el init del layout COMO las autorizaciones estén listas.
+ */
+function DashboardLoadingGate({
+  loadingInit,
+  logoUrl,
+  companyName,
+  children,
+}: {
+  loadingInit: boolean;
+  logoUrl: string | null;
+  companyName: string;
+  children: React.ReactNode;
+}) {
+  const { loading: rbacLoading } = useRbac();
+  const isLoading = loadingInit || rbacLoading;
+  const showSplash = isLoading && logoUrl && typeof logoUrl === 'string' && logoUrl.trim() !== '';
+  const showGenericLoader = isLoading && !showSplash;
+
+  return (
+    <>
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            key="page-loader-overlay"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex items-center justify-center pointer-events-auto"
+          >
+            <PageLoader
+              logoUrl={logoUrl}
+              companyName={companyName}
+              message="Cargando panel principal..."
+              fullScreen={false}
+              className="w-full h-full"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showGenericLoader && (
+        <div className="fixed inset-0 z-[100] min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-4">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Cargando autorizaciones...</p>
+        </div>
+      )}
+
+      {children}
+    </>
+  );
+}
 
 export default function ClientLayout({ children, initialUser }: { children: React.ReactNode; initialUser: any }) {
   const router = useRouter();
@@ -284,31 +340,14 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
   const pendingLogo = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_logo') : null;
   const pendingName = typeof window !== 'undefined' ? sessionStorage.getItem('cf_post_login_name') : null;
   const activeLogo = pendingLogo || logoUrl;
-  const showLoaderOverlay = (loadingInit || !user) && activeLogo && typeof activeLogo === 'string' && activeLogo.trim() !== '';
 
   return (
-    <RbacProvider initialUser={user} logoUrl={activeLogo} companyName={pendingName || companyName}>
-      {/* Overlay de Carga (PageLoader) en Primer Plano mientras la página principal carga en Segundo Plano */}
-      <AnimatePresence>
-        {showLoaderOverlay && (
-          <motion.div
-            key="page-loader-overlay"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className="fixed inset-0 z-[100] bg-white dark:bg-slate-950 flex items-center justify-center pointer-events-auto"
-          >
-            <PageLoader
-              logoUrl={activeLogo}
-              companyName={pendingName || companyName}
-              message="Cargando panel principal..."
-              fullScreen={false}
-              className="w-full h-full"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <RbacProvider initialUser={user}>
+      <DashboardLoadingGate
+        loadingInit={loadingInit}
+        logoUrl={activeLogo}
+        companyName={pendingName || companyName}
+      >
 
       <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
         <Toaster position="top-right" richColors />
@@ -443,6 +482,7 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
           </footer>
         </div>
       </div>
+      </DashboardLoadingGate>
     </RbacProvider>
   );
 }
