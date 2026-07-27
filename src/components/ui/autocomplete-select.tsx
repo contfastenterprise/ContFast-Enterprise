@@ -96,7 +96,7 @@ export const AutocompleteSelect = ({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <div className="relative flex items-center">
-        <Search className="absolute left-3 top-3.5 w-4 h-4 text-neutral-400 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
         <input
           type="text"
           placeholder={loading ? "Cargando..." : placeholder}
@@ -108,7 +108,7 @@ export const AutocompleteSelect = ({
           }}
           onFocus={() => setIsOpen(true)}
           className={cn(
-            "w-full pl-9 pr-9 py-2.5 border border-outline-variant/20 rounded-xl bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-sm text-primary transition-all",
+            "w-full pl-9 pr-9 py-2 border border-outline-variant/20 rounded-xl bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-xs font-medium text-primary transition-all",
             inputClassName
           )}
         />
@@ -116,7 +116,7 @@ export const AutocompleteSelect = ({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-3.5 hover:text-neutral-700 outline-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-neutral-700 outline-none"
             title="Limpiar"
           >
             <X className="w-4 h-4 text-neutral-400 hover:text-rose-500 transition-colors" />
