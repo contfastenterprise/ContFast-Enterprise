@@ -42,7 +42,7 @@ async function getQuotePdfBuffer(quoteId: string, companyId: string) {
     taxes: quote.taxes,
   });
 
-  const pdfBuffer = await PdfGenerator.generatePdf(html);
+  const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, 'carta');
 
   const filename = `Cotizacion_${quote.sequenceNumber || quoteId.substring(0, 8)}.pdf`;
 

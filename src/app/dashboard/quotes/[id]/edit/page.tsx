@@ -221,7 +221,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
               <button
                 onClick={() => saveQuote(false)}
                 disabled={submitting}
-                className="flex items-center gap-2 px-5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-l-lg font-medium text-sm transition-all"
+                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
               >
                 {submitting ? 'Guardando...' : 'Guardar Cambios'}
                 <Save className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 type="button"
                 disabled={submitting}
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                className="flex items-center justify-center px-2.5 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-r-lg border-l border-white/20 text-sm transition-all"
+                className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3.5 py-3 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
                 title="Más opciones de guardado"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -248,33 +248,37 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full right-0 mt-2 z-40 bg-neutral-800 border border-white/10 rounded-xl shadow-xl overflow-hidden min-w-[220px]"
+                      className="absolute top-full right-0 mt-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[240px]"
                     >
-                      <div className="px-3 py-2 border-b border-white/10">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Opciones de Guardado</p>
+                      <div className="px-3 py-2 border-b border-slate-100">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
                       </div>
                       <button
                         type="button"
                         disabled={submitting}
                         onClick={() => saveQuote(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-neutral-200 hover:bg-white/5 transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
                       >
-                        <Printer className="h-4 w-4 text-amber-400" />
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                          <Printer className="h-4 w-4 text-amber-700" />
+                        </div>
                         <div>
-                          <p className="font-semibold text-xs text-white">Guardar e Imprimir</p>
-                          <p className="text-[10px] text-neutral-400">Guarda cambios y abre vista de impresión</p>
+                          <p className="font-semibold text-slate-800 text-xs">Guardar e Imprimir</p>
+                          <p className="text-[11px] text-slate-500">Guarda cambios y abre el PDF automáticamente</p>
                         </div>
                       </button>
                       <button
                         type="button"
                         disabled={submitting}
                         onClick={() => saveQuote(false)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-neutral-200 hover:bg-white/5 transition-colors text-left border-t border-white/10 cursor-pointer"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100"
                       >
-                        <Check className="h-4 w-4 text-emerald-400" />
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-emerald-700" />
+                        </div>
                         <div>
-                          <p className="font-semibold text-xs text-white">Solo Guardar</p>
-                          <p className="text-[10px] text-neutral-400">Guarda cambios y regresa al listado</p>
+                          <p className="font-semibold text-slate-800 text-xs">Solo Guardar</p>
+                          <p className="text-[11px] text-slate-500">Guarda cambios y regresa al listado</p>
                         </div>
                       </button>
                     </motion.div>
