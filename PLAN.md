@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras mapear correctamente la propiedad `logoUrl` almacenada en la tabla `company_settings` en los endpoints de impresión API (`quotes/[id]/print` y `quotes/[id]/pdf`) y añadir soporte de extracción directa en `DocumentTemplates.renderQuote` (`company?.logoUrl || company?.settings?.logoUrl`), permitiendo que el logo de la empresa se muestre de forma inmediata en las impresiones de cotizaciones, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
+El proyecto se encuentra **Verified & Polished** tras remover la fila duplicada del número de cotización en el bloque superior derecho (`.doc-info`) manteniendo únicamente la visualización limpia del número en la sección del cliente (`Cotización N°: ...`), mapear correctamente `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
 
 
 

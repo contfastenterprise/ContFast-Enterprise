@@ -896,7 +896,6 @@ ${padDots('Dirección', 12)} ${company?.address || ''}
           COTIZACIÓN DE VENTA
         </div>
         <div class="doc-title">Cotización / Oferta Comercial</div>
-        <div class="doc-ncf">COT: <span style="font-family: monospace;">${seqNum}</span></div>
         <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
           Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
         </div>
