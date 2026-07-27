@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras remover la fila duplicada del número de cotización en el bloque superior derecho (`.doc-info`) manteniendo únicamente la visualización limpia del número en la sección del cliente (`Cotización N°: ...`), mapear correctamente `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
+El proyecto se encuentra **Verified & Polished** tras remover la etiqueta de borde "COTIZACIÓN DE VENTA" de la esquina superior derecha (`.doc-info`) en la plantilla de impresión de cotizaciones (`DocumentTemplates.renderQuote`), manteniendo una presentación limpia con el título del documento y el número en la sección del cliente, mapear correctamente `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
 
 
 

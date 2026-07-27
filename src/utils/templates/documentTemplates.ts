@@ -892,9 +892,6 @@ ${padDots('Dirección', 12)} ${company?.address || ''}
         </div>
       </div>
       <div class="doc-info">
-        <div style="font-weight: bold; font-size: 11pt; border: 2px solid #005E6A; color: #005E6A; padding: 2px 8px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px; font-family: 'Inter', sans-serif;">
-          COTIZACIÓN DE VENTA
-        </div>
         <div class="doc-title">Cotización / Oferta Comercial</div>
         <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
           Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
