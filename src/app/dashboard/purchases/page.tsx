@@ -14,6 +14,7 @@ import InvoiceImageUploader from '@/components/InvoiceImageUploader';
 import { OcrInvoiceData } from '@/utils/ocrParser';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
+import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
@@ -1384,13 +1385,19 @@ export default function PurchasesPage() {
                   <div>
                     <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
                     <div className="flex gap-2">
-                      <select
-                        value={supplierId} onChange={e => setSupplierId(e.target.value)}
-                        className="flex-1 bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        <option value="">Selecciona un suplidor...</option>
-                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} - {s.rnc}</option>)}
-                      </select>
+                      <div className="flex-1">
+                        <AutocompleteSelect
+                          items={suppliers.map(s => ({
+                            id: s.id,
+                            name: s.name,
+                            subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
+                          }))}
+                          value={supplierId}
+                          onChange={(id) => setSupplierId(id)}
+                          placeholder="Buscar suplidor..."
+                          className="w-full bg-surface-container-high rounded-xl text-xs font-medium focus-within:ring-2 focus-within:ring-primary outline-none"
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => setShowAddSupplierModal(true)}
