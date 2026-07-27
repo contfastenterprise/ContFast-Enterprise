@@ -39,6 +39,10 @@ export async function GET(
 
     const fullCompany = {
       ...company,
+      logoUrl: settings?.logoUrl || (company as any).logoUrl || undefined,
+      phone: company.phone || '',
+      email: company.email || settings?.msellerEmail || '',
+      address: company.address || '',
       settings
     };
 

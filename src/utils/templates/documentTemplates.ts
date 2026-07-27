@@ -345,8 +345,10 @@ export class DocumentTemplates {
         minute: '2-digit'
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
-      const logoHtml = company?.logoUrl
-        ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
+      const activeLogoUrl = company?.logoUrl || company?.settings?.logoUrl || undefined;
+
+      const logoHtml = activeLogoUrl
+        ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
         : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
       const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
@@ -822,8 +824,10 @@ export class DocumentTemplates {
     const itbisVal = formatNum(Number(q.totalTaxes || 0));
     const totalVal = formatNum(Number(q.total || 0));
 
-    const logoHtml = company?.logoUrl
-      ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
+    const activeLogoUrl = company?.logoUrl || company?.settings?.logoUrl || undefined;
+
+    const logoHtml = activeLogoUrl
+      ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
       : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
     const html = `<!DOCTYPE html>

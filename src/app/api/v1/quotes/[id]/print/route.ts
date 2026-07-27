@@ -31,6 +31,10 @@ async function getQuotePdfBuffer(quoteId: string, companyId: string) {
 
   const fullCompany = {
     ...company,
+    logoUrl: settings?.logoUrl || (company as any).logoUrl || undefined,
+    phone: company.phone || '',
+    email: company.email || settings?.msellerEmail || '',
+    address: company.address || '',
     settings
   };
 
