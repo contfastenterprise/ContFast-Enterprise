@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { QuoteService } from '@/services/quoteService';
-import { db, companies, companySettings } from '@/db';
+import { db, companies, companySettings, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
@@ -16,6 +16,12 @@ export async function GET(
 
     if (!session) {
       return new NextResponse('No autorizado', { status: 401 });
+    }
+
+    let printedByUserName = '';
+    if (session.userId) {
+      const [usr] = await db.select({ name: users.name }).from(users).where(eq(users.id, session.userId)).limit(1);
+      printedByUserName = usr?.name || '';
     }
 
     const { id: quoteId } = await params;
@@ -50,6 +56,8 @@ export async function GET(
       company: fullCompany,
       customer: quote.customer,
       quote,
+      userName: printedByUserName || quote.userName,
+      printedByUserName: printedByUserName || quote.userName,
       lines: quote.lines,
       taxes: quote.taxes,
     });

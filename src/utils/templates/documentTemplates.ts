@@ -830,7 +830,7 @@ export class DocumentTemplates {
       ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
       : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
-    const userName = data.user?.name || data.userName || q.userName || q.user?.name || q.createdByName || '';
+    const userName = data.printedByUserName || data.userName || data.user?.name || q.printedByUserName || q.userName || q.user?.name || q.createdByName || '';
 
     const html = `<!DOCTYPE html>
 <html>

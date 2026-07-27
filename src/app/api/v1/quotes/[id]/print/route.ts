@@ -3,11 +3,11 @@ import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { QuoteService } from '@/services/quoteService';
-import { db, companies, companySettings } from '@/db';
+import { db, companies, companySettings, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
-async function getQuotePdfBuffer(quoteId: string, companyId: string) {
+async function getQuotePdfBuffer(quoteId: string, companyId: string, printedByUserName?: string) {
   const quote = await QuoteService.getQuote(quoteId);
   if (!quote || quote.companyId !== companyId) {
     throw new Error('Cotización no encontrada');
@@ -42,6 +42,8 @@ async function getQuotePdfBuffer(quoteId: string, companyId: string) {
     company: fullCompany,
     customer: quote.customer,
     quote,
+    userName: printedByUserName || quote.userName,
+    printedByUserName: printedByUserName || quote.userName,
     lines: quote.lines,
     taxes: quote.taxes,
   });
@@ -65,8 +67,14 @@ export async function GET(
       return new NextResponse('No autorizado', { status: 401 });
     }
 
+    let printedByUserName = '';
+    if (session.userId) {
+      const [usr] = await db.select({ name: users.name }).from(users).where(eq(users.id, session.userId)).limit(1);
+      printedByUserName = usr?.name || '';
+    }
+
     const { id: quoteId } = await params;
-    const { pdfBuffer, filename } = await getQuotePdfBuffer(quoteId, session.companyId);
+    const { pdfBuffer, filename } = await getQuotePdfBuffer(quoteId, session.companyId, printedByUserName);
 
     const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');
@@ -95,8 +103,14 @@ export async function POST(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    let printedByUserName = '';
+    if (session.userId) {
+      const [usr] = await db.select({ name: users.name }).from(users).where(eq(users.id, session.userId)).limit(1);
+      printedByUserName = usr?.name || '';
+    }
+
     const { id: quoteId } = await params;
-    const { pdfBuffer } = await getQuotePdfBuffer(quoteId, session.companyId);
+    const { pdfBuffer } = await getQuotePdfBuffer(quoteId, session.companyId, printedByUserName);
 
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');
     const signedUrl = DocumentService.generateSignedUrl(documentId, 10);

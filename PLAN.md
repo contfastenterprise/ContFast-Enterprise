@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras añadir la resolución e inclusión automática del nombre del usuario elaborador (`users.name`) sobre la línea de firma "Elaborado por" en la plantilla de impresión de cotizaciones (`DocumentTemplates.renderQuote`), vinculando el `userId` en `QuoteService.getQuote`, la remoción de etiquetas y números duplicados en el encabezado, el mapeo de `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
+El proyecto se encuentra **Verified & Polished** tras añadir el mapeo dinámico del usuario que emite/imprime la cotización (`session.userId` -> `users.name`) en las rutas API (`quotes/[id]/print` y `quotes/[id]/pdf`) para mostrar su nombre sobre la línea de firma "Elaborado por", la remoción de etiquetas y números duplicados en el encabezado, el mapeo de `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
 
 
 
