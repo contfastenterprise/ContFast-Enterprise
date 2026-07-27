@@ -749,31 +749,72 @@ export class DocumentTemplates {
 
     const seqNum = q.sequenceNumber || `COT-${String(q.id || '').substring(0, 8).toUpperCase()}`;
 
-    const itemsRows = (lines || []).map((line: any) => {
-      const qty = Number(line.quantity || 0);
-      const uPrice = Number(line.unitPrice || 0);
-      const discUnit = Number(line.discount || 0);
+    // Group lines by warehouse and category if present, like invoice
+    const groupedLines: Record<string, Record<string, any[]>> = {};
+    (lines || []).forEach((line: any) => {
+      const wh = line.warehouseName || 'Almacén Principal';
+      const cat = line.categoryName || 'General';
+      if (!groupedLines[wh]) groupedLines[wh] = {};
+      if (!groupedLines[wh][cat]) groupedLines[wh][cat] = [];
+      groupedLines[wh][cat].push(line);
+    });
 
-      const rawSubtotal = qty * uPrice;
-      const rawDiscount = qty * discUnit;
-      const rawTaxable = rawSubtotal - rawDiscount;
+    const warehousesList = Object.keys(groupedLines).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
-      const taxRateVal = line.taxRate !== undefined ? Number(line.taxRate) : 0.18;
-      const lineItbis = rawTaxable * (taxRateVal > 1 ? taxRateVal / 100 : taxRateVal);
-      const finalLineTotal = rawTaxable + lineItbis;
+    const hasWarehousesOrCategories = warehousesList.length > 1 || (warehousesList[0] && warehousesList[0] !== 'Almacén Principal');
 
-      return `
-        <tr>
-          <td style="padding-left: 12px; font-family: monospace; font-size: 8.5pt;">${line.productSku || line.sku || 'N/A'}</td>
-          <td style="font-weight: 600; color: #003366; font-size: 9pt;">${line.productName || line.name || 'Producto'}</td>
-          <td style="text-transform: capitalize; font-size: 8.5pt;">${line.unitOfMeasure || 'Unidad'}</td>
-          <td class="text-center" style="font-family: monospace; font-size: 9pt;">${qty}</td>
-          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(uPrice)}</td>
-          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(rawDiscount)}</td>
-          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(lineItbis)}</td>
-          <td class="text-right" style="font-family: monospace; font-weight: bold; font-size: 9pt;">${formatNum(finalLineTotal)}</td>
+    const linesHtml = warehousesList.map((warehouse) => {
+      const warehouseHeaderRow = hasWarehousesOrCategories ? `
+        <tr style="background-color: #ffffff; color: #000000; border-bottom: 2px solid #000000; border-top: 1px solid #000000;">
+          <td colspan="8" style="font-weight: bold; font-size: 9.5pt; padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            Almacén: ${warehouse}
+          </td>
         </tr>
-      `;
+      ` : '';
+
+      const categoriesMap = groupedLines[warehouse];
+      const categoriesList = Object.keys(categoriesMap).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+      const categoriesHtml = categoriesList.map((category) => {
+        const categoryHeaderRow = (hasWarehousesOrCategories && category !== 'General') ? `
+          <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #cbd5e1;">
+            <td colspan="8" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+              Categoría: ${category}
+            </td>
+          </tr>
+        ` : '';
+
+        const itemsRows = categoriesMap[category].map((line: any) => {
+          const qty = Number(line.quantity || 0);
+          const uPrice = Number(line.unitPrice || 0);
+          const discUnit = Number(line.discount || 0);
+
+          const rawSubtotal = qty * uPrice;
+          const rawDiscount = qty * discUnit;
+          const rawTaxable = rawSubtotal - rawDiscount;
+
+          const taxRateVal = line.taxRate !== undefined ? Number(line.taxRate) : 0.18;
+          const lineItbis = rawTaxable * (taxRateVal > 1 ? taxRateVal / 100 : taxRateVal);
+          const finalLineTotal = rawTaxable + lineItbis;
+
+          return `
+            <tr>
+              <td style="padding-left: 16px;">${line.productSku || line.sku || 'N/A'}</td>
+              <td>${line.productName || line.name || 'Producto'}</td>
+              <td>${line.unitOfMeasure || 'Unidad'}</td>
+              <td class="text-center">${qty}</td>
+              <td class="text-right">${formatNum(uPrice)}</td>
+              <td class="text-right">${formatNum(rawDiscount)}</td>
+              <td class="text-right">${formatNum(lineItbis)}</td>
+              <td class="text-right">${formatNum(finalLineTotal)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        return categoryHeaderRow + itemsRows;
+      }).join('');
+
+      return warehouseHeaderRow + categoriesHtml;
     }).join('');
 
     const subtotalVal = formatNum(Number(q.subtotal || 0));
@@ -782,39 +823,60 @@ export class DocumentTemplates {
     const totalVal = formatNum(Number(q.total || 0));
 
     const logoHtml = company?.logoUrl
-      ? `<img src="${company.logoUrl}" style="max-height: 110px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
+      ? `<img src="${company.logoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
       : '';
 
     const html = `<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>Cotización ${seqNum}</title>
   <style>
-    ${DocumentTemplates.getBaseCss('carta')}
-    .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 2px solid #003366; padding-bottom: 15px; }
-    .company-info { font-family: monospace; font-size: 8.5pt; line-height: 1.4; color: #334155; white-space: pre; margin-top: 5px; }
-    .doc-info { text-align: right; }
-    .doc-title { font-size: 14pt; font-weight: 800; color: #003366; text-transform: uppercase; letter-spacing: 0.5px; }
-    .doc-ncf { font-size: 11pt; font-weight: bold; color: #C5A059; margin-top: 2px; }
-    .barcode-text { font-family: monospace; font-size: 7.5pt; color: #475569; margin-top: 2px; }
-    .condition-bar { background: linear-gradient(90deg, #003366 0%, #004080 100%); color: #ffffff; font-weight: bold; font-size: 10pt; text-align: center; padding: 6px; border-radius: 4px; margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; }
-    .client-section { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 18px; }
-    .client-info { font-family: monospace; font-size: 9pt; line-height: 1.4; color: #1e293b; white-space: pre; }
-    .invoice-num { font-family: monospace; font-size: 11pt; font-weight: bold; color: #003366; text-align: right; }
-    .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 9pt; }
-    .invoice-table th { background-color: #003366; color: #ffffff; padding: 8px 10px; font-weight: 700; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.5px; }
-    .invoice-table td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; color: #334155; }
-    .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; }
-    .totals-table { width: 100%; font-family: monospace; font-size: 9.5pt; }
-    .totals-table td { padding: 4px 6px; }
-    .grand-total-row td { font-size: 11.5pt; font-weight: bold; border-top: 2px solid #003366; border-bottom: 3px double #003366; color: #003366; padding-top: 6px; padding-bottom: 6px; }
-    .signature-box { margin-top: 45px; display: flex; justify-content: space-between; font-size: 9pt; font-weight: 600; color: #475569; }
-    .signature-line { width: 220px; border-top: 1px solid #94a3b8; text-align: center; padding-top: 6px; }
+    @page {
+      margin: 12mm 12mm 25mm 12mm;
+    }
+    body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
+    .invoice-wrapper {
+      width: 100%;
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 242mm;
+    }
+    .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: -5px; }
+    .company-info { font-family: monospace; font-size: 9.5pt; line-height: 1.5; white-space: pre; margin-top: -15px; }
+    .doc-info { text-align: right; font-family: 'Inter', sans-serif; white-space: nowrap; }
+    .barcode-text { font-family: monospace; font-size: 7.5pt; color: #555; text-align: right; margin-top: 2px; }
+    .doc-title { font-size: 14pt; font-weight: bold; color: #005E6A; margin-bottom: 5px; white-space: nowrap; }
+    .doc-ncf { font-size: 11.5pt; font-weight: bold; color: #000; white-space: nowrap; }
+    
+    .condition-bar { text-align: center; border-top: 2px solid #005E6A; border-bottom: 2px solid #005E6A; padding: 4px 0; margin: 0px 0 -15px 0; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 11pt; letter-spacing: 1px; color: #000; }
+    
+    .client-section { display: flex; justify-content: space-between; font-family: monospace; font-size: 9.5pt; line-height: 1.5; margin-bottom: -8px; }
+    .client-info { white-space: pre; }
+    .invoice-num { text-align: right; font-weight: bold; font-size: 11pt; padding-top: 26px; }
+    
+    .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 4px 6px; border-bottom: 2px solid #000000; text-align: left; }
+    .invoice-table td { font-family: monospace; font-size: 9pt; padding: 4px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+    .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
+    .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
+    
+    .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 25px; margin-bottom: 40px; }
+    
+    .totals-table { width: 100%; border-collapse: collapse; }
+    .totals-table td { border: none; padding: 2px 0; }
+    .totals-table .grand-total-row { font-weight: bold; border-top: 1px solid #ccc; border-bottom: 3px double #000; }
+    .totals-table .grand-total-row td { padding: 4px 0; font-size: 11pt; }
+    
+    .signature-container { display: flex; gap: 40px; font-family: 'Inter', sans-serif; font-size: 8.5pt; color: #555; align-items: flex-end; }
+    .signature-line { text-align: center; width: 150px; }
+    .signature-line-border { border-top: 1px solid #777; padding-top: 6px; }
   </style>
 </head>
 <body>
-  <div style="padding: 20px 30px;">
+  <div class="invoice-wrapper">
     <div class="header-container">
       <div>
         ${logoHtml}
@@ -826,12 +888,12 @@ ${padDots('Dirección', 12)} ${company?.address || ''}
         </div>
       </div>
       <div class="doc-info">
-        <div style="font-weight: bold; font-size: 10pt; border: 2px solid #C5A059; color: #C5A059; padding: 2px 10px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px;">
+        <div style="font-weight: bold; font-size: 11pt; border: 2px solid #005E6A; color: #005E6A; padding: 2px 8px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px; font-family: 'Inter', sans-serif;">
           COTIZACIÓN DE VENTA
         </div>
-        <div class="doc-title">OFERTA COMERCIAL</div>
-        <div class="doc-ncf">N°: <span style="font-family: monospace;">${seqNum}</span></div>
-        <div style="font-size: 9.5pt; color: #333; margin-top: 5px; font-weight: bold;">
+        <div class="doc-title">Cotización / Oferta Comercial</div>
+        <div class="doc-ncf">COT: <span style="font-family: monospace;">${seqNum}</span></div>
+        <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
           Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
         </div>
         <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
@@ -847,13 +909,13 @@ ${padDots('Dirección', 12)} ${company?.address || ''}
 
     <div class="client-section">
       <div class="client-info">
-${padDots('Cliente / Razón Social', 24)} ${cust.name || 'Cliente General'}
-${padDots('RNC/Cédula', 24)} ${cust.rncCedula || cust.rnc || 'N/A'}
-${padDots('Teléfono', 24)} ${cust.phone || 'N/A'}
-${padDots('Dirección', 24)} ${cust.address || 'N/A'}
+${padDots('Razon Social', 18)} ${cust.name || 'Cliente General'}
+${padDots('RNC/Cédula', 18)} ${cust.rncCedula || cust.rnc || 'N/A'}
+${padDots('Teléfono', 18)} ${cust.phone || 'N/A'}
+${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       </div>
       <div class="invoice-num">
-        Documento: ${seqNum}
+        Cotización N°: ${seqNum}
       </div>
     </div>
 
@@ -871,16 +933,16 @@ ${padDots('Dirección', 24)} ${cust.address || 'N/A'}
         </tr>
       </thead>
       <tbody>
-        ${itemsRows}
+        ${linesHtml}
       </tbody>
     </table>
 
     <div class="bottom-section">
       <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; max-width: 55%;">
-        <div style="font-weight: bold; color: #003366; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas y Condiciones:</div>
-        <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${q.notes || 'Cotización válida por 30 días a partir de su emisión.\nLos precios están sujetos a cambios sin previo aviso.'}</div>
+        <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas:</div>
+        <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${q.notes || 'Cotización válida por 30 días a partir de su emisión.\nNo aceptamos devolución de mercancía después de la salida de almacén.'}</div>
       </div>
-      <div style="width: 320px; font-family: monospace; font-size: 9.5pt;">
+      <div style="width: 300px; font-family: monospace; font-size: 9.5pt;">
         <table class="totals-table">
           <tr>
             <td>${padDots('SUB TOTAL', 15)}</td>
@@ -895,20 +957,22 @@ ${padDots('Dirección', 24)} ${cust.address || 'N/A'}
             <td class="text-right">${itbisVal}</td>
           </tr>
           <tr class="grand-total-row">
-            <td>${padDots('TOTAL GENERAL', 15)}</td>
-            <td class="text-right">RD$ ${totalVal}</td>
+            <td>TOTAL NETO</td>
+            <td class="text-right">${totalVal}</td>
           </tr>
         </table>
       </div>
     </div>
 
-    <div class="signature-box">
-      <div class="signature-line">Elaborado por (Empresa)</div>
-      <div class="signature-line">Firma Aceptado por (Cliente)</div>
-    </div>
-
-    <div style="text-align: center; font-size: 8pt; margin-top: 30px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-      Gracias por considerar nuestros productos y servicios. — ${company?.name || ''}
+    <div class="last-page-signatures" style="position: absolute; bottom: 0px; right: 0px; z-index: 10;">
+      <div class="signature-container">
+        <div class="signature-line">
+          <div class="signature-line-border">Recibido conforme</div>
+        </div>
+        <div class="signature-line">
+          <div class="signature-line-border">Elaborado por</div>
+        </div>
+      </div>
     </div>
   </div>
 </body>
