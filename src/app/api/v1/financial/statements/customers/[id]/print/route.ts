@@ -66,7 +66,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { startDate, endDate, type, search } = body;
+    const { startDate, endDate, type, search, printScope = 'all' } = body;
 
     // Fetch detailed statement data
     const statementData = await FinancialRepository.getCustomerStatement(session.companyId, customerId, {
@@ -75,6 +75,21 @@ export async function POST(
       type,
       search
     });
+
+    let movements = statementData.movements;
+    if (printScope === 'pending') {
+      const pendingIds = new Set(statementData.pendingInvoices.map((pi: any) => pi.ncf || pi.codigoFactura).filter(Boolean));
+      movements = movements.filter((m: any) => pendingIds.has(m.documentNumber));
+    } else if (printScope === 'overdue') {
+      const today = new Date().toISOString().split('T')[0];
+      const overdueIds = new Set(
+        statementData.pendingInvoices
+          .filter((pi: any) => pi.dueDate < today)
+          .map((pi: any) => pi.ncf || pi.codigoFactura)
+          .filter(Boolean)
+      );
+      movements = movements.filter((m: any) => overdueIds.has(m.documentNumber));
+    }
 
     const reportData = {
       company: {
@@ -89,7 +104,7 @@ export async function POST(
         rncCedula: statementData.customer.rncCedula || '',
         address: statementData.customer.address || ''
       },
-      movements: statementData.movements,
+      movements,
       summary: statementData.summary
     };
 

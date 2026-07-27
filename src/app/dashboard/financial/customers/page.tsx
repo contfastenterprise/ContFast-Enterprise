@@ -68,14 +68,33 @@ export default function CustomerStatementPage() {
   const [endDate, setEndDate] = useState('');
   const [type, setType] = useState('all'); // all, credit, cash
   const [searchText, setSearchText] = useState('');
+  const [printFilter, setPrintFilter] = useState<'all' | 'pending' | 'overdue'>('all');
 
   // Data
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [loadingStatement, setLoadingStatement] = useState(false);
   const [statementData, setStatementData] = useState<StatementData | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [globalMetrics, setGlobalMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
 
   useEffect(() => {
+    const fetchGlobalMetrics = async () => {
+      try {
+        setLoadingMetrics(true);
+        const res = await fetch('/api/v1/financial/dashboard');
+        const json = await res.json();
+        if (res.ok) {
+          setGlobalMetrics(json.data);
+        }
+      } catch (err) {
+        console.error('Error fetching global financial metrics', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
+    fetchGlobalMetrics();
+
     const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
@@ -143,7 +162,7 @@ export default function CustomerStatementPage() {
       const res = await fetch(`/api/v1/financial/statements/customers/${selectedCustomerId}/print`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, type, search: searchText }),
+        body: JSON.stringify({ startDate, endDate, type, search: searchText, printScope: printFilter }),
       });
       const json = await res.json();
       if (res.ok && json.url) {
@@ -218,6 +237,42 @@ export default function CustomerStatementPage() {
           <p className="text-sm text-neutral-500">
             Visualice la ficha financiera, antigüedad de saldos y el libro auxiliar de movimientos de un cliente.
           </p>
+        </div>
+      </div>
+
+      {/* Resumen General de Cartera (CxC) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Por Cobrar (CxC)</p>
+            <h2 className="text-3xl font-black text-primary mt-2">
+              {loadingMetrics ? '...' : fmt(globalMetrics?.cxc?.totalPending)}
+            </h2>
+          </div>
+          <p className="text-xs text-neutral-400 mt-4">Total general de facturas a crédito pendientes de cobro</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Vencido</p>
+            <h2 className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2">
+              {loadingMetrics ? '...' : fmt(globalMetrics?.cxc?.totalOverdue)}
+            </h2>
+          </div>
+          <p className="text-xs text-rose-500/70 mt-4 font-medium">Facturas con fecha de vencimiento superada</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Clientes con Balance Pendiente</p>
+            <h2 className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2">
+              {loadingMetrics ? '...' : (globalMetrics?.cxc?.morososCount || 0) + (globalMetrics?.cxc?.alDiaCount || 0)}
+            </h2>
+          </div>
+          <div className="flex gap-4 text-xs text-neutral-500 mt-4 font-semibold">
+            <span className="text-rose-500">{globalMetrics?.cxc?.morososCount || 0} Morosos</span>
+            <span className="text-emerald-600">{globalMetrics?.cxc?.alDiaCount || 0} Al Día</span>
+          </div>
         </div>
       </div>
 
@@ -351,6 +406,15 @@ export default function CustomerStatementPage() {
                 Libro Auxiliar de Movimientos Financieros
               </h3>
               <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={printFilter}
+                  onChange={(e) => setPrintFilter(e.target.value as any)}
+                  className="px-3 py-1.5 border border-outline-variant/20 rounded-xl text-xs bg-surface-bright focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Imprimir: Todo el Auxiliar</option>
+                  <option value="pending">Imprimir: Solo Pendientes</option>
+                  <option value="overdue">Imprimir: Solo Vencidos</option>
+                </select>
                 <button
                   onClick={handlePrint}
                   disabled={printing}

@@ -577,6 +577,16 @@ export class FinancialRepository {
       LIMIT 5
     `);
 
+    // 5.5. Suplidores al día vs Suplidores morosos (counts)
+    const supplierStatusCounts = await db.execute(sql`
+      SELECT 
+        COUNT(DISTINCT CASE WHEN ap.due_date < ${today} THEN s.id END)::int as morosos_count,
+        COUNT(DISTINCT CASE WHEN ap.due_date >= ${today} AND ap.balance > 0 THEN s.id END)::int as al_dia_count
+      FROM suppliers s
+      LEFT JOIN accounts_payable ap ON s.id = ap.supplier_id AND ap.balance > 0 AND ap.deleted_at IS NULL AND ap.modo = ${modo}
+      WHERE s.company_id = ${companyId} AND s.deleted_at IS NULL
+    `);
+
     // 6. Global summaries for CxC and CxP
     const [cxcSummary] = await db
       .select({
@@ -623,6 +633,10 @@ export class FinancialRepository {
         totalPending: parseFloat(cxpSummary?.totalPending || '0'),
         totalOverdue: parseFloat(cxpSummary?.overdue || '0'),
         topCreditors: topCreditors || [],
+        // @ts-ignore
+        morososCount: supplierStatusCounts[0]?.morosos_count || 0,
+        // @ts-ignore
+        alDiaCount: supplierStatusCounts[0]?.al_dia_count || 0,
         topVolSuppliers: topVolSuppliers || []
       }
     };

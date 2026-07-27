@@ -64,14 +64,33 @@ export default function SupplierStatementPage() {
   const [endDate, setEndDate] = useState('');
   const [type, setType] = useState('all'); // all, credit, cash
   const [searchText, setSearchText] = useState('');
+  const [printFilter, setPrintFilter] = useState<'all' | 'pending' | 'overdue'>('all');
 
   // Data
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);
   const [loadingStatement, setLoadingStatement] = useState(false);
   const [statementData, setStatementData] = useState<StatementData | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [globalMetrics, setGlobalMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
 
   useEffect(() => {
+    const fetchGlobalMetrics = async () => {
+      try {
+        setLoadingMetrics(true);
+        const res = await fetch('/api/v1/financial/dashboard');
+        const json = await res.json();
+        if (res.ok) {
+          setGlobalMetrics(json.data);
+        }
+      } catch (err) {
+        console.error('Error fetching global financial metrics', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
+    fetchGlobalMetrics();
+
     const fetchSuppliers = async () => {
       try {
         setLoadingSuppliers(true);
@@ -139,7 +158,7 @@ export default function SupplierStatementPage() {
       const res = await fetch(`/api/v1/financial/statements/suppliers/${selectedSupplierId}/print`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate, endDate, type, search: searchText }),
+        body: JSON.stringify({ startDate, endDate, type, search: searchText, printScope: printFilter }),
       });
       const json = await res.json();
       if (res.ok && json.url) {
@@ -214,6 +233,42 @@ export default function SupplierStatementPage() {
           <p className="text-sm text-neutral-500">
             Visualice la ficha financiera, antigüedad de saldos y el libro auxiliar de movimientos de un proveedor.
           </p>
+        </div>
+      </div>
+
+      {/* Resumen General de Cartera (CxP) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Por Pagar (CxP)</p>
+            <h2 className="text-3xl font-black text-red-600 dark:text-red-400 mt-2">
+              {loadingMetrics ? '...' : fmt(globalMetrics?.cxp?.totalPending)}
+            </h2>
+          </div>
+          <p className="text-xs text-neutral-400 mt-4">Total general de compras a crédito pendientes de pago</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Vencido</p>
+            <h2 className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2">
+              {loadingMetrics ? '...' : fmt(globalMetrics?.cxp?.totalOverdue)}
+            </h2>
+          </div>
+          <p className="text-xs text-rose-500/70 mt-4 font-medium">Facturas de suplidores vencidas</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Suplidores con Balance Pendiente</p>
+            <h2 className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2">
+              {loadingMetrics ? '...' : (globalMetrics?.cxp?.morososCount || 0) + (globalMetrics?.cxp?.alDiaCount || 0)}
+            </h2>
+          </div>
+          <div className="flex gap-4 text-xs text-neutral-500 mt-4 font-semibold">
+            <span className="text-rose-500">{globalMetrics?.cxp?.morososCount || 0} Morosos</span>
+            <span className="text-emerald-600">{globalMetrics?.cxp?.alDiaCount || 0} Al Día</span>
+          </div>
         </div>
       </div>
 
@@ -348,6 +403,15 @@ export default function SupplierStatementPage() {
                 Libro Auxiliar de Movimientos Financieros
               </h3>
               <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={printFilter}
+                  onChange={(e) => setPrintFilter(e.target.value as any)}
+                  className="px-3 py-1.5 border border-outline-variant/20 rounded-xl text-xs bg-surface-bright focus:outline-none cursor-pointer"
+                >
+                  <option value="all">Imprimir: Todo el Auxiliar</option>
+                  <option value="pending">Imprimir: Solo Pendientes</option>
+                  <option value="overdue">Imprimir: Solo Vencidos</option>
+                </select>
                 <button
                   onClick={handlePrint}
                   disabled={printing}

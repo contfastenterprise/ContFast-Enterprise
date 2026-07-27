@@ -8,6 +8,9 @@ import { DocumentService } from '@/services/print/documentService';
 import { db, companies, companySettings } from '@/db';
 import { eq } from 'drizzle-orm';
 
+import { and, sql } from 'drizzle-orm';
+import { expenses, accountsPayable } from '@/db/schema';
+
 function checkFinancialAccess(roleName: string): boolean {
   const role = roleName.toLowerCase();
   return role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
@@ -66,7 +69,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { startDate, endDate, type, search } = body;
+    const { startDate, endDate, type, search, printScope = 'all' } = body;
 
     // Fetch detailed statement data
     const statementData = await FinancialRepository.getSupplierStatement(session.companyId, supplierId, {
@@ -75,6 +78,48 @@ export async function POST(
       type,
       search
     });
+
+    let movements = statementData.movements;
+
+    if (printScope === 'pending' || printScope === 'overdue') {
+      const today = new Date().toISOString().split('T')[0];
+      const pendingExpenses = await db
+        .select({
+          ncf: expenses.ncf,
+          dueDate: accountsPayable.dueDate
+        })
+        .from(expenses)
+        .innerJoin(
+          accountsPayable,
+          and(
+            eq(expenses.supplierId, accountsPayable.supplierId),
+            eq(expenses.amount, accountsPayable.amount),
+            eq(accountsPayable.status, 'pending')
+          )
+        )
+        .where(
+          and(
+            eq(expenses.companyId, session.companyId),
+            eq(expenses.supplierId, supplierId),
+            eq(expenses.paymentMethod, '04'), // credit
+            sql`expenses.deleted_at IS NULL`,
+            sql`accounts_payable.deleted_at IS NULL`
+          )
+        );
+
+      if (printScope === 'pending') {
+        const pendingNcfs = new Set(pendingExpenses.map(e => e.ncf).filter(Boolean));
+        movements = movements.filter((m: any) => pendingNcfs.has(m.documentNumber));
+      } else if (printScope === 'overdue') {
+        const overdueNcfs = new Set(
+          pendingExpenses
+            .filter(e => e.dueDate < today)
+            .map(e => e.ncf)
+            .filter(Boolean)
+        );
+        movements = movements.filter((m: any) => overdueNcfs.has(m.documentNumber));
+      }
+    }
 
     const reportData = {
       company: {
@@ -89,7 +134,7 @@ export async function POST(
         rnc: statementData.supplier.rnc || '',
         address: statementData.supplier.address || ''
       },
-      movements: statementData.movements,
+      movements,
       summary: statementData.summary
     };
 
