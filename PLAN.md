@@ -1,6 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras incluir la renderización del logo institucional de la empresa e incorporación dinámica del nombre de la empresa (`company.name`) en el encabezado de las plantillas de impresión de facturas y cotizaciones (`DocumentTemplates.renderInvoice` y `DocumentTemplates.renderQuote`), la unificación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
+El proyecto se encuentra **Verified & Polished** tras implementar la regla exclusiva en los encabezados de impresión de facturas y cotizaciones (`DocumentTemplates.renderInvoice` y `DocumentTemplates.renderQuote`): si la empresa dispone de un logo cargado (`company.logoUrl`), se imprime únicamente la imagen del logo; en caso contrario, se imprime el nombre completo de la empresa (`company.name`) en tipografía institucional destacada, la unificación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
 
 
 
