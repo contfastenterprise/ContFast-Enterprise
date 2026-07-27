@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Package, RefreshCw, AlertTriangle, ArrowRight, ShoppingCart, DollarSign, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 

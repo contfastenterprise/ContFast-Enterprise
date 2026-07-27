@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy, Plus, Trash2, Edit, X } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';

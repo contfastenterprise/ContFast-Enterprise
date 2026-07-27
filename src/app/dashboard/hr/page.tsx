@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Users, Banknote, Calendar, ShieldAlert, Award, FileText, HeartPulse, ShieldCheck, RefreshCw, BarChart3, TrendingUp, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 

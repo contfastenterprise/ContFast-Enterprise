@@ -13,7 +13,6 @@ import {
   Tooltip, Legend, PieChart as RechartsPieChart, Pie, Cell
 } from 'recharts';
 
-import DashboardLayout from '@/app/dashboard/layout';
 import Loading from '../accounting/loading';
 
 interface SummaryData {
@@ -69,9 +68,9 @@ export default function FinancialDashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <Loading />
-      </DashboardLayout>
+      </>
     );
   }
 

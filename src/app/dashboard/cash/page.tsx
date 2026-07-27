@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/app/dashboard/layout';
 import {
   Wallet, Plus, Minus, Scale, History, Lock, RefreshCw,
   TrendingUp, AlertTriangle, CheckCircle2, XCircle, ChevronRight,

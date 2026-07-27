@@ -12,7 +12,6 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 
-import DashboardLayout from '@/app/dashboard/layout';
 import Loading from '../../accounting/loading';
 
 interface Supplier {

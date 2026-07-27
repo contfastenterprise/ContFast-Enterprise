@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import {
   Search, Receipt, RefreshCw, X, HandCoins, Building2, Calendar,
   CreditCard, Landmark, CheckCircle2, AlertCircle, FileSignature,

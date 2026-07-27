@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import {
   Plus, Search, FileText, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, FileDown, Printer, ChevronLeft,

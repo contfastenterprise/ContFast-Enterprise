@@ -127,7 +127,7 @@ export async function GET(
         const legacyPath = invoice.signedXmlPath || invoice.xmlPath || '';
         const resolvedLegacyPath = path.isAbsolute(legacyPath)
           ? legacyPath
-          : path.join(process.cwd(), legacyPath);
+          : path.join(/*turbopackIgnore: true*/ process.cwd(), legacyPath);
 
         if (fs.existsSync(resolvedLegacyPath)) {
           xmlContent = fs.readFileSync(resolvedLegacyPath, 'utf8');

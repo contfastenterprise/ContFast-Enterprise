@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import DashboardLayout from '@/app/dashboard/layout';
 import { ArrowLeft, Building2, Mail, Phone, ShieldCheck, FileText, CreditCard, DollarSign, RefreshCw, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -70,11 +69,11 @@ export default function CustomerHistoryPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex h-[80vh] items-center justify-center max-w-7xl mx-auto w-full">
           <RefreshCw className="h-8 w-8 text-amber-500 animate-spin" />
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 

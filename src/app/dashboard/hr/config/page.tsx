@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Settings, ShieldCheck, HelpCircle, Save, RefreshCw, Scale, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 

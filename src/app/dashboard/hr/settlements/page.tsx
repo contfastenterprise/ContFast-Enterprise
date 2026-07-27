@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, FileText, Info, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 

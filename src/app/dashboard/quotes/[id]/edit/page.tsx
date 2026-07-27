@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
-import DashboardLayout from '@/app/dashboard/layout';
 import {
   Plus, Search, Save, X, Trash2, ArrowLeft,
   Building2, Package, Check
@@ -188,16 +187,16 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center h-full bg-neutral-900">
           <div className="text-white">Cargando cotización...</div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="flex flex-col h-full bg-neutral-900 overflow-hidden relative">
         {/* Header */}
         <div className="p-6 border-b border-white/10 shrink-0 flex items-center justify-between">
@@ -490,6 +489,6 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         )}
       </AnimatePresence>
 
-    </DashboardLayout>
+    </>
   );
 }

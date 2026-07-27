@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/app/dashboard/layout';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
