@@ -261,7 +261,7 @@ export default function InventoryAdjustmentsPage() {
             <label className="block text-xs font-bold text-on-surface-variant/70 mb-2 uppercase tracking-wider">1. Almacén Destino</label>
             <select 
               value={warehouseId} onChange={e => setWarehouseId(e.target.value)}
-              className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
             >
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
@@ -373,7 +373,7 @@ export default function InventoryAdjustmentsPage() {
           </div>
           
           <div className="relative w-full md:w-72">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/50" />
+            <Search className="absolute left-3 top-2 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar por nombre o SKU..."
@@ -382,7 +382,7 @@ export default function InventoryAdjustmentsPage() {
                 setTableSearchQuery(e.target.value);
                 setTablePage(1);
               }}
-              className="w-full bg-surface-container-high border-none rounded-xl pl-11 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full h-8 bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
             />
           </div>
         </div>
@@ -399,13 +399,13 @@ export default function InventoryAdjustmentsPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-outline-variant/30 text-xs font-bold uppercase tracking-wider text-on-surface-variant/70">
-                  <th className="pb-3 pl-4">Producto</th>
-                  <th className="pb-3">SKU</th>
-                  <th className="pb-3 text-right">Stock Actual</th>
-                  <th className="pb-3 text-center" style={{ width: '180px' }}>Nueva Cantidad Total</th>
-                  <th className="pb-3 text-right">Diferencia</th>
-                  <th className="pb-3 pr-4 text-right">Acción</th>
+                <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <th className="pb-2 pl-4">Producto</th>
+                  <th className="pb-2">SKU</th>
+                  <th className="pb-2 text-right">Stock Actual</th>
+                  <th className="pb-2 text-center" style={{ width: '160px' }}>Nueva Cantidad</th>
+                  <th className="pb-2 text-right">Diferencia</th>
+                  <th className="pb-2 pr-4 text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -417,13 +417,13 @@ export default function InventoryAdjustmentsPage() {
                   const isRowLoading = rowLoading[p.id] || false;
 
                   return (
-                    <tr key={p.id} className="hover:bg-surface-container-lowest/40 transition-colors text-sm">
-                      <td className="py-4 pl-4 font-bold text-primary max-w-[200px] truncate">{p.name}</td>
-                      <td className="py-4 font-mono text-xs text-on-surface-variant">{p.sku}</td>
-                      <td className="py-4 text-right font-mono font-bold text-on-surface-variant">
+                    <tr key={p.id} className="hover:bg-slate-50/60 transition-colors text-xs">
+                      <td className="py-2 pl-4 font-semibold text-[#003366] max-w-[200px] truncate">{p.name}</td>
+                      <td className="py-2 font-mono text-[11px] text-slate-500">{p.sku}</td>
+                      <td className="py-2 text-right font-mono font-bold text-slate-600">
                         {currentStock === undefined ? '...' : currentStock.toFixed(2)}
                       </td>
-                      <td className="py-2 px-4 text-center">
+                      <td className="py-1.5 px-3 text-center">
                         <input
                           type="number"
                           step="0.01"
@@ -431,24 +431,24 @@ export default function InventoryAdjustmentsPage() {
                           placeholder="0.00"
                           value={inputVal}
                           onChange={e => setTableInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
-                          className="w-full text-center bg-surface-container-high border border-outline/10 rounded-lg px-2 py-1.5 text-sm font-mono font-bold text-primary focus:ring-2 focus:ring-primary outline-none"
+                          className="w-full text-center bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                           disabled={isRowLoading}
                         />
                       </td>
-                      <td className={`py-4 text-right font-mono font-bold ${diffVal !== null && diffVal > 0 ? 'text-emerald-500' : diffVal !== null && diffVal < 0 ? 'text-red-500' : 'text-on-surface-variant/60'}`}>
+                      <td className={`py-2 text-right font-mono font-bold text-xs ${diffVal !== null && diffVal > 0 ? 'text-emerald-500' : diffVal !== null && diffVal < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                         {diffVal !== null ? (diffVal > 0 ? `+${diffVal.toFixed(2)}` : diffVal.toFixed(2)) : '0.00'}
                       </td>
-                      <td className="py-4 pr-4 text-right">
+                      <td className="py-2 pr-4 text-right">
                         <button
                           onClick={() => handleTableAdjust(p.id)}
                           disabled={isRowLoading || inputVal === '' || isNaN(newQty) || newQty === currentStock}
-                          className="bg-primary text-on-primary hover:shadow-md hover:shadow-primary/20 p-2 rounded-lg inline-flex items-center justify-center transition-all disabled:opacity-40"
+                          className="bg-[#001e40] text-white hover:bg-[#003366] p-1.5 rounded-lg inline-flex items-center justify-center transition-all disabled:opacity-40"
                           title="Establecer cantidad"
                         >
                           {isRowLoading ? (
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            <RefreshCw className="h-3 w-3 animate-spin" />
                           ) : (
-                            <Save className="h-3.5 w-3.5" />
+                            <Save className="h-3 w-3" />
                           )}
                         </button>
                       </td>

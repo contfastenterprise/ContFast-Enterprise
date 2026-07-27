@@ -115,7 +115,7 @@ const SearchBar = ({
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
       <form onSubmit={handleSubmit} className="relative w-full">
-        <Search className="absolute left-3 top-3.5 w-4 h-4 text-neutral-400 pointer-events-none" />
+        <Search className="absolute left-3 top-2 w-4 h-4 text-neutral-400 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -123,13 +123,13 @@ const SearchBar = ({
           value={searchQuery}
           onChange={handleChange}
           onFocus={() => setIsFocused(true)}
-          className="w-full pl-9 pr-9 py-2.5 border border-outline-variant/20 rounded-xl bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-sm text-primary transition-all placeholder:text-neutral-400"
+          className="w-full h-8 pl-9 pr-9 py-1.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-xs text-slate-900 transition-all placeholder:text-neutral-400"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-3.5 hover:text-neutral-700 outline-none"
+            className="absolute right-3 top-2 hover:text-neutral-700 outline-none"
             title="Limpiar"
           >
             <X className="w-4 h-4 text-neutral-400 hover:text-rose-500 transition-colors" />

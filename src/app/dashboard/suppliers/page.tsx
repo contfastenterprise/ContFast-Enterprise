@@ -6,6 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import {
+  TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+} from '@/components/ui/table';
 
 interface Supplier {
   id: string;
@@ -283,19 +291,21 @@ export default function SuppliersPage() {
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto shrink-0">
-          <button
+          <Button
+            variant="outline"
             onClick={handlePrintList}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm"
+            className="gap-2"
           >
             <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={openNewModal}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center flex-1 md:flex-none"
+            className="gap-2"
           >
             <Plus className="h-4 w-4" />
             Nuevo Suplidor
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -315,87 +325,79 @@ export default function SuppliersPage() {
       </div>
 
       {/* SUPPLIERS LIST */}
-      <div className="bg-surface-container-low border border-outline-variant/30 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-background/50 border-b border-outline-variant/30 text-on-surface-variant text-xs uppercase tracking-wider">
-                <th className="p-4 font-semibold">Suplidor / Empresa</th>
-                <th className="p-4 font-semibold">RNC</th>
-                <th className="p-4 font-semibold hidden md:table-cell">Contacto</th>
-                <th className="p-4 font-semibold hidden lg:table-cell">Dirección</th>
-                <th className="p-4 font-semibold text-center">Estado</th>
-                <th className="p-4 font-semibold text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/20">
-              {suppliers.length === 0 && !loading ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-on-surface-variant/70">
-                    No se encontraron suplidores. Haz clic en "Nuevo Suplidor" para empezar.
-                  </td>
-                </tr>
-              ) : (
-                suppliers.map((s) => (
-                  <motion.tr
-                    key={s.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="hover:bg-surface-container-high/50 transition-colors group"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center text-amber-500 flex-shrink-0">
-                          {s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-bold text-primary text-sm">{s.name}</p>
-                          <p className="text-xs text-on-surface-variant/70 hidden sm:block">Creado: {new Date(s.createdAt).toLocaleDateString()}</p>
-                        </div>
+      <TableContainer>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Suplidor / Empresa</TableHead>
+              <TableHead>RNC</TableHead>
+              <TableHead className="hidden md:table-cell">Contacto</TableHead>
+              <TableHead className="hidden lg:table-cell">Dirección</TableHead>
+              <TableHead className="text-center">Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {suppliers.length === 0 && !loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  No se encontraron suplidores. Haz clic en "Nuevo Suplidor" para empezar.
+                </TableCell>
+              </TableRow>
+            ) : (
+              suppliers.map((s) => (
+                <TableRow key={s.id} className="group">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[#C5A059] flex-shrink-0">
+                        {s.name.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high border border-outline-variant/50 text-xs font-mono text-on-surface-variant">
-                        <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                        {s.rnc}
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{s.name}</p>
+                        <p className="text-xs text-slate-500 hidden sm:block">Creado: {new Date(s.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono gap-1 text-slate-700 dark:text-slate-300">
+                      <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                      {s.rnc || 'S/N'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-slate-600 dark:text-slate-400">
+                    {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {s.email}</div>}
+                    {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3 w-3" /> {s.phone}</div>}
+                    {(!s.email && !s.phone) && <span className="text-slate-400">-</span>}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-sm text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
+                    {s.address ? (
+                      <span className="flex items-center gap-1.5" title={s.address}>
+                        <MapPin className="h-3 w-3 flex-shrink-0 text-slate-400" />
+                        <span className="truncate">{s.address}</span>
                       </span>
-                    </td>
-                    <td className="p-4 hidden md:table-cell text-sm text-on-surface-variant">
-                      {s.email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {s.email}</div>}
-                      {s.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3 w-3" /> {s.phone}</div>}
-                      {(!s.email && !s.phone) && <span className="text-on-surface-variant/80">-</span>}
-                    </td>
-                    <td className="p-4 hidden lg:table-cell text-sm text-on-surface-variant max-w-[200px] truncate">
-                      {s.address ? (
-                        <span className="flex items-center gap-1.5" title={s.address}>
-                          <MapPin className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{s.address}</span>
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${s.status === 'active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
-                        }`}>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={s.status === 'active' ? 'success' : 'destructive'}>
                       {s.status === 'active' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(s)} className="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-highest rounded-lg transition-colors" title="Editar">
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDelete(s.id, s.name)} className="p-2 text-rose-500 hover:bg-rose-500/20 rounded-lg transition-colors" title="Eliminar">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEditModal(s)} title="Editar">
+                        <Edit2 className="h-4 w-4 text-slate-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(s.id, s.name)} title="Eliminar" className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       {/* MODAL */}
       <AnimatePresence>
@@ -404,32 +406,39 @@ export default function SuppliersPage() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowModal(false)}
-              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden z-10"
+              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10"
             >
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h2 className="text-xl font-display font-bold text-white flex items-center gap-2">
+              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
+                <h2 className="text-lg font-bold text-white font-display flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-[#c5a059]" />
                   {editId ? 'Editar Suplidor' : 'Registrar Nuevo Suplidor'}
                 </h2>
-                <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary transition-colors">
+                <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary flex justify-between">
-                      <span>RNC o Cédula <span className="text-on-surface-variant/70 font-normal text-xs">(Opcional)</span></span>
-                      {rncVerified && <span className="text-emerald-500 text-xs flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Validado</span>}
-                    </label>
-                    <div className="relative flex items-center">
+              <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-[#001e40] flex items-center gap-2">
+                        <span>RNC o Cédula</span>
+                        <span className="text-slate-500 font-normal text-xs">(Opcional)</span>
+                      </label>
+                      {rncVerified && (
+                        <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Validado DGII
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
                       <input
                         type="text"
                         value={formData.rnc || ''}
@@ -437,73 +446,73 @@ export default function SuppliersPage() {
                           setFormData({ ...formData, rnc: e.target.value });
                           setRncVerified(false);
                         }}
-                        className={`w-full bg-surface-container-high border-none rounded-xl pl-3 pr-24 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none ${rncVerified ? 'ring-1 ring-emerald-500/50' : ''}`}
+                        className={`flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono ${rncVerified ? 'border-emerald-500 ring-1 ring-emerald-500/30' : ''}`}
                         placeholder="Ej. 130123456"
                       />
                       <button
                         type="button"
                         onClick={handleSearchDGII}
                         disabled={searchingDGII || !formData.rnc}
-                        className="absolute right-1 top-1 bottom-1 px-3 bg-[#c5a059] hover:bg-[#d4b069] disabled:bg-surface-container-high disabled:text-on-surface-variant/70 text-[#001e40] font-bold text-xs rounded-md flex items-center gap-1.5 transition-colors"
+                        className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-3 py-1.5 rounded-lg font-bold hover:bg-[#d4b069] transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
                       >
-                        {searchingDGII ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
-                        DGII
+                        {searchingDGII ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                        Buscar DGII
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Nombre de la empresa o persona"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Correo Electrónico</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Correo Electrónico</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="contacto@empresa.com"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-primary">Teléfono</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-[#001e40]">Teléfono</label>
                     <input
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="(809) 000-0000"
                     />
                   </div>
 
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-semibold text-primary">Dirección</label>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs font-semibold text-[#001e40]">Dirección</label>
                     <input
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
 
                   {editId && (
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold text-primary">Estado</label>
+                    <div className="space-y-1 md:col-span-2">
+                      <label className="text-xs font-semibold text-[#001e40]">Estado</label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>
@@ -512,19 +521,19 @@ export default function SuppliersPage() {
                   )}
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-500/90 leading-relaxed">
+                <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-relaxed">
                     Este RNC se utilizará para registrar gastos y reportar a la DGII mediante el formato 606 y facturación electrónica (e-CF). Valide que sea correcto.
                   </p>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
+                <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200"
+                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer text-xs px-3 py-1.5"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -532,7 +541,7 @@ export default function SuppliersPage() {
                   <Button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer text-xs px-3 py-1.5"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Suplidor'}

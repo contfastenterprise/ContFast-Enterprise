@@ -4,7 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer, X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Modal } from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
 
 interface Warehouse {
   id: string;
@@ -224,35 +232,37 @@ export default function WarehousesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-bright p-6 rounded-3xl border border-outline-variant/30 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-            <Building2 className="w-7 h-7" />
+          <div className="w-12 h-12 bg-[#001e40]/10 dark:bg-[#003366]/30 rounded-xl flex items-center justify-center text-[#003366] dark:text-[#C5A059]">
+            <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="font-display-sm text-2xl font-bold text-on-surface">Gestión de Almacenes</h1>
-            <p className="font-body-md text-on-surface-variant">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Gestión de Almacenes</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Administra las ubicaciones físicas y sucursales de tu empresa.
             </p>
           </div>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <button
+          <Button
+            variant="outline"
             onClick={handlePrintList}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm"
+            className="gap-2"
           >
             <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={() => {
               setCurrentWarehouse(null);
               setIsModalOpen(true);
             }}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center"
+            className="gap-2"
           >
             <Plus className="h-4 w-4" />
             Nuevo Almacén
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -266,7 +276,7 @@ export default function WarehousesPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#003366]/30 border-t-[#003366] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -277,59 +287,64 @@ export default function WarehousesPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex flex-col">
-                    <span className="font-label-sm text-primary font-bold bg-primary/10 px-2 py-1 rounded-lg w-max mb-2">
-                      {warehouse.code}
-                    </span>
-                    <h3 className="font-headline-sm text-lg font-bold text-on-surface truncate">
+                <Card className="h-full flex flex-col justify-between p-6">
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <Badge variant="secondary" className="font-mono">
+                        {warehouse.code}
+                      </Badge>
+                      <Badge variant={warehouse.status === 'active' ? 'success' : 'destructive'}>
+                        {warehouse.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate mb-2">
                       {warehouse.name}
                     </h3>
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs mb-4">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+                      <span className="truncate">{warehouse.address || 'Sin dirección registrada'}</span>
+                    </div>
                   </div>
-                  <div className={`p-2 rounded-xl ${warehouse.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {warehouse.status === 'active' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 text-on-surface-variant font-body-sm mb-6 flex-1">
-                  <MapPin className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{warehouse.address || 'Sin dirección registrada'}</span>
-                </div>
-
-                <div className="flex gap-2 mt-auto items-center justify-end">
-                  <button
-                    onClick={() => {
-                      setCurrentWarehouse(warehouse);
-                      setIsModalOpen(true);
-                    }}
-                    className="p-2.5 rounded-xl transition-colors bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-950/20 dark:text-green-400"
-                    title="Editar"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleStatus(warehouse)}
-                    className="p-2.5 rounded-xl transition-colors bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-950/20 dark:text-amber-400"
-                    title={warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'}
-                  >
-                    {warehouse.status === 'active' ? (
-                      <XCircle className="w-4 h-4" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4" />
-                    )}
-                  </button>
-                  {(currentUserRole === 'sistemas' || currentUserRole === 'sistema') && (
-                    <button
-                      onClick={() => handleDelete(warehouse.id)}
-                      className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 rounded-xl transition-colors"
-                      title="Eliminar permanentemente"
+                  <div className="flex gap-1.5 justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => {
+                        setCurrentWarehouse(warehouse);
+                        setIsModalOpen(true);
+                      }}
+                      title="Editar"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                      <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleToggleStatus(warehouse)}
+                      title={warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'}
+                      className={warehouse.status === 'active' ? 'text-amber-600' : 'text-emerald-600'}
+                    >
+                      {warehouse.status === 'active' ? (
+                        <XCircle className="w-4 h-4" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}
+                    </Button>
+                    {(currentUserRole === 'sistemas' || currentUserRole === 'sistema') && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDelete(warehouse.id)}
+                        title="Eliminar permanentemente"
+                        className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </Card>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -337,98 +352,73 @@ export default function WarehousesPage() {
       )}
 
       {/* Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        maxWidth="lg"
+        title={currentWarehouse ? 'Editar Almacén' : 'Nuevo Almacén'}
+        description="Ingresa los detalles de la ubicación física o sucursal."
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="relative w-full max-w-lg bg-surface-bright rounded-3xl shadow-2xl border border-outline-variant/30 overflow-hidden"
             >
-              <div className="p-6 border-b border-outline-variant/20 bg-surface-variant/30">
-                <h2 className="font-headline-sm text-xl font-bold text-on-surface">
-                  {currentWarehouse ? 'Editar Almacén' : 'Nuevo Almacén'}
-                </h2>
-                <p className="text-sm text-on-surface-variant mt-1">
-                  Ingresa los detalles de la ubicación física.
-                </p>
-              </div>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="warehouse-form"
+              variant="primary"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Guardar Cambios
+            </Button>
+          </>
+        }
+      >
+        <form id="warehouse-form" onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Código" required>
+              <Input
+                name="code"
+                defaultValue={currentWarehouse?.code}
+                placeholder="Ej. ALM-01"
+                required
+              />
+            </FormField>
 
-              <form onSubmit={handleSave} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 md:col-span-1">
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">Código</label>
-                    <input
-                      name="code"
-                      defaultValue={currentWarehouse?.code}
-                      placeholder="Ej. ALM-01"
-                      required
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    />
-                  </div>
-                  <div className="col-span-2 md:col-span-1">
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">Estado</label>
-                    <select
-                      name="status"
-                      defaultValue={currentWarehouse?.status || 'active'}
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    >
-                      <option value="active">Activo</option>
-                      <option value="inactive">Inactivo</option>
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">Nombre del Almacén</label>
-                    <input
-                      name="name"
-                      defaultValue={currentWarehouse?.name}
-                      placeholder="Ej. Almacén Principal"
-                      required
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">Dirección Física</label>
-                    <textarea
-                      name="address"
-                      defaultValue={currentWarehouse?.address || ''}
-                      placeholder="Dirección completa..."
-                      rows={3}
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-4 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
-                    />
-                  </div>
-                </div>
+            <FormField label="Estado">
+              <Select
+                name="status"
+                defaultValue={currentWarehouse?.status || 'active'}
+              >
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </Select>
+            </FormField>
 
-                <div className="flex justify-end gap-3 pt-6 border-t border-outline-variant/20 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 border border-rose-200 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold bg-[#003366] text-white shadow-md hover:bg-[#002244] hover:-translate-y-0.5 transition-all"
-                  >
-                    <ShieldCheck className="w-4 h-4" />
-                    Guardar Cambios
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+            <FormField label="Nombre del Almacén" required className="col-span-2">
+              <Input
+                name="name"
+                defaultValue={currentWarehouse?.name}
+                placeholder="Ej. Almacén Principal"
+                required
+              />
+            </FormField>
+
+            <FormField label="Dirección Física" className="col-span-2">
+              <Textarea
+                name="address"
+                defaultValue={currentWarehouse?.address || ''}
+                placeholder="Dirección completa..."
+                rows={3}
+              />
+            </FormField>
           </div>
-        )}
-      </AnimatePresence>
+        </form>
+      </Modal>
     </div>
   );
 }

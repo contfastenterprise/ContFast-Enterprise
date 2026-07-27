@@ -51,7 +51,7 @@ export default function DateRangePicker({ from, to, onChange }: DateRangePickerP
             id="date"
             type="button"
             className={cn(
-              "w-full h-[38px] flex items-center justify-start text-left font-normal bg-surface-bright border border-outline-variant text-on-surface hover:bg-slate-50 transition-all rounded-xl px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary cursor-pointer",
+              "w-full h-8 flex items-center justify-start text-left font-normal bg-white border border-slate-200 text-slate-900 hover:bg-slate-50 transition-all rounded-lg px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-[#003366]/10 focus:border-[#003366] cursor-pointer",
               !dateRange && "text-muted-foreground"
             )}
           >

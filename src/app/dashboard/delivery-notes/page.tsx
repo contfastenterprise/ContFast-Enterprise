@@ -9,6 +9,17 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { Button } from '@/components/ui/button';
+import { SearchBar } from '@/components/ui/search-bar';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Modal } from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
+import {
+  TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
+} from '@/components/ui/table';
 
 export default function DeliveryNotesPage() {
   const [loading, setLoading] = useState(true);
@@ -372,7 +383,7 @@ export default function DeliveryNotesPage() {
                       placeholder="Ej: E310000000001 o CON-2026-000001"
                       value={applyCode}
                       onChange={(e) => setApplyCode(e.target.value)}
-                      className="bg-white border border-slate-350 rounded-lg px-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-[#003366] focus:border-transparent outline-none w-full sm:w-80 font-mono"
+                      className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors w-full sm:w-80 font-mono"
                     />
                     <button
                       onClick={handleApplyCode}
@@ -564,70 +575,73 @@ export default function DeliveryNotesPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
+                          <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
                               setShowInvoiceSearch(true);
                               handleSearchInvoices();
                             }}
-                            className="w-full border border-[#003366] text-[#003366] hover:bg-[#003366]/5 rounded-xl py-3 px-4 font-bold text-sm transition-colors text-center"
+                            className="w-full h-8 text-xs font-semibold text-[#003366] dark:text-[#C5A059] border-dashed border-[#003366]/40 hover:border-[#003366] hover:bg-[#003366]/5 transition-all gap-1.5 justify-center cursor-pointer"
                           >
-                            Vincular Factura Afectada
-                          </button>
+                            <FileText className="h-3.5 w-3.5 text-[#C5A059]" />
+                            <span>Vincular Factura Afectada</span>
+                          </Button>
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Fecha de Despacho</label>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#001e40]">Fecha de Despacho</label>
                         <input
                           type="date"
                           required
                           value={deliveryDate}
                           onChange={(e) => setDeliveryDate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all font-mono"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nombre del Chofer</label>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#001e40]">Nombre del Chofer</label>
                         <input
                           type="text"
                           placeholder="Ej. Juan Pérez"
                           value={driverName}
                           onChange={(e) => setDriverName(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#003366] focus:bg-white text-slate-900"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Licencia Chofer</label>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#001e40]">Licencia Chofer</label>
                         <input
                           type="text"
                           placeholder="001-0000000-0"
                           value={driverLicense}
                           onChange={(e) => setDriverLicense(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#003366] focus:bg-white text-slate-900"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Placa del Vehículo</label>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#001e40]">Placa del Vehículo</label>
                         <input
                           type="text"
                           placeholder="L123456"
                           value={vehiclePlate}
                           onChange={(e) => setVehiclePlate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#003366] focus:bg-white text-slate-900"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Responsable Despacho</label>
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-[#001e40]">Responsable Despacho</label>
                         <input
                           type="text"
                           placeholder="Firma autorizada"
                           value={dispatcherName}
                           onChange={(e) => setDispatcherName(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#003366] focus:bg-white text-slate-900"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                         />
                       </div>
                     </div>
@@ -753,14 +767,16 @@ export default function DeliveryNotesPage() {
                     placeholder="Búsqueda por NCF, Cliente o RNC..."
                     value={invoiceSearchQuery}
                     onChange={(e) => setInvoiceSearchQuery(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                   />
-                  <button
+                  <Button
                     onClick={handleSearchInvoices}
-                    className="bg-[#003366] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:bg-[#002244] transition-colors"
+                    variant="primary"
+                    size="sm"
+                    className="cursor-pointer"
                   >
                     Buscar
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">

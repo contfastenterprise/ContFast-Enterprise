@@ -19,6 +19,13 @@ import { SearchBar } from '@/components/ui/search-bar';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Modal } from '@/components/ui/dialog';
+import { FormField } from '@/components/ui/form-field';
 
 function InvoicesList() {
   const router = useRouter();
@@ -109,7 +116,7 @@ function InvoicesList() {
             toast.error(`No se puede vender "${product.name}". El stock actual (${currentQty}) es menor o igual al stock mínimo configurado (${currentMinStk}).`, { id: toastId });
             return;
           }
-          
+
           setDbProducts(prev => {
             if (!prev.some(p => p.id === product.id)) return [...prev, product];
             return prev;
@@ -136,7 +143,7 @@ function InvoicesList() {
               unitPrice: parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0,
               imageUrl: product.imageUrl || ''
             };
-            
+
             if (firstEmptyIdx >= 0) {
               updated[firstEmptyIdx] = newLine;
             } else {
@@ -989,9 +996,9 @@ function InvoicesList() {
             if (emailRes.ok && emailData.success) {
               toast.success('Correo enviado', { description: emailData.message });
             } else {
-              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' || 
-                                 emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
-                                 emailData.error?.message?.toLowerCase().includes('no tiene correo');
+              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' ||
+                emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
+                emailData.error?.message?.toLowerCase().includes('no tiene correo');
               if (!hasNoEmail) {
                 toast.error('Error al enviar correo', { description: emailData.error?.message });
               }
@@ -1008,9 +1015,9 @@ function InvoicesList() {
             if (emailRes.ok && emailData.success) {
               toast.success('Correo enviado', { description: emailData.message });
             } else {
-              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' || 
-                                 emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
-                                 emailData.error?.message?.toLowerCase().includes('no tiene correo');
+              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' ||
+                emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
+                emailData.error?.message?.toLowerCase().includes('no tiene correo');
               if (!hasNoEmail) {
                 toast.error('Error al enviar correo', { description: emailData.error?.message });
               }
@@ -1117,13 +1124,13 @@ function InvoicesList() {
 
             <form onSubmit={(e) => handleSubmitTrigger(e)} className="space-y-8">
               {/* General Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-                <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 p-5 rounded-xl border border-slate-200">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Tipo de e-CF</label>
                   <select
                     value={ecfType}
                     onChange={(e) => setEcfType(e.target.value)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
                   >
                     {activeSequences.length === 0 ? (
                       <>
@@ -1160,12 +1167,12 @@ function InvoicesList() {
                     )}
                   </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Método de Pago</label>
                   <select
                     value={paymentType}
                     onChange={(e) => setPaymentType(e.target.value as any)}
-                    className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
                   >
                     <option value="cash">Efectivo / Caja</option>
                     <option value="credit">Crédito </option>
@@ -1173,14 +1180,14 @@ function InvoicesList() {
                   </select>
                 </div>
                 {paymentType === 'bank_transfer' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 col-span-1 md:col-span-3 bg-[#003366]/5 p-4 rounded-xl border border-[#003366]/10 mt-2">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-3 bg-[#003366]/5 p-3 rounded-xl border border-[#003366]/10 mt-2">
+                    <div className="space-y-1">
                       <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
                       <select
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
                         required
-                        className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
                       >
                         <option value="">Seleccione Banco...</option>
                         <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
@@ -1193,7 +1200,7 @@ function InvoicesList() {
                         <option value="Otro">Otro / Internacional</option>
                       </select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Número de Transferencia / Referencia</label>
                       <input
                         type="text"
@@ -1201,7 +1208,7 @@ function InvoicesList() {
                         value={transactionNumber}
                         onChange={(e) => setTransactionNumber(e.target.value)}
                         placeholder="Ej. TXN12345678"
-                        className="w-full rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all"
+                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -1298,13 +1305,13 @@ function InvoicesList() {
                     }}
                   />
                 </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
                   <input
                     type="text"
                     value={customerRnc}
                     readOnly
-                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none font-mono"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1313,7 +1320,7 @@ function InvoicesList() {
                     type="text"
                     value={customerPhone}
                     readOnly
-                    className="w-full rounded-lg bg-slate-100 border border-slate-300 py-2 px-3 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none"
                   />
                 </div>
               </div>
@@ -1460,10 +1467,10 @@ function InvoicesList() {
                                 onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
                                 disabled={!hasProduct || !canEditDiscount}
                                 className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct
-                                    ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
-                                    : !canEditDiscount
-                                      ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
-                                      : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
+                                  ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
+                                  : !canEditDiscount
+                                    ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
+                                    : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
                                   }`}
                                 min={0}
                                 step="any"
@@ -1586,28 +1593,32 @@ function InvoicesList() {
                 </div>
 
                 <div className="flex flex-col-reverse sm:flex-row gap-4 w-full md:w-auto">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => { setShowForm(false); router.replace('/dashboard/invoices'); }}
-                    className="rounded-xl border border-slate-300 bg-transparent px-6 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-100 hover:text-[#003366] transition-all text-center"
+                    className="px-5"
                   >
                     Cancelar
-                  </button>
+                  </Button>
 
                   {/* Save Draft button */}
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={handleSaveDraft}
                     disabled={savingDraft || submitting}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition-all"
                     title="Guardar como Borrador (sin emitir NCF)"
+                    className="px-4"
                   >
                     {savingDraft ? (
                       <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
                     ) : (
                       <><Save className="h-4 w-4" /> Guardar Borrador</>
                     )}
-                  </button>
+                  </Button>
 
                   {/* Split Emit Button */}
                   <div className="relative flex">
@@ -1616,12 +1627,12 @@ function InvoicesList() {
                       type="submit"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { setSaveDropdownOpen(false); }}
-                      className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                      className="flex items-center justify-center gap-2 rounded-l-lg bg-[#C5A059] px-5 py-1.5 text-xs font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-sm shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840] h-8"
                     >
                       {submitting ? (
-                        <><RefreshCw className="h-4 w-4 animate-spin" /> Procesando...</>
+                        <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
                       ) : (
-                        <><Check className="h-4 w-4" /> Emitir Comprobante</>
+                        <><Check className="h-3.5 w-3.5" /> Emitir Comprobante</>
                       )}
                     </button>
                     {/* Dropdown toggle */}
@@ -1629,10 +1640,10 @@ function InvoicesList() {
                       type="button"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                      className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                      className="flex items-center justify-center rounded-r-lg bg-[#C5A059] px-2.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-sm shadow-[#C5A059]/20 active:scale-[0.98] h-8"
                       title="Más opciones"
                     >
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3.5 w-3.5" />
                     </button>
 
                     {/* Dropdown menu */}
@@ -1765,10 +1776,11 @@ function InvoicesList() {
 
               <div className="w-full md:w-[180px]">
                 <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Tipo de e-CF</label>
-                <select
+                <Select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-[#003366] focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all appearance-none"
+                  selectSize="sm"
+                  className="w-full text-xs font-medium text-[#003366]"
                 >
                   <option value="">Todos los Tipos</option>
                   {sequences.length === 0 ? (
@@ -1797,15 +1809,16 @@ function InvoicesList() {
                       );
                     })
                   )}
-                </select>
+                </Select>
               </div>
 
               <div className="w-full md:w-[180px]">
                 <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Estado</label>
-                <select
+                <Select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-[#003366] focus:ring-1 focus:ring-[#C5A059] focus:border-[#C5A059] outline-none transition-all appearance-none"
+                  selectSize="sm"
+                  className="w-full text-xs font-medium text-[#003366]"
                 >
                   <option value="">Todos los Estados</option>
                   <option value="draft">Borrador</option>
@@ -1813,7 +1826,7 @@ function InvoicesList() {
                   <option value="submitted">Transmitido (En Cola)</option>
                   <option value="accepted">Aceptado DGII</option>
                   <option value="rejected">Rechazado</option>
-                </select>
+                </Select>
               </div>
 
               <div className="flex-1 min-w-[240px] w-full">
@@ -1825,16 +1838,18 @@ function InvoicesList() {
                 />
               </div>
 
-              <button
+              <Button
                 onClick={loadInvoices}
-                className="w-full md:w-auto bg-slate-100 text-[#003366] px-6 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-[38px] flex items-center justify-center gap-2 border border-slate-300"
+                variant="outline"
+                size="sm"
+                className="w-full md:w-auto cursor-pointer text-xs font-bold shrink-0"
               >
                 <Filter className="h-4 w-4" />
                 FILTRAR
-              </button>
+              </Button>
 
               {invoices.length > 0 && (
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     const queryParams = new URLSearchParams();
@@ -1846,11 +1861,13 @@ function InvoicesList() {
                     queryParams.append('excludeTypes', '33,34,03,04');
                     window.open(`/api/v1/invoices/report?${queryParams.toString()}`, '_blank');
                   }}
-                  className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center gap-2"
+                  variant="primary"
+                  size="sm"
+                  className="w-full md:w-auto cursor-pointer text-xs font-bold shrink-0"
                 >
                   <Printer className="h-4 w-4" />
                   REPORTE PDF
-                </button>
+                </Button>
               )}
             </div>
 
@@ -1893,7 +1910,7 @@ function InvoicesList() {
                     ) : invoices.length > 0 ? (
                       invoices.map((inv) => {
                         const badge = getStatusBadge(inv.status);
-                        
+
                         let methodInitial = 'E';
                         if (inv.paymentType === 'credit') methodInitial = 'C';
                         else if (inv.paymentType === 'bank_transfer') methodInitial = 'T';
@@ -2415,8 +2432,8 @@ function InvoicesList() {
 
               {/* Form */}
               <form onSubmit={handleCreateCustomerSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">RNC o Cédula</label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#001e40]">RNC o Cédula</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -2426,13 +2443,15 @@ function InvoicesList() {
                         setNewCustomerData({ ...newCustomerData, rncCedula: e.target.value });
                         setRncVerified(false);
                       }}
-                      className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                      className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="gold"
+                      size="sm"
                       onClick={handleNewCustomerSearchDGII}
                       disabled={isSearchingRnc || !newCustomerData.rncCedula}
-                      className="px-4 py-2 bg-[#003366] text-white rounded-lg text-xs font-bold hover:bg-[#002244] transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      className="shrink-0 text-[11px] px-3 font-bold"
                     >
                       {isSearchingRnc ? (
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -2440,71 +2459,75 @@ function InvoicesList() {
                         <Search className="h-3.5 w-3.5" />
                       )}
                       DGII
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Nombre o Razón Social *</label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#001e40]">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: Distribuidora Comercial S.A."
                     value={newCustomerData.name}
                     onChange={(e) => setNewCustomerData({ ...newCustomerData, name: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                   />
                   {rncVerified && (
                     <span className="text-[10px] text-emerald-600 font-bold block">✓ Contribuyente verificado y cargado de DGII</span>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Correo Electrónico</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[#001e40]">Correo Electrónico</label>
                     <input
                       type="email"
                       placeholder="ejemplo@correo.com"
                       value={newCustomerData.email}
                       onChange={(e) => setNewCustomerData({ ...newCustomerData, email: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Teléfono</label>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-[#001e40]">Teléfono</label>
                     <input
                       type="text"
                       placeholder="809-555-0199"
                       value={newCustomerData.phone}
                       onChange={(e) => setNewCustomerData({ ...newCustomerData, phone: e.target.value })}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#003366] uppercase tracking-wider">Dirección</label>
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#001e40]">Dirección</label>
                   <textarea
                     placeholder="Calle Principal #123, Ensanche Naco..."
                     value={newCustomerData.address}
                     onChange={(e) => setNewCustomerData({ ...newCustomerData, address: e.target.value })}
                     rows={2}
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-[#C5A059] outline-none resize-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors resize-none"
                   />
                 </div>
 
                 <div className="pt-4 border-t border-slate-200 flex justify-end gap-3">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setCreateCustomerModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-[#003366] transition-colors"
+                    className="cursor-pointer text-xs font-bold"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="gold"
+                    size="sm"
                     disabled={isSavingCustomer}
-                    className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg text-xs font-bold transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
+                    className="cursor-pointer text-xs font-bold"
                   >
                     {isSavingCustomer ? (
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -2512,7 +2535,7 @@ function InvoicesList() {
                       <Plus className="h-3.5 w-3.5" />
                     )}
                     Registrar Cliente
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -2557,18 +2580,18 @@ function InvoicesList() {
                     <span className="text-slate-500 text-xs uppercase tracking-wider">Comprobante:</span>
                     <span className="text-slate-900 text-right font-semibold">
                       {ecfType === '31' ? 'Crédito Fiscal (e-31)' :
-                       ecfType === '32' ? 'Consumo (e-32)' :
-                       ecfType === '33' ? 'Nota de Débito (e-33)' :
-                       ecfType === '34' ? 'Nota de Crédito (e-34)' :
-                       ecfType === '45' ? 'Gubernamental (e-45)' : 'Consumo (e-32)'}
+                        ecfType === '32' ? 'Consumo (e-32)' :
+                          ecfType === '33' ? 'Nota de Débito (e-33)' :
+                            ecfType === '34' ? 'Nota de Crédito (e-34)' :
+                              ecfType === '45' ? 'Gubernamental (e-45)' : 'Consumo (e-32)'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center gap-4">
                     <span className="text-slate-500 text-xs uppercase tracking-wider">Método de Pago:</span>
                     <span className="text-slate-900 text-right font-semibold">
                       {paymentType === 'cash' ? 'Efectivo' :
-                       paymentType === 'credit' ? 'Crédito' :
-                       paymentType === 'bank_transfer' ? 'Transferencia Bancaria' : 'Efectivo'}
+                        paymentType === 'credit' ? 'Crédito' :
+                          paymentType === 'bank_transfer' ? 'Transferencia Bancaria' : 'Efectivo'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center gap-4 pt-2 border-t border-slate-200 text-base font-bold">
@@ -2579,24 +2602,28 @@ function InvoicesList() {
               </div>
 
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setShowPrintConfirmModal(false)}
-                  className="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 transition-colors"
+                  className="cursor-pointer text-xs font-bold"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="primary"
+                  size="sm"
                   onClick={() => {
                     setShowPrintConfirmModal(false);
                     const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
                     handleIssueInvoice(fakeEvent, pendingPostAction);
                   }}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-xl text-xs font-bold transition-all shadow-md"
+                  className="cursor-pointer text-xs font-bold"
                 >
                   Aceptar
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

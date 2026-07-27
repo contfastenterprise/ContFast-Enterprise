@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface Movement {
   id: string;
@@ -261,41 +262,44 @@ export default function MovementsPage() {
             Auditoría de entradas, salidas y traslados de inventario por almacén.
           </p>
         </div>
-        <button
+        <Button
           onClick={handlePrintList}
-          className="bg-white border border-outline-variant/50 hover:bg-surface-container-low text-primary px-4 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm w-full md:w-auto"
+          variant="outline"
+          size="sm"
+          className="border-slate-300 text-[#003366] hover:bg-slate-50 cursor-pointer font-semibold shrink-0"
         >
-          <Printer className="h-5 w-5" /> Imprimir
-        </button>
+          <Printer className="h-3.5 w-3.5" />
+          Imprimir
+        </Button>
       </header>
 
       {/* Summary Cards */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-6 rounded-3xl flex items-center gap-4">
-          <div className="bg-green-100 p-4 rounded-2xl text-green-600">
-            <ArrowDownToLine className="h-6 w-6" />
+        <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3">
+          <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600">
+            <ArrowDownToLine className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">Total Entradas</p>
-            <h3 className="text-2xl font-black text-green-700 mt-1">+{summary.totalIn.toLocaleString()}</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total Entradas</p>
+            <h3 className="text-xl font-black text-emerald-700 mt-0.5">+{summary.totalIn.toLocaleString()}</h3>
           </div>
         </div>
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-6 rounded-3xl flex items-center gap-4">
-          <div className="bg-red-100 p-4 rounded-2xl text-red-600">
-            <ArrowUpFromLine className="h-6 w-6" />
+        <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3">
+          <div className="bg-rose-100 p-3 rounded-xl text-rose-600">
+            <ArrowUpFromLine className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">Total Salidas</p>
-            <h3 className="text-2xl font-black text-red-700 mt-1">{summary.totalOut.toLocaleString()}</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total Salidas</p>
+            <h3 className="text-xl font-black text-rose-700 mt-0.5">{summary.totalOut.toLocaleString()}</h3>
           </div>
         </div>
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-6 rounded-3xl flex items-center gap-4">
-          <div className="bg-primary/10 p-4 rounded-2xl text-primary">
-            <ArrowRightLeft className="h-6 w-6" />
+        <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3">
+          <div className="bg-[#003366]/10 p-3 rounded-xl text-[#003366]">
+            <ArrowRightLeft className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/70">Variación Neta</p>
-            <h3 className={`text-2xl font-black mt-1 ${summary.netChange >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Variación Neta</p>
+            <h3 className={`text-xl font-black mt-0.5 ${summary.netChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
               {summary.netChange >= 0 ? '+' : ''}{summary.netChange.toLocaleString()}
             </h3>
           </div>
@@ -303,40 +307,40 @@ export default function MovementsPage() {
       </section>
 
       {/* Filters */}
-      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-4 w-4 text-primary" />
-          <h4 className="font-bold text-primary text-sm uppercase tracking-wider">Filtros Avanzados</h4>
+      <section className="bg-white border border-slate-200 shadow-sm rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-3.5 w-3.5 text-[#003366]" />
+          <h4 className="font-bold text-[#003366] text-xs uppercase tracking-wider">Filtros Avanzados</h4>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 mb-1.5 flex items-center gap-1"><Building2 className="h-3 w-3" /> Almacén</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1 uppercase tracking-wider"><Building2 className="h-3 w-3" /> Almacén</label>
             <select
               value={filters.warehouseId}
               onChange={e => { setFilters({...filters, warehouseId: e.target.value}); setPage(1); }}
-              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
             >
               <option value="all">Todos los almacenes</option>
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 mb-1.5 flex items-center gap-1"><Package className="h-3 w-3" /> Producto</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1 uppercase tracking-wider"><Package className="h-3 w-3" /> Producto</label>
             <select
               value={filters.productId}
               onChange={e => { setFilters({...filters, productId: e.target.value}); setPage(1); }}
-              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
             >
               <option value="all">Todos los productos</option>
               {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 mb-1.5 flex items-center gap-1"><ArrowRightLeft className="h-3 w-3" /> Tipo</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1 uppercase tracking-wider"><ArrowRightLeft className="h-3 w-3" /> Tipo</label>
             <select
               value={filters.type}
               onChange={e => { setFilters({...filters, type: e.target.value}); setPage(1); }}
-              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
             >
               <option value="all">Todos los tipos</option>
               <option value="sale">Ventas</option>
@@ -347,79 +351,79 @@ export default function MovementsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 mb-1.5 flex items-center gap-1"><Calendar className="h-3 w-3" /> Desde</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1 uppercase tracking-wider"><Calendar className="h-3 w-3" /> Desde</label>
             <input
               type="date"
               value={filters.startDate}
               onChange={e => { setFilters({...filters, startDate: e.target.value}); setPage(1); }}
-              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 mb-1.5 flex items-center gap-1"><Calendar className="h-3 w-3" /> Hasta</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 flex items-center gap-1 uppercase tracking-wider"><Calendar className="h-3 w-3" /> Hasta</label>
             <input
               type="date"
               value={filters.endDate}
               onChange={e => { setFilters({...filters, endDate: e.target.value}); setPage(1); }}
-              className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
             />
           </div>
         </div>
       </section>
 
       {/* Table */}
-      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl overflow-hidden relative min-h-[400px]">
+      <section className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden relative min-h-[400px]">
         {loading && (
           <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+            <RefreshCw className="h-6 w-6 text-[#003366] animate-spin" />
           </div>
         )}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Fecha / Hora</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Producto</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Almacén</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold min-w-[140px]">Tipo</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold text-right">Cantidad</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold text-right">Balance</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Usuario / Detalle</th>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha / Hora</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px]">Tipo</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Cantidad</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario / Detalle</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/10">
+            <tbody className="divide-y divide-slate-100">
               {movements.length > 0 ? (
                 movements.map((mov) => {
                   const qty = parseFloat(mov.quantity);
                   const isPositive = qty > 0;
                   return (
-                    <tr key={mov.id} className="hover:bg-primary/5 transition-all">
-                      <td className="px-6 py-4 font-body-sm">
-                        <div className="font-bold text-primary">{new Date(mov.createdAt).toLocaleDateString('es-DO')}</div>
-                        <div className="text-[10px] text-on-surface-variant font-mono-data opacity-70 mt-0.5">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</div>
+                    <tr key={mov.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="font-semibold text-xs text-[#003366]">{new Date(mov.createdAt).toLocaleDateString('es-DO')}</div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-primary text-sm max-w-[200px] truncate" title={mov.productName || ''}>{mov.productName}</p>
-                        <p className="text-[10px] text-on-surface-variant/70 font-mono-data">SKU: {mov.productSku}</p>
+                      <td className="px-4 py-2.5">
+                        <p className="font-semibold text-xs text-[#003366] max-w-[200px] truncate" title={mov.productName || ''}>{mov.productName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">SKU: {mov.productSku}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="font-bold text-sm bg-surface-container px-2 py-1 rounded-md">{mov.warehouseName}</span>
+                      <td className="px-4 py-2.5">
+                        <span className="font-semibold text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">{mov.warehouseName}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         {getMovementTypeBadge(mov.type)}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`font-mono-data font-black text-sm px-2 py-1 rounded-lg ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {isPositive ? '+' : ''}{qty}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="font-mono-data font-bold text-on-surface">{parseFloat(mov.balanceAfter)}</span>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className="font-mono font-bold text-xs text-slate-700">{parseFloat(mov.balanceAfter)}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs font-bold text-on-surface-variant">{mov.userName}</p>
+                      <td className="px-4 py-2.5">
+                        <p className="text-xs font-semibold text-slate-600">{mov.userName}</p>
                         {mov.description && (
-                          <p className="text-[10px] text-on-surface-variant/60 max-w-[200px] truncate" title={getMovementDescription(mov)}>{getMovementDescription(mov)}</p>
+                          <p className="text-[10px] text-slate-400 max-w-[200px] truncate" title={getMovementDescription(mov)}>{getMovementDescription(mov)}</p>
                         )}
                       </td>
                     </tr>
@@ -427,7 +431,7 @@ export default function MovementsPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-on-surface-variant font-medium">
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500 text-xs font-medium">
                     No se encontraron movimientos para los filtros seleccionados.
                   </td>
                 </tr>
@@ -437,28 +441,30 @@ export default function MovementsPage() {
         </div>
         
         {/* Pagination */}
-        <div className="p-6 bg-surface-container-low/30 border-t border-outline-variant/10 flex justify-between items-center">
-          <span className="text-xs font-bold text-on-surface-variant/70">
-            Total Resultados: <span className="text-primary">{totalItems}</span>
+        <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-200 flex justify-between items-center">
+          <span className="text-xs font-semibold text-slate-500">
+            Total: <span className="text-[#003366] font-bold">{totalItems}</span>
           </span>
-          <div className="flex gap-2">
-            <button 
+          <div className="flex gap-2 items-center">
+            <Button 
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white text-xs font-bold disabled:opacity-50 transition-all"
+              variant="outline"
+              size="xs"
             >
               Anterior
-            </button>
-            <span className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-bold">
-              Página {page} de {Math.max(1, totalPages)}
+            </Button>
+            <span className="px-3 py-1 bg-[#003366]/10 text-[#003366] rounded-lg text-[11px] font-bold">
+              {page} / {Math.max(1, totalPages)}
             </span>
-            <button 
+            <Button 
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white text-xs font-bold disabled:opacity-50 transition-all"
+              variant="outline"
+              size="xs"
             >
               Siguiente
-            </button>
+            </Button>
           </div>
         </div>
       </section>
