@@ -1,4 +1,4 @@
-import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers } from '@/db';
+import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers, products } from '@/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
