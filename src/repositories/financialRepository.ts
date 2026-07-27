@@ -201,26 +201,10 @@ export class FinancialRepository {
     const avgPaymentDays = Math.round(avgDaysResult[0]?.avg_days || 0);
 
     // 8. Stats & Counts
-    const [invoiceStats] = await db
-      .select({ 
-        count: sql<number>`count(*)`,
-        totalInvoiced: sql<string>`COALESCE(SUM(total), 0)` 
-      })
-      .from(invoices)
-      .where(
-        and(
-          eq(invoices.companyId, companyId),
-          eq(invoices.customerId, customerId),
-          isNull(invoices.deletedAt),
-          notInArray(invoices.ecfType, ['33', '34'])
-        )
-      );
-    const invoiceCount = Number(invoiceStats?.count || 0);
-    const totalInvoicedValue = parseFloat(invoiceStats?.totalInvoiced || '0');
-    const avgInvoiceAmount = invoiceCount > 0 ? totalInvoicedValue / invoiceCount : 0;
-
     const [arStats] = await db
       .select({
+        count: sql<number>`count(*)`,
+        totalInvoiced: sql<string>`COALESCE(SUM(amount), 0)`,
         totalAmortized: sql<string>`COALESCE(SUM(amount - balance), 0)`
       })
       .from(accountsReceivable)
@@ -231,6 +215,9 @@ export class FinancialRepository {
           isNull(accountsReceivable.deletedAt)
         )
       );
+    const invoiceCount = Number(arStats?.count || 0);
+    const totalInvoicedValue = parseFloat(arStats?.totalInvoiced || '0');
+    const avgInvoiceAmount = invoiceCount > 0 ? totalInvoicedValue / invoiceCount : 0;
     const totalPaidValue = parseFloat(arStats?.totalAmortized || '0');
 
     // 9. Customer Age
@@ -473,25 +460,10 @@ export class FinancialRepository {
       .limit(1);
 
     // 7. Stats
-    const [expenseStats] = await db
-      .select({ 
-        count: sql<number>`count(*)`,
-        totalPurchased: sql<string>`COALESCE(SUM(amount), 0)`
-      })
-      .from(expenses)
-      .where(
-        and(
-          eq(expenses.companyId, companyId),
-          eq(expenses.supplierId, supplierId),
-          isNull(expenses.deletedAt)
-        )
-      );
-    const billsCount = Number(expenseStats?.count || 0);
-    const totalPurchasedValue = parseFloat(expenseStats?.totalPurchased || '0');
-    const avgBillAmount = billsCount > 0 ? totalPurchasedValue / billsCount : 0;
-
     const [apStats] = await db
       .select({
+        count: sql<number>`count(*)`,
+        totalPurchased: sql<string>`COALESCE(SUM(amount), 0)`,
         totalAmortized: sql<string>`COALESCE(SUM(amount - balance), 0)`
       })
       .from(accountsPayable)
@@ -502,6 +474,9 @@ export class FinancialRepository {
           isNull(accountsPayable.deletedAt)
         )
       );
+    const billsCount = Number(apStats?.count || 0);
+    const totalPurchasedValue = parseFloat(apStats?.totalPurchased || '0');
+    const avgBillAmount = billsCount > 0 ? totalPurchasedValue / billsCount : 0;
     const totalPaidValue = parseFloat(apStats?.totalAmortized || '0');
 
     return {
