@@ -1,4 +1,4 @@
-import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers, products } from '@/db';
+import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers, products, users } from '@/db';
 import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -194,10 +194,21 @@ export class QuoteService {
       customer = cust || null;
     }
 
+    let user = null;
+    if (quote.userId) {
+      const [usr] = await db
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(eq(users.id, quote.userId));
+      user = usr || null;
+    }
+
     return {
       ...quote,
       customerName: customer?.name || 'Cliente General',
       customer,
+      userName: user?.name || null,
+      user,
       lines: rawLines,
       taxes
     };

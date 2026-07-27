@@ -830,6 +830,8 @@ export class DocumentTemplates {
       ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
       : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
+    const userName = data.user?.name || data.userName || q.userName || q.user?.name || q.createdByName || '';
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -970,6 +972,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div class="signature-line-border">Recibido conforme</div>
         </div>
         <div class="signature-line">
+          ${userName ? `<div style="font-size: 8.5pt; font-weight: bold; margin-bottom: 3px; color: #1e293b; text-transform: uppercase;">${userName}</div>` : ''}
           <div class="signature-line-border">Elaborado por</div>
         </div>
       </div>
