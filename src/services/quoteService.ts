@@ -168,10 +168,39 @@ export class QuoteService {
     const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId));
     if (!quote) return null;
 
-    const lines = await db.select().from(quoteLines).where(eq(quoteLines.quoteId, quoteId));
+    const rawLines = await db
+      .select({
+        id: quoteLines.id,
+        quoteId: quoteLines.quoteId,
+        productId: quoteLines.productId,
+        quantity: quoteLines.quantity,
+        unitPrice: quoteLines.unitPrice,
+        discount: quoteLines.discount,
+        subtotal: quoteLines.subtotal,
+        total: quoteLines.total,
+        productName: products.name,
+        productSku: products.sku,
+        unitOfMeasure: products.unitOfMeasure,
+      })
+      .from(quoteLines)
+      .leftJoin(products, eq(quoteLines.productId, products.id))
+      .where(eq(quoteLines.quoteId, quoteId));
+
     const taxes = await db.select().from(quoteTaxes).where(eq(quoteTaxes.quoteId, quoteId));
 
-    return { ...quote, lines, taxes };
+    let customer = null;
+    if (quote.customerId) {
+      const [cust] = await db.select().from(customers).where(eq(customers.id, quote.customerId));
+      customer = cust || null;
+    }
+
+    return {
+      ...quote,
+      customerName: customer?.name || 'Cliente General',
+      customer,
+      lines: rawLines,
+      taxes
+    };
   }
 
   /**

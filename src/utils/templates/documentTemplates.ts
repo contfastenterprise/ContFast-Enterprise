@@ -725,6 +725,198 @@ export class DocumentTemplates {
     `;
   }
 
+  static renderQuote(data: any): string {
+    const { company, customer, quote, lines, taxes } = data;
+    const q = quote || data;
+    const cust = customer || {
+      name: q.customerName || 'Cliente General',
+      rncCedula: q.buyerRnc || q.rncCedula || q.rnc || '',
+      phone: q.customerPhone || q.phone || '',
+      address: q.customerAddress || q.address || ''
+    };
+
+    const padDots = (label: string, length: number) => {
+      const dotsNeeded = length - label.length;
+      return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
+    };
+
+    const formatNum = (val: number) => {
+      return (Number(val) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const emiDate = new Date(q.createdAt || new Date());
+    const formattedEmiDate = `${String(emiDate.getDate()).padStart(2, '0')}/${String(emiDate.getMonth() + 1).padStart(2, '0')}/${emiDate.getFullYear()}`;
+
+    const seqNum = q.sequenceNumber || `COT-${String(q.id || '').substring(0, 8).toUpperCase()}`;
+
+    const itemsRows = (lines || []).map((line: any) => {
+      const qty = Number(line.quantity || 0);
+      const uPrice = Number(line.unitPrice || 0);
+      const discUnit = Number(line.discount || 0);
+
+      const rawSubtotal = qty * uPrice;
+      const rawDiscount = qty * discUnit;
+      const rawTaxable = rawSubtotal - rawDiscount;
+
+      const taxRateVal = line.taxRate !== undefined ? Number(line.taxRate) : 0.18;
+      const lineItbis = rawTaxable * (taxRateVal > 1 ? taxRateVal / 100 : taxRateVal);
+      const finalLineTotal = rawTaxable + lineItbis;
+
+      return `
+        <tr>
+          <td style="padding-left: 12px; font-family: monospace; font-size: 8.5pt;">${line.productSku || line.sku || 'N/A'}</td>
+          <td style="font-weight: 600; color: #003366; font-size: 9pt;">${line.productName || line.name || 'Producto'}</td>
+          <td style="text-transform: capitalize; font-size: 8.5pt;">${line.unitOfMeasure || 'Unidad'}</td>
+          <td class="text-center" style="font-family: monospace; font-size: 9pt;">${qty}</td>
+          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(uPrice)}</td>
+          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(rawDiscount)}</td>
+          <td class="text-right" style="font-family: monospace; font-size: 9pt;">${formatNum(lineItbis)}</td>
+          <td class="text-right" style="font-family: monospace; font-weight: bold; font-size: 9pt;">${formatNum(finalLineTotal)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const subtotalVal = formatNum(Number(q.subtotal || 0));
+    const discountVal = formatNum(Number(q.discount || q.totalDiscount || 0));
+    const itbisVal = formatNum(Number(q.totalTaxes || 0));
+    const totalVal = formatNum(Number(q.total || 0));
+
+    const logoHtml = company?.logoUrl
+      ? `<img src="${company.logoUrl}" style="max-height: 110px; max-width: 250px; object-fit: contain; margin-bottom: 3px; margin-left: -8px;" alt="Logo">`
+      : '';
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cotización ${seqNum}</title>
+  <style>
+    ${DocumentTemplates.getBaseCss('carta')}
+    .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 2px solid #003366; padding-bottom: 15px; }
+    .company-info { font-family: monospace; font-size: 8.5pt; line-height: 1.4; color: #334155; white-space: pre; margin-top: 5px; }
+    .doc-info { text-align: right; }
+    .doc-title { font-size: 14pt; font-weight: 800; color: #003366; text-transform: uppercase; letter-spacing: 0.5px; }
+    .doc-ncf { font-size: 11pt; font-weight: bold; color: #C5A059; margin-top: 2px; }
+    .barcode-text { font-family: monospace; font-size: 7.5pt; color: #475569; margin-top: 2px; }
+    .condition-bar { background: linear-gradient(90deg, #003366 0%, #004080 100%); color: #ffffff; font-weight: bold; font-size: 10pt; text-align: center; padding: 6px; border-radius: 4px; margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; }
+    .client-section { display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 18px; }
+    .client-info { font-family: monospace; font-size: 9pt; line-height: 1.4; color: #1e293b; white-space: pre; }
+    .invoice-num { font-family: monospace; font-size: 11pt; font-weight: bold; color: #003366; text-align: right; }
+    .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 9pt; }
+    .invoice-table th { background-color: #003366; color: #ffffff; padding: 8px 10px; font-weight: 700; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.5px; }
+    .invoice-table td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; color: #334155; }
+    .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; }
+    .totals-table { width: 100%; font-family: monospace; font-size: 9.5pt; }
+    .totals-table td { padding: 4px 6px; }
+    .grand-total-row td { font-size: 11.5pt; font-weight: bold; border-top: 2px solid #003366; border-bottom: 3px double #003366; color: #003366; padding-top: 6px; padding-bottom: 6px; }
+    .signature-box { margin-top: 45px; display: flex; justify-content: space-between; font-size: 9pt; font-weight: 600; color: #475569; }
+    .signature-line { width: 220px; border-top: 1px solid #94a3b8; text-align: center; padding-top: 6px; }
+  </style>
+</head>
+<body>
+  <div style="padding: 20px 30px;">
+    <div class="header-container">
+      <div>
+        ${logoHtml}
+        <div class="company-info">
+${padDots('RNC', 12)} ${company?.rnc || ''}
+${padDots('Teléfono', 12)} ${company?.phone || ''}
+${padDots('Email', 12)} ${company?.email || ''}
+${padDots('Dirección', 12)} ${company?.address || ''}
+        </div>
+      </div>
+      <div class="doc-info">
+        <div style="font-weight: bold; font-size: 10pt; border: 2px solid #C5A059; color: #C5A059; padding: 2px 10px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px;">
+          COTIZACIÓN DE VENTA
+        </div>
+        <div class="doc-title">OFERTA COMERCIAL</div>
+        <div class="doc-ncf">N°: <span style="font-family: monospace;">${seqNum}</span></div>
+        <div style="font-size: 9.5pt; color: #333; margin-top: 5px; font-weight: bold;">
+          Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
+        </div>
+        <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
+          ${DocumentTemplates.generateCode39Svg(seqNum)}
+          <div class="barcode-text">${seqNum}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="condition-bar">
+      COTIZACIÓN / PRESUPUESTO COMERCIAL
+    </div>
+
+    <div class="client-section">
+      <div class="client-info">
+${padDots('Cliente / Razón Social', 24)} ${cust.name || 'Cliente General'}
+${padDots('RNC/Cédula', 24)} ${cust.rncCedula || cust.rnc || 'N/A'}
+${padDots('Teléfono', 24)} ${cust.phone || 'N/A'}
+${padDots('Dirección', 24)} ${cust.address || 'N/A'}
+      </div>
+      <div class="invoice-num">
+        Documento: ${seqNum}
+      </div>
+    </div>
+
+    <table class="invoice-table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descripción</th>
+          <th>Medida</th>
+          <th class="text-center">Cantidad</th>
+          <th class="text-right">Precio</th>
+          <th class="text-right">Desc</th>
+          <th class="text-right">ITBIS</th>
+          <th class="text-right">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+      </tbody>
+    </table>
+
+    <div class="bottom-section">
+      <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; max-width: 55%;">
+        <div style="font-weight: bold; color: #003366; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas y Condiciones:</div>
+        <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${q.notes || 'Cotización válida por 30 días a partir de su emisión.\nLos precios están sujetos a cambios sin previo aviso.'}</div>
+      </div>
+      <div style="width: 320px; font-family: monospace; font-size: 9.5pt;">
+        <table class="totals-table">
+          <tr>
+            <td>${padDots('SUB TOTAL', 15)}</td>
+            <td class="text-right">${subtotalVal}</td>
+          </tr>
+          <tr>
+            <td>${padDots('- DESCUENTO', 15)}</td>
+            <td class="text-right">${discountVal}</td>
+          </tr>
+          <tr>
+            <td>${padDots('+ ITBIS', 15)}</td>
+            <td class="text-right">${itbisVal}</td>
+          </tr>
+          <tr class="grand-total-row">
+            <td>${padDots('TOTAL GENERAL', 15)}</td>
+            <td class="text-right">RD$ ${totalVal}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="signature-box">
+      <div class="signature-line">Elaborado por (Empresa)</div>
+      <div class="signature-line">Firma Aceptado por (Cliente)</div>
+    </div>
+
+    <div style="text-align: center; font-size: 8pt; margin-top: 30px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+      Gracias por considerar nuestros productos y servicios. — ${company?.name || ''}
+    </div>
+  </div>
+</body>
+</html>`;
+
+    return deepEscape(html);
+  }
+
   static renderReceipt(data: any, layout: 'carta' | '80mm' | '58mm'): string {
     const css = this.getBaseCss(layout);
     const { company, customer, id, date, paymentMethod, amount, reference, notes, appliedInvoices, customerTotalBalance } = data;
