@@ -889,22 +889,22 @@ export default function PurchasesPage() {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
         <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
-            <Banknote className="h-8 w-8 text-primary" /> Compras y Gastos
+          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
+            <Banknote className="h-8 w-8 text-[#c5a059]" /> Compras y Gastos
           </h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">
+          <p className="font-body-lg text-slate-500 mt-1">
             Administra facturas de suplidores, compras de inventario y gastos de caja chica.
           </p>
         </div>
 
         {/* Tab Switcher & Action button */}
         <div className="flex items-center gap-3 self-end md:self-auto">
-          <div className="bg-surface-container-high p-1 rounded-2xl flex gap-1 border border-white/20">
+          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
               onClick={() => setActiveTab('historial')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'historial'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'historial'
+                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
@@ -914,18 +914,18 @@ export default function PurchasesPage() {
                 resetForm();
                 setActiveTab('nuevo');
               }}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'nuevo'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'nuevo'
+                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
             <button
               onClick={() => setActiveTab('cheques')}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'cheques'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-on-surface-variant/70 hover:text-on-surface'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'cheques'
+                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <Banknote className="h-4 w-4 inline mr-1.5" /> Cheques
@@ -937,14 +937,14 @@ export default function PurchasesPage() {
       {activeTab === 'historial' ? (
         <div className="space-y-8 w-full max-w-none">
           {/* Advanced Filter Panel */}
-          <section className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full">
-            <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+          <section className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full">
+            <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
               <Filter className="h-4 w-4" /> Filtros de Búsqueda
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Rango de Fechas</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Rango de Fechas</label>
                 <div className="w-full [&>div]:w-full [&_button]:w-full">
                   <DateRangePicker
                     from={filterStartDate}
@@ -958,11 +958,11 @@ export default function PurchasesPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Tipo de Registro</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Tipo de Registro</label>
                 <select
                   value={filterType}
                   onChange={e => setFilterType(e.target.value as any)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 >
                   <option value="all">Todos</option>
                   <option value="purchases">Solo Compras (Mercancía/Suplidor)</option>
@@ -971,11 +971,11 @@ export default function PurchasesPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Suplidor</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Suplidor</label>
                 <select
                   value={filterSupplier}
                   onChange={e => setFilterSupplier(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 >
                   <option value="">Cualquier Suplidor</option>
                   {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -983,11 +983,11 @@ export default function PurchasesPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Almacén</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Almacén</label>
                 <select
                   value={filterWarehouse}
                   onChange={e => setFilterWarehouse(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 >
                   <option value="">Cualquier Almacén</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -995,13 +995,13 @@ export default function PurchasesPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">NCF</label>
+                <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">NCF</label>
                 <input
                   type="text"
                   placeholder="Ej. B01..."
                   value={filterNcf}
                   onChange={e => setFilterNcf(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none font-mono"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 />
               </div>
             </div>
@@ -1028,7 +1028,7 @@ export default function PurchasesPage() {
                     }
                     window.open(url, '_blank');
                   }}
-                  className="bg-[#005E63] hover:bg-[#004d51] text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
+                  className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
                 >
                   <Printer className="h-4 w-4" />
                   <span>Imprimir Reporte</span>
@@ -1037,7 +1037,7 @@ export default function PurchasesPage() {
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white px-8 py-3 rounded-2xl flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition-all active:scale-95 disabled:opacity-50"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 text-xs rounded-lg flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition-all active:scale-95 disabled:opacity-50"
               >
                 {searchLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 <span className="font-bold text-xs">Buscar Registros</span>
@@ -1047,10 +1047,10 @@ export default function PurchasesPage() {
 
           {/* Indicators & Data presentation */}
           {!hasSearched ? (
-            <div className="bg-surface-container-low border border-dashed border-on-surface-variant/20 rounded-3xl p-12 text-center">
-              <ListFilter className="h-12 w-12 text-primary mx-auto mb-4 opacity-55" />
-              <h4 className="text-lg font-extrabold text-primary mb-2">Establece los filtros de búsqueda</h4>
-              <p className="text-sm text-on-surface-variant max-w-md mx-auto mb-6">
+            <div className="bg-slate-50 border border-dashed border-on-surface-variant/20 rounded-xl p-12 text-center">
+              <ListFilter className="h-12 w-12 text-[#c5a059] mx-auto mb-4 opacity-55" />
+              <h4 className="text-lg font-extrabold text-[#c5a059] mb-2">Establece los filtros de búsqueda</h4>
+              <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
                 No se muestran transacciones hasta que apliques los filtros de fecha/tipo y presiones el botón de **Buscar Registros**.
               </p>
               <button
@@ -1058,7 +1058,7 @@ export default function PurchasesPage() {
                   resetForm();
                   setActiveTab('nuevo');
                 }}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white px-6 py-3 rounded-2xl font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
               >
                 <Plus className="h-4 w-4" /> Registrar Compra o Gasto
               </button>
@@ -1067,51 +1067,51 @@ export default function PurchasesPage() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map(n => (
-                  <div key={n} className="h-28 bg-surface-container-high animate-pulse rounded-2xl"></div>
+                  <div key={n} className="h-28 bg-slate-50 animate-pulse rounded-lg"></div>
                 ))}
               </div>
-              <div className="h-80 bg-surface-container-high animate-pulse rounded-3xl"></div>
+              <div className="h-80 bg-slate-50 animate-pulse rounded-xl"></div>
             </div>
           ) : (
             <div className="space-y-8 w-full max-w-none">
               {/* KPI Cards Dashboard */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center justify-between">
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Compras de Inventario</p>
                     <h3 className="text-2xl font-black text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
-                  <div className="bg-emerald-500/20 p-3 rounded-2xl text-emerald-800">
+                  <div className="bg-emerald-500/20 p-3 rounded-lg text-emerald-800">
                     <ShoppingCart className="h-6 w-6" />
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-6 rounded-3xl flex items-center justify-between">
+                <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Gastos de Operación</p>
                     <h3 className="text-2xl font-black text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
-                  <div className="bg-blue-500/20 p-3 rounded-2xl text-blue-800">
+                  <div className="bg-blue-500/20 p-3 rounded-lg text-blue-800">
                     <Activity className="h-6 w-6" />
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-6 rounded-3xl flex items-center justify-between">
+                <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-purple-800 tracking-wider">ITBIS Soportado</p>
                     <h3 className="text-2xl font-black text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
-                  <div className="bg-purple-500/20 p-3 rounded-2xl text-purple-800">
+                  <div className="bg-purple-500/20 p-3 rounded-lg text-purple-800">
                     <DollarSign className="h-6 w-6" />
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-6 rounded-3xl flex items-center justify-between">
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Total Transacciones</p>
                     <h3 className="text-2xl font-black text-amber-950 mt-1 font-mono-data">{kpis.totalTransactions}</h3>
                   </div>
-                  <div className="bg-amber-500/20 p-3 rounded-2xl text-amber-800">
+                  <div className="bg-amber-500/20 p-3 rounded-lg text-amber-800">
                     <FileText className="h-6 w-6" />
                   </div>
                 </div>
@@ -1120,8 +1120,8 @@ export default function PurchasesPage() {
               {/* Lists Split Panel (Compras / Gastos por separado, uno debajo de otro) */}
               <div className="flex flex-col gap-8 w-full max-w-none">
                 {/* Compras de Inventario (Comprobantes) */}
-                <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-primary mb-2 flex items-center justify-between text-base">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
+                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5 text-emerald-500" /> 1. Compras (Con Suplidor / Inventario)
                     </span>
@@ -1130,35 +1130,35 @@ export default function PurchasesPage() {
                     </span>
                   </h3>
 
-                  <div className="border border-outline-variant/20 rounded-2xl overflow-hidden mt-4">
+                  <div className="border border-slate-200 rounded-lg overflow-hidden mt-4">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
-                            <th className="py-3 px-2">Suplidor / RNC</th>
-                            <th className="py-3 px-2">NCF</th>
-                            <th className="py-3 px-2">Fecha</th>
-                            <th className="py-3 px-2 text-right">Total</th>
-                            <th className="py-3 px-2 text-center">Acciones</th>
+                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-slate-500 uppercase">
+                            <th className="px-4 py-2.5">Suplidor / RNC</th>
+                            <th className="px-4 py-2.5">NCF</th>
+                            <th className="px-4 py-2.5">Fecha</th>
+                            <th className="px-4 py-2.5 text-right">Total</th>
+                            <th className="px-4 py-2.5 text-center">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
                           {paginatedPurchases.map(e => (
-                            <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
-                              <td className="py-3 px-2">
-                                <p className="font-bold text-xs text-primary">{e.supplierName || 'Desconocido'}</p>
-                                <p className="text-[10px] text-on-surface-variant/80">{e.supplierRnc || '-'}</p>
+                            <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-4 py-2.5">
+                                <p className="font-bold text-xs text-[#c5a059]">{e.supplierName || 'Desconocido'}</p>
+                                <p className="text-[10px] text-slate-500">{e.supplierRnc || '-'}</p>
                               </td>
-                              <td className="py-3 px-2 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
-                              <td className="py-3 px-2 text-xs text-on-surface-variant/90">{e.issueDate}</td>
-                              <td className="py-3 px-2 text-right font-bold font-mono-data text-xs text-emerald-600">
+                              <td className="px-4 py-2.5 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
+                              <td className="px-4 py-2.5 text-xs text-slate-600">{e.issueDate}</td>
+                              <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-emerald-600">
                                 RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
                               </td>
-                              <td className="py-3 px-2 text-center">
+                              <td className="px-4 py-2.5 text-center">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     onClick={() => viewDetails(e.id)}
-                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                    className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
                                     title="Ver Detalles"
                                   >
                                     <Eye className="h-4 w-4" />
@@ -1194,7 +1194,7 @@ export default function PurchasesPage() {
                           ))}
                           {filteredPurchases.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="py-8 text-center text-xs text-on-surface-variant">
+                              <td colSpan={5} className="py-8 text-center text-xs text-slate-600">
                                 No hay compras comerciales en el rango de búsqueda.
                               </td>
                             </tr>
@@ -1204,25 +1204,25 @@ export default function PurchasesPage() {
                     </div>
                   </div>
                   {totalPurchasesPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/10 gap-3 text-xs">
-                      <span className="text-on-surface-variant/70 text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-slate-200 gap-3 text-xs">
+                      <span className="text-slate-500 text-center sm:text-left">
                         Mostrando {purchasesStart + 1} a {Math.min(purchasesEnd, filteredPurchases.length)} de {filteredPurchases.length} compras
                       </span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setPurchasesPage(p => Math.max(1, p - 1))}
                           disabled={purchasesPage === 1}
-                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Anterior
                         </button>
-                        <span className="font-semibold text-primary px-2">
+                        <span className="font-semibold text-[#c5a059] px-2">
                           Pág. {purchasesPage} de {totalPurchasesPages}
                         </span>
                         <button
                           onClick={() => setPurchasesPage(p => Math.min(totalPurchasesPages, p + 1))}
                           disabled={purchasesPage === totalPurchasesPages}
-                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Siguiente
                         </button>
@@ -1232,8 +1232,8 @@ export default function PurchasesPage() {
                 </div>
 
                 {/* Gastos Menores / Caja Chica */}
-                <div className="bg-surface-bright border border-outline-variant/30 rounded-3xl p-6 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-primary mb-2 flex items-center justify-between text-base">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
+                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-blue-500" /> 2. Gastos Menores / Caja Chica
                     </span>
@@ -1242,39 +1242,39 @@ export default function PurchasesPage() {
                     </span>
                   </h3>
 
-                  <div className="border border-outline-variant/20 rounded-2xl overflow-hidden mt-4">
+                  <div className="border border-slate-200 rounded-lg overflow-hidden mt-4">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-on-surface-variant/75 uppercase">
-                            <th className="py-3 px-2">Concepto / NCF</th>
-                            <th className="py-3 px-2">Tipo de Gasto</th>
-                            <th className="py-3 px-2">Fecha</th>
-                            <th className="py-3 px-2 text-right">Total</th>
-                            <th className="py-3 px-2 text-center">Acciones</th>
+                          <tr className="border-b border-surface-container-high text-[11px] font-bold text-slate-500 uppercase">
+                            <th className="px-4 py-2.5">Concepto / NCF</th>
+                            <th className="px-4 py-2.5">Tipo de Gasto</th>
+                            <th className="px-4 py-2.5">Fecha</th>
+                            <th className="px-4 py-2.5 text-right">Total</th>
+                            <th className="px-4 py-2.5 text-center">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
                           {paginatedExpenses.map(e => (
-                            <tr key={e.id} className="hover:bg-surface-container-high/50 transition-colors group">
-                              <td className="py-3 px-2">
-                                <p className="font-bold text-xs text-primary">{e.description || 'Gasto General'}</p>
-                                {e.ncf && <p className="text-[10px] font-mono text-on-surface-variant/80">{e.ncf}</p>}
+                            <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-4 py-2.5">
+                                <p className="font-bold text-xs text-[#c5a059]">{e.description || 'Gasto General'}</p>
+                                {e.ncf && <p className="text-[10px] font-mono text-slate-500">{e.ncf}</p>}
                               </td>
-                              <td className="py-3 px-2">
+                              <td className="px-4 py-2.5">
                                 <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-semibold inline-block">
                                   {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
                                 </span>
                               </td>
-                              <td className="py-3 px-2 text-xs text-on-surface-variant/90">{e.issueDate}</td>
-                              <td className="py-3 px-2 text-right font-bold font-mono-data text-xs text-blue-600">
+                              <td className="px-4 py-2.5 text-xs text-slate-600">{e.issueDate}</td>
+                              <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-blue-600">
                                 RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
                               </td>
-                              <td className="py-3 px-2 text-center">
+                              <td className="px-4 py-2.5 text-center">
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     onClick={() => viewDetails(e.id)}
-                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-xl transition-all"
+                                    className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
                                     title="Ver Detalles"
                                   >
                                     <Eye className="h-4 w-4" />
@@ -1310,7 +1310,7 @@ export default function PurchasesPage() {
                           ))}
                           {filteredExpenses.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="p-8 text-center text-xs text-on-surface-variant">
+                              <td colSpan={5} className="p-8 text-center text-xs text-slate-600">
                                 No hay gastos registrados en el rango de búsqueda.
                               </td>
                             </tr>
@@ -1320,25 +1320,25 @@ export default function PurchasesPage() {
                     </div>
                   </div>
                   {totalExpensesPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-outline-variant/10 gap-3 text-xs">
-                      <span className="text-on-surface-variant/70 text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-slate-200 gap-3 text-xs">
+                      <span className="text-slate-500 text-center sm:text-left">
                         Mostrando {expensesStart + 1} a {Math.min(expensesEnd, filteredExpenses.length)} de {filteredExpenses.length} gastos
                       </span>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setExpensesPage(p => Math.max(1, p - 1))}
                           disabled={expensesPage === 1}
-                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Anterior
                         </button>
-                        <span className="font-semibold text-primary px-2">
+                        <span className="font-semibold text-[#c5a059] px-2">
                           Pág. {expensesPage} de {totalExpensesPages}
                         </span>
                         <button
                           onClick={() => setExpensesPage(p => Math.min(totalExpensesPages, p + 1))}
                           disabled={expensesPage === totalExpensesPages}
-                          className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Siguiente
                         </button>
@@ -1355,9 +1355,9 @@ export default function PurchasesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cabecera del Gasto */}
           <section className="lg:col-span-2 space-y-6">
-            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
                   <FileText className="h-4 w-4" /> Datos del Comprobante
                 </h3>
                 <button
@@ -1371,19 +1371,19 @@ export default function PurchasesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div
-                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-surface-container-low rounded-2xl cursor-pointer hover:bg-surface-container transition-all"
+                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-surface-container transition-all"
                   onClick={() => setIsMinorExpense(!isMinorExpense)}
                 >
-                  {isMinorExpense ? <CheckSquare className="h-6 w-6 text-primary" /> : <Square className="h-6 w-6 text-on-surface-variant/40" />}
+                  {isMinorExpense ? <CheckSquare className="h-6 w-6 text-[#c5a059]" /> : <Square className="h-6 w-6 text-slate-400" />}
                   <div>
-                    <p className="font-bold text-primary">Es un Gasto Menor (Caja Chica)</p>
-                    <p className="text-xs text-on-surface-variant">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
+                    <p className="font-bold text-[#c5a059]">Es un Gasto Menor (Caja Chica)</p>
+                    <p className="text-xs text-slate-600">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
                   </div>
                 </div>
 
                 {!isMinorExpense && (
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Suplidor (Proveedor)</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-2">Suplidor (Proveedor)</label>
                     <div className="flex gap-2">
                       <div className="flex-1">
                         <AutocompleteSelect
@@ -1401,7 +1401,7 @@ export default function PurchasesPage() {
                       <button
                         type="button"
                         onClick={() => setShowAddSupplierModal(true)}
-                        className="bg-primary/10 hover:bg-primary/20 text-primary transition-all p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
+                        className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition-all p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
                         title="Agregar Nuevo Proveedor"
                       >
                         <Plus className="w-4 h-4" />
@@ -1411,28 +1411,28 @@ export default function PurchasesPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">NCF (Opcional si es Gasto Menor)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">NCF (Opcional si es Gasto Menor)</label>
                   <input
                     type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
                     value={ncf} onChange={e => setNcf(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none font-mono uppercase"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none font-mono uppercase"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Fecha Emisión</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Fecha Emisión</label>
                   <input
                     type="date"
                     value={issueDate} onChange={e => setIssueDate(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Tipo de Gasto (Formato 606)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Tipo de Gasto (Formato 606)</label>
                   <select
                     value={expenseType} onChange={e => setExpenseType(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
                   >
                     {expenseTypesList.filter(t => t.status === 'active' || t.code === expenseType).map(t => (
                       <option key={t.id} value={t.code}>{t.code} - {t.name}</option>
@@ -1441,23 +1441,23 @@ export default function PurchasesPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Concepto General</label>
+                <label className="block text-xs font-bold text-slate-500 mb-2">Concepto General</label>
                 <textarea
                   rows={2} placeholder="Descripción de la compra..."
                   value={description} onChange={e => setDescription(e.target.value)}
-                  className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                  className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
                 />
               </div>
             </div>
 
             {/* Checkbox to Exempt ITBIS */}
-            <div className="flex items-center gap-2 mt-4 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-2xl max-w-md">
+            <div className="flex items-center gap-2 mt-4 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-lg max-w-md">
               <input
                 type="checkbox"
                 id="noItbis"
                 checked={noItbis}
                 onChange={e => setNoItbis(e.target.checked)}
-                className="w-4 h-4 text-primary bg-surface-container-high border-none rounded-xl focus:ring-2 focus:ring-primary cursor-pointer"
+                className="w-4 h-4 text-[#c5a059] bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#c5a059] cursor-pointer"
               />
               <label htmlFor="noItbis" className="text-xs font-extrabold text-yellow-900 cursor-pointer select-none">
                 Gasto Exento de ITBIS (No posee ITBIS)
@@ -1465,14 +1465,14 @@ export default function PurchasesPage() {
             </div>
 
             {isGeneralAmount ? (
-              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6 space-y-5">
-                <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 space-y-5">
+                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
                   <Tag className="h-4 w-4" /> Desglose de Montos Generales
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                    <label className="block text-xs font-bold text-slate-500 mb-2">
                       Total de la Compra (RD$)
                     </label>
                     <input
@@ -1499,15 +1499,15 @@ export default function PurchasesPage() {
                           setGeneralItbis(0);
                         }
                       }}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                     />
-                    <p className="text-[10px] text-on-surface-variant mt-1 ml-1 leading-tight">
+                    <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
                       Ingrese el total para autocalcular el ITBIS y Subtotal.
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                    <label className="block text-xs font-bold text-slate-500 mb-2">
                       Monto sin ITBIS (Subtotal)
                     </label>
                     <input
@@ -1540,12 +1540,12 @@ export default function PurchasesPage() {
                         }
                       }}
                       disabled={noItbis}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                    <label className="block text-xs font-bold text-slate-500 mb-2">
                       ITBIS (18%)
                     </label>
                     <input
@@ -1564,19 +1564,19 @@ export default function PurchasesPage() {
                         setGeneralTotal(roundMoney(generalSubtotal + itb).toString());
                       }}
                       disabled={noItbis}
-                      className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-bold font-mono focus:ring-2 focus:ring-primary outline-none disabled:opacity-50"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">
+                  <label className="block text-xs font-bold text-slate-500 mb-2">
                     Cuenta de Costo / Gasto <span className="text-red-500 font-bold">*</span>
                   </label>
                   <select
                     value={debitAccountId}
                     onChange={e => setDebitAccountId(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                   >
                     <option value="">-- Selecciona una cuenta contable --</option>
                     {accountsList
@@ -1587,20 +1587,20 @@ export default function PurchasesPage() {
                         </option>
                       ))}
                   </select>
-                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1 leading-tight">
+                  <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
                     Cuenta contable donde se registrará el gasto en el libro mayor.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
+              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-primary uppercase tracking-wider text-sm flex items-center gap-2">
+                  <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
                     <Box className="h-4 w-4" /> Líneas de Compra / Gasto
                   </h3>
                   <button
                     onClick={addLine}
-                    className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
+                    className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
                   >
                     <Plus className="h-4 w-4" /> Añadir Línea
                   </button>
@@ -1609,13 +1609,13 @@ export default function PurchasesPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-surface-container-high text-[10px] font-bold text-on-surface-variant/75 uppercase tracking-wider">
-                        <th className="py-3 px-2">Producto / Descripción</th>
-                        <th className="py-3 px-2 w-20">Cant.</th>
-                        <th className="py-3 px-2 w-32">Costo U.</th>
-                        <th className="py-3 px-2 w-28">ITBIS (18%)</th>
-                        <th className="py-3 px-2 w-32 text-right">Total Fila</th>
-                        <th className="py-3 px-2 w-12 text-center"></th>
+                      <tr className="border-b border-surface-container-high text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-4 py-2.5">Producto / Descripción</th>
+                        <th className="px-4 py-2.5 w-20">Cant.</th>
+                        <th className="px-4 py-2.5 w-32">Costo U.</th>
+                        <th className="px-4 py-2.5 w-28">ITBIS (18%)</th>
+                        <th className="px-4 py-2.5 w-32 text-right">Total Fila</th>
+                        <th className="px-4 py-2.5 w-12 text-center"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1643,7 +1643,7 @@ export default function PurchasesPage() {
                               <button
                                 type="button"
                                 onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-on-surface-variant outline-none"
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-slate-600 outline-none"
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -1652,12 +1652,12 @@ export default function PurchasesPage() {
                                 min="1" 
                                 value={l.quantity} 
                                 onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 1)}
-                                className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-[#c5a059] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-on-surface-variant outline-none"
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-slate-600 outline-none"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -1666,18 +1666,18 @@ export default function PurchasesPage() {
                           <td className="py-2 px-2 min-w-[130px]">
                             <input 
                               type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-primary focus:border-primary outline-none font-mono-data"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
                             />
                           </td>
                           <td className="py-2 px-2 min-w-[120px]">
                             <input 
                               type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
                               disabled={noItbis}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right focus:ring-1 focus:ring-primary focus:border-primary outline-none font-mono-data disabled:opacity-50 disabled:bg-slate-50"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data disabled:opacity-50 disabled:bg-slate-50"
                             />
                           </td>
                           <td className="py-2 px-2 text-right min-w-[130px] pr-4">
-                            <span className="font-mono-data font-bold text-sm text-primary">RD${l.total.toFixed(2)}</span>
+                            <span className="font-mono-data font-bold text-sm text-[#c5a059]">RD${l.total.toFixed(2)}</span>
                           </td>
                           <td className="py-2 px-2 text-center">
                             <button onClick={() => removeLine(l.id)} className="p-1 text-red-500 hover:bg-red-50 rounded-lg">
@@ -1688,7 +1688,7 @@ export default function PurchasesPage() {
                       ))}
                       {lines.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-8 text-center text-sm font-medium text-on-surface-variant/60">
+                          <td colSpan={6} className="py-8 text-center text-sm font-medium text-slate-600/60">
                             Aún no has agregado productos o servicios a esta compra.
                           </td>
                         </tr>
@@ -1702,16 +1702,16 @@ export default function PurchasesPage() {
 
           {/* Resumen y Config */}
           <section className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-              <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+              <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
                 <Store className="h-4 w-4" /> Configuración
               </h3>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/15 select-none mb-2">
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 select-none mb-2">
                   <div>
-                    <p className="text-xs font-bold text-primary">Compra por Monto General</p>
-                    <p className="text-[10px] text-on-surface-variant leading-normal">Registra un valor único de gasto sin detalle de ítems.</p>
+                    <p className="text-xs font-bold text-[#c5a059]">Compra por Monto General</p>
+                    <p className="text-[10px] text-slate-600 leading-normal">Registra un valor único de gasto sin detalle de ítems.</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1728,22 +1728,22 @@ export default function PurchasesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Almacén Destino (Inventario)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Almacén Destino (Inventario)</label>
                   <select
                     value={isGeneralAmount ? "" : warehouseId} onChange={e => setWarehouseId(e.target.value)}
                     disabled={isGeneralAmount}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="">No afecta inventario</option>
                     {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                   </select>
-                  <p className="text-[10px] text-on-surface-variant mt-1 ml-1">
+                  <p className="text-[10px] text-slate-600 mt-1 ml-1">
                     {isGeneralAmount ? 'Inhabilitado en registro de monto general.' : 'Los productos con registro sumarán stock a este almacén.'}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant/70 mb-2">Método de Pago</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-2">Método de Pago</label>
                   <select
                     value={paymentMethod} onChange={e => {
                       setPaymentMethod(e.target.value);
@@ -1751,7 +1751,7 @@ export default function PurchasesPage() {
                         setHasGuaranteeCheck(false);
                       }
                     }}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
                   >
                     <option value="01">Efectivo</option>
                     <option value="02">Cheque</option>
@@ -1761,28 +1761,28 @@ export default function PurchasesPage() {
                 </div>
 
                 {paymentMethod === '04' && (
-                  <div className="mt-4 border-t border-dashed border-outline-variant/35 pt-4 space-y-4">
+                  <div className="mt-4 border-t border-dashed border-slate-200/35 pt-4 space-y-4">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={hasGuaranteeCheck}
                         onChange={e => setHasGuaranteeCheck(e.target.checked)}
-                        className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
+                        className="rounded border-slate-200 text-[#c5a059] focus:ring-[#c5a059] h-4 w-4"
                       />
-                      <span className="text-xs font-bold text-on-surface-variant/80">Dejar Cheque en Garantía</span>
+                      <span className="text-xs font-bold text-slate-500">Dejar Cheque en Garantía</span>
                     </label>
 
                     {hasGuaranteeCheck && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-4 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/20"
+                        className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200"
                       >
                         <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Banco / Cuenta de Origen</label>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Banco / Cuenta de Origen</label>
                           <select
                             value={gcBankAccountId} onChange={e => setGcBankAccountId(e.target.value)}
-                            className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
                           >
                             <option value="">Selecciona una cuenta</option>
                             {bankAccountsList.map(b => (
@@ -1793,19 +1793,19 @@ export default function PurchasesPage() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
                               Número de Cheque <span className="text-red-500 font-bold">* (Obligatorio)</span>
                             </label>
                             <input
                               type="text"
                               value={gcCheckNumber} onChange={e => setGcCheckNumber(e.target.value)}
-                              className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
                               placeholder="Ej: 10023"
                               required
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1 text-primary">Monto Cheque</label>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1 text-[#c5a059]">Monto Cheque</label>
                             <input
                               type="number"
                               step="0.01"
@@ -1817,7 +1817,7 @@ export default function PurchasesPage() {
                                   setGcAmount(roundMoney(val));
                                 }
                               }}
-                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none font-bold font-mono"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none font-bold font-mono"
                             />
                             {Math.abs(gcAmount - grandTotal) > 0.01 && (
                               <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-[10px] text-amber-800 dark:text-amber-300 flex items-start gap-2 leading-relaxed shadow-sm">
@@ -1833,33 +1833,33 @@ export default function PurchasesPage() {
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Fecha Emisión</label>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Fecha Emisión</label>
                             <input
                               type="date"
                               value={gcIssueDate} onChange={e => setGcIssueDate(e.target.value)}
-                              className="w-full bg-white border border-outline-variant/20 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">
+                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
                               Fecha de Cobro <span className="text-red-500 font-bold">* (Obligatorio)</span>
                             </label>
                             <input
                               type="date"
                               value={gcDueDate} onChange={e => setGcDueDate(e.target.value)}
-                              className="w-full bg-white border border-outline-variant/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              className="w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
                               required
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-[10px] font-bold text-on-surface-variant/70 mb-1">Beneficiario (Autocompletado)</label>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Beneficiario (Autocompletado)</label>
                           <input
                             type="text"
                             value={gcPayee}
                             disabled
-                            className="w-full bg-surface-container-low border border-outline-variant/20 rounded-xl px-3 py-2 text-xs text-on-surface-variant/70 outline-none cursor-not-allowed font-medium"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 outline-none cursor-not-allowed font-medium"
                             placeholder="Selecciona un suplidor para autocompletar"
                           />
                         </div>
@@ -1870,9 +1870,9 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            <div className="bg-[#f8fafc] border border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md shadow-slate-100/50">
+            <div className="bg-[#f8fafc] border border-slate-200/80 text-slate-800 rounded-xl p-4 shadow-md shadow-slate-100/50">
               <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2 text-slate-900">
-                <Tag className="h-4 w-4 text-primary" /> Resumen Total
+                <Tag className="h-4 w-4 text-[#c5a059]" /> Resumen Total
               </h3>
 
               <div className="space-y-3 mb-6">
@@ -1888,27 +1888,27 @@ export default function PurchasesPage() {
                   <span className="text-sm font-medium text-slate-600 flex items-center gap-2">ISC <span className="text-[10px] opacity-70 text-slate-500">(Combustibles)</span></span>
                   <input
                     type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-primary outline-none text-slate-900"
+                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
                   />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-slate-600">Otros Impuestos</span>
                   <input
                     type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-primary outline-none text-slate-900"
+                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
                   />
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-200/80 flex justify-between items-center mb-6">
                 <span className="text-sm font-bold text-slate-800">TOTAL NETO</span>
-                <span className="font-display-lg text-2xl font-black text-primary">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-display-lg text-2xl font-black text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
 
               <button
                 onClick={saveExpense}
                 disabled={loading}
-                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
+                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                 <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
@@ -1933,7 +1933,7 @@ export default function PurchasesPage() {
       {/* OCR Lector Modal */}
       {showOcrModal && (
         <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 border border-slate-200">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 border border-slate-200">
             <button
               onClick={() => setShowOcrModal(false)}
               className="absolute top-4 right-4 text-slate-500 hover:text-slate-750 text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl active:scale-95 z-50 transition-colors"
@@ -1955,7 +1955,7 @@ export default function PurchasesPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-surface rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#003366]"
+              className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#003366]"
             >
               {/* Modal Header */}
               <div className="bg-[#001733] text-white p-6 flex justify-between items-center border-b border-[#003366]">
@@ -1979,58 +1979,58 @@ export default function PurchasesPage() {
               {/* Modal Content / Form */}
               <form onSubmit={handleAddSupplier} className="p-6 overflow-y-auto space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Nombre del Proveedor *</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Nombre del Proveedor *</label>
                   <input
                     type="text"
                     required
                     placeholder="Ej. Distribuidora Dominicana S.A."
                     value={newSupplierName}
                     onChange={e => setNewSupplierName(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none text-slate-800"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">RNC / Cédula (Opcional)</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">RNC / Cédula (Opcional)</label>
                   <input
                     type="text"
                     placeholder="Ej. 131-12345-6"
                     value={newSupplierRnc}
                     onChange={e => setNewSupplierRnc(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none text-slate-800"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Correo Electrónico (Opcional)</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Correo Electrónico (Opcional)</label>
                   <input
                     type="email"
                     placeholder="Ej. contacto@proveedor.com"
                     value={newSupplierEmail}
                     onChange={e => setNewSupplierEmail(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none text-slate-800"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Teléfono (Opcional)</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Teléfono (Opcional)</label>
                   <input
                     type="text"
                     placeholder="Ej. 809-555-0199"
                     value={newSupplierPhone}
                     onChange={e => setNewSupplierPhone(e.target.value)}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none text-on-surface"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none text-slate-800"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-on-surface mb-2 font-sans">Dirección (Opcional)</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Dirección (Opcional)</label>
                   <textarea
                     placeholder="Ej. Av. Winston Churchill #105, Santo Domingo"
                     value={newSupplierAddress}
                     onChange={e => setNewSupplierAddress(e.target.value)}
                     rows={2}
-                    className="w-full bg-surface-container-high border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary outline-none resize-none text-on-surface"
+                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none resize-none text-slate-800"
                   />
                 </div>
 
@@ -2038,7 +2038,7 @@ export default function PurchasesPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddSupplierModal(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-bold text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-95"
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
                   >
                     Cancelar
                   </button>
@@ -2070,7 +2070,7 @@ export default function PurchasesPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+              className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
             >
               {/* Modal Header */}
               <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
@@ -2093,32 +2093,32 @@ export default function PurchasesPage() {
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto flex-1 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-surface-container-low p-4 rounded-2xl">
-                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Tipo y Comprobante</p>
-                    <p className="font-bold text-sm text-primary mt-1">
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <p className="text-[10px] uppercase font-bold text-slate-600">Tipo y Comprobante</p>
+                    <p className="font-bold text-sm text-[#c5a059] mt-1">
                       {selectedExpense.isMinorExpense ? 'Gastos Menores (Caja Chica)' : 'Compra Comercial (Suplidor)'}
                     </p>
-                    <p className="text-xs font-mono text-on-surface-variant/80 mt-0.5">
+                    <p className="text-xs font-mono text-slate-500 mt-0.5">
                       NCF: {selectedExpense.ncf || 'N/A'}
                     </p>
                   </div>
 
-                  <div className="bg-surface-container-low p-4 rounded-2xl">
-                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Suplidor / Proveedor</p>
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <p className="text-[10px] uppercase font-bold text-slate-600">Suplidor / Proveedor</p>
                     {selectedExpense.isMinorExpense ? (
-                      <p className="font-bold text-sm text-primary mt-1">N/A (Informal / Caja Chica)</p>
+                      <p className="font-bold text-sm text-[#c5a059] mt-1">N/A (Informal / Caja Chica)</p>
                     ) : (
                       <>
-                        <p className="font-bold text-sm text-primary mt-1">{selectedExpense.supplierName}</p>
-                        <p className="text-xs text-on-surface-variant mt-0.5">RNC: {selectedExpense.supplierRnc}</p>
+                        <p className="font-bold text-sm text-[#c5a059] mt-1">{selectedExpense.supplierName}</p>
+                        <p className="text-xs text-slate-600 mt-0.5">RNC: {selectedExpense.supplierRnc}</p>
                       </>
                     )}
                   </div>
 
-                  <div className="bg-surface-container-low p-4 rounded-2xl">
-                    <p className="text-[10px] uppercase font-bold text-on-surface-variant">Fecha y Almacén</p>
-                    <p className="font-bold text-sm text-primary mt-1">Emisión: {selectedExpense.issueDate}</p>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
+                  <div className="bg-slate-50 p-4 rounded-lg">
+                    <p className="text-[10px] uppercase font-bold text-slate-600">Fecha y Almacén</p>
+                    <p className="font-bold text-sm text-[#c5a059] mt-1">Emisión: {selectedExpense.issueDate}</p>
+                    <p className="text-xs text-slate-600 mt-0.5">
                       Almacén Destino: {selectedExpense.warehouseName || 'No afecta inventario'}
                     </p>
                   </div>
@@ -2126,13 +2126,13 @@ export default function PurchasesPage() {
 
                 {/* Lines breakdown */}
                 <div>
-                  <h4 className="font-bold text-sm text-primary mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="font-bold text-sm text-[#c5a059] mb-3 uppercase tracking-wider flex items-center gap-1.5">
                     <Box className="h-4 w-4" /> Desglose de Líneas de Artículos
                   </h4>
-                  <div className="border border-surface-container-high rounded-2xl overflow-hidden">
+                  <div className="border border-surface-container-high rounded-lg overflow-hidden">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-surface-container-low border-b border-surface-container-high font-bold text-on-surface-variant/85 uppercase">
+                        <tr className="bg-slate-50 border-b border-surface-container-high font-bold text-slate-600 uppercase">
                           <th className="p-3">Descripción</th>
                           <th className="p-3 text-center w-20">Cantidad</th>
                           <th className="p-3 text-right w-28">Costo Unitario</th>
@@ -2143,7 +2143,7 @@ export default function PurchasesPage() {
                       <tbody>
                         {selectedExpense.lines.length === 0 ? (
                           <tr className="border-b border-surface-container-low">
-                            <td className="p-3 font-semibold text-primary">{selectedExpense.description || 'Gasto General / Materia Prima'}</td>
+                            <td className="p-3 font-semibold text-[#c5a059]">{selectedExpense.description || 'Gasto General / Materia Prima'}</td>
                             <td className="p-3 text-center font-bold">1</td>
                             <td className="p-3 text-right font-mono-data">RD${parseFloat(selectedExpense.amount).toFixed(2)}</td>
                             <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(selectedExpense.itbis).toFixed(2)}</td>
@@ -2152,7 +2152,7 @@ export default function PurchasesPage() {
                         ) : (
                           selectedExpense.lines.map(line => (
                             <tr key={line.id} className="border-b border-surface-container-low">
-                              <td className="p-3 font-semibold text-primary">{line.description}</td>
+                              <td className="p-3 font-semibold text-[#c5a059]">{line.description}</td>
                               <td className="p-3 text-center font-bold">{parseFloat(line.quantity)}</td>
                               <td className="p-3 text-right font-mono-data">RD${parseFloat(line.unitCost).toFixed(2)}</td>
                               <td className="p-3 text-right font-mono-data text-emerald-600">RD${parseFloat(line.itbis).toFixed(2)}</td>
@@ -2167,28 +2167,28 @@ export default function PurchasesPage() {
 
                 {/* Summary block */}
                 <div className="flex justify-end">
-                  <div className="w-full max-w-sm bg-surface-container-low p-5 rounded-2xl space-y-2 text-xs">
+                  <div className="w-full max-w-sm bg-slate-50 p-5 rounded-lg space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-on-surface-variant">Subtotal</span>
+                      <span className="text-slate-600">Subtotal</span>
                       <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-on-surface-variant">ITBIS Soportado</span>
+                      <span className="text-slate-600">ITBIS Soportado</span>
                       <span className="font-bold font-mono-data text-emerald-600">RD$ {parseFloat(selectedExpense.itbis).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                     {parseFloat(selectedExpense.isc) > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-on-surface-variant">ISC (Combustibles)</span>
+                        <span className="text-slate-600">ISC (Combustibles)</span>
                         <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.isc).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
                     {parseFloat(selectedExpense.otherTaxes) > 0 && (
                       <div className="flex justify-between">
-                        <span className="text-on-surface-variant">Otros Impuestos</span>
+                        <span className="text-slate-600">Otros Impuestos</span>
                         <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.otherTaxes).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
-                    <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-black text-primary">
+                    <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-black text-[#c5a059]">
                       <span>TOTAL GENERAL</span>
                       <span className="font-mono-data">
                         RD$ {(
@@ -2204,11 +2204,11 @@ export default function PurchasesPage() {
               </div>
 
               {/* Modal Footer */}
-              <div className="bg-surface-container-high p-4 flex justify-between items-center">
+              <div className="bg-slate-50 p-4 flex justify-between items-center">
                 {userRole === 'sistemas' ? (
                   <button
                     onClick={() => handleDeleteExpense(selectedExpense.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-red-500/20"
+                    className="bg-red-500 hover:bg-red-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-red-500/20"
                   >
                     <Trash2 className="h-4 w-4" /> Eliminar Transacción
                   </button>
@@ -2221,20 +2221,20 @@ export default function PurchasesPage() {
                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                   <button
                     onClick={() => startEditExpense(selectedExpense)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
+                    className="bg-amber-500 hover:bg-amber-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
                   >
                     <Edit className="h-4 w-4" /> Editar Transacción
                   </button>
                 )}
                 <button
                   onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank')}
-                  className={`bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
+                  className={`bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
                 >
                   <Printer className="h-4 w-4" /> Imprimir
                 </button>
                 <button
                   onClick={() => setSelectedExpense(null)}
-                  className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+                  className="bg-primary text-on-primary h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
                 >
                   Cerrar Detalle
                 </button>
@@ -2326,18 +2326,18 @@ function GuaranteeChecksView() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6">
-        <h3 className="font-bold text-primary mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+        <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
           <Banknote className="h-5 w-5 text-amber-500" /> Control de Cheques en Garantía
         </h3>
-        <p className="text-xs text-on-surface-variant/80 mb-6">
+        <p className="text-xs text-slate-500 mb-6">
           Aquí se listan todos los cheques dejados en garantía de compras a crédito. Puedes aplicarlos contablemente de manera manual cuando el suplidor confirme su cobro.
         </p>
 
         {/* Date Filter Panel */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-8 pb-6 border-b border-outline-variant/20">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-8 pb-6 border-b border-slate-200">
           <div className="w-full max-w-md">
-            <label className="block text-[11px] font-bold text-on-surface-variant/80 mb-1.5 uppercase">Rango de Fechas</label>
+            <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Rango de Fechas</label>
             <div className="w-full [&>div]:w-full [&_button]:w-full">
               <DateRangePicker
                 from={startDate}
@@ -2352,7 +2352,7 @@ function GuaranteeChecksView() {
           <button
             onClick={fetchChecks}
             disabled={loading}
-            className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 h-10 self-start sm:self-auto"
+            className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 self-start sm:self-auto"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
             Buscar
@@ -2363,7 +2363,7 @@ function GuaranteeChecksView() {
               onClick={() => {
                 window.open(`/api/v1/ap/payments/report?startDate=${startDate}&endDate=${endDate}`, '_blank');
               }}
-              className="bg-[#005E63] hover:bg-[#004d51] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 h-10 self-start sm:self-auto animate-fade-in"
+              className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto animate-fade-in"
             >
               <Printer className="h-3.5 w-3.5" />
               Imprimir Reporte
@@ -2373,32 +2373,32 @@ function GuaranteeChecksView() {
 
         {loading ? (
           <div className="py-12 flex justify-center items-center">
-            <RefreshCw className="h-8 w-8 text-primary animate-spin" />
+            <RefreshCw className="h-8 w-8 text-[#c5a059] animate-spin" />
           </div>
         ) : (
           <div className="space-y-8">
             {/* Pendientes */}
             <div>
-              <h4 className="font-bold text-primary mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                 Cheques Pendientes por Cobrar ({pendingChecks.length})
               </h4>
-              <div className="bg-white/50 border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-white/50 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-surface-container-low border-b border-outline-variant/30 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
-                      <th className="px-6 py-3">Suplidor</th>
-                      <th className="px-6 py-3">Cheque #</th>
-                      <th className="px-6 py-3">Fecha Emisión</th>
-                      <th className="px-6 py-3 text-amber-700">Fecha de Cobro</th>
-                      <th className="px-6 py-3 text-right">Monto</th>
-                      <th className="px-6 py-3 text-center">Acciones</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-4 py-2.5">Suplidor</th>
+                      <th className="px-4 py-2.5">Cheque #</th>
+                      <th className="px-4 py-2.5">Fecha Emisión</th>
+                      <th className="px-4 py-2.5 text-amber-700">Fecha de Cobro</th>
+                      <th className="px-4 py-2.5 text-right">Monto</th>
+                      <th className="px-4 py-2.5 text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10 text-xs">
                     {pendingChecks.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-on-surface-variant/70 italic">
+                        <td colSpan={6} className="py-8 text-center text-slate-500 italic">
                           No hay cheques en garantía pendientes.
                         </td>
                       </tr>
@@ -2407,17 +2407,17 @@ function GuaranteeChecksView() {
                         const isDue = p.dueDate <= getLocalDateString();
                         return (
                           <tr key={p.id} className={isDue ? "bg-amber-50/30" : ""}>
-                            <td className="px-6 py-4 font-bold text-primary">{p.supplierName}</td>
-                            <td className="px-6 py-4 font-mono font-bold">{p.checkNumber || 'S/N'}</td>
-                            <td className="px-6 py-4 font-mono">{p.paymentDate}</td>
-                            <td className="px-6 py-4 font-mono font-bold text-amber-600 flex items-center gap-1">
+                            <td className="px-4 py-2.5 text-xs font-bold text-[#c5a059]">{p.supplierName}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono font-bold">{p.checkNumber || 'S/N'}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{p.paymentDate}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono font-bold text-amber-600 flex items-center gap-1">
                               {isDue && <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>}
                               {p.dueDate}
                             </td>
-                            <td className="px-6 py-4 text-right font-mono font-bold text-primary">
+                            <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-[#c5a059]">
                               RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 py-2.5 text-xs text-center">
                               <button
                                 onClick={() => handleApplyCheck(p.id, p.checkId, p.checkNumber)}
                                 disabled={applyingId === p.checkId}
@@ -2434,7 +2434,7 @@ function GuaranteeChecksView() {
                 </table>
               </div>
               {totalPendingPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-on-surface-variant/70 gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-slate-500 gap-3">
                   <span>
                     Mostrando {pendingStart + 1} a {Math.min(pendingEnd, pendingChecks.length)} de {pendingChecks.length} cheques pendientes
                   </span>
@@ -2442,17 +2442,17 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setPendingPage(p => Math.max(1, p - 1))}
                       disabled={pendingPage === 1}
-                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Anterior
                     </button>
-                    <span className="font-semibold text-primary px-2">
+                    <span className="font-semibold text-[#c5a059] px-2">
                       Pág. {pendingPage} de {totalPendingPages}
                     </span>
                     <button
                       onClick={() => setPendingPage(p => Math.min(totalPendingPages, p + 1))}
                       disabled={pendingPage === totalPendingPages}
-                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Siguiente
                     </button>
@@ -2463,40 +2463,40 @@ function GuaranteeChecksView() {
 
             {/* Aplicados */}
             <div>
-              <h4 className="font-bold text-primary mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 Historial de Cheques Aplicados ({appliedChecks.length})
               </h4>
-              <div className="bg-white/50 border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-white/50 border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-surface-container-low border-b border-outline-variant/30 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">
-                      <th className="px-6 py-3">Suplidor</th>
-                      <th className="px-6 py-3">Cheque #</th>
-                      <th className="px-6 py-3">Fecha Emisión</th>
-                      <th className="px-6 py-3">Fecha Cobrado</th>
-                      <th className="px-6 py-3 text-right">Monto</th>
-                      <th className="px-6 py-3 text-center">Estado</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-4 py-2.5">Suplidor</th>
+                      <th className="px-4 py-2.5">Cheque #</th>
+                      <th className="px-4 py-2.5">Fecha Emisión</th>
+                      <th className="px-4 py-2.5">Fecha Cobrado</th>
+                      <th className="px-4 py-2.5 text-right">Monto</th>
+                      <th className="px-4 py-2.5 text-center">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10 text-xs">
                     {appliedChecks.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-on-surface-variant/70 italic">
+                        <td colSpan={6} className="py-8 text-center text-slate-500 italic">
                           No hay historial de cheques aplicados.
                         </td>
                       </tr>
                     ) : (
                       paginatedApplied.map(p => (
                         <tr key={p.id}>
-                          <td className="px-6 py-4 font-bold text-on-surface-variant">{p.supplierName}</td>
-                          <td className="px-6 py-4 font-mono font-medium">{p.checkNumber || 'S/N'}</td>
-                          <td className="px-6 py-4 font-mono text-on-surface-variant/70">{p.paymentDate}</td>
-                          <td className="px-6 py-4 font-mono font-medium">{p.dueDate}</td>
-                          <td className="px-6 py-4 text-right font-mono font-bold text-on-surface-variant">
+                          <td className="px-4 py-2.5 text-xs font-bold text-slate-600">{p.supplierName}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{p.checkNumber || 'S/N'}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{p.paymentDate}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{p.dueDate}</td>
+                          <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-slate-600">
                             RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-4 py-2.5 text-xs text-center">
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-250">
                               ACEPTADO
                             </span>
@@ -2508,7 +2508,7 @@ function GuaranteeChecksView() {
                 </table>
               </div>
               {totalAppliedPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-on-surface-variant/70 gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-slate-500 gap-3">
                   <span>
                     Mostrando {appliedStart + 1} a {Math.min(appliedEnd, appliedChecks.length)} de {appliedChecks.length} cheques aplicados
                   </span>
@@ -2516,17 +2516,17 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setAppliedPage(p => Math.max(1, p - 1))}
                       disabled={appliedPage === 1}
-                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Anterior
                     </button>
-                    <span className="font-semibold text-primary px-2">
+                    <span className="font-semibold text-[#c5a059] px-2">
                       Pág. {appliedPage} de {totalAppliedPages}
                     </span>
                     <button
                       onClick={() => setAppliedPage(p => Math.min(totalAppliedPages, p + 1))}
                       disabled={appliedPage === totalAppliedPages}
-                      className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Siguiente
                     </button>

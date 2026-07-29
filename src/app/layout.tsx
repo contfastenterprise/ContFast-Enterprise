@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Hanken_Grotesk, JetBrains_Mono, Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const hankenGrotesk = Hanken_Grotesk({
-  variable: "--font-display",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +13,8 @@ export const metadata: Metadata = {
   description: "Sistema de facturación electrónica e-CF multi-empresa homologado con la DGII de República Dominicana. Rápido, seguro e institucional.",
   manifest: "/manifest.json",
   icons: {
-    icon: '/contfast-logo.png',
-    apple: '/contfast-logo.png',
+    icon: '/Icono.svg',
+    apple: '/Icono.svg',
   },
 };
 
@@ -33,7 +26,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={cn("h-full", "antialiased", hankenGrotesk.variable, jetbrainsMono.variable, "font-sans", geist.variable)}
+      className={cn("h-full", "antialiased", inter.variable, "font-sans")}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">

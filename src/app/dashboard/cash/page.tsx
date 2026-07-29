@@ -405,16 +405,16 @@ export default function CashPage() {
   return (
     <div className="space-y-0">
       {/* Sub-navigation tabs */}
-      <div className="flex items-center gap-1 border-b border-gray-200 bg-white px-6 pt-4">
+      <div className="flex items-center gap-1 border-b border-slate-200 bg-white px-4 pt-2">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             className={clsx(
-              'flex items-center gap-2 px-5 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all rounded-t-lg',
+              'flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all rounded-t-lg',
               (view === tab.id || (tab.id === 'gestion' && view === 'apertura'))
-                ? 'border-[#775a19] text-[#775a19] bg-amber-50'
-                : 'border-transparent text-on-surface-variant/70 hover:text-slate-700 hover:bg-gray-50'
+                ? 'border-[#c5a059] text-[#c5a059] bg-amber-50'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             )}
           >
             {tab.icon}
@@ -431,33 +431,33 @@ export default function CashPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="p-6 flex items-center justify-center min-h-[calc(100vh-240px)] bg-gray-50"
+            className="p-4 flex items-center justify-center min-h-[calc(100vh-240px)] bg-slate-50"
           >
             {/* Apertura Card */}
-            <div className="relative w-full max-w-2xl bg-surface-bright border border-outline-variant/30 rounded-3xl shadow-2xl overflow-hidden z-10">
+            <div className="relative w-full max-w-2xl bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden z-10">
               {/* Modal Header */}
-              <div className="p-6 border-b border-outline-variant/20 bg-primary flex justify-between items-center text-on-primary">
+              <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
                 <div>
-                  <h2 className="font-headline-sm text-xl font-bold text-on-primary">
+                  <h2 className="text-lg font-bold text-slate-800">
                     Apertura de Turno de Caja
                   </h2>
-                  <p className="text-sm text-on-primary/80 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Inicie su jornada laboral validando los datos de la terminal.
                   </p>
                 </div>
-                <div className="w-14 h-14 bg-on-primary/10 rounded-2xl flex items-center justify-center text-on-primary shadow-inner">
-                  <Wallet className="w-7 h-7" />
+                <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-500 border border-slate-200">
+                  <Wallet className="w-5 h-5" />
                 </div>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleOpenSession} className="p-6 space-y-4">
+              <form onSubmit={handleOpenSession} className="p-4 space-y-4">
                 {/* Terminal + Date row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <label className="block text-sm font-bold text-on-surface mb-0">
-                        Punto de Venta <span className="text-error">*</span>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0">
+                        Punto de Venta <span className="text-red-500">*</span>
                       </label>
                       <button
                         type="button"
@@ -474,7 +474,7 @@ export default function CashPage() {
                     <select
                       value={selectedRegisterId}
                       onChange={(e) => setSelectedRegisterId(e.target.value)}
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-on-surface"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
                       required
                     >
                       {registers.length === 0 && (
@@ -486,14 +486,14 @@ export default function CashPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Fecha de Apertura
                     </label>
                     <input
                       type="date"
                       defaultValue={dateStr}
                       readOnly
-                      className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-500 font-mono cursor-not-allowed outline-none"
                     />
                   </div>
                 </div>
@@ -501,14 +501,14 @@ export default function CashPage() {
                 {/* Time row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-on-surface mb-1.5">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                       Hora de Inicio
                     </label>
                     <input
                       type="time"
                       defaultValue={timeStr}
                       readOnly
-                      className="w-full bg-surface-variant/30 border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface-variant/70 font-mono cursor-not-allowed opacity-75 text-xs outline-none"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-500 font-mono cursor-not-allowed outline-none"
                     />
                   </div>
                   <div className="flex items-end pb-0.5">
@@ -521,11 +521,11 @@ export default function CashPage() {
 
                 {/* Opening Balance */}
                 <div className="space-y-1.5 pt-2">
-                  <label className="block text-sm font-bold text-on-surface">
-                    Monto de Apertura (Fondo de Caja) <span className="text-error">*</span>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Monto de Apertura (Fondo de Caja) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant text-lg">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-500 text-sm">
                       RD$
                     </div>
                     <input
@@ -535,21 +535,21 @@ export default function CashPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className="w-full bg-surface-variant/50 border border-outline-variant/50 rounded-xl pl-14 pr-4 py-4 text-on-surface font-mono text-2xl font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      className="w-full h-10 pl-12 pr-3 py-1.5 text-lg rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-mono font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
                       required
                     />
                   </div>
-                  <p className="text-xs text-on-surface-variant/80 pl-1">
+                  <p className="text-[10px] text-slate-500 pl-1">
                     Sugerencia: Monto base operativo (RD$ 5,000.00)
                   </p>
                 </div>
 
                 {/* Buttons */}
-                <div className="flex items-center gap-4 pt-6 border-t border-outline-variant/20">
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
                   <button
                     type="button"
                     onClick={() => router.push('/dashboard')}
-                    className="flex-1 py-3 px-5 rounded-xl font-bold text-on-surface-variant border border-outline-variant hover:bg-surface-variant transition-colors"
+                    className="flex-1 px-3 py-1.5 text-xs rounded-lg font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -557,16 +557,16 @@ export default function CashPage() {
                     type="submit"
                     disabled={submitting || registers.length === 0}
                     className={clsx(
-                      'flex-[2] py-3 bg-primary text-on-primary font-bold text-base rounded-xl flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all',
+                      'flex-[2] px-3 py-1.5 bg-[#001e40] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-[#003366] transition-all',
                       (submitting || registers.length === 0) && 'opacity-50 cursor-not-allowed'
                     )}
                   >
                     {submitting ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                        <RefreshCw className="w-5 h-5" />
+                        <RefreshCw className="w-4 h-4" />
                       </motion.div>
                     ) : (
-                      <Lock className="w-5 h-5" />
+                      <Lock className="w-4 h-4" />
                     )}
                     {submitting ? 'Procesando...' : 'Abrir Caja'}
                   </button>
@@ -574,9 +574,9 @@ export default function CashPage() {
               </form>
 
               {/* Status bar */}
-              <div className="bg-surface-variant/10 border-t border-outline-variant/10 px-6 py-3 flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-wider">
+              <div className="bg-slate-50 border-t border-slate-200 px-4 py-2 flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Esperando autorización de terminal...
                 </p>
               </div>
@@ -595,55 +595,55 @@ export default function CashPage() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden bg-white text-gray-800"
+                    className="w-full max-w-sm rounded-xl shadow-xl overflow-hidden bg-white text-slate-800"
                   >
-                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div className="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-white">
                       <div>
-                        <h3 className="text-base font-bold text-gray-800">Nueva Terminal de Caja</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Configure una nueva terminal para su empresa.</p>
+                        <h3 className="text-sm font-bold text-slate-800">Nueva Terminal de Caja</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">Configure una nueva terminal para su empresa.</p>
                       </div>
-                      <button onClick={() => setShowNewRegisterModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <X className="w-5 h-5" />
+                      <button onClick={() => setShowNewRegisterModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
-                    <form onSubmit={handleCreateRegister} className="p-6 space-y-4">
+                    <form onSubmit={handleCreateRegister} className="p-4 space-y-4">
                       <div className="space-y-1">
-                        <label className="text-sm font-semibold text-gray-700 block">Nombre de la Terminal <span className="text-red-500">*</span></label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nombre de la Terminal <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           required
                           value={newRegisterForm.name}
                           onChange={e => setNewRegisterForm({ ...newRegisterForm, name: e.target.value })}
-                          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                           placeholder="Ej. Caja Principal, Terminal 1"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-sm font-semibold text-gray-700 block">Código Único <span className="text-red-500">*</span></label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Código Único <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           required
                           value={newRegisterForm.code}
                           onChange={e => setNewRegisterForm({ ...newRegisterForm, code: e.target.value.toUpperCase() })}
-                          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-gray-800 text-sm focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-colors font-mono uppercase"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono uppercase"
                           placeholder="Ej. CAJA-01"
                         />
-                        <p className="text-[11px] text-gray-400">Identificador único interno para esta terminal.</p>
+                        <p className="text-[10px] text-slate-500">Identificador único interno para esta terminal.</p>
                       </div>
-                      <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
                         <button
                           type="button"
                           onClick={() => setShowNewRegisterModal(false)}
-                          className="px-5 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors bg-gray-100 rounded-lg"
+                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 font-bold border border-slate-200 transition-colors rounded-lg"
                         >
                           Cancelar
                         </button>
                         <button
                           type="submit"
                           disabled={creatingRegister}
-                          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 bg-[#001e40] hover:bg-[#003366] text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-colors disabled:opacity-50"
                         >
-                          {creatingRegister ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Crear Terminal
+                          {creatingRegister ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Crear Terminal
                         </button>
                       </div>
                     </form>
@@ -659,36 +659,36 @@ export default function CashPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="p-6 space-y-6"
+            className="p-4 space-y-4"
           >
             {/* Header */}
             <div className="flex justify-between items-end">
               <div>
-                <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Gestión de Caja</h1>
-                <p className="text-sm text-on-surface-variant/70 flex items-center gap-2 mt-1">
+                <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Gestión de Caja</h1>
+                <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                   Turno en curso — iniciado{' '}
                   {session ? new Date(session.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' }) : ''}
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() => { setMoveType('cash_in'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Entrada de Efectivo
                 </button>
                 <button
                   onClick={() => { setMoveType('cash_out'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white text-xs font-semibold rounded-lg hover:bg-rose-600 transition-colors shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white text-xs font-semibold rounded-lg hover:bg-rose-600 transition-colors shadow-sm"
                 >
                   <Minus className="w-4 h-4" />
                   Salida de Efectivo
                 </button>
                 <button
                   onClick={() => handleTabChange('arqueo')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#003366] text-white text-xs font-bold rounded-lg hover:bg-[#002244] transition-all shadow-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-[#003366] text-white text-xs font-bold rounded-lg hover:bg-[#002244] transition-all shadow-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Arqueo y Cierre
@@ -699,21 +699,21 @@ export default function CashPage() {
             {/* Bento grid: Balance + Métodos de pago */}
             <div className="grid grid-cols-12 gap-4">
               {/* Balance card */}
-              <div className="col-span-12 md:col-span-4 bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex flex-col justify-between">
+              <div className="col-span-12 md:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-on-surface-variant/70 uppercase tracking-widest mb-2">Balance Actual</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Balance Actual</p>
                   <p className="text-4xl font-black text-[#001e40] tracking-tight">
                     {fmt(session?.expectedBalance || '0')}
                   </p>
                 </div>
-                <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] text-on-surface-variant font-bold uppercase">Fondo Inicial</p>
-                    <p className="font-mono text-sm text-slate-700">{fmt(session?.initialBalance || '0')}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fondo Inicial</p>
+                    <p className="font-mono text-xs text-slate-700">{fmt(session?.initialBalance || '0')}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-on-surface-variant font-bold uppercase">Transacciones</p>
-                    <p className="font-mono text-sm text-slate-700">{movements.length}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Transacciones</p>
+                    <p className="font-mono text-xs text-slate-700">{movements.length}</p>
                   </div>
                 </div>
               </div>
@@ -737,23 +737,23 @@ export default function CashPage() {
                     count: 0,
                   },
                   {
-                    icon: <TrendingUp className="w-5 h-5 text-on-surface-variant/80" />,
+                    icon: <TrendingUp className="w-5 h-5 text-slate-500" />,
                     label: 'OTROS',
                     color: 'bg-slate-50',
                     amount: 0,
                     count: 0,
                   },
                 ].map((card) => (
-                  <div key={card.label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex flex-col">
+                  <div key={card.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col">
                     <div className="flex items-center justify-between mb-4">
                       <div className={clsx('p-2 rounded-lg', card.color)}>{card.icon}</div>
-                      <span className={clsx('text-[10px] px-2 py-0.5 rounded font-bold', card.color, 'text-on-surface-variant/80')}>
+                      <span className={clsx('text-[10px] px-2 py-0.5 rounded font-bold', card.color, 'text-slate-500')}>
                         {card.label}
                       </span>
                     </div>
                     <div className="mt-auto">
                       <p className="text-lg font-bold text-[#001e40]">{fmt(card.amount)}</p>
-                      <p className="text-xs text-on-surface-variant">{card.count} Transacciones</p>
+                      <p className="text-xs text-slate-500">{card.count} Transacciones</p>
                     </div>
                   </div>
                 ))}
@@ -761,37 +761,37 @@ export default function CashPage() {
             </div>
 
             {/* Movements table */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="text-lg font-bold text-[#001e40]">Movimientos de Caja</h3>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 className="text-sm font-bold text-slate-800">Movimientos de Caja</h3>
                 <div className="flex gap-2">
                   <button
                     onClick={refreshMovements}
-                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-slate-200 rounded transition-colors"
                     title="Actualizar"
                   >
-                    <RefreshCw className="w-4 h-4 text-on-surface-variant/70" />
+                    <RefreshCw className="w-4 h-4 text-slate-500" />
                   </button>
-                  <button className="p-2 hover:bg-gray-200 rounded-lg transition-colors" title="Exportar">
-                    <Download className="w-4 h-4 text-on-surface-variant/70" />
+                  <button className="p-1.5 hover:bg-slate-200 rounded transition-colors" title="Exportar">
+                    <Download className="w-4 h-4 text-slate-500" />
                   </button>
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 text-on-surface-variant text-xs font-semibold uppercase tracking-widest">
-                      <th className="px-6 py-3 border-b border-gray-100">Hora</th>
-                      <th className="px-6 py-3 border-b border-gray-100">Tipo</th>
-                      <th className="px-6 py-3 border-b border-gray-100">Concepto</th>
-                      <th className="px-6 py-3 border-b border-gray-100 text-right">Monto</th>
-                      <th className="px-6 py-3 border-b border-gray-100 text-center">Estado</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hora</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Concepto</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
+                  <tbody className="text-xs">
                     {movements.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-on-surface-variant">
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-xs">
                           No hay movimientos registrados en este turno.
                         </td>
                       </tr>
@@ -800,16 +800,16 @@ export default function CashPage() {
                         const { label, colorClass } = movType(mv.type);
                         const isPositive = mv.type === 'sale' || mv.type === 'cash_in';
                         return (
-                          <tr key={mv.id} className="hover:bg-amber-50/30 transition-colors border-b border-gray-50">
-                            <td className="px-6 py-4 font-mono text-xs text-on-surface-variant/70">
+                          <tr key={mv.id} className="hover:bg-amber-50/30 transition-colors border-b border-slate-200 last:border-0">
+                            <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
                               {new Date(mv.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                             </td>
-                            <td className={clsx('px-6 py-4 font-bold', colorClass)}>{label}</td>
-                            <td className="px-6 py-4 text-slate-700">{mv.description || mv.reference || '—'}</td>
-                            <td className={clsx('px-6 py-4 text-right font-mono font-bold', isPositive ? 'text-emerald-700' : 'text-red-700')}>
+                            <td className={clsx('px-4 py-2.5 font-bold', colorClass)}>{label}</td>
+                            <td className="px-4 py-2.5 text-slate-700">{mv.description || mv.reference || '—'}</td>
+                            <td className={clsx('px-4 py-2.5 text-right font-mono font-bold', isPositive ? 'text-emerald-700' : 'text-red-700')}>
                               {isPositive ? '' : '−'}{fmt(mv.amount)}
                             </td>
-                            <td className="px-6 py-4 text-center">
+                            <td className="px-4 py-2.5 text-center">
                               <span className="px-2 py-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full uppercase">
                                 Registrado
                               </span>
@@ -821,11 +821,11 @@ export default function CashPage() {
                   </tbody>
                   {movements.length > 0 && (
                     <tfoot>
-                      <tr className="bg-gray-50 font-bold text-[#001e40]">
-                        <td className="px-6 py-4 text-right text-xs uppercase tracking-widest text-on-surface-variant" colSpan={3}>
+                      <tr className="bg-slate-50 font-bold text-slate-800 border-t border-slate-200">
+                        <td className="px-4 py-2.5 text-right text-[10px] uppercase tracking-wider text-slate-500" colSpan={3}>
                           Total Neto en Caja
                         </td>
-                        <td className="px-6 py-4 text-right font-mono text-lg">
+                        <td className="px-4 py-2.5 text-right font-mono text-sm">
                           {fmt(session?.expectedBalance || '0')}
                         </td>
                         <td />
@@ -856,16 +856,16 @@ export default function CashPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="p-6 space-y-6"
+            className="p-4 space-y-4"
           >
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Arqueo y Cierre de Caja</h1>
-                <p className="text-sm text-on-surface-variant/70 mt-1">Realice el conteo físico para finalizar el turno de trabajo.</p>
+                <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Arqueo y Cierre de Caja</h1>
+                <p className="text-xs text-slate-500 mt-1">Realice el conteo físico para finalizar el turno de trabajo.</p>
               </div>
-              <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <p className="text-[10px] text-on-surface-variant font-semibold uppercase tracking-tighter">Fecha y Hora</p>
+              <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Fecha y Hora</p>
                 <p className="font-mono text-sm font-bold text-[#001e40]">
                   {new Date().toLocaleString('es-DO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -874,23 +874,23 @@ export default function CashPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left: Denomination form */}
-              <div className="lg:col-span-7 space-y-6">
-                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-bold text-[#001e40] flex items-center gap-2">
-                      <Wallet className="w-5 h-5" />
+              <div className="lg:col-span-7 space-y-4">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-slate-500" />
                       Desglose de Efectivo (DOP)
                     </h2>
                     <button
                       onClick={() => { setDenomQty({}); setCoinsTotal(''); }}
-                      className="text-xs font-semibold text-amber-700 hover:underline underline-offset-4"
+                      className="text-[10px] font-bold text-amber-700 hover:underline underline-offset-4"
                     >
                       Limpiar Formulario
                     </button>
                   </div>
 
                   {/* Column headers */}
-                  <div className="grid grid-cols-12 gap-4 items-center bg-gray-50 px-4 py-2 rounded-lg text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-2">
+                  <div className="grid grid-cols-12 gap-4 items-center bg-slate-50 px-4 py-2 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                     <div className="col-span-5">Denominación</div>
                     <div className="col-span-3 text-center">Cantidad</div>
                     <div className="col-span-4 text-right">Subtotal</div>
@@ -902,12 +902,12 @@ export default function CashPage() {
                       const qty = denomQty[d.value] || 0;
                       const subtotal = qty * d.value;
                       return (
-                        <div key={d.value} className="grid grid-cols-12 gap-4 items-center px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors">
+                        <div key={d.value} className="grid grid-cols-12 gap-4 items-center px-4 py-1.5 hover:bg-slate-50 rounded-lg transition-colors">
                           <div className="col-span-5 flex items-center gap-3">
-                            <div className={clsx('w-12 h-8 rounded border flex items-center justify-center text-[10px] font-bold', d.color)}>
+                            <div className={clsx('w-10 h-7 rounded border flex items-center justify-center text-[10px] font-bold', d.color)}>
                               RD$
                             </div>
-                            <span className="text-sm font-bold text-slate-700">{d.label}</span>
+                            <span className="text-xs font-bold text-slate-700">{d.label}</span>
                           </div>
                           <div className="col-span-3">
                             <input
@@ -919,10 +919,10 @@ export default function CashPage() {
                                 [d.value]: parseInt(e.target.value) || 0,
                               }))}
                               placeholder="0"
-                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-center font-mono text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all"
+                              className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-center font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition-all text-slate-800"
                             />
                           </div>
-                          <div className="col-span-4 text-right font-mono text-sm font-semibold text-slate-700">
+                          <div className="col-span-4 text-right font-mono text-xs font-bold text-slate-700">
                             {fmt(subtotal)}
                           </div>
                         </div>
@@ -930,12 +930,12 @@ export default function CashPage() {
                     })}
 
                     {/* Coins row */}
-                    <div className="grid grid-cols-12 gap-4 items-center px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="grid grid-cols-12 gap-4 items-center px-4 py-1.5 hover:bg-slate-50 rounded-lg transition-colors">
                       <div className="col-span-5 flex items-center gap-3">
-                        <div className="w-12 h-8 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-700">
+                        <div className="w-10 h-7 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-700">
                           RD$
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Total Monedas</span>
+                        <span className="text-xs font-bold text-slate-700">Total Monedas</span>
                       </div>
                       <div className="col-span-7">
                         <input
@@ -944,15 +944,15 @@ export default function CashPage() {
                           value={coinsTotal}
                           onChange={(e) => setCoinsTotal(e.target.value)}
                           placeholder="Ingrese monto total en monedas"
-                          className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-right font-mono text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition-all text-slate-800"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Observations */}
-                  <div className="mt-6 border-t border-gray-100 pt-6">
-                    <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-2">
+                  <div className="mt-4 border-t border-slate-200 pt-4">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                       Observaciones del Cierre
                     </label>
                     <textarea
@@ -960,7 +960,7 @@ export default function CashPage() {
                       onChange={(e) => setCloseObservations(e.target.value)}
                       placeholder="Escriba cualquier novedad o discrepancia detectada..."
                       rows={3}
-                      className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none resize-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none resize-none transition-all"
                     />
                   </div>
                 </div>
@@ -969,35 +969,35 @@ export default function CashPage() {
               {/* Right: Summary + Actions */}
               <div className="lg:col-span-5 space-y-4">
                 {/* Audit summary card */}
-                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm relative overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                    <Wallet className="w-20 h-20 text-[#001e40]" />
+                    <Wallet className="w-16 h-16 text-[#001e40]" />
                   </div>
-                  <h2 className="text-lg font-bold mb-6 flex items-center gap-2 text-[#001e40]">
-                    <TrendingUp className="w-5 h-5 text-amber-600" />
+                  <h2 className="text-sm font-bold mb-4 flex items-center gap-2 text-[#001e40]">
+                    <TrendingUp className="w-4 h-4 text-amber-600" />
                     Resumen de Auditoría
                   </h2>
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div>
-                      <p className="text-xs text-on-surface-variant/70 uppercase tracking-widest mb-1">Saldo Esperado en Sistema</p>
-                      <p className="text-4xl font-mono font-black tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Esperado en Sistema</p>
+                      <p className="text-3xl font-mono font-black tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
                     </div>
-                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-slate-200" />
                     <div>
-                      <p className="text-xs text-on-surface-variant/70 uppercase tracking-widest mb-1">Saldo Real (Contado)</p>
-                      <p className="text-4xl font-mono font-black tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Real (Contado)</p>
+                      <p className="text-3xl font-mono font-black tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
                     </div>
                   </div>
 
                   {/* Difference indicator */}
                   <div className={clsx(
-                    'mt-8 p-4 rounded-xl flex items-center justify-between border',
+                    'mt-6 p-3 rounded-lg flex items-center justify-between border',
                     getDifference() === 0 ? 'bg-emerald-50 border-emerald-100' :
                       getDifference() > 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'
                   )}>
                     <div>
-                      <p className="text-xs uppercase opacity-70 font-semibold text-slate-700">Diferencia</p>
-                      <p className="font-mono text-xl font-bold text-slate-800">{fmt(getDifference())}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500">Diferencia</p>
+                      <p className="font-mono text-lg font-bold text-slate-800">{fmt(getDifference())}</p>
                     </div>
                     <span className={clsx(
                       'px-3 py-1 rounded-lg text-xs font-bold uppercase',
@@ -1010,9 +1010,9 @@ export default function CashPage() {
                 </div>
 
                 {/* Operations breakdown */}
-                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                  <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest mb-4">Detalle de Operaciones</h3>
-                  <div className="space-y-3">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Detalle de Operaciones</h3>
+                  <div className="space-y-2">
                     {[
                       { label: 'Fondo Inicial de Caja', value: session?.initialBalance || '0', color: 'text-slate-700' },
                       {
@@ -1028,13 +1028,13 @@ export default function CashPage() {
                         color: 'text-red-700',
                       },
                     ].map((row) => (
-                      <div key={row.label} className="flex justify-between items-center text-sm">
-                        <span className="text-on-surface-variant/70">{row.label}</span>
-                        <span className={clsx('font-mono font-semibold', row.color)}>{fmt(row.value)}</span>
+                      <div key={row.label} className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">{row.label}</span>
+                        <span className={clsx('font-mono font-bold', row.color)}>{fmt(row.value)}</span>
                       </div>
                     ))}
-                    <div className="h-px bg-gray-100 my-1" />
-                    <div className="flex justify-between items-center font-bold text-sm">
+                    <div className="h-px bg-slate-200 my-1.5" />
+                    <div className="flex justify-between items-center font-bold text-xs">
                       <span>Total Esperado</span>
                       <span className="font-mono">{fmt(getExpectedBalance())}</span>
                     </div>
@@ -1047,20 +1047,20 @@ export default function CashPage() {
                     onClick={handleCloseSession}
                     disabled={closing}
                     className={clsx(
-                      'w-full bg-[#775a19] text-primary font-bold text-base py-5 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all',
-                      closing ? 'opacity-70 cursor-not-allowed' : 'hover:brightness-110 active:scale-[0.98]'
+                      'w-full bg-[#001e40] text-white font-bold text-sm py-2 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all',
+                      closing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#003366]'
                     )}
                   >
                     {closing ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                        <RefreshCw className="w-5 h-5" />
+                        <RefreshCw className="w-4 h-4" />
                       </motion.div>
                     ) : (
-                      <Printer className="w-5 h-5" />
+                      <Printer className="w-4 h-4" />
                     )}
                     {closing ? 'Cerrando turno...' : 'Finalizar Turno e Imprimir Arqueo'}
                   </button>
-                  <p className="text-center text-xs text-on-surface-variant italic">
+                  <p className="text-center text-[10px] text-slate-500 italic">
                     * Al confirmar, se cerrará la sesión de la terminal y se generará el reporte de cierre.
                   </p>
                 </div>
@@ -1076,27 +1076,27 @@ export default function CashPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="p-6 space-y-6"
+            className="p-4 space-y-4"
           >
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <nav className="flex items-center gap-2 text-xs text-on-surface-variant mb-2">
+                <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2">
                   <span>Caja</span>
                   <ChevronRight className="w-3 h-3" />
                   <span className="font-bold text-slate-700">Histórico de Cierres</span>
                 </nav>
-                <h1 className="text-3xl font-bold text-[#001e40] tracking-tight">Histórico de Cierres de Caja</h1>
-                <p className="text-sm text-on-surface-variant/70 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
+                <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Histórico de Cierres de Caja</h1>
+                <p className="text-xs text-slate-500 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={handleExportHistory} className="bg-gray-100 text-on-surface-variant/80 text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-200 hover:bg-gray-200 transition-colors">
+              <div className="flex items-center gap-2">
+                <button onClick={handleExportHistory} className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 border border-slate-200 hover:bg-slate-100 transition-colors">
                   <Download className="w-4 h-4" />
                   EXPORTAR XLS
                 </button>
                 <button
                   onClick={loadHistory}
-                  className="bg-[#001e40] text-white text-xs font-semibold px-5 py-2 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all"
+                  className="bg-[#001e40] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all shadow-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   ACTUALIZAR
@@ -1105,23 +1105,23 @@ export default function CashPage() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm">
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Desde Fecha</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desde Fecha</label>
                   <input
                     type="date"
                     value={histDateFrom}
                     onChange={(e) => setHistDateFrom(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:ring-primary focus:border-primary outline-none"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">Estado del Cierre</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado del Cierre</label>
                   <select
                     value={histStatus}
                     onChange={(e) => setHistStatus(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
                   >
                     <option value="">Todos los estados</option>
                     <option value="closed">Cerrado</option>
@@ -1131,38 +1131,38 @@ export default function CashPage() {
                 <div className="md:col-start-4 flex items-center gap-2">
                   <button
                     onClick={() => { setHistDateFrom(''); setHistStatus(''); }}
-                    className="flex-1 bg-gray-50 text-on-surface-variant/80 text-xs font-semibold py-2.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                    className="flex-1 bg-slate-50 text-slate-600 text-xs font-bold py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors h-8"
                   >
                     LIMPIAR
                   </button>
                   <button
                     onClick={loadHistory}
-                    className="flex-[2] bg-[#001e40]/10 text-[#001e40] text-xs font-semibold py-2.5 rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                    className="flex-[2] bg-[#001e40]/10 text-[#001e40] text-xs font-bold py-1.5 rounded-lg hover:bg-[#001e40]/20 transition-all flex items-center justify-center gap-2 h-8"
                   >
                     <Filter className="w-3 h-3" />
-                    APLICAR FILTROS
+                    APLICAR
                   </button>
                 </div>
               </div>
             </div>
 
             {/* History table */}
-            <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
+                    <tr className="bg-slate-50 border-b border-slate-200">
                       {['Apertura', 'Cierre', 'Terminal', 'Esperado (RD$)', 'Real (RD$)', 'Diferencia', 'Acciones'].map(col => (
-                        <th key={col} className="px-6 py-4 text-xs font-semibold text-on-surface-variant uppercase tracking-widest text-left">
+                        <th key={col} className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">
                           {col}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50 text-sm">
+                  <tbody className="divide-y divide-slate-100 text-xs">
                     {history.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-on-surface-variant">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           No hay registros de cierres de caja.
                         </td>
                       </tr>
@@ -1177,21 +1177,21 @@ export default function CashPage() {
                           const diff = s.difference ? parseFloat(s.difference) : null;
                           return (
                             <tr key={s.id} className="hover:bg-amber-50/30 transition-colors group">
-                              <td className="px-6 py-4">
+                              <td className="px-4 py-2.5">
                                 <p className="font-mono text-xs text-slate-700">
                                   {new Date(s.createdAt).toLocaleDateString('es-DO')}
                                 </p>
-                                <p className="text-[11px] text-on-surface-variant">
+                                <p className="text-[10px] text-slate-500">
                                   {new Date(s.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </p>
                               </td>
-                              <td className="px-6 py-4">
+                              <td className="px-4 py-2.5">
                                 {s.closedAt ? (
                                   <>
                                     <p className="font-mono text-xs text-slate-700">
                                       {new Date(s.closedAt).toLocaleDateString('es-DO')}
                                     </p>
-                                    <p className="text-[11px] text-on-surface-variant">
+                                    <p className="text-[10px] text-slate-500">
                                       {new Date(s.closedAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                     </p>
                                   </>
@@ -1201,19 +1201,19 @@ export default function CashPage() {
                                   </span>
                                 )}
                               </td>
-                              <td className="px-6 py-4 text-xs font-semibold text-[#001e40]">
+                              <td className="px-4 py-2.5 text-xs font-bold text-[#001e40]">
                                 {s.registerName || '—'}
                               </td>
-                              <td className="px-6 py-4 font-mono text-right">
+                              <td className="px-4 py-2.5 font-mono text-right">
                                 {fmt(s.expectedBalance || '0')}
                               </td>
-                              <td className="px-6 py-4 font-mono text-right">
+                              <td className="px-4 py-2.5 font-mono text-right">
                                 {s.actualBalance ? fmt(s.actualBalance) : '—'}
                               </td>
-                              <td className="px-6 py-4 text-right">
+                              <td className="px-4 py-2.5 text-right">
                                 {diff !== null ? (
                                   <span className={clsx(
-                                    'text-[11px] px-2 py-0.5 rounded-full font-bold',
+                                    'text-[10px] px-2 py-0.5 rounded-full font-bold',
                                     diff === 0 ? 'bg-emerald-100 text-emerald-800' :
                                       diff > 0 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
                                   )}>
@@ -1221,9 +1221,9 @@ export default function CashPage() {
                                   </span>
                                 ) : '—'}
                               </td>
-                              <td className="px-6 py-4">
+                              <td className="px-4 py-2.5">
                                 <div className="flex justify-center gap-1">
-                                  <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-2 text-on-surface-variant hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
+                                  <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-1.5 text-slate-500 hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
                                     <Eye className="w-4 h-4" />
                                   </button>
                                   <button 
@@ -1232,7 +1232,7 @@ export default function CashPage() {
                                       setTimeout(() => setClosedSessionId(s.id), 50);
                                       toast.success('Generando impresión...');
                                     }} 
-                                    className="p-2 text-on-surface-variant hover:text-amber-600 transition-colors rounded" 
+                                    className="p-1.5 text-slate-500 hover:text-amber-600 transition-colors rounded" 
                                     title="Reimprimir"
                                   >
                                     <Printer className="w-4 h-4" />
@@ -1245,18 +1245,18 @@ export default function CashPage() {
                     )}
                   </tbody>
                   {history.length > 0 && (
-                    <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                    <tfoot className="bg-slate-50 border-t border-slate-200">
                       <tr>
-                        <td className="px-6 py-4 text-xs font-semibold text-on-surface-variant uppercase text-right" colSpan={3}>
+                        <td className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right" colSpan={3}>
                           Totales del Periodo
                         </td>
-                        <td className="px-6 py-4 font-mono text-right font-bold text-[#001e40]">
+                        <td className="px-4 py-2.5 font-mono text-right font-bold text-[#001e40]">
                           {fmt(history.reduce((s, h) => s + parseFloat(h.expectedBalance || '0'), 0))}
                         </td>
-                        <td className="px-6 py-4 font-mono text-right font-bold text-[#001e40]">
+                        <td className="px-4 py-2.5 font-mono text-right font-bold text-[#001e40]">
                           {fmt(history.reduce((s, h) => s + parseFloat(h.actualBalance || '0'), 0))}
                         </td>
-                        <td className="px-6 py-4 font-mono text-right font-bold text-red-700">
+                        <td className="px-4 py-2.5 font-mono text-right font-bold text-red-700">
                           {fmt(history.reduce((s, h) => s + parseFloat(h.difference || '0'), 0))}
                         </td>
                         <td />
@@ -1267,8 +1267,8 @@ export default function CashPage() {
               </div>
 
               {/* Pagination placeholder */}
-              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-xs text-on-surface-variant">
+              <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500">
                   Mostrando {Math.min(history.length, 100)} de {history.length} registros
                 </span>
               </div>
@@ -1296,12 +1296,12 @@ export default function CashPage() {
                   value: fmt(history.reduce((s, h) => s + parseFloat(h.difference || '0'), 0)),
                 },
               ].map((kpi) => (
-                <div key={kpi.label} className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center gap-4">
+                <div key={kpi.label} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex items-center gap-4">
                   <div className={clsx('w-12 h-12 rounded-full flex items-center justify-center', kpi.bg)}>
                     {kpi.icon}
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-on-surface-variant">{kpi.label}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{kpi.label}</p>
                     <p className="text-lg font-bold text-[#001e40]">{kpi.value}</p>
                   </div>
                 </div>
@@ -1326,33 +1326,33 @@ export default function CashPage() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
             >
-              <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-100">
+              <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
                 <div className="flex items-center gap-2">
                   {moveType === 'cash_in'
-                    ? <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><Plus className="w-4 h-4 text-emerald-600" /></div>
-                    : <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Minus className="w-4 h-4 text-red-600" /></div>
+                    ? <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-200"><Plus className="w-4 h-4 text-emerald-600" /></div>
+                    : <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center border border-red-200"><Minus className="w-4 h-4 text-red-600" /></div>
                   }
-                  <h3 className="text-base font-bold text-gray-800">
+                  <h3 className="text-sm font-bold text-slate-800">
                     {moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                   </h3>
                 </div>
-                <button onClick={() => setShowMoveModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <X className="w-5 h-5" />
+                <button onClick={() => setShowMoveModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAddMovement} className="p-6 space-y-5">
-                <div className="flex gap-3">
+              <form onSubmit={handleAddMovement} className="p-4 space-y-4">
+                <div className="flex gap-2">
                   {(['cash_in', 'cash_out'] as const).map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => setMoveType(t)}
                       className={clsx(
-                        'flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-all',
+                        'flex-1 h-8 text-xs font-bold border transition-all rounded-lg',
                         moveType === t
                           ? t === 'cash_in' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-300 text-red-700'
-                          : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700'
+                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
                       )}
                     >
                       {t === 'cash_in' ? '↑ Entrada' : '↓ Salida'}
@@ -1361,9 +1361,9 @@ export default function CashPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 block mb-1">Monto (RD$)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto (RD$)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">RD$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px]">RD$</span>
                     <input
                       type="number"
                       value={moveAmount}
@@ -1371,29 +1371,29 @@ export default function CashPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0.01"
-                      className="w-full bg-white border border-gray-200 rounded-lg pl-12 pr-4 py-2 font-mono text-xs font-bold text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 py-1.5 font-mono text-xs font-bold text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-semibold text-gray-700 block mb-1">Descripción / Concepto</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Descripción / Concepto</label>
                   <input
                     type="text"
                     value={moveDescription}
                     onChange={(e) => setMoveDescription(e.target.value)}
                     placeholder="Ej: Pago de mensajería, fondo adicional..."
-                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-gray-800 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 outline-none text-xs transition-colors"
+                    className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-xs transition-colors"
                     required
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
                   <button
                     type="button"
                     onClick={() => setShowMoveModal(false)}
-                    className="px-5 py-2.5 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                    className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 font-bold border border-slate-200 transition-colors rounded-lg"
                   >
                     Cancelar
                   </button>
@@ -1401,12 +1401,12 @@ export default function CashPage() {
                     type="submit"
                     disabled={submitting}
                     className={clsx(
-                      'flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-lg transition-colors text-white',
+                      'flex items-center justify-center gap-2 px-3 py-1.5 font-bold rounded-lg text-xs transition-colors text-white',
                       moveType === 'cash_in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700',
                       submitting && 'opacity-50 cursor-not-allowed'
                     )}
                   >
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
+                    {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
                     Registrar {moveType === 'cash_in' ? 'Entrada' : 'Salida'}
                   </button>
                 </div>
@@ -1428,11 +1428,11 @@ export default function CashPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="bg-white p-10 rounded-2xl max-w-md w-full shadow-2xl text-center border-t-8 border-amber-500"
+              className="bg-white p-6 rounded-xl max-w-sm w-full shadow-2xl text-center border-t-4 border-[#c5a059]"
             >
-              <CheckCircle2 className="w-20 h-20 text-emerald-500 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-[#001e40] mb-2">Cierre Exitoso</h2>
-              <p className="text-on-surface-variant/70 mb-8">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+              <h2 className="text-xl font-bold text-[#001e40] mb-2">Cierre Exitoso</h2>
+              <p className="text-slate-500 text-xs mb-6">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
               {closedSessionId && (
@@ -1442,7 +1442,7 @@ export default function CashPage() {
               )}
               <button
                 onClick={handleSuccessClose}
-                className="w-full bg-[#001e40] text-white py-4 rounded-xl font-bold text-base hover:bg-[#003366] transition-colors"
+                className="w-full bg-[#001e40] text-white h-8 rounded-lg font-bold text-xs hover:bg-[#003366] transition-colors"
               >
                 Volver al Inicio
               </button>
@@ -1462,53 +1462,53 @@ export default function CashPage() {
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
             >
-              <div className="bg-[#001e40] p-6 text-white flex justify-between items-center relative overflow-hidden">
+              <div className="bg-[#001e40] p-4 text-white flex justify-between items-center relative overflow-hidden">
                 <div className="absolute right-0 top-0 opacity-10">
-                  <Wallet className="w-32 h-32 transform translate-x-8 -translate-y-8" />
+                  <Wallet className="w-24 h-24 transform translate-x-4 -translate-y-4" />
                 </div>
                 <div className="relative z-10">
-                  <h3 className="text-xl font-bold font-display">Detalle de Turno</h3>
-                  <p className="text-sm opacity-80 mt-1">{selectedSession.registerName}</p>
+                  <h3 className="text-base font-bold font-display">Detalle de Turno</h3>
+                  <p className="text-xs opacity-80 mt-0.5">{selectedSession.registerName}</p>
                 </div>
                 <button onClick={() => setShowViewModal(false)} className="relative z-10 text-white/70 hover:text-white transition-colors">
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="block text-gray-500 font-semibold mb-1">Apertura</span>
-                    <span className="font-bold">{new Date(selectedSession.createdAt).toLocaleString('es-DO')}</span>
+                    <span className="block text-slate-500 font-bold mb-1">Apertura</span>
+                    <span className="font-bold text-slate-800">{new Date(selectedSession.createdAt).toLocaleString('es-DO')}</span>
                   </div>
                   <div>
-                    <span className="block text-gray-500 font-semibold mb-1">Cierre</span>
-                    <span className="font-bold">{selectedSession.closedAt ? new Date(selectedSession.closedAt).toLocaleString('es-DO') : 'En curso'}</span>
+                    <span className="block text-slate-500 font-bold mb-1">Cierre</span>
+                    <span className="font-bold text-slate-800">{selectedSession.closedAt ? new Date(selectedSession.closedAt).toLocaleString('es-DO') : 'En curso'}</span>
                   </div>
                   <div>
-                    <span className="block text-gray-500 font-semibold mb-1">Usuario</span>
-                    <span className="font-bold">{selectedSession.userId}</span>
+                    <span className="block text-slate-500 font-bold mb-1">Usuario</span>
+                    <span className="font-bold text-slate-800">{selectedSession.userId}</span>
                   </div>
                   <div>
-                    <span className="block text-gray-500 font-semibold mb-1">Estado</span>
-                    <span className="font-bold">{selectedSession.status === 'open' ? 'Abierto' : 'Cerrado'}</span>
+                    <span className="block text-slate-500 font-bold mb-1">Estado</span>
+                    <span className="font-bold text-slate-800">{selectedSession.status === 'open' ? 'Abierto' : 'Cerrado'}</span>
                   </div>
                 </div>
-                <div className="h-px bg-gray-200 my-4" />
+                <div className="h-px bg-slate-200 my-4" />
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Fondo Inicial</span>
-                    <span className="font-mono font-bold">{fmt(selectedSession.initialBalance || 0)}</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-600">Fondo Inicial</span>
+                    <span className="font-mono font-bold text-slate-800">{fmt(selectedSession.initialBalance || 0)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Saldo Esperado</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-600">Saldo Esperado</span>
                     <span className="font-mono font-bold text-blue-600">{fmt(selectedSession.expectedBalance || 0)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Saldo Real (Arqueo)</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-600">Saldo Real (Arqueo)</span>
                     <span className="font-mono font-bold text-amber-600">{fmt(selectedSession.actualBalance || 0)}</span>
                   </div>
-                  <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                    <span className="text-gray-800 font-bold">Diferencia</span>
+                  <div className="flex justify-between text-xs pt-2 border-t border-slate-100">
+                    <span className="text-slate-800 font-bold">Diferencia</span>
                     <span className={clsx(
                       "font-mono font-bold",
                       (parseFloat(selectedSession.difference || '0') < 0) ? 'text-red-600' : 'text-emerald-600'
@@ -1518,26 +1518,26 @@ export default function CashPage() {
                   </div>
                 </div>
                 {selectedSession.closeObservations && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <span className="block text-xs text-gray-500 font-semibold mb-1 uppercase">Observaciones</span>
-                    <p className="text-sm text-gray-700">{selectedSession.closeObservations}</p>
+                  <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                    <span className="block text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-wider">Observaciones</span>
+                    <p className="text-xs text-slate-700">{selectedSession.closeObservations}</p>
                   </div>
                 )}
               </div>
-              <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
                 <button
                   onClick={() => {
                     setClosedSessionId(null);
                     setTimeout(() => setClosedSessionId(selectedSession.id), 50);
                     toast.success('Generando impresión...');
                   }}
-                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-bold text-sm rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                  className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-100 flex items-center gap-2"
                 >
-                  <Printer className="w-4 h-4" /> Reimprimir
+                  <Printer className="w-3 h-3" /> Reimprimir
                 </button>
                 <button
                   onClick={() => setShowViewModal(false)}
-                  className="px-6 py-2 bg-[#001e40] text-white font-bold text-sm rounded-lg hover:bg-[#003366] transition-colors"
+                  className="px-4 py-1.5 bg-[#001e40] text-white font-bold text-xs rounded-lg hover:bg-[#003366] transition-colors"
                 >
                   Cerrar
                 </button>

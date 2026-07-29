@@ -236,7 +236,7 @@ function TableSkeleton({ rows = 6 }: { rows?: number }) {
 
 function KpiSkeleton() {
   return (
-    <div className="h-28 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+    <div className="h-28 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
   );
 }
 
@@ -309,13 +309,13 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
             <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
               <Plus className="h-5 w-5 text-[#C5A059]" /> Nueva Autorización SACF
             </h3>
-            <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+            <button onClick={onClose} className="p-1 rounded-lg text-slate-500 hover:text-primary transition-colors">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -324,7 +324,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
             <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div>
                 <h4 className="text-sm font-bold text-[#003366]">Formato Electrónico (e-CF)</h4>
-                <p className="text-xs text-on-surface-variant">Genera secuencias E-31, E-32, etc. requeridas por DGII para facturación electrónica.</p>
+                <p className="text-xs text-slate-500">Genera secuencias E-31, E-32, etc. requeridas por DGII para facturación electrónica.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -342,7 +342,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               <select
                 value={form.ecfType}
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
-                className="w-full bg-white border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#C5A059] outline-none transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors"
               >
                 {isElectronic ? (
                   <>
@@ -373,7 +373,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 )}
               </select>
               {ECF_TYPE_DESCRIPTIONS[form.ecfType] && (
-                <p className="mt-2 text-xs text-on-surface-variant italic bg-slate-100 p-2 rounded-lg border border-slate-200">
+                <p className="mt-2 text-xs text-slate-500 italic bg-slate-100 p-2 rounded-lg border border-slate-200">
                   <span className="font-semibold text-primary not-italic block mb-1">¿Para qué se utiliza?</span>
                   {ECF_TYPE_DESCRIPTIONS[form.ecfType]}
                 </p>
@@ -388,7 +388,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="1"
                   value={form.startSequence}
                   onChange={(e) => setForm((f) => ({ ...f, startSequence: e.target.value }))}
-                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                 />
               </div>
               <div>
@@ -398,7 +398,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                   min="2"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                 />
               </div>
             </div>
@@ -406,7 +406,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
             <div>
               <label className="text-sm font-semibold text-primary mb-1 flex items-center justify-between">
                 <span>Fecha Vencimiento {isExpiryRequired(isElectronic, form.ecfType) && <span className="text-red-500">*</span>}</span>
-                <span className="text-on-surface-variant/70 text-xs font-normal">
+                <span className="text-slate-500/70 text-xs font-normal">
                   {!isExpiryRequired(isElectronic, form.ecfType) ? '(Opcional) ' : ''}dd-MM-yyyy
                 </span>
               </label>
@@ -415,7 +415,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                 pattern={form.sequenceExpiry ? "\\d{2}-\\d{2}-\\d{4}" : undefined}
                 required={isExpiryRequired(isElectronic, form.ecfType)}
               />
@@ -425,14 +425,14 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                className="px-3 py-1.5 h-8 text-xs rounded-lg text-slate-500 hover:text-primary font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-1.5 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Guardar
@@ -514,13 +514,13 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
             <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
               <Pencil className="h-5 w-5 text-[#C5A059]" /> Editar Secuencia SACF
             </h3>
-            <button onClick={onClose} className="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors">
+            <button onClick={onClose} className="p-1 rounded-lg text-slate-500 hover:text-primary transition-colors">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -532,7 +532,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 type="text"
                 disabled
                 value={`${sequence.prefix}-${sequence.ecfType} — ${ECF_TYPE_LABELS[sequence.ecfType] || ''}`}
-                 className="w-full bg-surface-container border border-outline rounded-lg px-3 py-2 text-xs text-primary opacity-60 outline-none font-medium"
+                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary opacity-60 outline-none font-medium"
               />
             </div>
 
@@ -544,7 +544,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="0"
                   value={form.currentSequence}
                   onChange={(e) => setForm((f) => ({ ...f, currentSequence: e.target.value }))}
-                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -555,7 +555,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                   min="1"
                   value={form.maxSequence}
                   onChange={(e) => setForm((f) => ({ ...f, maxSequence: e.target.value }))}
-                  className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                   required
                 />
               </div>
@@ -564,7 +564,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
             <div>
               <label className="text-sm font-semibold text-primary mb-1 flex items-center justify-between">
                 <span>Fecha Vencimiento {isExpiryRequired(isElectronic, sequence.ecfType) && <span className="text-red-500">*</span>}</span>
-                <span className="text-on-surface-variant/70 text-xs font-normal">
+                <span className="text-slate-500/70 text-xs font-normal">
                   {!isExpiryRequired(isElectronic, sequence.ecfType) ? '(Opcional) ' : ''}dd-MM-yyyy
                 </span>
               </label>
@@ -573,7 +573,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
                 placeholder="31-12-2026"
                 value={form.sequenceExpiry}
                 onChange={(e) => setForm((f) => ({ ...f, sequenceExpiry: e.target.value }))}
-                className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#C5A059] outline-none transition-colors font-mono"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors font-mono"
                 pattern={form.sequenceExpiry ? "\\d{2}-\\d{2}-\\d{4}" : undefined}
                 required={isExpiryRequired(isElectronic, sequence.ecfType)}
               />
@@ -583,14 +583,14 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 text-on-surface-variant hover:text-primary font-medium transition-colors"
+                className="px-3 py-1.5 h-8 text-xs rounded-lg text-slate-500 hover:text-primary font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-1.5 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                 Guardar
@@ -809,8 +809,8 @@ function ComprobantesTab() {
       value: stats?.totalCount?.toLocaleString() ?? '0',
       icon: <FileText className="h-6 w-6" />,
       color: 'bg-outline-variant/20',
-      iconColor: 'text-on-surface',
-      border: 'border-outline-variant/20',
+      iconColor: 'text-slate-800',
+      border: 'border-slate-200/20',
       glow: ''
     },
   ];
@@ -826,7 +826,7 @@ function ComprobantesTab() {
               key={kpi.title}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`bg-white border border-outline-variant shadow-sm p-6 rounded-xl flex flex-col justify-between group transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden`}
+              className={`bg-white border border-slate-200 shadow-sm p-6 rounded-xl flex flex-col justify-between group transition-all hover:-translate-y-1 hover:shadow-md relative overflow-hidden`}
             >
               <div className={`absolute top-0 left-0 right-0 h-[3px] opacity-80 ${kpi.color}`} />
               <div className="flex justify-between items-start mb-6 mt-2">
@@ -834,14 +834,14 @@ function ComprobantesTab() {
                   <div className={kpi.iconColor}>{kpi.icon}</div>
                 </div>
               </div>
-              <div className="font-label-md text-xs text-on-surface-variant uppercase tracking-widest mb-1.5 font-bold">{kpi.title}</div>
+              <div className="font-label-md text-xs text-slate-500 uppercase tracking-widest mb-1.5 font-bold">{kpi.title}</div>
               <div className="font-headline-md text-2xl md:text-3xl font-extrabold text-primary tracking-tight">{kpi.value}</div>
             </motion.div>
           ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         <div className="flex flex-col md:flex-row flex-wrap gap-3 items-stretch md:items-center flex-1">
           <div className="min-w-[200px] flex-1">
             <SearchBar
@@ -853,7 +853,7 @@ function ComprobantesTab() {
           <select
             value={filters.ecfType}
             onChange={(e) => { setFilters((f) => ({ ...f, ecfType: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none cursor-pointer"
+            className="rounded-lg border border-slate-200 bg-slate-50 text-slate-800 px-3 py-1.5 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] transition-all appearance-none cursor-pointer"
           >
             <option value="">Todos los tipos</option>
             <option value="31">e-31 Crédito Fiscal</option>
@@ -870,7 +870,7 @@ function ComprobantesTab() {
           <select
             value={filters.status}
             onChange={(e) => { setFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
-            className="rounded-lg border border-outline-variant bg-white text-on-surface px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all appearance-none cursor-pointer"
+            className="rounded-lg border border-slate-200 bg-slate-50 text-slate-800 px-3 py-1.5 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] transition-all appearance-none cursor-pointer"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -890,7 +890,7 @@ function ComprobantesTab() {
           {(filters.q || filters.ecfType || filters.status || filters.from || filters.to) && (
             <button
               onClick={() => { setFilters({ status: '', ecfType: '', from: '', to: '', q: '' }); setPage(1); }}
-              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-lg bg-white border border-outline-variant text-on-surface-variant text-sm hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1 px-3 py-1.5 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-slate-800 transition-colors cursor-pointer"
             >
               <X className="h-4 w-4" /> Limpiar
             </button>
@@ -901,7 +901,7 @@ function ComprobantesTab() {
           <button
             onClick={handleSyncFilteredStatus}
             disabled={syncingBatch || invoiceList.length === 0}
-            className="flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-lg font-bold text-sm hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-primary text-white px-3 py-1.5 h-8 rounded-lg font-bold text-xs hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
           >
             {syncingBatch ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -912,7 +912,7 @@ function ComprobantesTab() {
           </button>
           <button
             onClick={fetchInvoices}
-            className="flex items-center justify-center gap-2 bg-white border border-outline-variant text-on-surface-variant hover:bg-surface-container hover:text-on-surface px-6 py-2.5 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 group whitespace-nowrap cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 px-3 py-1.5 h-8 rounded-lg font-bold text-xs transition-all shadow-sm active:scale-95 group whitespace-nowrap cursor-pointer"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             <span>ACTUALIZAR DATOS</span>
@@ -920,65 +920,65 @@ function ComprobantesTab() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto custom-scrollbar">
           {loadingList ? (
             <div className="p-6"><TableSkeleton /></div>
           ) : invoiceList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
               <FileText className="h-8 w-8 opacity-20" />
               <p className="text-sm font-medium">No se encontraron comprobantes</p>
             </div>
           ) : (
             <table className="w-full text-left border-collapse min-w-[1000px]">
-              <thead className="bg-white border-b border-outline-variant">
+              <thead className="bg-white border-b border-slate-200">
                 <tr>
-                  <th className="py-4 px-6 w-12 text-center">
+                  <th className="px-4 py-2.5 text-xs w-12 text-center">
                     <input
                       type="checkbox"
-                      className="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer h-4 w-4"
+                      className="rounded border-slate-200 text-primary focus:ring-[#c5a059]/20 cursor-pointer h-4 w-4"
                       checked={invoiceList.length > 0 && selectedIds.length === invoiceList.length}
                       onChange={handleToggleSelectAll}
                     />
                   </th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">NCF</th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Tipo</th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider">Monto Total</th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-center">Estado DGII</th>
-                  <th className="py-4 px-6 font-bold text-primary text-[12px] uppercase tracking-wider text-right">Acciones</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider">Fecha</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider">NCF</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider">Tipo</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider">Monto Total</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider text-center">Estado DGII</th>
+                  <th className="px-4 py-2.5 text-xs font-bold text-primary text-[12px] uppercase tracking-wider text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {invoiceList.map((inv) => (
                   <tr key={inv.id} className={`hover:bg-white/50 transition-colors group ${selectedIds.includes(inv.id) ? 'bg-primary/5 hover:bg-primary/10' : ''}`}>
-                    <td className="py-4 px-6 text-center w-12">
+                    <td className="px-4 py-2.5 text-xs text-center w-12">
                       <input
                         type="checkbox"
-                        className="rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer h-4 w-4"
+                        className="rounded border-slate-200 text-primary focus:ring-[#c5a059]/20 cursor-pointer h-4 w-4"
                         checked={selectedIds.includes(inv.id)}
                         onChange={() => handleToggleSelectOne(inv.id)}
                       />
                     </td>
-                    <td className="py-4 px-6 font-body-sm text-on-surface-variant">{formatDate(inv.createdAt)}</td>
-                    <td className="py-4 px-6 font-body-sm text-primary font-medium">{inv.ncf}</td>
-                    <td className="py-4 px-6"><ECFTypeBadge type={inv.ecfType} /></td>
-                    <td className="py-4 px-6 font-body-sm text-on-surface font-bold">{formatCurrency(inv.total)}</td>
-                    <td className="py-4 px-6 text-center flex flex-col items-center gap-1">
+                    <td className="px-4 py-2.5 text-xs font-body-sm text-slate-500">{formatDate(inv.createdAt)}</td>
+                    <td className="px-4 py-2.5 text-xs font-body-sm text-primary font-medium">{inv.ncf}</td>
+                    <td className="px-4 py-2.5 text-xs"><ECFTypeBadge type={inv.ecfType} /></td>
+                    <td className="px-4 py-2.5 text-xs font-body-sm text-slate-800 font-bold">{formatCurrency(inv.total)}</td>
+                    <td className="px-4 py-2.5 text-xs text-center flex flex-col items-center gap-1">
                       <StatusBadge status={inv.status} />
                       {inv.dgiiMessage && (
-                        <span className="text-[10px] text-on-surface-variant max-w-[120px] truncate" title={inv.dgiiMessage}>
+                        <span className="text-[10px] text-slate-500 max-w-[120px] truncate" title={inv.dgiiMessage}>
                           {inv.dgiiMessage}
                         </span>
                       )}
                     </td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="px-4 py-2.5 text-xs text-right">
                       <div className="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary"><Eye className="h-4 w-4" /></button>
+                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary"><Eye className="h-4 w-4" /></button>
                         {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
-                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary"><FileCode className="h-4 w-4" /></button>
+                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary"><FileCode className="h-4 w-4" /></button>
                         )}
-                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 hover:bg-surface-container rounded transition-colors text-primary">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
+                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
                         {['rejected', 'failed'].includes(inv.status) && (
                           <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 hover:bg-error-container text-error rounded transition-colors"><ArrowRight className="h-4 w-4" /></button>
                         )}
@@ -992,11 +992,11 @@ function ComprobantesTab() {
         </div>
 
         {meta.total_pages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-outline-variant bg-whiteest">
-            <span className="text-xs text-on-surface-variant font-medium">Página {meta.page} de {meta.total_pages}</span>
+          <div className="flex items-center justify-between px-4 py-2.5 text-xs border-t border-slate-200 bg-white">
+            <span className="text-xs text-slate-500 font-medium">Página {meta.page} de {meta.total_pages}</span>
             <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-white transition-colors disabled:opacity-50">Anterior</button>
-              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-outline-variant rounded hover:bg-white transition-colors disabled:opacity-50">Siguiente</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-slate-200 rounded hover:bg-white transition-colors disabled:opacity-50">Anterior</button>
+              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-slate-200 rounded hover:bg-white transition-colors disabled:opacity-50">Siguiente</button>
             </div>
           </div>
         )}
@@ -1008,7 +1008,7 @@ function ComprobantesTab() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-white border border-outline-variant shadow-xl p-4 rounded-xl flex items-center gap-6"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-primary text-white border border-slate-200 shadow-xl p-4 rounded-xl flex items-center gap-6"
           >
             <span className="text-sm font-bold text-secondary">
               {selectedIds.length} seleccionado(s)
@@ -1112,7 +1112,7 @@ function ColaTab() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : submissions.length === 0 ? (
@@ -1124,28 +1124,28 @@ function ColaTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reintentos</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mensaje / Error</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">NCF</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider text-center">Reintentos</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Mensaje / Error</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {submissions.map((sub) => (
                 <tr key={sub.id} className="hover:bg-white dark:hover:bg-gray-800/40 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 text-xs">
                     <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">
                       {(sub as any).ncf || sub.invoiceId.substring(0, 8) + '…'}
                     </span>
                   </td>
-                  <td className="px-4 py-3"><StatusBadge status={sub.status} /></td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-4 py-2.5 text-xs"><StatusBadge status={sub.status} /></td>
+                  <td className="px-4 py-2.5 text-xs text-center">
                     <span className={`text-sm font-bold ${sub.retryCount > 0 ? 'text-orange-500' : 'text-gray-400'}`}>
                       {sub.retryCount}
                     </span>
                   </td>
-                  <td className={`px-4 py-3 text-xs max-w-[240px] truncate ${
+                  <td className={`px-4 py-2.5 text-xs max-w-[240px] truncate ${
                     sub.status === 'accepted'
                       ? 'text-emerald-600 dark:text-emerald-400 font-medium'
                       : sub.status === 'rejected' || sub.status === 'error'
@@ -1154,7 +1154,7 @@ function ColaTab() {
                   }`}>
                     {sub.responseMessage || '–'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(sub.createdAt)}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(sub.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1249,11 +1249,11 @@ function SecuenciasTab() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-40 rounded-2xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+            <div key={i} className="h-40 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
           ))}
         </div>
       ) : sequences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white rounded-2xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white rounded-xl border border-gray-200">
           <Database className="h-12 w-12 opacity-30" />
           <p className="text-sm font-medium">No hay secuencias SACF configuradas</p>
           <button onClick={() => setShowModal(true)} className="text-primary text-sm font-semibold hover:underline">
@@ -1277,9 +1277,9 @@ function SecuenciasTab() {
                 key={seq.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl border p-5 bg-white shadow-sm ${isNearLimit
+                className={`rounded-xl border p-5 bg-white shadow-sm ${isNearLimit
                   ? 'border-orange-300'
-                  : 'border-outline-variant'
+                  : 'border-slate-200'
                   }`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -1446,7 +1446,7 @@ function NotasTab() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {loading ? (
           <div className="p-6"><TableSkeleton rows={5} /></div>
         ) : notes.length === 0 ? (
@@ -1458,25 +1458,25 @@ function NotasTab() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">NCF Nota</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Monto</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">NCF Nota</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider text-right">Monto</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {notes.map((note: any) => (
                 <tr key={note.id} className="hover:bg-white dark:hover:bg-gray-800/40 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 text-xs">
                     <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-200">{note.ncf}</span>
                   </td>
-                  <td className="px-4 py-3"><ECFTypeBadge type={note.ecfType} /></td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
+                  <td className="px-4 py-2.5 text-xs"><ECFTypeBadge type={note.ecfType} /></td>
+                  <td className="px-4 py-2.5 text-xs text-right font-semibold text-primary">
                     {formatCurrency(note.total)}
                   </td>
-                  <td className="px-4 py-3 text-center"><StatusBadge status={note.status} /></td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{formatDate(note.createdAt)}</td>
+                  <td className="px-4 py-2.5 text-xs text-center"><StatusBadge status={note.status} /></td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500">{formatDate(note.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1547,21 +1547,21 @@ export default function ECFPage() {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-outline-variant"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-slate-200"
       >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-outline-variant shadow-sm relative overflow-hidden">
+          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent" />
             <ShieldCheck className="h-6 w-6 text-primary relative z-10" />
           </div>
           <div>
             <h1 className="text-3xl font-extrabold text-primary tracking-tight font-display-lg">Central e-CF</h1>
-            <p className="text-sm text-on-surface-variant mt-1">Gestión integral de facturación electrónica DGII</p>
+            <p className="text-sm text-slate-500 mt-1">Gestión integral de facturación electrónica DGII</p>
           </div>
         </div>
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border shadow-sm transition-all ${entorno === 'TEST'
           ? 'bg-error-container text-on-error-container border-error/30 animate-pulse'
-          : 'bg-white text-primary border-outline-variant'
+          : 'bg-white text-primary border-slate-200'
           }`}>
           <ShieldCheck className="h-4 w-4" />
           <span className="tracking-wider uppercase">{entornoConfig[entorno].label}</span>
@@ -1569,14 +1569,14 @@ export default function ECFPage() {
       </motion.div>
 
       {/* Tabs Premium Light */}
-      <div className="flex gap-2 border-b border-outline-variant px-2">
+      <div className="flex gap-2 border-b border-slate-200 px-2">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`relative flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold transition-all ${activeTab === tab.id
+            className={`relative flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg font-bold transition-all ${activeTab === tab.id
               ? 'text-primary'
-              : 'text-on-surface-variant hover:text-primary hover:bg-white/50 rounded-t-xl'
+              : 'text-slate-500 hover:text-primary hover:bg-white/50 rounded-t-xl'
               }`}
           >
             {tab.icon}

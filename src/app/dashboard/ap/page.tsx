@@ -382,10 +382,10 @@ export default function AccountsPayablePage() {
   const nowStr = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-full bg-background text-on-surface font-sans pb-20 max-w-7xl mx-auto w-full">
+    <div className="min-h-full bg-slate-50 text-on-surface font-sans pb-20 max-w-7xl mx-auto w-full">
 
       {/* Environment Indicator */}
-      <div className="bg-[#002b49] w-full px-8 py-1.5 flex justify-end items-center border-b border-outline-variant/30">
+      <div className="bg-[#002b49] w-full px-8 py-1.5 flex justify-end items-center border-b border-slate-200/30">
         <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <Landmark className="h-3.5 w-3.5 text-amber-500" /> Cuentas por Pagar & Garantías
         </span>
@@ -400,29 +400,29 @@ export default function AccountsPayablePage() {
               <Receipt className="h-8 w-8 text-amber-500" />
               Módulo de Cuentas por Pagar
             </h1>
-            <p className="text-on-surface-variant dark:text-white/70 text-sm mt-1.5">
+            <p className="text-slate-500 dark:text-white/70 text-sm mt-1.5">
               Gestione balances pendientes de proveedores, configure asientos contables y aplique cheques en garantía diferidos.
             </p>
           </div>
           <div className="flex gap-4">
-            <div className="bg-surface-container-low px-6 py-4 rounded-xl border border-outline-variant/30 shadow-lg flex flex-col items-end min-w-[200px]">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant/70">Deuda Total Acumulada</span>
+            <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200/30 shadow-lg flex flex-col items-end min-w-[200px]">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500/70">Deuda Total Acumulada</span>
               <span className="text-2xl font-mono font-bold text-rose-500 mt-1">{fmt(globalTotalPending)}</span>
             </div>
-            <div className="bg-surface-container-low px-6 py-4 rounded-xl border border-outline-variant/30 shadow-lg flex flex-col items-end min-w-[200px]">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant/70">Cheques en Garantía</span>
+            <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200/30 shadow-lg flex flex-col items-end min-w-[200px]">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500/70">Cheques en Garantía</span>
               <span className="text-2xl font-mono font-bold text-amber-500 mt-1">{pendingGuarantees.length}</span>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-850 gap-4 shrink-0">
+        <div className="flex border-b border-slate-200 gap-4 shrink-0">
           <button
             onClick={() => setActiveTab('bills')}
             className={clsx(
-              "pb-3 text-sm font-bold transition-all border-b-2 px-1",
-              activeTab === 'bills' ? 'border-amber-500 text-amber-500' : 'border-transparent text-on-surface-variant hover:text-primary'
+              "px-4 py-2 text-xs font-bold transition-all rounded-lg",
+              activeTab === 'bills' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Cuentas por Pagar (Facturas)
@@ -430,8 +430,8 @@ export default function AccountsPayablePage() {
           <button
             onClick={() => setActiveTab('guarantees')}
             className={clsx(
-              "pb-3 text-sm font-bold transition-all border-b-2 px-1 flex items-center gap-2",
-              activeTab === 'guarantees' ? 'border-amber-500 text-amber-500' : 'border-transparent text-on-surface-variant hover:text-primary'
+              "px-4 py-2 text-xs font-bold transition-all rounded-lg flex items-center gap-2",
+              activeTab === 'guarantees' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Cheques en Garantía
@@ -444,8 +444,8 @@ export default function AccountsPayablePage() {
           <button
             onClick={() => setActiveTab('history')}
             className={clsx(
-              "pb-3 text-sm font-bold transition-all border-b-2 px-1",
-              activeTab === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-on-surface-variant hover:text-primary'
+              "px-4 py-2 text-xs font-bold transition-all rounded-lg",
+              activeTab === 'history' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Historial de Pagos
@@ -470,39 +470,39 @@ export default function AccountsPayablePage() {
               {loading ? (
                 <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-amber-500" /></div>
               ) : filteredSuppliers.length === 0 ? (
-                <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 p-16 text-center shadow-lg">
+                <div className="bg-white rounded-xl border border-slate-200/30 p-16 text-center shadow-lg">
                   <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-primary">¡Al día con los proveedores!</h3>
-                  <p className="text-on-surface-variant mt-2">No se encontraron deudas comerciales pendientes de pago.</p>
+                  <h3 className="text-xl font-bold text-slate-800">¡Al día con los proveedores!</h3>
+                  <p className="text-slate-500 mt-2">No se encontraron deudas comerciales pendientes de pago.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {filteredSuppliers.map(supplier => (
-                    <div key={supplier.supplierId} className="bg-surface-container-low rounded-xl shadow-lg border border-slate-850 overflow-hidden">
+                    <div key={supplier.supplierId} className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
 
                       {/* Supplier Row */}
-                      <div className="bg-surface-container-low/60 border-b border-slate-850 p-5 flex flex-wrap justify-between items-center gap-4">
+                      <div className="bg-white/60 border-b border-slate-200 p-4 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center border border-amber-500/20">
                             <Building2 className="h-5 w-5" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-primary">{supplier.supplierName}</h3>
-                            <p className="text-xs text-on-surface-variant font-semibold uppercase tracking-wider">{supplier.bills.length} factura(s) pendiente(s)</p>
+                            <h3 className="text-lg font-bold text-slate-800">{supplier.supplierName}</h3>
+                            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">{supplier.bills.length} factura(s) pendiente(s)</p>
                           </div>
                         </div>
                          <div className="flex items-center gap-6">
                           <button
                             onClick={() => handlePrintSupplierAP(supplier.supplierId)}
                             disabled={printingSupplierId === supplier.supplierId}
-                            className="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 h-8 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
                             title="Imprimir Cuentas por Pagar"
                           >
                             <Printer className="w-4 h-4 text-amber-500" />
                             <span>Imprimir</span>
                           </button>
                           <div className="text-right">
-                            <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Balance Total</p>
+                            <p className="text-[10px] font-bold text-slate-500/70 uppercase tracking-widest">Balance Total</p>
                             <p className="font-mono text-lg font-bold text-rose-500">{fmt(supplier.totalBalance)}</p>
                           </div>
                         </div>
@@ -510,16 +510,16 @@ export default function AccountsPayablePage() {
 
                       {/* Bill Detail List */}
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                             <tr>
-                              <th className="px-6 py-3.5">Referencia CXP</th>
-                              <th className="px-6 py-3.5">Factura / NCF</th>
-                              <th className="px-6 py-3.5">Emisión</th>
-                              <th className="px-6 py-3.5">Vencimiento</th>
-                              <th className="px-6 py-3.5 text-right">Monto Original</th>
-                              <th className="px-6 py-3.5 text-right">Balance Pendiente</th>
-                              <th className="px-6 py-3.5 text-right">Acción</th>
+                              <th className="px-4 py-2.5">Referencia CXP</th>
+                              <th className="px-4 py-2.5">Factura / NCF</th>
+                              <th className="px-4 py-2.5">Emisión</th>
+                              <th className="px-4 py-2.5">Vencimiento</th>
+                              <th className="px-4 py-2.5 text-right">Monto Original</th>
+                              <th className="px-4 py-2.5 text-right">Balance Pendiente</th>
+                              <th className="px-4 py-2.5 text-right">Acción</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-850">
@@ -527,9 +527,9 @@ export default function AccountsPayablePage() {
                               const isOverdue = new Date(bill.dueDate) < new Date();
                               return (
                                 <tr key={bill.apId} className="hover:bg-slate-850/30 transition-colors">
-                                  <td className="px-6 py-4 font-mono font-bold text-amber-500">{bill.apId.slice(0, 8).toUpperCase()}</td>
-                                  <td className="px-6 py-4 font-mono text-xs">{bill.ncf || 'S/N'}</td>
-                                  <td className="px-6 py-4 text-xs font-mono">
+                                  <td className="px-4 py-2.5 font-mono font-bold text-amber-500">{bill.apId.slice(0, 8).toUpperCase()}</td>
+                                  <td className="px-4 py-2.5 font-mono text-xs">{bill.ncf || 'S/N'}</td>
+                                  <td className="px-4 py-2.5 text-xs font-mono">
                                     {(() => {
                                       if (!bill.issueDate) return '-';
                                       const parts = bill.issueDate.split('-');
@@ -538,8 +538,8 @@ export default function AccountsPayablePage() {
                                       return `${day}/${month}/${year}`;
                                     })()}
                                   </td>
-                                  <td className="px-6 py-4">
-                                    <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/20 text-rose-400 border border-rose-500/10' : 'text-on-surface-variant')}>
+                                  <td className="px-4 py-2.5">
+                                    <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/20 text-rose-400 border border-rose-500/10' : 'text-slate-500')}>
                                       {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-400" />}
                                       {(() => {
                                         if (!bill.dueDate) return '';
@@ -550,12 +550,12 @@ export default function AccountsPayablePage() {
                                       })()}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-4 text-right text-on-surface-variant font-mono">{fmt(bill.amount)}</td>
-                                  <td className="px-6 py-4 text-right font-mono font-bold text-primary">{fmt(bill.balance)}</td>
-                                  <td className="px-6 py-4 text-right">
+                                  <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(bill.amount)}</td>
+                                  <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(bill.balance)}</td>
+                                  <td className="px-4 py-2.5 text-right">
                                     <button
                                       onClick={() => handleOpenPayment(supplier, bill)}
-                                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all active:scale-[0.98]"
+                                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md transition-all active:scale-[0.98]"
                                     >
                                       Registrar Pago
                                     </button>
@@ -579,15 +579,15 @@ export default function AccountsPayablePage() {
               className="space-y-6"
             >
               {/* Guarantee Control Bar */}
-              <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="bg-white p-4 rounded-xl border border-slate-200/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                  <h3 className="font-bold text-lg text-primary">Procesamiento de Garantías diferidas</h3>
-                  <p className="text-on-surface-variant text-xs mt-1">Aplique los cheques en garantía cuya fecha de liberación ya haya llegado a hoy.</p>
+                  <h3 className="font-bold text-lg text-slate-800">Procesamiento de Garantías diferidas</h3>
+                  <p className="text-slate-500 text-xs mt-1">Aplique los cheques en garantía cuya fecha de liberación ya haya llegado a hoy.</p>
                 </div>
                 <button
                   onClick={handleApplyDueGuarantees}
                   disabled={applyingGuarantees || pendingGuarantees.length === 0}
-                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center"
+                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs justify-center"
                 >
                   {applyingGuarantees ? (
                     <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
@@ -598,22 +598,22 @@ export default function AccountsPayablePage() {
               </div>
 
               {/* Guarantees List */}
-              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden shadow-lg">
+              <div className="bg-white rounded-xl border border-slate-200/30 overflow-hidden shadow-lg">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3.5">No. Cheque</th>
-                        <th className="px-6 py-3.5">Proveedor Beneficiario</th>
-                        <th className="px-6 py-3.5 text-right">Monto Cheque</th>
-                        <th className="px-6 py-3.5 text-center">Fecha Cobro</th>
-                        <th className="px-6 py-3.5 text-center">Estado</th>
+                        <th className="px-4 py-2.5">No. Cheque</th>
+                        <th className="px-4 py-2.5">Proveedor Beneficiario</th>
+                        <th className="px-4 py-2.5 text-right">Monto Cheque</th>
+                        <th className="px-4 py-2.5 text-center">Fecha Cobro</th>
+                        <th className="px-4 py-2.5 text-center">Estado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-850">
                       {pendingGuarantees.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-8 text-center text-on-surface-variant/70">
+                          <td colSpan={5} className="p-8 text-center text-slate-500/70">
                             No hay cheques en garantía diferidos en este momento.
                           </td>
                         </tr>
@@ -622,10 +622,10 @@ export default function AccountsPayablePage() {
                           const isDue = payment.dueDate ? payment.dueDate <= nowStr : false;
                           return (
                             <tr key={payment.id} className={clsx("hover:bg-slate-850/30 transition-colors", isDue ? 'bg-amber-500/5' : '')}>
-                              <td className="px-6 py-4 font-mono font-bold text-amber-500">{payment.checkNumber || 'S/N'}</td>
-                              <td className="px-6 py-4 text-primary font-bold">{payment.supplierName}</td>
-                              <td className="px-6 py-4 text-right font-mono font-bold text-primary">{fmt(parseFloat(payment.amount))}</td>
-                              <td className="px-6 py-4 text-center text-on-surface-variant font-mono">
+                              <td className="px-4 py-2.5 font-mono font-bold text-amber-500">{payment.checkNumber || 'S/N'}</td>
+                              <td className="px-4 py-2.5 text-slate-800 font-bold">{payment.supplierName}</td>
+                              <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(parseFloat(payment.amount))}</td>
+                              <td className="px-4 py-2.5 text-center text-slate-500 font-mono">
                                  {(() => {
                                   if (!payment.dueDate) return '-';
                                   const parts = payment.dueDate.split('-');
@@ -634,7 +634,7 @@ export default function AccountsPayablePage() {
                                   return `${day}/${month}/${year}`;
                                 })()}
                               </td>
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-4 py-2.5 text-center">
                                 <span className={clsx(
                                   "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold border",
                                   isDue
@@ -661,7 +661,7 @@ export default function AccountsPayablePage() {
               className="space-y-4"
             >
               {/* Filtros */}
-              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="bg-white rounded-xl border border-slate-200/30 p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex-1 w-full max-w-sm">
                   <SearchBar 
                     placeholder="Buscar suplidor o cheque..." 
@@ -671,26 +671,26 @@ export default function AccountsPayablePage() {
                 </div>
                 <div className="flex items-center gap-4 text-sm w-full md:w-auto">
                   <div className="flex flex-col gap-1 w-full md:w-auto">
-                    <label className="text-xs text-on-surface-variant font-bold">Desde</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desde</label>
                     <input 
                       type="date" 
                       value={paymentsStartDate} 
                       onChange={(e) => setPaymentsStartDate(e.target.value)}
-                      className="bg-background border border-outline-variant rounded-md px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      className="bg-slate-50 border border-slate-200 rounded-lg h-8 px-3 py-1.5 text-xs focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                     />
                   </div>
                   <div className="flex flex-col gap-1 w-full md:w-auto">
-                    <label className="text-xs text-on-surface-variant font-bold">Hasta</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hasta</label>
                     <input 
                       type="date" 
                       value={paymentsEndDate} 
                       onChange={(e) => setPaymentsEndDate(e.target.value)}
-                      className="bg-background border border-outline-variant rounded-md px-3 py-1.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                      className="bg-slate-50 border border-slate-200 rounded-lg h-8 px-3 py-1.5 text-xs focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                     />
                   </div>
                   <button 
                     onClick={() => { setPaymentsStartDate(''); setPaymentsEndDate(''); setPaymentsSearch(''); setPaymentsPage(1); }}
-                    className="mt-5 px-3 py-1.5 border border-outline-variant hover:bg-outline-variant/20 rounded-md transition-colors"
+                    className="mt-5 px-3 py-1.5 h-8 border border-slate-200 hover:bg-slate-200/20 rounded-lg transition-colors"
                   >
                     <RefreshCw className="w-4 h-4" />
                   </button>
@@ -698,31 +698,31 @@ export default function AccountsPayablePage() {
               </div>
 
               {/* Tabla */}
-              <div className="bg-surface-container-low rounded-xl border border-outline-variant/30 overflow-hidden shadow-lg">
+              <div className="bg-white rounded-xl border border-slate-200/30 overflow-hidden shadow-lg">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-background/40 text-xs text-on-surface-variant/70 uppercase font-bold border-b border-slate-850">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                     <tr>
-                      <th className="px-6 py-3.5">Fecha</th>
-                      <th className="px-6 py-3.5">Proveedor</th>
-                      <th className="px-6 py-3.5">Método</th>
-                      <th className="px-6 py-3.5">Débito (Pasivo)</th>
-                      <th className="px-6 py-3.5">Crédito (Activo)</th>
-                      <th className="px-6 py-3.5 text-right">Monto</th>
-                      <th className="px-6 py-3.5 text-center">Estado</th>
+                      <th className="px-4 py-2.5">Fecha</th>
+                      <th className="px-4 py-2.5">Proveedor</th>
+                      <th className="px-4 py-2.5">Método</th>
+                      <th className="px-4 py-2.5">Débito (Pasivo)</th>
+                      <th className="px-4 py-2.5">Crédito (Activo)</th>
+                      <th className="px-4 py-2.5 text-right">Monto</th>
+                      <th className="px-4 py-2.5 text-center">Estado</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-850">
                     {paymentsList.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-on-surface-variant/70">
+                        <td colSpan={7} className="p-8 text-center text-slate-500/70">
                           No se han registrado pagos en el historial.
                         </td>
                       </tr>
                     ) : (
                       paymentsList.map(p => (
                         <tr key={p.id} className="hover:bg-slate-850/30 transition-colors">
-                          <td className="px-6 py-4 text-on-surface-variant text-xs font-mono">
+                          <td className="px-4 py-2.5 text-slate-500 text-xs font-mono">
                             {(() => {
                               if (!p.paymentDate) return '';
                               const parts = p.paymentDate.split('-');
@@ -731,9 +731,9 @@ export default function AccountsPayablePage() {
                               return `${day}/${month}/${year}`;
                             })()}
                           </td>
-                          <td className="px-6 py-4 text-primary font-bold">{p.supplierName}</td>
-                          <td className="px-6 py-4">
-                            <span className="capitalize text-on-surface-variant text-xs">
+                          <td className="px-4 py-2.5 text-slate-800 font-bold">{p.supplierName}</td>
+                          <td className="px-4 py-2.5">
+                            <span className="capitalize text-slate-500 text-xs">
                               {p.paymentMethod === 'check'
                                 ? `Cheque (${p.checkNumber || 'S/N'})`
                                 : p.paymentMethod === 'transfer'
@@ -741,14 +741,14 @@ export default function AccountsPayablePage() {
                                   : 'Efectivo'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-on-surface-variant text-xs font-mono" title={p.debitAccountName}>
+                          <td className="px-4 py-2.5 text-slate-500 text-xs font-mono" title={p.debitAccountName}>
                             {p.debitAccountCode}
                           </td>
-                          <td className="px-6 py-4 text-on-surface-variant text-xs font-mono" title={p.creditAccountName}>
+                          <td className="px-4 py-2.5 text-slate-500 text-xs font-mono" title={p.creditAccountName}>
                             {p.creditAccountCode}
                           </td>
-                          <td className="px-6 py-4 text-right font-mono font-bold text-primary">{fmt(parseFloat(p.amount))}</td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(parseFloat(p.amount))}</td>
+                          <td className="px-4 py-2.5 text-center">
                             <span className={clsx(
                               "inline-flex px-2 py-0.5 rounded text-xs font-bold border",
                               p.status === 'applied'
@@ -768,22 +768,22 @@ export default function AccountsPayablePage() {
               
               {/* Paginación */}
               {paymentsTotalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t border-slate-850 bg-background/20">
-                  <span className="text-xs text-on-surface-variant font-mono">
+                <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50/20">
+                  <span className="text-xs text-slate-500 font-mono">
                     Mostrando página {paymentsPage} de {paymentsTotalPages} ({paymentsTotal} registros)
                   </span>
                   <div className="flex gap-2">
                     <button 
                       disabled={paymentsPage <= 1}
                       onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
-                      className="px-3 py-1 bg-surface-container border border-outline-variant rounded hover:bg-outline-variant/20 disabled:opacity-50 text-xs font-bold transition-colors"
+                      className="px-3 py-1.5 h-8 bg-surface-container border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-xs font-bold transition-colors"
                     >
                       Anterior
                     </button>
                     <button 
                       disabled={paymentsPage >= paymentsTotalPages}
                       onClick={() => setPaymentsPage(p => Math.min(paymentsTotalPages, p + 1))}
-                      className="px-3 py-1 bg-surface-container border border-outline-variant rounded hover:bg-outline-variant/20 disabled:opacity-50 text-xs font-bold transition-colors"
+                      className="px-3 py-1.5 h-8 bg-surface-container border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-xs font-bold transition-colors"
                     >
                       Siguiente
                     </button>
@@ -800,40 +800,40 @@ export default function AccountsPayablePage() {
       <AnimatePresence>
         {showPaymentModal && selectedSupplier && selectedBill && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="relative z-10 flex flex-col w-full max-w-2xl max-h-[95vh] bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-slate-50/80 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="relative z-10 flex flex-col w-full max-w-2xl max-h-[95vh] bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
 
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733] shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733] shrink-0">
                 <div>
                   <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
                     <FileSignature className="w-5 h-5 text-[#c5a059]" /> Registrar Pago Contable
                   </h3>
                   <p className="text-[#c5a059]/80 text-xs mt-1 font-mono">{selectedSupplier.supplierName} • Factura ID: {selectedBill.apId.slice(0, 8).toUpperCase()}</p>
                 </div>
-                <button onClick={() => setShowPaymentModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowPaymentModal(false)} className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
               </div>
 
               {/* Form body */}
-              <form onSubmit={handleSubmitPayment} className="p-6 space-y-5 overflow-y-auto flex-1">
+              <form onSubmit={handleSubmitPayment} className="p-4 space-y-5 overflow-y-auto flex-1">
 
                 {/* Basic fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-primary block mb-1">Fecha de Pago</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Pago</label>
                     <input
                       type="date" required
                       value={paymentForm.date}
                       onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-primary block mb-1">Método de Pago</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Método de Pago</label>
                     <select
                       value={paymentForm.paymentMethod}
                       onChange={e => handleMethodChange(e.target.value as any)}
-                      className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                     >
                       <option value="transfer">Transferencia Bancaria</option>
                       <option value="check">Cheque Bancario</option>
@@ -843,19 +843,19 @@ export default function AccountsPayablePage() {
                 </div>
 
                 {/* Configurable Accounting Accounts */}
-                <div className="bg-surface-container-low p-4 rounded-xl border border-outline/30 space-y-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200/30 space-y-4">
                   <div className="flex items-center gap-1.5 text-xs text-[#c5a059] font-bold uppercase tracking-wider">
                     <Settings className="w-4 h-4" /> Configuración de Cuentas
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-semibold text-primary block mb-1">Débito (CXP - Pasivo)</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Débito (CXP - Pasivo)</label>
                       <select
                         required
                         value={paymentForm.debitAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, debitAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -866,12 +866,12 @@ export default function AccountsPayablePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-primary block mb-1">Crédito (Activo - Banco/Caja)</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crédito (Activo - Banco/Caja)</label>
                       <select
                         required
                         value={paymentForm.creditAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, creditAccountId: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -887,27 +887,27 @@ export default function AccountsPayablePage() {
                 {/* Amount */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-primary block mb-1">Monto a Amortizar / Pagar</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto a Amortizar / Pagar</label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-on-surface-variant font-bold">$</span>
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
                       <input
                         type="number" min="0.01" step="0.01" required
                         value={paymentForm.amount}
                         onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg pl-8 pr-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                        className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                         placeholder="0.00"
                       />
                     </div>
-                    <span className="text-[10px] text-on-surface-variant block mt-1">Deuda máxima: {fmt(selectedBill.balance)}</span>
+                    <span className="text-[10px] text-slate-500 block mt-1">Deuda máxima: {fmt(selectedBill.balance)}</span>
                   </div>
                   {paymentForm.paymentMethod !== 'check' && (
                     <div>
-                      <label className="text-sm font-semibold text-primary block mb-1">Referencia (Opcional)</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia (Opcional)</label>
                       <input
                         type="text"
                         value={paymentForm.reference}
                         onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })}
-                        className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                         placeholder="Ref / Transfer #"
                       />
                     </div>
@@ -926,7 +926,7 @@ export default function AccountsPayablePage() {
                 {paymentForm.paymentMethod === 'check' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                    className="bg-surface-container-low p-4 rounded-xl border border-outline/30 space-y-4 overflow-hidden"
+                    className="bg-white p-4 rounded-xl border border-slate-200/30 space-y-4 overflow-hidden"
                   >
                     <div className="text-xs text-[#c5a059] font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Landmark className="w-4 h-4" /> Datos de Emisión del Cheque
@@ -934,11 +934,11 @@ export default function AccountsPayablePage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm font-semibold text-primary block mb-1">Cuenta Bancaria</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Bancaria</label>
                         <select
                           value={paymentForm.bankAccountId}
                           onChange={e => setPaymentForm({ ...paymentForm, bankAccountId: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         >
                           <option value="">-- Seleccionar Banco --</option>
                           {bankAccountsList.map(b => (
@@ -947,50 +947,50 @@ export default function AccountsPayablePage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-sm font-semibold text-primary block mb-1">No. Cheque</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">No. Cheque</label>
                         <input
                           type="text"
                           value={paymentForm.checkNumber}
                           onChange={e => setPaymentForm({ ...paymentForm, checkNumber: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                           placeholder="Ej. 000192"
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-semibold text-primary block mb-1">A Favor De (Beneficiario)</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">A Favor De (Beneficiario)</label>
                         <input
                           type="text"
                           value={paymentForm.payee}
                           onChange={e => setPaymentForm({ ...paymentForm, payee: e.target.value })}
-                          className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                           placeholder="Beneficiario"
                         />
                       </div>
                     </div>
 
                     {/* Guarantee check configuration */}
-                    <div className="border-t border-outline/30 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="border-t border-slate-200/30 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <label className="flex items-center gap-2 cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={paymentForm.isGuarantee}
                           onChange={e => setPaymentForm({ ...paymentForm, isGuarantee: e.target.checked })}
-                          className="rounded bg-surface-container-highest border-outline text-[#c5a059] focus:ring-[#c5a059] focus:ring-offset-0 focus:ring-1 w-4 h-4 cursor-pointer"
+                          className="rounded bg-white border-slate-200 text-[#c5a059] focus:ring-[#c5a059] focus:ring-offset-0 focus:ring-1 w-4 h-4 cursor-pointer"
                         />
                         <div>
-                          <span className="text-sm font-semibold text-primary block">Cheque en Garantía (Post-fechado)</span>
-                          <span className="text-[10px] text-on-surface-variant">El pago no se aplica a la deuda hasta la fecha de cobro.</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Cheque en Garantía (Post-fechado)</span>
+                          <span className="text-[10px] text-slate-500">El pago no se aplica a la deuda hasta la fecha de cobro.</span>
                         </div>
                       </label>
 
                       {paymentForm.isGuarantee && (
                         <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="w-full sm:w-auto">
-                          <label className="text-sm font-semibold text-primary block mb-1">Fecha de Cobro</label>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Cobro</label>
                           <input
                             type="date"
                             value={paymentForm.dueDate}
                             onChange={e => setPaymentForm({ ...paymentForm, dueDate: e.target.value })}
-                            className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono"
+                            className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                           />
                         </motion.div>
                       )}
@@ -1000,12 +1000,12 @@ export default function AccountsPayablePage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Nota Interna (Opcional)</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nota Interna (Opcional)</label>
                   <textarea
                     value={paymentForm.notes}
                     onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                     rows={2}
-                    className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors resize-none"
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors resize-none"
                     placeholder="Detalles sobre el pago..."
                   ></textarea>
                 </div>
@@ -1015,7 +1015,7 @@ export default function AccountsPayablePage() {
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 h-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 text-xs font-bold border border-rose-200 transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -1023,7 +1023,7 @@ export default function AccountsPayablePage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-6 py-2.5 rounded-lg font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
                   >
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {paymentForm.isGuarantee ? 'Registrar Garantía' : 'Procesar'}

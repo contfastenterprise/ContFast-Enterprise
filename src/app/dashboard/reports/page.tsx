@@ -82,48 +82,48 @@ export default function ReportsPage() {
       {/* Header section with title and CTA */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-primary font-display flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 font-display flex items-center gap-2">
             <PieChart className="h-8 w-8 text-[#c5a059]" />
             Reportes y Analíticas
           </h1>
-          <p className="text-on-surface-variant text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Genera los estados financieros en formato PDF listo para auditoría.
           </p>
         </div>
       </div>
 
         {/* Global Date Filter */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Inicio</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Inicio</label>
             <input
               type="date"
               value={dates.start}
               onChange={e => setDates({ ...dates, start: e.target.value })}
-              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+              className="w-full md:w-48 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Fin / Corte</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Calendar className="w-3 h-3" /> Fecha Fin / Corte</label>
             <input
               type="date"
               value={dates.end}
               onChange={e => setDates({ ...dates, end: e.target.value })}
-              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+              className="w-full md:w-48 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Building2 className="w-3 h-3" /> Almacén</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Building2 className="w-3 h-3" /> Almacén</label>
             <select
               value={warehouseId}
               onChange={e => setWarehouseId(e.target.value)}
-              className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
+              className="w-full md:w-48 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
             >
               <option value="all">Todos los Almacenes</option>
               {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
           </div>
-          <div className="ml-auto text-xs text-on-surface-variant font-medium">
+          <div className="ml-auto text-xs text-slate-500 font-medium">
             * Estos filtros aplicarán a todos los reportes generados a continuación.
           </div>
         </div>
@@ -131,19 +131,19 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
 
           {/* Income Statement Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-[#003366]" />
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-6 h-6 text-[#003366]" />
               <h3 className="font-bold text-lg text-[#003366]">Estado de Resultados (P&L)</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Detalle de Ingresos, Costos de Venta y Gastos Operativos. Calcula la Utilidad Bruta y Neta del periodo seleccionado.
             </p>
             <button
               onClick={() => handleGeneratePdf('income_statement')}
               disabled={loadingType !== null}
-              className="w-full bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'income_statement' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
@@ -154,19 +154,19 @@ export default function ReportsPage() {
           </div>
 
           {/* Balance Sheet Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
             <div className="flex items-center gap-3 mb-2">
               <Building className="w-6 h-6 text-[#C5A059]" />
               <h3 className="font-bold text-lg text-[#003366]">Balance General</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Estado de la situación financiera. Refleja todos los Activos, Pasivos y el Capital de la empresa a la fecha de corte seleccionada.
             </p>
             <button
               onClick={() => handleGeneratePdf('balance_sheet')}
               disabled={loadingType !== null}
-              className="w-full bg-[#C5A059] hover:bg-[#b08c4a] text-primary font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#C5A059] hover:bg-[#b08c4a] text-slate-800 font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'balance_sheet' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
@@ -176,22 +176,22 @@ export default function ReportsPage() {
             </button>
           </div>
           {/* AR Statement Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-[#10b981]" />
             <div className="flex items-center gap-3 mb-2">
               <BookOpen className="w-6 h-6 text-[#10b981]" />
               <h3 className="font-bold text-lg text-[#003366]">Estado de Cuentas por Cliente</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-4 flex-grow">
+            <p className="text-xs text-slate-500 mb-4 flex-grow">
               Genera un reporte detallado de las facturas pendientes y balances adeudados de un cliente específico.
             </p>
             
             <div className="mb-4">
-              <label className="block text-xs font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">Cliente</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">Cliente</label>
               <select
                 value={selectedCustomerId}
                 onChange={e => setSelectedCustomerId(e.target.value)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#10b981] text-sm"
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
               >
                 {customers.length === 0 && <option value="">Cargando clientes...</option>}
                 {customers.map(c => (
@@ -203,7 +203,7 @@ export default function ReportsPage() {
             <button
               onClick={() => handleGeneratePdf('ar_statement')}
               disabled={loadingType !== null || !selectedCustomerId}
-              className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'ar_statement' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
@@ -214,19 +214,19 @@ export default function ReportsPage() {
           </div>
 
           {/* Sales vs Purchases Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-violet-500" />
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="w-6 h-6 text-violet-500" />
-              <h3 className="font-bold text-lg text-primary">Compras vs Ventas</h3>
+              <h3 className="font-bold text-lg text-slate-800">Compras vs Ventas</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Reporte comparativo para analizar la utilidad bruta, calculando el total de ingresos por ventas menos los gastos y compras del período.
             </p>
             <button
               onClick={() => handleGeneratePdf('sales_vs_purchases')}
               disabled={loadingType !== null}
-              className="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full bg-violet-500 hover:bg-violet-600 text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loadingType === 'sales_vs_purchases' ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Generando PDF...</>
@@ -237,53 +237,53 @@ export default function ReportsPage() {
           </div>
 
           {/* Formato 606 Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-6 h-6 text-blue-600" />
               <h3 className="font-bold text-lg text-blue-900">Formato 606 (Compras y Gastos)</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Genera y exporta el archivo en formato TXT requerido por la DGII para el reporte mensual de compras y gastos.
             </p>
             <a
               href="/dashboard/reports/606"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2"
             >
               <FileText className="w-4 h-4" /> Ver Reporte 606
             </a>
           </div>
           {/* Formato 607 Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-green-600" />
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-6 h-6 text-green-600" />
               <h3 className="font-bold text-lg text-green-900">Formato 607 (Ventas e Ingresos)</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Consulta tu libro de ventas e-CF y exporta el archivo TXT resumen mensual equivalente al formato 607.
             </p>
             <a
               href="/dashboard/reports/607"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2"
             >
               <FileText className="w-4 h-4" /> Ver Reporte 607
             </a>
           </div>
 
           {/* Conciliación Bancaria Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col">
             <div className="absolute top-0 left-0 w-1 h-full bg-[#3a5f94]" />
             <div className="flex items-center gap-3 mb-2">
               <Building className="w-6 h-6 text-[#3a5f94]" />
               <h3 className="font-bold text-lg text-[#003366]">Conciliación Bancaria</h3>
             </div>
-            <p className="text-sm text-on-surface-variant/70 mb-6 flex-grow">
+            <p className="text-xs text-slate-500 mb-6 flex-grow">
               Compara el saldo de tus extractos bancarios con el balance registrado en libros. Identifica cheques y depósitos en tránsito para asentar periodos conciliados.
             </p>
             <a
               href="/dashboard/reports/bank-reconciliation"
-              className="w-full bg-[#3a5f94] hover:bg-[#2c4970] text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 text-center text-sm"
+              className="w-full bg-[#3a5f94] hover:bg-[#2c4970] text-white font-bold h-8 px-3 py-1.5 text-xs rounded-lg transition-colors flex justify-center items-center gap-2 text-center"
             >
               <Building className="w-4 h-4" /> Ir a Conciliación Bancaria
             </a>

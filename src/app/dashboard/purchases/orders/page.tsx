@@ -541,7 +541,7 @@ export default function PurchaseOrdersPage() {
         </div>
         <button
           onClick={openNewModal}
-          className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center gap-2 border border-[#005E63] shadow-md cursor-pointer"
+          className="w-full md:w-auto bg-[#005E63] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-8 flex items-center justify-center gap-2 border border-[#005E63] shadow-md cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           NUEVO PEDIDO
@@ -551,7 +551,7 @@ export default function PurchaseOrdersPage() {
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex-1 min-w-[180px] w-full">
-          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">No. Pedido</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">No. Pedido</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -559,13 +559,13 @@ export default function PurchaseOrdersPage() {
               placeholder="Buscar número"
               value={searchNumber}
               onChange={e => setSearchNumber(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-[38px]"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
             />
           </div>
         </div>
 
         <div className="flex-1 min-w-[180px] w-full">
-          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Suplidor</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Suplidor</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -573,17 +573,17 @@ export default function PurchaseOrdersPage() {
               placeholder="Buscar suplidor"
               value={searchSupplier}
               onChange={e => setSearchSupplier(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-[38px]"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
             />
           </div>
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Estado</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-[38px]"
+            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
           >
             <option value="">Todos</option>
             <option value="Draft">Borrador</option>
@@ -595,28 +595,28 @@ export default function PurchaseOrdersPage() {
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Desde</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Desde</label>
           <input
             type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-[38px]"
+            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
           />
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-1.5">Hasta</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hasta</label>
           <input
             type="date"
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-[38px]"
+            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
           />
         </div>
 
         <button
           onClick={fetchOrders}
-          className="w-full md:w-auto bg-slate-100 text-[#003366] px-6 py-2 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-[38px] flex items-center justify-center gap-2 border border-slate-300 cursor-pointer"
+          className="w-full md:w-auto bg-slate-100 text-[#003366] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-8 flex items-center justify-center gap-2 border border-slate-300 cursor-pointer"
         >
           <Filter className="h-4 w-4" />
           FILTRAR
@@ -626,7 +626,7 @@ export default function PurchaseOrdersPage() {
           <button
             type="button"
             onClick={handlePrintAll}
-            className="w-full md:w-auto bg-[#005E63] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full md:w-auto bg-[#005E63] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-8 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Printer className="h-4 w-4" />
             REPORTE PDF
@@ -640,7 +640,7 @@ export default function PurchaseOrdersPage() {
           <div className="p-16 text-center">
             <div className="flex flex-col items-center justify-center gap-3">
               <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
-              <span className="text-on-surface-variant/80 text-sm font-medium">Cargando pedidos logísticos...</span>
+              <span className="text-slate-600 text-sm font-medium">Cargando pedidos logísticos...</span>
             </div>
           </div>
         ) : filteredOrders.length === 0 ? (
@@ -648,54 +648,54 @@ export default function PurchaseOrdersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">No. Pedido</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Suplidor / Proveedor</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Total Artículos</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Usuario</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">No. Pedido</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Total Artículos</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/20/80">
+              <tbody className="divide-y divide-slate-200">
                 {filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                    <td className="px-4 py-2 align-middle">
+                    <td className="px-4 py-2.5 align-middle">
                       <span className="font-mono text-slate-700 whitespace-nowrap">
                         {new Date(order.orderDate).toLocaleDateString('es-DO')}
                       </span>
                     </td>
-                    <td className="px-4 py-2 align-middle">
+                    <td className="px-4 py-2.5 align-middle">
                       <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors">
                         {order.orderNumber}
                       </span>
                     </td>
-                    <td className="px-4 py-2 align-middle">
+                    <td className="px-4 py-2.5 align-middle">
                       <div className="flex flex-col gap-0.5">
                         <span className="font-semibold text-[#003366] block truncate max-w-[200px]">
                           {order.supplierName}
                         </span>
                         {order.supplierRnc && (
-                          <span className="text-[10px] text-on-surface-variant/70 font-mono">
+                          <span className="text-[10px] text-slate-500 font-mono">
                             RNC: {order.supplierRnc}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2 align-middle text-center font-bold text-slate-800">
+                    <td className="px-4 py-2.5 align-middle text-center font-bold text-slate-800">
                       {order.totalItemsCount}
                     </td>
-                    <td className="px-4 py-2 align-middle text-slate-600">
+                    <td className="px-4 py-2.5 align-middle text-slate-600">
                       {order.userName}
                     </td>
-                    <td className="px-4 py-2 align-middle text-center">
+                    <td className="px-4 py-2.5 align-middle text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${statusBadges[order.status]}`}>
                         {statusLabels[order.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-2 align-middle text-right space-x-2 whitespace-nowrap">
+                    <td className="px-4 py-2.5 align-middle text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => viewOrderDetails(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
                         Ver
                       </button>
@@ -724,10 +724,10 @@ export default function PurchaseOrdersPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+              className="bg-white rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
               {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-black text-[#003366]">
                     Pedido: {activeOrder.orderNumber}
@@ -742,7 +742,7 @@ export default function PurchaseOrdersPage() {
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+              <div className="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
                 {/* Details grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div>
@@ -770,16 +770,16 @@ export default function PurchaseOrdersPage() {
                   <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
                     <table className="w-full border-collapse text-left">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                          <th className="p-3">SKU</th>
-                          <th className="p-3">Nombre</th>
-                          <th className="p-3">Marca</th>
-                          <th className="p-3">Modelo</th>
-                          <th className="p-3 text-center">UM</th>
-                          <th className="p-3 text-center">Cant. Solicitada</th>
-                          <th className="p-3 text-center">Cant. Recibida</th>
-                          <th className="p-3 text-center text-amber-700">Pendiente</th>
-                          <th className="p-3">Observaciones</th>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          <th className="px-4 py-2.5">SKU</th>
+                          <th className="px-4 py-2.5">Nombre</th>
+                          <th className="px-4 py-2.5">Marca</th>
+                          <th className="px-4 py-2.5">Modelo</th>
+                          <th className="px-4 py-2.5 text-center">UM</th>
+                          <th className="px-4 py-2.5 text-center">Cant. Solicitada</th>
+                          <th className="px-4 py-2.5 text-center">Cant. Recibida</th>
+                          <th className="px-4 py-2.5 text-center text-amber-700">Pendiente</th>
+                          <th className="px-4 py-2.5">Observaciones</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -787,15 +787,15 @@ export default function PurchaseOrdersPage() {
                           const pending = line.quantityRequested - line.quantityReceived;
                           return (
                             <tr key={idx} className="border-t border-slate-200">
-                              <td className="p-3 font-mono text-slate-600">{line.productSku || '-'}</td>
-                              <td className="p-3 font-semibold text-[#003366]">{line.productName}</td>
-                              <td className="p-3 text-slate-700">{line.brand || '-'}</td>
-                              <td className="p-3 text-slate-700">{line.model || '-'}</td>
-                              <td className="p-3 text-center">{line.unitOfMeasure}</td>
-                              <td className="p-3 text-center font-bold">{line.quantityRequested}</td>
-                              <td className="p-3 text-center text-emerald-600 font-bold">{line.quantityReceived}</td>
-                              <td className="p-3 text-center text-amber-700 font-bold bg-amber-50/50">{pending}</td>
-                              <td className="p-3 text-slate-500">{line.observations || '-'}</td>
+                              <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
+                              <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
+                              <td className="px-4 py-2.5 text-slate-700">{line.brand || '-'}</td>
+                              <td className="px-4 py-2.5 text-slate-700">{line.model || '-'}</td>
+                              <td className="px-4 py-2.5 text-center">{line.unitOfMeasure}</td>
+                              <td className="px-4 py-2.5 text-center font-bold">{line.quantityRequested}</td>
+                              <td className="px-4 py-2.5 text-center text-emerald-600 font-bold">{line.quantityReceived}</td>
+                              <td className="px-4 py-2.5 text-center text-amber-700 font-bold bg-amber-50/50">{pending}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{line.observations || '-'}</td>
                             </tr>
                           );
                         })}
@@ -812,7 +812,7 @@ export default function PurchaseOrdersPage() {
                     </h3>
                     <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3 max-h-[160px] overflow-y-auto">
                       {activeOrder.logs.map(log => (
-                        <div key={log.id} className="flex flex-col gap-0.5 border-l-2 border-slate-350 pl-3">
+                        <div key={log.id} className="flex flex-col gap-0.5 border-l-2 border-slate-300 pl-3">
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="font-bold text-slate-700">{log.action}</span>
                             <span className="text-slate-400">{new Date(log.createdAt).toLocaleString('es-DO')}</span>
@@ -835,25 +835,25 @@ export default function PurchaseOrdersPage() {
               </div>
 
               {/* Footer Actions */}
-              <div className="flex flex-wrap justify-between items-center p-6 border-t border-slate-100 bg-slate-50/50 gap-3">
+              <div className="flex flex-wrap justify-between items-center p-4 border-t border-slate-100 bg-slate-50/50 gap-3">
                 <div className="flex gap-2">
                   <button
                     onClick={() => handlePrint(activeOrder.id)}
-                    className="bg-slate-100 text-[#003366] border border-slate-300 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
+                    className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Printer className="h-4 w-4" /> Imprimir PDF
                   </button>
                   {activeOrder.supplierEmail && (
                     <button
                       onClick={() => handleSendEmail(activeOrder.id)}
-                      className="bg-slate-100 text-[#003366] border border-slate-300 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
+                      className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
                     >
                       <Mail className="h-4 w-4" /> Enviar por Correo
                     </button>
                   )}
                   <button
                     onClick={() => handleDuplicate(activeOrder.id)}
-                    className="bg-slate-100 text-[#003366] border border-slate-300 px-4 py-2 rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
+                    className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Copy className="h-4 w-4" /> Duplicar
                   </button>
@@ -863,7 +863,7 @@ export default function PurchaseOrdersPage() {
                   {activeOrder.status === 'Draft' && (
                     <button
                       onClick={() => handleSendOrder(activeOrder.id)}
-                      className="bg-[#005E63] text-white px-5 py-2 rounded-lg font-bold hover:bg-[#004d51] flex items-center gap-1.5 cursor-pointer"
+                      className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] flex items-center gap-1.5 cursor-pointer"
                     >
                       <CheckCircle2 className="h-4 w-4" /> Enviar al Suplidor
                     </button>
@@ -871,7 +871,7 @@ export default function PurchaseOrdersPage() {
                   {(activeOrder.status === 'Sent' || activeOrder.status === 'Partial') && (
                     <button
                       onClick={() => openReceiveModal(activeOrder)}
-                      className="bg-emerald-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-emerald-700 flex items-center gap-1.5 cursor-pointer"
+                      className="bg-emerald-600 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-emerald-700 flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="h-4 w-4" /> Registrar Recepción
                     </button>
@@ -879,7 +879,7 @@ export default function PurchaseOrdersPage() {
                   {activeOrder.status !== 'Received' && activeOrder.status !== 'Cancelled' && (
                     <button
                       onClick={() => handleCancelOrder(activeOrder.id, activeOrder.orderNumber)}
-                      className="bg-rose-50 text-rose-700 border border-rose-200 px-4 py-2 rounded-lg font-bold hover:bg-rose-100 cursor-pointer"
+                      className="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-rose-100 cursor-pointer"
                     >
                       Cancelar Pedido
                     </button>
@@ -899,10 +899,10 @@ export default function PurchaseOrdersPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col"
+              className="bg-white rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col"
             >
               {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
                 <h2 className="text-lg font-black text-[#003366] flex items-center gap-2">
                   <Plus className="h-5 w-5 text-emerald-600" />
                   Registrar Recepción - {activeOrder.orderNumber}
@@ -913,7 +913,7 @@ export default function PurchaseOrdersPage() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleReceiveSubmit} className="p-6 space-y-6 text-xs">
+              <form onSubmit={handleReceiveSubmit} className="p-4 space-y-6 text-xs">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-700" />
                   <div>
@@ -925,18 +925,18 @@ export default function PurchaseOrdersPage() {
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full border-collapse text-left">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-650 uppercase">
-                        <th className="p-3 w-[50%]">Producto</th>
-                        <th className="p-3 text-center w-[15%]">Pendiente</th>
-                        <th className="p-3 text-center w-[35%]">Cantidad a Recibir</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase">
+                        <th className="px-4 py-2.5 w-[50%]">Producto</th>
+                        <th className="px-4 py-2.5 text-center w-[15%]">Pendiente</th>
+                        <th className="px-4 py-2.5 text-center w-[35%]">Cantidad a Recibir</th>
                       </tr>
                     </thead>
                     <tbody>
                       {receptions.map((rec, index) => (
                         <tr key={rec.itemId} className="border-t border-slate-200">
-                          <td className="p-3 font-semibold text-slate-800">{rec.productName}</td>
-                          <td className="p-3 text-center font-bold text-amber-700">{rec.pending}</td>
-                          <td className="p-3 text-center">
+                          <td className="px-4 py-2.5 font-semibold text-slate-800">{rec.productName}</td>
+                          <td className="px-4 py-2.5 text-center font-bold text-amber-700">{rec.pending}</td>
+                          <td className="px-4 py-2.5 text-center">
                             <input
                               type="number"
                               min="0"
@@ -950,7 +950,7 @@ export default function PurchaseOrdersPage() {
                                   return copy;
                                 });
                               }}
-                              className="w-24 px-3 py-1.5 bg-white border border-slate-250 rounded-lg text-center outline-none text-slate-900 font-bold"
+                              className="w-24 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                             />
                           </td>
                         </tr>
@@ -964,14 +964,14 @@ export default function PurchaseOrdersPage() {
                   <button
                     type="button"
                     onClick={() => setShowReceiveModal(false)}
-                    className="px-6 py-2 rounded-lg border border-slate-350 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer h-[38px] flex items-center justify-center"
+                    className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-emerald-700 transition-colors h-[38px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    className="bg-emerald-600 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
                   >
                     {submitting ? 'Registrando...' : 'Confirmar Recepción'}
                   </button>
@@ -990,10 +990,10 @@ export default function PurchaseOrdersPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+              className="bg-white rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
                 <h2 className="text-lg font-black text-[#003366] flex items-center gap-2">
                   <Plus className="h-5 w-5 text-[#005E63]" />
                   {editId ? 'Editar Pedido a Suplidor' : 'Nuevo Pedido a Suplidor'}
@@ -1004,7 +1004,7 @@ export default function PurchaseOrdersPage() {
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Supplier Select */}
                   <div className="flex flex-col gap-2">
@@ -1013,7 +1013,7 @@ export default function PurchaseOrdersPage() {
                       value={supplierId}
                       onChange={e => setSupplierId(e.target.value)}
                       required
-                      className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-900"
+                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                     >
                       <option value="">Seleccione un suplidor...</option>
                       {suppliers.map(s => (
@@ -1029,7 +1029,7 @@ export default function PurchaseOrdersPage() {
                       value={warehouseId}
                       onChange={e => setWarehouseId(e.target.value)}
                       required
-                      className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-900"
+                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                     >
                       <option value="">Seleccione un almacén...</option>
                       {warehouses.map(w => (
@@ -1045,7 +1045,7 @@ export default function PurchaseOrdersPage() {
                       type="date"
                       value={expectedDate}
                       onChange={e => setExpectedDate(e.target.value)}
-                      className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-900 h-[38px]"
+                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                     />
                   </div>
                 </div>
@@ -1057,7 +1057,7 @@ export default function PurchaseOrdersPage() {
                     <button
                       type="button"
                       onClick={handleAddLinePlaceholder}
-                      className="bg-slate-100 text-[#003366] border border-slate-350 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1 cursor-pointer"
+                      className="bg-slate-100 text-[#003366] border border-slate-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="h-4 w-4" /> Buscar y Agregar Producto
                     </button>
@@ -1068,7 +1068,7 @@ export default function PurchaseOrdersPage() {
                     <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative">
                       <div className="flex justify-between items-center">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
-                        <button type="button" onClick={() => setActiveLineIndex(null)} className="text-slate-400 hover:text-slate-650">
+                        <button type="button" onClick={() => setActiveLineIndex(null)} className="text-slate-400 hover:text-slate-500">
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -1082,7 +1082,7 @@ export default function PurchaseOrdersPage() {
                             setProductSearchTerm(e.target.value);
                             searchProducts(e.target.value);
                           }}
-                          className="w-full pl-10 pr-4 py-2 bg-white border border-slate-250 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-[38px]"
+                          className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                           autoFocus
                         />
                       </div>
@@ -1100,7 +1100,7 @@ export default function PurchaseOrdersPage() {
                               className="w-full text-left px-4 py-2.5 hover:bg-[#C5A059]/10 flex flex-col gap-0.5 text-xs"
                             >
                               <span className="font-semibold text-[#003366]">{p.name}</span>
-                              <div className="flex justify-between text-[10px] text-slate-450 font-mono">
+                              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
                                 <span>SKU: {p.sku || 'N/A'}</span>
                                 <span>CB: {p.barcode || 'N/A'}</span>
                                 <span>UM: {p.unitOfMeasure || 'unidad'}</span>
@@ -1118,14 +1118,14 @@ export default function PurchaseOrdersPage() {
                   <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                     <table className="w-full border-collapse text-left">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-650 uppercase">
-                          <th className="p-3 w-[15%]">SKU</th>
-                          <th className="p-3 w-[30%]">Producto</th>
-                          <th className="p-3 w-[10%]">Marca</th>
-                          <th className="p-3 w-[10%]">Modelo</th>
-                          <th className="p-3 text-center w-[12%]">Cantidad</th>
-                          <th className="p-3 w-[18%]">Observaciones específicas</th>
-                          <th className="p-3 text-center w-[5%]"></th>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          <th className="px-4 py-2.5 w-[15%]">SKU</th>
+                          <th className="px-4 py-2.5 w-[30%]">Producto</th>
+                          <th className="px-4 py-2.5 w-[10%]">Marca</th>
+                          <th className="px-4 py-2.5 w-[10%]">Modelo</th>
+                          <th className="px-4 py-2.5 text-center w-[12%]">Cantidad</th>
+                          <th className="px-4 py-2.5 w-[18%]">Observaciones específicas</th>
+                          <th className="px-4 py-2.5 text-center w-[5%]"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1138,45 +1138,45 @@ export default function PurchaseOrdersPage() {
                         ) : (
                           lines.map((line, idx) => (
                             <tr key={idx} className="border-t border-slate-200 text-xs">
-                              <td className="p-3 font-mono text-slate-650">{line.productSku || '-'}</td>
-                              <td className="p-3 font-semibold text-[#003366]">{line.productName}</td>
-                              <td className="p-3">
+                              <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
+                              <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
+                              <td className="px-4 py-2.5">
                                 <input
                                   type="text"
                                   value={line.brand || ''}
                                   placeholder="Marca"
                                   onChange={e => handleLineBrandChange(idx, e.target.value)}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-slate-900"
+                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                                 />
                               </td>
-                              <td className="p-3">
+                              <td className="px-4 py-2.5">
                                 <input
                                   type="text"
                                   value={line.model || ''}
                                   placeholder="Modelo"
                                   onChange={e => handleLineModelChange(idx, e.target.value)}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-slate-900"
+                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                                 />
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="px-4 py-2.5 text-center">
                                 <input
                                   type="number"
                                   min="1"
                                   value={line.quantityRequested}
                                   onChange={e => handleLineQuantityChange(idx, parseInt(e.target.value) || 1)}
-                                  className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-lg text-center outline-none text-slate-900 font-bold"
+                                  className="w-16 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                                 />
                               </td>
-                              <td className="p-3">
+                              <td className="px-4 py-2.5">
                                 <input
                                   type="text"
                                   value={line.observations}
                                   placeholder="Notas del item"
                                   onChange={e => handleLineObservationsChange(idx, e.target.value)}
-                                  className="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg outline-none text-slate-900"
+                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                                 />
                               </td>
-                              <td className="p-3 text-center">
+                              <td className="px-4 py-2.5 text-center">
                                 <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
                                   <X className="h-4 w-4" />
                                 </button>
@@ -1197,23 +1197,23 @@ export default function PurchaseOrdersPage() {
                     onChange={e => setObservations(e.target.value)}
                     rows={4}
                     placeholder="Indique comentarios generales sobre la orden..."
-                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none text-slate-900 resize-none font-mono"
+                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 resize-none font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                   />
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 bg-slate-50/50 p-6 -mx-6 -mb-6">
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 bg-slate-50/50 p-4 -mx-4 -mb-4">
                   <button
                     type="button"
                     onClick={() => setShowFormModal(false)}
-                    className="px-6 py-2 rounded-lg border border-slate-350 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer h-[38px] flex items-center justify-center"
+                    className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="bg-[#005E63] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#004d51] transition-colors h-[38px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                    className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
                   >
                     {submitting ? 'Guardando...' : 'Guardar Pedido'}
                   </button>
