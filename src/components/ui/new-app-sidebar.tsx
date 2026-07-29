@@ -158,7 +158,7 @@ function WorkspaceSwitcher({
   );
 }
 
-// ─── NavItem (Clean, System-token light theme) ─────────────────────────────────
+// ─── NavItem (Clean, Dark theme) ─────────────────────────────────────────────────
 
 function NavItem({
   item, pathname, collapsed, onClick, isSubItem,
@@ -175,24 +175,24 @@ function NavItem({
       onClick={onClick}
       title={collapsed ? item.name : undefined}
       className={clsx(
-        'group flex items-center rounded-xl transition-all duration-300 select-none w-full relative',
+        'group flex items-center rounded-xl transition-all duration-300 select-none w-full relative overflow-hidden',
         collapsed ? 'justify-center p-3' : clsx('px-3.5 py-2.5', isSubItem ? 'pl-8 text-[12px] gap-2.5' : 'gap-3 text-[13px]'),
         isActive
-          ? 'bg-[#003366] text-white font-bold border border-[#003366]/20 shadow-[0_4px_12px_rgba(0,51,102,0.15)]'
-          : 'text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] border border-transparent',
+          ? 'bg-primary/10 text-white font-bold'
+          : 'text-slate-400 hover:bg-primary hover:text-white border border-transparent',
       )}
     >
       {/* Active side indicator */}
       {isActive && !collapsed && (
-        <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-primary shadow-[0_0_6px_rgba(0,51,102,0.4)]" />
+        <span className="absolute left-0 top-0 bottom-0 w-[4px] bg-primary shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
       )}
       <item.icon
         className={clsx(
           'shrink-0 transition-all duration-300',
           collapsed ? 'w-[20px] h-[20px]' : isSubItem ? 'w-[15px] h-[15px]' : 'w-[18px] h-[18px]',
           isActive
-            ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]'
-            : 'text-on-surface-variant/50 group-hover:text-on-surface group-hover:scale-105',
+            ? 'text-primary drop-shadow-[0_0_6px_rgba(37,99,235,0.4)]'
+            : 'text-slate-400 group-hover:text-white group-hover:scale-105',
         )}
         strokeWidth={isActive ? 2 : 1.5}
       />
@@ -399,8 +399,8 @@ function SidebarContent({
                     className={clsx(
                       'group flex items-center justify-center rounded-xl w-full p-3 transition-all duration-300 select-none cursor-pointer',
                       isGroupActive
-                        ? 'bg-primary/10 text-primary font-bold border border-primary/20'
-                        : 'text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface border border-transparent'
+                        ? 'bg-primary/10 text-primary border border-primary/20'
+                        : 'text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent'
                     )}
                   >
                     <group.icon
@@ -448,15 +448,15 @@ function SidebarContent({
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={clsx(
-                      'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px] text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] transition-all duration-300 w-full cursor-pointer select-none font-semibold border border-transparent',
-                      isGroupActive && 'text-primary font-bold'
+                      'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px] text-slate-400 hover:bg-primary/20 hover:text-white transition-all duration-300 w-full cursor-pointer select-none font-semibold border border-transparent',
+                      isGroupActive && 'text-white'
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <group.icon
                         className={clsx(
-                          'w-[18px] h-[18px] shrink-0 text-on-surface-variant/50 group-hover:text-on-surface transition-colors',
-                          isGroupActive && 'text-primary'
+                          'w-[18px] h-[18px] shrink-0 text-slate-500 group-hover:text-white transition-colors',
+                          isGroupActive && 'text-primary drop-shadow-[0_0_6px_rgba(37,99,235,0.4)]'
                         )}
                         strokeWidth={isGroupActive ? 2 : 1.5}
                       />
@@ -479,7 +479,7 @@ function SidebarContent({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25, ease: 'easeInOut' }}
-                        className="overflow-hidden flex flex-col gap-1 pl-2 border-l border-[#003366]/40 ml-[22px] my-1"
+                        className="overflow-hidden flex flex-col gap-1 pl-2 border-l border-slate-700 ml-[22px] my-1"
                       >
                         {visible.map(item => (
                           <NavItem
@@ -568,8 +568,8 @@ export default function NewAppSidebar({
       <aside
         className={clsx(
           'hidden md:flex flex-col fixed left-0 top-0 h-full z-40',
-          'border-r border-outline-variant/30 bg-slate-50/95 backdrop-blur-2xl shadow-[5px_0_30px_rgba(0,0,0,0.02)]',
-          'transition-[width] duration-300 ease-in-out overflow-hidden',
+          'border-r border-slate-800 bg-[#0F172A] shadow-xl',
+          'transition-[width] duration-300 ease-in-out overflow-hidden text-slate-300',
           topOffset,
           collapsed ? 'w-[70px]' : 'w-[260px]',
         )}
@@ -580,8 +580,8 @@ export default function NewAppSidebar({
             id="sidebar-search-btn"
             onClick={() => setSearchOpen(true)}
             className={clsx(
-              'w-full flex items-center rounded-xl px-3 py-2 border border-outline-variant/20 bg-surface-container-low',
-              'text-on-surface-variant/60 hover:bg-surface-container hover:text-on-surface transition-all duration-300 group',
+              'w-full flex items-center rounded-xl px-3 py-2 border border-slate-800 bg-slate-900/50',
+              'text-slate-400 hover:bg-primary hover:text-white transition-all duration-300 group',
               collapsed ? 'justify-center' : 'gap-3',
             )}
             title={collapsed ? 'Buscar (⌘K)' : undefined}
@@ -628,7 +628,7 @@ export default function NewAppSidebar({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative bg-slate-50/95 backdrop-blur-2xl h-full w-[260px] flex flex-col pt-6 z-[80] border-r border-outline-variant/30 shadow-2xl"
+              className="relative bg-[#0F172A] text-slate-300 h-full w-[260px] flex flex-col pt-6 z-[80] border-r border-slate-800 shadow-2xl"
             >
               {/* Close button */}
               <button

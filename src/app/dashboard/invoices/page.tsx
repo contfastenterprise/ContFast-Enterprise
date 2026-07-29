@@ -2447,7 +2447,7 @@ function InvoicesList() {
                     />
                     <Button
                       type="button"
-                      variant="gold"
+                      variant="warning"
                       size="sm"
                       onClick={handleNewCustomerSearchDGII}
                       disabled={isSearchingRnc || !newCustomerData.rncCedula}
@@ -2524,7 +2524,7 @@ function InvoicesList() {
                   </Button>
                   <Button
                     type="submit"
-                    variant="gold"
+                    variant="warning"
                     size="sm"
                     disabled={isSavingCustomer}
                     className="cursor-pointer text-xs font-bold"

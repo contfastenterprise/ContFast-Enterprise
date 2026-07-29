@@ -90,8 +90,8 @@ export default function RegisterPage() {
       <Toaster position="top-right" richColors />
       
       {/* Decorative Glowing Gradients */}
-      <div className="absolute top-0 -left-4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 -right-4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 -left-4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 -right-4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -101,22 +101,27 @@ export default function RegisterPage() {
       >
         <div className="text-center">
           <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg bg-blue-950 border border-blue-900 text-amber-500 shadow-lg shadow-amber-500/10"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+            className="mx-auto flex h-24 w-24 items-center justify-center mb-4"
           >
-            <Shield className="h-8 w-8" />
+            <img
+              src="/Icono.svg"
+              alt="ContFast Enterprise"
+              className="h-24 w-24 object-contain drop-shadow-xl"
+            />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-primary">
-            ContFast <span className="text-amber-500">Enterprise</span>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
+            ContFast <span className="text-primary">Enterprise</span>
           </h2>
-          <p className="mt-2 text-sm text-on-surface-variant">
+          <p className="mt-2 text-sm text-muted-foreground">
             Portal de Facturación Electrónica e-CF Homologado DGII
           </p>
         </div>
 
         {/* Success or Form State */}
-        <div className="bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-8 shadow-2xl">
+        <div className="bg-card/80 backdrop-blur-xl border border-border rounded-[10px] p-8 shadow-2xl">
           {success ? (
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -127,8 +132,8 @@ export default function RegisterPage() {
                 <CheckCircle className="h-10 w-10" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-primary">Registro Completado</h3>
-                <p className="text-sm text-on-surface-variant mt-2">
+                <h3 className="text-xl font-bold text-foreground">Registro Completado</h3>
+                <p className="text-sm text-muted-foreground mt-2">
                   Tu cuenta ha sido creada exitosamente. Ya puedes iniciar sesión en la plataforma.
                 </p>
               </div>
@@ -136,7 +141,7 @@ export default function RegisterPage() {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => router.push('/auth/login')}
-                className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400"
+                className="flex w-full justify-center items-center gap-2 rounded-[10px] bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
               >
                 Ir al Inicio de Sesión
                 <ArrowRight className="h-4 w-4" />
@@ -147,11 +152,11 @@ export default function RegisterPage() {
               
               {/* Full Name */}
               <div className="space-y-1">
-                <label htmlFor="fullName" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="fullName" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Nombre Completo
                 </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
+                <div className="relative rounded-[10px] shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
                     <User className="h-5 w-5" />
                   </div>
                   <input
@@ -159,7 +164,7 @@ export default function RegisterPage() {
                     type="text"
                     required
                     {...register('fullName')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-[10px] border border-border bg-background py-2.5 pl-10 pr-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
                     placeholder="Juan Pérez"
                   />
                 </div>
@@ -170,11 +175,11 @@ export default function RegisterPage() {
 
               {/* Email */}
               <div className="space-y-1">
-                <label htmlFor="email" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="email" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Correo Electrónico de Trabajo
                 </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
+                <div className="relative rounded-[10px] shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
                     <Mail className="h-5 w-5" />
                   </div>
                   <input
@@ -182,7 +187,7 @@ export default function RegisterPage() {
                     type="email"
                     required
                     {...register('email')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-[10px] border border-border bg-background py-2.5 pl-10 pr-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
                     placeholder="juan.perez@empresa.do"
                   />
                 </div>
@@ -193,11 +198,11 @@ export default function RegisterPage() {
 
               {/* Password */}
               <div className="space-y-1">
-                <label htmlFor="password" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="password" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Contraseña
                 </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
+                <div className="relative rounded-[10px] shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
                     <Lock className="h-5 w-5" />
                   </div>
                   <input
@@ -205,7 +210,7 @@ export default function RegisterPage() {
                     type="password"
                     required
                     {...register('password')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-[10px] border border-border bg-background py-2.5 pl-10 pr-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -216,11 +221,11 @@ export default function RegisterPage() {
 
               {/* Confirm Password */}
               <div className="space-y-1">
-                <label htmlFor="confirmPassword" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="confirmPassword" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Confirmar Contraseña
                 </label>
-                <div className="relative rounded-md shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
+                <div className="relative rounded-[10px] shadow-sm">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
                     <Lock className="h-5 w-5" />
                   </div>
                   <input
@@ -228,7 +233,7 @@ export default function RegisterPage() {
                     type="password"
                     required
                     {...register('confirmPassword')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-[10px] border border-border bg-background py-2.5 pl-10 pr-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -243,7 +248,7 @@ export default function RegisterPage() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={loading}
-                className="mt-6 flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="mt-6 flex w-full justify-center items-center gap-2 rounded-[10px] bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {loading ? (
                   <>
@@ -260,12 +265,12 @@ export default function RegisterPage() {
             </form>
           )}
 
-          <div className="mt-6 pt-6 border-t border-outline-variant/30 text-center">
-            <p className="text-sm text-on-surface-variant">
+          <div className="mt-6 pt-6 border-t border-border text-center">
+            <p className="text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?
               <button
                 onClick={() => router.push('/auth/login')}
-                className="text-amber-500 font-bold ml-1 hover:underline outline-none"
+                className="text-primary font-bold ml-1 hover:underline outline-none"
               >
                 Inicia Sesión
               </button>

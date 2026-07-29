@@ -25,8 +25,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ) => {
     const sizeClasses = {
       sm: "h-8 px-3 text-xs rounded-lg",
-      md: "h-10 px-3.5 text-sm rounded-xl",
-      lg: "h-12 px-4 text-base rounded-xl",
+      md: "h-10 px-3.5 text-sm rounded-[10px]",
+      lg: "h-12 px-4 text-base rounded-[10px]",
     };
 
     const hasLeftIcon = Boolean(leftIcon);
@@ -35,7 +35,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative w-full flex items-center">
         {hasLeftIcon && (
-          <div className="absolute left-3 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500">
+          <div className="absolute left-3 flex items-center justify-center pointer-events-none text-muted-foreground">
             {leftIcon}
           </div>
         )}
@@ -43,14 +43,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium transition-all duration-200 outline-none",
-            "focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/15 dark:focus:border-[#C5A059] dark:focus:ring-[#C5A059]/20",
-            "disabled:cursor-not-allowed disabled:bg-slate-50 dark:disabled:bg-slate-950 disabled:opacity-60",
+            "w-full bg-background border border-border text-foreground placeholder:text-muted-foreground transition-all duration-200 outline-none",
+            "focus:border-primary focus:ring-2 focus:ring-primary/20",
+            "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
             error &&
-              "border-rose-500 dark:border-rose-500 focus:border-rose-600 focus:ring-rose-500/20 text-rose-900 dark:text-rose-200",
+              "border-destructive focus:border-destructive focus:ring-destructive/20 text-destructive",
             sizeClasses[inputSize],
-            hasLeftIcon && "pl-9",
-            hasRightIcon && "pr-9",
+            hasLeftIcon && "pl-10",
+            hasRightIcon && "pr-10",
             className
           )}
           ref={ref}

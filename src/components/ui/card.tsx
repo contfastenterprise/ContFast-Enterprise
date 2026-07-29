@@ -1,14 +1,18 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { motion, HTMLMotionProps } from "framer-motion";
 
 const Card = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  HTMLMotionProps<"div">
 >(({ className, ...props }, ref) => (
-  <div
+  <motion.div
     ref={ref}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.2, ease: "easeOut" }}
     className={cn(
-      "rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900 text-slate-950 dark:text-slate-50 shadow-sm transition-all duration-200 hover:shadow-md",
+      "rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
       className
     )}
     {...props}
@@ -35,7 +39,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "font-semibold leading-none tracking-tight text-lg text-slate-900 dark:text-slate-100",
+      "font-semibold leading-none tracking-tight text-lg text-foreground",
       className
     )}
     {...props}
@@ -49,7 +53,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-xs text-slate-500 dark:text-slate-400 font-medium", className)}
+    className={cn("text-xs text-muted-foreground font-medium", className)}
     {...props}
   />
 ));

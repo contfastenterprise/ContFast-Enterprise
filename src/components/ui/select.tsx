@@ -24,8 +24,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ) => {
     const sizeClasses = {
       sm: "h-8 pl-3 pr-8 text-xs rounded-lg",
-      md: "h-10 pl-3.5 pr-9 text-sm rounded-xl",
-      lg: "h-12 pl-4 pr-10 text-base rounded-xl",
+      md: "h-10 pl-3.5 pr-9 text-sm rounded-[10px]",
+      lg: "h-12 pl-4 pr-10 text-base rounded-[10px]",
     };
 
     const hasLeftIcon = Boolean(leftIcon);
@@ -33,20 +33,20 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="relative w-full flex items-center">
         {hasLeftIcon && (
-          <div className="absolute left-3 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500">
+          <div className="absolute left-3 flex items-center justify-center pointer-events-none text-muted-foreground">
             {leftIcon}
           </div>
         )}
 
         <select
           className={cn(
-            "w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-medium transition-all duration-200 outline-none cursor-pointer",
-            "focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/15 dark:focus:border-[#C5A059] dark:focus:ring-[#C5A059]/20",
-            "disabled:cursor-not-allowed disabled:bg-slate-50 dark:disabled:bg-slate-950 disabled:opacity-60",
+            "w-full appearance-none bg-background border border-border text-foreground font-medium transition-all duration-200 outline-none cursor-pointer",
+            "focus:border-primary focus:ring-2 focus:ring-primary/20",
+            "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
             error &&
-              "border-rose-500 dark:border-rose-500 focus:border-rose-600 focus:ring-rose-500/20 text-rose-900 dark:text-rose-200",
+              "border-destructive focus:border-destructive focus:ring-destructive/20 text-destructive",
             sizeClasses[selectSize],
-            hasLeftIcon && "pl-9",
+            hasLeftIcon && "pl-10",
             className
           )}
           ref={ref}
@@ -56,7 +56,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {children}
         </select>
 
-        <div className="absolute right-3 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500">
+        <div className="absolute right-3 flex items-center justify-center pointer-events-none text-muted-foreground">
           <ChevronDown className="h-4 w-4" />
         </div>
       </div>

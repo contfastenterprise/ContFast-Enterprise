@@ -10,7 +10,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import SkeletonBasic from '@/components/ui/skeleton';
-import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
 import dynamic from 'next/dynamic';
 
@@ -18,13 +17,13 @@ const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
   ssr: false,
   loading: () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
-        <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
-        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-8 h-96 animate-pulse flex flex-col justify-between">
+        <div className="h-6 w-1/3 bg-muted rounded-md"></div>
+        <div className="h-64 bg-muted/50 rounded-2xl w-full"></div>
       </div>
-      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
-        <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
-        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-8 h-96 animate-pulse flex flex-col justify-between">
+        <div className="h-6 w-1/3 bg-muted rounded-md"></div>
+        <div className="h-64 bg-muted/50 rounded-2xl w-full"></div>
       </div>
     </div>
   )
@@ -241,8 +240,8 @@ export default function DashboardPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold">Dashboard Principal</h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
+          <h1 className="text-3xl md:text-4xl text-primary font-bold tracking-tight">Dashboard Principal</h1>
+          <p className="text-muted-foreground mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
       </header>
 
@@ -275,110 +274,79 @@ export default function DashboardPage() {
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgb(239, 246, 255)"
-          gradientColors={{
-            primary: '#93c5fd',
-            secondary: '#3b82f6',
-            accent: '#1d4ed8'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <motion.div
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col"
         >
-          <div className="py-4 px-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="bg-blue-100 p-2.5 rounded-xl group-hover:bg-blue-600 transition-colors">
-                <FileText className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
-              </div>
-              <span className={clsx(
-                "text-[11px] px-2 py-0.5 rounded-full font-bold transition-all",
-                (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-              )}>
-                {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
-              </span>
+          <div className="flex justify-between items-start mb-4">
+            <div className="bg-primary/10 p-2.5 rounded-xl">
+              <FileText className="h-5 w-5 text-primary" />
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
-            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.invoicesToday}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
+            <span className={clsx(
+              "text-[11px] px-2 py-0.5 rounded-full font-bold",
+              (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            )}>
+              {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
+            </span>
           </div>
-        </BorderRotate>
+          <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Facturas Hoy</p>
+          <h3 className="text-3xl font-extrabold text-foreground mt-1">{stats.invoicesToday}</h3>
+          <p className="text-muted-foreground mt-2 font-medium text-xs">Monto total: <span className="text-foreground font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
+        </motion.div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgb(254, 243, 199)"
-          gradientColors={{
-            primary: '#fde047',
-            secondary: '#f59e0b',
-            accent: '#b45309'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <motion.div
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col"
         >
-          <div className="py-4 px-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="bg-amber-100 p-2.5 rounded-xl group-hover:bg-amber-500 transition-colors">
-                <RefreshCw className="h-5 w-5 text-amber-600 group-hover:text-white transition-colors" />
-              </div>
-              {stats.pendingDgii > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
-              )}
+          <div className="flex justify-between items-start mb-4">
+            <div className="bg-amber-100 p-2.5 rounded-xl">
+              <RefreshCw className="h-5 w-5 text-amber-600" />
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
-            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.pendingDgii}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
+            {stats.pendingDgii > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold tracking-tight">REINTENTANDO</span>
+            )}
           </div>
-        </BorderRotate>
+          <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Pendientes DGII</p>
+          <h3 className="text-3xl font-extrabold text-foreground mt-1">{stats.pendingDgii}</h3>
+          <p className="text-muted-foreground mt-2 font-medium text-xs">Tiempo prom: <span className="text-foreground font-bold">1.2s</span></p>
+        </motion.div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgb(209, 250, 229)"
-          gradientColors={{
-            primary: '#6ee7b7',
-            secondary: '#10b981',
-            accent: '#047857'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+        <motion.div
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col"
         >
-          <div className="py-4 px-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="bg-emerald-100 p-2.5 rounded-xl group-hover:bg-emerald-600 transition-colors">
-                <TrendingUp className="h-5 w-5 text-emerald-600 group-hover:text-white transition-colors" />
-              </div>
+          <div className="flex justify-between items-start mb-4">
+            <div className="bg-emerald-100 p-2.5 rounded-xl">
+              <TrendingUp className="h-5 w-5 text-emerald-600" />
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
-            <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{fmt(stats.monthlySales, true)}</h3>
-            <div className="w-full bg-surface-container h-1.5 rounded-full mt-3.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
-            </div>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">{salesPct}% de la meta mensual</p>
           </div>
-        </BorderRotate>
+          <p className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Ventas del Mes</p>
+          <h3 className="text-3xl font-extrabold text-foreground mt-1">{fmt(stats.monthlySales, true)}</h3>
+          <div className="w-full bg-muted h-1.5 rounded-full mt-3.5 overflow-hidden">
+            <div className="bg-primary h-full rounded-full transition-all duration-1000" style={{ width: `${salesPct}%` }}></div>
+          </div>
+          <p className="text-muted-foreground mt-2 font-medium text-xs">{salesPct}% de la meta mensual</p>
+        </motion.div>
 
-        <BorderRotate
-          borderRadius={24}
-          borderWidth={2}
-          backgroundColor="rgb(254, 226, 226)"
-          gradientColors={{
-            primary: '#fca5a5',
-            secondary: '#ef4444',
-            accent: '#b91c1c'
-          }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
+        <motion.div
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}
+          className="bg-card border border-border rounded-2xl shadow-sm p-6 flex flex-col cursor-pointer"
         >
-          <div className="py-4 px-6 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
-            <div className="flex justify-between items-start mb-4">
-              <div className="bg-red-100 p-2.5 rounded-xl group-hover:bg-red-600 transition-colors">
-                <AlertCircle className="h-5 w-5 text-red-600 group-hover:text-white transition-colors" />
-              </div>
-              {stats.alertCount > 0 && <span className="flex h-2.5 w-2.5 rounded-full bg-error animate-ping"></span>}
+          <div className="flex justify-between items-start mb-4">
+            <div className="bg-destructive/10 p-2.5 rounded-xl">
+              <AlertCircle className="h-5 w-5 text-destructive" />
             </div>
-            <p className="font-label-md text-error/70 uppercase tracking-[0.1em] text-[10px] font-bold">Alertas</p>
-            <h3 className="font-display-lg text-[25px] font-extrabold text-error mt-0.5">{stats.alertCount}</h3>
-            <p className="font-body-sm text-error/80 mt-2.5 font-bold text-[13px]">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema en óptimas condiciones'}</p>
+            {stats.alertCount > 0 && <span className="flex h-2.5 w-2.5 rounded-full bg-destructive animate-ping"></span>}
           </div>
-        </BorderRotate>
+          <p className="text-destructive/80 uppercase tracking-wider text-[10px] font-bold">Alertas</p>
+          <h3 className="text-3xl font-extrabold text-destructive mt-1">{stats.alertCount}</h3>
+          <p className="text-destructive/80 mt-2 font-bold text-xs">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema óptimo'}</p>
+        </motion.div>
       </section>
 
       {/* ── Period Selector ──────────────────────────────────────── */}
@@ -415,66 +383,66 @@ export default function DashboardPage() {
       {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top Customers Table */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
+        <div className="bg-card border border-border shadow-sm rounded-2xl p-8 flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h4 className="font-headline-md text-xl font-bold text-primary">Top Clientes del Mes</h4>
-            <Users className="h-5 w-5 text-on-surface-variant/40" />
+            <h4 className="text-xl font-bold text-foreground">Top Clientes del Mes</h4>
+            <Users className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="space-y-4 flex-1">
             {topCustomers.map((c, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-surface-container-low hover:bg-white hover:shadow-sm transition-all">
+              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
                     {i + 1}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-label-md font-bold text-on-surface truncate">{c.name}</p>
-                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">Cliente Frecuente</p>
+                    <p className="font-bold text-foreground truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">Cliente Frecuente</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-mono-data font-bold text-primary text-sm sm:text-base tabular-nums whitespace-nowrap">{fmt(c.total)}</p>
+                  <p className="font-bold text-foreground text-sm tabular-nums whitespace-nowrap">{fmt(c.total)}</p>
                 </div>
               </div>
             ))}
             {topCustomers.length === 0 && (
-              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay datos suficientes este mes.</div>
+              <div className="text-center text-sm text-muted-foreground py-4">No hay datos suficientes este mes.</div>
             )}
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
+        <div className="bg-card border border-border shadow-sm rounded-2xl p-8 flex flex-col">
           <div className="flex items-center justify-between mb-8">
-            <h4 className="font-headline-md text-xl font-bold text-primary">Actividad</h4>
-            <HistoryIcon className="h-5 w-5 text-on-surface-variant/40" />
+            <h4 className="text-xl font-bold text-foreground">Actividad</h4>
+            <HistoryIcon className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="space-y-6 flex-1 pr-2 overflow-y-auto max-h-64 custom-scrollbar">
             {filteredInvoices.slice(0, 5).map((inv, i) => (
-              <div key={i} className={clsx("flex gap-4 items-start border-l-2 pl-6 relative", inv.status === 'rejected' ? 'border-error/20' : 'border-primary/20')}>
-                <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${inv.status === 'rejected' ? 'bg-error' : 'bg-primary'}`}></div>
+              <div key={i} className={clsx("flex gap-4 items-start border-l-2 pl-6 relative", inv.status === 'rejected' ? 'border-destructive/20' : 'border-primary/20')}>
+                <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-card shadow-sm ${inv.status === 'rejected' ? 'bg-destructive' : 'bg-primary'}`}></div>
                 <div>
-                  <p className={clsx("font-label-md font-bold", inv.status === 'rejected' ? 'text-error' : 'text-primary')}>{inv.ncf || `e-${inv.ecfType}`}</p>
-                  <p className="font-body-sm text-on-surface-variant/80 mt-0.5">{inv.buyerName || 'Consumidor Final'}</p>
-                  <p className="text-[10px] text-outline font-mono-data mt-1.5 font-bold opacity-70">Hace {Math.round((Date.now() - new Date(inv.createdAt).getTime()) / 60000)} mins</p>
+                  <p className={clsx("font-bold text-sm", inv.status === 'rejected' ? 'text-destructive' : 'text-foreground')}>{inv.ncf || `e-${inv.ecfType}`}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{inv.buyerName || 'Consumidor Final'}</p>
+                  <p className="text-[10px] mt-1.5 font-bold opacity-70">Hace {Math.round((Date.now() - new Date(inv.createdAt).getTime()) / 60000)} mins</p>
                 </div>
               </div>
             ))}
             {filteredInvoices.length === 0 && (
-              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay actividad reciente.</div>
+              <div className="text-center text-sm text-muted-foreground py-4">No hay actividad reciente.</div>
             )}
           </div>
-          <button className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-3 rounded-xl transition-all border border-primary/10 text-sm">
+          <button className="mt-6 w-full text-center text-primary font-bold hover:bg-primary/5 py-3 rounded-xl transition-all border border-primary/10 text-sm">
             Ver todo el historial
           </button>
         </div>
       </div>
 
       {/* ── Detailed Data Table Section ─────────────────────────────────────── */}
-      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] rounded-3xl overflow-hidden">
-        <div className="p-6 md:p-8 border-b border-outline-variant/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <section className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
+        <div className="p-6 md:p-8 border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h4 className="font-headline-md text-xl font-bold text-primary">Últimos Comprobantes Emitidos</h4>
-            <p className="text-body-sm text-on-surface-variant/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
+            <h4 className="text-xl font-bold text-foreground">Últimos Comprobantes Emitidos</h4>
+            <p className="text-sm text-muted-foreground mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
           </div>
           <div className="w-full md:w-80">
             <SearchBar
@@ -487,31 +455,31 @@ export default function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Folio</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Fecha/Hora</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Receptor</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Monto (RD$)</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Estado DGII</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Acciones</th>
+              <tr className="bg-muted/50 border-b border-border">
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Folio</th>
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Fecha/Hora</th>
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Receptor</th>
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Monto (RD$)</th>
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Estado DGII</th>
+                <th className="px-6 py-4 text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/10">
+            <tbody className="divide-y divide-border">
               {filteredInvoices.length > 0 ? (
                 filteredInvoices.map((inv) => {
                   const badge = statusBadge(inv.status);
                   const date = new Date(inv.createdAt);
                   return (
-                    <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
-                      <td className="px-6 py-5 font-mono-data text-primary font-bold text-base">{inv.ncf || `e-${inv.ecfType}`}</td>
-                      <td className="px-6 py-5 font-body-sm text-on-surface-variant/80 font-medium">
+                    <tr key={inv.id} className="hover:bg-muted/30 transition-all group cursor-pointer">
+                      <td className="px-6 py-5 text-primary font-bold text-base">{inv.ncf || `e-${inv.ecfType}`}</td>
+                      <td className="px-6 py-5 text-sm text-foreground font-medium">
                         {date.toLocaleDateString('es-DO')} <span className="block text-[10px] font-bold opacity-60 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
                       </td>
                       <td className="px-6 py-5">
-                        <p className="font-label-md font-bold text-primary text-sm">{inv.buyerName || 'Consumidor Final'}</p>
-                        {inv.buyerRnc && <p className="text-[11px] text-on-surface-variant/60 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
+                        <p className="font-bold text-foreground text-sm">{inv.buyerName || 'Consumidor Final'}</p>
+                        {inv.buyerRnc && <p className="text-[11px] text-muted-foreground mt-0.5">RNC: {inv.buyerRnc}</p>}
                       </td>
-                      <td className="px-6 py-5 font-mono-data font-black text-primary text-base">{fmt(parseFloat(inv.total))}</td>
+                      <td className="px-6 py-5 font-black text-foreground text-base">{fmt(parseFloat(inv.total))}</td>
                       <td className="px-6 py-5">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-black uppercase tracking-wider`}>
                           {badge.icon}
@@ -522,7 +490,7 @@ export default function DashboardPage() {
                         <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => handleViewPdf(inv.id, e)}
-                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
+                            className="p-2 text-muted-foreground bg-muted/50 hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm"
                             title="Ver PDF"
                           >
                             <Eye className="h-4 w-4" />
@@ -530,7 +498,7 @@ export default function DashboardPage() {
                           <button
                             onClick={(e) => handleResendEmail(inv.id, e)}
                             disabled={resendingId === inv.id}
-                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 text-muted-foreground bg-muted/50 hover:bg-primary hover:text-white rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Reenviar por Correo"
                           >
                             {resendingId === inv.id ? (
@@ -546,7 +514,7 @@ export default function DashboardPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant font-medium">
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground font-medium">
                     No hay registros que coincidan con la búsqueda.
                   </td>
                 </tr>
@@ -554,12 +522,12 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
-        <div className="p-6 bg-surface-container-low/30 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-xs text-on-surface-variant/70 font-medium">Mostrando <span className="text-primary font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>
+        <div className="p-6 bg-muted/30 flex flex-col md:flex-row justify-between items-center gap-4">
+          <span className="text-xs text-muted-foreground font-medium">Mostrando <span className="text-foreground font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-on-surface-variant">Anterior</button>
-            <button className="px-4 py-2 rounded-xl bg-primary text-on-primary shadow-md shadow-primary/20 transition-all text-xs font-bold">1</button>
-            <button className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-on-surface-variant">Siguiente</button>
+            <button className="px-4 py-2 border border-border rounded-xl hover:bg-muted transition-all text-xs font-bold text-muted-foreground">Anterior</button>
+            <button className="px-4 py-2 rounded-xl bg-primary text-white shadow-md shadow-primary/20 transition-all text-xs font-bold">1</button>
+            <button className="px-4 py-2 border border-border rounded-xl hover:bg-muted transition-all text-xs font-bold text-muted-foreground">Siguiente</button>
           </div>
         </div>
       </section>
