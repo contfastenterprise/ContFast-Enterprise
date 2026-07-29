@@ -425,14 +425,14 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 h-8 text-xs rounded-lg text-slate-500 hover:text-primary font-medium transition-colors"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-3 py-1.5 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Guardar
@@ -583,14 +583,14 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 h-8 text-xs rounded-lg text-slate-500 hover:text-primary font-medium transition-colors"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 px-3 py-1.5 h-8 rounded-lg bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                 Guardar
@@ -901,7 +901,7 @@ function ComprobantesTab() {
           <button
             onClick={handleSyncFilteredStatus}
             disabled={syncingBatch || invoiceList.length === 0}
-            className="flex items-center justify-center gap-2 bg-primary text-white px-3 py-1.5 h-8 rounded-lg font-bold text-xs hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             {syncingBatch ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -912,7 +912,7 @@ function ComprobantesTab() {
           </button>
           <button
             onClick={fetchInvoices}
-            className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800 px-3 py-1.5 h-8 rounded-lg font-bold text-xs transition-all shadow-sm active:scale-95 group whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm group whitespace-nowrap"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
             <span>ACTUALIZAR DATOS</span>
@@ -974,13 +974,13 @@ function ComprobantesTab() {
                     </td>
                     <td className="px-4 py-2.5 text-xs text-right">
                       <div className="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary"><Eye className="h-4 w-4" /></button>
+                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"><Eye className="h-4 w-4" /></button>
                         {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
-                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary"><FileCode className="h-4 w-4" /></button>
+                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"><FileCode className="h-4 w-4" /></button>
                         )}
-                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 hover:bg-slate-50 rounded transition-colors text-primary">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
+                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
                         {['rejected', 'failed'].includes(inv.status) && (
-                          <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 hover:bg-error-container text-error rounded transition-colors"><ArrowRight className="h-4 w-4" /></button>
+                          <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"><ArrowRight className="h-4 w-4" /></button>
                         )}
                       </div>
                     </td>
@@ -995,8 +995,8 @@ function ComprobantesTab() {
           <div className="flex items-center justify-between px-4 py-2.5 text-xs border-t border-slate-200 bg-white">
             <span className="text-xs text-slate-500 font-medium">Página {meta.page} de {meta.total_pages}</span>
             <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-3 py-1 text-xs font-bold border border-slate-200 rounded hover:bg-white transition-colors disabled:opacity-50">Anterior</button>
-              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="px-3 py-1 text-xs font-bold border border-slate-200 rounded hover:bg-white transition-colors disabled:opacity-50">Siguiente</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Anterior</button>
+              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Siguiente</button>
             </div>
           </div>
         )}
@@ -1103,9 +1103,9 @@ function ColaTab() {
             <button
               onClick={handleRetryAll}
               disabled={retryingAll}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary text-on-secondary text-sm font-semibold hover:bg-secondary/90 transition-colors disabled:opacity-60"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
-              {retryingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+              {retryingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               Reintentar todos ({failedSubmissions.length})
             </button>
           )}
@@ -1240,7 +1240,7 @@ function SecuenciasTab() {
         </p>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
         >
           <Plus className="h-4 w-4" /> Nueva Autorización
         </button>
@@ -1299,7 +1299,7 @@ function SecuenciasTab() {
                           setSelectedSequence(seq);
                           setShowEditModal(true);
                         }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors"
+                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                         title="Editar secuencia"
                       >
                         <Pencil className="h-4 w-4" />

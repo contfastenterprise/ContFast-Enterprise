@@ -157,14 +157,14 @@ export default function DesgloseVentanasPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={handleLimpiar}
-              className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all text-xs font-semibold text-slate-600 bg-white shadow-xs"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <RotateCcw className="h-4 w-4" />
               Limpiar Todo
             </button>
             <button
               onClick={handleSaveDraft}
-              className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all text-xs font-semibold text-slate-600 bg-white shadow-xs"
+              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Save className="h-4 w-4 text-[#C5A059]" />
               Guardar Borrador
@@ -172,7 +172,7 @@ export default function DesgloseVentanasPage() {
             <button
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#005E63] text-white rounded-xl hover:bg-[#004d51] transition-all text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando PDF...' : 'Imprimir'}
@@ -223,7 +223,7 @@ export default function DesgloseVentanasPage() {
                 min={1}
                 value={cantidad}
                 onChange={(e) => setCantidad(Math.max(1, Number(e.target.value)))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#003366] focus:bg-white transition-all font-bold text-center"
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-bold text-center"
               />
             </div>
 
@@ -234,7 +234,7 @@ export default function DesgloseVentanasPage() {
                 id="vias"
                 value={vias}
                 onChange={(e) => setVias(Number(e.target.value))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#003366] focus:bg-white transition-all font-bold text-center"
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-bold text-center"
               >
                 <option value="2">2 Vías (2 Hojas)</option>
                 <option value="3">3 Vías (3 Hojas)</option>
@@ -254,7 +254,7 @@ export default function DesgloseVentanasPage() {
                   value={ancho}
                   onChange={(e) => setAncho(e.target.value)}
                   placeholder='Ej: 48"'
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all font-mono text-center font-bold"
+                  className="w-full h-8 pl-3 pr-12 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-mono text-center font-bold"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
               </div>
@@ -269,7 +269,7 @@ export default function DesgloseVentanasPage() {
                   value={altura}
                   onChange={(e) => setAltura(e.target.value)}
                   placeholder='Ej: 60"'
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all font-mono text-center font-bold"
+                  className="w-full h-8 pl-3 pr-12 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-mono text-center font-bold"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 pointer-events-none">pulg</span>
               </div>
@@ -280,7 +280,7 @@ export default function DesgloseVentanasPage() {
               <button
                 onClick={handleAdd}
                 disabled={!enable}
-                className="w-full py-2.5 px-4 bg-[#003366] hover:bg-[#002244] text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-1.5 text-sm"
+                className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Plus className="h-5 w-5" />
                 <span>Add</span>

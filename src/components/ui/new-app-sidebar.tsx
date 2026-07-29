@@ -574,14 +574,8 @@ export default function NewAppSidebar({
           collapsed ? 'w-[70px]' : 'w-[260px]',
         )}
       >
-        {/* Logo Section */}
-        <div className={clsx('pt-6 pb-2 flex items-center', collapsed ? 'justify-center px-3' : 'justify-start px-6')}>
-          {collapsed ? (
-             <img src="/Icono.svg" alt="Icono" className="w-8 h-8 object-contain drop-shadow-sm" />
-          ) : (
-             <img src="/Logo.svg" alt="ContFast Enterprise" className="h-7 object-contain drop-shadow-sm" />
-          )}
-        </div>
+        {/* Top spacing for sidebar */}
+        <div className="pt-4" />
 
         {/* Search button */}
         <div className={clsx('px-3 pt-3 pb-2', !collapsed && 'px-4')}>
@@ -639,10 +633,8 @@ export default function NewAppSidebar({
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="relative bg-slate-50/95 backdrop-blur-2xl h-full w-[260px] flex flex-col pt-6 z-[80] border-r border-outline-variant/30 shadow-2xl"
             >
-              {/* Logo Section Mobile */}
-              <div className="px-6 pt-2 pb-2 flex items-center justify-start">
-                <img src="/Logo.svg" alt="ContFast Enterprise" className="h-7 object-contain drop-shadow-sm" />
-              </div>
+              {/* Top spacing for mobile sidebar */}
+              <div className="pt-2" />
 
               {/* Close button */}
               <button

@@ -702,19 +702,19 @@ export default function ProductsPage() {
             <Package className="h-8 w-8 text-[#c5a059]" />
             Catálogo de Productos
           </h1>
-          <p className="text-on-surface-variant text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
+          <p className="text-slate-500 text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
         </div>
         <div className="flex gap-2.5 flex-wrap">
           <button
             onClick={() => router.push('/dashboard/products/barcodes')}
-            className="bg-[#c5a059] hover:bg-[#b08e4f] text-[#001e40] font-bold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Printer className="h-4 w-4" />
             Gestión de Códigos
           </button>
           <button
             onClick={openNewModal}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Plus className="h-4 w-4" />
             Nuevo Producto
@@ -725,21 +725,21 @@ export default function ProductsPage() {
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Total Catálogo (Blue) */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-blue-600 group-hover:scale-110 transition-transform"><Package className="h-16 w-16" /></div>
           <p className="text-blue-800 text-sm font-semibold mb-1">Total en Catálogo</p>
           <p className="text-3xl font-bold text-blue-950 font-display">{totalItems}</p>
         </div>
 
         {/* Card 2: Valor Inventario (Emerald) */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-600 group-hover:scale-110 transition-transform"><DollarSign className="h-16 w-16" /></div>
           <p className="text-emerald-800 text-sm font-semibold mb-1">Valor de Inventario (Costos)</p>
           <p className="text-3xl font-bold text-emerald-950 font-display">{formatCurrency(totalValue)}</p>
         </div>
 
         {/* Card 3: Stock Bajo (Amber) */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-600 group-hover:scale-110 transition-transform"><AlertTriangle className="h-16 w-16" /></div>
           <p className="text-amber-800 text-sm font-semibold mb-1">Stock Bajo</p>
           <p className="text-3xl font-bold text-amber-950 font-display">0</p>
@@ -768,7 +768,7 @@ export default function ProductsPage() {
                   setSelectedCategory(e.target.value);
                   fetchProducts(search, e.target.value);
                 }}
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary shadow-sm outline-none"
+                className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] shadow-sm outline-none"
               >
                 <option value="">Todas las categorías</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -783,7 +783,7 @@ export default function ProductsPage() {
                   setPrintDropdownOpen(false);
                   handlePrintList(showStockInPrint);
                 }}
-                className="flex items-center justify-center gap-1.5 rounded-l-lg border border-r-0 border-slate-350 bg-white px-4 h-full text-xs font-bold text-slate-900 hover:bg-slate-50 transition-all active:scale-[0.98] outline-none"
+                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 title="Imprimir listado filtrado"
               >
                 <Printer className="w-4 h-4 text-[#c5a059]" />
@@ -909,13 +909,13 @@ export default function ProductsPage() {
                     className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
                   />
                 </th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">SKU / Código</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nombre</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Medida</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Costo</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Precio Venta</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">SKU / Código</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Medida</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Costo</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Precio Venta</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -950,7 +950,7 @@ export default function ProductsPage() {
                         className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
                       />
                     </td>
-                    <td className="px-4 py-2 align-middle text-xs font-mono text-slate-700">
+                    <td className="px-4 py-2.5 align-middle text-xs font-mono text-slate-700">
                       <div>{p.sku || 'N/A'}</div>
                       {p.barcode && (
                         <div className="text-[10px] text-slate-400 font-sans mt-0.5" title="Código de Barra">
@@ -958,11 +958,11 @@ export default function ProductsPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-2 align-middle text-xs font-semibold text-[#003366]">{p.name}</td>
-                    <td className="px-4 py-2 align-middle text-xs text-slate-600 capitalize">{p.unitOfMeasure}</td>
-                    <td className="px-4 py-2 align-middle text-xs text-slate-700 text-right">{formatCurrency(p.cost)}</td>
-                    <td className="px-4 py-2 align-middle text-xs font-bold text-[#003366] text-right">{formatCurrency(p.price)}</td>
-                    <td className="px-4 py-2 align-middle text-center">
+                    <td className="px-4 py-2.5 align-middle text-xs font-semibold text-[#003366]">{p.name}</td>
+                    <td className="px-4 py-2.5 align-middle text-xs text-slate-600 capitalize">{p.unitOfMeasure}</td>
+                    <td className="px-4 py-2.5 align-middle text-xs text-slate-700 text-right">{formatCurrency(p.cost)}</td>
+                    <td className="px-4 py-2.5 align-middle text-xs font-bold text-[#003366] text-right">{formatCurrency(p.price)}</td>
+                    <td className="px-4 py-2.5 align-middle text-center">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'active' 
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                         : 'bg-slate-50 text-slate-500 border border-slate-200'
@@ -970,7 +970,7 @@ export default function ProductsPage() {
                       {p.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
                       </span>
                     </td>
-                    <td className="px-4 py-2 align-middle text-right">
+                    <td className="px-4 py-2.5 align-middle text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           type="button"
@@ -981,14 +981,14 @@ export default function ProductsPage() {
                             setShowLabelModal(true);
                           }}
                           title="Imprimir Etiquetas"
-                          className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                         >
                           <Printer className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 text-slate-500 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors">
+                        <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
                           <Layers className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors">
+                        <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -1011,7 +1011,7 @@ export default function ProductsPage() {
                 disabled={page <= 1}
                 onClick={() => fetchProducts(search, selectedCategory, page - 1)}
                 type="button"
-                className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Anterior
               </button>
@@ -1022,7 +1022,7 @@ export default function ProductsPage() {
                 disabled={page >= totalPages}
                 onClick={() => fetchProducts(search, selectedCategory, page + 1)}
                 type="button"
-                className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Siguiente
               </button>
@@ -1034,17 +1034,17 @@ export default function ProductsPage() {
       {/* Create/Edit Modal */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm h-8"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setShowModal(false)}
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
               <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
                 <h2 className="text-lg font-bold text-white font-display">
@@ -1063,7 +1063,7 @@ export default function ProductsPage() {
                       type="text"
                       value={formData.sku}
                       onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                       placeholder="PROD-001"
                     />
                   </div>
@@ -1088,7 +1088,7 @@ export default function ProductsPage() {
                           type="text"
                           value={formData.barcode}
                           onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                           placeholder="Ingresa código o genera uno"
                         />
                       </div>
@@ -1097,7 +1097,7 @@ export default function ProductsPage() {
                         <select
                           value={barcodeType}
                           onChange={(e) => setBarcodeType(e.target.value)}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         >
                           <option value="code128">Code 128 (Estándar)</option>
                           <option value="ean13">EAN-13 (Productos internacionales)</option>
@@ -1135,13 +1135,13 @@ export default function ProductsPage() {
                               type="text"
                               value={newSecBarcode}
                               onChange={(e) => setNewSecBarcode(e.target.value)}
-                              className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none font-mono"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none font-mono"
                               placeholder="Código secundario..."
                             />
                             <select
                               value={newSecBarcodeType}
                               onChange={(e) => setNewSecBarcodeType(e.target.value)}
-                              className="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none"
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                             >
                               <option value="code128">Code 128</option>
                               <option value="ean13">EAN-13</option>
@@ -1169,7 +1169,7 @@ export default function ProductsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteSecondaryBarcode(idx, b.id)}
-                                    className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors"
+                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -1189,7 +1189,7 @@ export default function ProductsPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
                   </div>
@@ -1209,7 +1209,7 @@ export default function ProductsPage() {
                       required
                       value={formData.categoryId}
                       onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                     >
                       <option value="">Selecciona una categoría...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1228,7 +1228,7 @@ export default function ProductsPage() {
                         required
                         value={formData.cost}
                         onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         placeholder="0.00"
                       />
                     </div>
@@ -1308,7 +1308,7 @@ export default function ProductsPage() {
                     <select
                       value={formData.unitOfMeasure}
                       onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                     >
                       <option value="unidad">Unidad</option>
                       <option value="pie">Pie (pie)</option>
@@ -1322,7 +1322,7 @@ export default function ProductsPage() {
                     <select
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                     >
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
@@ -1331,19 +1331,19 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
-                  <Button
+                  <Button size="sm"
                     type="button"
                     variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer text-xs px-3 py-1.5"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
                   </Button>
-                  <Button
+                  <Button size="sm"
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer text-xs px-3 py-1.5"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
@@ -1368,9 +1368,9 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-sm bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#001733]">
+              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
                 </h3>
@@ -1387,7 +1387,7 @@ export default function ProductsPage() {
                     required
                     value={categoryForm.name}
                     onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    className="w-full bg-white border border-outline/50 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                     placeholder="Ej. Herramientas"
                   />
                 </div>
@@ -1397,26 +1397,26 @@ export default function ProductsPage() {
                   <textarea
                     value={categoryForm.description}
                     onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    className="w-full bg-white border border-outline/50 rounded-lg px-4 py-2.5 text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                     placeholder="Opcional..."
                     rows={2}
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-outline/20">
-                  <Button
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button size="sm"
                     type="button"
                     variant="ghost"
                     onClick={() => setShowCategoryModal(false)}
-                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
                   </Button>
-                  <Button
+                  <Button size="sm"
                     type="submit"
                     disabled={submittingCategory}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     Guardar
@@ -1441,9 +1441,9 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center p-5 border-b border-[#003366] bg-[#0b1120]">
+              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#0b1120]">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-[#c5a059]" /> Edición Manual de Precios
                 </h3>
@@ -1472,7 +1472,7 @@ export default function ProductsPage() {
                         onChange={(e) => {
                           setFormData({ ...formData, priceConsumidor: e.target.value, price: e.target.value });
                         }}
-                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-14 pr-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -1486,7 +1486,7 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceMayorista}
                         onChange={(e) => setFormData({ ...formData, priceMayorista: e.target.value })}
-                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-14 pr-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       />
                     </div>
                   </div>
@@ -1500,14 +1500,14 @@ export default function ProductsPage() {
                         step="0.01"
                         value={formData.priceProveedor}
                         onChange={(e) => setFormData({ ...formData, priceProveedor: e.target.value })}
-                        className="w-full bg-white border border-outline/50 rounded-lg pl-14 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] outline-none transition-colors"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-14 pr-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button
+                  <Button size="sm"
                     type="button"
                     onClick={() => setShowPricesModal(false)}
                     className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer w-full justify-center"
@@ -1535,9 +1535,9 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-[#001733] text-white">
+              <div className="flex justify-between items-center p-4 border-b border-slate-200 bg-[#001733] text-white">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-[#c5a059]" /> Inventario: {selectedProduct.name}
                 </h3>
@@ -1549,11 +1549,11 @@ export default function ProductsPage() {
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
                     <tr>
-                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
-                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Físico</th>
-                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Disponible</th>
-                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Stock Mín / Máx</th>
-                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right w-40">Ajustar</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Físico</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Disponible</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Stock Mín / Máx</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-40">Ajustar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -1576,7 +1576,7 @@ export default function ProductsPage() {
                         
                         return (
                           <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="p-4">
+                            <td className="px-4 py-2.5 text-xs">
                               <div className="flex items-center gap-3">
                                 <div className="bg-primary/10 p-2 rounded-lg text-primary flex-shrink-0">
                                   <Building2 className="h-4 w-4" />
@@ -1584,19 +1584,19 @@ export default function ProductsPage() {
                                 <span className="font-bold text-slate-800 text-sm">{w.name}</span>
                               </div>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-4 py-2.5 text-xs text-right">
                               <span className="block text-md font-mono text-emerald-600 font-bold">
                                 {currentQuantity}
                               </span>
                               <span className="text-[10px] text-slate-400 capitalize font-medium">{selectedProduct.unitOfMeasure}s</span>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-4 py-2.5 text-xs text-right">
                               <span className="block text-md font-mono font-bold text-amber-600">
                                 {availableQuantity}
                               </span>
                               <span className="text-[10px] text-slate-400 font-medium">Disponibles</span>
                             </td>
-                            <td className="p-4 text-center">
+                            <td className="px-4 py-2.5 text-xs text-center">
                               <div className="flex items-center gap-2 justify-center">
                                 <div className="flex flex-col gap-1 items-start">
                                   <span className="text-[9px] font-bold text-slate-400 uppercase">Mín</span>
@@ -1605,7 +1605,7 @@ export default function ProductsPage() {
                                     min="0"
                                     value={inlineMinForm[w.id] !== undefined ? inlineMinForm[w.id] : minStk}
                                     onChange={(e) => setInlineMinForm({ ...inlineMinForm, [w.id]: e.target.value })}
-                                    className="w-16 bg-white border border-slate-300 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
+                                    className="w-16 bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-right font-mono"
                                   />
                                 </div>
                                 <div className="flex flex-col gap-1 items-start">
@@ -1616,33 +1616,33 @@ export default function ProductsPage() {
                                     value={inlineMaxForm[w.id] !== undefined ? inlineMaxForm[w.id] : maxStk}
                                     placeholder="Libre"
                                     onChange={(e) => setInlineMaxForm({ ...inlineMaxForm, [w.id]: e.target.value })}
-                                    className="w-20 bg-white border border-slate-300 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
+                                    className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-right font-mono"
                                   />
                                 </div>
                                 <button
                                   onClick={() => handleSaveLimits(w.id)}
                                   disabled={submittingLimitId === w.id || (inlineMinForm[w.id] === undefined && inlineMaxForm[w.id] === undefined)}
-                                  className="p-1.5 bg-[#003366] hover:bg-[#002244] text-white rounded-md transition-colors disabled:opacity-30 self-end mb-0.5 cursor-pointer"
+                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                   title="Guardar límites"
                                 >
                                   {submittingLimitId === w.id ? <RefreshCw className="h-3.5 h-3.5 animate-spin" /> : <Save className="h-3.5 h-3.5" />}
                                 </button>
                               </div>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-4 py-2.5 text-xs text-right">
                               <div className="flex items-center gap-2 justify-end">
                                 <input
                                   type="number"
                                   step="1"
                                   value={inlineAdjustForm[w.id] !== undefined ? inlineAdjustForm[w.id] : currentQuantity}
                                   onChange={(e) => setInlineAdjustForm({ ...inlineAdjustForm, [w.id]: e.target.value })}
-                                  className="w-24 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none text-right font-mono"
+                                  className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-right font-mono"
                                 />
                                 <button
                                   onClick={() => handleInlineAdjust(w.id)}
                                   disabled={submittingAdjustId === w.id || inlineAdjustForm[w.id] === undefined || inlineAdjustForm[w.id] === currentQuantity}
                                   title="Guardar cambio"
-                                  className="p-1.5 bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] rounded-md transition-colors disabled:opacity-30 disabled:grayscale"
+                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                 >
                                   {submittingAdjustId === w.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
                                 </button>
@@ -1673,10 +1673,10 @@ export default function ProductsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row no-print"
+              className="relative w-full max-w-4xl bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row no-print"
             >
               {/* Ajustes */}
-              <div className="flex-1 p-6 space-y-5 max-h-[85vh] overflow-y-auto">
+              <div className="flex-1 p-4 space-y-5 max-h-[85vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b pb-4">
                   <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
                     <Printer className="h-5 w-5 text-[#c5a059]" />
@@ -1699,7 +1699,7 @@ export default function ProductsPage() {
                           setLabelSelectedProduct(products[0]);
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none"
+                      className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                     >
                       <option value="single">Producto Único</option>
                       <option value="selected">Productos Seleccionados ({selectedProductIds.length})</option>
@@ -1714,7 +1714,7 @@ export default function ProductsPage() {
                       <select
                         value={labelSelectedCategory}
                         onChange={(e) => setLabelSelectedCategory(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none"
+                        className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                       >
                         <option value="">Todas las categorías</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1731,7 +1731,7 @@ export default function ProductsPage() {
                           const found = products.find(p => p.id === e.target.value);
                           if (found) setLabelSelectedProduct(found);
                         }}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none"
+                        className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                       >
                         <option value="">Selecciona...</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1744,7 +1744,7 @@ export default function ProductsPage() {
                     <select
                       value={labelSize}
                       onChange={(e) => setLabelSize(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 outline-none"
+                      className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                     >
                       <option value="30x20">30x20 mm (Mini)</option>
                       <option value="50x25">50x25 mm</option>
@@ -1762,7 +1762,7 @@ export default function ProductsPage() {
                           type="number"
                           value={labelCustomWidth}
                           onChange={(e) => setLabelCustomWidth(parseInt(e.target.value) || 50)}
-                          className="w-full bg-slate-50 border border-slate-350 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-mono outline-none"
+                          className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                         />
                       </div>
                       <div>
@@ -1771,7 +1771,7 @@ export default function ProductsPage() {
                           type="number"
                           value={labelCustomHeight}
                           onChange={(e) => setLabelCustomHeight(parseInt(e.target.value) || 30)}
-                          className="w-full bg-slate-50 border border-slate-350 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-mono outline-none"
+                          className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                         />
                       </div>
                     </div>
@@ -1784,7 +1784,7 @@ export default function ProductsPage() {
                       min="1"
                       value={labelQuantity}
                       onChange={(e) => setLabelQuantity(parseInt(e.target.value) || 1)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-mono outline-none"
+                      className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                     />
                   </div>
 
@@ -1794,7 +1794,7 @@ export default function ProductsPage() {
                       type="text"
                       value={labelBrandText}
                       onChange={(e) => setLabelBrandText(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 outline-none"
+                      className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none"
                       placeholder="Ej. ContFast Enterprise"
                     />
                   </div>
@@ -1861,10 +1861,10 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex gap-2 justify-end pt-3 border-t">
-                  <button onClick={() => setShowLabelModal(false)} className="px-4 py-2 border border-slate-350 text-slate-700 font-bold text-xs rounded-lg transition-colors bg-white hover:bg-slate-50">
+                  <button onClick={() => setShowLabelModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button onClick={handlePrintLabels} className="bg-[#003366] hover:bg-[#002244] text-white font-bold text-xs px-5 py-2 rounded-lg shadow-md transition-colors flex items-center gap-1.5">
+                  <button onClick={handlePrintLabels} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     <Printer className="h-4 w-4" />
                     Mandar a Imprimir
                   </button>
@@ -1872,8 +1872,8 @@ export default function ProductsPage() {
               </div>
 
               {/* Previsualización */}
-              <div className="w-full md:w-80 bg-slate-50 border-t md:border-t-0 md:border-l border-slate-200 p-6 flex flex-col items-center justify-center space-y-4">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Vista Previa</h4>
+              <div className="w-full md:w-80 bg-slate-50 border-t md:border-t-0 md:border-l border-slate-200 p-4 flex flex-col items-center justify-center space-y-4">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Vista Previa</h4>
                 {labelSelectedProduct ? (
                   <div className="flex flex-col items-center justify-center p-3 border border-slate-300 rounded bg-white shadow-lg relative overflow-hidden select-none max-w-full" style={{
                     width: `${labelSize === 'custom' ? labelCustomWidth * 3.5 : parseInt(labelSize.split('x')[0]) * 3.5}px`,

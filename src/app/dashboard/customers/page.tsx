@@ -15,6 +15,7 @@ import { FormField } from '@/components/ui/form-field';
 import {
   TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
+import { Pagination } from '@/components/ui/pagination';
 
 
 interface Customer {
@@ -33,6 +34,10 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -72,7 +77,11 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers();
+    setCurrentPage(1);
   }, [search]);
+
+  const totalPages = Math.ceil(customers.length / pageSize);
+  const paginatedCustomers = customers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const handlePrintList = async () => {
     const toastId = toast.loading('Preparando plantilla de impresión...');
@@ -292,26 +301,24 @@ export default function CustomersPage() {
             <Users className="h-7 w-7 text-amber-500" />
             Gestión de Clientes
           </h1>
-          <p className="text-on-surface-variant text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Gestiona los datos de facturación y contacto de todos tus clientes.
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto shrink-0">
-          <Button
-            variant="outline"
+          <button
             onClick={handlePrintList}
-            className="gap-2"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
-            <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-          </Button>
-          <Button
-            variant="primary"
+            <Printer className="h-4 w-4 text-slate-950" /> Imprimir
+          </button>
+          <button
             onClick={openNewModal}
-            className="gap-2"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Plus className="h-4 w-4" />
             Nuevo Cliente
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -330,85 +337,121 @@ export default function CustomersPage() {
         )}
       </div>
 
-      {/* CUSTOMERS LIST */}
-      <TableContainer>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente / Empresa</TableHead>
-              <TableHead>RNC/Cédula</TableHead>
-              <TableHead className="hidden md:table-cell">Contacto</TableHead>
-              <TableHead className="hidden lg:table-cell">Dirección</TableHead>
-              <TableHead className="text-center">Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.length === 0 && !loading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                  No se encontraron clientes. Haz clic en "Nuevo Cliente" para empezar.
-                </TableCell>
-              </TableRow>
-            ) : (
-              customers.map((c) => (
-                <TableRow key={c.id} className="group">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-[#C5A059] flex-shrink-0">
-                        {c.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">{c.name}</p>
-                        <p className="text-xs text-slate-500 hidden sm:block">Creado: {new Date(c.createdAt).toLocaleDateString()}</p>
-                      </div>
+      {/* CUSTOMERS TABLE */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">Cliente / Empresa</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest whitespace-nowrap">RNC/Cédula</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest hidden md:table-cell">Contacto</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest hidden lg:table-cell">Dirección</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                      <span className="text-slate-500 text-sm font-medium">Cargando clientes...</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono gap-1 text-slate-700 dark:text-slate-300">
-                      <ShieldCheck className="h-3 w-3 text-emerald-500" />
-                      {c.rncCedula || 'S/N'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-slate-600 dark:text-slate-400">
-                    {c.email && <div className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {c.email}</div>}
-                    {c.phone && <div className="flex items-center gap-1.5 mt-1"><Phone className="h-3 w-3" /> {c.phone}</div>}
-                    {(!c.email && !c.phone) && <span className="text-slate-400">-</span>}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-sm text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
-                    {c.address ? (
-                      <span className="flex items-center gap-1.5" title={c.address}>
-                        <MapPin className="h-3 w-3 flex-shrink-0 text-slate-400" />
-                        <span className="truncate">{c.address}</span>
+                  </td>
+                </tr>
+              ) : paginatedCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Users className="h-8 w-8 text-slate-300" />
+                      <span className="text-slate-500 text-sm">No se encontraron clientes. Haz clic en "Nuevo Cliente" para empezar.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedCustomers.map((c) => (
+                  <motion.tr
+                    key={c.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hover:bg-[#C5A059]/5 transition-colors group"
+                  >
+                    <td className="px-4 py-2 align-middle">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#C5A059] flex-shrink-0 text-sm">
+                          {c.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#003366] text-xs">{c.name}</p>
+                          <p className="text-[10px] text-slate-400 hidden sm:block">Creado: {new Date(c.createdAt).toLocaleDateString('es-DO')}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 align-middle">
+                      <span className="inline-flex items-center gap-1 font-mono text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                        {c.rncCedula || 'S/N'}
                       </span>
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={c.status === 'active' ? 'success' : 'destructive'}>
-                      {c.status === 'active' ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Link href={`/dashboard/customers/${c.id}`}>
-                        <Button variant="ghost" size="icon-sm" title="Ver Historial" className="text-[#C5A059] hover:bg-[#C5A059]/10">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEditModal(c)} title="Editar">
-                        <Edit2 className="h-4 w-4 text-slate-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c.id, c.name)} title="Eliminar" className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                    </td>
+                    <td className="px-4 py-2 align-middle hidden md:table-cell">
+                      <div className="flex flex-col gap-0.5">
+                        {c.email && <div className="flex items-center gap-1.5 text-[11px] text-slate-600"><Mail className="h-3 w-3" /> {c.email}</div>}
+                        {c.phone && <div className="flex items-center gap-1.5 text-[11px] text-slate-600"><Phone className="h-3 w-3" /> {c.phone}</div>}
+                        {(!c.email && !c.phone) && <span className="text-slate-400 text-xs">-</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 align-middle hidden lg:table-cell text-[11px] text-slate-600 max-w-[200px]">
+                      {c.address ? (
+                        <span className="flex items-center gap-1.5" title={c.address}>
+                          <MapPin className="h-3 w-3 flex-shrink-0 text-slate-400" />
+                          <span className="truncate block max-w-[180px]">{c.address}</span>
+                        </span>
+                      ) : <span className="text-slate-400">-</span>}
+                    </td>
+                    <td className="px-4 py-2 align-middle text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${
+                        c.status === 'active'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1 ${c.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        {c.status === 'active' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 align-middle text-right">
+                      <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link href={`/dashboard/customers/${c.id}`}>
+                          <button className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Historial">
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </Link>
+                        <button onClick={() => openEditModal(c)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Editar">
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(c.id, c.name)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="Eliminar">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {customers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={customers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
+          />
+        )}
+      </div>
 
       {/* MODAL */}
       <AnimatePresence>
@@ -423,7 +466,7 @@ export default function CustomersPage() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10"
+              className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10"
             >
               <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
                 <h2 className="text-lg font-bold text-white font-display flex items-center gap-2">
@@ -437,11 +480,11 @@ export default function CustomersPage() {
 
               <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <div className="space-y-1 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold text-[#001e40] flex items-center gap-2">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                         <span>RNC o Cédula</span>
-                        <span className="text-slate-500 font-normal text-xs">(Opcional para Consumidor Final)</span>
+                        <span className="text-slate-400 font-normal text-[10px] normal-case tracking-normal">(Opcional para Consumidor Final)</span>
                       </label>
                       {rncVerified && (
                         <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
@@ -457,14 +500,14 @@ export default function CustomersPage() {
                           setFormData({ ...formData, rncCedula: e.target.value });
                           setRncVerified(false);
                         }}
-                        className={`flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono ${rncVerified ? 'border-emerald-500 ring-1 ring-emerald-500/30' : ''}`}
+                        className={`flex-1 h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono ${rncVerified ? 'border-emerald-500 ring-1 ring-emerald-500/30 focus:border-emerald-500 focus:ring-emerald-500/30' : ''}`}
                         placeholder="Ej. 130123456"
                       />
                       <button
                         type="button"
                         onClick={handleSearchDGII}
                         disabled={isSearchingRnc || !formData.rncCedula}
-                        className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-3 py-1.5 rounded-lg font-bold hover:bg-[#d4b069] transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                        className="h-8 px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 bg-[#c5a059] text-white font-bold hover:bg-[#d4b069] transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
                       >
                         {isSearchingRnc ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                         Buscar DGII
@@ -473,70 +516,70 @@ export default function CustomersPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="Nombre de la empresa o persona"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Correo Electrónico</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Correo Electrónico</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="contacto@empresa.com"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Teléfono</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
                     <input
                       type="text"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="(809) 000-0000"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Límite de Crédito (RD$)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Límite de Crédito (RD$)</label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={formData.creditLimit}
                       onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="0.00"
                     />
                   </div>
 
                   <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs font-semibold text-[#001e40]">Dirección</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección</label>
                     <input
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="Calle, Número, Sector, Ciudad..."
                     />
                   </div>
 
                   {editId && (
                     <div className="space-y-1 md:col-span-2">
-                      <label className="text-xs font-semibold text-[#001e40]">Estado</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado</label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors appearance-none"
+                        className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                       >
                         <option value="active">Activo</option>
                         <option value="inactive">Inactivo</option>
@@ -553,23 +596,22 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-semibold border border-rose-200 cursor-pointer text-xs px-3 py-1.5"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer text-xs px-3 py-1.5"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Cliente'}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </motion.div>

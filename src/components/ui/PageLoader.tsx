@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -20,11 +19,6 @@ export function PageLoader({
   fullScreen = true,
   className,
 }: PageLoaderProps) {
-  // If no logoUrl is passed, render simple fallback or minimal container
-  if (!logoUrl) return null;
-
-  const isRemoteUrl = logoUrl.startsWith('http://') || logoUrl.startsWith('https://');
-
   return (
     <div
       className={clsx(
@@ -33,12 +27,13 @@ export function PageLoader({
         className
       )}
     >
-      {/* Background Soft Glow with Corporate Colors (#003366 & #C59B27) */}
+      {/* Background Soft Glow */}
       <div className="absolute w-[500px] h-[500px] sm:w-[650px] sm:h-[650px] rounded-full bg-gradient-to-tr from-[#003366]/20 via-amber-500/10 to-[#C59B27]/25 blur-3xl pointer-events-none animate-pulse" />
 
       {/* Main Content Container */}
       <div className="relative z-10 flex flex-col items-center space-y-8 max-w-md sm:max-w-lg text-center px-6">
-        {/* Animated Logo Container with Gentle Breathing Effect (scale 0.98 - 1.02) */}
+
+        {/* System Logo (always ContFast Logo.svg) with Breathing Effect */}
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{
@@ -55,15 +50,12 @@ export function PageLoader({
           }}
           className="relative flex items-center justify-center"
         >
-          <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center">
-            <Image
-              src={logoUrl}
-              alt={companyName || 'Logo de la Empresa'}
-              width={350}
-              height={350}
-              priority
-              unoptimized={isRemoteUrl || logoUrl.startsWith('data:')}
-              className="object-contain w-full h-full"
+          <div className="relative w-64 sm:w-80 md:w-96 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Logo.svg"
+              alt="ContFast Enterprise"
+              className="object-contain w-full h-auto drop-shadow-xl"
             />
           </div>
         </motion.div>
@@ -84,26 +76,20 @@ export function PageLoader({
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.4 }}
-            className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium"
+            className="text-sm sm:text-base text-slate-400 dark:text-slate-400 font-medium"
           >
-            {message}
+            Cargando los datos de la Empresa
           </motion.p>
         </div>
 
-        {/* Bottom Indicator: Corporate Color Bounce Dots & Shimmer Bar */}
+        {/* Bottom Indicator: Progress Bar + Bounce Dots */}
         <div className="flex flex-col items-center space-y-4 pt-2">
-          {/* Subtle Progress Bar with Navy (#003366) and Gold (#C59B27) */}
+          {/* Shimmer Progress Bar */}
           <div className="w-56 sm:w-72 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-[#003366] via-[#C59B27] to-[#003366]"
-              animate={{
-                x: ['-100%', '100%'],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 1.6,
-                ease: 'easeInOut',
-              }}
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
             />
           </div>
 
@@ -132,3 +118,4 @@ export function PageLoader({
 }
 
 export default PageLoader;
+

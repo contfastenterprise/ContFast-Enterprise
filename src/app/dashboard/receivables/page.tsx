@@ -487,13 +487,13 @@ export default function ReceivablesPage() {
                       <button
                         onClick={() => handlePrintCustomerStatement(customer.customerId)}
                         disabled={printingCustomerId === customer.customerId}
-                        className="bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                        className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                       >
                         <Printer className="h-3.5 w-3.5" /> Imprimir
                       </button>
                       <button
                         onClick={() => handleOpenPayment(customer)}
-                        className="bg-[#001e40] hover:bg-[#003366] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                       >
                         <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
                       </button>
@@ -583,7 +583,7 @@ export default function ReceivablesPage() {
               <button
                 type="button"
                 onClick={fetchReceipts}
-                className="w-full md:w-auto bg-[#001e40] hover:bg-[#003366] text-white px-4 py-1.5 h-8 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Search className="w-3.5 h-3.5" /> Buscar
               </button>
@@ -647,14 +647,14 @@ export default function ReceivablesPage() {
                               <div className="flex justify-center gap-3">
                                 <button
                                   onClick={() => handleOpenReceiptDetails(rec.id)}
-                                  className="p-1.5 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                   title="Ver detalle"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handlePrintReceipt(rec.id, { hideBalance: true })}
-                                  className="p-1.5 hover:bg-slate-100 text-[#003366] rounded transition-colors"
+                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                   title="Imprimir PDF"
                                 >
                                   <Printer className="w-4 h-4" />
@@ -763,7 +763,7 @@ export default function ReceivablesPage() {
                   type="button"
                   disabled={printingCustomerId === selectedStatementCustomerId}
                   onClick={() => handlePrintCustomerStatement(selectedStatementCustomerId)}
-                  className="w-full md:w-auto bg-[#001e40] hover:bg-[#003366] text-white px-4 py-1.5 h-8 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   {printingCustomerId === selectedStatementCustomerId ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1114,7 +1114,7 @@ export default function ReceivablesPage() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                       {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                       Procesar Recibo
                     </button>
@@ -1205,14 +1205,14 @@ export default function ReceivablesPage() {
               <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
                 <button
                   onClick={() => setShowReceiptDetailsModal(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-600 transition-colors"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   Cerrar
                 </button>
                 {selectedReceipt && (
                   <button
                     onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-5 py-2 rounded-lg text-xs font-bold transition-colors"
+                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Printer className="w-4 h-4" /> Imprimir Recibo
                   </button>

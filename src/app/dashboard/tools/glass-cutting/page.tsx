@@ -164,7 +164,7 @@ export default function GlassCuttingPage() {
             <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
               Optimizador de Corte de Vidrio
             </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
+            <p className="text-slate-500 text-sm mt-1">
               Planifica y distribuye cortes de vidrio de forma eficiente en pulgadas (in)
             </p>
           </div>
@@ -172,14 +172,14 @@ export default function GlassCuttingPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={clearAll}
-              className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors text-xs font-bold text-slate-700 bg-white"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Limpiar Todo
             </button>
             <button
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#005E63] text-white rounded-lg hover:bg-[#005E63]/90 transition-colors text-xs font-bold shadow-sm disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando...' : 'Imprimir Patrón'}
@@ -196,7 +196,7 @@ export default function GlassCuttingPage() {
                 <Maximize className="w-4 h-4 text-[#003366]" />
                 <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Lámina de Vidrio</h3>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Ancho (pulg)</label>
@@ -204,7 +204,7 @@ export default function GlassCuttingPage() {
                       type="text"
                       value={sheetWidthInput}
                       onChange={(e) => setSheetWidthInput(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold font-mono text-center"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -213,7 +213,7 @@ export default function GlassCuttingPage() {
                       type="text"
                       value={sheetHeightInput}
                       onChange={(e) => setSheetHeightInput(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold font-mono text-center"
                     />
                   </div>
                 </div>
@@ -225,7 +225,7 @@ export default function GlassCuttingPage() {
               <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
                 <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Agregar Cortes Requeridos</h3>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-4 space-y-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">Etiqueta / Nombre</label>
                   <input
@@ -233,7 +233,7 @@ export default function GlassCuttingPage() {
                     value={newLabel}
                     onChange={(e) => setNewLabel(e.target.value)}
                     placeholder="Ej: Ventana Cocina"
-                    className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -244,7 +244,7 @@ export default function GlassCuttingPage() {
                       value={newWidth}
                       onChange={(e) => setNewWidth(e.target.value)}
                       placeholder='Ej: 24 1/2'
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold font-mono text-center"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -254,7 +254,7 @@ export default function GlassCuttingPage() {
                       value={newHeight}
                       onChange={(e) => setNewHeight(e.target.value)}
                       placeholder='Ej: 36'
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold font-mono text-center"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold font-mono text-center"
                     />
                   </div>
                 </div>
@@ -266,13 +266,13 @@ export default function GlassCuttingPage() {
                       min={1}
                       value={newQty}
                       onChange={(e) => setNewQty(e.target.value)}
-                      className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#C5A059] text-slate-900 bg-white font-semibold text-center"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 font-semibold text-center"
                     />
                   </div>
                   <div className="flex-1 flex items-end">
                     <button
                       onClick={addPiece}
-                      className="w-full py-2 bg-[#003366] text-white font-bold rounded-lg hover:bg-[#003366]/90 transition-all flex items-center justify-center gap-1.5"
+                      className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       <Plus className="w-4 h-4" /> Agregar
                     </button>
@@ -306,7 +306,7 @@ export default function GlassCuttingPage() {
                       </div>
                       <button
                         onClick={() => removePiece(p.id)}
-                        className="p-1 text-slate-400 hover:text-red-500 rounded"
+                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -350,7 +350,7 @@ export default function GlassCuttingPage() {
                       Eficiencia: {(100 - sheet.wastePercent).toFixed(0)}%
                     </span>
                   </div>
-                  <div className="p-6 bg-slate-100/30 flex items-center justify-center min-h-[350px] relative">
+                  <div className="p-4 bg-slate-100/30 flex items-center justify-center min-h-[350px] relative">
                     {sheetWidth > 0 && sheetHeight > 0 ? (
                       <div
                         className="relative border-2 border-slate-300 shadow bg-white overflow-hidden"

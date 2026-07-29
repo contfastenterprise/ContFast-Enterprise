@@ -232,7 +232,7 @@ export default function WarehousesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-[#001e40]/10 dark:bg-[#003366]/30 rounded-xl flex items-center justify-center text-[#003366] dark:text-[#C5A059]">
             <Building2 className="w-6 h-6" />
@@ -245,24 +245,22 @@ export default function WarehousesPage() {
           </div>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <Button
-            variant="outline"
+          <button
             onClick={handlePrintList}
-            className="gap-2"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
-            <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-          </Button>
-          <Button
-            variant="primary"
+            <Printer className="h-4 w-4 text-slate-950" /> Imprimir
+          </button>
+          <button
             onClick={() => {
               setCurrentWarehouse(null);
               setIsModalOpen(true);
             }}
-            className="gap-2"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Plus className="h-4 w-4" />
             Nuevo Almacén
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -288,7 +286,7 @@ export default function WarehousesPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
               >
-                <Card className="h-full flex flex-col justify-between p-6">
+                <Card className="h-full flex flex-col justify-between p-4 rounded-xl">
                   <div>
                     <div className="flex justify-between items-start mb-3">
                       <Badge variant="secondary" className="font-mono">
@@ -308,40 +306,35 @@ export default function WarehousesPage() {
                   </div>
 
                   <div className="flex gap-1.5 justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                    <button
                       onClick={() => {
                         setCurrentWarehouse(warehouse);
                         setIsModalOpen(true);
                       }}
                       title="Editar"
+                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                     >
-                      <Edit2 className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleToggleStatus(warehouse)}
                       title={warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'}
-                      className={warehouse.status === 'active' ? 'text-amber-600' : 'text-emerald-600'}
+                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                     >
                       {warehouse.status === 'active' ? (
                         <XCircle className="w-4 h-4" />
                       ) : (
                         <CheckCircle className="w-4 h-4" />
                       )}
-                    </Button>
+                    </button>
                     {(currentUserRole === 'sistemas' || currentUserRole === 'sistema') && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
+                      <button
                         onClick={() => handleDelete(warehouse.id)}
                         title="Eliminar permanentemente"
-                        className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </button>
                     )}
                   </div>
                 </Card>
@@ -360,21 +353,21 @@ export default function WarehousesPage() {
         description="Ingresa los detalles de la ubicación física o sucursal."
         footer={
           <>
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => setIsModalOpen(false)}
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Cancelar
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               form="warehouse-form"
-              variant="primary"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <ShieldCheck className="w-4 h-4" />
               Guardar Cambios
-            </Button>
+            </button>
           </>
         }
       >
@@ -386,6 +379,7 @@ export default function WarehousesPage() {
                 defaultValue={currentWarehouse?.code}
                 placeholder="Ej. ALM-01"
                 required
+                className="h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
               />
             </FormField>
 
@@ -393,6 +387,7 @@ export default function WarehousesPage() {
               <Select
                 name="status"
                 defaultValue={currentWarehouse?.status || 'active'}
+                className="h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
               >
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>
@@ -405,6 +400,7 @@ export default function WarehousesPage() {
                 defaultValue={currentWarehouse?.name}
                 placeholder="Ej. Almacén Principal"
                 required
+                className="h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
               />
             </FormField>
 
@@ -414,6 +410,7 @@ export default function WarehousesPage() {
                 defaultValue={currentWarehouse?.address || ''}
                 placeholder="Dirección completa..."
                 rows={3}
+                className="px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
               />
             </FormField>
           </div>

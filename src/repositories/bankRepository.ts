@@ -53,8 +53,15 @@ export class BankRepository {
     });
   }
 
-  // Get transactions for a specific account
+  // Get transactions for a specific account (or all accounts if 'all' is passed)
   static async getBankTransactions(companyId: string, bankAccountId: string) {
+    if (bankAccountId === 'all') {
+      return await db.select()
+        .from(bankTransactions)
+        .where(eq(bankTransactions.companyId, companyId))
+        .orderBy(desc(bankTransactions.date), desc(bankTransactions.createdAt));
+    }
+    
     return await db.select()
       .from(bankTransactions)
       .where(and(

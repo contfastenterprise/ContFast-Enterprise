@@ -434,7 +434,7 @@ export default function AccountingPage() {
             <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
               Libro Mayor y Asientos
             </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
+            <p className="text-slate-500/70 text-sm mt-1">
               Gestión del catálogo de cuentas y transacciones de diario general.
             </p>
           </div>
@@ -443,13 +443,13 @@ export default function AccountingPage() {
               <>
                 <button
                   onClick={handlePrintCatalog}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-300 transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Printer className="h-4 w-4 text-slate-500" /> Imprimir Catálogo
                 </button>
                 <button
                   onClick={() => setShowAccountModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold shadow-md hover:-translate-y-0.5 transition-all"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="h-4 w-4" /> Nueva Cuenta
                 </button>
@@ -458,7 +458,7 @@ export default function AccountingPage() {
             {activeTab === 'journals' && (
               <button
                 onClick={() => setShowJournalModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-bold shadow-md hover:-translate-y-0.5 transition-all"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <FileText className="h-4 w-4" /> Nuevo Asiento
               </button>
@@ -480,7 +480,7 @@ export default function AccountingPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={clsx(
-                'px-4 py-2.5 rounded-lg text-xs md:text-sm font-semibold transition-all',
+                'px-4 py-2 rounded-lg text-xs font-semibold transition-all',
                 activeTab === tab.id ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:text-slate-800'
               )}
             >
@@ -497,11 +497,11 @@ export default function AccountingPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-on-surface-variant/70 text-xs uppercase tracking-wider font-semibold">
-                        <th className="p-4 w-32">Código</th>
-                        <th className="p-4">Nombre de la Cuenta</th>
-                        <th className="p-4">Tipo</th>
-                        <th className="p-4 text-center">Estado</th>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32">Código</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre de la Cuenta</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -512,9 +512,9 @@ export default function AccountingPage() {
                       ) : (
                         accounts.map((acc) => (
                           <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="p-4 font-mono text-sm font-semibold text-[#003366]">{acc.code}</td>
-                            <td className="p-4 text-sm font-medium text-slate-800">{acc.name}</td>
-                            <td className="p-4">
+                            <td className="px-4 py-2.5 text-xs font-mono font-semibold text-[#003366]">{acc.code}</td>
+                            <td className="px-4 py-2.5 text-xs font-medium text-slate-800">{acc.name}</td>
+                            <td className="px-4 py-2.5 text-xs">
                               <span className={clsx(
                                 'inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
                                 acc.type === 'asset' && 'bg-blue-100 text-blue-800',
@@ -526,8 +526,8 @@ export default function AccountingPage() {
                                 {typeLabels[acc.type]}
                               </span>
                             </td>
-                            <td className="p-4 text-center">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Activo</span>
+                            <td className="px-4 py-2.5 text-xs text-center">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800">Activo</span>
                             </td>
                           </tr>
                         ))
@@ -551,7 +551,7 @@ export default function AccountingPage() {
                     type="date" 
                     value={startDate} 
                     onChange={e => setStartDate(e.target.value)} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
@@ -560,13 +560,13 @@ export default function AccountingPage() {
                     type="date" 
                     value={endDate} 
                     onChange={e => setEndDate(e.target.value)} 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
                   />
                 </div>
                 {(startDate || endDate) && (
                   <button 
                     onClick={() => { setStartDate(''); setEndDate(''); }}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition-all"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Limpiar Filtros
                   </button>
@@ -586,14 +586,14 @@ export default function AccountingPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
-                          <th className="p-4 w-10"></th>
-                          <th className="p-4 w-32">Fecha</th>
-                          <th className="p-4">Concepto / Descripción</th>
-                          <th className="p-4 w-40">Referencia</th>
-                          <th className="p-4 text-right w-36">Total Débito</th>
-                          <th className="p-4 text-right w-36">Total Crédito</th>
-                          <th className="p-4 text-center w-28">Estado</th>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-10"></th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32">Fecha</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Concepto / Descripción</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-40">Referencia</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Total Débito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Total Crédito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center w-28">Estado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -606,21 +606,21 @@ export default function AccountingPage() {
                                 onClick={() => toggleExpand(journal.id)} 
                                 className="hover:bg-slate-50/80 transition-colors cursor-pointer"
                               >
-                                <td className="p-4 text-center">
+                                <td className="px-4 py-2.5 text-xs text-center">
                                   {isExpanded ? (
                                     <ChevronDown className="h-4 w-4 text-slate-400" />
                                   ) : (
                                     <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90 transition-transform" />
                                   )}
                                 </td>
-                                <td className="p-4 font-mono text-sm font-semibold text-[#003366]">
+                                <td className="px-4 py-2.5 text-xs font-mono font-semibold text-[#003366]">
                                   {new Date(journal.date).toLocaleDateString('es-DO')}
                                 </td>
-                                <td className="p-4 font-semibold text-slate-800">{journal.description}</td>
-                                <td className="p-4 font-mono text-xs text-slate-500">{journal.reference || '-'}</td>
-                                <td className="p-4 text-right font-mono text-slate-700 font-bold">{fmt(journal.totalDebit)}</td>
-                                <td className="p-4 text-right font-mono text-slate-700 font-bold">{fmt(journal.totalCredit)}</td>
-                                <td className="p-4 text-center">
+                                <td className="px-4 py-2.5 text-xs font-semibold text-slate-800">{journal.description}</td>
+                                <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{journal.reference || '-'}</td>
+                                <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700 font-bold">{fmt(journal.totalDebit)}</td>
+                                <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700 font-bold">{fmt(journal.totalCredit)}</td>
+                                <td className="px-4 py-2.5 text-xs text-center">
                                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800">
                                     Contabilizado
                                   </span>
@@ -634,22 +634,22 @@ export default function AccountingPage() {
                                     <div className="pl-6 py-2">
                                       <table className="w-full text-xs text-slate-600 border-collapse">
                                         <thead>
-                                          <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
-                                            <th className="py-2 text-left">Código Cuenta</th>
-                                            <th className="py-2 text-left">Nombre Cuenta</th>
-                                            <th className="py-2 text-right w-36">Débito</th>
-                                            <th className="py-2 text-right w-36">Crédito</th>
+                                          <tr className="border-b border-slate-200">
+                                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Código Cuenta</th>
+                                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Nombre Cuenta</th>
+                                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Débito</th>
+                                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Crédito</th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                           {journal.lines.map((line) => (
                                             <tr key={line.id} className="hover:bg-slate-100/50">
-                                              <td className="py-2.5 font-mono font-semibold text-[#003366]">{line.accountCode}</td>
-                                              <td className="py-2.5">{line.accountName}</td>
-                                              <td className="py-2.5 text-right font-mono text-slate-700">
+                                              <td className="px-4 py-2.5 text-xs font-mono font-semibold text-[#003366]">{line.accountCode}</td>
+                                              <td className="px-4 py-2.5 text-xs">{line.accountName}</td>
+                                              <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700">
                                                 {parseFloat(line.debit) > 0 ? fmt(line.debit) : ''}
                                               </td>
-                                              <td className="py-2.5 text-right font-mono text-slate-700">
+                                              <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700">
                                                 {parseFloat(line.credit) > 0 ? fmt(line.credit) : ''}
                                               </td>
                                             </tr>
@@ -680,7 +680,7 @@ export default function AccountingPage() {
                   <select 
                     value={selectedLedgerAccount} 
                     onChange={e => setSelectedLedgerAccount(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-[#c5a059] transition-colors"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
                   >
                     <option value="">-- Seleccione una cuenta --</option>
                     {accounts.filter(a => a.status === 'active').map(acc => (
@@ -690,12 +690,12 @@ export default function AccountingPage() {
                 </div>
                 <div className="w-full sm:w-auto flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Desde</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none" />
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hasta</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 outline-none" />
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                   </div>
                 </div>
               </div>
@@ -730,13 +730,13 @@ export default function AccountingPage() {
                   <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
-                          <th className="p-4 w-32">Fecha</th>
-                          <th className="p-4">Detalle / Concepto</th>
-                          <th className="p-4 w-36">Referencia</th>
-                          <th className="p-4 text-right w-36">Débito</th>
-                          <th className="p-4 text-right w-36">Crédito</th>
-                          <th className="p-4 text-right w-36">Balance Acum.</th>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32">Fecha</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Detalle / Concepto</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-36">Referencia</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Débito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Crédito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-36">Balance Acum.</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -747,12 +747,12 @@ export default function AccountingPage() {
                         ) : (
                           ledgerData.movements.map((mov: any) => (
                             <tr key={mov.id} className="hover:bg-slate-50/50">
-                              <td className="p-4 font-mono text-xs">{new Date(mov.date).toLocaleDateString('es-DO')}</td>
-                              <td className="p-4 font-semibold text-slate-800">{mov.description}</td>
-                              <td className="p-4 font-mono text-xs text-slate-500">{mov.reference || '-'}</td>
-                              <td className="p-4 text-right font-mono text-slate-700">{mov.debit > 0 ? fmt(mov.debit) : ''}</td>
-                              <td className="p-4 text-right font-mono text-slate-700">{mov.credit > 0 ? fmt(mov.credit) : ''}</td>
-                              <td className="p-4 text-right font-mono font-bold text-[#003366]">{fmt(mov.balance)}</td>
+                              <td className="px-4 py-2.5 text-xs font-mono text-xs">{new Date(mov.date).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-2.5 text-xs font-semibold text-slate-800">{mov.description}</td>
+                              <td className="px-4 py-2.5 text-xs font-mono text-xs text-slate-500">{mov.reference || '-'}</td>
+                              <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700">{mov.debit > 0 ? fmt(mov.debit) : ''}</td>
+                              <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700">{mov.credit > 0 ? fmt(mov.credit) : ''}</td>
+                              <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-[#003366]">{fmt(mov.balance)}</td>
                             </tr>
                           ))
                         )}
@@ -769,12 +769,12 @@ export default function AccountingPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Desde</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm" />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Desde</label>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Hasta</label>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm" />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Hasta</label>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                 </div>
               </div>
 
@@ -831,26 +831,26 @@ export default function AccountingPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="bg-[#003366] text-white text-xs uppercase tracking-wider font-semibold">
-                          <th className="p-4 w-36">Código</th>
-                          <th className="p-4">Nombre de la Cuenta</th>
-                          <th className="p-4 text-right w-36">Saldo Inicial</th>
-                          <th className="p-4 text-right w-36">Débito</th>
-                          <th className="p-4 text-right w-36">Crédito</th>
-                          <th className="p-4 text-right w-36">Saldo Final</th>
+                        <tr className="bg-[#003366] text-white">
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider w-36">Código</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider">Nombre de la Cuenta</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-right w-36">Saldo Inicial</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-right w-36">Débito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-right w-36">Crédito</th>
+                          <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-right w-36">Saldo Final</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {trialBalanceData.map((row) => (
                           <tr key={row.id} className={clsx("hover:bg-slate-50/50", row.level === 1 && "bg-slate-50 font-bold")}>
-                            <td className="p-4 font-mono">{row.code}</td>
-                            <td className={clsx("p-4", row.level === 2 && "pl-8", row.level === 3 && "pl-12", row.level >= 4 && "pl-16")}>
+                            <td className="px-4 py-2.5 text-xs font-mono">{row.code}</td>
+                            <td className={clsx("px-4 py-2.5 text-xs", row.level === 2 && "pl-8", row.level === 3 && "pl-12", row.level >= 4 && "pl-16")}>
                               {row.name}
                             </td>
-                            <td className="p-4 text-right font-mono">{fmt(row.beginningBalance)}</td>
-                            <td className="p-4 text-right font-mono text-emerald-600">{row.debit > 0 ? fmt(row.debit) : '-'}</td>
-                            <td className="p-4 text-right font-mono text-rose-600">{row.credit > 0 ? fmt(row.credit) : '-'}</td>
-                            <td className="p-4 text-right font-mono font-bold text-[#003366]">{fmt(row.endingBalance)}</td>
+                            <td className="px-4 py-2.5 text-xs text-right font-mono">{fmt(row.beginningBalance)}</td>
+                            <td className="px-4 py-2.5 text-xs text-right font-mono text-emerald-600">{row.debit > 0 ? fmt(row.debit) : '-'}</td>
+                            <td className="px-4 py-2.5 text-xs text-right font-mono text-rose-600">{row.credit > 0 ? fmt(row.credit) : '-'}</td>
+                            <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-[#003366]">{fmt(row.endingBalance)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -868,20 +868,20 @@ export default function AccountingPage() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setActiveFinancialTab('income-statement')}
-                    className={clsx("px-4 py-2 rounded-lg text-sm font-semibold transition-all", activeFinancialTab === 'income-statement' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition-all", activeFinancialTab === 'income-statement' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
                   >
                     Estado de Resultados
                   </button>
                   <button 
                     onClick={() => setActiveFinancialTab('balance-sheet')}
-                    className={clsx("px-4 py-2 rounded-lg text-sm font-semibold transition-all", activeFinancialTab === 'balance-sheet' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition-all", activeFinancialTab === 'balance-sheet' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
                   >
                     Balance General
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs" />
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs" />
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                 </div>
               </div>
 
@@ -1003,7 +1003,7 @@ export default function AccountingPage() {
                 <h3 className="text-lg font-bold text-[#003366]">Períodos Contables</h3>
                 <button 
                   onClick={() => setShowPeriodModal(true)}
-                  className="bg-[#003366] text-white font-bold py-2 px-4 rounded-lg flex items-center gap-1 hover:bg-[#002244]"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="w-4 h-4" /> Abrir Período
                 </button>
@@ -1015,12 +1015,12 @@ export default function AccountingPage() {
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
-                        <th className="p-4">Nombre Período</th>
-                        <th className="p-4">Fecha Inicio</th>
-                        <th className="p-4">Fecha Cierre</th>
-                        <th className="p-4 text-center">Estado</th>
-                        <th className="p-4 text-right">Acciones</th>
+                      <tr className="bg-slate-50 border-b border-slate-200">
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre Período</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Inicio</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Cierre</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1031,10 +1031,10 @@ export default function AccountingPage() {
                       ) : (
                         periods.map((p) => (
                           <tr key={p.id} className="hover:bg-slate-50/50">
-                            <td className="p-4 font-bold text-slate-800">{p.name}</td>
-                            <td className="p-4 font-mono text-xs">{new Date(p.startDate).toLocaleDateString('es-DO')}</td>
-                            <td className="p-4 font-mono text-xs">{new Date(p.endDate).toLocaleDateString('es-DO')}</td>
-                            <td className="p-4 text-center">
+                            <td className="px-4 py-2.5 text-xs font-bold text-slate-800">{p.name}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{new Date(p.startDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{new Date(p.endDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2.5 text-xs text-center">
                               <span className={clsx(
                                 "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
                                 p.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'
@@ -1042,11 +1042,11 @@ export default function AccountingPage() {
                                 {p.status === 'open' ? 'Abierto' : 'Cerrado'}
                               </span>
                             </td>
-                            <td className="p-4 text-right">
+                            <td className="px-4 py-2.5 text-xs text-right">
                               <button 
                                 onClick={() => handleTogglePeriodStatus(p.id, p.status)}
                                 className={clsx(
-                                  "text-xs font-bold py-1 px-3 rounded-lg border transition-colors",
+                                  "text-[10px] font-bold py-1.5 px-3 rounded-lg border transition-colors",
                                   p.status === 'open' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-green-200 text-green-600 hover:bg-green-50'
                                 )}
                               >
@@ -1070,24 +1070,24 @@ export default function AccountingPage() {
       <AnimatePresence>
         {showAccountModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#c5a059]" /> Nueva Cuenta Contable</h3>
-                <button onClick={() => setShowAccountModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#c5a059]" /> Nueva Cuenta Contable</h3>
+                <button onClick={() => setShowAccountModal(false)} className="text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
               </div>
-              <form onSubmit={handleCreateAccount} className="p-6 space-y-5">
+              <form onSubmit={handleCreateAccount} className="p-4 space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Código</label>
-                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. 1.1.01" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Código</label>
+                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all font-mono text-slate-800" placeholder="Ej. 1.1.01" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Nombre de Cuenta</label>
-                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Efectivo en Caja y Banco" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre de Cuenta</label>
+                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Efectivo en Caja y Banco" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Tipo de Cuenta</label>
-                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo de Cuenta</label>
+                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800">
                     <option value="asset">Activo</option>
                     <option value="liability">Pasivo</option>
                     <option value="equity">Capital</option>
@@ -1095,12 +1095,12 @@ export default function AccountingPage() {
                     <option value="expense">Gasto</option>
                   </select>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowAccountModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
-                    <X className="w-4 h-4" /> Cancelar
+                <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                  <button type="button" onClick={() => setShowAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    Cancelar
                   </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Guardar Cuenta
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Guardar
                   </button>
                 </div>
               </form>
@@ -1113,31 +1113,31 @@ export default function AccountingPage() {
       <AnimatePresence>
         {showPeriodModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPeriodModal(false)} className="absolute inset-0 bg-surface-container-low/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-5 h-5 text-[#c5a059]" /> Abrir Período Contable</h3>
-                <button onClick={() => setShowPeriodModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPeriodModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733]">
+                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#c5a059]" /> Abrir Período Contable</h3>
+                <button onClick={() => setShowPeriodModal(false)} className="text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
               </div>
-              <form onSubmit={handleCreatePeriod} className="p-6 space-y-5">
+              <form onSubmit={handleCreatePeriod} className="p-4 space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Nombre del Período</label>
-                  <input type="text" required value={periodForm.name} onChange={e => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Enero 2026" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Período</label>
+                  <input type="text" required value={periodForm.name} onChange={e => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Ej. Enero 2026" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Fecha de Inicio</label>
-                  <input type="date" required value={periodForm.startDate} onChange={e => setPeriodForm({ ...periodForm, startDate: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Inicio</label>
+                  <input type="date" required value={periodForm.startDate} onChange={e => setPeriodForm({ ...periodForm, startDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                 </div>
                 <div>
-                  <label className="text-sm font-semibold text-primary block mb-1">Fecha de Fin</label>
-                  <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Fin</label>
+                  <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowPeriodModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
-                    <X className="w-4 h-4" /> Cancelar
+                <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                  <button type="button" onClick={() => setShowPeriodModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    Cancelar
                   </button>
-                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50">
-                    {periodSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} Abrir Período
+                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    {periodSubmitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Abrir Período
                   </button>
                 </div>
               </form>
@@ -1150,26 +1150,26 @@ export default function AccountingPage() {
       <AnimatePresence>
         {showJournalModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} className="relative z-10 flex flex-col w-full max-w-4xl max-h-[90vh] bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733] shrink-0">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#c5a059]" /> Nuevo Asiento Contable</h3>
-                <button onClick={() => setShowJournalModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} className="relative z-10 flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733] shrink-0">
+                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><ArrowRightLeft className="w-4 h-4 text-[#c5a059]" /> Nuevo Asiento Contable</h3>
+                <button onClick={() => setShowJournalModal(false)} className="text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
               </div>
 
-              <div className="overflow-y-auto p-6 bg-surface-container-highest flex-1">
+              <div className="overflow-y-auto p-4 bg-white flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
-                    <label className="text-sm font-semibold text-primary block mb-1">Fecha</label>
-                    <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha</label>
+                  <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-primary block mb-1">Referencia</label>
-                    <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors font-mono" placeholder="Ej. CHK-1024" />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia</label>
+                  <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all font-mono text-slate-800" placeholder="Ej. CHK-1024" />
                   </div>
                   <div className="md:col-span-3">
-                    <label className="text-sm font-semibold text-primary block mb-1">Concepto / Descripción</label>
-                    <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-3 py-2 text-xs text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Registro de..." />
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Concepto / Descripción</label>
+                  <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Registro de..." />
                   </div>
                 </div>
 
@@ -1177,16 +1177,16 @@ export default function AccountingPage() {
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-4 py-3 text-sm font-semibold text-primary">Cuenta Contable</th>
-                        <th className="px-4 py-3 text-right text-sm font-semibold text-primary w-40">Débito</th>
-                        <th className="px-4 py-3 text-right text-sm font-semibold text-primary w-40">Crédito</th>
-                        <th className="w-10"></th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Cuenta Contable</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-40">Débito</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right w-40">Crédito</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {journalLines.map((line, idx) => (
-                        <tr key={idx} className="hover:bg-surface-container-high/30">
-                          <td className="p-2">
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="px-4 py-2.5">
                             <input 
                               list={`accounts-list-${idx}`}
                               required
@@ -1197,7 +1197,7 @@ export default function AccountingPage() {
                                 const matched = accounts.find(a => `${a.code} - ${a.name}` === val);
                                 handleJournalLineChange(idx, 'accountId', matched ? matched.id : val);
                               }}
-                              className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-primary focus:border-[#c5a059] outline-none"
+                              className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
                             />
                             <datalist id={`accounts-list-${idx}`}>
                               {accounts.map(acc => (
@@ -1205,15 +1205,15 @@ export default function AccountingPage() {
                               ))}
                             </datalist>
                           </td>
-                          <td className="p-2">
-                            <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-right font-mono text-primary focus:border-[#c5a059] outline-none disabled:opacity-50" placeholder="0.00" />
+                          <td className="px-4 py-2.5">
+                            <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
                           </td>
-                          <td className="p-2">
-                            <input type="number" min="0" step="0.01" value={line.credit || ''} onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)} disabled={line.debit > 0} className="w-full bg-surface-container-highest border border-outline rounded px-2 py-1.5 text-right font-mono text-primary focus:border-[#c5a059] outline-none disabled:opacity-50" placeholder="0.00" />
+                          <td className="px-4 py-2.5">
+                            <input type="number" min="0" step="0.01" value={line.credit || ''} onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)} disabled={line.debit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="px-4 py-2.5 text-center">
                             {journalLines.length > 2 && (
-                              <button type="button" onClick={() => setJournalLines(journalLines.filter((_, i) => i !== idx))} className="text-on-surface-variant hover:text-red-500"><X className="w-4 h-4" /></button>
+                              <button type="button" onClick={() => setJournalLines(journalLines.filter((_, i) => i !== idx))} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"><X className="w-4 h-4" /></button>
                             )}
                           </td>
                         </tr>
@@ -1241,18 +1241,17 @@ export default function AccountingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 justify-end">
+                <div className="flex items-center gap-3 justify-end">
                   {!isBalanced && totalDebits > 0 && (
                     <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-500/20">
-                      <AlertTriangle className="w-4 h-4" /> Asiento Descuadrado
+                      <AlertTriangle className="w-3 h-3" /> Descuadrado
                     </div>
                   )}
-                  <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
-                    <X className="w-4 h-4" /> Cancelar
+                  <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    Cancelar
                   </button>
-                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    Contabilizar Asiento
+                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Contabilizar
                   </button>
                 </div>
               </div>

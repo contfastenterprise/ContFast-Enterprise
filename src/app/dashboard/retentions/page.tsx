@@ -185,7 +185,7 @@ export default function RetentionsPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#004080] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all shadow-md hover:shadow-lg"
+          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
         >
           <Plus className="w-4 h-4" /> Nueva Retención
         </button>
@@ -200,14 +200,14 @@ export default function RetentionsPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-48 rounded-2xl bg-slate-100 animate-pulse" />
+            <div key={i} className="h-48 rounded-xl bg-slate-100 animate-pulse" />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {(['ISR', 'ITBIS', 'OTRA'] as const).map(type => (
-            <div key={type} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className={clsx('px-5 py-3 border-b border-slate-100 flex items-center justify-between', {
+            <div key={type} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              <div className={clsx('px-4 py-2.5 border-b border-slate-200 flex items-center justify-between', {
                 'bg-purple-50': type === 'ISR',
                 'bg-blue-50': type === 'ITBIS',
                 'bg-slate-50': type === 'OTRA',
@@ -223,7 +223,7 @@ export default function RetentionsPage() {
                   <p className="text-center text-xs text-slate-400 py-8">Sin retenciones de este tipo</p>
                 )}
                 {grouped[type].map(r => (
-                  <div key={r.id} className={clsx('px-4 py-3 flex items-center justify-between gap-2 transition-colors', r.active ? '' : 'opacity-50 bg-slate-50')}>
+                  <div key={r.id} className={clsx('px-4 py-2.5 text-xs flex items-center justify-between gap-2 transition-colors', r.active ? '' : 'opacity-50 bg-slate-50')}>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         {r.companyId ? (
@@ -231,7 +231,7 @@ export default function RetentionsPage() {
                         ) : (
                           <Globe className="w-3 h-3 text-slate-400 shrink-0" />
                         )}
-                        <p className="text-sm font-semibold text-[#003366] truncate">{r.name}</p>
+                        <p className="font-semibold text-[#003366] truncate">{r.name}</p>
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                         <Percent className="w-3 h-3" />
@@ -255,7 +255,7 @@ export default function RetentionsPage() {
                         <button
                           onClick={() => openEdit(r)}
                           title="Editar"
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-[#003366] transition-colors"
+                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -265,7 +265,7 @@ export default function RetentionsPage() {
                         <button
                           onClick={() => setDeleteTarget(r)}
                           title="Eliminar"
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -298,7 +298,7 @@ export default function RetentionsPage() {
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5"
+              className="bg-white rounded-xl shadow-2xl w-full max-w-md p-4 space-y-5"
             >
               <h2 className="text-lg font-bold text-[#003366]">
                 {editing ? 'Editar Retención' : 'Nueva Retención'}
@@ -306,22 +306,22 @@ export default function RetentionsPage() {
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Ej: ISR Servicios Profesionales"
-                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none transition-all"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
                   <select
                     value={form.type}
                     onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
-                    className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-[#003366] focus:border-[#C5A059] outline-none transition-all bg-white"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
                   >
                     <option value="ISR">ISR — Impuesto Sobre la Renta</option>
                     <option value="ITBIS">ITBIS — Impuesto Transferencias</option>
@@ -330,7 +330,7 @@ export default function RetentionsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Porcentaje (%)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Porcentaje (%)</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -338,7 +338,7 @@ export default function RetentionsPage() {
                       onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))}
                       placeholder="Ej: 10"
                       min={0.01} max={100} step="any"
-                      className="w-full border border-slate-300 rounded-xl px-4 py-2.5 pr-10 text-sm text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none transition-all"
+                      className="w-full h-8 px-3 py-1.5 pr-10 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
                     />
                     <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -348,14 +348,14 @@ export default function RetentionsPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="flex-1 border border-slate-300 text-slate-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition-all"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 bg-[#003366] hover:bg-[#004080] text-white text-sm font-semibold py-2.5 rounded-xl transition-all disabled:opacity-60"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar Cambios' : 'Crear Retención'}
                 </button>
@@ -375,7 +375,7 @@ export default function RetentionsPage() {
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+              className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4 space-y-4"
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
@@ -392,13 +392,13 @@ export default function RetentionsPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="flex-1 border border-slate-300 text-slate-600 text-sm font-semibold py-2.5 rounded-xl hover:bg-slate-50 transition-all"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-all"
+                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Sí, eliminar
                 </button>

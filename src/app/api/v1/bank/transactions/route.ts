@@ -32,12 +32,22 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('accountId');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     if (!accountId) {
       return NextResponse.json({ success: false, error: { code: 'BAD_REQUEST', message: 'El accountId es requerido' } }, { status: 400 });
     }
 
-    const transactions = await BankRepository.getBankTransactions(session.companyId, accountId);
+    let transactions = await BankRepository.getBankTransactions(session.companyId, accountId);
+
+    // Filtrar por fechas si vienen en los parámetros (para accountId='all' o individual)
+    if (startDate) {
+      transactions = transactions.filter(t => t.date >= startDate);
+    }
+    if (endDate) {
+      transactions = transactions.filter(t => t.date <= endDate);
+    }
 
     return NextResponse.json({ success: true, data: transactions });
   } catch (error: any) {

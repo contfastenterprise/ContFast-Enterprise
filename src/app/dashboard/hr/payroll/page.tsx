@@ -170,17 +170,17 @@ export default function PayrollPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
-            <Banknote className="h-6 w-6 text-primary" /> Procesamiento de Nóminas
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+            <Banknote className="h-6 w-6 text-[#003366]" /> Procesamiento de Nóminas
           </h1>
-          <p className="text-sm text-on-surface-variant/80">
+          <p className="text-sm text-slate-500">
             Genera, calcula y aprueba las nóminas de tus colaboradores para la TSS y DGII.
           </p>
         </div>
         {!selectedPayroll && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-xl shadow-md transition-all shrink-0 self-start md:self-auto"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm shrink-0 self-start md:self-auto"
           >
             <Plus className="h-4 w-4" /> Generar Nómina
           </button>
@@ -191,7 +191,7 @@ export default function PayrollPage() {
       {selectedPayroll && (
         <button
           onClick={() => setSelectedPayroll(null)}
-          className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+          className="text-xs font-semibold text-[#003366] hover:underline flex items-center gap-1"
         >
           ← Volver al Historial de Nóminas
         </button>
@@ -201,13 +201,13 @@ export default function PayrollPage() {
       {!selectedPayroll ? (
         loading ? (
           <div className="flex h-[30vh] items-center justify-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            <RefreshCw className="h-8 w-8 animate-spin text-[#003366]" />
           </div>
         ) : payrolls.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-outline rounded-xl bg-surface p-8">
-            <Banknote className="mx-auto h-12 w-12 text-on-surface-variant/30" />
-            <h3 className="mt-4 text-sm font-semibold text-on-surface">No hay nóminas registradas</h3>
-            <p className="mt-1 text-xs text-on-surface-variant/70">Comienza generando un nuevo período de nómina.</p>
+          <div className="text-center py-12 border border-dashed border-slate-300 rounded-xl bg-white p-8">
+            <Banknote className="mx-auto h-12 w-12 text-slate-300" />
+            <h3 className="mt-4 text-sm font-semibold text-slate-800">No hay nóminas registradas</h3>
+            <p className="mt-1 text-xs text-slate-500">Comienza generando un nuevo período de nómina.</p>
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
@@ -225,35 +225,35 @@ export default function PayrollPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {pagedPayrolls.map((pr) => (
-                      <tr key={pr.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                        <td className="px-4 py-2 align-middle text-xs font-semibold text-slate-700">
+                      <tr key={pr.id} className="hover:bg-slate-50 transition-colors group">
+                        <td className="px-4 py-2.5 align-middle text-xs font-semibold text-slate-700">
                           Desde {new Date(pr.periodStart).toLocaleDateString('es-DO')} Hasta {new Date(pr.periodEnd).toLocaleDateString('es-DO')}
                         </td>
-                        <td className="px-4 py-2 align-middle text-xs font-mono font-bold text-[#003366]">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</td>
-                        <td className="px-4 py-2 align-middle text-center">
+                        <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-[#003366]">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2.5 align-middle text-center">
                           <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${pr.status === 'approved' 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                             : pr.status === 'calculated' 
-                              ? 'bg-blue-50 text-[#003366] border border-blue-250' 
+                              ? 'bg-blue-50 text-[#003366] border border-blue-200' 
                               : 'bg-amber-50 text-amber-700 border border-amber-200'
                             }`}>
                             {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2 align-middle text-xs text-slate-500">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</td>
-                        <td className="px-4 py-2 align-middle text-right">
+                        <td className="px-4 py-2.5 align-middle text-xs text-slate-500">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2.5 align-middle text-right">
                           <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={() => handleSelectPayroll(pr)}
-                              className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors inline-flex items-center gap-1 text-xs font-semibold"
+                              className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10 text-xs font-semibold"
                               title="Ver Volantes"
                             >
-                              <Eye className="h-3.5 w-3.5" /> Ver
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Ver
                             </button>
                             {(pr.status === 'draft' || pr.status === 'calculated') && (
                               <button
                                 onClick={() => handleDelete(pr.id)}
-                                className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                                 title="Eliminar"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -302,14 +302,14 @@ export default function PayrollPage() {
       ) : (
         /* Detail / Volantes View */
         <div className="space-y-4">
-          <div className="bg-surface rounded-xl border border-outline p-5 shadow-sm space-y-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-outline pb-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="font-bold text-on-surface text-base">
+                <h3 className="font-bold text-slate-800 text-base">
                   Nómina Período: {new Date(selectedPayroll.periodStart).toLocaleDateString('es-DO')} - {new Date(selectedPayroll.periodEnd).toLocaleDateString('es-DO')}
                 </h3>
-                <p className="text-xs text-on-surface-variant/80 mt-0.5">
-                  Estado: <span className="font-semibold text-primary">{selectedPayroll.status.toUpperCase()}</span> | Pago: {new Date(selectedPayroll.paymentDate).toLocaleDateString('es-DO')}
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Estado: <span className="font-semibold text-[#003366]">{selectedPayroll.status.toUpperCase()}</span> | Pago: {new Date(selectedPayroll.paymentDate).toLocaleDateString('es-DO')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -317,23 +317,23 @@ export default function PayrollPage() {
                   href={`/api/v1/hr/payroll/${selectedPayroll.id}/receipts`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-outline hover:bg-surface-variant text-on-surface rounded-lg transition-all"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
-                  <Printer className="h-3.5 w-3.5" /> Imprimir Todos los Volantes
+                  <Printer className="h-4 w-4" /> Imprimir Todos los Volantes
                 </a>
                 {selectedPayroll.status !== 'approved' && (
                   <>
                     <button
                       onClick={() => handleRecalculate(selectedPayroll.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface border border-outline hover:bg-surface-variant text-on-surface rounded-lg transition-all"
+                      className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
-                      <RefreshCw className="h-3.5 w-3.5" /> Recalcular Todo
+                      <RefreshCw className="h-4 w-4" /> Recalcular Todo
                     </button>
                     <button
                       onClick={() => handleApprove(selectedPayroll.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg transition-all"
+                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
-                      <Award className="h-3.5 w-3.5" /> Aprobar Nómina
+                      <Award className="h-4 w-4" /> Aprobar Nómina
                     </button>
                   </>
                 )}
@@ -342,45 +342,45 @@ export default function PayrollPage() {
 
             {loadingDetails ? (
               <div className="flex h-[20vh] items-center justify-center">
-                <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+                <RefreshCw className="h-7 w-7 animate-spin text-[#003366]" />
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-outline/50">
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-surface-variant/20 text-on-surface-variant/90 border-b border-outline">
-                      <th className="p-2.5">Código</th>
-                      <th className="p-2.5">Colaborador</th>
-                      <th className="p-2.5 text-right">Salario Base</th>
-                      <th className="p-2.5 text-right">H. Extras</th>
-                      <th className="p-2.5 text-right">Bonos/Comis.</th>
-                      <th className="p-2.5 text-right text-red-500">AFP</th>
-                      <th className="p-2.5 text-right text-red-500">SFS</th>
-                      <th className="p-2.5 text-right text-red-500">ISR</th>
-                      <th className="p-2.5 text-right text-red-500">Otros Desc</th>
-                      <th className="p-2.5 text-right font-bold text-primary">Sueldo Neto</th>
-                      <th className="p-2.5 text-right">Recibo</th>
+                    <tr className="bg-slate-50/80 text-slate-500 border-b border-slate-200">
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Colaborador</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Salario Base</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">H. Extras</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Bonos/Comis.</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right text-red-500">AFP</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right text-red-500">SFS</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right text-red-500">ISR</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right text-red-500">Otros Desc</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right font-bold text-[#003366]">Sueldo Neto</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Recibo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {payrollDetailsList.map((d) => (
-                      <tr key={d.id} className="border-b border-outline/30 hover:bg-surface-variant/10 text-on-surface">
-                        <td className="p-2.5 font-mono">{d.employeeCode}</td>
-                        <td className="p-2.5 font-medium">{d.firstName} {d.lastName}</td>
-                        <td className="p-2.5 text-right">{parseFloat(d.baseSalary).toLocaleString('es-DO')}</td>
-                        <td className="p-2.5 text-right">{parseFloat(d.overtimeAmount) > 0 ? parseFloat(d.overtimeAmount).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right">{(parseFloat(d.bonusAmount) + parseFloat(d.commissionAmount)) > 0 ? (parseFloat(d.bonusAmount) + parseFloat(d.commissionAmount)).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right text-red-600 font-mono">{parseFloat(d.afp) > 0 ? parseFloat(d.afp).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right text-red-600 font-mono">{parseFloat(d.sfs) > 0 ? parseFloat(d.sfs).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right text-red-600 font-mono">{parseFloat(d.isr) > 0 ? parseFloat(d.isr).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right text-red-600 font-mono">{parseFloat(d.otherDeductions) > 0 ? parseFloat(d.otherDeductions).toLocaleString('es-DO') : '-'}</td>
-                        <td className="p-2.5 text-right font-bold text-primary font-mono">{parseFloat(d.netSalary).toLocaleString('es-DO')}</td>
-                        <td className="p-2.5 text-right">
+                      <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50 text-slate-800">
+                        <td className="px-4 py-2.5 font-mono">{d.employeeCode}</td>
+                        <td className="px-4 py-2.5 font-medium">{d.firstName} {d.lastName}</td>
+                        <td className="px-4 py-2.5 text-right">{parseFloat(d.baseSalary).toLocaleString('es-DO')}</td>
+                        <td className="px-4 py-2.5 text-right">{parseFloat(d.overtimeAmount) > 0 ? parseFloat(d.overtimeAmount).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right">{(parseFloat(d.bonusAmount) + parseFloat(d.commissionAmount)) > 0 ? (parseFloat(d.bonusAmount) + parseFloat(d.commissionAmount)).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right text-red-600 font-mono">{parseFloat(d.afp) > 0 ? parseFloat(d.afp).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right text-red-600 font-mono">{parseFloat(d.sfs) > 0 ? parseFloat(d.sfs).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right text-red-600 font-mono">{parseFloat(d.isr) > 0 ? parseFloat(d.isr).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right text-red-600 font-mono">{parseFloat(d.otherDeductions) > 0 ? parseFloat(d.otherDeductions).toLocaleString('es-DO') : '-'}</td>
+                        <td className="px-4 py-2.5 text-right font-bold text-[#003366] font-mono">{parseFloat(d.netSalary).toLocaleString('es-DO')}</td>
+                        <td className="px-4 py-2.5 text-right">
                           <a
                             href={`/api/v1/hr/payroll/${selectedPayroll.id}/receipts?employeeId=${d.employeeId}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-block p-1 hover:bg-surface-variant rounded text-on-surface"
+                            className="inline-block p-1 hover:bg-slate-100 rounded text-slate-500"
                           >
                             <FileText className="h-4 w-4" />
                           </a>
@@ -398,24 +398,24 @@ export default function PayrollPage() {
       {/* Create Payroll Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-outline rounded-xl w-full max-w-md shadow-2xl p-5 relative">
+          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-md shadow-2xl p-4 relative">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="absolute right-4 top-4 text-on-surface-variant hover:bg-surface-variant p-1 rounded-full transition-colors"
+              className="absolute right-4 top-4 text-slate-500 hover:bg-slate-100 p-1 rounded-full transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
-            <h3 className="font-bold text-on-surface text-base mb-4 flex items-center gap-1.5">
-              <Calendar className="h-5 w-5 text-primary" /> Generar Nómina de Período
+            <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-1.5">
+              <Calendar className="h-5 w-5 text-[#003366]" /> Generar Nómina de Período
             </h3>
             <form onSubmit={handleCreatePayroll} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Frecuencia de la Nómina</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de la Nómina</label>
                 <select
                   required
                   value={formData.frequency}
                   onChange={e => setFormData({ ...formData, frequency: e.target.value })}
-                  className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-800"
                 >
                   <option value="mensual">Mensual</option>
                   <option value="quincenal">Quincenal</option>
@@ -423,47 +423,47 @@ export default function PayrollPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Fecha de Inicio del Período</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Inicio del Período</label>
                 <input
                   type="date"
                   required
                   value={formData.periodStart}
                   onChange={e => setFormData({ ...formData, periodStart: e.target.value })}
-                  className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-800"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Fecha de Fin del Período</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Fin del Período</label>
                 <input
                   type="date"
                   required
                   value={formData.periodEnd}
                   onChange={e => setFormData({ ...formData, periodEnd: e.target.value })}
-                  className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-800"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-on-surface-variant">Fecha Estimada de Pago</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Pago</label>
                 <input
                   type="date"
                   required
                   value={formData.paymentDate}
                   onChange={e => setFormData({ ...formData, paymentDate: e.target.value })}
-                  className="w-full bg-surface border border-outline rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary text-on-surface"
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-800"
                 />
               </div>
-              <div className="flex justify-end gap-3.5 pt-2 border-t border-outline/30">
+              <div className="flex justify-end gap-3.5 pt-2 border-t border-slate-200/60 mt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-semibold border border-outline rounded-lg text-on-surface hover:bg-surface-variant"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   {submitting ? 'Generando...' : 'Generar y Calcular'}
                 </button>

@@ -415,21 +415,21 @@ export default function DashboardPage() {
       {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Top Customers Table */}
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h4 className="font-headline-md text-xl font-bold text-primary">Top Clientes del Mes</h4>
-            <Users className="h-5 w-5 text-on-surface-variant/40" />
+            <Users className="h-5 w-5 text-slate-500/40" />
           </div>
           <div className="space-y-4 flex-1">
             {topCustomers.map((c, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-surface-container-low hover:bg-white hover:shadow-sm transition-all">
+              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-white hover:shadow-sm transition-all">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
                     {i + 1}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-label-md font-bold text-on-surface truncate">{c.name}</p>
-                    <p className="text-xs text-on-surface-variant font-medium mt-0.5">Cliente Frecuente</p>
+                    <p className="font-label-md font-bold text-slate-700 truncate">{c.name}</p>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">Cliente Frecuente</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -438,15 +438,15 @@ export default function DashboardPage() {
               </div>
             ))}
             {topCustomers.length === 0 && (
-              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay datos suficientes este mes.</div>
+              <div className="text-center text-sm text-slate-500/60 py-4">No hay datos suficientes este mes.</div>
             )}
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 flex flex-col">
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 flex flex-col">
           <div className="flex items-center justify-between mb-8">
             <h4 className="font-headline-md text-xl font-bold text-primary">Actividad</h4>
-            <HistoryIcon className="h-5 w-5 text-on-surface-variant/40" />
+            <HistoryIcon className="h-5 w-5 text-slate-500/40" />
           </div>
           <div className="space-y-6 flex-1 pr-2 overflow-y-auto max-h-64 custom-scrollbar">
             {filteredInvoices.slice(0, 5).map((inv, i) => (
@@ -454,31 +454,31 @@ export default function DashboardPage() {
                 <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full border-4 border-white shadow-sm ${inv.status === 'rejected' ? 'bg-error' : 'bg-primary'}`}></div>
                 <div>
                   <p className={clsx("font-label-md font-bold", inv.status === 'rejected' ? 'text-error' : 'text-primary')}>{inv.ncf || `e-${inv.ecfType}`}</p>
-                  <p className="font-body-sm text-on-surface-variant/80 mt-0.5">{inv.buyerName || 'Consumidor Final'}</p>
+                  <p className="font-body-sm text-slate-500/80 mt-0.5">{inv.buyerName || 'Consumidor Final'}</p>
                   <p className="text-[10px] text-outline font-mono-data mt-1.5 font-bold opacity-70">Hace {Math.round((Date.now() - new Date(inv.createdAt).getTime()) / 60000)} mins</p>
                 </div>
               </div>
             ))}
             {filteredInvoices.length === 0 && (
-              <div className="text-center text-sm text-on-surface-variant/60 py-4">No hay actividad reciente.</div>
+              <div className="text-center text-sm text-slate-500/60 py-4">No hay actividad reciente.</div>
             )}
           </div>
-          <button className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-3 rounded-xl transition-all border border-primary/10 text-sm">
+          <button className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition-all border border-primary/10 text-sm">
             Ver todo el historial
           </button>
         </div>
       </div>
 
       {/* ── Detailed Data Table Section ─────────────────────────────────────── */}
-      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] rounded-3xl overflow-hidden">
-        <div className="p-6 md:p-8 border-b border-outline-variant/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-slate-200/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h4 className="font-headline-md text-xl font-bold text-primary">Últimos Comprobantes Emitidos</h4>
-            <p className="text-body-sm text-on-surface-variant/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
+            <p className="text-body-sm text-slate-500/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
           </div>
           <div className="w-full md:w-80">
             <SearchBar
-              placeholder="Buscar por RNC o Folio..."
+              placeholder="Buscar por RNC o e-NCF..."
               value={searchQuery}
               onChange={(val) => setSearchQuery(val)}
             />
@@ -487,42 +487,42 @@ export default function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Folio</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Fecha/Hora</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Receptor</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Monto (RD$)</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Estado DGII</th>
-                <th className="px-6 py-4 font-label-md text-on-surface-variant/70 uppercase tracking-[0.1em] text-[10px] font-bold">Acciones</th>
+              <tr className="bg-slate-50 border-b border-slate-200/10">
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">e-NCF</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha/Hora</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Receptor</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monto (RD$)</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado DGII</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/10">
+            <tbody className="divide-y divide-slate-200/10">
               {filteredInvoices.length > 0 ? (
                 filteredInvoices.map((inv) => {
                   const badge = statusBadge(inv.status);
                   const date = new Date(inv.createdAt);
                   return (
                     <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
-                      <td className="px-6 py-5 font-mono-data text-primary font-bold text-base">{inv.ncf || `e-${inv.ecfType}`}</td>
-                      <td className="px-6 py-5 font-body-sm text-on-surface-variant/80 font-medium">
-                        {date.toLocaleDateString('es-DO')} <span className="block text-[10px] font-bold opacity-60 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-black">{inv.ncf || `e-${inv.ecfType}`}</td>
+                      <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
+                        {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
                       </td>
-                      <td className="px-6 py-5">
-                        <p className="font-label-md font-bold text-primary text-sm">{inv.buyerName || 'Consumidor Final'}</p>
-                        {inv.buyerRnc && <p className="text-[11px] text-on-surface-variant/60 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
+                      <td className="px-4 py-3">
+                        <p className="font-label-md font-bold text-slate-800 text-sm">{inv.buyerName || 'Consumidor Final'}</p>
+                        {inv.buyerRnc && <p className="text-xs text-slate-500 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
                       </td>
-                      <td className="px-6 py-5 font-mono-data font-black text-primary text-base">{fmt(parseFloat(inv.total))}</td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-3 text-sm font-mono-data font-black text-slate-800">{fmt(parseFloat(inv.total))}</td>
+                      <td className="px-4 py-2.5 text-xs">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-black uppercase tracking-wider`}>
                           {badge.icon}
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-6 py-5">
+                      <td className="px-4 py-2.5 text-xs">
                         <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => handleViewPdf(inv.id, e)}
-                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
+                            className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
                             title="Ver PDF"
                           >
                             <Eye className="h-4 w-4" />
@@ -530,7 +530,7 @@ export default function DashboardPage() {
                           <button
                             onClick={(e) => handleResendEmail(inv.id, e)}
                             disabled={resendingId === inv.id}
-                            className="p-2 text-on-surface-variant bg-surface-variant/60 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Reenviar por Correo"
                           >
                             {resendingId === inv.id ? (
@@ -546,7 +546,7 @@ export default function DashboardPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-on-surface-variant font-medium">
+                  <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium">
                     No hay registros que coincidan con la búsqueda.
                   </td>
                 </tr>
@@ -554,12 +554,12 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
-        <div className="p-6 bg-surface-container-low/30 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-xs text-on-surface-variant/70 font-medium">Mostrando <span className="text-primary font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>
+        <div className="p-4 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-4">
+          <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>
           <div className="flex gap-2">
-            <button className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-on-surface-variant">Anterior</button>
-            <button className="px-4 py-2 rounded-xl bg-primary text-on-primary shadow-md shadow-primary/20 transition-all text-xs font-bold">1</button>
-            <button className="px-4 py-2 border border-outline-variant/30 rounded-xl hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-on-surface-variant">Siguiente</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition-all font-bold text-slate-500">Anterior</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg bg-primary text-on-primary shadow-md shadow-primary/20 transition-all font-bold">1</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition-all font-bold text-slate-500">Siguiente</button>
           </div>
         </div>
       </section>
@@ -572,35 +572,35 @@ export default function DashboardPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
-              <div className="px-6 py-5 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest">
+              <div className="p-4 border-b border-slate-200/20 flex justify-between items-center bg-white">
                 <div className="flex items-center gap-3">
                   <div className="bg-error/10 p-2.5 rounded-xl text-error">
                     <AlertCircle className="h-6 w-6" />
                   </div>
                   <div>
                     <h3 className="font-headline-md text-xl font-bold text-primary">Alertas del Sistema</h3>
-                    <p className="text-sm font-medium text-on-surface-variant/70 mt-0.5">Atiende estos {stats.alertCount} avisos para mantener el sistema al día</p>
+                    <p className="text-sm font-medium text-slate-500/70 mt-0.5">Atiende estos {stats.alertCount} avisos para mantener el sistema al día</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAlertsModal(false)}
-                  className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+              <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
                 {stats.alertsDetails && stats.alertsDetails.length > 0 ? (
                   stats.alertsDetails.map((alert) => (
-                    <div key={alert.id} className="border border-outline-variant/30 rounded-2xl p-5 hover:bg-surface-container-lowest transition-colors flex flex-col sm:flex-row gap-5 items-start">
-                      <div className={clsx("p-3 rounded-2xl shrink-0 mt-1", alert.type === 'invoice_rejected' ? 'bg-error/10 text-error' : 'bg-amber-100 text-amber-700')}>
+                    <div key={alert.id} className="border border-slate-200/30 rounded-xl p-4 hover:bg-white transition-colors flex flex-col sm:flex-row gap-5 items-start">
+                      <div className={clsx("p-2 rounded-xl shrink-0 mt-1", alert.type === 'invoice_rejected' ? 'bg-error/10 text-error' : 'bg-amber-100 text-amber-700')}>
                         {alert.type === 'invoice_rejected' ? <AlertCircle className="h-6 w-6" /> : <Clock className="h-6 w-6" />}
                       </div>
                       <div className="flex-1">
                         <h4 className={clsx("font-bold text-lg", alert.type === 'invoice_rejected' ? 'text-error' : 'text-amber-900')}>{alert.title}</h4>
-                        <p className="text-sm font-medium text-on-surface-variant/80 mt-1.5 leading-relaxed">{alert.description}</p>
+                        <p className="text-sm font-medium text-slate-500/80 mt-1.5 leading-relaxed">{alert.description}</p>
                         
                         <div className="mt-4">
                           <button
@@ -621,15 +621,15 @@ export default function DashboardPage() {
                 ) : (
                   <div className="text-center py-12">
                     <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-bold text-on-surface-variant/70">Todo en orden</p>
-                    <p className="text-sm text-on-surface-variant/50">No hay alertas activas en este momento.</p>
+                    <p className="text-lg font-bold text-slate-500/70">Todo en orden</p>
+                    <p className="text-sm text-slate-500/50">No hay alertas activas en este momento.</p>
                   </div>
                 )}
               </div>
-              <div className="p-4 border-t border-outline-variant/20 bg-surface-container-low text-right">
+              <div className="p-4 border-t border-slate-200/20 bg-slate-50 text-right">
                 <button
                   onClick={() => setShowAlertsModal(false)}
-                  className="px-6 py-2.5 rounded-xl font-bold text-sm bg-white border border-outline-variant/30 hover:bg-surface-container transition-colors"
+                  className="px-3 py-1.5 h-8 text-xs rounded-lg font-bold bg-white border border-slate-200/30 hover:bg-slate-100 transition-colors"
                 >
                   Cerrar
                 </button>

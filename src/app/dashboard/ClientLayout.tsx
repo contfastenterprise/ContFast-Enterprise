@@ -367,12 +367,12 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
           "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition-all duration-300",
           activeEnvironment === 'PRUEBA'
             ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
-            : 'top-0 bg-[radial-gradient(ellipse_at_center,#003e80_0%,#001e40_80%,#00142b_100%)] text-white border-white/10 shadow-lg'
+            : 'top-0 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-100 text-slate-900 border-indigo-200/50 shadow-sm'
         )}>
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 rounded-lg transition-all hover:bg-white/10 text-white"
+              className="md:hidden p-2 rounded-lg transition-all hover:bg-slate-200/50 text-inherit"
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
             >
@@ -385,7 +385,7 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
                 localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
                 return next;
                 })}
-              className="hidden md:flex p-2 rounded-lg transition-all hover:bg-white/10 text-white"
+              className="hidden md:flex p-2 rounded-lg transition-all hover:bg-slate-200/50 text-inherit"
               title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               {sidebarCollapsed
@@ -394,10 +394,16 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
               }
             </button>
   
+            {/* App Logo */}
+            <div className="flex items-center">
+              <img src="/Logo.svg" alt="Logo" className="h-7 w-auto object-contain drop-shadow-sm hidden md:block" />
+              <img src="/Icono.svg" alt="Icono" className="h-7 w-auto object-contain drop-shadow-sm md:hidden" />
+            </div>
+
             {/* Company name — suppressHydrationWarning allows SSR/client content to differ */}
             <span
               suppressHydrationWarning
-              className="font-display-lg text-xl font-extrabold tracking-tight min-w-[80px] text-white"
+              className="font-display-lg text-xl font-extrabold tracking-tight min-w-[80px] text-inherit border-l border-slate-300 pl-3 ml-1"
             >
               {switching ? '' : companyName}
             </span>
@@ -418,10 +424,10 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
             {/* User name, role & avatar */}
             <div className="flex items-center gap-2.5 select-none">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-[13px] font-semibold tracking-wide leading-tight text-white">
+                <span className="text-[13px] font-semibold tracking-wide leading-tight text-inherit">
                   {user?.name || 'Usuario'}
                 </span>
-                <span className="text-[10px] font-medium leading-none mt-0.5 text-blue-200/80">
+                <span className="text-[10px] font-medium leading-none mt-0.5 text-inherit opacity-60">
                   {user?.role || ''}
                 </span>
               </div>
@@ -429,20 +435,8 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
                 src={user?.avatarUrl} 
                 name={user?.name || 'CF'} 
                 size={36} 
-                className="border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer border-white/20"
+                className="border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer border-slate-200"
               />
-            </div>
-            {/* ContFast logo */}
-            <div className="flex items-center gap-2 pl-3 border-l border-white/20">
-              <img
-                src="/contfast-logo.png"
-                alt="ContFast Enterprise"
-                className="h-9 w-9 rounded-xl object-cover shadow-md shadow-black/30 ring-1 ring-white/20 hover:scale-105 transition-transform"
-              />
-              <span className="hidden lg:block text-xs font-bold leading-tight text-white/80">
-                ContFast<br />
-                <span className="font-extrabold text-amber-400">Enterprise</span>
-              </span>
             </div>
           </div>
         </nav>

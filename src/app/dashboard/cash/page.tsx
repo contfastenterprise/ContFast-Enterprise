@@ -549,17 +549,14 @@ export default function CashPage() {
                   <button
                     type="button"
                     onClick={() => router.push('/dashboard')}
-                    className="flex-1 px-3 py-1.5 text-xs rounded-lg font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || registers.length === 0}
-                    className={clsx(
-                      'flex-[2] px-3 py-1.5 bg-[#001e40] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-sm hover:bg-[#003366] transition-all',
-                      (submitting || registers.length === 0) && 'opacity-50 cursor-not-allowed'
-                    )}
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submitting ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
@@ -634,14 +631,14 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setShowNewRegisterModal(false)}
-                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 font-bold border border-slate-200 transition-colors rounded-lg"
+                          className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                         >
                           Cancelar
                         </button>
                         <button
                           type="submit"
                           disabled={creatingRegister}
-                          className="flex items-center gap-2 bg-[#001e40] hover:bg-[#003366] text-white px-3 py-1.5 rounded-lg font-bold text-xs transition-colors disabled:opacity-50"
+                          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                         >
                           {creatingRegister ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Crear Terminal
                         </button>
@@ -674,21 +671,21 @@ export default function CashPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setMoveType('cash_in'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Entrada de Efectivo
                 </button>
                 <button
                   onClick={() => { setMoveType('cash_out'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white text-xs font-semibold rounded-lg hover:bg-rose-600 transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Minus className="w-4 h-4" />
                   Salida de Efectivo
                 </button>
                 <button
                   onClick={() => handleTabChange('arqueo')}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[#003366] text-white text-xs font-bold rounded-lg hover:bg-[#002244] transition-all shadow-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Arqueo y Cierre
@@ -1046,10 +1043,7 @@ export default function CashPage() {
                   <button
                     onClick={handleCloseSession}
                     disabled={closing}
-                    className={clsx(
-                      'w-full bg-[#001e40] text-white font-bold text-sm py-2 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all',
-                      closing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#003366]'
-                    )}
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm w-full"
                   >
                     {closing ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
@@ -1090,13 +1084,13 @@ export default function CashPage() {
                 <p className="text-xs text-slate-500 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={handleExportHistory} className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 border border-slate-200 hover:bg-slate-100 transition-colors">
+                <button onClick={handleExportHistory} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                   <Download className="w-4 h-4" />
                   EXPORTAR XLS
                 </button>
                 <button
                   onClick={loadHistory}
-                  className="bg-[#001e40] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 hover:bg-[#003366] transition-all shadow-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   ACTUALIZAR
@@ -1131,13 +1125,13 @@ export default function CashPage() {
                 <div className="md:col-start-4 flex items-center gap-2">
                   <button
                     onClick={() => { setHistDateFrom(''); setHistStatus(''); }}
-                    className="flex-1 bg-slate-50 text-slate-600 text-xs font-bold py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors h-8"
+                    className="flex-1 flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     LIMPIAR
                   </button>
                   <button
                     onClick={loadHistory}
-                    className="flex-[2] bg-[#001e40]/10 text-[#001e40] text-xs font-bold py-1.5 rounded-lg hover:bg-[#001e40]/20 transition-all flex items-center justify-center gap-2 h-8"
+                    className="flex-[2] flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Filter className="w-3 h-3" />
                     APLICAR
@@ -1223,7 +1217,7 @@ export default function CashPage() {
                               </td>
                               <td className="px-4 py-2.5">
                                 <div className="flex justify-center gap-1">
-                                  <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-1.5 text-slate-500 hover:text-blue-600 transition-colors rounded" title="Ver Detalle">
+                                  <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Detalle">
                                     <Eye className="w-4 h-4" />
                                   </button>
                                   <button 
@@ -1232,7 +1226,7 @@ export default function CashPage() {
                                       setTimeout(() => setClosedSessionId(s.id), 50);
                                       toast.success('Generando impresión...');
                                     }} 
-                                    className="p-1.5 text-slate-500 hover:text-amber-600 transition-colors rounded" 
+                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" 
                                     title="Reimprimir"
                                   >
                                     <Printer className="w-4 h-4" />
@@ -1393,7 +1387,7 @@ export default function CashPage() {
                   <button
                     type="button"
                     onClick={() => setShowMoveModal(false)}
-                    className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 font-bold border border-slate-200 transition-colors rounded-lg"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Cancelar
                   </button>

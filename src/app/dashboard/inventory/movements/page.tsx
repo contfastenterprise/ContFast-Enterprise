@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+
 
 interface Movement {
   id: string;
@@ -262,15 +262,13 @@ export default function MovementsPage() {
             Auditoría de entradas, salidas y traslados de inventario por almacén.
           </p>
         </div>
-        <Button
+        <button
           onClick={handlePrintList}
-          variant="outline"
-          size="sm"
-          className="border-slate-300 text-[#003366] hover:bg-slate-50 cursor-pointer font-semibold shrink-0"
+          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
         >
           <Printer className="h-3.5 w-3.5" />
           Imprimir
-        </Button>
+        </button>
       </header>
 
       {/* Summary Cards */}
@@ -446,25 +444,23 @@ export default function MovementsPage() {
             Total: <span className="text-[#003366] font-bold">{totalItems}</span>
           </span>
           <div className="flex gap-2 items-center">
-            <Button 
+            <button 
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              variant="outline"
-              size="xs"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Anterior
-            </Button>
+            </button>
             <span className="px-3 py-1 bg-[#003366]/10 text-[#003366] rounded-lg text-[11px] font-bold">
               {page} / {Math.max(1, totalPages)}
             </span>
-            <Button 
+            <button 
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              variant="outline"
-              size="xs"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Siguiente
-            </Button>
+            </button>
           </div>
         </div>
       </section>

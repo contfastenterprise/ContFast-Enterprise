@@ -46,13 +46,13 @@ export default function SupportPage() {
       <Toaster position="top-right" richColors />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-900 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
-            <LifeBuoy className="h-7 w-7 text-amber-500" />
+          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-800 flex items-center gap-2">
+            <LifeBuoy className="h-7 w-7 text-[#c5a059]" />
             Soporte y Centro de Ayuda
           </h1>
-          <p className="text-on-surface-variant text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Consulte la base de conocimientos o envíe una solicitud de ayuda técnica a nuestro equipo.
           </p>
         </div>
@@ -60,20 +60,20 @@ export default function SupportPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Support Form */}
-        <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 md:col-span-2 space-y-4">
-          <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
-            <MessageSquare className="h-4.5 w-4.5 text-amber-500" />
+        <div className="bg-white border border-slate-200 rounded-xl p-4 md:col-span-2 space-y-4">
+          <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <MessageSquare className="h-4.5 w-4.5 text-[#c5a059]" />
             Enviar Ticket de Soporte
           </h3>
           
           <form onSubmit={handleSendTicket} className="space-y-4 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase">Categoría del Problema</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Categoría del Problema</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                  className="block w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 >
                   <option value="billing">Facturación e-CF</option>
                   <option value="cash">Módulo de Caja</option>
@@ -83,27 +83,27 @@ export default function SupportPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-on-surface-variant uppercase">Asunto</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Asunto</label>
                 <input
                   type="text"
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Resumen del problema..."
-                  className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                  className="block w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-on-surface-variant uppercase">Descripción del Problema</label>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción del Problema</label>
               <textarea
                 required
                 rows={5}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Detalle los pasos que causaron el inconveniente..."
-                className="block w-full rounded-md border-0 bg-background py-2.5 px-3 text-primary ring-1 ring-inset ring-outline-variant/30 focus:ring-2 focus:ring-amber-500 outline-none text-sm resize-none"
+                className="block w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none resize-none"
               />
             </div>
 
@@ -111,7 +111,7 @@ export default function SupportPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-1.5 rounded bg-amber-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Enviar Mensaje
@@ -121,21 +121,21 @@ export default function SupportPage() {
         </div>
 
         {/* Help Center Articles */}
-        <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
-            <HelpCircle className="h-4.5 w-4.5 text-amber-500" />
+        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <HelpCircle className="h-4.5 w-4.5 text-[#c5a059]" />
             Preguntas Frecuentes
           </h3>
 
-          <div className="divide-y divide-outline-variant/20 pt-2">
+          <div className="divide-y divide-slate-200 pt-2">
             {articles.map((art, idx) => (
               <a
                 key={idx}
                 href={art.link}
-                className="py-3 flex items-center justify-between group text-xs text-on-surface-variant hover:text-primary transition-colors"
+                className="py-3 flex items-center justify-between group text-xs text-slate-500 hover:text-slate-800 transition-colors"
               >
                 <span className="font-medium pr-2">{art.title}</span>
-                <ChevronRight className="h-4 w-4 text-on-surface-variant/70 group-hover:text-amber-500 transition-colors shrink-0" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-[#c5a059] transition-colors shrink-0" />
               </a>
             ))}
           </div>

@@ -153,34 +153,25 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full max-w-md space-y-8 z-10 px-4 sm:px-6"
+        className="w-full max-w-4xl flex flex-col items-center justify-start min-h-screen z-10 px-4 sm:px-6 pt-4 pb-10"
       >
-        <div className="text-center">
+        <div className="w-full text-center mb-12 mt-20">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
-            className="mx-auto flex h-20 w-20 items-center justify-center"
+            initial={{ scale: 0.9, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, type: 'spring', stiffness: 200 }}
           >
-            <img
-              src="/Icono.svg"
-              alt="ContFast Enterprise"
-              className="h-20 w-20 rounded-2xl object-contain shadow-2xl shadow-teal-900/40 ring-2 ring-teal-500/30"
+            <img 
+              src="/Logo.svg" 
+              alt="ContFast Enterprise" 
+              className="mx-auto w-full max-w-[450px] object-contain drop-shadow-xl" 
             />
           </motion.div>
-          <img 
-            src="/Logo.svg" 
-            alt="ContFast Enterprise" 
-            className="mt-6 mx-auto h-12 object-contain drop-shadow-md" 
-          />
-          <p className="mt-2 text-sm text-on-surface-variant">
-            Facturación Electrónica e-CF Homologada DGII
-          </p>
         </div>
 
         {/* Form Container with Glassmorphism */}
-        <div className="bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-8 shadow-2xl">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        <div className="w-full max-w-md bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-6 shadow-2xl relative z-10">
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
             
             {/* Email Field */}
             <div className="space-y-1">
@@ -197,7 +188,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   {...register('email')}
-                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="admin@empresa.com"
                 />
               </div>
@@ -221,7 +212,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   {...register('password')}
-                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-10 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-10 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="••••••••"
                 />
                 <button
@@ -248,7 +239,7 @@ export default function LoginPage() {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {loading ? (
                 <>

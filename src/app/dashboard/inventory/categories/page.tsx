@@ -217,13 +217,13 @@ export default function CategoriesPage() {
         <div className="flex gap-2 w-full md:w-auto">
           <button
             onClick={handlePrintList}
-            className="bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm shadow-sm"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Printer className="h-4 w-4 text-amber-500" /> Imprimir
           </button>
           <button
             onClick={openNewModal}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center flex-1 md:flex-none"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Plus className="h-4 w-4" />
             <span className="font-bold">Nueva Categoría</span>
@@ -275,10 +275,10 @@ export default function CategoriesPage() {
                     </td>
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(cat)} className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors">
+                        <button onClick={() => openEditModal(cat)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
                           <Edit2 className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
@@ -307,7 +307,7 @@ export default function CategoriesPage() {
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
                   type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   Anterior
                 </button>
@@ -318,7 +318,7 @@ export default function CategoriesPage() {
                   disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
                   type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   Siguiente
                 </button>
@@ -368,11 +368,11 @@ export default function CategoriesPage() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 font-bold border border-rose-200 transition-colors">
+                <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                   <X className="w-4 h-4" />
                   Cancelar
                 </button>
-                <button type="submit" disabled={submitting} className="bg-[#003366] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md hover:bg-[#002244] hover:-translate-y-0.5 transition-all">
+                <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                   {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                   {editId ? 'Guardar Cambios' : 'Registrar Categoría'}
                 </button>

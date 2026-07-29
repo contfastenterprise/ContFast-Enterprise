@@ -360,14 +360,14 @@ export default function DeliveryNotesPage() {
                   </div>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm"
+                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs"
                   >
                     <Plus className="h-4 w-4" /> Nuevo Conduce
                   </button>
                 </div>
 
                 {/* Quick Action: Apply Delivery Note or Invoice Stock Deduction */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-[#c5a059]/10 p-3 rounded-lg text-[#c5a059]">
                       <Truck className="h-6 w-6" />
@@ -383,12 +383,12 @@ export default function DeliveryNotesPage() {
                       placeholder="Ej: E310000000001 o CON-2026-000001"
                       value={applyCode}
                       onChange={(e) => setApplyCode(e.target.value)}
-                      className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors w-full sm:w-80 font-mono"
+                      className="h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors w-full sm:w-80 font-mono"
                     />
                     <button
                       onClick={handleApplyCode}
                       disabled={applying}
-                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm shrink-0 disabled:opacity-50"
+                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs shrink-0 disabled:opacity-50"
                     >
                       {applying ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -416,30 +416,30 @@ export default function DeliveryNotesPage() {
                       <table className="w-full text-left">
                         <thead className="bg-slate-50/80 border-b border-slate-200">
                           <tr>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Número</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Fecha Entrega</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Chofer</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Placa</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Estado</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Acciones</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Número</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha Entrega</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Chofer</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Placa</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {notes.map((note) => (
                             <tr key={note.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                              <td className="px-4 py-2 align-middle text-xs font-mono font-bold text-slate-800">
+                              <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-slate-800">
                                 {note.deliveryNumber}
                               </td>
-                              <td className="px-4 py-2 align-middle text-xs text-slate-650">
+                              <td className="px-4 py-2.5 align-middle text-xs text-slate-600">
                                 {new Date(note.deliveryDate + 'T00:00:00').toLocaleDateString('es-DO')}
                               </td>
-                              <td className="px-4 py-2 align-middle text-xs text-slate-700 font-semibold">
+                              <td className="px-4 py-2.5 align-middle text-xs text-slate-700 font-semibold">
                                 {note.driverName || 'N/A'}
                               </td>
-                              <td className="px-4 py-2 align-middle text-xs font-mono text-slate-500">
+                              <td className="px-4 py-2.5 align-middle text-xs font-mono text-slate-500">
                                 {note.vehiclePlate || 'N/A'}
                               </td>
-                              <td className="px-4 py-2 align-middle text-center">
+                              <td className="px-4 py-2.5 align-middle text-center">
                                 <span
                                   className={clsx(
                                     "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded border",
@@ -451,7 +451,7 @@ export default function DeliveryNotesPage() {
                                   {note.status === 'approved' ? 'Despachado' : note.status === 'draft' ? 'Borrador' : 'Anulado'}
                                 </span>
                               </td>
-                              <td className="px-4 py-2 align-middle text-right">
+                              <td className="px-4 py-2.5 align-middle text-right">
                                 <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => handlePrintNote(note.id)}
@@ -553,7 +553,7 @@ export default function DeliveryNotesPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Select Invoice & Driver */}
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2 flex flex-col justify-end">
                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Factura Relacionada</label>
@@ -598,7 +598,7 @@ export default function DeliveryNotesPage() {
                           required
                           value={deliveryDate}
                           onChange={(e) => setDeliveryDate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                         />
                       </div>
                     </div>
@@ -611,7 +611,7 @@ export default function DeliveryNotesPage() {
                           placeholder="Ej. Juan Pérez"
                           value={driverName}
                           onChange={(e) => setDriverName(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         />
                       </div>
                       <div className="space-y-1">
@@ -621,7 +621,7 @@ export default function DeliveryNotesPage() {
                           placeholder="001-0000000-0"
                           value={driverLicense}
                           onChange={(e) => setDriverLicense(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         />
                       </div>
                       <div className="space-y-1">
@@ -631,7 +631,7 @@ export default function DeliveryNotesPage() {
                           placeholder="L123456"
                           value={vehiclePlate}
                           onChange={(e) => setVehiclePlate(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         />
                       </div>
                       <div className="space-y-1">
@@ -641,7 +641,7 @@ export default function DeliveryNotesPage() {
                           placeholder="Firma autorizada"
                           value={dispatcherName}
                           onChange={(e) => setDispatcherName(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         />
                       </div>
                     </div>
@@ -650,31 +650,31 @@ export default function DeliveryNotesPage() {
                   {/* Line dispatch checklist */}
                   {targetInvoice && (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                      <div className="bg-slate-50 border-b border-slate-100 px-6 py-4">
+                      <div className="bg-slate-50 border-b border-slate-100 px-4 py-3">
                         <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
                           <Package className="w-4 h-4 text-[#003366]" /> Líneas de Despacho Físico
                         </span>
                       </div>
-                      <div className="p-6">
+                      <div className="p-4">
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="text-slate-500 font-semibold border-b border-slate-100 text-xs uppercase">
-                                <th className="pb-3 text-left">Artículo / Servicio</th>
-                                <th className="pb-3 text-center">Facturado</th>
-                                <th className="pb-3 text-center">Entregado Ant.</th>
-                                <th className="pb-3 text-center">Pendiente</th>
-                                <th className="pb-3 text-center">Despachar Hoy</th>
+                              <tr className="bg-slate-50/80 border-b border-slate-200">
+                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Artículo / Servicio</th>
+                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Facturado</th>
+                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Entregado Ant.</th>
+                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Pendiente</th>
+                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Despachar Hoy</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {dispatchLines.map((line, idx) => (
                                 <tr key={`${line.productId}-${idx}`} className="group">
-                                  <td className="py-4 font-medium text-slate-800">{line.productName}</td>
-                                  <td className="py-4 text-center text-slate-500 font-semibold">{line.invoicedQty}</td>
-                                  <td className="py-4 text-center text-slate-500 font-semibold">{line.previouslyDelivered}</td>
-                                  <td className="py-4 text-center text-indigo-600 font-bold">{line.pendingQty}</td>
-                                  <td className="py-4 text-center">
+                                  <td className="px-4 py-2.5 font-medium text-slate-800 text-xs">{line.productName}</td>
+                                  <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.invoicedQty}</td>
+                                  <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.previouslyDelivered}</td>
+                                  <td className="px-4 py-2.5 text-center text-indigo-600 font-bold text-xs">{line.pendingQty}</td>
+                                  <td className="px-4 py-2.5 text-center">
                                     <input
                                       type="number"
                                       min="0"
@@ -686,7 +686,7 @@ export default function DeliveryNotesPage() {
                                         updated[idx].quantity = val;
                                         setDispatchLines(updated);
                                       }}
-                                      className="w-20 text-center border border-slate-300 rounded px-1.5 py-1 text-sm font-semibold outline-none focus:border-[#003366] bg-white text-slate-900"
+                                      className="w-20 text-center h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                                     />
                                   </td>
                                 </tr>
@@ -703,7 +703,7 @@ export default function DeliveryNotesPage() {
                             value={notesText}
                             onChange={(e) => setNotesText(e.target.value)}
                             placeholder="Ingrese notas particulares del chofer, dirección detallada, condiciones de la mercancía, etc."
-                            className="w-full border border-slate-300 rounded-xl p-3 outline-none focus:border-[#C5A059] text-sm text-slate-900 bg-white"
+                            className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50"
                           />
                         </div>
                       </div>
@@ -719,14 +719,14 @@ export default function DeliveryNotesPage() {
                         setTargetInvoice(null);
                         setDispatchLines([]);
                       }}
-                      className="border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-2.5 px-6 rounded-lg text-sm transition-all"
+                      className="border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold h-8 px-3 py-1.5 rounded-lg text-xs transition-all"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !targetInvoice}
-                      className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Registrar Conduce
                     </button>
@@ -746,9 +746,9 @@ export default function DeliveryNotesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden"
+              className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden"
             >
-              <div className="bg-[#003366] text-white px-6 py-4 flex items-center justify-between">
+              <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between">
                 <h3 className="font-bold flex items-center gap-2 text-base">
                   <FileText className="w-5 h-5 text-[#C5A059]" /> Buscar Facturas Pendientes de Despacho
                 </h3>
@@ -760,15 +760,15 @@ export default function DeliveryNotesPage() {
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-4 space-y-4">
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Búsqueda por NCF, Cliente o RNC..."
-                    value={invoiceSearchQuery}
-                    onChange={(e) => setInvoiceSearchQuery(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors"
-                  />
+                    <input
+                      type="text"
+                      placeholder="Búsqueda por NCF, Cliente o RNC..."
+                      value={invoiceSearchQuery}
+                      onChange={(e) => setInvoiceSearchQuery(e.target.value)}
+                      className="flex-1 h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                    />
                   <Button
                     onClick={handleSearchInvoices}
                     variant="primary"
