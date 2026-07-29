@@ -168,9 +168,11 @@ export default function LoginPage() {
               className="h-20 w-20 rounded-2xl object-contain shadow-2xl shadow-teal-900/40 ring-2 ring-teal-500/30"
             />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-primary">
-            ContFast <span className="text-amber-500">Enterprise</span>
-          </h2>
+          <img 
+            src="/Logo.svg" 
+            alt="ContFast Enterprise" 
+            className="mt-6 mx-auto h-12 object-contain drop-shadow-md" 
+          />
           <p className="mt-2 text-sm text-on-surface-variant">
             Facturación Electrónica e-CF Homologada DGII
           </p>
