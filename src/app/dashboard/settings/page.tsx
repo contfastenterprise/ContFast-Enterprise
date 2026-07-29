@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy, Plus, Trash2, Edit, X } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
+import { useConfirm } from '@/providers/confirm-provider';
 
 export default function SettingsPage() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'puente' | 'suscripcion' | 'gastos'>('perfil');
@@ -147,23 +149,27 @@ export default function SettingsPage() {
       ? `¿Estás seguro de que deseas desactivar el tipo de gasto estándar "${type.code} - ${type.name}"? Los tipos de gastos estándares no se eliminan físicamente, solo se desactivan de los desplegables.`
       : `¿Estás seguro de que deseas eliminar permanentemente el tipo de gasto personalizado "${type.code} - ${type.name}"?`;
 
-    if (!window.confirm(confirmMessage)) return;
-
-    try {
-      const res = await fetch(`/api/v1/expenses/types/${type.id}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(isStandard ? 'Tipo de gasto desactivado.' : 'Tipo de gasto eliminado.');
-        fetchExpenseTypes();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: confirmMessage,
+      action: async () => {
+        try {
+          const res = await fetch(`/api/v1/expenses/types/${type.id}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast.success(isStandard ? 'Tipo de gasto desactivado.' : 'Tipo de gasto eliminado.');
+            fetchExpenseTypes();
+          } else {
+            toast.error(data.error?.message || 'Error al eliminar');
+          }
+        } catch (err) {
+          console.error('Error deleting type:', err);
+          toast.error('Error al realizar la operación');
+        }
       }
-    } catch (err) {
-      console.error('Error deleting type:', err);
-      toast.error('Error al realizar la operación');
-    }
+    });
   };
 
   async function fetchSettings() {

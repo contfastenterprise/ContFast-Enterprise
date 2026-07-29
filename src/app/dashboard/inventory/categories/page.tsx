@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface Category {
   id: string;
@@ -13,6 +14,7 @@ interface Category {
 }
 
 export default function CategoriesPage() {
+  const confirm = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -190,19 +192,21 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Seguro que deseas eliminar esta categoría?')) return;
-    try {
-      const res = await fetch(`/api/v1/categories/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Categoría eliminada');
-        fetchCategories();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (err) {
-      toast.error('Error de red');
-    }
+    const confirmed = await confirm({
+      title: 'Eliminar categoría',
+      description: '¿Seguro que deseas eliminar esta categoría? Esta acción no se puede deshacer.',
+      action: async () => {
+        const res = await fetch(`/api/v1/categories/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          fetchCategories();
+        } else {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
+      },
+      onSuccessMessage: 'Categoría eliminada',
+      onErrorMessage: 'Error al eliminar',
+    });
   };
 
   return (

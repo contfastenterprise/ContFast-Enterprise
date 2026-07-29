@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -31,6 +32,7 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  const confirm = useConfirm();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -241,20 +243,20 @@ export default function CustomersPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro que deseas eliminar al cliente ${name}?`)) return;
-
-    try {
-      const res = await fetch(`/api/v1/customers/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Cliente eliminado');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: `¿Estás seguro que deseas eliminar al cliente ${name}? Esta acción no se puede deshacer.`,
+      action: async () => {
+        const res = await fetch(`/api/v1/customers/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
         fetchCustomers();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (error) {
-      toast.error('Error de red al eliminar');
-    }
+      },
+      onSuccessMessage: 'Cliente eliminado correctamente.',
+      onErrorMessage: 'No fue posible eliminar el cliente.',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

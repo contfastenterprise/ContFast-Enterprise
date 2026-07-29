@@ -10,6 +10,7 @@ import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { PageLoader } from '@/components/ui/PageLoader';
+import { ConfirmProvider } from '@/providers/confirm-provider';
 
 /**
  * Componente hijo que consume useRbac() para saber cuándo
@@ -343,6 +344,7 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
 
   return (
     <RbacProvider initialUser={user}>
+      <ConfirmProvider>
       <DashboardLoadingGate
         loadingInit={loadingInit}
         logoUrl={activeLogo}
@@ -477,6 +479,7 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
         </div>
       </div>
       </DashboardLoadingGate>
+      </ConfirmProvider>
     </RbacProvider>
   );
 }

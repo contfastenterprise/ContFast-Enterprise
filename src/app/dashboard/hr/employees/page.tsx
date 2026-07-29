@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import { SearchBar } from '@/components/ui/search-bar';
 
 interface Employee {
@@ -30,6 +31,7 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
+  const confirm = useConfirm();
   const [employeesList, setEmployeesList] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
@@ -182,19 +184,20 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de que desea eliminar este empleado?')) return;
-    try {
-      const res = await fetch(`/api/v1/hr/employees?id=${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Empleado eliminado correctamente');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: '¿Está seguro de que desea eliminar este empleado? Esta acción no se puede deshacer.',
+      action: async () => {
+        const res = await fetch(`/api/v1/hr/employees?id=${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
         fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (err) {
-      toast.error('Error de conexión');
-    }
+      },
+      onSuccessMessage: 'Empleado eliminado correctamente.',
+      onErrorMessage: 'No fue posible eliminar el empleado.',
+    });
   };
 
   return (

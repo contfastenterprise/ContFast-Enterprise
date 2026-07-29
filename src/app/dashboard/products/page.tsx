@@ -8,6 +8,7 @@ import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useConfirm } from '@/providers/confirm-provider';
 
 
 interface Product {
@@ -28,6 +29,7 @@ interface Product {
 }
 
 export default function ProductsPage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -268,20 +270,23 @@ export default function ProductsPage() {
 
   const handleDeleteSecondaryBarcode = async (index: number, barcodeId?: string) => {
     if (editId && barcodeId) {
-      try {
-        const res = await fetch(`/api/v1/products/${editId}/barcodes?barcodeId=${barcodeId}`, {
-          method: 'DELETE'
-        });
-        const data = await res.json();
-        if (data.success) {
-          setSecondaryBarcodes(prev => prev.filter(b => b.id !== barcodeId));
-          toast.success('Código secundario eliminado');
-        } else {
-          toast.error(data.error?.message || 'Error al eliminar');
-        }
-      } catch (e) {
-        toast.error('Error de conexión');
-      }
+      const confirmed = await confirm({
+        title: 'Eliminar código secundario',
+        description: '¿Seguro que deseas eliminar este código secundario? Esta acción no se puede deshacer.',
+        action: async () => {
+          const res = await fetch(`/api/v1/products/${editId}/barcodes?barcodeId=${barcodeId}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            setSecondaryBarcodes(prev => prev.filter(b => b.id !== barcodeId));
+          } else {
+            throw new Error(data.error?.message || 'Error al eliminar');
+          }
+        },
+        onSuccessMessage: 'Código secundario eliminado',
+        onErrorMessage: 'Error al eliminar',
+      });
     } else {
       setSecondaryBarcodes(prev => prev.filter((_, idx) => idx !== index));
       toast.success('Código secundario removido de la lista');

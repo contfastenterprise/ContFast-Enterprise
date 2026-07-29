@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, FileText, Info, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -11,6 +12,7 @@ const formatCurrency = (val: number | string) => {
 };
 
 export default function SettlementsPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'settlements' | 'doblesueldo'>('settlements');
   const [employees, setEmployees] = useState<any[]>([]);
   const [settlements, setSettlements] = useState<any[]>([]);
@@ -190,21 +192,22 @@ export default function SettlementsPage() {
   };
 
   const handleDeleteSettlement = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar esta liquidación? Esto no reactivará automáticamente al empleado.')) return;
-    try {
-      const res = await fetch(`/api/v1/hr/settlements?id=${id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Liquidación eliminada');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: '¿Está seguro de eliminar esta liquidación? Esto no reactivará automáticamente al empleado.',
+      action: async () => {
+        const res = await fetch(`/api/v1/hr/settlements?id=${id}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
         fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (e) {
-      toast.error('Error de red');
-    }
+      },
+      onSuccessMessage: 'Liquidación eliminada correctamente.',
+      onErrorMessage: 'No fue posible eliminar la liquidación.',
+    });
   };
 
   // Doble Sueldo total sum

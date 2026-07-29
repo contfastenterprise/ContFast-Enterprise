@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Coins, Percent, Plus, Trash2, X, RefreshCw, User, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -11,6 +12,7 @@ const formatCurrency = (val: number | string) => {
 };
 
 export default function OvertimeAndEntriesPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'overtime' | 'income' | 'deduction'>('overtime');
   const [employees, setEmployees] = useState<any[]>([]);
   const [records, setRecords] = useState<{ overtime: any[]; income: any[]; deduction: any[] }>({
@@ -136,21 +138,22 @@ export default function OvertimeAndEntriesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar este registro?')) return;
-    try {
-      const res = await fetch(`/api/v1/hr/entries?id=${id}&entryType=${activeTab}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Registro eliminado');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: '¿Está seguro de eliminar este registro? Esta acción no se puede deshacer.',
+      action: async () => {
+        const res = await fetch(`/api/v1/hr/entries?id=${id}&entryType=${activeTab}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
         fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (err) {
-      toast.error('Error de red');
-    }
+      },
+      onSuccessMessage: 'Registro eliminado correctamente.',
+      onErrorMessage: 'No fue posible eliminar el registro.',
+    });
   };
 
   const getActiveList = () => {

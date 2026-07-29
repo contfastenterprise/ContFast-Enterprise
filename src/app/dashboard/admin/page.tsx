@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
 import AvatarUploader from '@/components/ui/AvatarUploader';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface User {
   id: string;
@@ -40,6 +41,7 @@ interface Plan {
 }
 
 export default function AdminPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'users' | 'sessions' | 'roles' | 'plans'>('users');
 
   const [users, setUsers] = useState<User[]>([]);
@@ -156,19 +158,24 @@ export default function AdminPage() {
   };
 
   const handleTerminateSession = async (sessionId: string) => {
-    if (!window.confirm('¿Está seguro de que desea cerrar la sesión de este usuario de forma remota?')) return;
-    try {
-      const res = await fetch(`/api/v1/admin/sessions?id=${sessionId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Sesión finalizada exitosamente.');
-        fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al finalizar sesión');
+    await confirm({
+      title: 'Confirmar cierre de sesión',
+      description: '¿Está seguro de que desea cerrar la sesión de este usuario de forma remota?',
+      action: async () => {
+        try {
+          const res = await fetch(`/api/v1/admin/sessions?id=${sessionId}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            toast.success('Sesión finalizada exitosamente.');
+            fetchData();
+          } else {
+            toast.error(data.error?.message || 'Error al finalizar sesión');
+          }
+        } catch {
+          toast.error('Error de red al finalizar sesión');
+        }
       }
-    } catch {
-      toast.error('Error de red al finalizar sesión');
-    }
+    });
   };
 
   const groupSessionsByDay = () => {

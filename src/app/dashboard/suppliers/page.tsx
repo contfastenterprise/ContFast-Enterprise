@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Truck, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ interface Supplier {
 }
 
 export default function SuppliersPage() {
+  const confirm = useConfirm();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -240,20 +242,20 @@ export default function SuppliersPage() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Estás seguro que deseas eliminar al proveedor ${name}?`)) return;
-
-    try {
-      const res = await fetch(`/api/v1/suppliers/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Proveedor eliminado');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: `¿Estás seguro que deseas eliminar al proveedor ${name}? Esta acción no se puede deshacer.`,
+      action: async () => {
+        const res = await fetch(`/api/v1/suppliers/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
         fetchSuppliers();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar');
-      }
-    } catch (error) {
-      toast.error('Error de red al eliminar');
-    }
+      },
+      onSuccessMessage: 'Proveedor eliminado correctamente.',
+      onErrorMessage: 'No fue posible eliminar el proveedor.',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

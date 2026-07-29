@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
@@ -30,6 +31,7 @@ import { FormField } from '@/components/ui/form-field';
 function InvoicesList() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const confirm = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -779,18 +781,20 @@ function InvoicesList() {
   };
 
   const handleDeleteDraft = async (draftId: string) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este borrador de forma permanente?')) return;
-    try {
-      const res = await fetch(`/api/v1/invoices/${draftId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || 'Error al eliminar borrador.');
-      }
-      toast.success('Borrador eliminado correctamente');
-      loadInvoices();
-    } catch (error: any) {
-      toast.error('Error al eliminar borrador', { description: error.message });
-    }
+    const confirmed = await confirm({
+      title: 'Eliminar borrador',
+      description: '¿Está seguro de que desea eliminar este borrador de forma permanente? Esta acción no se puede deshacer.',
+      action: async () => {
+        const res = await fetch(`/api/v1/invoices/${draftId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error?.message || 'Error al eliminar borrador.');
+        }
+        loadInvoices();
+      },
+      onSuccessMessage: 'Borrador eliminado correctamente',
+      onErrorMessage: 'Error al eliminar borrador',
+    });
   };
 
   const handleSubmitTrigger = (e?: React.FormEvent, postAction: 'print' | 'email' = 'print') => {

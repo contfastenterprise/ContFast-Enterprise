@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, X, Award } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface Payroll {
   id: string;
@@ -15,6 +16,7 @@ interface Payroll {
 }
 
 export default function PayrollPage() {
+  const confirm = useConfirm();
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -124,44 +126,45 @@ export default function PayrollPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('¿Está seguro de aprobar esta nómina? Esto bloqueará los montos y procesará todos los adicionales y descuentos del período.')) return;
-    const toastId = toast.loading('Aprobando nómina...');
-    try {
-      const res = await fetch(`/api/v1/hr/payroll?id=${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'approve' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Nómina aprobada exitosamente. Se ha registrado en la auditoría.', { id: toastId });
+    await confirm({
+      title: 'Confirmar aprobación',
+      description: '¿Está seguro de aprobar esta nómina? Esto bloqueará los montos y procesará todos los adicionales y descuentos del período.',
+      action: async () => {
+        const res = await fetch(`/api/v1/hr/payroll?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve' }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'Error');
+        }
         fetchPayrolls();
         if (selectedPayroll && selectedPayroll.id === id) {
           setSelectedPayroll({ ...selectedPayroll, status: 'approved' });
         }
-      } else {
-        toast.error(data.error?.message || 'Error', { id: toastId });
-      }
-    } catch (e) {
-      toast.error('Error de red', { id: toastId });
-    }
+      },
+      onSuccessMessage: 'Nómina aprobada exitosamente. Se ha registrado en la auditoría.',
+      onErrorMessage: 'Error al aprobar la nómina.',
+    });
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar esta nómina?')) return;
-    try {
-      const res = await fetch(`/api/v1/hr/payroll?id=${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Nómina eliminada correctamente');
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: '¿Está seguro de eliminar esta nómina? Esta acción no se puede deshacer.',
+      action: async () => {
+        const res = await fetch(`/api/v1/hr/payroll?id=${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!data.success) {
+          throw new Error(data.error?.message || 'No se puede eliminar la nómina');
+        }
         setSelectedPayroll(null);
         fetchPayrolls();
-      } else {
-        toast.error(data.error?.message || 'No se puede eliminar la nómina');
-      }
-    } catch (e) {
-      toast.error('Error al conectar con la base de datos');
-    }
+      },
+      onSuccessMessage: 'Nómina eliminada correctamente.',
+      onErrorMessage: 'No fue posible eliminar la nómina.',
+    });
   };
 
   return (

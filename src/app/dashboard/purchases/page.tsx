@@ -17,6 +17,7 @@ import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { useConfirm } from '@/providers/confirm-provider';
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
@@ -73,6 +74,7 @@ interface ExpenseDetail extends Expense {
 }
 
 export default function PurchasesPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'historial' | 'nuevo' | 'cheques'>('historial');
   const [loading, setLoading] = useState(false);
   const [isMinorExpense, setIsMinorExpense] = useState(false);
@@ -653,23 +655,22 @@ export default function PurchasesPage() {
 
   // Delete/void expense
   const handleDeleteExpense = async (id: string) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar permanentemente este registro de compra/gasto? Esta acción no se puede deshacer y revertirá los niveles de stock correspondientes.')) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/v1/expenses/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Compra/Gasto eliminado exitosamente');
-        setSelectedExpense(null);
-        handleSearch(); // Refresh list
-      } else {
-        toast.error('Error al eliminar', { description: data.error?.message });
-      }
-    } catch (err: any) {
-      toast.error('Error de red', { description: err.message });
-    }
+    const confirmed = await confirm({
+      title: 'Eliminar registro',
+      description: '¿Está seguro de que desea eliminar permanentemente este registro de compra/gasto? Esta acción no se puede deshacer y revertirá los niveles de stock correspondientes.',
+      action: async () => {
+        const res = await fetch(`/api/v1/expenses/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          setSelectedExpense(null);
+          handleSearch(); // Refresh list
+        } else {
+          throw new Error(data.error?.message || 'Error al eliminar');
+        }
+      },
+      onSuccessMessage: 'Compra/Gasto eliminado exitosamente',
+      onErrorMessage: 'Error de red al eliminar',
+    });
   };
 
   const addLine = () => {

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface Warehouse {
   id: string;
@@ -23,6 +24,7 @@ interface Warehouse {
 }
 
 export default function WarehousesPage() {
+  const confirm = useConfirm();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -191,42 +193,52 @@ export default function WarehousesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro que desea desactivar este almacén?')) return;
-    try {
-      const res = await fetch(`/api/v1/warehouses/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Error al desactivar');
-      toast.success('Almacén desactivado');
-      fetchWarehouses();
-    } catch (error: any) {
-      toast.error(error.message);
-    }
+    await confirm({
+      title: 'Confirmar desactivación',
+      description: '¿Está seguro que desea desactivar este almacén?',
+      action: async () => {
+        try {
+          const res = await fetch(`/api/v1/warehouses/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Error al desactivar');
+          toast.success('Almacén desactivado');
+          fetchWarehouses();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      }
+    });
   };
 
   const handleToggleStatus = async (warehouse: Warehouse) => {
     const nextStatus = warehouse.status === 'active' ? 'inactive' : 'active';
     const actionText = nextStatus === 'active' ? 'habilitar' : 'deshabilitar';
-    if (!confirm(`¿Está seguro que desea ${actionText} este almacén?`)) return;
+    
+    await confirm({
+      title: 'Confirmar acción',
+      description: `¿Está seguro que desea ${actionText} este almacén?`,
+      action: async () => {
+        try {
+          const res = await fetch(`/api/v1/warehouses/${warehouse.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: warehouse.name,
+              code: warehouse.code,
+              address: warehouse.address,
+              status: nextStatus,
+            }),
+          });
 
-    try {
-      const res = await fetch(`/api/v1/warehouses/${warehouse.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: warehouse.name,
-          code: warehouse.code,
-          address: warehouse.address,
-          status: nextStatus,
-        }),
-      });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `Error al ${actionText}`);
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `Error al ${actionText}`);
-
-      toast.success(nextStatus === 'active' ? 'Almacén habilitado' : 'Almacén deshabilitado');
-      fetchWarehouses();
-    } catch (error: any) {
-      toast.error(error.message);
-    }
+          toast.success(nextStatus === 'active' ? 'Almacén habilitado' : 'Almacén deshabilitado');
+          fetchWarehouses();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      }
+    });
   };
 
   return (

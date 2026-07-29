@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Calculator, RotateCcw, Printer, Plus, Layers, Save, Trash2, LayoutGrid, Info, Check, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import TablaDesglose, { type TablaDesgloseHandle } from './TablaDesglose';
 
 export default function DesgloseVentanasPage() {
+  const confirm = useConfirm();
   const [ancho, setAncho] = useState('');
   const [altura, setAltura] = useState('');
   const [cantidad, setCantidad] = useState<number>(1);
@@ -52,15 +54,19 @@ export default function DesgloseVentanasPage() {
     setVias(2);
   };
 
-  const handleLimpiar = () => {
-    if (window.confirm('¿Desea limpiar todos los campos e historial de corte?')) {
-      handleLimpiarCampos();
-      tablaRef.current?.limpiarTabla();
-      localStorage.removeItem('cf_desglose_ventanas');
-      setItemsCount(0);
-      setTotalWindowUnits(0);
-      toast.success('Historial y campos limpiados');
-    }
+  const handleLimpiar = async () => {
+    await confirm({
+      title: 'Confirmar limpieza',
+      description: '¿Desea limpiar todos los campos e historial de corte? Esta acción no se puede deshacer.',
+      action: async () => {
+        handleLimpiarCampos();
+        tablaRef.current?.limpiarTabla();
+        localStorage.removeItem('cf_desglose_ventanas');
+        setItemsCount(0);
+        setTotalWindowUnits(0);
+      },
+      onSuccessMessage: 'Historial y campos limpiados',
+    });
   };
 
   const handleAdd = () => {

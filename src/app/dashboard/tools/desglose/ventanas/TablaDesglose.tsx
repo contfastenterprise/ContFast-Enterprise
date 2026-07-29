@@ -5,6 +5,7 @@ import { Trash2, Calculator, Layers, Scissors, Info } from 'lucide-react';
 import { parseFraction, decimalToFraccion } from '@/utils/calculos';
 import { windowProfiles } from '@/utils/profilesRegistry';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 export interface TablaDesgloseHandle {
   agregarFila: () => void;
@@ -38,6 +39,7 @@ interface Props {
 
 const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
   ({ ancho, altura, cantidad, vias, limpiarCampos, tipoCorredera, onDataChange }, ref) => {
+    const confirm = useConfirm();
     const [filas, setFilas] = useState<ItemDesglose[]>([]);
 
     const titulos = ['Tradicional', 'P-65', 'P-92'];
@@ -148,14 +150,18 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
       limpiarTabla,
     }), [agregarFila, filas, limpiarTabla]);
 
-    const eliminarFila = (id: string) => {
-      if (window.confirm("¿Seguro que desea eliminar este registro de corte?")) {
-        const updated = filas.filter((f) => f.id !== id);
-        setFilas(updated);
-        localStorage.setItem('cf_desglose_ventanas', JSON.stringify(updated));
-        triggerDataChange(updated);
-        toast.success("Registro eliminado");
-      }
+    const eliminarFila = async (id: string) => {
+      await confirm({
+        title: 'Confirmar eliminación',
+        description: '¿Seguro que desea eliminar este registro de corte? Esta acción no se puede deshacer.',
+        action: async () => {
+          const updated = filas.filter((f) => f.id !== id);
+          setFilas(updated);
+          localStorage.setItem('cf_desglose_ventanas', JSON.stringify(updated));
+          triggerDataChange(updated);
+        },
+        onSuccessMessage: 'Registro eliminado',
+      });
     };
 
     return (

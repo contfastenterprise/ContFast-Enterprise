@@ -5,6 +5,7 @@ import { Shield, Plus, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Se
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface Company {
   id: string;
@@ -29,6 +30,7 @@ interface Plan {
 }
 
 export default function AdminCompaniesPage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -125,21 +127,26 @@ export default function AdminCompaniesPage() {
   };
 
   const handleDeleteCompany = async (id: string) => {
-    if (!confirm('¿Está seguro de desactivar esta empresa? Esta acción deshabilitará el acceso de sus usuarios.')) return;
-    try {
-      const res = await fetch(`/api/v1/admin/companies/${id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Empresa desactivada');
-        fetchData();
-      } else {
-        toast.error(data.error?.message || 'Error al eliminar empresa');
+    await confirm({
+      title: 'Confirmar desactivación',
+      description: '¿Está seguro de desactivar esta empresa? Esta acción deshabilitará el acceso de sus usuarios.',
+      action: async () => {
+        try {
+          const res = await fetch(`/api/v1/admin/companies/${id}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast.success('Empresa desactivada');
+            fetchData();
+          } else {
+            toast.error(data.error?.message || 'Error al eliminar empresa');
+          }
+        } catch (error) {
+          toast.error('Error de red al eliminar empresa');
+        }
       }
-    } catch (error) {
-      toast.error('Error de red al eliminar empresa');
-    }
+    });
   };
 
   const handleClearSandboxData = async (company: Company) => {

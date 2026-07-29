@@ -5,8 +5,10 @@ import { Maximize, Plus, Trash2, RotateCw, Calculator, Info, AlertTriangle, Prin
 import { toast } from 'sonner';
 import { parseFraction, formatFraction } from '@/utils/calculos';
 import { optimizeGlassCutting, type GlassPiece } from '@/utils/cuttingOptimizer';
+import { useConfirm } from '@/providers/confirm-provider';
 
 export default function GlassCuttingPage() {
+  const confirm = useConfirm();
   const [mounted, setMounted] = useState(false);
   // Main sheet dimensions in inches (stored as strings for fraction entry)
   const [sheetWidthInput, setSheetWidthInput] = useState<string>('96');
@@ -87,12 +89,16 @@ export default function GlassCuttingPage() {
     toast.success('Pieza eliminada');
   };
 
-  const clearAll = () => {
-    if (window.confirm('¿Desea limpiar todo el listado de cortes?')) {
-      setPieces([]);
-      localStorage.removeItem('cf_glass_cutting_pieces');
-      toast.success('Listado limpiado');
-    }
+  const clearAll = async () => {
+    await confirm({
+      title: 'Confirmar limpieza',
+      description: '¿Desea limpiar todo el listado de cortes? Esta acción no se puede deshacer.',
+      action: async () => {
+        setPieces([]);
+        localStorage.removeItem('cf_glass_cutting_pieces');
+      },
+      onSuccessMessage: 'Listado limpiado',
+    });
   };
 
   // Optimization Logic utilizing external module

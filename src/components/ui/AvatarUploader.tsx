@@ -5,6 +5,7 @@ import { UploadCloud, X, RefreshCw, AlertCircle, CheckCircle } from 'lucide-reac
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from './Avatar';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface AvatarUploaderProps {
   currentAvatarUrl?: string | null;
@@ -25,6 +26,7 @@ export default function AvatarUploader({
   onDeleteSuccess,
   skipDatabaseUpdate = false,
 }: AvatarUploaderProps) {
+  const confirm = useConfirm();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -246,45 +248,49 @@ export default function AvatarUploader({
   };
 
   const handleDeleteAvatar = async () => {
-    if (!confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?')) return;
+    await confirm({
+      title: 'Confirmar eliminación',
+      description: '¿Estás seguro de que deseas eliminar tu foto de perfil?',
+      action: async () => {
+        setUploading(true);
+        try {
+          if (currentAvatarPath) {
+            await fetch('/api/v1/storage/delete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: currentAvatarPath }),
+            });
+          }
 
-    setUploading(true);
-    try {
-      if (currentAvatarPath) {
-        await fetch('/api/v1/storage/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: currentAvatarPath }),
-        });
-      }
+          if (!skipDatabaseUpdate) {
+            // Actualizar base de datos a null
+            const res = await fetch('/api/v1/auth/profile', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                avatarUrl: null,
+                avatarPath: null,
+              }),
+            });
 
-      if (!skipDatabaseUpdate) {
-        // Actualizar base de datos a null
-        const res = await fetch('/api/v1/auth/profile', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            avatarUrl: null,
-            avatarPath: null,
-          }),
-        });
+            const resData = await res.json();
+            if (!res.ok || !resData.success) {
+              throw new Error(resData.error?.message || 'Error al actualizar base de datos.');
+            }
+          }
 
-        const resData = await res.json();
-        if (!res.ok || !resData.success) {
-          throw new Error(resData.error?.message || 'Error al actualizar base de datos.');
+          toast.success('Foto de perfil eliminada.');
+          if (!skipDatabaseUpdate && typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('user-profile-updated'));
+          }
+          onDeleteSuccess();
+        } catch (err: any) {
+          toast.error(err.message || 'Error al eliminar el avatar.');
+        } finally {
+          setUploading(false);
         }
       }
-
-      toast.success('Foto de perfil eliminada.');
-      if (!skipDatabaseUpdate && typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('user-profile-updated'));
-      }
-      onDeleteSuccess();
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar el avatar.');
-    } finally {
-      setUploading(false);
-    }
+    });
   };
 
   return (
