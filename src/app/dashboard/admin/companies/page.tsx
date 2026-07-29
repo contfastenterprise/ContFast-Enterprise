@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Plus, RefreshCw, X, Building2, Trash2, CreditCard, Calendar } from 'lucide-react';
+import { Shield, Plus, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
@@ -33,6 +33,12 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredCompanies = companies.filter(company => 
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    company.rnc.includes(searchTerm)
+  );
 
   const [showNewCompanyModal, setShowNewCompanyModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -259,13 +265,25 @@ export default function AdminCompaniesPage() {
 
         {/* Listado */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <h2 className="font-bold text-[#003366] flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+            <h2 className="font-bold text-[#003366] flex items-center gap-2 whitespace-nowrap">
               <Building2 className="h-4 w-4" /> Empresas Registradas
             </h2>
-            <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors" title="Actualizar">
-              <RefreshCw className={clsx("h-4 w-4 text-slate-500", loading && "animate-spin")} />
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o RNC..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                />
+              </div>
+              <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors shrink-0" title="Actualizar">
+                <RefreshCw className={clsx("h-4 w-4 text-slate-500", loading && "animate-spin")} />
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -280,14 +298,14 @@ export default function AdminCompaniesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {companies.length === 0 ? (
+                {filteredCompanies.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                      {loading ? 'Cargando...' : 'No hay empresas registradas.'}
+                      {loading ? 'Cargando...' : 'No se encontraron empresas.'}
                     </td>
                   </tr>
                 ) : (
-                  companies.map(company => (
+                  filteredCompanies.map(company => (
                     <tr key={company.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-bold text-slate-900">{company.name}</div>
