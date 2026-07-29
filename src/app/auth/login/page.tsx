@@ -160,33 +160,33 @@ export default function LoginPage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
-            className="mx-auto flex h-24 w-24 items-center justify-center mb-4"
+            className="mx-auto flex h-20 w-20 items-center justify-center"
           >
             <img
               src="/Icono.svg"
               alt="ContFast Enterprise"
-              className="h-24 w-24 object-contain drop-shadow-xl"
+              className="h-20 w-20 rounded-2xl object-contain shadow-2xl shadow-teal-900/40 ring-2 ring-teal-500/30"
             />
           </motion.div>
-          <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
-            ContFast <span className="text-primary">Enterprise</span>
+          <h2 className="mt-6 text-3xl font-display font-bold tracking-tight text-primary">
+            ContFast <span className="text-amber-500">Enterprise</span>
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-on-surface-variant">
             Facturación Electrónica e-CF Homologada DGII
           </p>
         </div>
 
         {/* Form Container with Glassmorphism */}
-        <div className="bg-card/80 backdrop-blur-xl border border-border rounded-[10px] p-8 shadow-2xl">
+        <div className="bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-8 shadow-2xl">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             
             {/* Email Field */}
             <div className="space-y-1">
-              <label htmlFor="email" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label htmlFor="email" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                 Correo Electrónico
               </label>
-              <div className="relative rounded-[10px] shadow-sm">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
+              <div className="relative rounded-md shadow-sm">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
                   <Mail className="h-5 w-5" />
                 </div>
                 <input
@@ -195,7 +195,7 @@ export default function LoginPage() {
                   autoComplete="email"
                   required
                   {...register('email')}
-                  className="block w-full rounded-[10px] border border-border bg-background py-3 pl-10 pr-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="admin@empresa.com"
                 />
               </div>
@@ -206,11 +206,11 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-1">
-              <label htmlFor="password" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label htmlFor="password" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                 Contraseña
               </label>
-              <div className="relative rounded-[10px] shadow-sm">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
+              <div className="relative rounded-md shadow-sm">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant/70">
                   <Lock className="h-5 w-5" />
                 </div>
                 <input
@@ -219,7 +219,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   {...register('password')}
-                  className="block w-full rounded-[10px] border border-border bg-background py-3 pl-10 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 sm:text-sm transition-all duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-3 pl-10 pr-10 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
                   placeholder="••••••••"
                 />
                 <button
@@ -246,7 +246,7 @@ export default function LoginPage() {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center items-center gap-2 rounded-[10px] bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {loading ? (
                 <>
