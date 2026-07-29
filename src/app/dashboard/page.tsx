@@ -18,13 +18,13 @@ const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
   ssr: false,
   loading: () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 h-96 animate-pulse flex flex-col justify-between">
         <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
-        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+        <div className="h-64 bg-slate-100 rounded-xl w-full"></div>
       </div>
-      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-8 h-96 animate-pulse flex flex-col justify-between">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 h-96 animate-pulse flex flex-col justify-between">
         <div className="h-6 w-1/3 bg-slate-200 rounded-md"></div>
-        <div className="h-64 bg-slate-100 rounded-2xl w-full"></div>
+        <div className="h-64 bg-slate-100 rounded-xl w-full"></div>
       </div>
     </div>
   )
@@ -242,7 +242,7 @@ export default function DashboardPage() {
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold">Dashboard Principal</h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
+          <p className="font-body-lg text-slate-500/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
       </header>
 
@@ -251,7 +251,7 @@ export default function DashboardPage() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-50 border border-amber-250 rounded-3xl p-5 flex items-center justify-between shadow-sm"
+          className="bg-amber-50 border border-amber-250 rounded-xl p-4 flex items-center justify-between shadow-sm"
         >
           <div className="flex items-center gap-4">
             <div className="bg-amber-100 p-3 rounded-2xl">
@@ -266,7 +266,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={() => router.push('/dashboard/purchases?tab=cheques')}
-            className="bg-amber-600 hover:bg-amber-750 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
+            className="bg-amber-600 hover:bg-amber-750 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold transition-all hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
           >
             Ver y Aplicar
           </button>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
           }}
           className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="py-4 px-6">
+          <div className="p-4">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-blue-100 p-2.5 rounded-xl group-hover:bg-blue-600 transition-colors">
                 <FileText className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
@@ -298,9 +298,9 @@ export default function DashboardPage() {
                 {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
               </span>
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
+            <p className="font-label-md text-slate-500/60 uppercase tracking-[0.1em] text-[10px] font-bold">Facturas Hoy</p>
             <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.invoicesToday}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
+            <p className="font-body-sm text-slate-500/80 mt-2.5 font-medium text-[13px]">Monto total: <span className="text-primary font-bold">{fmt(stats.invoicesTodayAmount)}</span></p>
           </div>
         </BorderRotate>
 
@@ -315,18 +315,18 @@ export default function DashboardPage() {
           }}
           className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="py-4 px-6">
+          <div className="p-4">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-amber-100 p-2.5 rounded-xl group-hover:bg-amber-500 transition-colors">
                 <RefreshCw className="h-5 w-5 text-amber-600 group-hover:text-white transition-colors" />
               </div>
               {stats.pendingDgii > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold tracking-tighter">REINTENTANDO</span>
               )}
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
+            <p className="font-label-md text-slate-500/60 uppercase tracking-[0.1em] text-[10px] font-bold">Pendientes DGII</p>
             <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{stats.pendingDgii}</h3>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
+            <p className="font-body-sm text-slate-500/80 mt-2.5 font-medium text-[13px]">Tiempo prom: <span className="text-primary font-bold">1.2s</span></p>
           </div>
         </BorderRotate>
 
@@ -341,18 +341,18 @@ export default function DashboardPage() {
           }}
           className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
         >
-          <div className="py-4 px-6">
+          <div className="p-4">
             <div className="flex justify-between items-start mb-4">
               <div className="bg-emerald-100 p-2.5 rounded-xl group-hover:bg-emerald-600 transition-colors">
                 <TrendingUp className="h-5 w-5 text-emerald-600 group-hover:text-white transition-colors" />
               </div>
             </div>
-            <p className="font-label-md text-on-surface-variant/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
+            <p className="font-label-md text-slate-500/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
             <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{fmt(stats.monthlySales, true)}</h3>
-            <div className="w-full bg-surface-container h-1.5 rounded-full mt-3.5 overflow-hidden">
+            <div className="w-full bg-slate-50 h-1.5 rounded-full mt-3.5 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
             </div>
-            <p className="font-body-sm text-on-surface-variant/80 mt-2.5 font-medium text-[13px]">{salesPct}% de la meta mensual</p>
+            <p className="font-body-sm text-slate-500/80 mt-2.5 font-medium text-[13px]">{salesPct}% de la meta mensual</p>
           </div>
         </BorderRotate>
 
@@ -367,7 +367,7 @@ export default function DashboardPage() {
           }}
           className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
         >
-          <div className="py-4 px-6 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
+          <div className="p-4 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
             <div className="flex justify-between items-start mb-4">
               <div className="bg-red-100 p-2.5 rounded-xl group-hover:bg-red-600 transition-colors">
                 <AlertCircle className="h-5 w-5 text-red-600 group-hover:text-white transition-colors" />
@@ -383,14 +383,14 @@ export default function DashboardPage() {
 
       {/* ── Period Selector ──────────────────────────────────────── */}
       <div className="flex justify-end items-center gap-2">
-        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-1.5 rounded-2xl flex gap-1.5">
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-1.5 rounded-xl flex gap-1.5">
           <button
             onClick={() => setChartPeriod('semana')}
             className={clsx(
-              "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
+              "px-4 py-2 text-xs rounded-lg font-bold transition-all duration-300 cursor-pointer",
               chartPeriod === 'semana'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
-                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-[#003366]"
+                : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
           >
             Vista Semanal
@@ -398,10 +398,10 @@ export default function DashboardPage() {
           <button
             onClick={() => setChartPeriod('mes')}
             className={clsx(
-              "px-6 py-2.5 rounded-xl font-label-md text-xs font-bold transition-all duration-300 cursor-pointer",
+              "px-4 py-2 text-xs rounded-lg font-bold transition-all duration-300 cursor-pointer",
               chartPeriod === 'mes'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
-                : "text-on-surface-variant/80 hover:bg-slate-100 hover:text-[#003366]"
+                : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
           >
             Vista Mensual
