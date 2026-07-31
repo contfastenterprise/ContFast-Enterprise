@@ -1,0 +1,30 @@
+{
+  "name": "Error",
+  "message": "429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kph19jhxfecsk5hztnwmpq1g` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99250, Requested 3654. Please try again in 41m49.056s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}",
+  "status": 429,
+  "errorObj": {
+    "error": {
+      "message": "Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kph19jhxfecsk5hztnwmpq1g` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 99250, Requested 3654. Please try again in 41m49.056s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing",
+      "type": "tokens",
+      "code": "rate_limit_exceeded"
+    }
+  },
+  "requestMessages": [
+    {
+      "role": "system",
+      "content": "Eres el agente: Shiky\nRol y Descripción: Valida que el sistema cumpla con la lógica de negocio real (Facturación electrónica, DGII, Inventario, Compras, Ventas, CXC, CXP).\nDominio: ERP Domain\n\nCONSTITUCIÓN IA (REGLAS ESTRICTAS):\n1. El ERP es la fuente oficial de la verdad. NUNCA inventes datos, nombres, fechas ni cifras relacionados al ERP. SI NO POSEES UNA HERRAMIENTA o fuente de datos real para responder a una consulta técnica o de números, DEBES indicarlo. Sin embargo, TIENES LA CAPACIDAD Y EL PERMISO de mantener una conversación fluida, interpretar lo que el usuario quiere decir, responder saludos, presentarte, y ofrecer asistencia general. No te limites solo a rechazar si no hay herramientas, interpreta la intención del usuario de forma natural y conversacional.\n2. Aislamiento Multi-Tenant: Estás operando bajo el Tenant ID: 38a1a51e-cb4a-4798-ad19-0f44a7ded32d. Está estrictamente prohibido cruzar información con otros Tenants.\n3. No puedes ejecutar acciones críticas o sensibles sin autorización (el sistema ya oculta las herramientas no autorizadas).\n4. ESTILO DE RESPUESTA: Responde de manera sumamente objetiva, clara, directa y sin usar demasiados tecnicismos. Ve directo al grano. Tienes permitido identificarte como \"Shiky\" si el usuario pregunta directamente por tu identidad, pero no lo uses como muletilla.\n6. EXTRACCIÓN DE DATOS: Cuando utilices una herramienta para obtener datos (ej. inventario, ventas), DEBES extraer y mostrar los números, valores y listas explícitamente en tu respuesta al usuario de manera formateada y legible. NO digas simplemente \"la herramienta obtuvo los datos\", ¡MUESTRA LOS DATOS!\n7. FORMATO DE MONEDA: Siempre que muestres precios, costos o valores monetarios, formátalos estrictamente en formato de moneda (ej. $1,250.00) asegurando que tengan exactamente dos cifras decimales.\n\nTus Políticas Específicas:\n- Debe asegurar el cumplimiento estricto con las regulaciones de la DGII y normas contables locales.\n\nPreferencias del Usuario:\n- Idioma: es\n- Zona Horaria: UTC\n- Moneda: No definida\n\nCONTEXTO DEL SISTEMA:\n- FECHA Y HORA ACTUAL: 30/7/2026, 10:05:14 p. m.\n(Si el usuario pregunta por \"este mes\" o \"este año\", asume la fecha actual de arriba).\n\nProcesa la siguiente petición respetando estrictamente todo lo anterior."
+    },
+    {
+      "role": "user",
+      "content": "De cuánto fueron las compras este mes de julio"
+    },
+    {
+      "role": "assistant",
+      "content": "Error: Agente con ID 'sales-reporting-agent' no encontrado en el registro."
+    },
+    {
+      "role": "user",
+      "content": "[INPUT DEL USUARIO/SISTEMA]:\n[PETICIÓN ORIGINAL DEL USUARIO]: De cuánto fueron las compras este mes de julio\n\n[TAREA ASIGNADA POR EL PLANNER]: De cuánto fueron las compras este mes de julio\n\n[CONTEXTO ACUMULADO DE TAREAS PREVIAS]:\n"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Shield, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
@@ -231,6 +232,17 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
     }
   }, [user, pathname, router]);
 
+  // Guard for AI Route: Only 'administracion' and 'sistemas'
+  useEffect(() => {
+    if (user) {
+      const isAiRoute = pathname.startsWith('/dashboard/ai');
+      if (isAiRoute && user.role !== 'administracion' && user.role !== 'sistemas') {
+        toast.error('Acceso denegado. Shiky solo está disponible para Administradores y Sistemas.');
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, pathname, router]);
+
   // Guard for 'compras' role: Cannot access bank routes in UI
   useEffect(() => {
     if (user) {
@@ -412,6 +424,16 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
           </div>
   
           <div className="flex items-center gap-4">
+            {/* AI Shortcut Button */}
+            {(user?.role === 'administracion' || user?.role === 'sistemas') && (
+              <Link
+                href="/dashboard/ai"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide border cursor-pointer transition-all duration-200 active:scale-95 bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:shadow-sm"
+                title="Hablar con Shiky (AI)"
+              >
+                <span className="text-sm">✨</span> Shiky AI
+              </Link>
+            )}
             {/* Environment Indicator Badge */}
             {activeEnvironment === 'PRUEBA' && (
               <div 
