@@ -495,7 +495,7 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 12mm 12mm 25mm 12mm;
+              margin: 3mm 12mm 25mm 12mm;
             }
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 0px; }
             .page-break { page-break-before: always; }

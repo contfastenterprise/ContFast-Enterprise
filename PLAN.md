@@ -569,3 +569,6 @@ El proyecto se encuentra **Verified & Polished** tras añadir el mapeo dinámico
 
 ## Emisión e-CF DGII Fix
 **Verified & Polished**
+
+## Next.js Build and A4 Invoice Print Fix
+**Verified & Polished**

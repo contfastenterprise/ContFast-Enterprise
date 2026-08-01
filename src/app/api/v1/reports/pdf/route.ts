@@ -11,6 +11,7 @@ import { PdfGenerator as PuppeteerPdfGenerator } from '@/services/print/pdfGener
 // pdfkit usa módulos nativos de Node.js (fs, Buffer, crypto).
 // Forzar el runtime de Node.js para que funcione en Next.js App Router.
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {

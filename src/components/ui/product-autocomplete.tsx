@@ -136,7 +136,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
         <div className="relative flex-1">
           <input
             type="text"
-            value={displayValue}
+            value={displayValue || ''}
             onFocus={() => {
               setIsOpen(true);
               setSearchQuery('');
@@ -149,8 +149,9 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               }
               setIsOpen(true);
             }}
-            className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-3 pr-8 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all"
+            className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-3 pr-8 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all truncate"
             placeholder={placeholder}
+            title={displayValue || placeholder}
             required
           />
           {hasProduct ? (
@@ -176,7 +177,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                 position: 'absolute',
                 top: `${coords.top}px`,
                 left: `${coords.left}px`,
-                width: `${showWarehouses ? Math.max(450, coords.width) : coords.width}px`,
+                width: `${showWarehouses ? Math.max(750, coords.width) : Math.max(500, coords.width)}px`,
                 zIndex: 9999
               }}
               className="product-autocomplete-dropdown max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl divide-y divide-slate-100 text-sm"
@@ -245,7 +246,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                             >
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="font-semibold text-[#003366] truncate">{p.name}</span>
+                                  <span className="font-semibold text-[#003366] break-words whitespace-normal">{p.name}</span>
                                   {targetMinStk > 0 && targetQty <= targetMinStk && (
                                     <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-rose-100 text-rose-800 uppercase shrink-0">
                                       Bajo Mínimo (Mín: {targetMinStk})

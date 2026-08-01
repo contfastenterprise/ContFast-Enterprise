@@ -1,4 +1,3 @@
-import Groq from "groq-sdk";
 import type { AIProvider, ChatMessage, ChatOptions, ChatResponse } from "../contracts/Provider";
 import * as fs from 'fs';
 
@@ -8,11 +7,11 @@ export interface GroqProviderConfig {
 }
 
 export class GroqProvider implements AIProvider {
-  private readonly client: Groq;
+  private readonly apiKey: string;
   private readonly defaultModel: string;
 
   constructor(config: GroqProviderConfig) {
-    this.client = new Groq({ apiKey: config.apiKey });
+    this.apiKey = config.apiKey;
     this.defaultModel = config.defaultModel ?? "llama-3.1-8b-instant"; // Modelo más ligero para evitar límites de tokens
   }
 
@@ -29,9 +28,21 @@ export class GroqProvider implements AIProvider {
     }
 
     try {
-      const response = await this.client.chat.completions.create(requestBody);
+      const fetchResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-      const choice = response.choices[0]?.message;
+      if (!fetchResponse.ok) {
+        throw new Error(`Groq API Error: ${fetchResponse.status} ${fetchResponse.statusText} - ${await fetchResponse.text()}`);
+      }
+
+      const response = await fetchResponse.json();
+      const choice = response.choices?.[0]?.message;
       let content = choice?.content ?? null;
       let tool_calls: any = choice?.tool_calls ?? [];
 
@@ -85,11 +96,24 @@ export class GroqProvider implements AIProvider {
   }
 
   public async completion(prompt: string): Promise<unknown> {
-    const response = await this.client.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: this.defaultModel,
+    const fetchResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: prompt }],
+        model: this.defaultModel,
+      })
     });
-    return response.choices[0]?.message?.content ?? "";
+    
+    if (!fetchResponse.ok) {
+      throw new Error(`Groq API Error: ${fetchResponse.status} ${fetchResponse.statusText}`);
+    }
+
+    const response = await fetchResponse.json();
+    return response.choices?.[0]?.message?.content ?? "";
   }
 }
 
