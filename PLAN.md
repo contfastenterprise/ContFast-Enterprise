@@ -565,3 +565,7 @@ El proyecto se encuentra **Verified & Polished** tras añadir el mapeo dinámico
 **Verified & Polished**
 
 - [x] Agente ERP con IA (Shiky): Status: Verified & Polished (Soft-delete integrity, Groq limits mitigated, RBAC active).
+
+
+## Emisión e-CF DGII Fix
+**Verified & Polished**

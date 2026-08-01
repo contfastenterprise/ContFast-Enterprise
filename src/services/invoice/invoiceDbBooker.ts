@@ -53,6 +53,63 @@ export class InvoiceDbBooker {
   }
 
   /**
+   * Pre-flight validations to ensure the invoice can be safely saved locally 
+   * BEFORE submitting it to DGII/MSeller.
+   */
+  static async preFlightValidations(
+    data: IssueInvoiceInput,
+    totals: CalculatedTotals
+  ) {
+    // Verify Stock Availability (Skip for Credit Notes since it increases stock)
+    if (data.ecfType !== '34') {
+      for (const line of totals.itemLines) {
+        const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, db, true, data.modo || 'PRODUCCION');
+        if (!hasStock) {
+          throw new Error(`Inventario insuficiente o por debajo del mínimo para el producto: ${line.name}`);
+        }
+      }
+    }
+
+    // Verify Credit Limit for credit sales
+    if (data.paymentType === 'credit' && data.customerId && data.ecfType !== '34') {
+      const [customer] = await db
+        .select({
+          creditLimit: sql<string>`credit_limit`,
+          name: sql<string>`name`
+        })
+        .from(sql`customers`)
+        .where(eq(sql`id`, data.customerId))
+        .limit(1);
+
+      if (customer) {
+        const limit = parseFloat(customer.creditLimit || '0.00');
+        if (limit > 0) {
+          const [arBalanceResult] = await db
+            .select({
+              balance: sql<string>`COALESCE(SUM(balance), 0)`
+            })
+            .from(accountsReceivable)
+            .where(
+              and(
+                eq(accountsReceivable.customerId, data.customerId),
+                eq(accountsReceivable.companyId, data.companyId),
+                eq(accountsReceivable.modo, data.modo || 'PRODUCCION'),
+                isNull(accountsReceivable.deletedAt)
+              )
+            );
+          const currentBalance = parseFloat(arBalanceResult?.balance || '0.00');
+          const totalInvoiceAmount = totals.totalNet;
+          if (currentBalance + totalInvoiceAmount > limit) {
+            throw new Error(
+              `Límite de crédito excedido para ${customer.name}. Límite: RD$ ${limit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}, Saldo actual: RD$ ${currentBalance.toLocaleString('es-DO', { minimumFractionDigits: 2 })}, Monto factura: RD$ ${totalInvoiceAmount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}.`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Predicts the next NCF.
    */
   static async predictNextNcf(companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {

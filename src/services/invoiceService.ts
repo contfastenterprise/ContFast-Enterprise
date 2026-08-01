@@ -34,7 +34,10 @@ export class InvoiceService {
     // ── 2. Calculate totals, taxes and retentions ─────────────────────────────
     const totals = InvoiceCalculator.calculateTotalsAndRetentions(data);
 
-    // ── 3. Predict next NCF without incrementing database sequence yet ────────
+    // ── 3. Pre-flight validations ─────────────────────────────────────────────
+    await InvoiceDbBooker.preFlightValidations(data, totals);
+
+    // ── 4. Predict next NCF without incrementing database sequence yet ────────
     const { ncf } = await InvoiceDbBooker.predictNextNcf(data.companyId, data.ecfType, data.modo);
 
     // Load company settings
