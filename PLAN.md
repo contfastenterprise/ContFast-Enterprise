@@ -574,3 +574,5 @@ El proyecto se encuentra **Verified & Polished** tras añadir el mapeo dinámico
 **Verified & Polished**
 Verified & Polished
 Verified & Polished
+### Bug Fixes
+- **Verified & Polished**: Corregido bug de desfase de zona horaria en formatLocalDate que afectaba la validación de periodos contables en la página de compras.
