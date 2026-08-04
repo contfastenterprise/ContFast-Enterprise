@@ -11,6 +11,9 @@ interface SupplierBalance {
   supplierRnc: string;
   totalBalance: number;
   overdueBalance: number;
+  overdue1to30: number;
+  overdue31to60: number;
+  overdue61Plus: number;
 }
 
 const fmt = (val: number) => {
@@ -147,14 +150,17 @@ export default function SupplierBalancesPage() {
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Suplidor</th>
                 <th className="px-6 py-4 font-semibold tracking-wider text-right">Balance Acumulado</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Balance Vencido</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center">Estado de Cuenta</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right">Vencido Total</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right">[1-30]</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right">[31-60]</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-right">[61+]</th>
+                <th className="px-6 py-4 font-semibold tracking-wider text-center">Estado de Cartera</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
                       Cargando balances...
@@ -163,7 +169,7 @@ export default function SupplierBalancesPage() {
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     No hay balances pendientes para este filtro.
                   </td>
@@ -183,6 +189,9 @@ export default function SupplierBalancesPage() {
                         <span className="text-neutral-500">-</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 text-right">{item.overdue1to30 > 0 ? <span className="text-yellow-600 font-semibold">{fmt(item.overdue1to30)}</span> : '-'}</td>
+                    <td className="px-6 py-4 text-right">{item.overdue31to60 > 0 ? <span className="text-orange-600 font-semibold">{fmt(item.overdue31to60)}</span> : '-'}</td>
+                    <td className="px-6 py-4 text-right">{item.overdue61Plus > 0 ? <span className="text-red-600 font-semibold">{fmt(item.overdue61Plus)}</span> : '-'}</td>
                     <td className="px-6 py-4 text-center">
                       {item.overdueBalance > 0 ? (
                         <span className="px-2 py-1 bg-rose-500/10 text-rose-600 rounded-lg text-xs font-semibold">

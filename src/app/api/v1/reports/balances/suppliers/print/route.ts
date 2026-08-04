@@ -65,14 +65,28 @@ export async function GET(req: NextRequest) {
           supplierRnc: item.supplierRnc || 'N/A',
           totalBalance: 0,
           overdueBalance: 0,
+          overdue1to30: 0,
+          overdue31to60: 0,
+          overdue61Plus: 0,
         };
       }
       
       const bal = Number(item.balance);
       grouped[sid].totalBalance += bal;
       
-      if (new Date(item.dueDate) < now) {
+      const dueDate = new Date(item.dueDate);
+      const diffTime = now.getTime() - dueDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays > 0) {
         grouped[sid].overdueBalance += bal;
+        if (diffDays <= 30) {
+          grouped[sid].overdue1to30 += bal;
+        } else if (diffDays <= 60) {
+          grouped[sid].overdue31to60 += bal;
+        } else {
+          grouped[sid].overdue61Plus += bal;
+        }
       }
     });
 

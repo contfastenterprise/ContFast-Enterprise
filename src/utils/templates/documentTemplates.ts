@@ -4041,9 +4041,16 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     let totalGlobal = 0;
     let totalOverdue = 0;
 
+    let total1to30 = 0;
+    let total31to60 = 0;
+    let total61Plus = 0;
+
     const linesHtml = items.map((item: any) => {
       totalGlobal += item.totalBalance;
       totalOverdue += item.overdueBalance;
+      total1to30 += item.overdue1to30 || 0;
+      total31to60 += item.overdue31to60 || 0;
+      total61Plus += item.overdue61Plus || 0;
       
       const isOverdue = item.overdueBalance > 0;
       
@@ -4057,6 +4064,9 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
             ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
           </td>
+          <td class="text-right" style="color: #ca8a04;">${item.overdue1to30 > 0 ? this.fmt(item.overdue1to30) : '-'}</td>
+          <td class="text-right" style="color: #ea580c;">${item.overdue31to60 > 0 ? this.fmt(item.overdue31to60) : '-'}</td>
+          <td class="text-right" style="color: #dc2626;">${item.overdue61Plus > 0 ? this.fmt(item.overdue61Plus) : '-'}</td>
           <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
             ${isOverdue ? 'Moroso' : 'Al Día'}
           </td>
@@ -4101,20 +4111,26 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <table>
           <thead>
             <tr>
-              <th style="width: 45%;">Cliente / RNC</th>
-              <th style="width: 20%;" class="text-right">Balance Total</th>
-              <th style="width: 20%;" class="text-right">Vencido</th>
-              <th style="width: 15%;" class="text-center">Estado</th>
+              <th style="width: 30%;">Cliente / RNC</th>
+              <th style="width: 15%;" class="text-right">Balance Total</th>
+              <th style="width: 15%;" class="text-right">Vencido</th>
+              <th style="width: 10%;" class="text-right">[1-30]</th>
+              <th style="width: 10%;" class="text-right">[31-60]</th>
+              <th style="width: 10%;" class="text-right">[61+]</th>
+              <th style="width: 10%;" class="text-center">Estado</th>
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>'}
+            ${linesHtml || '<tr><td colspan="7" class="text-center">No hay datos</td></tr>'}
           </tbody>
           <tfoot>
             <tr style="background-color: #f8fafc;">
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ca8a04;">${this.fmt(total1to30)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ea580c;">${this.fmt(total31to60)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #dc2626;">${this.fmt(total61Plus)}</td>
               <td style="border-top: 2px solid #cbd5e1;"></td>
             </tr>
           </tfoot>
@@ -4139,9 +4155,16 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     let totalGlobal = 0;
     let totalOverdue = 0;
 
+    let total1to30 = 0;
+    let total31to60 = 0;
+    let total61Plus = 0;
+
     const linesHtml = items.map((item: any) => {
       totalGlobal += item.totalBalance;
       totalOverdue += item.overdueBalance;
+      total1to30 += item.overdue1to30 || 0;
+      total31to60 += item.overdue31to60 || 0;
+      total61Plus += item.overdue61Plus || 0;
       
       const isOverdue = item.overdueBalance > 0;
       
@@ -4155,6 +4178,9 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
             ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
           </td>
+          <td class="text-right" style="color: #ca8a04;">${item.overdue1to30 > 0 ? this.fmt(item.overdue1to30) : '-'}</td>
+          <td class="text-right" style="color: #ea580c;">${item.overdue31to60 > 0 ? this.fmt(item.overdue31to60) : '-'}</td>
+          <td class="text-right" style="color: #dc2626;">${item.overdue61Plus > 0 ? this.fmt(item.overdue61Plus) : '-'}</td>
           <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
             ${isOverdue ? 'Vencido' : 'Al Día'}
           </td>
@@ -4199,20 +4225,26 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <table>
           <thead>
             <tr>
-              <th style="width: 45%;">Suplidor / RNC</th>
-              <th style="width: 20%;" class="text-right">Balance Total</th>
-              <th style="width: 20%;" class="text-right">Vencido</th>
-              <th style="width: 15%;" class="text-center">Estado</th>
+              <th style="width: 30%;">Suplidor / RNC</th>
+              <th style="width: 15%;" class="text-right">Balance Total</th>
+              <th style="width: 15%;" class="text-right">Vencido</th>
+              <th style="width: 10%;" class="text-right">[1-30]</th>
+              <th style="width: 10%;" class="text-right">[31-60]</th>
+              <th style="width: 10%;" class="text-right">[61+]</th>
+              <th style="width: 10%;" class="text-center">Estado</th>
             </tr>
           </thead>
           <tbody>
-            ${linesHtml || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>'}
+            ${linesHtml || '<tr><td colspan="7" class="text-center">No hay datos</td></tr>'}
           </tbody>
           <tfoot>
             <tr style="background-color: #f8fafc;">
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ca8a04;">${this.fmt(total1to30)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ea580c;">${this.fmt(total31to60)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #dc2626;">${this.fmt(total61Plus)}</td>
               <td style="border-top: 2px solid #cbd5e1;"></td>
             </tr>
           </tfoot>

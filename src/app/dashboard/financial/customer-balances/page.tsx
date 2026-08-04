@@ -11,6 +11,9 @@ interface CustomerBalance {
   customerRnc: string;
   totalBalance: number;
   overdueBalance: number;
+  overdue1to30: number;
+  overdue31to60: number;
+  overdue61Plus: number;
 }
 
 const fmt = (val: number) => {
@@ -140,21 +143,54 @@ export default function CustomerBalancesPage() {
         </div>
       </div>
 
+      <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-4">
+        <div className="p-4 flex items-center justify-between border-b border-outline-variant/20 bg-surface-container-lowest">
+          <div>
+            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100">
+              Resumen de Antigüedad
+            </h3>
+          </div>
+        </div>
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex justify-between items-center py-2 border-b border-outline-variant/20">
+            <span className="text-neutral-500">Vencido [1-30 días]</span>
+            <span className="font-semibold text-yellow-600">
+              {fmt(data.reduce((acc, curr) => acc + (curr.overdue1to30 || 0), 0))}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-outline-variant/20">
+            <span className="text-neutral-500">Vencido [31-60 días]</span>
+            <span className="font-semibold text-orange-600">
+              {fmt(data.reduce((acc, curr) => acc + (curr.overdue31to60 || 0), 0))}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-2">
+            <span className="text-neutral-500">Vencido [61+ días]</span>
+            <span className="font-semibold text-red-600">
+              {fmt(data.reduce((acc, curr) => acc + (curr.overdue61Plus || 0), 0))}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-xs uppercase bg-surface-container-low/50 text-neutral-500 border-b border-outline-variant/20">
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Cliente</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Balance Acumulado</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-right">Balance Vencido</th>
-                <th className="px-6 py-4 font-semibold tracking-wider text-center">Estado de Cartera</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Total Adeudado</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Vencido Total</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[1-30]</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[31-60]</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[61+]</th>
+                <th className="py-4 px-4 text-center font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Estado de Cartera</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
                       Cargando balances...
@@ -163,7 +199,7 @@ export default function CustomerBalancesPage() {
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-neutral-500">
+                  <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
                     <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     No hay balances pendientes para este filtro.
                   </td>
@@ -176,13 +212,10 @@ export default function CustomerBalancesPage() {
                       <div className="text-xs text-neutral-500">{item.customerRnc}</div>
                     </td>
                     <td className="px-6 py-4 text-right font-medium">{fmt(item.totalBalance)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {item.overdueBalance > 0 ? (
-                        <span className="text-rose-600 font-semibold">{fmt(item.overdueBalance)}</span>
-                      ) : (
-                        <span className="text-neutral-500">-</span>
-                      )}
-                    </td>
+                    <td className="px-6 py-4 text-right">{fmt(item.overdueBalance)}</td>
+                    <td className="px-6 py-4 text-right">{fmt(item.overdue1to30)}</td>
+                    <td className="px-6 py-4 text-right">{fmt(item.overdue31to60)}</td>
+                    <td className="px-6 py-4 text-right">{fmt(item.overdue61Plus)}</td>
                     <td className="px-6 py-4 text-center">
                       {item.overdueBalance > 0 ? (
                         <span className="px-2 py-1 bg-rose-500/10 text-rose-600 rounded-lg text-xs font-semibold">
