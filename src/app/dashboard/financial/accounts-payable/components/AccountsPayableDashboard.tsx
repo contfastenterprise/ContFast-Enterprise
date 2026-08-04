@@ -58,7 +58,7 @@ export default function AccountsPayableDashboard({ initialData }: { initialData:
 
         <div className="m-0 focus:outline-none">
           {activeTab === 'dashboard' && <DashboardTab data={initialData} />}
-          {activeTab === 'list' && <ListTab data={initialData.raw} />}
+          {activeTab === 'list' && <ListTab data={initialData.raw} companyInfo={initialData.companyInfo} />}
           {activeTab === 'kanban' && <KanbanTab data={initialData.raw} />}
           {activeTab === 'calendar' && (
             <div className="bg-surface-bright border border-outline-variant/20 rounded-2xl p-8 text-center text-neutral-500">

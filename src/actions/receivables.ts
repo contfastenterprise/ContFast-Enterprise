@@ -1,6 +1,6 @@
 'use server';
 
-import { db, accountsReceivable, customers, invoices } from '@/db';
+import { db, accountsReceivable, customers, invoices, companies, companySettings } from '@/db';
 import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
@@ -35,6 +35,17 @@ export async function getReceivablesDashboardData() {
   const { companyId, modo } = auth;
 
   try {
+    const companyQuery = await db.select({
+      name: companies.name,
+      logoUrl: companySettings.logoUrl
+    })
+    .from(companies)
+    .leftJoin(companySettings, eq(companySettings.companyId, companies.id))
+    .where(eq(companies.id, companyId))
+    .limit(1);
+    
+    const companyInfo = companyQuery[0] || { name: 'Empresa', logoUrl: null };
+
     // Basic AR aggregation
     const allAr = await db.select({
       id: accountsReceivable.id,
@@ -113,6 +124,7 @@ export async function getReceivablesDashboardData() {
     return {
       success: true,
       data: {
+        companyInfo,
         kpis: {
           totalPending,
           totalOverdue,

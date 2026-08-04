@@ -9,7 +9,7 @@ const fmt = (val: number) => {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(val || 0);
 };
 
-export default function ListTab({ data }: { data: any[] }) {
+export default function ListTab({ data, companyInfo }: { data: any[], companyInfo?: any }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'customerName' | 'dueDate' | 'balance' | 'status'>('dueDate');
   const [sortDesc, setSortDesc] = useState(false);
@@ -58,7 +58,9 @@ export default function ListTab({ data }: { data: any[] }) {
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; color: #171717; margin: 2rem; }
             h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; color: #0f172a; }
-            .header { margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
+            .header { margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+            .header-info { flex: 1; }
+            .header-logo { max-height: 50px; max-width: 200px; object-fit: contain; }
             .date { color: #64748b; font-size: 0.875rem; }
             table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
             th { background-color: #f8fafc; color: #334155; font-weight: 600; text-align: left; padding: 0.75rem; border-bottom: 2px solid #e2e8f0; }
@@ -76,8 +78,14 @@ export default function ListTab({ data }: { data: any[] }) {
         </head>
         <body>
           <div class="header">
-            <h1>Reporte de Cuentas por Cobrar</h1>
-            <div class="date">Generado el: ${new Date().toLocaleString('es-DO')}</div>
+            <div class="header-info">
+              <h1>Reporte de Cuentas por Cobrar</h1>
+              <div class="date">Generado el: ${new Date().toLocaleString('es-DO')}</div>
+            </div>
+            ${companyInfo?.logoUrl 
+              ? `<img src="${companyInfo.logoUrl}" class="header-logo" alt="Logo" />`
+              : `<div style="font-weight: bold; font-size: 1.25rem; color: #475569;">${companyInfo?.name || 'Empresa'}</div>`
+            }
           </div>
           <table>
             <thead>

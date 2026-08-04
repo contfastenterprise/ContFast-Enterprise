@@ -1,6 +1,6 @@
 'use server';
 
-import { db, accountsPayable, suppliers, supplierPayments } from '@/db';
+import { db, accountsPayable, suppliers, supplierPayments, companies, companySettings } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
@@ -33,6 +33,17 @@ export async function getPayablesDashboardData() {
   if (!auth) throw new Error('Unauthorized');
   
   const { companyId, modo } = auth;
+
+  const companyQuery = await db.select({
+    name: companies.name,
+    logoUrl: companySettings.logoUrl
+  })
+  .from(companies)
+  .leftJoin(companySettings, eq(companySettings.companyId, companies.id))
+  .where(eq(companies.id, companyId))
+  .limit(1);
+  
+  const companyInfo = companyQuery[0] || { name: 'Empresa', logoUrl: null };
 
   // Extraer las Cuentas por Pagar
   const apList = await db
@@ -178,6 +189,7 @@ export async function getPayablesDashboardData() {
 
   return {
     raw,
+    companyInfo,
     kpis: {
       totalPorPagar,
       totalVencido,
