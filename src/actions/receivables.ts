@@ -7,16 +7,20 @@ import * as jwt from 'jsonwebtoken';
 
 async function getAuthContext() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value;
+  const token = cookieStore.get('accessToken')?.value;
   if (!token) return null;
 
   try {
     const secret = process.env.JWT_SECRET || 'fallback_secret';
     const decoded = jwt.verify(token, secret) as any;
+    
+    const environmentCookie = cookieStore.get('cf_environment')?.value;
+    const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+    
     return {
       userId: decoded.userId,
       companyId: decoded.companyId,
-      modo: decoded.modo,
+      modo: reqModo,
       role: decoded.role,
     };
   } catch (error) {
@@ -47,7 +51,7 @@ export async function getReceivablesDashboardData() {
     .where(
       and(
         eq(accountsReceivable.companyId, companyId),
-        eq(accountsReceivable.modo, modo),
+        eq(accountsReceivable.modo, modo as 'PRODUCCION' | 'PRUEBA'),
         isNull(accountsReceivable.deletedAt)
       )
     );

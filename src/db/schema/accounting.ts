@@ -5,6 +5,7 @@ import { invoices } from './invoices';
 import { bankAccounts } from './bank';
 import { warehouses } from './inventory';
 import { products } from './products';
+import { purchaseOrders } from './supplier_orders';
 import { users } from './auth';
 import { environmentMode } from './system';
 
@@ -120,6 +121,7 @@ export const accountsPayable = pgTable('accounts_payable', {
   companyId: uuid('company_id').notNull().references(() => companies.id),
   modo: environmentMode('modo').default('PRODUCCION').notNull(),
   supplierId: uuid('supplier_id').notNull().references(() => suppliers.id),
+  purchaseOrderId: uuid('purchase_order_id').references(() => purchaseOrders.id),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   balance: decimal('balance', { precision: 15, scale: 2 }).notNull(),
   dueDate: date('due_date').notNull(),
