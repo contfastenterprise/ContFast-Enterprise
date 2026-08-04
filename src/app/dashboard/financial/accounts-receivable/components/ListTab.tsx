@@ -46,6 +46,42 @@ export default function ListTab({ data }: { data: any[] }) {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Factura/Ref', 'Cliente', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
+    const rows = filteredData.map(item => {
+      const due = new Date(item.dueDate);
+      due.setHours(0,0,0,0);
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+      const status = Number(item.balance) <= 0 ? 'Pagado' : (diffDays > 0 ? 'Vencida' : 'Al Dia');
+      
+      return [
+        `CXC-${item.id.split('-')[0].toUpperCase()}`,
+        `"${item.customerName}"`,
+        due.toLocaleDateString('es-DO'),
+        diffDays > 0 ? diffDays : 0,
+        item.amount || 0,
+        item.balance || 0,
+        status
+      ].join(',');
+    });
+    
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Cuentas_por_Cobrar.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-surface-bright dark:bg-surface-dark-bright rounded-2xl border border-outline-variant/20 shadow-sm overflow-hidden flex flex-col">
       {/* Toolbar */}
@@ -60,13 +96,13 @@ export default function ListTab({ data }: { data: any[] }) {
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => document.querySelector<HTMLInputElement>('input[placeholder="Buscar por cliente o factura..."]')?.focus()}>
             <Filter className="w-4 h-4" /> Filtros
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExportCSV}>
             <Download className="w-4 h-4" /> Excel
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handlePrint}>
             <Printer className="w-4 h-4" /> Imprimir
           </Button>
         </div>
