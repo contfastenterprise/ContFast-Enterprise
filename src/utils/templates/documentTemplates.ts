@@ -4202,6 +4202,97 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       </html>
     `;
   }
+
+  static renderPayablesReport(data: any): string {
+    const { company, items, filters, totals } = data;
+    const baseCss = this.getBaseCss('carta');
+
+    const linesHtml = items.map((item: any) => {
+      const isOverdue = new Date(item.dueDate) < new Date();
+      return `
+        <tr>
+          <td>
+            <strong>${item.supplierName || ''}</strong><br>
+            <span style="font-size: 8pt; color: #666;">${item.supplierRnc || ''}</span>
+          </td>
+          <td>
+            <span style="font-size: 8pt; color: #666;">CXP: ${item.apId.slice(0, 8).toUpperCase()}</span>
+          </td>
+          <td class="${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
+            ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+          </td>
+          <td class="text-right">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+          <td class="text-right"><strong>RD$ ${Number(item.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</strong></td>
+          <td class="text-center">
+            ${isOverdue ? '<span style="color: red; font-weight: bold;">Vencida</span>' : '<span style="color: #666;">Pendiente</span>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Cuentas por Pagar</title>
+        <style>${baseCss}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${company.logo ? `<img src="${company.logo}" class="logo" />` : ''}
+            <div class="title">${company.name || ''}</div>
+            <div>RNC: ${company.rnc || ''}</div>
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+            ${company.email ? `<div>Email: ${company.email}</div>` : ''}
+            ${company.address ? `<div>Dir: ${company.address}</div>` : ''}
+          </div>
+          <div class="doc-info text-right">
+            <div class="title" style="color: #444;">REPORTE DE CUENTAS POR PAGAR</div>
+            <div><strong>Fecha:</strong> ${filters.date}</div>
+            <div><strong>Filtro Proveedor:</strong> ${filters.supplierName || ''}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Proveedor</th>
+              <th>NCF / CXP</th>
+              <th>Vencimiento</th>
+              <th class="text-right">Monto Original</th>
+              <th class="text-right">Balance Pendiente</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.length === 0 ? '<tr><td colspan="6" class="text-center" style="padding: 20px !important;">No existen cuentas por pagar para este filtro.</td></tr>' : linesHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 30px;">
+          <div class="totals" style="width: 350px;">
+            <table>
+              <tr>
+                <td style="font-size: 11pt;">Balance Vencido:</td>
+                <td class="text-right" style="font-size: 11pt; color: red; font-weight: bold;">RD$ ${Number(totals.overdue).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td class="grand-total">BALANCE TOTAL:</td>
+                <td class="text-right grand-total">RD$ ${Number(totals.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 50px;">
+          Reporte de Cuentas por Pagar - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
 
 

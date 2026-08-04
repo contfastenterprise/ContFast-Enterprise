@@ -54,7 +54,7 @@ const fmt = (val: number) => {
 
 export default function SupplierStatementPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('all');
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -272,21 +272,24 @@ export default function SupplierStatementPage() {
       </div>
 
       {/* Supplier Select dropdown */}
-      {/* Supplier Select dropdown */}
       <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-5 space-y-4">
         <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">Seleccione el Proveedor</label>
-        <div className="max-w-md">
-          <AutocompleteSelect
-            items={suppliers.map((s) => ({
-              id: s.id,
-              name: s.name,
-              subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
-            }))}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="w-full max-w-md">
+            <AutocompleteSelect
+              items={[
+                { id: 'all', name: 'Todos los proveedores', subLabel: 'Reporte General' },
+                ...suppliers.map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
+                }))
+              ]}
             value={selectedSupplierId}
             onChange={(id, name) => {
               setSelectedSupplierId(id);
               setSupplierSearchQuery(name);
-              if (id) {
+              if (id && id !== 'all') {
                 fetchStatement(id);
               } else {
                 setStatementData(null);
@@ -295,6 +298,21 @@ export default function SupplierStatementPage() {
             placeholder="Buscar por nombre o RNC..."
             loading={loadingSuppliers}
           />
+          </div>
+          <button
+            onClick={() => {
+              if (selectedSupplierId === 'all' || !selectedSupplierId) {
+                window.open('/api/v1/reports/payables/print?supplierId=all', '_blank');
+              } else {
+                handlePrint();
+              }
+            }}
+            disabled={printing}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold shadow-md transition-colors h-[42px] whitespace-nowrap"
+          >
+            <Printer className="w-4 h-4" /> 
+            {printing ? 'Generando...' : 'Imprimir Reporte'}
+          </button>
         </div>
       </div>
 

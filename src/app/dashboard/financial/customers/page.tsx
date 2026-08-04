@@ -58,7 +58,7 @@ const fmt = (val: number) => {
 
 export default function CustomerStatementPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -278,18 +278,22 @@ export default function CustomerStatementPage() {
       {/* Customer Select dropdown */}
       <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-5 space-y-4">
         <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">Seleccione el Cliente</label>
-        <div className="max-w-md">
-          <AutocompleteSelect
-            items={customers.map((c) => ({
-              id: c.id,
-              name: c.name,
-              subLabel: c.rncCedula ? `RNC/Cédula: ${c.rncCedula}` : "Sin RNC/Cédula",
-            }))}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="w-full max-w-md">
+            <AutocompleteSelect
+              items={[
+                { id: 'all', name: 'Todos los clientes', subLabel: 'Reporte General' },
+                ...customers.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  subLabel: c.rncCedula ? `RNC/Cédula: ${c.rncCedula}` : "Sin RNC/Cédula",
+                }))
+              ]}
             value={selectedCustomerId}
             onChange={(id, name) => {
               setSelectedCustomerId(id);
               setCustomerSearchQuery(name);
-              if (id) {
+              if (id && id !== 'all') {
                 fetchStatement(id);
               } else {
                 setStatementData(null);
@@ -298,6 +302,21 @@ export default function CustomerStatementPage() {
             placeholder="Buscar por nombre o RNC/Cédula..."
             loading={loadingCustomers}
           />
+          </div>
+          <button
+            onClick={() => {
+              if (selectedCustomerId === 'all' || !selectedCustomerId) {
+                window.open('/api/v1/reports/receivables/print?customerId=all', '_blank');
+              } else {
+                handlePrint();
+              }
+            }}
+            disabled={printing}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold shadow-md transition-colors h-[42px] whitespace-nowrap"
+          >
+            <Printer className="w-4 h-4" /> 
+            {printing ? 'Generando...' : 'Imprimir Reporte'}
+          </button>
         </div>
       </div>
 
