@@ -60,8 +60,14 @@ export async function GET(req: NextRequest) {
       grouped[cid].totalBalance += bal;
       
       const dueDate = new Date(item.dueDate);
-      const diffTime = now.getTime() - dueDate.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(dueDate);
+      due.setHours(0, 0, 0, 0);
+      
+      const diffTime = today.getTime() - due.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays > 0) {
         grouped[cid].overdueBalance += bal;

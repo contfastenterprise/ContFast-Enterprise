@@ -4060,13 +4060,13 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <strong>${item.customerName}</strong><br>
             <span style="font-size: 8pt; color: #666;">${item.customerRnc || ''}</span>
           </td>
-          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
           <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
             ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
           </td>
           <td class="text-right" style="color: #ca8a04;">${item.overdue1to30 > 0 ? this.fmt(item.overdue1to30) : '-'}</td>
           <td class="text-right" style="color: #ea580c;">${item.overdue31to60 > 0 ? this.fmt(item.overdue31to60) : '-'}</td>
           <td class="text-right" style="color: #dc2626;">${item.overdue61Plus > 0 ? this.fmt(item.overdue61Plus) : '-'}</td>
+          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
           <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
             ${isOverdue ? 'Moroso' : 'Al Día'}
           </td>
@@ -4112,11 +4112,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <thead>
             <tr>
               <th style="width: 30%;">Cliente / RNC</th>
-              <th style="width: 15%;" class="text-right">Balance Total</th>
               <th style="width: 15%;" class="text-right">Vencido</th>
               <th style="width: 10%;" class="text-right">[1-30]</th>
               <th style="width: 10%;" class="text-right">[31-60]</th>
               <th style="width: 10%;" class="text-right">[61+]</th>
+              <th style="width: 15%;" class="text-right">Balance Total</th>
               <th style="width: 10%;" class="text-center">Estado</th>
             </tr>
           </thead>
@@ -4126,11 +4126,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <tfoot>
             <tr style="background-color: #f8fafc;">
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
-              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ca8a04;">${this.fmt(total1to30)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ea580c;">${this.fmt(total31to60)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #dc2626;">${this.fmt(total61Plus)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td style="border-top: 2px solid #cbd5e1;"></td>
             </tr>
           </tfoot>
@@ -4174,13 +4174,13 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <strong>${item.supplierName}</strong><br>
             <span style="font-size: 8pt; color: #666;">${item.supplierRnc || ''}</span>
           </td>
-          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
           <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
             ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
           </td>
           <td class="text-right" style="color: #ca8a04;">${item.overdue1to30 > 0 ? this.fmt(item.overdue1to30) : '-'}</td>
           <td class="text-right" style="color: #ea580c;">${item.overdue31to60 > 0 ? this.fmt(item.overdue31to60) : '-'}</td>
           <td class="text-right" style="color: #dc2626;">${item.overdue61Plus > 0 ? this.fmt(item.overdue61Plus) : '-'}</td>
+          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
           <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
             ${isOverdue ? 'Vencido' : 'Al Día'}
           </td>
@@ -4226,11 +4226,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <thead>
             <tr>
               <th style="width: 30%;">Suplidor / RNC</th>
-              <th style="width: 15%;" class="text-right">Balance Total</th>
               <th style="width: 15%;" class="text-right">Vencido</th>
               <th style="width: 10%;" class="text-right">[1-30]</th>
               <th style="width: 10%;" class="text-right">[31-60]</th>
               <th style="width: 10%;" class="text-right">[61+]</th>
+              <th style="width: 15%;" class="text-right">Balance Total</th>
               <th style="width: 10%;" class="text-center">Estado</th>
             </tr>
           </thead>
@@ -4240,11 +4240,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <tfoot>
             <tr style="background-color: #f8fafc;">
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
-              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ca8a04;">${this.fmt(total1to30)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #ea580c;">${this.fmt(total31to60)}</td>
               <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: #dc2626;">${this.fmt(total61Plus)}</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
               <td style="border-top: 2px solid #cbd5e1;"></td>
             </tr>
           </tfoot>

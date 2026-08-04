@@ -179,11 +179,11 @@ export default function CustomerBalancesPage() {
             <thead className="text-xs uppercase bg-surface-container-low/50 text-neutral-500 border-b border-outline-variant/20">
               <tr>
                 <th className="px-6 py-4 font-semibold tracking-wider">Cliente</th>
-                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Total Adeudado</th>
                 <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Vencido Total</th>
                 <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[1-30]</th>
                 <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[31-60]</th>
                 <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">[61+]</th>
+                <th className="py-4 px-4 text-right font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Total Adeudado</th>
                 <th className="py-4 px-4 text-center font-semibold text-neutral-900 dark:text-white border-b border-outline-variant/30">Estado de Cartera</th>
               </tr>
             </thead>
@@ -211,11 +211,11 @@ export default function CustomerBalancesPage() {
                       <div className="font-semibold text-neutral-800 dark:text-neutral-200">{item.customerName}</div>
                       <div className="text-xs text-neutral-500">{item.customerRnc}</div>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium">{fmt(item.totalBalance)}</td>
-                    <td className="px-6 py-4 text-right">{fmt(item.overdueBalance)}</td>
-                    <td className="px-6 py-4 text-right">{fmt(item.overdue1to30)}</td>
-                    <td className="px-6 py-4 text-right">{fmt(item.overdue31to60)}</td>
-                    <td className="px-6 py-4 text-right">{fmt(item.overdue61Plus)}</td>
+                    <td className="px-6 py-4 text-right text-red-600 font-medium">{item.overdueBalance > 0 ? fmt(item.overdueBalance) : '-'}</td>
+                    <td className="px-6 py-4 text-right text-yellow-600">{item.overdue1to30 > 0 ? fmt(item.overdue1to30) : '-'}</td>
+                    <td className="px-6 py-4 text-right text-orange-600">{item.overdue31to60 > 0 ? fmt(item.overdue31to60) : '-'}</td>
+                    <td className="px-6 py-4 text-right text-red-600 font-semibold">{item.overdue61Plus > 0 ? fmt(item.overdue61Plus) : '-'}</td>
+                    <td className="px-6 py-4 text-right font-bold">{fmt(item.totalBalance)}</td>
                     <td className="px-6 py-4 text-center">
                       {item.overdueBalance > 0 ? (
                         <span className="px-2 py-1 bg-rose-500/10 text-rose-600 rounded-lg text-xs font-semibold">
