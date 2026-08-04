@@ -33,6 +33,15 @@ function getFirstDayOfMonthString(): string {
   return `${year}-${month}-01`;
 }
 
+function formatDateDisplay(dateString: string | null | undefined): string {
+  if (!dateString) return '-';
+  const parts = dateString.split('T')[0].split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateString;
+}
+
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
 interface Warehouse { id: string; name: string; }
@@ -1151,7 +1160,7 @@ export default function PurchasesPage() {
                                 <p className="text-[10px] text-slate-500">{e.supplierRnc || '-'}</p>
                               </td>
                               <td className="px-4 py-2.5 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
-                              <td className="px-4 py-2.5 text-xs text-slate-600">{e.issueDate}</td>
+                              <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
                               <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-emerald-600">
                                 RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
                               </td>
@@ -1267,7 +1276,7 @@ export default function PurchasesPage() {
                                   {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
                                 </span>
                               </td>
-                              <td className="px-4 py-2.5 text-xs text-slate-600">{e.issueDate}</td>
+                              <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
                               <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-blue-600">
                                 RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
                               </td>
@@ -2118,7 +2127,7 @@ export default function PurchasesPage() {
 
                   <div className="bg-slate-50 p-4 rounded-lg">
                     <p className="text-[10px] uppercase font-bold text-slate-600">Fecha y Almacén</p>
-                    <p className="font-bold text-sm text-[#c5a059] mt-1">Emisión: {selectedExpense.issueDate}</p>
+                    <p className="font-bold text-sm text-[#c5a059] mt-1">Emisión: {formatDateDisplay(selectedExpense.issueDate)}</p>
                     <p className="text-xs text-slate-600 mt-0.5">
                       Almacén Destino: {selectedExpense.warehouseName || 'No afecta inventario'}
                     </p>
@@ -2410,10 +2419,10 @@ function GuaranteeChecksView() {
                           <tr key={p.id} className={isDue ? "bg-amber-50/30" : ""}>
                             <td className="px-4 py-2.5 text-xs font-bold text-[#c5a059]">{p.supplierName}</td>
                             <td className="px-4 py-2.5 text-xs font-mono font-bold">{p.checkNumber || 'S/N'}</td>
-                            <td className="px-4 py-2.5 text-xs font-mono">{p.paymentDate}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{formatDateDisplay(p.paymentDate)}</td>
                             <td className="px-4 py-2.5 text-xs font-mono font-bold text-amber-600 flex items-center gap-1">
                               {isDue && <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>}
-                              {p.dueDate}
+                              {formatDateDisplay(p.dueDate)}
                             </td>
                             <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-[#c5a059]">
                               RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -2492,8 +2501,8 @@ function GuaranteeChecksView() {
                         <tr key={p.id}>
                           <td className="px-4 py-2.5 text-xs font-bold text-slate-600">{p.supplierName}</td>
                           <td className="px-4 py-2.5 text-xs font-mono font-medium">{p.checkNumber || 'S/N'}</td>
-                          <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{p.paymentDate}</td>
-                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{p.dueDate}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{formatDateDisplay(p.paymentDate)}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{formatDateDisplay(p.dueDate)}</td>
                           <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-slate-600">
                             RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
