@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Truck, Search, Filter, AlertCircle, Receipt } from 'lucide-react';
+import { Truck, Search, Filter, AlertCircle, Receipt, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 
@@ -22,6 +22,7 @@ export default function SupplierBalancesPage() {
   const [loading, setLoading] = useState(true);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string; rnc: string }[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     fetchSuppliers();
@@ -60,6 +61,17 @@ export default function SupplierBalancesPage() {
     }
   };
 
+  const handlePrint = () => {
+    setPrinting(true);
+    try {
+      window.open(`/api/v1/reports/balances/suppliers/print?supplierId=${selectedSupplier}`, '_blank');
+    } catch (e) {
+      toast.error('Error al generar reporte');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const totalGlobal = data.reduce((acc, curr) => acc + curr.totalBalance, 0);
   const totalOverdue = data.reduce((acc, curr) => acc + curr.overdueBalance, 0);
 
@@ -74,6 +86,18 @@ export default function SupplierBalancesPage() {
             Resumen global y consolidado de los balances pendientes por suplidor.
           </p>
         </div>
+        <button
+          onClick={handlePrint}
+          disabled={printing || loading || data.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-outline-variant/30 text-primary-600 rounded-xl shadow-sm hover:bg-surface-container-low transition-all font-medium whitespace-nowrap disabled:opacity-50"
+        >
+          {printing ? (
+            <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+          ) : (
+            <Printer className="w-4 h-4" />
+          )}
+          Imprimir Reporte
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

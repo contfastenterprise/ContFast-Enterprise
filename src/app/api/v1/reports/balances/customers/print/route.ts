@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { db, accountsReceivable, customers, companies } from '@/db';
+import { eq, and, isNull, gt } from 'drizzle-orm';
+import { verifyAuth } from '@/middleware/auth';
+import { DocumentTemplates } from '@/utils/templates/documentTemplates';
+import { PdfGenerator } from '@/services/print/pdfGenerator';
+
+export async function GET(req: NextRequest) {
+  try {
+    const auth = await verifyAuth(req);
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { companyId, modo } = auth;
+
+    const url = new URL(req.url);
+    const customerId = url.searchParams.get('customerId');
+
+    // 1. Fetch Company Info
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .limit(1);
+
+    if (!company) {
+      return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+    }
+
+    // 2. Build Query
+    let queryConditions = and(
+      eq(accountsReceivable.companyId, companyId),
+      eq(accountsReceivable.modo, modo),
+      isNull(accountsReceivable.deletedAt),
+      gt(accountsReceivable.balance, '0')
+    );
+
+    if (customerId && customerId !== 'all') {
+      queryConditions = and(queryConditions, eq(accountsReceivable.customerId, customerId));
+    }
+
+    // 3. Fetch Items
+    const items = await db
+      .select({
+        balance: accountsReceivable.balance,
+        dueDate: accountsReceivable.dueDate,
+        customerId: accountsReceivable.customerId,
+        customerName: customers.name,
+        customerRnc: customers.rncCedula,
+      })
+      .from(accountsReceivable)
+      .leftJoin(customers, eq(accountsReceivable.customerId, customers.id))
+      .where(queryConditions);
+
+    // 4. Aggregate
+    const grouped: Record<string, any> = {};
+    const now = new Date();
+    
+    items.forEach(item => {
+      const cid = item.customerId || 'unknown';
+      if (!grouped[cid]) {
+        grouped[cid] = {
+          customerId: cid,
+          customerName: item.customerName || 'Desconocido',
+          customerRnc: item.customerRnc || 'N/A',
+          totalBalance: 0,
+          overdueBalance: 0,
+        };
+      }
+      
+      const bal = Number(item.balance);
+      grouped[cid].totalBalance += bal;
+      
+      if (new Date(item.dueDate) < now) {
+        grouped[cid].overdueBalance += bal;
+      }
+    });
+
+    const aggregatedItems = Object.values(grouped);
+
+    // 5. Generate HTML and PDF
+    const html = DocumentTemplates.renderCustomerBalancesReport({
+      company,
+      items: aggregatedItems,
+      filters: { customerId }
+    });
+
+    const pdfBuffer = await PdfGenerator.generatePdf(html, 'carta');
+
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/pdf');
+    headers.set('Content-Disposition', 'inline; filename="balances_clientes.pdf"');
+
+    return new NextResponse(pdfBuffer as any, { status: 200, headers });
+
+  } catch (error: any) {
+    console.error('Error generating Customer Balances report:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

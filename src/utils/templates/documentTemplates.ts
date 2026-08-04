@@ -121,6 +121,10 @@ export class DocumentTemplates {
     }
   }
 
+  private static fmt(val: number): string {
+    return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(val || 0);
+  }
+
   static generateCode39Svg(text: string): string {
     const table: Record<string, string> = {
       '0': 'nnnwwnwnn', '1': 'wnnwnnnnw', '2': 'nnwwnnnnw', '3': 'wnwwnnnnn',
@@ -4017,6 +4021,202 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         </div>
 
 
+      </body>
+      </html>
+    `;
+  }
+
+  static renderCustomerBalancesReport(data: any): string {
+    const { company, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
+      : '';
+
+    const companyTitleHtml = logoHtml
+      ? ''
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
+
+    let totalGlobal = 0;
+    let totalOverdue = 0;
+
+    const linesHtml = items.map((item: any) => {
+      totalGlobal += item.totalBalance;
+      totalOverdue += item.overdueBalance;
+      
+      const isOverdue = item.overdueBalance > 0;
+      
+      return `
+        <tr>
+          <td>
+            <strong>${item.customerName}</strong><br>
+            <span style="font-size: 8pt; color: #666;">${item.customerRnc || ''}</span>
+          </td>
+          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
+          <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
+            ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
+          </td>
+          <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
+            ${isOverdue ? 'Moroso' : 'Al Día'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Balance Acumulado de Clientes</title>
+        <style>
+          ${css}
+          .font-bold { font-weight: bold; }
+          .text-red { color: #dc2626; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 8px !important; 
+            font-size: 9pt !important; 
+            border-bottom: 1px solid #e2e8f0;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 9pt !important; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            <div>Dirección: ${company.address}</div>
+          </div>
+          <div class="doc-info">
+            <div class="subtitle">Balance Acumulado de Clientes</div>
+            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Total Clientes: ${items.length}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 45%;">Cliente / RNC</th>
+              <th style="width: 20%;" class="text-right">Balance Total</th>
+              <th style="width: 20%;" class="text-right">Vencido</th>
+              <th style="width: 15%;" class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>'}
+          </tbody>
+          <tfoot>
+            <tr style="background-color: #f8fafc;">
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
+              <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
+              <td style="border-top: 2px solid #cbd5e1;"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderSupplierBalancesReport(data: any): string {
+    const { company, items } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
+      : '';
+
+    const companyTitleHtml = logoHtml
+      ? ''
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name}</div>`;
+
+    let totalGlobal = 0;
+    let totalOverdue = 0;
+
+    const linesHtml = items.map((item: any) => {
+      totalGlobal += item.totalBalance;
+      totalOverdue += item.overdueBalance;
+      
+      const isOverdue = item.overdueBalance > 0;
+      
+      return `
+        <tr>
+          <td>
+            <strong>${item.supplierName}</strong><br>
+            <span style="font-size: 8pt; color: #666;">${item.supplierRnc || ''}</span>
+          </td>
+          <td class="text-right"><strong>${this.fmt(item.totalBalance)}</strong></td>
+          <td class="text-right ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
+            ${isOverdue ? this.fmt(item.overdueBalance) : '-'}
+          </td>
+          <td class="text-center ${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : 'color: green;'}">
+            ${isOverdue ? 'Vencido' : 'Al Día'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Balance Acumulado de Suplidores</title>
+        <style>
+          ${css}
+          .font-bold { font-weight: bold; }
+          .text-red { color: #dc2626; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          th, td { 
+            padding: 8px !important; 
+            font-size: 9pt !important; 
+            border-bottom: 1px solid #e2e8f0;
+          }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 9pt !important; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            <div>Dirección: ${company.address}</div>
+          </div>
+          <div class="doc-info">
+            <div class="subtitle">Balance Acumulado de Suplidores</div>
+            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Total Suplidores: ${items.length}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 45%;">Suplidor / RNC</th>
+              <th style="width: 20%;" class="text-right">Balance Total</th>
+              <th style="width: 20%;" class="text-right">Vencido</th>
+              <th style="width: 15%;" class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>'}
+          </tbody>
+          <tfoot>
+            <tr style="background-color: #f8fafc;">
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">TOTALES GLOBALES:</td>
+              <td class="text-right" style="font-weight: bold; border-top: 2px solid #cbd5e1;">${this.fmt(totalGlobal)}</td>
+              <td class="text-right text-red" style="font-weight: bold; border-top: 2px solid #cbd5e1; color: red;">${this.fmt(totalOverdue)}</td>
+              <td style="border-top: 2px solid #cbd5e1;"></td>
+            </tr>
+          </tfoot>
+        </table>
       </body>
       </html>
     `;
