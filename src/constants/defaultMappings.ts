@@ -4,6 +4,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 1. Principal
   { id: '1', routePattern: '/dashboard', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Inicio', groupName: 'Principal', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '35', routePattern: '/dashboard/bi%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Inteligencia de Negocios', groupName: 'Principal', iconName: 'PieChart', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '35b', routePattern: '/dashboard/proposals%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Agente Empresarial (IA)', groupName: 'Principal', iconName: 'BrainCircuit', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 2. Contactos
   { id: '2', routePattern: '/dashboard/customers%', module: 'clientes', action: 'read', isMenuItem: true, displayName: 'Clientes', groupName: 'Contactos', iconName: 'Users', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
@@ -26,6 +27,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '13', routePattern: '/dashboard/adjustments%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Credito / Debito', groupName: 'Ingresos', iconName: 'FileMinus', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
   { id: '14', routePattern: '/dashboard/cash%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Modulo de Caja', groupName: 'Ingresos', iconName: 'Wallet', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
   { id: '15', routePattern: '/dashboard/receivables%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Pagos y Abonos', groupName: 'Ingresos', iconName: 'HandCoins', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
+  { id: '15b', routePattern: '/dashboard/receivables-report%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Reporte CxC', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
   { id: '16', routePattern: '/dashboard/retentions%', module: 'retenciones', action: 'read', isMenuItem: true, displayName: 'Retenciones', groupName: 'Sistema', iconName: 'ShieldAlert', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 5. Egresos

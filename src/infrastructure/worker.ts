@@ -22,7 +22,7 @@ if (redis && !isBuildPhase) {
         attemptsMade: job.attemptsMade,
       });
     },
-    { connection: redis as any, concurrency: CONCURRENCY }
+    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
   );
 
   dgiiWorker.on('completed', (job) => {
@@ -54,7 +54,7 @@ if (redis && !isBuildPhase) {
       console.log(`[Worker] Report generation complete.`);
       return { success: true, path: `/reports/${companyId}/${reportType}_${Date.now()}.${format}` };
     },
-    { connection: redis as any, concurrency: 1 } // Process one heavy report at a time
+    { connection: redis as any, concurrency: 1, skipVersionCheck: true } // Process one heavy report at a time
   );
 
   reportWorker.on('completed', (job) => {
@@ -71,7 +71,7 @@ if (redis && !isBuildPhase) {
     async (job: Job) => {
       return await sendEmailJob(job.data);
     },
-    { connection: redis as any, concurrency: CONCURRENCY }
+    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
   );
 
   emailWorker.on('completed', (job) => {

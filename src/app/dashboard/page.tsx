@@ -124,6 +124,8 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState<{ day: string, pct: number, amount: number }[]>([]);
   const [comparisonChart, setComparisonChart] = useState<{ day: string, sales: number, purchases: number }[]>([]);
   const [topCustomers, setTopCustomers] = useState<{ name: string, total: number }[]>([]);
+  const [categoryData, setCategoryData] = useState<{ name: string, value: number, amount: number, color: string }[]>([]);
+  const [collectionStatusData, setCollectionStatusData] = useState<{ name: string, value: number, amount: number, color: string }[]>([]);
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
 
@@ -150,6 +152,8 @@ export default function DashboardPage() {
         setChartData(data.data.chart || []);
         setComparisonChart(data.data.comparisonChart || []);
         setTopCustomers(data.data.topCustomers || []);
+        setCategoryData(data.data.categoryData || []);
+        setCollectionStatusData(data.data.collectionStatusData || []);
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -170,6 +174,8 @@ export default function DashboardPage() {
       setComparisonChart([]);
       setTopCustomers([]);
       setRecentInvoices([]);
+      setCategoryData([]);
+      setCollectionStatusData([]);
     } finally {
       setLoading(false);
     }
@@ -410,7 +416,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Charts and Activity Section ─────────────────────────────────────── */}
-      <DashboardCharts chartData={chartData} comparisonChart={comparisonChart} period={chartPeriod} />
+      <DashboardCharts chartData={chartData} comparisonChart={comparisonChart} categoryData={categoryData} collectionStatusData={collectionStatusData} period={chartPeriod} />
 
       {/* ── Top Customers and Activity Section ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

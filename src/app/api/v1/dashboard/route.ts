@@ -21,12 +21,14 @@ export async function GET(req: NextRequest) {
     const period = url.searchParams.get('period') || 'semana';
     const days = period === 'mes' ? 28 : 7;
 
-    const [stats, chart, recent, comparisonChart, topCustomers] = await Promise.all([
+    const [stats, chart, recent, comparisonChart, topCustomers, categoryData, collectionStatusData] = await Promise.all([
       DashboardRepository.getStats(session.companyId, session.modo),
       DashboardRepository.getWeeklyChart(session.companyId, days, session.modo),
       DashboardRepository.getRecentActivity(session.companyId, session.modo),
       DashboardRepository.getComparisonChart(session.companyId, days, session.modo),
-      DashboardRepository.getTopCustomers(session.companyId, session.modo)
+      DashboardRepository.getTopCustomers(session.companyId, session.modo),
+      DashboardRepository.getCategorySales(session.companyId, days, session.modo),
+      DashboardRepository.getCollectionStatus(session.companyId, days, session.modo)
     ]);
 
     return NextResponse.json({
@@ -36,7 +38,9 @@ export async function GET(req: NextRequest) {
         chart,
         recent,
         comparisonChart,
-        topCustomers
+        topCustomers,
+        categoryData,
+        collectionStatusData
       }
     });
   } catch (err: any) {

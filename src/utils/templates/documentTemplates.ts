@@ -220,7 +220,7 @@ export class DocumentTemplates {
       const linesHtml = warehousesList.map((warehouse) => {
         const warehouseHeaderRow = `
           <tr style="background-color: #ffffff; color: #000000; border-bottom: 2px solid #000000; border-top: 1px solid #000000;">
-            <td colspan="8" style="font-weight: bold; font-size: 9.5pt; padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <td colspan="7" style="font-weight: bold; font-size: 9.5pt; padding: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
               Almacén: ${warehouse}
             </td>
           </tr>
@@ -232,7 +232,7 @@ export class DocumentTemplates {
         const categoriesHtml = categoriesList.map((category) => {
           const categoryHeaderRow = `
             <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #cbd5e1;">
-              <td colspan="8" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+              <td colspan="7" style="font-weight: bold; font-size: 8.5pt; color: #475569; padding: 6px 12px; text-transform: uppercase; letter-spacing: 0.5px;">
                 Categoría: ${category}
               </td>
             </tr>
@@ -256,14 +256,18 @@ export class DocumentTemplates {
             const lineItbis = hasGlobalTaxes ? rawTaxable * defaultTaxRate : 0;
             const finalLineTotal = rawTaxable + lineItbis;
 
+            const rawUom = (line.unitOfMeasure || 'unidad').trim().toLowerCase();
+            const unitMap: Record<string, string> = { 'unidad': 'Und', 'servicio': 'Srv', 'galón': 'Gal', 'galon': 'Gal', 'libra': 'Lb', 'metro': 'Mts', 'pulgada': 'Pulg', 'pie': 'Pie' };
+            const matchedUom = unitMap[rawUom] || (rawUom.length <= 3 ? rawUom : rawUom.substring(0, 3));
+            const shortUom = matchedUom.charAt(0).toUpperCase() + matchedUom.slice(1);
+
             return `
               <tr>
-                <td style="padding-left: 16px;">${line.productSku || 'N/A'}</td>
-                <td>${line.productName}</td>
-                <td>${line.unitOfMeasure || 'Unidad'}</td>
                 <td class="text-center">${qty}</td>
+                <td style="white-space: nowrap; text-align: left;">${line.productSku || 'N/A'}</td>
+                <td>${line.productName}</td>
+                <td class="text-center" style="font-size: 8.5pt;">${shortUom}</td>
                 <td class="text-right">${formatNum(uPrice)}</td>
-                <td class="text-right">${formatNum(rawDiscount)}</td>
                 <td class="text-right">${formatNum(lineItbis)}</td>
                 <td class="text-right">${formatNum(finalLineTotal)}</td>
               </tr>
@@ -348,8 +352,8 @@ export class DocumentTemplates {
       const activeLogoUrl = company?.logoUrl || company?.settings?.logoUrl || undefined;
 
       const logoHtml = activeLogoUrl
-        ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: 5px; margin-left: -8px;" alt="Logo">`
-        : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 6px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
+        ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: -5px; margin-left: -8px;" alt="Logo">`
+        : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 0px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
       const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
 
@@ -380,10 +384,6 @@ export class DocumentTemplates {
                    </div>`
             : ''
           }
-              <div style="margin-top: 10px; display: flex; flex-direction: column; align-items: flex-end;">
-                ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
-                <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
-              </div>
             </div>
           </div>
 
@@ -399,19 +399,22 @@ export class DocumentTemplates {
   ${padDots('Dirección', 18)} ${customer.address || ''}
             </div>
             <div class="invoice-num">
-              Factura N°: ${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}
+              <div style="margin-bottom: 5px;">Factura N°: ${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
+              <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                ${DocumentTemplates.generateCode39Svg(inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`)}
+                <div class="barcode-text">${inv.codigoFactura || `FAC-${inv.ncf.substring(3)}`}</div>
+              </div>
             </div>
           </div>
 
           <table class="invoice-table">
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th>Medida</th>
                 <th class="text-center">Cantidad</th>
+                <th>Código</th>
+                <th style="width: 50%;">Descripción</th>
+                <th class="text-center" style="width: 30px;">UM</th>
                 <th class="text-right">Precio</th>
-                <th class="text-right">Desc</th>
                 <th class="text-right">ITBIS</th>
                 <th class="text-right">Total</th>
               </tr>
@@ -495,7 +498,7 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 3mm 12mm 25mm 12mm;
+              margin: 10mm 12mm 25mm 12mm;
             }
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 0px; }
             .page-break { page-break-before: always; }
@@ -522,14 +525,14 @@ export class DocumentTemplates {
             
             .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             .invoice-table th { background-color: #ffffff; color: #000000; font-family: 'Inter', sans-serif; font-weight: bold; font-size: 9pt; padding: 4px 6px; border-bottom: 2px solid #000000; text-align: left; }
-            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 4px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
-            .invoice-table th.text-center, .invoice-table td.text-center { text-align: center; }
-            .invoice-table th.text-right, .invoice-table td.text-right { text-align: right; }
+            .invoice-table td { font-family: monospace; font-size: 9pt; padding: 2px 6px; border-bottom: 1px solid #e9ecef; color: #333; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
             
             .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 25px; margin-bottom: 40px; }
             
             .totals-table { width: 100%; border-collapse: collapse; }
-            .totals-table td { border: none; padding: 2px 0; }
+            .totals-table td { border: none; padding: 2px 6px 2px 0; }
             .totals-table .grand-total-row { font-weight: bold; border-top: 1px solid #ccc; border-bottom: 3px double #000; }
             .totals-table .grand-total-row td { padding: 4px 0; font-size: 11pt; }
             
@@ -539,7 +542,7 @@ export class DocumentTemplates {
             
             .qr-signature-section { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; }
             .qr-block { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: monospace; font-size: 8.5pt; }
-            .qr-img { width: 100px; height: 100px; }
+            .qr-img { width: 120px; height: 120px; }
              .invoice-footer-repeated {
               position: fixed;
               bottom: 0px;
@@ -4102,6 +4105,98 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
 
         <div class="footer" style="margin-top: 50px;">
           Reporte de Pedidos a Suplidores - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderReceivablesReport(data: any): string {
+    const { company, items, filters, totals } = data;
+    const baseCss = this.getBaseCss('carta');
+
+    const linesHtml = items.map((item: any) => {
+      const isOverdue = new Date(item.dueDate) < new Date();
+      return `
+        <tr>
+          <td>
+            <strong>${item.customerName || ''}</strong><br>
+            <span style="font-size: 8pt; color: #666;">${item.customerRnc || ''}</span>
+          </td>
+          <td>
+            ${item.ncf || ''}<br>
+            <span style="font-size: 8pt; color: #666;">${item.codigoFactura || ''}</span>
+          </td>
+          <td class="${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
+            ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+          </td>
+          <td class="text-right">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+          <td class="text-right"><strong>RD$ ${Number(item.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</strong></td>
+          <td class="text-center">
+            ${isOverdue ? '<span style="color: red; font-weight: bold;">Vencida</span>' : '<span style="color: #666;">Pendiente</span>'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Reporte de Cuentas por Cobrar</title>
+        <style>${baseCss}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${company.logo ? `<img src="${company.logo}" class="logo" />` : ''}
+            <div class="title">${company.name || ''}</div>
+            <div>RNC: ${company.rnc || ''}</div>
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+            ${company.email ? `<div>Email: ${company.email}</div>` : ''}
+            ${company.address ? `<div>Dir: ${company.address}</div>` : ''}
+          </div>
+          <div class="doc-info text-right">
+            <div class="title" style="color: #444;">REPORTE DE CUENTAS POR COBRAR</div>
+            <div><strong>Fecha:</strong> ${filters.date}</div>
+            <div><strong>Filtro Cliente:</strong> ${filters.customerName || ''}</div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>NCF / Código</th>
+              <th>Vencimiento</th>
+              <th class="text-right">Monto Original</th>
+              <th class="text-right">Balance Pendiente</th>
+              <th class="text-center">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.length === 0 ? '<tr><td colspan="6" class="text-center" style="padding: 20px !important;">No existen cuentas por cobrar para este filtro.</td></tr>' : linesHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 30px;">
+          <div class="totals" style="width: 350px;">
+            <table>
+              <tr>
+                <td style="font-size: 11pt;">Balance Vencido:</td>
+                <td class="text-right" style="font-size: 11pt; color: red; font-weight: bold;">RD$ ${Number(totals.overdue).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td class="grand-total">BALANCE TOTAL:</td>
+                <td class="text-right grand-total">RD$ ${Number(totals.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 50px;">
+          Reporte de Cuentas por Cobrar - Generado por ContFast Enterprise
         </div>
       </body>
       </html>

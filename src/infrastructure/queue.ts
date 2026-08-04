@@ -7,9 +7,9 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
 
 // Define Queues
-export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis as any }) : null;
-export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports-generation', { connection: redis as any }) : null;
-export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any }) : null;
+export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis as any, skipVersionCheck: true }) : null;
+export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports-generation', { connection: redis as any, skipVersionCheck: true }) : null;
+export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any, skipVersionCheck: true }) : null;
 
 export interface JobPayloads {
   'dgii-submissions': {

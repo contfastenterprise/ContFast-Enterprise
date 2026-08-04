@@ -46,13 +46,19 @@ export class LocalKmsProvider implements KmsProvider {
     const authTag = Buffer.from(authTagHex, 'hex');
     const encryptedBytes = Buffer.from(encryptedText, 'hex');
 
-    const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv);
-    decipher.setAuthTag(authTag);
+    try {
+      const decipher = crypto.createDecipheriv(this.algorithm, this.key, iv);
+      decipher.setAuthTag(authTag);
 
-    let decrypted = decipher.update(encryptedBytes);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    
-    return decrypted.toString('utf8');
+      let decrypted = decipher.update(encryptedBytes);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      
+      return decrypted.toString('utf8');
+    } catch (err: any) {
+      throw new Error(
+        'Las credenciales de conexión almacenadas no son válidas o la clave de encriptación del servidor ha cambiado. Por favor, vuelva a guardar su contraseña de MSeller / certificados en la configuración de la empresa.'
+      );
+    }
   }
 }
 

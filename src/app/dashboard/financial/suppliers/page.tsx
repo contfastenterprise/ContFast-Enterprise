@@ -353,7 +353,7 @@ export default function SupplierStatementPage() {
                 Antigüedad de Cuentas por Pagar (CxP)
               </h3>
               <div className="h-56 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <BarChart data={agingData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis dataKey="name" stroke="#888888" fontSize={11} tickLine={false} axisLine={false} />

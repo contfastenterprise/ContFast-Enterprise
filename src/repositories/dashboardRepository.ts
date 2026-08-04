@@ -1,5 +1,5 @@
-import { db, invoices, checks, expenses, withTenantMode } from '@/db';
-import { eq, and, desc, sql, gte, lte, ne, isNull } from 'drizzle-orm';
+import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories } from '@/db';
+import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 
 export class DashboardRepository {
   
@@ -26,7 +26,7 @@ export class DashboardRepository {
       withTenantMode(
         invoices,
         ctx,
-        ne(invoices.status, 'draft'),
+        inArray(invoices.status, ['accepted', 'signed', 'submitted']),
         isNull(invoices.deletedAt)
       )
     );
@@ -133,6 +133,110 @@ export class DashboardRepository {
     };
   }
 
+  static async getCategorySales(companyId: string, days: number = 30, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const startOfRange = new Date(startOfToday);
+    startOfRange.setUTCDate(startOfRange.getUTCDate() - (days - 1));
+
+    const sales = await db.select({
+      categoryName: productCategories.name,
+      totalAmount: sql<number>`sum(${invoiceLines.total})`,
+    }).from(invoiceLines)
+      .innerJoin(invoices, eq(invoiceLines.invoiceId, invoices.id))
+      .leftJoin(products, eq(invoiceLines.productId, products.id))
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .where(
+        and(
+          withTenantMode(invoices, ctx, gte(invoices.createdAt, startOfRange), inArray(invoices.status, ['accepted', 'signed', 'submitted']), isNull(invoices.deletedAt))
+        )
+      )
+      .groupBy(productCategories.name);
+
+    const grandTotalResult = await db.select({
+      realTotal: sql<number>`sum(${invoices.total})`
+    }).from(invoices)
+      .where(
+        and(
+          withTenantMode(invoices, ctx, gte(invoices.createdAt, startOfRange), inArray(invoices.status, ['accepted', 'signed', 'submitted']), isNull(invoices.deletedAt))
+        )
+      );
+    
+    const realTotal = Number(grandTotalResult[0]?.realTotal) || 0;
+    const lineTotalSum = sales.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0);
+    
+    const PREDEFINED_COLORS = [
+      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
+      '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6', 
+      '#6366f1', '#d946ef'
+    ];
+    
+    const sortedSales = sales.sort((a, b) => (Number(b.totalAmount) || 0) - (Number(a.totalAmount) || 0));
+    let distributedTotal = 0;
+
+    return sortedSales.map((s, idx) => {
+      const lineAmount = Number(s.totalAmount) || 0;
+      const pct = lineTotalSum > 0 ? (lineAmount / lineTotalSum) : 0;
+      const name = s.categoryName || 'Sin Categoría';
+      
+      let amount = 0;
+      if (idx === sortedSales.length - 1) {
+        amount = realTotal - distributedTotal;
+      } else {
+        amount = realTotal * pct;
+        distributedTotal += amount;
+      }
+
+      const value = realTotal > 0 ? Math.round(pct * 100) : 0;
+
+      return {
+        name,
+        value,
+        amount,
+        color: PREDEFINED_COLORS[idx % PREDEFINED_COLORS.length]
+      };
+    });
+  }
+
+  static async getCollectionStatus(companyId: string, days: number = 30, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+    const ctx = { companyId, modo };
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const startOfRange = new Date(startOfToday);
+    startOfRange.setUTCDate(startOfRange.getUTCDate() - (days - 1));
+
+    const collection = await db.select({
+      paymentStatus: invoices.paymentStatus,
+      totalAmount: sql<number>`sum(${invoices.total})`,
+    }).from(invoices)
+      .where(
+        and(
+          withTenantMode(invoices, ctx, gte(invoices.createdAt, startOfRange), inArray(invoices.status, ['accepted', 'signed', 'submitted']), isNull(invoices.deletedAt))
+        )
+      )
+      .groupBy(invoices.paymentStatus);
+
+    let paid = 0;
+    let unpaid = 0;
+    let partial = 0;
+
+    for (const row of collection) {
+      const amount = Number(row.totalAmount) || 0;
+      if (row.paymentStatus === 'paid') paid += amount;
+      else if (row.paymentStatus === 'partial') partial += amount;
+      else unpaid += amount; // 'unpaid'
+    }
+
+    const total = paid + unpaid + partial;
+    
+    return [
+      { name: 'Cobrada', value: total > 0 ? Math.round((paid / total) * 100) : 0, amount: paid, color: '#10b981' },
+      { name: 'Abonada', value: total > 0 ? Math.round((partial / total) * 100) : 0, amount: partial, color: '#f59e0b' },
+      { name: 'Pendiente', value: total > 0 ? Math.round((unpaid / total) * 100) : 0, amount: unpaid, color: '#ef4444' }
+    ];
+  }
+
   static async getWeeklyChart(companyId: string, days: number = 7, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
     const ctx = { companyId, modo };
     const startOfToday = new Date();
@@ -149,7 +253,9 @@ export class DashboardRepository {
       withTenantMode(
         invoices,
         ctx,
-        gte(invoices.createdAt, startOfRange)
+        gte(invoices.createdAt, startOfRange),
+        inArray(invoices.status, ['accepted', 'signed', 'submitted']),
+        isNull(invoices.deletedAt)
       )
     );
 
@@ -261,7 +367,9 @@ export class DashboardRepository {
       withTenantMode(
         invoices,
         ctx,
-        gte(invoices.createdAt, startOfRange)
+        gte(invoices.createdAt, startOfRange),
+        inArray(invoices.status, ['accepted', 'signed', 'submitted']),
+        isNull(invoices.deletedAt)
       )
     );
 

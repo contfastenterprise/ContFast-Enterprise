@@ -10,4 +10,4 @@ export * from './schema/accounting';
 export * from './schema/system';
 export * from './schema/hr';
 export * from './schema/supplier_orders';
-
+export * from './schema/agent';

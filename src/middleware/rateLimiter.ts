@@ -68,7 +68,7 @@ export async function checkRateLimit(
   preset: keyof typeof RATE_LIMIT_PRESETS = 'standard'
 ): Promise<boolean> {
   const r = redis;
-  const redisOffline = !r || r.status === 'close' || r.status === 'end';
+  const redisOffline = !r || r.status !== 'ready';
 
   if (redisOffline) {
     // Auth endpoints are protected by an in-memory fallback to prevent brute-force

@@ -201,7 +201,7 @@ export default function FinancialDashboard() {
             <BarChart3 className="w-4 h-4" /> Comparativa de Saldos (CxC vs CxP)
           </h3>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={comparisonChartData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
@@ -224,7 +224,7 @@ export default function FinancialDashboard() {
             {pieChartData.length === 0 ? (
               <span className="text-xs text-slate-500">No hay datos suficientes</span>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <RechartsPieChart>
                   <Pie
                     data={pieChartData}

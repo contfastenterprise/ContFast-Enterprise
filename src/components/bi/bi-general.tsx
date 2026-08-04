@@ -192,7 +192,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <p className="text-xs text-on-surface-variant mb-6">Comparativa de los últimos 6 meses de facturación y gastos</p>
           <div className="h-80">
             {comparisonData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <AreaChart data={comparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -227,7 +227,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <h4 className="font-bold text-on-surface text-lg mb-1">Distribución Semanal de Ventas</h4>
           <p className="text-xs text-on-surface-variant mb-6">Monto total facturado agrupado por día de la semana</p>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: '600' }} />
@@ -248,7 +248,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <p className="text-xs text-on-surface-variant mb-6">Monto total vendido por cada representante de ventas</p>
           <div className="h-80">
             {sellersData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={sellersData} layout="vertical" margin={{ top: 10, right: 30, left: 30, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(value) => `RD$${(value / 1000)}k`} />

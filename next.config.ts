@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   transpilePackages: ["@contfast/ai-core"],
   serverExternalPackages: ["pdfkit", "puppeteer", "puppeteer-core", "@sparticuz/chromium"],
   outputFileTracingIncludes: {
@@ -24,7 +23,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.supabase.co http://127.0.0.1:54321; font-src 'self' data:; connect-src 'self' https://mpveesrcspollujmgzgy.supabase.co;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' blob: data: https://*.supabase.co http://127.0.0.1:54321; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://mpveesrcspollujmgzgy.supabase.co;",
           },
           {
             key: "X-Frame-Options",

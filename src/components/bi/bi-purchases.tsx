@@ -127,7 +127,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
           </div>
           <div className="h-64 flex justify-center items-center">
             {apStatus.total > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={apChartData}

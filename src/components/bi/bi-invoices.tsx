@@ -105,7 +105,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
           <h4 className="font-bold text-on-surface text-base mb-1">Picos de Facturación por Hora</h4>
           <p className="text-xs text-on-surface-variant mb-6">Monto acumulado de ventas según la hora del día</p>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <AreaChart data={hourly} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorHourly" x1="0" y1="0" x2="0" y2="1">
@@ -131,7 +131,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
           </div>
           <div className="h-64 flex justify-center items-center">
             {statusChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <PieChart>
                   <Pie
                     data={statusChartData}

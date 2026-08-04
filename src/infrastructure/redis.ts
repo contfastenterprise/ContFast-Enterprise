@@ -4,8 +4,8 @@ const REDIS_URL = process.env.REDIS_URL;
 
 let redis: Redis | null = null;
 
-if (REDIS_URL || process.env.NODE_ENV !== 'production') {
-  const finalRedisUrl = REDIS_URL || 'redis://localhost:6379';
+if (REDIS_URL) {
+  const finalRedisUrl = REDIS_URL;
   try {
     console.log('Initializing Redis client...');
     redis = new Redis(finalRedisUrl, {

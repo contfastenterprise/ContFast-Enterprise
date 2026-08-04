@@ -15,8 +15,10 @@ export class DefaultPlanner implements Planner {
 
   public async createPlan(intent: Intent, context: AgentContext): Promise<Plan> {
     const availableTools = this.toolExecutor.getAvailableTools(context);
-    const toolsContext = availableTools.length > 0 
-      ? JSON.stringify(availableTools, null, 2)
+    // OPTIMIZATION: Only pass name and description to the Planner to save massive tokens
+    const simplifiedTools = availableTools.map((t: any) => ({ name: t.name, description: t.description }));
+    const toolsContext = simplifiedTools.length > 0 
+      ? JSON.stringify(simplifiedTools, null, 2)
       : "Ninguna herramienta disponible.";
 
     const systemPrompt = `

@@ -55,7 +55,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
           <h4 className="font-bold text-on-surface text-base mb-1">Flujo Físico de Mercancías</h4>
           <p className="text-xs text-on-surface-variant mb-6">Comparativa de unidades ingresadas vs retiradas del inventario</p>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={flowChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} />
@@ -82,7 +82,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
           </div>
           <div className="h-80">
             {warehouseRotations.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                 <BarChart data={warehouseRotations} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} />
