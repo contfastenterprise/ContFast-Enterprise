@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
         balance: accountsReceivable.balance,
         dueDate: accountsReceivable.dueDate,
         status: accountsReceivable.status,
+        customerId: accountsReceivable.customerId,
         customerName: customers.name,
         customerRnc: customers.rncCedula,
         createdAt: accountsReceivable.createdAt,

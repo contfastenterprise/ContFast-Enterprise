@@ -27,7 +27,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '13', routePattern: '/dashboard/adjustments%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Credito / Debito', groupName: 'Ingresos', iconName: 'FileMinus', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
   { id: '14', routePattern: '/dashboard/cash%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Modulo de Caja', groupName: 'Ingresos', iconName: 'Wallet', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
   { id: '15', routePattern: '/dashboard/receivables%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Pagos y Abonos', groupName: 'Ingresos', iconName: 'HandCoins', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
-  { id: '15b', routePattern: '/dashboard/receivables-report%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Reporte CxC', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
+  { id: '15b', routePattern: '/dashboard/receivables-report%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Cuentas por Cobrar', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
   { id: '16', routePattern: '/dashboard/retentions%', module: 'retenciones', action: 'read', isMenuItem: true, displayName: 'Retenciones', groupName: 'Sistema', iconName: 'ShieldAlert', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 5. Egresos
