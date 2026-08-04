@@ -112,7 +112,89 @@ export default function ListTab({ data }: { data: any[] }) {
   });
 
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Reporte de Cuentas por Pagar</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; color: #171717; margin: 2rem; }
+            h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; color: #0f172a; }
+            .header { margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; }
+            .date { color: #64748b; font-size: 0.875rem; }
+            table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
+            th { background-color: #f8fafc; color: #334155; font-weight: 600; text-align: left; padding: 0.75rem; border-bottom: 2px solid #e2e8f0; }
+            td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; color: #334155; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .summary { margin-top: 2rem; font-size: 1.125rem; font-weight: 700; text-align: right; padding-top: 1rem; border-top: 2px solid #e2e8f0; }
+            .status-vencida { color: #e11d48; font-weight: 600; }
+            .status-aldia { color: #059669; font-weight: 600; }
+            @media print {
+              body { margin: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Reporte de Cuentas por Pagar</h1>
+            <div class="date">Generado el: ${new Date().toLocaleString('es-DO')}</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Factura/Ref</th>
+                <th>Suplidor</th>
+                <th>Vencimiento</th>
+                <th class="text-center">Días Venc.</th>
+                <th class="text-right">Original</th>
+                <th class="text-right">Balance</th>
+                <th class="text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.filter(d => !globalFilter || d.supplierName?.toLowerCase().includes(globalFilter.toLowerCase())).map(item => {
+                const due = new Date(item.dueDate); due.setHours(0,0,0,0);
+                const now = new Date(); now.setHours(0,0,0,0);
+                const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+                const isOverdue = diffDays > 0;
+                const isPaid = Number(item.balance) <= 0;
+                const statusStr = isPaid ? 'Pagado' : (isOverdue ? 'Vencida' : 'Pendiente');
+                const statusClass = isPaid ? 'status-aldia' : (isOverdue ? 'status-vencida' : 'status-aldia');
+                
+                return `
+                  <tr>
+                    <td>CXP-${item.id.split('-')[0].toUpperCase()}</td>
+                    <td><strong>${item.supplierName}</strong></td>
+                    <td>${due.toLocaleDateString('es-DO')}</td>
+                    <td class="text-center ${isOverdue ? 'status-vencida' : ''}">${isOverdue ? diffDays : '-'}</td>
+                    <td class="text-right">${fmt(Number(item.amount))}</td>
+                    <td class="text-right font-bold">${fmt(Number(item.balance))}</td>
+                    <td class="text-center"><span class="${statusClass}">${statusStr}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+          <div class="summary">
+            Total Balance Pendiente: ${fmt(data.filter(d => !globalFilter || d.supplierName?.toLowerCase().includes(globalFilter.toLowerCase())).reduce((acc, curr) => acc + Number(curr.balance), 0))}
+          </div>
+          <script>
+            window.onload = () => {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const handleExportCSV = () => {
