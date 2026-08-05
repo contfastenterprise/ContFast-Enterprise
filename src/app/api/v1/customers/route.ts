@@ -40,14 +40,15 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const hasDebt = searchParams.get('hasDebt') === 'true';
 
-    const cacheKey = `cache:customers:${session.companyId}:limit_${limit}_offset_${offset}_search_${search || ''}`;
+    const cacheKey = `cache:customers:${session.companyId}:limit_${limit}_offset_${offset}_search_${search || ''}_hasDebt_${hasDebt}`;
     const cached = await getCache(cacheKey);
     if (cached) {
       return NextResponse.json(JSON.parse(cached), { headers: resHeaders });
     }
 
-    const result = await CustomerRepository.findAll(session.companyId, search, limit, offset);
+    const result = await CustomerRepository.findAll(session.companyId, search, limit, offset, hasDebt);
     const responseData = {
       success: true,
       data: result.data,

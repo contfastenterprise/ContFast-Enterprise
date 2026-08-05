@@ -98,7 +98,7 @@ export default function CustomerStatementPage() {
     const fetchCustomers = async () => {
       try {
         setLoadingCustomers(true);
-        const res = await fetch('/api/v1/customers?limit=200');
+        const res = await fetch('/api/v1/customers?limit=200&hasDebt=true');
         const json = await res.json();
         if (res.ok) {
           setCustomers(json.data || []);

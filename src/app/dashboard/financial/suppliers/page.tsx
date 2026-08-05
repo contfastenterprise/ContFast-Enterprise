@@ -94,7 +94,7 @@ export default function SupplierStatementPage() {
     const fetchSuppliers = async () => {
       try {
         setLoadingSuppliers(true);
-        const res = await fetch('/api/v1/suppliers?limit=200');
+        const res = await fetch('/api/v1/suppliers?limit=200&hasDebt=true');
         const json = await res.json();
         if (res.ok) {
           setSuppliers(json.data || []);

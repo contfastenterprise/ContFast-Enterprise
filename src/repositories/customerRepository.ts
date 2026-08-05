@@ -1,5 +1,5 @@
 import { db, customers, invoices, accountsReceivable, cashMovements } from '@/db';
-import { eq, and, or, ilike, desc, sql, isNull, inArray } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, sql, isNull, inArray, exists } from 'drizzle-orm';
 
 export interface CreateCustomerInput {
   companyId: string;
@@ -67,7 +67,7 @@ export class CustomerRepository {
   /**
    * Retrieve all customers for a company, with optional search and pagination
    */
-  static async findAll(companyId: string, search?: string, limit = 50, offset = 0) {
+  static async findAll(companyId: string, search?: string, limit = 50, offset = 0, hasDebt?: boolean) {
     const filters = [
       eq(customers.companyId, companyId),
       isNull(customers.deletedAt)
@@ -79,6 +79,23 @@ export class CustomerRepository {
           ilike(customers.name, `%${search}%`),
           ilike(customers.rncCedula, `%${search}%`)
         )!
+      );
+    }
+
+    if (hasDebt) {
+      filters.push(
+        exists(
+          db.select()
+            .from(accountsReceivable)
+            .where(
+              and(
+                eq(accountsReceivable.customerId, customers.id),
+                eq(accountsReceivable.companyId, companyId),
+                sql`${accountsReceivable.balance} > 0`,
+                isNull(accountsReceivable.deletedAt)
+              )
+            )
+        )
       );
     }
 

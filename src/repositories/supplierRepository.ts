@@ -1,9 +1,10 @@
 import { db } from '@/db';
 import { suppliers } from '@/db/schema';
-import { eq, and, or, ilike, desc, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, sql, isNull, exists } from 'drizzle-orm';
+import { accountsPayable } from '@/db/schema';
 
 export class SupplierRepository {
-  static async findAll(companyId: string, search?: string, limit: number = 50, offset: number = 0) {
+  static async findAll(companyId: string, search?: string, limit: number = 50, offset: number = 0, hasDebt?: boolean) {
     let conditions: any[] = [
       eq(suppliers.companyId, companyId),
       isNull(suppliers.deletedAt)
@@ -14,6 +15,23 @@ export class SupplierRepository {
         or(
           ilike(suppliers.name, `%${search}%`),
           ilike(suppliers.rnc, `%${search}%`)
+        )
+      );
+    }
+
+    if (hasDebt) {
+      conditions.push(
+        exists(
+          db.select()
+            .from(accountsPayable)
+            .where(
+              and(
+                eq(accountsPayable.supplierId, suppliers.id),
+                eq(accountsPayable.companyId, companyId),
+                sql`${accountsPayable.balance} > 0`,
+                isNull(accountsPayable.deletedAt)
+              )
+            )
         )
       );
     }
