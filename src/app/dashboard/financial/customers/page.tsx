@@ -59,7 +59,7 @@ const fmt = (val: number) => {
 
 export default function CustomerStatementPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('all');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -300,7 +300,7 @@ export default function CustomerStatementPage() {
                 setStatementData(null);
               }
             }}
-            placeholder="Buscar por nombre o RNC/Cédula..."
+            placeholder="Seleccione un cliente..."
             loading={loadingCustomers}
           />
           </div>

@@ -55,7 +55,7 @@ const fmt = (val: number) => {
 
 export default function SupplierStatementPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('all');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -296,7 +296,7 @@ export default function SupplierStatementPage() {
                 setStatementData(null);
               }
             }}
-            placeholder="Buscar por nombre o RNC..."
+            placeholder="Seleccione un suplidor..."
             loading={loadingSuppliers}
           />
           </div>
