@@ -8,6 +8,7 @@ import {
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
+import { Button } from '@/components/ui/button';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
@@ -303,7 +304,9 @@ export default function CustomerStatementPage() {
             loading={loadingCustomers}
           />
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => {
               if (selectedCustomerId === 'all' || !selectedCustomerId) {
                 window.open('/api/v1/reports/receivables/print?customerId=all', '_blank');
@@ -312,11 +315,11 @@ export default function CustomerStatementPage() {
               }
             }}
             disabled={printing}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#003366] hover:bg-[#002244] text-white rounded-lg text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 h-8 text-xs font-semibold"
           >
             <Printer className="w-3.5 h-3.5" /> 
             {printing ? 'Generando...' : 'Imprimir Reporte'}
-          </button>
+          </Button>
         </div>
       </div>
 
