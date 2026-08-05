@@ -311,9 +311,9 @@ export default function SupplierStatementPage() {
               }
             }}
             disabled={printing}
-            className="flex items-center justify-center gap-1.5 h-8 text-xs font-semibold"
+            className="flex items-center justify-center gap-2"
           >
-            <Printer className="w-3.5 h-3.5" /> 
+            <Printer className="w-4 h-4" /> 
             {printing ? 'Generando...' : 'Imprimir Reporte'}
           </Button>
         </div>
