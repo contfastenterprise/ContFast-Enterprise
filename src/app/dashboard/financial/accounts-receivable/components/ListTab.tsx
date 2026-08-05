@@ -67,9 +67,9 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
             td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #e2e8f0; color: #334155; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
-            .col-id { width: 12%; }
-            .col-client { width: 35%; }
-            .col-date { width: 10%; }
+            .col-id { width: 15%; white-space: nowrap; }
+            .col-client { width: 32%; }
+            .col-date { width: 10%; white-space: nowrap; }
             .col-days { width: 10%; }
             .col-amount { width: 13%; }
             .col-status { width: 7%; }
