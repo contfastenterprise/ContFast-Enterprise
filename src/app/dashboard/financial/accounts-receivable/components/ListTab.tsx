@@ -117,7 +117,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                 
                 return `
                   <tr>
-                    <td>CXC-${item.id.split('-')[0].toUpperCase()}</td>
+                    <td>${item.id.split('-')[0].toUpperCase()}</td>
                     <td><strong>${item.customerName}</strong></td>
                     <td>${due.toLocaleDateString('es-DO')}</td>
                     <td class="text-center ${isOverdue ? 'status-vencida' : ''}">${isOverdue ? diffDays : '-'}</td>
