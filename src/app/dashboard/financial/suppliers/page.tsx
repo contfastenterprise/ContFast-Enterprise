@@ -283,14 +283,11 @@ export default function SupplierStatementPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="w-full max-w-md">
             <AutocompleteSelect
-              items={[
-                { id: 'all', name: 'Todos los proveedores', subLabel: 'Reporte General' },
-                ...suppliers.map((s) => ({
-                  id: s.id,
-                  name: s.name,
-                  subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
-                }))
-              ]}
+              items={suppliers.map((s) => ({
+                id: s.id,
+                name: s.name,
+                subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
+              }))}
             value={selectedSupplierId}
             onChange={(id, name) => {
               setSelectedSupplierId(id);

@@ -287,24 +287,21 @@ export default function CustomerStatementPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="w-full max-w-md">
             <AutocompleteSelect
-              items={[
-                { id: 'all', name: 'Todos los clientes', subLabel: 'Reporte General' },
-                ...customers.map((c) => ({
-                  id: c.id,
-                  name: c.name,
-                  subLabel: c.rncCedula ? `RNC/Cédula: ${c.rncCedula}` : "Sin RNC/Cédula",
-                }))
-              ]}
-            value={selectedCustomerId}
-            onChange={(id, name) => {
-              setSelectedCustomerId(id);
-              setCustomerSearchQuery(name);
-              if (id && id !== 'all') {
-                fetchStatement(id);
-              } else {
-                setStatementData(null);
-              }
-            }}
+              items={customers.map((c) => ({
+                id: c.id,
+                name: c.name,
+                subLabel: c.rncCedula ? `RNC/Cédula: ${c.rncCedula}` : "Sin RNC/Cédula",
+              }))}
+              value={selectedCustomerId}
+              onChange={(id, name) => {
+                setSelectedCustomerId(id);
+                setCustomerSearchQuery(name);
+                if (id && id !== 'all') {
+                  fetchStatement(id);
+                } else {
+                  setStatementData(null);
+                }
+              }}
             placeholder="Seleccione un cliente..."
             loading={loadingCustomers}
           />
