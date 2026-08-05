@@ -308,9 +308,9 @@ export default function SupplierStatementPage() {
               }
             }}
             disabled={printing}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold shadow-md transition-colors h-[42px] whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#003366] hover:bg-[#002244] text-white rounded-lg text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
           >
-            <Printer className="w-4 h-4" /> 
+            <Printer className="w-3.5 h-3.5" /> 
             {printing ? 'Generando...' : 'Imprimir Reporte'}
           </button>
         </div>
