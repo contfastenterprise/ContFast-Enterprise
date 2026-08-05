@@ -278,7 +278,12 @@ export default function CustomerStatementPage() {
 
       {/* Customer Select dropdown */}
       <div className="bg-surface-bright/70 border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-        <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">Seleccione el Cliente</label>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">Seleccione el Cliente</label>
+          <p className="text-[10px] text-neutral-400 mt-1">
+            * Únicamente se muestran los clientes con facturas o saldos pendientes.
+          </p>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="w-full max-w-md">
             <AutocompleteSelect
