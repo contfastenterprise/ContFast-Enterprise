@@ -56,18 +56,24 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
         <head>
           <title>Reporte de Cuentas por Cobrar</title>
           <style>
-            body { font-family: system-ui, -apple-system, sans-serif; color: #171717; margin: 2rem; }
-            h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; color: #0f172a; }
-            .header { margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+            body { font-family: system-ui, -apple-system, sans-serif; color: #171717; margin: 1rem; }
+            h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; color: #0f172a; }
+            .header { margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
             .header-info { flex: 1; }
-            .header-logo { max-height: 50px; max-width: 200px; object-fit: contain; }
-            .date { color: #64748b; font-size: 0.875rem; }
-            table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem; }
-            th { background-color: #f8fafc; color: #334155; font-weight: 600; text-align: left; padding: 0.75rem; border-bottom: 2px solid #e2e8f0; }
-            td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; color: #334155; }
+            .header-logo { max-height: 40px; max-width: 150px; object-fit: contain; }
+            .date { color: #64748b; font-size: 0.75rem; }
+            table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.75rem; }
+            th { background-color: #f8fafc; color: #334155; font-weight: 600; text-align: left; padding: 0.35rem 0.5rem; border-bottom: 2px solid #e2e8f0; }
+            td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #e2e8f0; color: #334155; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
-            .summary { margin-top: 2rem; font-size: 1.125rem; font-weight: 700; text-align: right; padding-top: 1rem; border-top: 2px solid #e2e8f0; }
+            .col-id { width: 12%; }
+            .col-client { width: 35%; }
+            .col-date { width: 10%; }
+            .col-days { width: 10%; }
+            .col-amount { width: 13%; }
+            .col-status { width: 7%; }
+            .summary { margin-top: 1rem; font-size: 1rem; font-weight: 700; text-align: right; padding-top: 0.5rem; border-top: 2px solid #e2e8f0; }
             .status-vencida { color: #e11d48; font-weight: 600; }
             .status-aldia { color: #059669; font-weight: 600; }
             @media print {
@@ -90,13 +96,13 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
           <table>
             <thead>
               <tr>
-                <th>Factura/Ref</th>
-                <th>Cliente</th>
-                <th>Vencimiento</th>
-                <th class="text-center">Días Venc.</th>
-                <th class="text-right">Original</th>
-                <th class="text-right">Balance</th>
-                <th class="text-center">Estado</th>
+                <th class="col-id">Factura/Ref</th>
+                <th class="col-client">Cliente</th>
+                <th class="col-date">Vencimiento</th>
+                <th class="text-center col-days">Días Venc.</th>
+                <th class="text-right col-amount">Original</th>
+                <th class="text-right col-amount">Balance</th>
+                <th class="text-center col-status">Estado</th>
               </tr>
             </thead>
             <tbody>
