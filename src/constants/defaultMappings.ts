@@ -38,11 +38,13 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   
   // 6. Finanzas
   { id: '36', routePattern: '/dashboard/financial%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Dashboard Financiero', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 5, createdAt: new Date(), updatedAt: new Date() },
-  { id: '37', routePattern: '/dashboard/financial/customers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Clientes (CxC)', groupName: 'Finanzas', iconName: 'HandCoins', orderIndex: 6, createdAt: new Date(), updatedAt: new Date() },
-  { id: '38', routePattern: '/dashboard/financial/suppliers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Suplidores (CxP)', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 8, createdAt: new Date(), updatedAt: new Date() },
-  { id: '19', routePattern: '/dashboard/bank%', module: 'banco', action: 'read', isMenuItem: true, displayName: 'Cuentas Bancarias', groupName: 'Finanzas', iconName: 'Landmark', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
-  { id: '20', routePattern: '/dashboard/accounting%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Contabilidad', groupName: 'Finanzas', iconName: 'BookOpen', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
-  { id: '21', routePattern: '/dashboard/reports%', module: 'reportes', action: 'read', isMenuItem: true, displayName: 'Reportes', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
+  { id: '37a', routePattern: '/dashboard/financial/accounts-receivable%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Cuentas por Cobrar', groupName: 'Finanzas', iconName: 'Banknote', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
+  { id: '37', routePattern: '/dashboard/financial/customers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Clientes (CxC)', groupName: 'Finanzas', iconName: 'HandCoins', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
+  { id: '38a', routePattern: '/dashboard/financial/accounts-payable%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Cuentas por Pagar', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '38', routePattern: '/dashboard/financial/suppliers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Suplidores (CxP)', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
+  { id: '19', routePattern: '/dashboard/bank%', module: 'banco', action: 'read', isMenuItem: true, displayName: 'Cuentas Bancarias', groupName: 'Finanzas', iconName: 'Landmark', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
+  { id: '20', routePattern: '/dashboard/accounting%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Contabilidad', groupName: 'Finanzas', iconName: 'BookOpen', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
+  { id: '21', routePattern: '/dashboard/reports%', module: 'reportes', action: 'read', isMenuItem: true, displayName: 'Reportes', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
   
   // 7. Recursos Humanos
   { id: '22', routePattern: '/dashboard/hr', module: 'nomina', action: 'read', isMenuItem: true, displayName: 'Dashboard RRHH', groupName: 'Recursos Humanos', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
