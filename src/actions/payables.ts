@@ -1,6 +1,6 @@
 'use server';
 
-import { db, accountsPayable, suppliers, supplierPayments, companies, companySettings } from '@/db';
+import { db, accountsPayable, suppliers, supplierPayments, companies, companySettings, purchaseOrders, expenses, expenseTypes } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
@@ -55,10 +55,15 @@ export async function getPayablesDashboardData() {
       status: accountsPayable.status,
       supplierName: suppliers.name,
       supplierId: suppliers.id,
+      purchaseOrderId: accountsPayable.purchaseOrderId,
+      expenseId: accountsPayable.expenseId,
+      expenseTypeName: expenseTypes.name,
       createdAt: accountsPayable.createdAt,
     })
     .from(accountsPayable)
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
+    .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
+    .leftJoin(expenseTypes, eq(expenses.expenseType, expenseTypes.code))
     .where(
       and(
         eq(accountsPayable.companyId, companyId),
@@ -174,16 +179,32 @@ export async function getPayablesDashboardData() {
     { name: 'Jun', value: totalPorPagar }, // mes actual aprox
   ];
 
-  // Categorías de Gastos
-  // Como no hay acceso directo a chart_of_accounts en la consulta sencilla, emulamos una distribución razonable basada en suplidores.
-  const categoriesData = [
-    { name: 'Inventario / Mercancía', value: totalPorPagar * 0.60 },
-    { name: 'Servicios', value: totalPorPagar * 0.15 },
-    { name: 'Alquiler', value: totalPorPagar * 0.10 },
-    { name: 'Publicidad', value: totalPorPagar * 0.05 },
-    { name: 'Nómina', value: totalPorPagar * 0.05 },
-    { name: 'Otros', value: totalPorPagar * 0.05 },
-  ];
+  // Categorías de Gastos Reales
+  const categoryMap: Record<string, number> = {};
+  raw.forEach(item => {
+    // Determine category based on the origin
+    let category = 'Otros / No Clasificado';
+    if (item.purchaseOrderId) {
+      category = 'Inventario / Compras';
+    } else if (item.expenseTypeName) {
+      category = item.expenseTypeName;
+    }
+    
+    if (!categoryMap[category]) {
+      categoryMap[category] = 0;
+    }
+    categoryMap[category] += item.balance;
+  });
+
+  let categoriesData = Object.keys(categoryMap).map(name => ({
+    name,
+    value: categoryMap[name]
+  })).sort((a, b) => b.value - a.value);
+  
+  // Si no hay deudas, mostrar un array vacío o cero para no romper la gráfica
+  if (categoriesData.length === 0) {
+     categoriesData = [{ name: 'Sin Deudas', value: 0 }];
+  }
 
   const complianceRate = totalPorPagar > 0 ? ((totalPorPagar - totalVencido) / totalPorPagar) * 100 : 100;
 

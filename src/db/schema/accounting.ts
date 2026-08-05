@@ -122,6 +122,7 @@ export const accountsPayable = pgTable('accounts_payable', {
   modo: environmentMode('modo').default('PRODUCCION').notNull(),
   supplierId: uuid('supplier_id').notNull().references(() => suppliers.id),
   purchaseOrderId: uuid('purchase_order_id').references(() => purchaseOrders.id),
+  expenseId: uuid('expense_id').references((): any => expenses.id),
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   balance: decimal('balance', { precision: 15, scale: 2 }).notNull(),
   dueDate: date('due_date').notNull(),
