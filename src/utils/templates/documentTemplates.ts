@@ -354,15 +354,17 @@ export class DocumentTemplates {
       }).replace('am', 'a. m.').replace('pm', 'p. m.').replace('AM', 'a. m.').replace('PM', 'p. m.');
 
       const activeLogoUrl = company?.logoUrl || company?.settings?.logoUrl || undefined;
-
       const logoHtml = activeLogoUrl
         ? `<img src="${activeLogoUrl}" style="max-height: 115px; max-width: 250px; object-fit: contain; margin-bottom: -5px; margin-left: -8px;" alt="Logo">`
         : `<div style="font-size: 16pt; font-weight: bold; color: #005E6A; margin-bottom: 0px; font-family: 'Inter', sans-serif; text-transform: uppercase;">${company?.name || ''}</div>`;
 
       const copiesCount = Math.max(1, Math.min(5, Number(company?.settings?.printCopies ?? 1)));
 
-      const renderSingleCopy = (copyLabel: string) => {
+      const renderSingleCopy = (label: string) => {
         return `
+          <table style="width: 100%; border: none; border-spacing: 0;">
+            <thead><tr><td></td></tr></thead>
+            <tbody><tr><td style="padding: 0;">
           <div class="header-container">
             <div>
               ${logoHtml}
@@ -375,7 +377,7 @@ export class DocumentTemplates {
             </div>
             <div class="doc-info">
               <div style="font-weight: bold; font-size: 11pt; border: 2px solid #005E6A; color: #005E6A; padding: 2px 8px; border-radius: 4px; display: inline-block; text-transform: uppercase; margin-bottom: 8px; font-family: 'Inter', sans-serif;">
-                ${copyLabel}
+                ${label}
               </div>
               <div class="doc-title">${getEcfTypeName(inv.ecfType)}</div>
               <div class="doc-ncf">e-NCF: <span style="font-family: monospace;">${inv.ncf}</span></div>
@@ -458,6 +460,12 @@ export class DocumentTemplates {
             </div>
           </div>
 
+            </td></tr></tbody>
+            <tfoot><tr><td>
+              <div style="height: 90px;"></div>
+            </td></tr></tfoot>
+          </table>
+
           <div class="invoice-footer-repeated">
             <div style="display: flex; align-items: center; gap: 15px;">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
@@ -466,15 +474,15 @@ export class DocumentTemplates {
                 Fecha Firma: ${formattedSigDate}
               </div>
             </div>
-          </div>
 
-          <div class="last-page-signatures" style="position: absolute; bottom: 0px; right: 0px; z-index: 10;">
-            <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end;">
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
-                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Recibido conforme</div>
-              </div>
-              <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
-                <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Revisado por</div>
+            <div class="last-page-signatures" style="z-index: 10;">
+              <div class="signature-container" style="display: flex; gap: 30px; font-family: 'Inter', sans-serif; font-size: 7.5pt; color: #555; align-items: flex-end;">
+                <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
+                  <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Recibido conforme</div>
+                </div>
+                <div class="signature-line" style="text-align: center; width: 120px; display: flex; flex-direction: column; justify-content: flex-end; height: 40px; margin-bottom: 2px;">
+                  <div class="signature-line-border" style="border-top: 1px solid #777; padding-top: 2px;">Revisado por</div>
+                </div>
               </div>
             </div>
           </div>
@@ -502,7 +510,7 @@ export class DocumentTemplates {
           <title>Factura ${inv.ncf}</title>
           <style>
             @page {
-              margin: 10mm 12mm 25mm 12mm;
+              margin: 10mm 12mm 12mm 12mm;
             }
             body { font-family: 'Inter', Helvetica, Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; padding-bottom: 0px; }
             .page-break { page-break-before: always; }
@@ -558,7 +566,7 @@ export class DocumentTemplates {
               border-top: 1px solid #cbd5e1;
               padding-top: 8px;
               background-color: white;
-              height: 90px;
+              height: 80px;
             }
             .qr-img-repeated {
               width: 85px;
@@ -1548,6 +1556,105 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
 
         <div class="footer" style="margin-top: 60px;">
           Documento de Balance Pendiente - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderAPStatement(data: any, asOf: string): string {
+    const { company, supplier, openItems, totalPending } = data;
+    const css = this.getBaseCss('carta');
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
+      : '';
+
+    const companyTitleHtml = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const formatNum = (val: number) => {
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const linesHtml = openItems.map((item: any) => {
+      const isOverdue = new Date(item.dueDate) < new Date();
+      const ncfText = item.documentNumber ? `NCF: ${item.documentNumber}` : 'Sin NCF';
+      const documentLabel = `Gasto - ${ncfText}`;
+      const supplierLabel = supplier.rnc ? `${supplier.name}<br><span style="font-size: 8.5pt; color: #555;">RNC/Cédula: ${supplier.rnc}</span>` : supplier.name;
+      return `
+        <tr>
+          <td>${supplierLabel}</td>
+          <td>${documentLabel}</td>
+          <td>${new Date(item.date).toLocaleDateString('es-DO')}</td>
+          <td>
+            <span style="${isOverdue ? 'color: #dc3545; font-weight: bold;' : ''}">
+              ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+            </span>
+          </td>
+          <td class="text-right font-mono">$${formatNum(Number(item.amount))}</td>
+          <td class="text-right font-mono" style="font-weight: bold; color: #dc3545;">$${formatNum(Number(item.balance))}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuentas por Pagar - ${supplier.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR PAGAR</div>
+            <div><strong>Proveedor:</strong> ${supplier.name}</div>
+            ${supplier.rnc ? `<div><strong>RNC/Cédula:</strong> ${supplier.rnc}</div>` : ''}
+            <div><strong>Fecha de Corte:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">Facturas Pendientes y Balances Adeudados</h4>
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>Nombre</th>
+              <th>Documento / NCF</th>
+              <th>Fecha Emisión</th>
+              <th>Fecha Vencimiento</th>
+              <th class="text-right">Monto Original</th>
+              <th class="text-right" style="color: #dc3545;">Balance Pendiente</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linesHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-container" style="margin-top: 20px;">
+          <div class="totals">
+            <table>
+              <tr class="grand-total" style="border-top: 2px solid #003366; color: #dc3545;">
+                <th>TOTAL PENDIENTE</th>
+                <td class="text-right">$${formatNum(totalPending)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer" style="margin-top: 60px;">
+          Documento de Balance Pendiente (Cuentas por Pagar) - Generado por ContFast Enterprise
         </div>
       </body>
       </html>
@@ -4382,8 +4489,10 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       <body>
         <div class="header">
           <div class="company-info">
-            ${company.logo ? `<img src="${company.logo}" class="logo" />` : ''}
-            <div class="title">${company.name || ''}</div>
+            ${company.logoUrl 
+              ? `<img src="${company.logoUrl}" class="logo" alt="Logo" style="max-height: 80px; margin-left: -24px;" />` 
+              : `<div class="title">${company.name || ''}</div>`
+            }
             <div>RNC: ${company.rnc || ''}</div>
             ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
             ${company.email ? `<div>Email: ${company.email}</div>` : ''}
@@ -4427,8 +4536,18 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
         </div>
 
-        <div class="footer" style="margin-top: 50px;">
-          Reporte de Cuentas por Cobrar - Generado por ContFast Enterprise
+        <div class="footer" style="margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div class="signature-container" style="display: flex; gap: 50px; font-family: 'Inter', sans-serif; font-size: 8pt; color: #555;">
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="border-top: 1px solid #777; padding-top: 5px;">Recibido conforme</div>
+            </div>
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="border-top: 1px solid #777; padding-top: 5px;">Revisado por</div>
+            </div>
+          </div>
+          <div style="text-align: right; color: #888;">
+            Reporte de Cuentas por Cobrar - Generado por ContFast Enterprise
+          </div>
         </div>
       </body>
       </html>
@@ -4473,8 +4592,10 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       <body>
         <div class="header">
           <div class="company-info">
-            ${company.logo ? `<img src="${company.logo}" class="logo" />` : ''}
-            <div class="title">${company.name || ''}</div>
+            ${company.logoUrl 
+              ? `<img src="${company.logoUrl}" class="logo" alt="Logo" style="max-height: 80px; margin-left: -24px;" />` 
+              : `<div class="title">${company.name || ''}</div>`
+            }
             <div>RNC: ${company.rnc || ''}</div>
             ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
             ${company.email ? `<div>Email: ${company.email}</div>` : ''}
@@ -4518,8 +4639,142 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
         </div>
 
-        <div class="footer" style="margin-top: 50px;">
-          Reporte de Cuentas por Pagar - Generado por ContFast Enterprise
+        <div class="footer" style="margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div class="signature-container" style="display: flex; gap: 50px; font-family: 'Inter', sans-serif; font-size: 8pt; color: #555;">
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="border-top: 1px solid #777; padding-top: 5px;">Recibido conforme</div>
+            </div>
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="border-top: 1px solid #777; padding-top: 5px;">Revisado por</div>
+            </div>
+          </div>
+          <div style="text-align: right; color: #888;">
+            Reporte de Cuentas por Pagar - Generado por ContFast Enterprise
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderCashClosureReport(data: any): string {
+    const { company, session, movements, totals } = data;
+    const baseCss = this.getBaseCss('carta');
+
+    const renderMovementRow = (item: any) => `
+      <tr>
+        <td class="px-2 py-1">${new Date(item.createdAt).toLocaleString('es-DO')}</td>
+        <td class="px-2 py-1">${item.description || item.type}</td>
+        <td class="px-2 py-1">${item.reference || '-'}</td>
+        <td class="px-2 py-1 text-right font-mono">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+      </tr>
+    `;
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <title>Arqueo y Cierre de Caja</title>
+        <style>${baseCss}</style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${company.logoUrl 
+              ? `<img src="${company.logoUrl}" class="logo" alt="Logo" style="max-height: 80px; margin-left: -24px;" />` 
+              : `<div class="title">${company.name || ''}</div>`
+            }
+            <div>RNC: ${company.rnc || ''}</div>
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+            ${company.email ? `<div>Email: ${company.email}</div>` : ''}
+            ${company.address ? `<div>Dir: ${company.address}</div>` : ''}
+          </div>
+          <div class="doc-info text-right">
+            <div class="title" style="color: #444;">ARQUEO Y CIERRE DE CAJA</div>
+            <div><strong>Caja:</strong> ${session.registerName || ''}</div>
+            <div><strong>Cajero:</strong> ${session.userName || ''}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px; font-size: 10pt;">
+          <table style="width: 100%; border: none;">
+            <tr>
+              <td style="border: none; padding: 0;"><strong>Apertura:</strong> ${new Date(session.openedAt).toLocaleString('es-DO')}</td>
+              <td style="border: none; padding: 0; text-align: right;"><strong>Cierre:</strong> ${session.closedAt ? new Date(session.closedAt).toLocaleString('es-DO') : 'Sin Cerrar'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 12pt; color: #003366; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Resumen de Operaciones</h3>
+          <table style="width: 50%; margin: 0;">
+            <tr>
+              <td style="border: none; padding: 5px 0;">Fondo Inicial:</td>
+              <td style="border: none; padding: 5px 0; text-align: right; font-weight: bold;">RD$ ${Number(session.initialBalance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td style="border: none; padding: 5px 0;">(+) Entradas (Ventas/Ingresos):</td>
+              <td style="border: none; padding: 5px 0; text-align: right; color: green;">RD$ ${Number(totals.cashIn).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td style="border: none; padding: 5px 0;">(-) Salidas (Gastos/Reembolsos):</td>
+              <td style="border: none; padding: 5px 0; text-align: right; color: red;">RD$ ${Number(totals.cashOut).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr style="border-top: 2px solid #ccc;">
+              <td style="border: none; padding: 10px 0; font-weight: bold;">Saldo Esperado:</td>
+              <td style="border: none; padding: 10px 0; text-align: right; font-weight: bold; font-size: 11pt;">RD$ ${Number(session.expectedBalance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td style="border: none; padding: 5px 0; font-weight: bold;">Saldo Real (Físico):</td>
+              <td style="border: none; padding: 5px 0; text-align: right; font-weight: bold; font-size: 11pt;">RD$ ${Number(session.actualBalance || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+            </tr>
+            <tr>
+              <td style="border: none; padding: 5px 0; font-weight: bold;">Diferencia:</td>
+              <td style="border: none; padding: 5px 0; text-align: right; font-weight: bold; font-size: 11pt; color: ${Number(session.difference || 0) < 0 ? 'red' : Number(session.difference || 0) > 0 ? 'blue' : 'green'};">
+                RD$ ${Number(session.difference || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        ${session.closeObservations ? `
+          <div style="margin-bottom: 20px; padding: 10px; background-color: #f8fafc; border-radius: 5px;">
+            <strong>Observaciones de Cierre:</strong><br>
+            <span style="font-size: 10pt; color: #475569;">${session.closeObservations}</span>
+          </div>
+        ` : ''}
+
+        ${movements.length > 0 ? `
+        <h3 style="font-size: 12pt; color: #003366; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; margin-top: 30px;">Detalle de Movimientos (Ingresos y Egresos)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Descripción</th>
+              <th>Referencia</th>
+              <th class="text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movements.map(renderMovementRow).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        <div class="footer" style="margin-top: 80px; display: flex; justify-content: space-between; align-items: flex-end;">
+          <div class="signature-container" style="display: flex; gap: 50px; font-family: 'Inter', sans-serif; font-size: 8pt; color: #555;">
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="font-weight: bold; margin-bottom: 5px;">${session.userName || ''}</div>
+              <div style="border-top: 1px solid #777; padding-top: 5px;">Cajero (Entregado por)</div>
+            </div>
+            <div class="signature-line" style="text-align: center; width: 150px;">
+              <div style="border-top: 1px solid #777; padding-top: 20px;">Auditor (Recibido por)</div>
+            </div>
+          </div>
+          <div style="text-align: right; color: #888;">
+            Arqueo de Caja - Generado por ContFast Enterprise
+          </div>
         </div>
       </body>
       </html>

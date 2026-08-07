@@ -11,7 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
-import { ThermalTicketPrint } from '@/components/print/ThermalTicketPrint';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type CashView = 'loading' | 'apertura' | 'gestion' | 'arqueo' | 'historico';
@@ -1222,9 +1222,7 @@ export default function CashPage() {
                                   </button>
                                   <button 
                                     onClick={() => {
-                                      setClosedSessionId(null);
-                                      setTimeout(() => setClosedSessionId(s.id), 50);
-                                      toast.success('Generando impresión...');
+                                      window.open(`/api/v1/cash/sessions/${s.id}/print`, '_blank');
                                     }} 
                                     className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" 
                                     title="Reimprimir"
@@ -1429,17 +1427,20 @@ export default function CashPage() {
               <p className="text-slate-500 text-xs mb-6">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
-              {closedSessionId && (
-                <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                  <ThermalTicketPrint sessionId={closedSessionId!} autoPrint={true} />
-                </div>
-              )}
-              <button
-                onClick={handleSuccessClose}
-                className="w-full bg-[#001e40] text-white h-8 rounded-lg font-bold text-xs hover:bg-[#003366] transition-colors"
-              >
-                Volver al Inicio
-              </button>
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => window.open(`/api/v1/cash/sessions/${closedSessionId}/print`, '_blank')}
+                  className="flex-1 bg-white border border-slate-300 text-slate-700 h-8 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Printer className="w-3 h-3" /> Imprimir Arqueo
+                </button>
+                <button
+                  onClick={handleSuccessClose}
+                  className="flex-1 bg-[#001e40] text-white h-8 rounded-lg font-bold text-xs hover:bg-[#003366] transition-colors"
+                >
+                  Volver al Inicio
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1521,9 +1522,7 @@ export default function CashPage() {
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
                 <button
                   onClick={() => {
-                    setClosedSessionId(null);
-                    setTimeout(() => setClosedSessionId(selectedSession.id), 50);
-                    toast.success('Generando impresión...');
+                    window.open(`/api/v1/cash/sessions/${selectedSession.id}/print`, '_blank');
                   }}
                   className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-100 flex items-center gap-2"
                 >
@@ -1541,12 +1540,7 @@ export default function CashPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Global Print overlay for Reimprimir ────────────────────────── */}
-      {!showSuccessModal && closedSessionId && (
-        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-          <ThermalTicketPrint sessionId={closedSessionId} autoPrint={true} />
-        </div>
-      )}
+      {/* Removed Global Print overlay */}
 
     </div>
   );
