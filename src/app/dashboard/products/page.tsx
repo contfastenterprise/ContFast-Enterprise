@@ -781,17 +781,17 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative flex items-center h-[38px] z-20">
+            <div className="relative flex items-center h-9 z-20 shadow-sm rounded-lg">
               <button
                 type="button"
                 onClick={() => {
                   setPrintDropdownOpen(false);
                   handlePrintList(showStockInPrint);
                 }}
-                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-full rounded-l-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 title="Imprimir listado filtrado"
               >
-                <Printer className="w-4 h-4 text-[#c5a059]" />
+                <Printer className="w-4 h-4" />
                 <span>Imprimir</span>
               </button>
               <button
@@ -800,10 +800,10 @@ export default function ProductsPage() {
                   e.stopPropagation();
                   setPrintDropdownOpen(v => !v);
                 }}
-                className="flex items-center justify-center rounded-r-lg border border-slate-350 bg-white px-2.5 h-full text-slate-900 hover:bg-slate-50 transition-all active:scale-[0.98] outline-none"
+                className="flex items-center justify-center rounded-r-lg bg-[#C5A059] hover:bg-[#b08c4a] border-l border-[#a08044] px-2.5 h-full text-slate-950 transition-all active:scale-[0.98] outline-none"
                 title="Más opciones de impresión"
               >
-                <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                <ChevronDown className="h-4 w-4" />
               </button>
 
               <AnimatePresence>

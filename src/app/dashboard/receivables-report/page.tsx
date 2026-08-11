@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Receipt, Landmark, Printer, AlertCircle, FileText } from 'lucide-react';
+import { Receipt, Landmark, Printer, AlertCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
-import { Select } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
+import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 
 interface ReceivablesData {
   id: string;
@@ -37,34 +40,20 @@ export default function ReceivablesReportPage() {
   const router = useRouter();
   const [data, setData] = useState<ReceivablesData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>('');
   const [printing, setPrinting] = useState(false);
-
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
+  const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [printingCustomer, setPrintingCustomer] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
   }, [selectedCustomer]);
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetch('/api/v1/contacts?type=customer&limit=1000');
-      if (res.ok) {
-        const json = await res.json();
-        setCustomers(json.data || json);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/reports/receivables?customerId=${selectedCustomer}`);
+      const res = await fetch(`/api/v1/reports/receivables?customerId=${selectedCustomer || 'all'}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -81,11 +70,22 @@ export default function ReceivablesReportPage() {
   const handlePrint = async () => {
     setPrinting(true);
     try {
-      window.open(`/api/v1/reports/receivables/print?customerId=${selectedCustomer}`, '_blank');
+      window.open(`/api/v1/reports/receivables/print?customerId=${selectedCustomer || 'all'}`, '_blank');
     } catch (e) {
       toast.error('Error al generar reporte');
     } finally {
       setPrinting(false);
+    }
+  };
+
+  const handlePrintCustomer = async (customerId: string) => {
+    setPrintingCustomer(customerId);
+    try {
+      window.open(`/api/v1/reports/receivables/print?customerId=${customerId}`, '_blank');
+    } catch (e) {
+      toast.error('Error al generar reporte del cliente');
+    } finally {
+      setPrintingCustomer(null);
     }
   };
 
@@ -152,16 +152,25 @@ export default function ReceivablesReportPage() {
         <div className="bg-white p-4 rounded-xl border border-slate-200/30 shadow-lg flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="w-full sm:w-1/3">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Filtrar por Cliente</label>
-            <Select 
-              value={selectedCustomer} 
-              onChange={(e) => setSelectedCustomer(e.target.value)} 
-              className="w-full bg-slate-50 border-slate-200 text-slate-800"
-            >
-              <option value="all">Todos los clientes</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </Select>
+            <div className="relative">
+              <CustomerAutocomplete
+                dbCustomers={groupedCustomers.map(g => ({ id: g.customerId, name: g.customerName, rncCedula: g.customerRnc }))}
+                customerId={selectedCustomer}
+                customerName={customerName}
+                onSelect={(customer) => {
+                  setSelectedCustomer(customer.id);
+                  setCustomerName(customer.name);
+                }}
+                onTextChange={(val) => {
+                  setCustomerName(val);
+                }}
+                onClear={() => {
+                  setSelectedCustomer('');
+                  setCustomerName('');
+                }}
+                placeholder="Todos los clientes"
+              />
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -175,83 +184,148 @@ export default function ReceivablesReportPage() {
           </div>
         </div>
 
-        {/* List */}
-        <div className="space-y-6">
+        {/* Main Customers Table */}
+        <div className="bg-white rounded-2xl border border-slate-200/30 shadow-lg overflow-hidden">
           {loading ? (
             <div className="flex justify-center p-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003366]"></div>
             </div>
           ) : groupedCustomers.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-slate-200/30 shadow-sm text-center">
+            <div className="p-12 text-center">
               <Receipt className="h-12 w-12 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 font-medium">No se encontraron cuentas por cobrar pendientes.</p>
             </div>
           ) : (
-            groupedCustomers.map(group => (
-              <div key={group.customerId} className="bg-white rounded-2xl border border-slate-200/30 shadow-sm overflow-hidden transition-all hover:shadow-md group">
-                
-                {/* Customer Header */}
-                <div className="bg-slate-50/50 p-4 border-b border-slate-200/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                        {group.customerName.substring(0, 2).toUpperCase()}
-                      </div>
-                      {group.customerName}
-                    </h2>
-                    <p className="text-xs font-mono text-slate-500 mt-1 ml-10">RNC/Cédula: {group.customerRnc || 'N/A'}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-[10px] font-bold text-slate-500/70 uppercase tracking-widest">Balance Pendiente</p>
-                      <p className="font-mono text-lg font-bold text-indigo-600">{fmt(group.totalBalance)}</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-[#003366] text-white">
+                  <tr>
+                    <th className="px-6 py-4 font-bold rounded-tl-xl">Cliente</th>
+                    <th className="px-6 py-4 font-bold">RNC/Cédula</th>
+                    <th className="px-6 py-4 text-right font-bold">Facturas Pendientes</th>
+                    <th className="px-6 py-4 text-right font-bold">Balance Pendiente</th>
+                    <th className="px-6 py-4 text-center font-bold rounded-tr-xl">Acciones</th>
+                  </tr>
+                </thead>
+                <AnimatePresence mode="popLayout">
+                  {groupedCustomers.map(group => {
+                    const isExpanded = expandedCustomer === group.customerId;
+                    return (
+                      <motion.tbody 
+                        key={group.customerId}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {/* Customer Row */}
+                        <tr className={clsx("hover:bg-slate-50 transition-colors cursor-pointer border-b border-slate-100", isExpanded && "bg-slate-50/80 border-transparent")} onClick={() => setExpandedCustomer(isExpanded ? null : group.customerId)}>
+                          <td className="px-6 py-4 font-bold text-slate-800 flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0">
+                              {group.customerName.substring(0, 2).toUpperCase()}
+                            </div>
+                            {group.customerName}
+                          </td>
+                          <td className="px-6 py-4 font-mono text-slate-600">{group.customerRnc || 'N/A'}</td>
+                          <td className="px-6 py-4 text-right font-medium text-slate-600">{group.invoices.length}</td>
+                          <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">{fmt(group.totalBalance)}</td>
+                          <td className="px-6 py-4 text-center">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setExpandedCustomer(isExpanded ? null : group.customerId); }}
+                              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-200"
+                            >
+                              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                            </button>
+                          </td>
+                        </tr>
 
-                {/* Invoices List */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
-                      <tr>
-                        <th className="px-4 py-2.5">Factura / Código</th>
-                        <th className="px-4 py-2.5">NCF</th>
-                        <th className="px-4 py-2.5">Vencimiento</th>
-                        <th className="px-4 py-2.5 text-right">Monto Original</th>
-                        <th className="px-4 py-2.5 text-right">Balance Pendiente</th>
-                        <th className="px-4 py-2.5 text-center">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {group.invoices.map(invoice => {
-                        const isOverdue = new Date(invoice.dueDate) < new Date();
-                        return (
-                          <tr key={invoice.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">
-                              {invoice.codigoFactura || 'S/N'}
-                            </td>
-                            <td className="px-4 py-2.5 font-mono text-xs">{invoice.ncf || '-'}</td>
-                            <td className="px-4 py-2.5">
-                              <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10' : 'text-slate-600')}>
-                                {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
-                                {new Date(invoice.dueDate).toLocaleDateString('es-DO')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(Number(invoice.amount))}</td>
-                            <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(Number(invoice.balance))}</td>
-                            <td className="px-4 py-2.5 text-center">
-                              <span className={clsx("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
-                                {isOverdue ? 'Vencida' : 'Pendiente'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))
+                        {/* Expanded Area (Invoices Table & Card) */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.tr 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              className="bg-slate-50 border-b-2 border-[#003366]/20"
+                            >
+                              <td colSpan={5} className="p-0">
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-6">
+                                    <div className="bg-white rounded-xl border border-slate-200/50 shadow-sm p-4">
+                                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-100">
+                                        <h3 className="font-bold text-[#003366] flex items-center gap-2">
+                                          <Receipt className="w-5 h-5 text-amber-500" /> Detalle de Cuentas por Cobrar
+                                        </h3>
+                                        <button
+                                          onClick={() => handlePrintCustomer(group.customerId)}
+                                          disabled={printingCustomer === group.customerId}
+                                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 disabled:opacity-50 font-bold py-1.5 px-4 rounded-lg shadow-sm transition-all flex items-center gap-2 text-xs"
+                                        >
+                                          <Printer className="h-4 w-4" /> 
+                                          {printingCustomer === group.customerId ? 'Generando...' : 'Imprimir'}
+                                        </button>
+                                      </div>
+
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs text-left">
+                                          <thead className="bg-slate-50/80 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
+                                            <tr>
+                                              <th className="px-4 py-2.5">Factura / Código</th>
+                                              <th className="px-4 py-2.5">NCF</th>
+                                              <th className="px-4 py-2.5">Vencimiento</th>
+                                              <th className="px-4 py-2.5 text-right">Monto Original</th>
+                                              <th className="px-4 py-2.5 text-right">Balance Pendiente</th>
+                                              <th className="px-4 py-2.5 text-center">Estado</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100">
+                                            {group.invoices.map(invoice => {
+                                              const isOverdue = new Date(invoice.dueDate) < new Date();
+                                              return (
+                                                <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
+                                                  <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">
+                                                    {invoice.codigoFactura || 'S/N'}
+                                                  </td>
+                                                  <td className="px-4 py-2.5 font-mono text-xs text-slate-500">{invoice.ncf || '-'}</td>
+                                                  <td className="px-4 py-2.5">
+                                                    <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10' : 'text-slate-600')}>
+                                                      {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
+                                                      {new Date(invoice.dueDate).toLocaleDateString('es-DO')}
+                                                    </span>
+                                                  </td>
+                                                  <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(Number(invoice.amount))}</td>
+                                                  <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(Number(invoice.balance))}</td>
+                                                  <td className="px-4 py-2.5 text-center">
+                                                    <span className={clsx("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
+                                                      {isOverdue ? 'Vencida' : 'Pendiente'}
+                                                    </span>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
+                      </motion.tbody>
+                    );
+                  })}
+                </AnimatePresence>
+              </table>
+            </div>
           )}
         </div>
       </div>

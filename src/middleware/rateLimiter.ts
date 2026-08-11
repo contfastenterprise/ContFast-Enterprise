@@ -7,7 +7,7 @@ interface RateLimitConfig {
 
 // Predefined rate limiting configurations
 export const RATE_LIMIT_PRESETS: Record<string, RateLimitConfig> = {
-  standard: { limit: 100, windowSeconds: 60 }, // 100 req/min for general API
+  standard: { limit: 500, windowSeconds: 60 }, // 500 req/min for general API (increased to avoid dev 429s)
   auth: { limit: 5, windowSeconds: 60 },       // 5 req/min for login, forgot-password
   dgii: { limit: 20, windowSeconds: 60 },      // 20 req/min for DGII submissions
 };

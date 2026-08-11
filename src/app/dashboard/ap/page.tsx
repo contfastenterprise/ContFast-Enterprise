@@ -103,7 +103,7 @@ export default function AccountsPayablePage() {
     checkNumber: '',
     payee: '',
     isGuarantee: false,
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default +1 month
+    dueDate: (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })(), // Default +1 month
     reference: '',
     notes: ''
   });
@@ -256,7 +256,7 @@ export default function AccountsPayablePage() {
       checkNumber: '',
       payee: supplier.supplierName,
       isGuarantee: false,
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })(),
       reference: '',
       notes: ''
     });
@@ -513,7 +513,7 @@ export default function AccountsPayablePage() {
                         <table className="w-full text-xs text-left">
                           <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                             <tr>
-                              <th className="px-4 py-2.5">Referencia CXP</th>
+                              <th className="px-4 py-2.5">Suplidor</th>
                               <th className="px-4 py-2.5">Factura / NCF</th>
                               <th className="px-4 py-2.5">Emisión</th>
                               <th className="px-4 py-2.5">Vencimiento</th>
@@ -527,7 +527,7 @@ export default function AccountsPayablePage() {
                               const isOverdue = new Date(bill.dueDate) < new Date();
                               return (
                                 <tr key={bill.apId} className="hover:bg-slate-850/30 transition-colors">
-                                  <td className="px-4 py-2.5 font-mono font-bold text-amber-500">{bill.apId.slice(0, 8).toUpperCase()}</td>
+                                  <td className="px-4 py-2.5 font-bold text-slate-800">{supplier.supplierName}</td>
                                   <td className="px-4 py-2.5 font-mono text-xs">{bill.ncf || 'S/N'}</td>
                                   <td className="px-4 py-2.5 text-xs font-mono">
                                     {(() => {

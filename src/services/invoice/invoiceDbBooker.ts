@@ -511,7 +511,7 @@ export class InvoiceDbBooker {
         } else {
           // Standard invoice or Debit Note (increases receivable)
           const dueDate = new Date();
-          dueDate.setDate(dueDate.getDate() + 30); // 30 days credit default
+          dueDate.setMonth(dueDate.getMonth() + 1); // 1 month credit default
           await AccountRepository.createAccountsReceivable(tx, {
             companyId: data.companyId,
             customerId: data.customerId,

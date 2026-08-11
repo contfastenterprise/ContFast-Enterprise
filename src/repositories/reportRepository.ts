@@ -1,4 +1,4 @@
-import { db, journalEntries, journalEntryLines, chartOfAccounts, companies, companySettings, customers, accountsReceivable, invoices, expenses } from '@/db';
+import { db, journalEntries, journalEntryLines, chartOfAccounts, companies, companySettings, customers, accountsReceivable, invoices, expenses, suppliers, accountsPayable } from '@/db';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 export class ReportRepository {
@@ -210,6 +210,47 @@ export class ReportRepository {
 
     return {
       customer,
+      openItems,
+      totalPending
+    };
+  }
+
+  static async getAPStatement(companyId: string, supplierId: string) {
+    const [supplier] = await db.select()
+      .from(suppliers)
+      .where(and(
+        eq(suppliers.companyId, companyId),
+        eq(suppliers.id, supplierId)
+      ));
+
+    if (!supplier) throw new Error('Proveedor no encontrado');
+
+    // Get pending accounts payable (balance > 0)
+    const openItems = await db.select({
+      id: accountsPayable.id,
+      documentNumber: expenses.ncf,
+      description: expenses.description,
+      date: accountsPayable.createdAt,
+      dueDate: accountsPayable.dueDate,
+      amount: accountsPayable.amount,
+      balance: accountsPayable.balance
+    })
+    .from(accountsPayable)
+    .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
+    .where(and(
+      eq(accountsPayable.companyId, companyId),
+      eq(accountsPayable.supplierId, supplierId),
+      sql`${accountsPayable.balance} > 0`
+    ))
+    .orderBy(accountsPayable.createdAt);
+
+    let totalPending = 0;
+    for (const item of openItems) {
+      totalPending += Number(item.balance);
+    }
+
+    return {
+      supplier,
       openItems,
       totalPending
     };

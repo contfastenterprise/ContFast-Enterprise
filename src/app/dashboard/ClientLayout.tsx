@@ -69,7 +69,7 @@ function DashboardLoadingGate({
   );
 }
 
-export default function ClientLayout({ children, initialUser }: { children: React.ReactNode; initialUser: any }) {
+export default function ClientLayout({ children, initialUser, initialSettings }: { children: React.ReactNode; initialUser: any; initialSettings?: any }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -83,100 +83,70 @@ export default function ClientLayout({ children, initialUser }: { children: Reac
     }
   }, []);
   const [user, setUser] = useState<any>(initialUser);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string>('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(initialSettings?.logoUrl || null);
+  const [companyName, setCompanyName] = useState<string>(initialSettings?.companyName || '');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
   const [activeEnvironment, setActiveEnvironment] = useState<'PRODUCCION' | 'PRUEBA'>('PRODUCCION');
   const [companies, setCompanies] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
-  const [loadingInit, setLoadingInit] = useState(!initialUser);
+  const [loadingInit, setLoadingInit] = useState(false);
 
+  // Initialize environment from settings
   useEffect(() => {
-    const checkSetupAndFetchUser = async () => {
-      try {
-        const setupRes = await fetch('/api/v1/setup/status');
-        if (!setupRes.ok) throw new Error();
-        const setupData = await setupRes.json();
-        if (setupData.success && !setupData.data.initialized) {
-          router.push('/setup');
-          return;
-        }
+    if (initialSettings) {
+      const env = initialSettings.dgiiEnv || initialSettings.msellerEntorno;
+      if (env === 'production') setEntorno('PROD');
+      else if (env === 'cert') setEntorno('CERT');
+      else setEntorno('TEST');
 
-        const res = await fetch('/api/v1/auth/me');
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        if (data.success && data.data?.user) {
-          setUser(data.data.user);
-        } else {
-          router.push('/auth/login');
-        }
-      } catch (err) {
-        if (!initialUser) router.push('/auth/login');
+      const targetEnv = env === 'production' ? 'PRODUCCION' : 'PRUEBA';
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+        return null;
+      };
+      const savedEnv = getCookie('cf_environment');
+      if (savedEnv !== targetEnv) {
+        document.cookie = `cf_environment=${targetEnv}; path=/; max-age=31536000; SameSite=Strict`;
+        setActiveEnvironment(targetEnv);
+        window.location.reload();
+      } else {
+        setActiveEnvironment(targetEnv);
       }
+    }
+  }, [initialSettings]);
+
+  // Listeners for manual updates (from other client components)
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data?.user) setUser(data.data.user);
+        }
+      } catch (err) {}
     };
 
     const fetchSettings = async () => {
       try {
         const res = await fetch('/api/v1/company/settings');
-        if (!res.ok) {
-          throw new Error(`Company settings request failed with status ${res.status}`);
-        }
-        const settingsContentType = res.headers.get('content-type') || '';
-        if (!settingsContentType.includes('application/json')) {
-          throw new TypeError('Company settings response is not JSON');
-        }
-        const data = await res.json();
-        if (data.success) {
-          if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
-          if (data.data?.companyName) setCompanyName(data.data.companyName);
-          const env = data.data?.dgiiEnv || data.data?.msellerEntorno;
-          if (env === 'production') setEntorno('PROD');
-          else if (env === 'cert') setEntorno('CERT');
-          else setEntorno('TEST');
-
-          // Auto-sync working environment with company settings
-          const targetEnv = env === 'production' ? 'PRODUCCION' : 'PRUEBA';
-          const getCookie = (name: string) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop()?.split(';').shift();
-            return null;
-          };
-          const savedEnv = getCookie('cf_environment');
-          if (savedEnv !== targetEnv) {
-            document.cookie = `cf_environment=${targetEnv}; path=/; max-age=31536000; SameSite=Strict`;
-            setActiveEnvironment(targetEnv);
-            // Refresh to apply new RLS mode globally in Next.js
-            window.location.reload();
-          } else {
-            setActiveEnvironment(targetEnv);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            if (data.data?.logoUrl) setLogoUrl(data.data.logoUrl);
+            if (data.data?.companyName) setCompanyName(data.data.companyName);
           }
         }
-      } catch (err) {
-        console.error('Error fetching company settings', err);
-      }
+      } catch (err) {}
     };
 
-    const initAll = async () => {
-      await Promise.all([checkSetupAndFetchUser(), fetchSettings()]);
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          setLoadingInit(false);
-          try {
-            sessionStorage.removeItem('cf_post_login_logo');
-            sessionStorage.removeItem('cf_post_login_name');
-          } catch (e) {}
-        }, 400);
-      });
-    };
-
-    initAll();
-
-    window.addEventListener('user-profile-updated', checkSetupAndFetchUser);
+    window.addEventListener('user-profile-updated', fetchUser);
     window.addEventListener('company-settings-updated', fetchSettings);
 
     return () => {
-      window.removeEventListener('user-profile-updated', checkSetupAndFetchUser);
+      window.removeEventListener('user-profile-updated', fetchUser);
       window.removeEventListener('company-settings-updated', fetchSettings);
     };
   }, []);

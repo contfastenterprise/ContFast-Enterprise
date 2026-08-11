@@ -210,14 +210,15 @@ export async function POST(req: NextRequest) {
             if (parts.length === 3) {
               const [y, m, d] = parts.map(Number);
               const date = new Date(Date.UTC(y, m - 1, d));
-              date.setUTCDate(date.getUTCDate() + 30);
+              date.setUTCMonth(date.getUTCMonth() + 1);
               return date.toISOString().split('T')[0];
             }
             const date = new Date();
-            date.setDate(date.getDate() + 30);
+            date.setMonth(date.getMonth() + 1);
             return date.toISOString().split('T')[0];
           })(),
           status: 'pending',
+          expenseId: newExpenseId,
         });
 
         // 4b. Create Guarantee Check & Pending Payment if present

@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   description: "Sistema de facturación electrónica e-CF multi-empresa homologado con la DGII de República Dominicana. Rápido, seguro e institucional.",
   manifest: "/manifest.json",
   icons: {
-    icon: '/Icono.svg',
-    apple: '/Icono.svg',
+    icon: '/Icono-v2.svg',
+    apple: '/Icono-v2.svg',
   },
 };
 

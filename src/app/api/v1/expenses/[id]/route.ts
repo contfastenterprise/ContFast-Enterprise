@@ -647,18 +647,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               amount: apBalanceVal.toString(), // Store the total original debt amount (with taxes)
               balance: apBalanceVal.toString(),
               dueDate: paymentDate ? new Date(paymentDate).toISOString().split('T')[0] : (() => {
-                const parts = issueDate.split('-');
-                if (parts.length === 3) {
-                  const [y, m, d] = parts.map(Number);
-                  const date = new Date(Date.UTC(y, m - 1, d));
-                  date.setUTCDate(date.getUTCDate() + 30);
-                  return date.toISOString().split('T')[0];
-                }
-                const date = new Date();
-                date.setDate(date.getDate() + 30);
+              const parts = issueDate.split('-');
+              if (parts.length === 3) {
+                const [y, m, d] = parts.map(Number);
+                const date = new Date(Date.UTC(y, m - 1, d));
+                date.setUTCMonth(date.getUTCMonth() + 1);
                 return date.toISOString().split('T')[0];
+              }
+              const date = new Date();
+              date.setMonth(date.getMonth() + 1);
+              return date.toISOString().split('T')[0];
               })(),
               status: 'pending',
+              expenseId: id,
               updatedAt: new Date()
             })
             .where(eq(accountsPayable.id, existingAp.id));
@@ -676,14 +677,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               if (parts.length === 3) {
                 const [y, m, d] = parts.map(Number);
                 const date = new Date(Date.UTC(y, m - 1, d));
-                date.setUTCDate(date.getUTCDate() + 30);
+                date.setUTCMonth(date.getUTCMonth() + 1);
                 return date.toISOString().split('T')[0];
               }
               const date = new Date();
-              date.setDate(date.getDate() + 30);
+              date.setMonth(date.getMonth() + 1);
               return date.toISOString().split('T')[0];
             })(),
             status: 'pending',
+            expenseId: id,
           });
         }
 

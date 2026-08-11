@@ -98,6 +98,7 @@ export async function createExpense(expenseData: {
         balance: isCredit ? expenseData.amount.toString() : '0.00',
         dueDate: expenseData.paymentDate ?? expenseData.issueDate,
         status: isCredit ? 'pending' : 'paid',
+        expenseId: expense.id,
       });
 
     // Financial movements registration (Suplidores)

@@ -141,6 +141,40 @@ export async function GET(req: NextRequest) {
       pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
       filename = `Estado_Cuentas_${data.customer.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
     }
+    else if (type === 'ap_statement') {
+      const supplierId = searchParams.get('supplierId');
+      if (!supplierId) {
+        return NextResponse.json({ success: false, error: { message: 'Proveedor requerido' } }, { status: 400 });
+      }
+      const asOf = end || getDRLocalDateString();
+      const data = await ReportRepository.getAPStatement(session.companyId, supplierId);
+
+      const [settings] = await db
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, session.companyId))
+        .limit(1);
+
+      const html = DocumentTemplates.renderAPStatement({
+        company: {
+          name: companyInfo.name,
+          rnc: companyInfo.rnc,
+          address: companyInfo.address || 'República Dominicana',
+          phone: companyInfo.phone || '',
+          logoUrl: settings?.logoUrl || undefined
+        },
+        supplier: {
+          name: data.supplier.name,
+          rnc: data.supplier.rnc || '',
+          phone: data.supplier.phone || ''
+        },
+        openItems: data.openItems,
+        totalPending: data.totalPending
+      }, asOf);
+      
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta');
+      filename = `Estado_Cuentas_Pagar_${data.supplier.name.replace(/[^a-z0-9]/gi, '_')}.pdf`;
+    }
     else if (type === 'sales_vs_purchases') {
       if (!start || !end) {
         return NextResponse.json({ success: false, error: { message: 'Fechas requeridas' } }, { status: 400 });

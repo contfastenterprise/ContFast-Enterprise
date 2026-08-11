@@ -28,6 +28,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 
+// Helper function to handle 429 Rate Limits gracefully with retries
+async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 3): Promise<Response> {
+  let retries = 0;
+  while (retries < maxRetries) {
+    const res = await fetch(url, options);
+    if (res.status === 429) {
+      retries++;
+      // Wait for 1s, then 2s, then 3s...
+      await new Promise(r => setTimeout(r, 1000 * retries));
+      continue;
+    }
+    return res;
+  }
+  return fetch(url, options); // Fallback to normal fetch if all retries fail
+}
+
 function InvoicesList() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +59,7 @@ function InvoicesList() {
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
-  const [pendingPostAction, setPendingPostAction] = useState<'print' | 'email' | undefined>(undefined);
+  const [pendingPostAction, setPendingPostAction] = useState<'print' | 'email' | 'none' | undefined>(undefined);
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
@@ -274,7 +290,7 @@ function InvoicesList() {
   useEffect(() => {
     async function loadSequences() {
       try {
-        const res = await fetch('/api/v1/ecf/sequences');
+        const res = await fetchWithRetry('/api/v1/ecf/sequences');
         const data = await res.json();
         if (data.success) {
           const seqs = data.data || [];
@@ -305,10 +321,10 @@ function InvoicesList() {
     async function fetchData() {
       try {
         const [res, whRes, catRes, custRes] = await Promise.all([
-          fetch('/api/v1/products?per_page=100'),
-          fetch('/api/v1/warehouses'),
-          fetch('/api/v1/categories'),
-          fetch('/api/v1/customers?limit=100')
+          fetchWithRetry('/api/v1/products?per_page=100'),
+          fetchWithRetry('/api/v1/warehouses'),
+          fetchWithRetry('/api/v1/categories'),
+          fetchWithRetry('/api/v1/customers?limit=100')
         ]);
         const data = await res.json();
         const whData = await whRes.json();
@@ -419,7 +435,7 @@ function InvoicesList() {
       if (endDate) queryParams.append('endDate', endDate);
       queryParams.append('excludeTypes', '33,34,03,04');
 
-      const res = await fetch(`/api/v1/invoices?${queryParams.toString()}`);
+      const res = await fetchWithRetry(`/api/v1/invoices?${queryParams.toString()}`);
       const data = await res.json();
 
       if (data.success) {
@@ -797,7 +813,7 @@ function InvoicesList() {
     });
   };
 
-  const handleSubmitTrigger = (e?: React.FormEvent, postAction: 'print' | 'email' = 'print') => {
+  const handleSubmitTrigger = async (e?: React.FormEvent, postAction: 'print' | 'email' | 'none' = 'print') => {
     if (e) e.preventDefault();
     try {
       if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
@@ -852,7 +868,7 @@ function InvoicesList() {
     }
   };
 
-  const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'email') => {
+  const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'email' | 'none') => {
     e.preventDefault();
     setSaveDropdownOpen(false);
     setSubmitting(true);
@@ -1615,7 +1631,7 @@ function InvoicesList() {
                     onClick={handleSaveDraft}
                     disabled={savingDraft || submitting}
                     title="Guardar como Borrador (sin emitir NCF)"
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {savingDraft ? (
                       <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
@@ -1625,18 +1641,18 @@ function InvoicesList() {
                   </button>
 
                   {/* Split Emit Button */}
-                  <div className="relative flex">
-                    {/* Main action: Emitir Comprobante */}
+                  <div className="relative flex items-center h-9 shadow-md rounded-lg">
+                    {/* Main action: Emitir e Imprimir */}
                     <button
                       type="submit"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { setSaveDropdownOpen(false); }}
-                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-full rounded-l-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       {submitting ? (
                         <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
                       ) : (
-                        <><Check className="h-3.5 w-3.5" /> Emitir Comprobante</>
+                        <><Printer className="h-3.5 w-3.5" /> Emitir e Imprimir</>
                       )}
                     </button>
                     {/* Dropdown toggle */}
@@ -1644,7 +1660,7 @@ function InvoicesList() {
                       type="button"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                      className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none"
                       title="Más opciones"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
@@ -1669,22 +1685,22 @@ function InvoicesList() {
                             <div className="px-3 py-2 border-b border-slate-100">
                               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
                             </div>
-                            {/* Option 1: Emitir e Imprimir */}
+                            {/* Option 1: Solo Guardar */}
                             <button
                               type="button"
                               disabled={submitting}
                               onClick={() => {
                                 setSaveDropdownOpen(false);
-                                handleSubmitTrigger(undefined, 'print');
+                                handleSubmitTrigger(undefined, 'none');
                               }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
                             >
-                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                                <Printer className="h-4 w-4 text-amber-700" />
+                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                                <Save className="h-4 w-4 text-slate-700" />
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-800">Emitir e Imprimir</p>
-                                <p className="text-xs text-slate-500">Emite el e-CF y abre el PDF automáticamente</p>
+                                <p className="font-semibold text-slate-800">Solo Guardar</p>
+                                <p className="text-xs text-slate-500">Emite el comprobante sin imprimir</p>
                               </div>
                             </button>
                             {/* Option 2: Emitir y Enviar por Correo */}
@@ -1893,14 +1909,13 @@ function InvoicesList() {
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Método</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Monto Total</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">Estado DGII</th>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-center">MSeller Info</th>
                       <th className="px-4 py-2.5 text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/20/80">
                     {loading ? (
                       <tr>
-                        <td colSpan={8} className="px-6 py-16 text-center">
+                        <td colSpan={7} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
                             <span className="text-on-surface-variant/80 text-sm font-medium">Cargando facturas electrónicas...</span>
@@ -1965,21 +1980,7 @@ function InvoicesList() {
                                 {badge.label}
                               </span>
                             </td>
-                            <td className="px-4 py-2 align-middle text-center text-xs">
-                              <div className="flex flex-col gap-0.5 items-center">
-                                {inv.msellerTrackId && (
-                                  <span className="text-[9px] font-mono bg-slate-100 text-on-surface-variant/80 px-1 py-0.2 rounded border border-slate-200 block whitespace-nowrap" title="Track ID">
-                                    {inv.msellerTrackId}
-                                  </span>
-                                )}
-                                {inv.dgiiMessage && (
-                                  <span className="text-[9px] text-emerald-600 font-semibold block max-w-[100px] truncate" title={inv.dgiiMessage}>
-                                    {inv.dgiiMessage}
-                                  </span>
-                                )}
-                                {(!inv.msellerTrackId && !inv.dgiiMessage) && <span className="text-on-surface-variant text-xs">-</span>}
-                              </div>
-                            </td>
+
                             <td className="px-4 py-2 align-middle text-right">
                               <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -2044,7 +2045,7 @@ function InvoicesList() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={8} className="px-6 py-16 text-center">
+                        <td colSpan={7} className="px-6 py-16 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
                             <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas con los filtros actuales.</span>

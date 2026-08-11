@@ -416,7 +416,7 @@ export default function BIDashboardPage() {
         <div className="flex justify-end pt-2">
           <button 
             onClick={handleApplyFilters}
-            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary hover:bg-[#002244] rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#003366] text-white hover:bg-[#002244] rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm"
           >
             Aplicar Filtros de Negocios
           </button>

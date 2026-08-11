@@ -206,7 +206,7 @@ export default function NewQuote() {
   const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
   const canEditDiscount = ['admin', 'sistema', 'administrator', 'sistemas'].includes(userRole);
 
-  const saveQuote = async (e?: React.FormEvent, shouldPrint = false) => {
+  const saveQuote = async (e?: React.FormEvent, shouldPrint = true) => {
     if (e) e.preventDefault();
     setSaveDropdownOpen(false);
     if (lines.some(l => !l.productId)) {
@@ -505,32 +505,32 @@ export default function NewQuote() {
               <button
                 type="button"
                 onClick={() => router.push('/dashboard/quotes')}
-                className="rounded-xl border border-slate-300 bg-transparent px-6 py-3.5 text-sm font-bold text-slate-700 hover:bg-slate-100 hover:text-[#003366] transition-all text-center"
+                className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Cancelar
               </button>
               
-              <div className="relative flex">
+              <div className="relative flex items-center h-9 shadow-md rounded-lg">
                 <button
                   type="submit"
                   disabled={submitting}
                   onClick={() => setSaveDropdownOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                  className="flex items-center justify-center gap-2 rounded-l-lg bg-[#C5A059] px-4 py-2 h-full text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all active:scale-[0.98]"
                 >
                   {submitting ? (
-                    <><RefreshCw className="h-4 w-4 animate-spin" /> Procesando...</>
+                    <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
                   ) : (
-                    <><Check className="h-4 w-4" /> Guardar Cotización</>
+                    <><Printer className="h-3.5 w-3.5" /> Guardar e Imprimir</>
                   )}
                 </button>
                 <button
                   type="button"
                   disabled={submitting}
                   onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                  className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                  className="flex items-center justify-center rounded-r-lg bg-[#C5A059] px-2.5 h-full text-slate-950 hover:bg-[#b08c4a] border-l border-[#a88840] disabled:opacity-50 transition-all active:scale-[0.98] outline-none"
                   title="Más opciones"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </button>
 
                 <AnimatePresence>
@@ -555,26 +555,9 @@ export default function NewQuote() {
                           disabled={submitting}
                           onClick={() => {
                             setSaveDropdownOpen(false);
-                            saveQuote(undefined, true);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
-                        >
-                          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                            <Printer className="h-4 w-4 text-amber-700" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-800 text-xs">Guardar e Imprimir</p>
-                            <p className="text-[11px] text-slate-500">Crea la cotización y abre el PDF automáticamente</p>
-                          </div>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={submitting}
-                          onClick={() => {
-                            setSaveDropdownOpen(false);
                             saveQuote(undefined, false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
                         >
                           <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                             <Check className="h-4 w-4 text-emerald-700" />

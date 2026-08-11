@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/Icono.svg",
+      "src": "/Icono-v2.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/contfast-logo.png",
+      "src": "/contfast-logo-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

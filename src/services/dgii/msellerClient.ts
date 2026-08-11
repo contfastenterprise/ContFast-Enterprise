@@ -529,7 +529,7 @@ export class MSellerClient {
       let dueDateStr = params.paymentDueDate;
       if (!dueDateStr) {
         const defaultDueDate = new Date(params.issueDate);
-        defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+        defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
         dueDateStr = formatDate(defaultDueDate);
       }
       idDoc.FechaLimitePago = dueDateStr;

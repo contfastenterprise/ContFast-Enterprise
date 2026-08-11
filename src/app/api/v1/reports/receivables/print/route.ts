@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, accountsReceivable, customers, invoices, companies } from '@/db';
+import { db, accountsReceivable, customers, invoices, companies, companySettings } from '@/db';
 import { eq, and, isNull, desc, gt } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Fetch Company Info
     const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    const [settings] = await db.select().from(companySettings).where(eq(companySettings.companyId, companyId)).limit(1);
     
     // 2. Query conditions
     let queryConditions = and(
@@ -60,7 +61,10 @@ export async function GET(req: NextRequest) {
     const overdueBalance = items.filter(d => new Date(d.dueDate) < new Date()).reduce((acc, curr) => acc + Number(curr.balance), 0);
 
     const reportData = {
-      company,
+      company: {
+        ...company,
+        logoUrl: settings?.logoUrl || null
+      },
       items,
       filters: {
         customerName: customerFilterName,
