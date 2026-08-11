@@ -12,6 +12,8 @@ export const metadata = {
   title: 'Dashboard - ContFast Enterprise',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // 1. Check Setup Status
   const result = await db.select({ value: count() }).from(companies);
