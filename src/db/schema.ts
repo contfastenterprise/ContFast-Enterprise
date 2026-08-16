@@ -11,4 +11,4 @@ export * from './schema/system';
 export * from './schema/hr';
 export * from './schema/supplier_orders';
 export * from './schema/agent';
-export * from './schema/documents';
+export * from './schema/documents'; // exports documentShares

@@ -1,6 +1,6 @@
-import nodemailer from 'nodemailer';
 import { db } from '@/db';
-import { documentEmailLogs } from '@/db/schema/documents';
+import { systemEmailLogs } from '@/db/schema/system';
+import { getTransporter, getFromEmail } from '@/utils/mailer';
 
 export interface SendDocumentEmailOptions {
   companyId: string;
@@ -16,18 +16,6 @@ export interface SendDocumentEmailOptions {
 }
 
 export class EmailService {
-  private static getTransporter() {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-
   static async sendDocumentEmail(options: SendDocumentEmailOptions): Promise<void> {
     const {
       companyId,
@@ -42,7 +30,7 @@ export class EmailService {
       modo = 'PRODUCCION',
     } = options;
 
-    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@contfast.app';
+    const fromEmail = getFromEmail('ContFast Enterprise');
 
     // 1. Send the email using Nodemailer
     let providerMessageId = '';
@@ -50,7 +38,7 @@ export class EmailService {
     let status: 'sent' | 'failed' = 'failed';
 
     try {
-      const transporter = this.getTransporter();
+      const transporter = getTransporter();
       const info = await transporter.sendMail({
         from: fromEmail,
         to: toEmail,
@@ -74,14 +62,14 @@ export class EmailService {
 
     // 2. Log in Database
     try {
-      await db.insert(documentEmailLogs).values({
+      await db.insert(systemEmailLogs).values({
         companyId,
-        documentId,
-        documentType,
+        context: documentType, // e.g. 'invoice', 'quote'
+        referenceId: documentId,
         toEmail,
         subject,
         status,
-        attachmentName,
+        attachmentNames: [attachmentName],
         errorMessage: errorMessage || null,
         providerMessageId: providerMessageId || null,
         userId: userId || null,

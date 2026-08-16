@@ -4,7 +4,6 @@ import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { decryptAsync } from '@/utils/encryption';
-import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
 
@@ -223,30 +222,27 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
 /**
  * Core business logic for sending an email.
  */
-export async function sendEmailJob(data: { to: string; subject: string; text: string; html?: string; pdfPath?: string }): Promise<any> {
+export async function sendEmailJob(data: { 
+  to: string; 
+  subject: string; 
+  text: string; 
+  html?: string; 
+  pdfPath?: string;
+  from?: string;
+  fromName?: string;
+  companyId?: string;
+  referenceId?: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
+  [key: string]: any; 
+}): Promise<any> {
   const { to, subject, text, html, pdfPath } = data;
   Logger.info(`[JobRunner] Preparing to send email to: ${to} with subject: "${subject}"...`);
 
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM || 'no-reply@contfast.com';
-
-  if (!host || !user || !pass) {
-    Logger.error('[JobRunner] SMTP configuration is missing. Cannot send email.');
-    throw new Error('SMTP configuration missing');
+  const { getFromEmail } = await import('@/utils/mailer');
+  let from = data.from || getFromEmail('ContFast Enterprise');
+  if (data.fromName && !from.includes('<')) {
+    from = `"${data.fromName}" <${from}>`;
   }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for port 465, false for other ports
-    auth: {
-      user,
-      pass,
-    },
-  });
 
   const attachments: any[] = [];
   if (pdfPath) {
@@ -279,15 +275,64 @@ export async function sendEmailJob(data: { to: string; subject: string; text: st
     }
   }
 
-  await transporter.sendMail({
-    from,
-    to,
-    subject,
-    text,
-    html,
-    attachments,
-  });
+  let providerMessageId = '';
+  let errorMessage = '';
+  let status: 'sent' | 'failed' = 'failed';
 
-  Logger.info(`[JobRunner] Email sent successfully to ${to}.`);
+  try {
+    const { getTransporter } = await import('@/utils/mailer');
+    const transporter = getTransporter();
+
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+      attachments,
+    });
+
+    providerMessageId = info.messageId || '';
+    status = 'sent';
+    Logger.info(`[JobRunner] Email sent successfully to ${to}.`);
+  } catch (error: any) {
+    errorMessage = error.message;
+    status = 'failed';
+    Logger.error(`[JobRunner] Failed to send email to ${to}`, error);
+  }
+
+  try {
+    const { db } = await import('@/db');
+    const { systemEmailLogs } = await import('@/db/schema/system');
+    
+    // Attempt to extract companyId from data, assuming standard structure or defaulting to something
+    const companyId = data.companyId || (data.order && data.order.companyId) || (data.company && data.company.id) || null;
+    const referenceId = data.orderId || data.referenceId || null;
+    
+    if (companyId) {
+      await db.insert(systemEmailLogs).values({
+        companyId,
+        context: data.context || 'background_job',
+        referenceId,
+        toEmail: to,
+        subject,
+        status,
+        attachmentNames: attachments.map(a => a.filename),
+        errorMessage: errorMessage || null,
+        providerMessageId: providerMessageId || null,
+        sentAt: status === 'sent' ? new Date() : null,
+        modo: data.modo || 'PRODUCCION'
+      });
+    } else {
+       Logger.warn(`[JobRunner] Could not log email to systemEmailLogs because companyId was missing in job data.`);
+    }
+  } catch (dbError) {
+    Logger.error(`[JobRunner] Failed to log background email to DB`, dbError);
+  }
+
+  if (status === 'failed') {
+    throw new Error(`Email sending failed: ${errorMessage}`);
+  }
+
   return { success: true };
 }

@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { documentEmailLogs, documentShares } from '@/db/schema/documents';
+import { documentShares } from '@/db/schema/documents';
 import { eq, and } from 'drizzle-orm';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { EmailService } from './emailService';

@@ -68,3 +68,24 @@ export const auditPermissions = pgTable('audit_permissions', {
   userIdIdx: index('audit_permissions_user_idx').on(table.userId),
   createdAtIdx: index('audit_permissions_created_idx').on(table.createdAt),
 }));
+
+export const systemEmailLogs = pgTable('system_email_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
+  context: varchar('context', { length: 50 }).notNull(), // 'invoice', 'supplier_order', 'system', etc.
+  referenceId: varchar('reference_id', { length: 128 }), // ID of invoice, order, etc.
+  userId: uuid('user_id').references(() => users.id),
+  toEmail: varchar('to_email', { length: 255 }).notNull(),
+  status: varchar('status', { length: 50 }).default('pending').notNull(), // 'pending' | 'sent' | 'failed'
+  subject: varchar('subject', { length: 255 }).notNull(),
+  attachmentNames: jsonb('attachment_names'), // array of attachment names if multiple
+  errorMessage: text('error_message'),
+  providerMessageId: varchar('provider_message_id', { length: 255 }),
+  sentAt: timestamp('sent_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  companyIdx: index('system_email_logs_company_idx').on(table.companyId),
+  contextIdx: index('system_email_logs_context_idx').on(table.context),
+  statusIdx: index('system_email_logs_status_idx').on(table.status),
+}));

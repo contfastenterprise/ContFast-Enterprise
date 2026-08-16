@@ -6,7 +6,7 @@ import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { db, companies, companySettings, purchaseOrderLogs } from '@/db';
 import { eq } from 'drizzle-orm';
-import nodemailer from 'nodemailer';
+
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
@@ -79,36 +79,22 @@ export async function POST(
     const html = DocumentTemplates.renderSupplierOrder(docData);
     const pdfBuffer = await PdfGenerator.generatePdfFromHtml(html, 'carta');
 
-    // Mail dispatch
-    const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || '587', 10);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.SMTP_FROM || 'no-reply@contfast.com';
+    // Save PDF to Storage
+    const storagePath = `supplier-orders/${auth.companyId}/${id}.pdf`;
+    const { StorageService } = await import('@/services/storageService');
+    await StorageService.uploadFile('documents', storagePath, pdfBuffer, 'application/pdf');
 
-    if (!host || !user || !pass) {
-      throw new Error('Configuración SMTP faltante en las variables de entorno.');
-    }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-    });
-
-    await transporter.sendMail({
-      from: `"${company.name}" <${from}>`,
+    // Enqueue email job
+    const { addJob } = await import('@/infrastructure/queue');
+    await addJob('emails-sending', 'supplier-order-email', {
+      companyId: auth.companyId,
+      referenceId: id,
+      modo: auth.modo,
       to: order.supplierEmail,
       subject: `Orden de Pedido - ${order.orderNumber}`,
       text: `Estimado suplidor,\n\nAdjuntamos la orden de pedido ${order.orderNumber} correspondiente a las mercancías solicitadas.\n\nAtentamente,\n${company.name}`,
-      attachments: [
-        {
-          filename: `Pedido_${order.orderNumber}.pdf`,
-          content: Buffer.from(pdfBuffer),
-          contentType: 'application/pdf',
-        }
-      ]
+      pdfPath: `documents/${storagePath}`,
+      fromName: company.name
     });
 
     // Save action log
