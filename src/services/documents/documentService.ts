@@ -110,13 +110,10 @@ export class DocumentService {
     if (!forceRegenerate) {
       // Try to get from storage first
       try {
-        const existingPdf = await StorageService.downloadFile(storagePath);
+        const existingPdf = await StorageService.downloadFile('documents', storagePath);
         if (existingPdf) {
-          // It exists, return it
-          // Note: StorageService.downloadFile might return a Blob or Buffer depending on implementation
-          // We assume it returns a Blob, so we arrayBuffer() it
-          const arrayBuffer = await existingPdf.arrayBuffer();
-          return { buffer: Buffer.from(arrayBuffer), path: storagePath };
+          // It exists, return it (downloadFile returns a Buffer directly)
+          return { buffer: existingPdf, path: storagePath };
         }
       } catch (e) {
         // Not found or error, proceed to generate
@@ -129,11 +126,8 @@ export class DocumentService {
 
     // Save to storage
     try {
-      const file = new File([pdfBuffer], `${id}.pdf`, { type: 'application/pdf' });
-      await StorageService.uploadFile(storagePath, file, {
-        cacheControl: '3600',
-        upsert: true
-      });
+      // Using string content here as buffer since StorageService supports Buffer
+      await StorageService.uploadFile('documents', storagePath, pdfBuffer, 'application/pdf');
     } catch (uploadError) {
       console.error('[DocumentService] Failed to save PDF to storage:', uploadError);
       // We continue even if storage fails, so the user gets the PDF

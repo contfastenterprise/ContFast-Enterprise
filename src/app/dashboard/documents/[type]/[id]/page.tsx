@@ -29,7 +29,7 @@ export default async function DocumentPage({
       lines: true,
       taxes: true,
     }
-  });
+  }) as any;
 
   if (!invoiceData) {
     notFound();
@@ -66,7 +66,7 @@ export default async function DocumentPage({
       total: Number(invoiceData.total),
       notes: invoiceData.notes || undefined,
     },
-    lines: invoiceData.lines.map(l => ({
+    lines: invoiceData.lines?.map((l: any) => ({
       id: l.id,
       description: 'Producto/Servicio',
       quantity: Number(l.quantity),
@@ -74,12 +74,12 @@ export default async function DocumentPage({
       discount: Number(l.discount),
       subtotal: Number(l.subtotal),
       total: Number(l.total),
-    })),
-    taxes: invoiceData.taxes.map(t => ({
+    })) || [],
+    taxes: invoiceData.taxes?.map((t: any) => ({
       name: t.taxType,
       amount: Number(t.amount),
       rate: Number(t.rate),
-    })),
+    })) || [],
     modo: invoiceData.modo,
   };
 

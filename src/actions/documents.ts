@@ -28,7 +28,7 @@ export async function sendDocumentEmailAction(
         lines: true,
         taxes: true,
       }
-    });
+    }) as any;
 
     if (!invoiceData) {
       throw new Error('Documento no encontrado');
@@ -60,7 +60,7 @@ export async function sendDocumentEmailAction(
         total: Number(invoiceData.total),
         notes: invoiceData.notes || undefined,
       },
-      lines: invoiceData.lines.map(l => ({
+      lines: invoiceData.lines?.map((l: any) => ({
         id: l.id,
         description: 'Producto/Servicio',
         quantity: Number(l.quantity),
@@ -68,12 +68,12 @@ export async function sendDocumentEmailAction(
         discount: Number(l.discount),
         subtotal: Number(l.subtotal),
         total: Number(l.total),
-      })),
-      taxes: invoiceData.taxes.map(t => ({
+      })) || [],
+      taxes: invoiceData.taxes?.map((t: any) => ({
         name: t.taxType,
         amount: Number(t.amount),
         rate: Number(t.rate),
-      })),
+      })) || [],
       modo: invoiceData.modo,
     };
 

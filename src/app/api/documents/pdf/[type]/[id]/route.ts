@@ -34,7 +34,7 @@ export async function GET(
         lines: true,
         taxes: true,
       }
-    });
+    }) as any;
 
     if (!invoiceData) {
       return new NextResponse('Document not found', { status: 404 });
@@ -68,7 +68,7 @@ export async function GET(
         total: Number(invoiceData.total),
         notes: invoiceData.notes || undefined,
       },
-      lines: invoiceData.lines.map(l => ({
+      lines: invoiceData.lines?.map((l: any) => ({
         id: l.id,
         description: 'Producto/Servicio', // Needs join with products if we want name
         quantity: Number(l.quantity),
@@ -76,12 +76,12 @@ export async function GET(
         discount: Number(l.discount),
         subtotal: Number(l.subtotal),
         total: Number(l.total),
-      })),
-      taxes: invoiceData.taxes.map(t => ({
+      })) || [],
+      taxes: invoiceData.taxes?.map((t: any) => ({
         name: t.taxType,
         amount: Number(t.amount),
         rate: Number(t.rate),
-      })),
+      })) || [],
       modo: invoiceData.modo,
     };
 
@@ -92,7 +92,7 @@ export async function GET(
       templateData
     );
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
