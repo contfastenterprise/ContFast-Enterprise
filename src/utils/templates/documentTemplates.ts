@@ -957,7 +957,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     <div class="bottom-section">
       <div style="font-family: monospace; font-size: 9pt; line-height: 1.4; max-width: 55%;">
         <div style="font-weight: bold; color: #005E6A; margin-bottom: 5px; font-family: 'Inter', sans-serif;">Notas:</div>
-        <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${q.notes || 'Cotización válida por 30 días a partir de su emisión.\nNo aceptamos devolución de mercancía después de la salida de almacén.'}</div>
+        <div style="margin-bottom: 15px; color: #555; white-space: pre-wrap;">${q.notes || 'Cotización válida por 30 días a partir de su emisión.\nLos Precios pueden ser modificados por la empresa sin previo aviso.'}</div>
       </div>
       <div style="width: 300px; font-family: monospace; font-size: 9.5pt;">
         <table class="totals-table">
