@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Search, Save, X, Trash2, ArrowLeft,
-  Building2, Package, Check, Printer, ChevronDown, RefreshCw
+  Building2, Package, Check, Printer, ChevronDown, RefreshCw, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -40,13 +40,15 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch session
-        const sessionRes = await fetch('/api/v1/auth/session');
+        // Fetch user role
+        const sessionRes = await fetch('/api/v1/auth/me');
         const sessionData = await sessionRes.json();
-        if (sessionData.success) setUserRole(sessionData.data.role);
+        if (sessionData.success && sessionData.data?.user) {
+          setUserRole(sessionData.data.user.role);
+        }
 
         // Fetch warehouses
-        const whRes = await fetch('/api/v1/inventory/warehouses');
+        const whRes = await fetch('/api/v1/warehouses');
         const whData = await whRes.json();
         if (whData.success) setWarehouses(whData.data);
 
@@ -192,29 +194,46 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
 
   if (loading) {
     return (
-      <>
-        <div className="flex items-center justify-center h-full bg-neutral-900">
-          <div className="text-white">Cargando cotización...</div>
+      <div className="pb-12 w-full flex items-center justify-center min-h-[400px]">
+        <div className="text-slate-500 flex flex-col items-center gap-3">
+          <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+          <p className="text-sm font-medium">Cargando cotización...</p>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="flex flex-col h-full bg-neutral-900 overflow-hidden relative">
+    <div className="pb-12 w-full">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="space-y-6"
+      >
         {/* Header */}
-        <div className="p-6 border-b border-white/10 shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/dashboard/quotes')} className="p-2 hover:bg-white/5 rounded-lg text-neutral-400">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+          <div className="flex items-start gap-4">
+            <button onClick={() => router.push('/dashboard/quotes')} className="p-2 mt-1 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-2xl font-bold text-white">Editar Cotización</h1>
-            {!isEditable && (
-              <span className="px-2 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/20 rounded-md">
-                Solo Lectura ({quoteStatus})
-              </span>
-            )}
+            <div>
+              <nav className="flex items-center gap-2 text-slate-600 font-medium text-xs mb-2">
+                <span>Facturación</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <span className="text-[#C5A059] font-bold">Cotizaciones</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+                <span className="text-[#003366] font-bold">Ver / Editar</span>
+              </nav>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl md:text-4xl font-bold text-[#003366] tracking-tight">{isEditable ? 'Editar Cotización' : 'Ver Cotización'}</h1>
+                {!isEditable && (
+                  <span className="px-2 py-1 text-[10px] bg-red-50 text-red-600 border border-red-200 rounded-md font-bold uppercase tracking-wider">
+                    Solo Lectura ({quoteStatus})
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           {isEditable && (
             <div className="relative flex">
@@ -222,7 +241,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 type="button"
                 onClick={() => saveQuote(false)}
                 disabled={submitting}
-                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#C5A059] px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98] border-r border-[#a88840]"
+                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#003366] px-6 py-3 text-sm font-bold text-white hover:bg-[#002244] disabled:opacity-50 transition-all shadow-lg active:scale-[0.98] border-r border-[#002244]"
               >
                 {submitting ? (
                   <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
@@ -234,7 +253,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 type="button"
                 disabled={submitting}
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                className="flex items-center justify-center rounded-r-xl bg-[#C5A059] px-3 py-3.5 text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all shadow-lg shadow-[#C5A059]/20 active:scale-[0.98]"
+                className="flex items-center justify-center rounded-r-xl bg-[#003366] px-3 py-3 text-white hover:bg-[#002244] disabled:opacity-50 transition-all shadow-lg active:scale-[0.98]"
                 title="Más opciones"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -267,8 +286,8 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           <Printer className="h-4 w-4 text-amber-700" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 text-xs">Guardar e Imprimir</p>
-                          <p className="text-[11px] text-slate-500">Guarda cambios y abre el PDF automáticamente</p>
+                          <p className="font-semibold text-[#003366] text-xs">Guardar e Imprimir</p>
+                          <p className="text-[11px] text-slate-500">Guarda cambios y abre el PDF</p>
                         </div>
                       </button>
                       <button
@@ -281,8 +300,8 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           <Check className="h-4 w-4 text-emerald-700" />
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 text-xs">Solo Guardar</p>
-                          <p className="text-[11px] text-slate-500">Guarda cambios y regresa al listado</p>
+                          <p className="font-semibold text-[#003366] text-xs">Solo Guardar</p>
+                          <p className="text-[11px] text-slate-500">Guarda y regresa al listado</p>
                         </div>
                       </button>
                     </motion.div>
@@ -294,29 +313,32 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6 max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-neutral-800/50 rounded-xl p-5 border border-white/5">
-              <h2 className="text-lg font-medium text-white mb-4">Líneas de Productos</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+              <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5 text-[#C5A059]" />
+                Líneas de Productos
+              </h2>
               
               <div className="space-y-4">
                 {lines.map((line, idx) => (
-                  <div key={idx} className="flex flex-wrap items-start gap-3 p-4 bg-black/20 rounded-lg border border-white/5">
+                  <div key={idx} className="flex flex-wrap items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <div className="flex-1 min-w-[200px]">
-                      <label className="text-xs text-neutral-400 mb-1 block">Producto</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Producto</label>
                       <button 
                         disabled={!isEditable}
                         onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
                         className={clsx(
-                          "w-full text-left px-3 py-2 border rounded-lg text-xs text-white",
-                          isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed opacity-70"
+                          "w-full text-left px-3 py-2.5 border rounded-lg text-xs font-semibold",
+                          isEditable ? "bg-white border-slate-300 text-[#003366] hover:border-[#C5A059] transition-colors" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                         )}
                       >
                         {line.productName || 'Seleccionar Producto...'}
                       </button>
                     </div>
                     <div className="w-24">
-                      <label className="text-xs text-neutral-400 mb-1 block">Cant.</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Cant.</label>
                       <input 
                         type="number" min="1" step="any"
                         disabled={!isEditable}
@@ -325,13 +347,13 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].quantity = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-xs text-white",
-                          isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
+                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
+                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                         )}
                       />
                     </div>
                     <div className="w-32">
-                      <label className="text-xs text-neutral-400 mb-1 block">Precio</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Precio (RD$)</label>
                       <input 
                         type="number" step="any"
                         disabled={!isEditable}
@@ -340,16 +362,16 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-xs text-white",
-                          isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
+                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
+                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                         )}
                       />
                     </div>
                     <div className="w-28 relative group">
-                      <label className="flex items-center gap-2 text-xs text-neutral-400 mb-1">
-                        Descuento
+                      <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                        Desc. (RD$)
                         {!canEditDiscount && isEditable && (
-                          <span className="text-[9px] text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">Solo admin</span>
+                          <span className="text-[8px] text-amber-700 bg-amber-100 px-1 py-0.5 rounded uppercase font-bold whitespace-nowrap">Solo admin</span>
                         )}
                       </label>
                       <input 
@@ -360,18 +382,19 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           const n = [...lines]; n[idx].discount = Number(e.target.value); setLines(n);
                         }}
                         className={clsx(
-                          "w-full px-3 py-2 border rounded-lg text-xs",
+                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
                           (!isEditable || !canEditDiscount)
-                            ? "bg-neutral-800 border-white/5 text-neutral-500 cursor-not-allowed" 
-                            : "bg-neutral-900 border-white/10 text-white"
+                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" 
+                            : "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all"
                         )}
                       />
                     </div>
                     {isEditable && (
-                      <div className="pt-6">
+                      <div className="pt-[22px]">
                         <button 
                           onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
-                          className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                          title="Eliminar Línea"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -383,63 +406,69 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
               {isEditable && (
                 <button 
                   onClick={() => setLines([...lines, { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18 }])}
-                  className="mt-4 flex items-center gap-2 text-indigo-400 text-sm hover:underline"
+                  className="mt-4 flex items-center gap-2 text-[#C5A059] text-xs font-bold hover:text-[#b08c4a] transition-colors bg-[#C5A059]/10 px-4 py-2 rounded-lg"
                 >
-                  <Plus className="w-4 h-4" /> Agregar Línea
+                  <Plus className="w-4 h-4" strokeWidth={2.5} /> Agregar Producto
                 </button>
               )}
             </div>
 
-            <div className="bg-neutral-800/50 rounded-xl p-5 border border-white/5">
-              <h2 className="text-lg font-medium text-white mb-4">Notas</h2>
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+              <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
+                <Printer className="w-5 h-5 text-[#C5A059]" />
+                Notas y Observaciones
+              </h2>
               <textarea
                 disabled={!isEditable}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 className={clsx(
-                  "w-full px-3 py-2 border rounded-lg text-sm text-white",
-                  isEditable ? "bg-neutral-900 border-white/10 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500" : "bg-neutral-800 border-white/5 cursor-not-allowed"
+                  "w-full px-3 py-2.5 border rounded-lg text-xs font-medium outline-none transition-all",
+                  isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                 )}
-                placeholder="Observaciones para el cliente..."
+                placeholder="Condiciones de pago, validez de la oferta, etc..."
               />
             </div>
           </div>
 
           <div className="space-y-6">
             {/* Customer & Warehouse */}
-            <div className="bg-neutral-800/50 rounded-xl p-5 border border-white/5">
-              <h2 className="text-lg font-medium text-white mb-4">Detalles</h2>
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+              <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-[#C5A059]" />
+                Detalles Generales
+              </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-neutral-400 mb-1.5 block">Cliente</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cliente</label>
                   <div className="flex gap-2">
                     <button 
                       disabled={!isEditable}
                       onClick={() => { setCustomerSearchOpen(true); searchCustomers(''); }}
                       className={clsx(
-                        "flex-1 text-left px-3 py-2 border rounded-lg text-sm text-white",
-                        isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
+                        "flex-1 text-left px-3 py-2.5 border rounded-lg text-xs font-semibold transition-colors",
+                        isEditable ? "bg-white border-slate-300 text-[#003366] hover:border-[#C5A059]" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                       )}
                     >
                       {customerName || 'Consumidor Final (Opcional)'}
                     </button>
                     {customerId && isEditable && (
-                      <button onClick={() => { setCustomerId(''); setCustomerName(''); }} className="p-2 text-neutral-400 hover:text-white">
+                      <button onClick={() => { setCustomerId(''); setCustomerName(''); }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100">
                         <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm text-neutral-400 mb-1.5 block">Almacén</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Almacén de Origen</label>
                   <select
                     disabled={!isEditable}
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
                     className={clsx(
-                      "w-full px-3 py-2 border rounded-lg text-sm text-white",
-                      isEditable ? "bg-neutral-900 border-white/10" : "bg-neutral-800 border-white/5 cursor-not-allowed"
+                      "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none appearance-none transition-colors",
+                      isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                     )}
                   >
                     {warehouses.map(w => (
@@ -451,67 +480,74 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
             </div>
 
             {/* Totals Summary */}
-            <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-xl p-5 border border-indigo-500/20">
-              <h2 className="text-lg font-medium text-white mb-4">Resumen</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-neutral-400">
+            <div className="bg-[#003366] rounded-xl p-6 shadow-xl relative overflow-hidden border border-[#002244]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#C5A059]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+              
+              <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                Resumen Financiero
+              </h2>
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between text-slate-300 font-medium">
                   <span>Subtotal</span>
-                  <span>${totals.subtotal.toFixed(2)}</span>
+                  <span>RD$ {totals.subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-neutral-400">
-                  <span>Descuento</span>
-                  <span>${totals.discount.toFixed(2)}</span>
+                <div className="flex justify-between text-amber-300/80 font-medium">
+                  <span>Descuento Aplicado</span>
+                  <span>- RD$ {totals.discount.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-neutral-400">
+                <div className="flex justify-between text-slate-300 font-medium">
                   <span>Impuestos (ITBIS)</span>
-                  <span>${totals.tax.toFixed(2)}</span>
+                  <span>RD$ {totals.tax.toFixed(2)}</span>
                 </div>
-                <div className="pt-3 mt-3 border-t border-white/10 flex justify-between font-bold text-lg text-white">
-                  <span>Total</span>
-                  <span>${totals.total.toFixed(2)}</span>
+                <div className="pt-4 mt-4 border-t border-white/10 flex justify-between items-end">
+                  <span className="font-bold text-slate-200 uppercase tracking-wider text-[10px]">Total a Pagar</span>
+                  <span className="font-bold text-2xl text-[#C5A059]">RD$ {totals.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Product Search Modal */}
       <AnimatePresence>
         {productSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-white/10 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="p-4 border-b border-white/10 flex items-center gap-3">
-                <Search className="w-5 h-5 text-neutral-400" />
+              <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+                <Search className="w-5 h-5 text-slate-400" />
                 <input 
                   autoFocus
                   type="text" 
-                  placeholder="Buscar producto..." 
+                  placeholder="Buscar por nombre o código..." 
                   onChange={(e) => searchProducts(e.target.value)}
-                  className="flex-1 bg-transparent text-white outline-none"
+                  className="flex-1 bg-transparent text-[#003366] text-sm font-semibold outline-none placeholder:text-slate-400 placeholder:font-normal"
                 />
-                <button onClick={() => setProductSearchOpen(false)} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setProductSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalProducts.map(p => (
                   <button 
                     key={p.id}
                     onClick={() => selectProduct(p)}
-                    className="w-full text-left p-3 hover:bg-white/5 rounded-lg flex justify-between items-center group"
+                    className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex justify-between items-center group transition-colors border border-transparent hover:border-slate-200"
                   >
                     <div>
-                      <div className="text-white font-medium group-hover:text-indigo-400 transition-colors">{p.name}</div>
-                      <div className="text-xs text-neutral-500">{p.sku}</div>
+                      <div className="text-[#003366] font-bold text-sm group-hover:text-[#C5A059] transition-colors">{p.name}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">SKU: {p.sku}</div>
                     </div>
-                    <div className="text-emerald-400 font-medium">
-                      ${Number(p.price).toFixed(2)}
+                    <div className="text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-md text-xs border border-emerald-100">
+                      RD$ {Number(p.price).toFixed(2)}
                     </div>
                   </button>
                 ))}
                 {modalProducts.length === 0 && (
-                  <div className="p-8 text-center text-neutral-500">Busca para encontrar productos.</div>
+                  <div className="p-12 flex flex-col items-center justify-center text-center">
+                    <Search className="w-10 h-10 text-slate-200 mb-3" />
+                    <p className="text-slate-500 text-sm font-medium">Busca para encontrar productos.</p>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -522,43 +558,45 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
       {/* Customer Search Modal */}
       <AnimatePresence>
         {customerSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-neutral-900 border border-white/10 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="p-4 border-b border-white/10 flex items-center gap-3">
-                <Search className="w-5 h-5 text-neutral-400" />
+              <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+                <Search className="w-5 h-5 text-slate-400" />
                 <input 
                   autoFocus
                   type="text" 
-                  placeholder="Buscar cliente..." 
+                  placeholder="Buscar por nombre o RNC..." 
                   onChange={(e) => searchCustomers(e.target.value)}
-                  className="flex-1 bg-transparent text-white outline-none"
+                  className="flex-1 bg-transparent text-[#003366] text-sm font-semibold outline-none placeholder:text-slate-400 placeholder:font-normal"
                 />
-                <button onClick={() => setCustomerSearchOpen(false)} className="text-neutral-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setCustomerSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalCustomers.map(c => (
                   <button 
                     key={c.id}
                     onClick={() => { setCustomerId(c.id); setCustomerName(c.name); setCustomerSearchOpen(false); }}
-                    className="w-full text-left p-3 hover:bg-white/5 rounded-lg flex justify-between items-center group"
+                    className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex justify-between items-center group transition-colors border border-transparent hover:border-slate-200"
                   >
                     <div>
-                      <div className="text-white font-medium group-hover:text-indigo-400 transition-colors">{c.name}</div>
-                      <div className="text-xs text-neutral-500">{c.rncCedula}</div>
+                      <div className="text-[#003366] font-bold text-sm group-hover:text-[#C5A059] transition-colors">{c.name}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">RNC/Cédula: {c.rncCedula}</div>
                     </div>
                   </button>
                 ))}
                 {modalCustomers.length === 0 && (
-                  <div className="p-8 text-center text-neutral-500">Busca para encontrar clientes.</div>
+                  <div className="p-12 flex flex-col items-center justify-center text-center">
+                    <Building2 className="w-10 h-10 text-slate-200 mb-3" />
+                    <p className="text-slate-500 text-sm font-medium">Busca para encontrar clientes.</p>
+                  </div>
                 )}
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-    </>
+    </div>
   );
 }
