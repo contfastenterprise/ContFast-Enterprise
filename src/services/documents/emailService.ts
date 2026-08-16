@@ -1,8 +1,6 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { db } from '@/db';
 import { documentEmailLogs } from '@/db/schema/documents';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export interface SendDocumentEmailOptions {
   companyId: string;
@@ -18,6 +16,18 @@ export interface SendDocumentEmailOptions {
 }
 
 export class EmailService {
+  private static getTransporter() {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+
   static async sendDocumentEmail(options: SendDocumentEmailOptions): Promise<void> {
     const {
       companyId,
@@ -32,21 +42,18 @@ export class EmailService {
       modo = 'PRODUCCION',
     } = options;
 
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY no está configurada.');
-    }
+    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@contfast.app';
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'ContFast Enterprise <no-reply@contfast.app>';
-
-    // 1. Send the email using Resend
+    // 1. Send the email using Nodemailer
     let providerMessageId = '';
     let errorMessage = '';
     let status: 'sent' | 'failed' = 'failed';
 
     try {
-      const { data, error } = await resend.emails.send({
+      const transporter = this.getTransporter();
+      const info = await transporter.sendMail({
         from: fromEmail,
-        to: [toEmail],
+        to: toEmail,
         subject: subject,
         html: htmlContent,
         attachments: [
@@ -57,18 +64,12 @@ export class EmailService {
         ],
       });
 
-      if (error) {
-        errorMessage = error.message || 'Error desconocido enviando correo con Resend.';
-        status = 'failed';
-        console.error('[EmailService] Failed to send email via Resend:', error);
-      } else {
-        providerMessageId = data?.id || '';
-        status = 'sent';
-      }
+      providerMessageId = info.messageId || '';
+      status = 'sent';
     } catch (e: any) {
-      errorMessage = e.message || 'Excepción al intentar enviar el correo.';
+      errorMessage = e.message || 'Excepción al intentar enviar el correo por SMTP.';
       status = 'failed';
-      console.error('[EmailService] Exception sending email:', e);
+      console.error('[EmailService] Exception sending email via SMTP:', e);
     }
 
     // 2. Log in Database
@@ -89,7 +90,6 @@ export class EmailService {
       });
     } catch (dbError) {
       console.error('[EmailService] Failed to log email to DB:', dbError);
-      // We don't necessarily throw here if the email sent successfully, but it's important to log.
     }
 
     if (status === 'failed') {
