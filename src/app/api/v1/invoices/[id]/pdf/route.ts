@@ -222,9 +222,9 @@ const crypto = require('crypto');
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.address || 'Santiago, R.D.',
-        phone: '1-829-214-4128', // Latin Doors phone from the template
-        email: settings?.msellerEmail || 'latindoors@gmail.com',
+        address: company.address || '',
+        phone: company.phone || '',
+        email: company.email || '',
         logoUrl: settings?.logoUrl || undefined,
         settings: { 
           printLayout: settings?.printLayout || 'carta',

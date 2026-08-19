@@ -51,8 +51,8 @@ export async function GET(
       name: company.name,
       rnc: company.rnc,
       address: company.address || '',
-      phone: '',
-      email: settings?.msellerEmail || company.email || '',
+      phone: company.phone || '',
+      email: company.email || '',
       logoUrl: settings?.logoUrl || undefined,
     };
 
