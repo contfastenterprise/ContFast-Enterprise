@@ -370,9 +370,7 @@ export class DocumentTemplates {
               ${logoHtml}
               <div class="company-info">
   ${padDots('RNC', 12)} ${company.rnc || ''}
-  ${padDots('Teléfono', 12)} ${company.phone || ''}
-  ${padDots('Email', 12)} ${company.email || ''}
-  ${padDots('Dirección', 12)} ${company.address || ''}
+  ${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n  ` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n  ` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
               </div>
             </div>
             <div class="doc-info">
@@ -903,9 +901,7 @@ export class DocumentTemplates {
         ${logoHtml}
         <div class="company-info">
 ${padDots('RNC', 12)} ${company?.rnc || ''}
-${padDots('Teléfono', 12)} ${company?.phone || ''}
-${padDots('Email', 12)} ${company?.email || ''}
-${padDots('Dirección', 12)} ${company?.address || ''}
+${company?.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n` : ''}${company?.email ? `${padDots('Email', 12)} ${company.email}\n` : ''}${company?.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
         </div>
       </div>
       <div class="doc-info">
@@ -1197,9 +1193,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             ${logoHtml}
             <div class="company-info">
   ${padDots('RNC', 12)} ${company.rnc}
-  ${padDots('Teléfono', 12)} ${company.phone || ''}
-  ${padDots('Email', 12)} ${company.email || ''}
-  ${padDots('Dirección', 12)} ${company.address || ''}
+  ${company.phone ? `${padDots('Teléfono', 12)} ${company.phone}\n  ` : ''}${company.email ? `${padDots('Email', 12)} ${company.email}\n  ` : ''}${company.address ? `${padDots('Dirección', 12)} ${company.address}` : ''}
             </div>
           </div>
           <div class="doc-info">

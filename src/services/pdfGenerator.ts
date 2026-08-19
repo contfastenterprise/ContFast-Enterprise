@@ -316,7 +316,7 @@ export class PdfGenerator {
 
     const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
     const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
+    const email = company.email;
     const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
 
     const padDots = (label: string, length: number) => {
@@ -324,13 +324,17 @@ export class PdfGenerator {
       return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
     };
 
-    doc.fillColor('#333333')
-      .font('Courier')
-      .fontSize(9.5) // Reverted to 9.5
-      .text(`${padDots('RNC', 12)} ${company.rnc || 'N/A'}`, 36, yOffset)
-      .text(`${padDots('Teléfono', 12)} ${tel}`, 36, yOffset + 12) // Reverted spacing
-      .text(`${padDots('Email', 12)} ${email}`, 36, yOffset + 24)
-      .text(`${padDots('Dirección', 12)} ${dir}`, 36, yOffset + 36);
+    doc.fillColor('#333333').font('Courier').fontSize(9.5);
+    let currentY = yOffset;
+    doc.text(`${padDots('RNC', 12)} ${company.rnc || 'N/A'}`, 36, currentY);
+    currentY += 12;
+    doc.text(`${padDots('Teléfono', 12)} ${tel}`, 36, currentY);
+    currentY += 12;
+    if (email) {
+      doc.text(`${padDots('Email', 12)} ${email}`, 36, currentY);
+      currentY += 12;
+    }
+    doc.text(`${padDots('Dirección', 12)} ${dir}`, 36, currentY);
 
     // Meta Info (Right) - Clean text aligned to the right to match the Invoice layout
     const metaWidth = 350;
@@ -389,7 +393,7 @@ export class PdfGenerator {
     // Check if company is Latin Doors or use defaults
     const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
     const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
+    const email = company.email;
     const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
 
     // If logo was drawn, let's keep details compact and clear
@@ -399,8 +403,10 @@ export class PdfGenerator {
     yPos += 12;
     doc.text(this.formatLabel('Teléfono', tel), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Email', email), margin, yPos);
-    yPos += 12;
+    if (email) {
+      doc.text(this.formatLabel('Email', email), margin, yPos);
+      yPos += 12;
+    }
     doc.text(this.formatLabel('Dirección', dir), margin, yPos);
     yPos += 12;
     doc.text(this.formatLabel('Fecha Gen', currentDate), margin, yPos);
