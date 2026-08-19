@@ -52,6 +52,7 @@ export default function SettingsPage() {
     businessActivity: '',
     address: '',
     phone: '',
+    email: '',
     logoUrl: '',
     dgiiEnv: 'test',
     printLayout: 'carta',
@@ -198,6 +199,7 @@ export default function SettingsPage() {
           businessActivity: data.data.company.businessActivity || '',
           address: data.data.company.address || '',
           phone: data.data.company.phone || '',
+          email: data.data.company.email || '',
           logoUrl: data.data.settings.logoUrl || '',
           dgiiEnv: data.data.settings.dgiiEnv,
           printLayout: data.data.settings.printLayout,
@@ -513,6 +515,15 @@ export default function SettingsPage() {
                     type="text"
                     value={formData.phone || ''}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico de la Empresa</label>
+                  <input
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-semibold"
                   />
                 </div>

@@ -13,6 +13,7 @@ const settingsSchema = z.object({
   businessActivity: z.string().optional(),
   address: z.string().optional(),
   phone: z.string().optional(),
+  email: z.string().email('Correo inválido').optional().or(z.literal('')),
   logoUrl: z.string().optional(),
   dgiiEnv: z.enum(['test', 'production']),
   printLayout: z.enum(['carta', '80mm', '58mm']),
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
       rnc: companies.rnc,
       businessActivity: companies.businessActivity,
       address: companies.address,
-      phone: companies.phone
+      phone: companies.phone,
+      email: companies.email
     }).from(companies).where(eq(companies.id, session.companyId));
 
     const [settings] = await db.select({
@@ -131,6 +133,7 @@ export async function PATCH(req: NextRequest) {
       rnc, 
       address, 
       phone,
+      email,
       businessActivity, 
       logoUrl, 
       dgiiEnv, 
@@ -225,6 +228,7 @@ export async function PATCH(req: NextRequest) {
       if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
       if (address !== undefined) companyUpdate.address = address;
       if (phone !== undefined) companyUpdate.phone = phone;
+      if (email !== undefined) companyUpdate.email = email;
 
       if (Object.keys(companyUpdate).length > 0) {
         await tx.update(companies)
