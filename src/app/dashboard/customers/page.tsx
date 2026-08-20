@@ -27,6 +27,7 @@ interface Customer {
   phone?: string;
   address?: string;
   creditLimit?: string;
+  priceType?: string;
   status: string;
   createdAt: string;
 }
@@ -58,6 +59,7 @@ export default function CustomersPage() {
     phone: '',
     address: '',
     creditLimit: '0.00',
+    priceType: 'base',
     status: 'active'
   });
 
@@ -194,7 +196,7 @@ export default function CustomersPage() {
 
   const openNewModal = () => {
     setEditId(null);
-    setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', creditLimit: '0.00', status: 'active' });
+    setFormData({ rncCedula: '', name: '', email: '', phone: '', address: '', creditLimit: '0.00', priceType: 'base', status: 'active' });
     setRncVerified(false);
     setShowModal(true);
   };
@@ -208,6 +210,7 @@ export default function CustomersPage() {
       phone: customer.phone || '',
       address: customer.address || '',
       creditLimit: customer.creditLimit || '0.00',
+      priceType: customer.priceType || 'base',
       status: customer.status
     });
     setRncVerified(false);
@@ -562,6 +565,20 @@ export default function CustomersPage() {
                       className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       placeholder="0.00"
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo de Precio</label>
+                    <select
+                      value={formData.priceType || 'base'}
+                      onChange={(e) => setFormData({ ...formData, priceType: e.target.value })}
+                      className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
+                    >
+                      <option value="base">Precio 1 (Base/Al detalle)</option>
+                      <option value="consumidor">Precio 2 (Consumidor Final)</option>
+                      <option value="mayorista">Precio 3 (Mayorista)</option>
+                      <option value="proveedor">Precio 4 (Proveedor)</option>
+                    </select>
                   </div>
 
                   <div className="space-y-1 md:col-span-2">

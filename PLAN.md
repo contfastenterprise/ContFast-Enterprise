@@ -584,3 +584,4 @@ Verified & Polished
 - **Verified & Polished**: Aplicado formato de fecha dd/MM/yyyy en las tablas y detalles visuales de la página de compras.
 Actualización: Correo electrónico de empresa agregado a la configuración. **Verified & Polished**
 Actualización: Correo en PDFs ahora se renderiza condicionalmente. **Verified & Polished**
+Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Polished**

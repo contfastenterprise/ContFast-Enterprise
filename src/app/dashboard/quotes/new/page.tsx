@@ -25,6 +25,7 @@ export default function NewQuote() {
   // Form state
   const [customerId, setCustomerId] = useState('');
   const [customerName, setCustomerName] = useState('');
+  const [customerPriceTier, setCustomerPriceTier] = useState('consumidor');
   const [selectedCustomerData, setSelectedCustomerData] = useState<any>(null);
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -97,6 +98,31 @@ export default function NewQuote() {
     setCustomerId(customer.id);
     setCustomerName(customer.name);
     setSelectedCustomerData(customer);
+    
+    const newTier = (customer.priceType && customer.priceType !== 'base') ? customer.priceType : 'consumidor';
+    setCustomerPriceTier(newTier);
+
+    setLines(prevLines => {
+      const updatedLines = [...prevLines];
+      let changed = false;
+      updatedLines.forEach(line => {
+        if (line.productId) {
+          line.priceTier = newTier;
+          const product = dbProducts.find((p) => p.id === line.productId);
+          if (product) {
+            if (newTier === 'consumidor') line.unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+            if (newTier === 'proveedor') line.unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+            if (newTier === 'mayorista') line.unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+            line.total = (line.unitPrice * line.quantity) - line.discount;
+          }
+          changed = true;
+        } else {
+          line.priceTier = newTier;
+          changed = true;
+        }
+      });
+      return updatedLines;
+    });
   };
 
   const applyProductToLine = (idx: number, product: any) => {
@@ -252,7 +278,7 @@ export default function NewQuote() {
   const handleAddLine = () => {
     setLines([
       ...lines,
-      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, priceTier: 'consumidor', productData: null, warehouseId: '' }
+      { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, priceTier: customerPriceTier || 'consumidor', productData: null, warehouseId: '' }
     ]);
   };
 

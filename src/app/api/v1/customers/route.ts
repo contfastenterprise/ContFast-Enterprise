@@ -14,6 +14,7 @@ const createCustomerSchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
   creditLimit: z.string().optional().or(z.number()).transform(v => v ? String(v) : '0.00'),
+  priceType: z.enum(['base', 'consumidor', 'proveedor', 'mayorista']).optional().default('base'),
   status: z.enum(['active', 'inactive']).optional(),
 });
 

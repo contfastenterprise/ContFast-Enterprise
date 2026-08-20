@@ -9,6 +9,7 @@ export interface CreateCustomerInput {
   phone?: string | null;
   address?: string | null;
   creditLimit?: string;
+  priceType?: string;
   status?: string;
 }
 
@@ -19,6 +20,7 @@ export interface UpdateCustomerInput {
   phone?: string | null;
   address?: string | null;
   creditLimit?: string;
+  priceType?: string;
   status?: string;
 }
 

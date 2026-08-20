@@ -90,6 +90,7 @@ function InvoicesList() {
   const [customerRnc, setCustomerRnc] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerPriceTier, setCustomerPriceTier] = useState('consumidor');
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
@@ -281,6 +282,35 @@ function InvoicesList() {
     setCustomerRnc(cust.rncCedula || '');
     setCustomerName(cust.name || '');
     setCustomerPhone(cust.phone || '');
+    
+    const newTier = (cust.priceType && cust.priceType !== 'base') ? cust.priceType : 'consumidor';
+    setCustomerPriceTier(newTier);
+
+    setLines(prevLines => {
+      const updatedLines = [...prevLines];
+      let changed = false;
+      updatedLines.forEach(line => {
+        if (line.productId) {
+          line.priceTier = newTier;
+          const product = dbProducts.find((p) => p.id === line.productId);
+          if (product) {
+            if (newTier === 'consumidor') line.unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
+            if (newTier === 'proveedor') line.unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
+            if (newTier === 'mayorista') line.unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
+            line.total = (line.unitPrice * line.quantity) - line.discount;
+          }
+          changed = true;
+        } else {
+          // If no product, just update the default for that row
+          line.priceTier = newTier;
+          changed = true;
+        }
+      });
+      if (changed) {
+        setTimeout(() => calculateTotals(updatedLines), 0);
+      }
+      return updatedLines;
+    });
   };
 
 
@@ -525,7 +555,7 @@ function InvoicesList() {
         taxRate: 0.18,
         unitOfMeasure: 'unidad',
         barcode: '',
-        priceTier: 'consumidor',
+        priceTier: customerPriceTier || 'consumidor',
         imageUrl: ''
       },
     ]);
