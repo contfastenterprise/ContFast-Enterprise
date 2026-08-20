@@ -306,9 +306,7 @@ function InvoicesList() {
           changed = true;
         }
       });
-      if (changed) {
-        setTimeout(() => calculateTotals(updatedLines), 0);
-      }
+      // calculateTotals is derived state, no need to call it
       return updatedLines;
     });
   };

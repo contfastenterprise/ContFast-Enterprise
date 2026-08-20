@@ -570,14 +570,13 @@ export default function CustomersPage() {
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo de Precio</label>
                     <select
-                      value={formData.priceType || 'base'}
+                      value={formData.priceType || 'consumidor'}
                       onChange={(e) => setFormData({ ...formData, priceType: e.target.value })}
                       className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                     >
-                      <option value="base">Precio 1 (Base/Al detalle)</option>
-                      <option value="consumidor">Precio 2 (Consumidor Final)</option>
+                      <option value="consumidor">Precio 1 (Consumidor Final / Detalle)</option>
+                      <option value="proveedor">Precio 2 (Proveedor)</option>
                       <option value="mayorista">Precio 3 (Mayorista)</option>
-                      <option value="proveedor">Precio 4 (Proveedor)</option>
                     </select>
                   </div>
 
