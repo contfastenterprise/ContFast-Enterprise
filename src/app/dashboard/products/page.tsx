@@ -116,6 +116,7 @@ export default function ProductsPage() {
     if (!manualPricesEnabled && formData.cost) {
       const costNum = Number(formData.cost);
       if (!isNaN(costNum) && costNum >= 0) {
+        const pBase = (costNum * 1.25).toFixed(2);
         const pConsumidor = (costNum * 1.20).toFixed(2);
         const pMayorista = (costNum * 1.15).toFixed(2);
         const pProveedor = (costNum * 1.10).toFixed(2);
@@ -124,10 +125,10 @@ export default function ProductsPage() {
         if (formData.priceConsumidor !== pConsumidor ||
           formData.priceMayorista !== pMayorista ||
           formData.priceProveedor !== pProveedor ||
-          formData.price !== pConsumidor) {
+          formData.price !== pBase) {
           setFormData(prev => ({
             ...prev,
-            price: pConsumidor,
+            price: pBase,
             priceConsumidor: pConsumidor,
             priceMayorista: pMayorista,
             priceProveedor: pProveedor
@@ -352,10 +353,10 @@ export default function ProductsPage() {
       const payload = {
         ...formData,
         cost: Number(formData.cost),
-        price: Number(formData.priceConsumidor || formData.price),
-        priceConsumidor: Number(formData.priceConsumidor || formData.price),
-        priceMayorista: Number(formData.priceMayorista || formData.price),
-        priceProveedor: Number(formData.priceProveedor || formData.price),
+        price: Number(formData.price),
+        priceConsumidor: Number(formData.priceConsumidor),
+        priceMayorista: Number(formData.priceMayorista),
+        priceProveedor: Number(formData.priceProveedor),
         secondaryBarcodes: !editId ? secondaryBarcodes : undefined
       };
 
@@ -1272,14 +1273,25 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="relative">
+                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (+25%)</label>
+                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
+                        <input
+                          type="number"
+                          readOnly
+                          value={formData.price}
+                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+                        />
+                      </div>
+
                       <div className="relative">
                         <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (+20%)</label>
                         <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
                         <input
                           type="number"
                           readOnly
-                          value={formData.priceConsumidor || formData.price}
+                          value={formData.priceConsumidor}
                           className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
                         />
                       </div>
@@ -1467,15 +1479,29 @@ export default function ProductsPage() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-primary">Precio Base</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">RD$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-14 pr-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-primary">Precio Consumidor (Venta Regular)</label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">RD$</span>
                       <input
                         type="number"
                         step="0.01"
-                        value={formData.priceConsumidor || formData.price}
+                        value={formData.priceConsumidor}
                         onChange={(e) => {
-                          setFormData({ ...formData, priceConsumidor: e.target.value, price: e.target.value });
+                          setFormData({ ...formData, priceConsumidor: e.target.value });
                         }}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-14 pr-3 py-1.5 h-8 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       />

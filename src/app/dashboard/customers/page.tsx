@@ -574,9 +574,10 @@ export default function CustomersPage() {
                       onChange={(e) => setFormData({ ...formData, priceType: e.target.value })}
                       className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                     >
-                      <option value="consumidor">Precio 1 (Consumidor Final / Detalle)</option>
-                      <option value="proveedor">Precio 2 (Proveedor)</option>
-                      <option value="mayorista">Precio 3 (Mayorista)</option>
+                      <option value="base">Precio 1 (Base +25%)</option>
+                      <option value="consumidor">Precio 2 (Consumidor Final +20%)</option>
+                      <option value="mayorista">Precio 3 (Mayorista +15%)</option>
+                      <option value="proveedor">Precio 4 (Proveedor +10%)</option>
                     </select>
                   </div>
 

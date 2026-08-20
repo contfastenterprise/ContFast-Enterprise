@@ -90,7 +90,7 @@ function InvoicesList() {
   const [customerRnc, setCustomerRnc] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerPriceTier, setCustomerPriceTier] = useState('consumidor');
+  const [customerPriceTier, setCustomerPriceTier] = useState('base');
   const [warehouseId, setWarehouseId] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
@@ -283,7 +283,7 @@ function InvoicesList() {
     setCustomerName(cust.name || '');
     setCustomerPhone(cust.phone || '');
     
-    const newTier = (cust.priceType && cust.priceType !== 'base') ? cust.priceType : 'consumidor';
+    const newTier = cust.priceType || 'base';
     setCustomerPriceTier(newTier);
 
     setLines(prevLines => {
@@ -294,6 +294,7 @@ function InvoicesList() {
           line.priceTier = newTier;
           const product = dbProducts.find((p) => p.id === line.productId);
           if (product) {
+            if (newTier === 'base') line.unitPrice = parseFloat(product.price) || 0;
             if (newTier === 'consumidor') line.unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
             if (newTier === 'proveedor') line.unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
             if (newTier === 'mayorista') line.unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
@@ -607,7 +608,9 @@ function InvoicesList() {
     updated[idx].imageUrl = product.imageUrl || '';
 
     const tier = updated[idx].priceTier || 'consumidor';
-    if (tier === 'consumidor') {
+    if (tier === 'base') {
+      updated[idx].unitPrice = parseFloat(product.price) || 0;
+    } else if (tier === 'consumidor') {
       updated[idx].unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
     } else if (tier === 'proveedor') {
       updated[idx].unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
@@ -627,13 +630,15 @@ function InvoicesList() {
     setLines(updated);
   };
 
-  const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
+  const handlePriceTierChange = (idx: number, tier: 'base' | 'consumidor' | 'proveedor' | 'mayorista') => {
     const updated = [...lines];
     updated[idx].priceTier = tier;
 
     const product = dbProducts.find(p => p.id === updated[idx].productId);
     if (product) {
-      if (tier === 'consumidor') {
+      if (tier === 'base') {
+        updated[idx].unitPrice = parseFloat(product.price) || 0;
+      } else if (tier === 'consumidor') {
         updated[idx].unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
       } else if (tier === 'proveedor') {
         updated[idx].unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
@@ -704,7 +709,7 @@ function InvoicesList() {
     setNotes('');
     setModifiedNcf(''); setModifiedInvoiceId('');
     setIndicadorNotaCredito(0); // Reset to force explicit selection
-    setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'consumidor', imageUrl: '' }]);
+    setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'base', imageUrl: '' }]);
     setQuoteId('');
     setEditingDraftId(null);
   };
@@ -1403,6 +1408,7 @@ function InvoicesList() {
 
                     // Fetch dynamic price tiers from dbProducts if available
                     const matchedProduct = dbProducts.find(p => p.id === line.productId);
+                    const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : null;
                     const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor) || parseFloat(matchedProduct.price) || 0) : null;
                     const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista) || parseFloat(matchedProduct.price) || 0) : null;
                     const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor) || parseFloat(matchedProduct.price) || 0) : null;
@@ -1471,10 +1477,15 @@ function InvoicesList() {
                             disabled={!hasProduct}
                             className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                           >
+                            <option value="base">
+                              {activePriceTierSelectIdx === idx
+                                ? 'Base'
+                                : (priceBase !== null ? priceBase.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Base')}
+                            </option>
                             <option value="consumidor">
                               {activePriceTierSelectIdx === idx
                                 ? 'Consumidor'
-                                : (priceConsumidor !== null ? priceConsumidor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Consumidor (P1)')}
+                                : (priceConsumidor !== null ? priceConsumidor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Consumidor')}
                             </option>
                             <option value="mayorista">
                               {activePriceTierSelectIdx === idx

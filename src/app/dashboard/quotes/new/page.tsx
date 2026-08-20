@@ -99,7 +99,7 @@ export default function NewQuote() {
     setCustomerName(customer.name);
     setSelectedCustomerData(customer);
     
-    const newTier = (customer.priceType && customer.priceType !== 'base') ? customer.priceType : 'consumidor';
+    const newTier = customer.priceType || 'base';
     setCustomerPriceTier(newTier);
 
     setLines(prevLines => {
@@ -110,6 +110,7 @@ export default function NewQuote() {
           line.priceTier = newTier;
           const product = dbProducts.find((p) => p.id === line.productId);
           if (product) {
+            if (newTier === 'base') line.unitPrice = parseFloat(product.price) || 0;
             if (newTier === 'consumidor') line.unitPrice = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
             if (newTier === 'proveedor') line.unitPrice = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
             if (newTier === 'mayorista') line.unitPrice = parseFloat(product.priceMayorista) || parseFloat(product.price) || 0;
@@ -131,7 +132,9 @@ export default function NewQuote() {
       if (!newLines[idx]) return prevLines;
       const tier = newLines[idx].priceTier || 'consumidor';
       let priceToApply = 0;
-      if (tier === 'consumidor') {
+      if (tier === 'base') {
+        priceToApply = parseFloat(product.price) || 0;
+      } else if (tier === 'consumidor') {
         priceToApply = parseFloat(product.priceConsumidor) || parseFloat(product.price) || 0;
       } else if (tier === 'proveedor') {
         priceToApply = parseFloat(product.priceProveedor) || parseFloat(product.price) || 0;
@@ -182,7 +185,7 @@ export default function NewQuote() {
     });
   };
 
-  const handlePriceTierChange = (idx: number, tier: 'consumidor' | 'proveedor' | 'mayorista') => {
+  const handlePriceTierChange = (idx: number, tier: 'base' | 'consumidor' | 'proveedor' | 'mayorista') => {
     const updated = [...lines];
     updated[idx].priceTier = tier;
     
@@ -190,7 +193,9 @@ export default function NewQuote() {
     const prod = updated[idx].productData || dbProducts.find(p => p.id === updated[idx].productId);
     if (prod) {
       let priceToApply = 0;
-      if (tier === 'consumidor') {
+      if (tier === 'base') {
+        priceToApply = parseFloat(prod.price) || 0;
+      } else if (tier === 'consumidor') {
         priceToApply = parseFloat(prod.priceConsumidor) || parseFloat(prod.price) || 0;
       } else if (tier === 'proveedor') {
         priceToApply = parseFloat(prod.priceProveedor) || parseFloat(prod.price) || 0;
@@ -410,6 +415,7 @@ export default function NewQuote() {
                         disabled={!hasProduct}
                         className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                       >
+                        <option value="base">Base</option>
                         <option value="consumidor">Consumidor</option>
                         <option value="mayorista">Mayorista</option>
                         <option value="proveedor">Proveedor</option>
