@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, ShieldCheck, Clock, Settings } from 'lucide-react';
+import { ArrowRight, ShoppingCart, ShieldCheck, Clock, Settings, Package } from 'lucide-react';
 import { Button } from '@/components/storefront/ui/client-button';
 
 export default function StorefrontHomePage() {
