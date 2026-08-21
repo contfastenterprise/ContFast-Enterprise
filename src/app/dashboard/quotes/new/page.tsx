@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, X, Trash2, ArrowLeft, Check, RefreshCw, Printer, ChevronDown
+  Plus, X, Trash2, ArrowLeft, Check, RefreshCw, Printer, ChevronDown, ListFilter, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -288,7 +288,36 @@ export default function NewQuote() {
   };
 
   return (
-    <div className="pb-12 w-full">
+    <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
+        <div>
+          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
+            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones y Ofertas
+          </h1>
+          <p className="font-body-lg text-slate-500 mt-1">
+            Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.
+          </p>
+        </div>
+
+        {/* Tab Switcher & Action button */}
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
+            <button
+              onClick={() => router.push('/dashboard/quotes')}
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800"
+            >
+              <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-[#c5a059] shadow-sm"
+            >
+              <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
+            </button>
+          </div>
+        </div>
+      </header>
+
       <motion.div
         key="form"
         initial={{ opacity: 0, x: 20 }}
@@ -298,10 +327,6 @@ export default function NewQuote() {
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-5 gap-4">
           <div>
-            <button onClick={() => router.push('/dashboard/quotes')} className="flex items-center gap-1.5 text-xs font-semibold text-[#C5A059] hover:text-[#b08c4a] mb-2 transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al listado
-            </button>
             <h2 className="text-2xl font-bold text-[#003366] tracking-tight">Nueva Cotización</h2>
             <p className="text-on-surface-variant/80 text-sm mt-1">Complete los datos para generar una propuesta comercial.</p>
           </div>

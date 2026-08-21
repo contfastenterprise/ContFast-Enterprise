@@ -7,7 +7,7 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode
+  Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -1151,7 +1151,43 @@ function InvoicesList() {
 
   return (
 
-    <div className="pb-12 w-full">
+    <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
+        <div>
+          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
+            <FileText className="h-8 w-8 text-[#c5a059]" /> Facturación e-CF
+          </h1>
+          <p className="font-body-lg text-slate-500 mt-1">
+            Gestione y rastree sus documentos fiscales electrónicos autorizados.
+          </p>
+        </div>
+
+        {/* Tab Switcher & Action button */}
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
+            <button
+              onClick={() => { setShowForm(false); router.replace('/dashboard/invoices'); }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${!showForm
+                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+                }`}
+            >
+              <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
+            </button>
+            <button
+              onClick={() => { resetForm(); setShowForm(true); }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${showForm
+                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+                }`}
+            >
+              <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
+            </button>
+          </div>
+        </div>
+      </header>
+
       <AnimatePresence mode="wait">
         {showForm ? (
           /* ==============================================================================
@@ -1166,10 +1202,6 @@ function InvoicesList() {
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-5 gap-4">
               <div>
-                <button onClick={() => { setShowForm(false); router.replace('/dashboard/invoices'); }} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                  <ArrowLeft className="h-4 w-4" />
-                  Volver al listado
-                </button>
                 <h2 className="text-2xl font-bold text-[#003366] tracking-tight">Nueva Factura e-CF</h2>
                 <p className="text-on-surface-variant/80 text-sm mt-1">Complete los datos para emitir y firmar electrónicamente.</p>
               </div>
@@ -1780,20 +1812,13 @@ function InvoicesList() {
             exit={{ opacity: 0 }}
             className="space-y-6"
           >
-            {/* Header & Stats Row */}
+            {/* Stats Row */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
-              <div>
-                <nav className="flex items-center gap-2 text-on-surface-variant/80 font-medium text-xs mb-2">
-                  <span>Facturación</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <span className="text-[#C5A059] font-bold">Listado e-CF</span>
-                </nav>
-                <h1 className="text-3xl md:text-4xl font-bold text-[#003366] tracking-tight">Comprobantes Electrónicos</h1>
+              <div className="flex flex-col gap-2">
                 <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                   <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Powered by MSeller API</span>
                 </div>
-                <p className="text-on-surface-variant/80 text-sm mt-1.5">Gestione y rastree sus documentos fiscales electrónicos autorizados.</p>
               </div>
               <div className="flex gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">

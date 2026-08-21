@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Plus, Search, FileText, Check, Trash2,
+  Plus, Search, FileText, Check, Trash2, ListFilter,
   Calendar, Filter, Eye, Printer, Building2,
   Package, Users, RefreshCw, ChevronRight,
   ChevronLeft, ChevronsLeft, ChevronsRight, XCircle
@@ -95,27 +95,49 @@ export default function QuotesList() {
   });
 
   return (
-    <div className="pb-12 w-full">
+    <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
+        <div>
+          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
+            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones y Ofertas
+          </h1>
+          <p className="font-body-lg text-slate-500 mt-1">
+            Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.
+          </p>
+        </div>
+
+        {/* Tab Switcher & Action button */}
+        <div className="flex items-center gap-3 self-end md:self-auto">
+          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
+            <button
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-[#c5a059] shadow-sm"
+            >
+              <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/quotes/new')}
+              className="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800"
+            >
+              <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
+            </button>
+          </div>
+        </div>
+      </header>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="space-y-6"
       >
-        {/* Header & Stats Row */}
+        {/* Stats Row */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
-          <div>
-            <nav className="flex items-center gap-2 text-slate-600 font-medium text-xs mb-2">
-              <span>Facturación</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-              <span className="text-[#C5A059] font-bold">Cotizaciones</span>
-            </nav>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#003366] tracking-tight">Cotizaciones y Ofertas</h1>
+          <div className="flex flex-col gap-2">
             <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
               <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></div>
               <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Gestión Comercial</span>
             </div>
-            <p className="text-slate-600 text-sm mt-1.5">Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.</p>
           </div>
 
           <div className="flex gap-4 w-full md:w-auto">
@@ -307,18 +329,6 @@ export default function QuotesList() {
         </div>
       </motion.div>
 
-      {/* Floating Action Button for New Quote */}
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => router.push('/dashboard/quotes/new')}
-        className="fixed bottom-8 right-8 md:bottom-12 md:right-12 w-14 h-14 bg-[#C5A059] text-slate-950 rounded-full shadow-xl shadow-[#C5A059]/20 flex items-center justify-center z-40"
-        title="Nueva Cotización"
-      >
-        <Plus className="h-6 w-6" strokeWidth={2.5} />
-      </motion.button>
     </div>
   );
 }
