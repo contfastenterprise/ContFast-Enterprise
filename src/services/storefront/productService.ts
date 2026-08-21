@@ -40,7 +40,11 @@ export const StorefrontProductService = {
   getIdFromSlug(slug: string): string | null {
     const parts = slug.split('--');
     if (parts.length < 2) return null;
-    return parts[parts.length - 1]; // El UUID es la última parte
+    const id = parts[parts.length - 1]; // El UUID es la última parte
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(id) ? id : null;
   },
 
   /**
@@ -96,7 +100,14 @@ export const StorefrontProductService = {
     ];
 
     if (categoryId) {
-      conditions.push(eq(products.categoryId, categoryId));
+      // Validate UUID format to prevent Postgres crash on invalid input
+      const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (uuidRegex.test(categoryId)) {
+        conditions.push(eq(products.categoryId, categoryId));
+      } else {
+        // If an invalid category UUID is passed, return empty to prevent crash
+        return [];
+      }
     }
 
     if (search) {

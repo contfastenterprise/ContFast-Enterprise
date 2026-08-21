@@ -1,7 +1,6 @@
 "use client";
 
-import Link from 'next/link';
-import { FileQuestion, Home, ArrowLeft } from 'lucide-react';
+import { FileQuestion, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function NotFound() {
@@ -27,21 +26,14 @@ export default function NotFound() {
             Es posible que el enlace esté roto o la dirección haya sido escrita incorrectamente.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <div className="flex w-full">
             <button
               onClick={() => router.back()}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#001e40] text-white font-semibold hover:bg-[#00142a] shadow-md hover:shadow-lg transition-all active:scale-95"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5 text-[#c5a059]" />
               Regresar
             </button>
-            
-            <Link href="/" className="flex-1">
-              <button className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#001e40] text-white font-semibold hover:bg-[#00142a] shadow-md hover:shadow-lg transition-all active:scale-95">
-                <Home className="h-5 w-5 text-[#c5a059]" />
-                Inicio
-              </button>
-            </Link>
           </div>
         </div>
       </div>
