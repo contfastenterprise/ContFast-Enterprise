@@ -33,8 +33,11 @@ export default function LoginPage() {
   // 1. Check if the system is initialized. If not, redirect to wizard.
   useEffect(() => {
     async function checkSetupStatus() {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000); // 5s max
       try {
-        const res = await fetch('/api/v1/setup/status');
+        const res = await fetch('/api/v1/setup/status', { signal: controller.signal });
+        clearTimeout(timeout);
         const data = await res.json();
         if (data.success && !data.data.initialized) {
           router.push('/setup');
@@ -42,8 +45,9 @@ export default function LoginPage() {
           setCheckingStatus(false);
         }
       } catch (error) {
+        clearTimeout(timeout);
         console.error('Failed to check setup status:', error);
-        setCheckingStatus(false);
+        setCheckingStatus(false); // Si falla o timeout, mostrar login de todas formas
       }
     }
     checkSetupStatus();
