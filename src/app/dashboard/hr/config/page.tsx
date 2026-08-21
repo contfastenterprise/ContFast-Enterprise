@@ -355,7 +355,7 @@ export default function ConfigPage() {
                   title="Restablecer a Valores de Fábrica"
                 >
                   {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
-                  Restablecer a Fábrica
+                  Restablecer
                 </button>
                 <button
                   type="submit"
