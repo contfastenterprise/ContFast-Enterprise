@@ -16,6 +16,8 @@ export interface CreateProductInput {
   imageUrl?: string | null;
   barcode?: string | null;
   status?: string;
+  isOnSale?: boolean;
+  promotionalPrice?: number | null;
   secondaryBarcodes?: { barcode: string; barcodeType: string }[];
 }
 
@@ -33,6 +35,8 @@ export interface UpdateProductInput {
   imageUrl?: string | null;
   barcode?: string | null;
   status?: string;
+  isOnSale?: boolean;
+  promotionalPrice?: number | null;
 }
 
 export class ProductRepository {
@@ -98,6 +102,8 @@ export class ProductRepository {
         imageUrl: data.imageUrl,
         barcode: data.barcode,
         status: data.status || 'active',
+        isOnSale: data.isOnSale ?? false,
+        promotionalPrice: data.promotionalPrice != null ? data.promotionalPrice.toString() : null,
       })
       .returning();
 
@@ -364,6 +370,8 @@ export class ProductRepository {
     if (data.imageUrl !== undefined) updateValues.imageUrl = data.imageUrl;
     if (data.barcode !== undefined) updateValues.barcode = data.barcode;
     if (data.status !== undefined) updateValues.status = data.status;
+    if (data.isOnSale !== undefined) updateValues.isOnSale = data.isOnSale;
+    if (data.promotionalPrice !== undefined) updateValues.promotionalPrice = data.promotionalPrice !== null ? data.promotionalPrice.toString() : null;
 
     const [product] = await db
       .update(products)
