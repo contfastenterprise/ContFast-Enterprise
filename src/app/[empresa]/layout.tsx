@@ -161,7 +161,7 @@ export default async function StorefrontLayout({
           
           <div className="border-t border-[#00142a] mt-12 pt-8 text-center text-sm text-slate-500 flex justify-between items-center">
             <p>&copy; {new Date().getFullYear()} {company.name}. Todos los derechos reservados.</p>
-            <p>Powered by <span className="font-bold text-white">ContFast</span></p>
+            <p>Powered by <span className="font-bold text-white">ContFast Enterprise</span></p>
           </div>
         </div>
       </footer>
