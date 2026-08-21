@@ -25,8 +25,8 @@ export default async function PromocionesPage({ params }: { params: Promise<{ em
   const company = await StorefrontCompanyService.resolveCompanyBySlug(empresaSlug);
   if (!company) notFound();
 
-  // Obtenemos productos destacados para rellenar la página mientras no haya "ofertas reales" en base de datos
-  const featuredProducts = await StorefrontProductService.getRecommendations(company.id, 4);
+  // Obtenemos los productos que están marcados en oferta real en la base de datos
+  const promoProducts = await StorefrontProductService.getPromotionalProducts(company.id);
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -62,26 +62,26 @@ export default async function PromocionesPage({ params }: { params: Promise<{ em
       {/* Contenido Principal */}
       <section className="py-16 container mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Placeholder Promocional */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 md:p-12 mb-16 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
-          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center shrink-0 border border-slate-100 shadow-inner">
-            <Tag className="h-10 w-10 text-[#c5a059]" />
+        {promoProducts.length === 0 ? (
+          /* Placeholder Promocional cuando no hay ofertas */
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 md:p-12 mb-16 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center shrink-0 border border-slate-100 shadow-inner">
+              <Tag className="h-10 w-10 text-[#c5a059]" />
+            </div>
+            <div className="flex-grow">
+              <h2 className="text-2xl font-bold text-[#001e40] mb-2">¡Próximamente más ofertas!</h2>
+              <p className="text-slate-500 max-w-2xl">
+                Actualmente estamos preparando una nueva colección de descuentos. Vuelve pronto para descubrir promociones exclusivas en nuestros productos.
+              </p>
+            </div>
           </div>
-          <div className="flex-grow">
-            <h2 className="text-2xl font-bold text-[#001e40] mb-2">¡Próximamente más ofertas!</h2>
-            <p className="text-slate-500 max-w-2xl">
-              Actualmente estamos preparando una nueva colección de descuentos. Mientras tanto, explora nuestros productos más destacados que mantienen una excelente relación calidad-precio.
-            </p>
-          </div>
-        </div>
-
-        {/* Productos Destacados en Promoción (Simulados con Recomendaciones) */}
-        {featuredProducts.length > 0 && (
+        ) : (
+          /* Productos en Promoción Reales */
           <div className="mt-8">
             <ProductRecommendations 
-              products={featuredProducts} 
+              products={promoProducts} 
               empresaSlug={empresaSlug}
-              title="Productos Destacados"
+              title="Aprovecha estas ofertas"
             />
           </div>
         )}

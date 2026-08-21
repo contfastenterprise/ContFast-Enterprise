@@ -21,7 +21,9 @@ export const StorefrontQuoteService = {
     const dbProducts = await db
       .select({
         id: products.id,
-        price: products.priceConsumidor, // Siempre usamos el precio consumidor en la tienda
+        price: products.priceConsumidor,
+        isOnSale: products.isOnSale,
+        promotionalPrice: products.promotionalPrice,
       })
       .from(products)
       .where(
@@ -31,32 +33,47 @@ export const StorefrontQuoteService = {
         )
       );
 
-    const productMap = new Map(dbProducts.map(p => [p.id, Number(p.price)]));
+    const productMap = new Map(dbProducts.map(p => [p.id, p]));
 
     // 2. Calcular totales
     let subtotal = 0;
+    let totalDiscount = 0;
     const quoteLinesData: any[] = [];
 
     for (const item of items) {
-      const price = productMap.get(item.productId);
-      if (price === undefined) {
+      const dbItem = productMap.get(item.productId);
+      if (!dbItem) {
         throw new Error(`Producto ${item.productId} no encontrado o inactivo`);
       }
 
-      const lineSubtotal = price * item.quantity;
+      const basePrice = Number(dbItem.price);
+      let unitPriceForLine = basePrice;
+      let lineDiscount = 0;
+
+      if (dbItem.isOnSale) {
+        const promoPrice = Number(dbItem.promotionalPrice);
+        // Descuento unitario es la diferencia entre el base y el promocional
+        const discountAmount = Math.max(0, basePrice - promoPrice);
+        lineDiscount = discountAmount * item.quantity;
+      }
+
+      const lineSubtotal = basePrice * item.quantity;
+      const lineTotal = lineSubtotal - lineDiscount;
+
       subtotal += lineSubtotal;
+      totalDiscount += lineDiscount;
 
       quoteLinesData.push({
         productId: item.productId,
         quantity: item.quantity.toString(),
-        unitPrice: price.toString(),
-        discount: '0.00',
+        unitPrice: basePrice.toString(), // Siempre el precio base
+        discount: lineDiscount.toString(), // El ahorro se registra como descuento
         subtotal: lineSubtotal.toString(),
-        total: lineSubtotal.toString(), // asumiendo impuestos 0 por defecto hasta que un vendedor lo revise
+        total: lineTotal.toString(), // asumiendo impuestos aplicados post-descuento en la factura final
       });
     }
 
-    const total = subtotal; // Sin impuestos ni descuentos adicionales por ahora
+    const total = subtotal - totalDiscount; // Total de la cotización neta
 
     // 3. Generar Secuencia y Guardar (dentro de una transacción)
     return await db.transaction(async (tx) => {
@@ -106,7 +123,7 @@ export const StorefrontQuoteService = {
           sequenceNumber,
           status: 'pending',
           subtotal: subtotal.toString(),
-          discount: '0.00',
+          discount: totalDiscount.toString(),
           totalTaxes: '0.00',
           total: total.toString(),
           notes: 'Generada automáticamente desde la tienda en línea',

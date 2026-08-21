@@ -28,6 +28,11 @@ export default function ProductRecommendations({ products, title = "También pod
           <AnimateOnScroll key={product.id} index={index}>
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden group flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#c5a059]/40 relative z-10 hover:z-20">
               <div className="relative aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                {product.isOnSale && (
+                  <div className="absolute top-2 left-2 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-sm shadow-md">
+                    OFERTA
+                  </div>
+                )}
                 {product.imageUrl ? (
                   <img
                     src={product.imageUrl}
@@ -56,15 +61,26 @@ export default function ProductRecommendations({ products, title = "También pod
                 </h3>
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50 group-hover:border-slate-100 transition-colors shrink-0">
                   <div className="flex flex-col">
-                    <span className="font-bold text-[#001e40] leading-none">
-                      RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                    </span>
+                    {product.isOnSale ? (
+                      <>
+                        <span className="text-[10px] text-slate-400 line-through mb-0.5">
+                          RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="font-black text-red-600 leading-none">
+                          RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-bold text-[#001e40] leading-none">
+                        RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
                     <span className="text-[9px] text-slate-400 mt-1 uppercase tracking-wider">+ ITBIS</span>
                   </div>
                   <CatalogAddButton 
                     productId={product.id}
                     name={product.name}
-                    price={Number(product.price)}
+                    price={product.isOnSale ? Number(product.promotionalPrice) : Number(product.price)}
                     imageUrl={product.imageUrl}
                   />
                 </div>

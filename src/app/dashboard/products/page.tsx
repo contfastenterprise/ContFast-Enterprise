@@ -108,7 +108,9 @@ export default function ProductsPage() {
     priceConsumidor: '',
     priceMayorista: '',
     priceProveedor: '',
-    status: 'active'
+    status: 'active',
+    isOnSale: false,
+    promotionalPrice: ''
   });
 
   // Autocálculo de precios cuando cambia el costo (si no están manuales)
@@ -300,7 +302,7 @@ export default function ProductsPage() {
     setSecondaryBarcodes([]);
     setBarcodeType('code128');
     setShowSecondarySection(false);
-    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active' });
+    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active', isOnSale: false, promotionalPrice: '' });
     setShowModal(true);
   };
 
@@ -321,7 +323,9 @@ export default function ProductsPage() {
       priceConsumidor: product.priceConsumidor || product.price,
       priceMayorista: product.priceMayorista || product.price,
       priceProveedor: product.priceProveedor || product.price,
-      status: product.status
+      status: product.status,
+      isOnSale: product.isOnSale || false,
+      promotionalPrice: product.promotionalPrice || ''
     });
     fetchSecondaryBarcodes(product.id);
     setShowModal(true);
@@ -357,6 +361,8 @@ export default function ProductsPage() {
         priceConsumidor: Number(formData.priceConsumidor),
         priceMayorista: Number(formData.priceMayorista),
         priceProveedor: Number(formData.priceProveedor),
+        isOnSale: formData.isOnSale,
+        promotionalPrice: formData.promotionalPrice ? Number(formData.promotionalPrice) : undefined,
         secondaryBarcodes: !editId ? secondaryBarcodes : undefined
       };
 
@@ -1318,6 +1324,43 @@ export default function ProductsPage() {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Ofertas y Promociones */}
+                  <div className="space-y-2 col-span-1 md:col-span-2 bg-red-50 p-3 rounded-lg border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-red-600" />
+                        <label className="text-xs font-bold text-red-900">Activar Oferta (Tienda en Línea)</label>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={formData.isOnSale} 
+                          onChange={(e) => setFormData({ ...formData, isOnSale: e.target.checked })} 
+                        />
+                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                      </label>
+                    </div>
+
+                    {formData.isOnSale && (
+                      <div className="mt-3 pt-3 border-t border-red-200/60">
+                        <label className="text-[11px] text-red-800 font-semibold block mb-1">Precio Promocional (Sustituye al P. Consumidor en tienda)</label>
+                        <div className="relative md:w-1/2">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 font-bold text-xs">RD$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required={formData.isOnSale}
+                            value={formData.promotionalPrice}
+                            onChange={(e) => setFormData({ ...formData, promotionalPrice: e.target.value })}
+                            className="w-full bg-white border border-red-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-colors font-bold"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-1">

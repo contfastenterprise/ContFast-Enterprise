@@ -92,12 +92,32 @@ export default async function StorefrontProductDetailPage({
                 {name}
               </h1>
 
-              <div className="mb-6">
-                <span className="text-3xl font-extrabold text-slate-900">
-                  RD$ {price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                </span>
-                <span className="ml-2 text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
-                <p className="text-sm text-slate-500 mt-1">Precio sugerido detallista (No incluye impuestos)</p>
+              <div className="mb-6 flex flex-col">
+                {product.isOnSale ? (
+                  <>
+                    <span className="text-xl text-slate-400 line-through mb-1">
+                      RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-red-600 tracking-tight">
+                        RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
+                    </div>
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-red-50 border border-red-100 text-red-600 text-sm font-semibold w-fit">
+                      <Tag className="h-4 w-4" />
+                      ¡En Oferta Especial!
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-extrabold text-slate-900">
+                      RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
+                  </div>
+                )}
+                <p className="text-sm text-slate-500 mt-2">Precio sugerido detallista (No incluye impuestos)</p>
               </div>
 
               <div className="prose prose-sm text-slate-600 mb-8 max-w-none">
@@ -122,10 +142,10 @@ export default async function StorefrontProductDetailPage({
 
               <div className="mt-auto border-t border-slate-100 pt-6">
                 <AddToCartClient 
-                  productId={id} 
-                  name={name} 
-                  price={price} 
-                  imageUrl={imageUrl} 
+                  productId={product.id} 
+                  name={product.name} 
+                  price={product.isOnSale ? Number(product.promotionalPrice) : Number(product.price)} 
+                  imageUrl={product.imageUrl} 
                 />
               </div>
             </div>

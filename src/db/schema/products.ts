@@ -30,6 +30,8 @@ export const products = pgTable('products', {
   priceConsumidor: decimal('price_consumidor', { precision: 15, scale: 2 }).default('0.00').notNull(),
   priceProveedor: decimal('price_proveedor', { precision: 15, scale: 2 }).default('0.00').notNull(),
   priceMayorista: decimal('price_mayorista', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  isOnSale: boolean('is_on_sale').default(false).notNull(),
+  promotionalPrice: decimal('promotional_price', { precision: 15, scale: 2 }).default('0.00').notNull(),
   imageUrl: text('image_url'),
   barcode: varchar('barcode', { length: 100 }),
   status: varchar('status', { length: 50 }).default('active').notNull(),

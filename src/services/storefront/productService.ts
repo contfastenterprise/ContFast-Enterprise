@@ -8,6 +8,8 @@ export interface StorefrontProduct {
   description: string | null;
   slug: string;
   price: number;
+  isOnSale: boolean;
+  promotionalPrice: number;
   imageUrl: string | null;
   categoryId: string | null;
   categoryName: string | null;
@@ -60,6 +62,8 @@ export const StorefrontProductService = {
         name: products.name,
         description: products.description,
         priceConsumidor: products.priceConsumidor,
+        isOnSale: products.isOnSale,
+        promotionalPrice: products.promotionalPrice,
         imageUrl: products.imageUrl,
         categoryId: products.categoryId,
         categoryName: productCategories.name,
@@ -82,6 +86,8 @@ export const StorefrontProductService = {
       name: p.name,
       description: p.description,
       price: Number(p.priceConsumidor),
+      isOnSale: p.isOnSale,
+      promotionalPrice: Number(p.promotionalPrice),
       imageUrl: p.imageUrl,
       categoryId: p.categoryId,
       categoryName: p.categoryName,
@@ -120,6 +126,8 @@ export const StorefrontProductService = {
         name: products.name,
         description: products.description,
         priceConsumidor: products.priceConsumidor,
+        isOnSale: products.isOnSale,
+        promotionalPrice: products.promotionalPrice,
         imageUrl: products.imageUrl,
         categoryId: products.categoryId,
         categoryName: productCategories.name,
@@ -134,6 +142,49 @@ export const StorefrontProductService = {
       description: p.description,
       // Forzamos que la tienda solo vea este precio
       price: Number(p.priceConsumidor),
+      isOnSale: p.isOnSale,
+      promotionalPrice: Number(p.promotionalPrice),
+      imageUrl: p.imageUrl,
+      categoryId: p.categoryId,
+      categoryName: p.categoryName,
+      slug: createSlug(p.name, p.id),
+    }));
+  },
+
+  /**
+   * Obtiene todos los productos que están en oferta
+   */
+  async getPromotionalProducts(companyId: string): Promise<StorefrontProduct[]> {
+    const results = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        description: products.description,
+        priceConsumidor: products.priceConsumidor,
+        isOnSale: products.isOnSale,
+        promotionalPrice: products.promotionalPrice,
+        imageUrl: products.imageUrl,
+        categoryId: products.categoryId,
+        categoryName: productCategories.name,
+      })
+      .from(products)
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .where(
+        and(
+          eq(products.companyId, companyId),
+          eq(products.status, 'active'),
+          eq(products.isOnSale, true),
+          isNull(products.deletedAt)
+        )
+      );
+
+    return results.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: Number(p.priceConsumidor),
+      isOnSale: p.isOnSale,
+      promotionalPrice: Number(p.promotionalPrice),
       imageUrl: p.imageUrl,
       categoryId: p.categoryId,
       categoryName: p.categoryName,
