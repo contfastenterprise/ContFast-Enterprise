@@ -234,6 +234,8 @@ export const StorefrontProductService = {
         description: products.description,
         priceConsumidor: products.priceConsumidor,
         imageUrl: products.imageUrl,
+        isOnSale: products.isOnSale,
+        promotionalPrice: products.promotionalPrice,
         categoryId: products.categoryId,
         categoryName: productCategories.name,
       })
@@ -266,6 +268,8 @@ export const StorefrontProductService = {
       categoryId: p.categoryId,
       categoryName: p.categoryName,
       slug: createSlug(p.name, p.id),
+      isOnSale: p.isOnSale ?? false,
+      promotionalPrice: p.promotionalPrice ? Number(p.promotionalPrice) : 0,
     }));
   }
 };

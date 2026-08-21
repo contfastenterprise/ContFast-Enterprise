@@ -100,10 +100,10 @@ export class ProductRepository {
         priceProveedor: data.priceProveedor !== undefined ? data.priceProveedor.toString() : '0.00',
         priceMayorista: data.priceMayorista !== undefined ? data.priceMayorista.toString() : '0.00',
         imageUrl: data.imageUrl,
-        barcode: data.barcode,
+        barcode: data.barcode ?? undefined,
         status: data.status || 'active',
         isOnSale: data.isOnSale ?? false,
-        promotionalPrice: data.promotionalPrice != null ? data.promotionalPrice.toString() : null,
+        promotionalPrice: data.promotionalPrice != null ? data.promotionalPrice.toString() : undefined,
       })
       .returning();
 

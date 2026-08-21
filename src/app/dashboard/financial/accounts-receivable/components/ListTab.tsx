@@ -107,10 +107,12 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
             </thead>
             <tbody>
               ${filteredData.map(item => {
+                const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
                 const due = new Date(item.dueDate); due.setHours(0,0,0,0);
                 const now = new Date(); now.setHours(0,0,0,0);
-                const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-                const isOverdue = diffDays > 0;
+                // Dias vencidos contando desde el dia de emision de la factura
+                const diffDays = Math.round((now.getTime() - emission.getTime()) / (1000 * 60 * 60 * 24));
+                const isOverdue = now.getTime() > due.getTime();
                 const isPaid = Number(item.balance) <= 0;
                 const statusStr = isPaid ? 'Pagado' : (isOverdue ? 'Vencida' : 'Al Día');
                 const statusClass = isPaid ? 'status-aldia' : (isOverdue ? 'status-vencida' : 'status-aldia');
@@ -150,18 +152,20 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
   const handleExportCSV = () => {
     const headers = ['Factura/Ref', 'Cliente', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
     const rows = filteredData.map(item => {
+      const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
       const due = new Date(item.dueDate);
       due.setHours(0,0,0,0);
       const now = new Date();
       now.setHours(0,0,0,0);
-      const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-      const status = Number(item.balance) <= 0 ? 'Pagado' : (diffDays > 0 ? 'Vencida' : 'Al Dia');
+      const diffDays = Math.round((now.getTime() - emission.getTime()) / (1000 * 60 * 60 * 24));
+      const isOverdue = now.getTime() > due.getTime();
+      const status = Number(item.balance) <= 0 ? 'Pagado' : (isOverdue ? 'Vencida' : 'Al Dia');
       
       return [
         `CXC-${item.id.split('-')[0].toUpperCase()}`,
         `"${item.customerName}"`,
         due.toLocaleDateString('es-DO'),
-        diffDays > 0 ? diffDays : 0,
+        isOverdue ? diffDays : 0,
         item.amount || 0,
         item.balance || 0,
         status
@@ -228,14 +232,15 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
           </thead>
           <tbody className="divide-y divide-outline-variant/20">
             {filteredData.map((item, i) => {
+              const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
               const due = new Date(item.dueDate);
               due.setHours(0,0,0,0);
               const now = new Date();
               now.setHours(0,0,0,0);
               
-              const diffTime = now.getTime() - due.getTime();
+              const diffTime = now.getTime() - emission.getTime();
               const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-              const isOverdue = diffDays > 0;
+              const isOverdue = now.getTime() > due.getTime();
 
               return (
                 <tr key={item.id || i} className="hover:bg-surface-container-lowest transition-colors">

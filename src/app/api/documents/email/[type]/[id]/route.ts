@@ -3,10 +3,10 @@ import { sendDocumentEmailAction } from '@/actions/documents';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { type, id } = params;
+    const { type, id } = await params;
     const body = await req.json();
     const { toEmail } = body;
 

@@ -1,7 +1,7 @@
 import { StorefrontProductService } from '@/services/storefront/productService';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Package, Check, ShieldCheck, Clock } from 'lucide-react';
+import { ArrowLeft, Package, Check, ShieldCheck, Clock, Tag } from 'lucide-react';
 import AddToCartClient from '@/components/storefront/AddToCartClient';
 import ProductRecommendations from '@/components/storefront/ProductRecommendations';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';

@@ -41,6 +41,10 @@ if (redis && !isBuildPhase) {
     }
   });
 
+  dgiiWorker.on('error', (err) => {
+    console.error(`[Worker] (dgii-submissions) connection/redis error: ${err.message}`);
+  });
+
   // 2. Reports Generation Worker
   const reportWorker = new Worker(
     'reports-generation',
@@ -65,6 +69,10 @@ if (redis && !isBuildPhase) {
     console.error(`[Worker] Job ${job?.id} (reports-generation) failed with error:`, err.message);
   });
 
+  reportWorker.on('error', (err) => {
+    console.error(`[Worker] (reports-generation) connection/redis error: ${err.message}`);
+  });
+
   // 3. Email Sending Worker
   const emailWorker = new Worker(
     'emails-sending',
@@ -80,6 +88,10 @@ if (redis && !isBuildPhase) {
 
   emailWorker.on('failed', (job, err) => {
     console.error(`[Worker] Job ${job?.id} (emails-sending) failed with error:`, err.message);
+  });
+
+  emailWorker.on('error', (err) => {
+    console.error(`[Worker] (emails-sending) connection/redis error: ${err.message}`);
   });
 } else {
   console.warn('BullMQ Workers not initialized: Redis is offline or not configured.');

@@ -3,10 +3,10 @@ import { createShareTokenAction } from '@/actions/documents';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { type, id } = params;
+    const { type, id } = await params;
 
     const result = await createShareTokenAction(type, id);
 

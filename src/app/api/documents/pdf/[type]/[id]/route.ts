@@ -11,10 +11,11 @@ import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplat
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
-    const { type, id } = params;
+    const resolvedParams = await params;
+    const { type, id } = resolvedParams;
     
     // TODO: Verify user authentication and extract companyId from session
     // const supabase = createClient();

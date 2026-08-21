@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { DoorOpen, RotateCcw, Printer, Plus, Layers, Save, Check } from 'lucide-react';
+import { DoorOpen, RotateCcw, Printer, Plus, Layers, Save, Check, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import TablaPuertaComercial, { type TablaPuertaHandle } from './TablaPuertaComercial';

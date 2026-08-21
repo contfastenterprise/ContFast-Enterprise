@@ -11,6 +11,10 @@ export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions'
 export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports-generation', { connection: redis as any, skipVersionCheck: true }) : null;
 export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any, skipVersionCheck: true }) : null;
 
+if (dgiiQueue) dgiiQueue.on('error', err => console.error(`[Queue] dgii-submissions error: ${err.message}`));
+if (reportQueue) reportQueue.on('error', err => console.error(`[Queue] reports-generation error: ${err.message}`));
+if (emailQueue) emailQueue.on('error', err => console.error(`[Queue] emails-sending error: ${err.message}`));
+
 export interface JobPayloads {
   'dgii-submissions': {
     companyId: string;
@@ -29,6 +33,10 @@ export interface JobPayloads {
     text: string;
     html?: string;
     pdfPath?: string;
+    companyId?: string;
+    referenceId?: string;
+    modo?: string;
+    fromName?: string;
   };
 }
 
