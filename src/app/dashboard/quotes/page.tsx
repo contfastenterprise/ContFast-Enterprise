@@ -100,7 +100,7 @@ export default function QuotesList() {
       <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
         <div>
           <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones y Ofertas
+            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones
           </h1>
           <p className="font-body-lg text-slate-500 mt-1">
             Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.
