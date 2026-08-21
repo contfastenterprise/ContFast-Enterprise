@@ -585,3 +585,7 @@ Verified & Polished
 Actualización: Correo electrónico de empresa agregado a la configuración. **Verified & Polished**
 Actualización: Correo en PDFs ahora se renderiza condicionalmente. **Verified & Polished**
 Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Polished**
+
+### Tienda Online (Storefront)
+- **Verified & Polished**: Capa de comercio electrnico (Storefront) construida con Ã©xito y aislada de las tablas originales, respetando la estructura multi-empresa. Incluye catÃ¡logo, detalle de productos con sugerencias inteligentes, carrito en localStorage y pasarela de Checkout para crear Cotizaciones (Quotes) vÃ­a API, usando sesiÃ³n de clientes e interfaz adaptativa (Mobile & Desktop).
+

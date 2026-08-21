@@ -20,7 +20,8 @@ export interface StorefrontCategory {
 }
 
 /**
- * Normaliza un string para usarlo como slug
+ * Normaliza un string para usarlo como slug y le adjunta el UUID completo
+ * para poder recuperar el producto sin crear columnas nuevas en la base de datos.
  */
 function createSlug(text: string, id: string): string {
   const normalized = text
@@ -29,15 +30,67 @@ function createSlug(text: string, id: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '');
-  return `${normalized}-${id.slice(0, 8)}`;
+  return `${normalized}--${id}`;
 }
 
 export const StorefrontProductService = {
   /**
-   * Obtiene todos los productos activos, devolviendo únicamente el precio consumidor.
+   * Extrae el UUID de un slug generado por createSlug
    */
-  async getActiveProducts(categoryId?: string, search?: string): Promise<StorefrontProduct[]> {
+  getIdFromSlug(slug: string): string | null {
+    const parts = slug.split('--');
+    if (parts.length < 2) return null;
+    return parts[parts.length - 1]; // El UUID es la última parte
+  },
+
+  /**
+   * Obtiene un producto individual por su slug (extrayendo el ID)
+   */
+  async getProductBySlug(slug: string): Promise<StorefrontProduct | null> {
+    const id = this.getIdFromSlug(slug);
+    if (!id) return null;
+
+    const results = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        description: products.description,
+        priceConsumidor: products.priceConsumidor,
+        imageUrl: products.imageUrl,
+        categoryId: products.categoryId,
+        categoryName: productCategories.name,
+      })
+      .from(products)
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .where(
+        and(
+          eq(products.id, id),
+          eq(products.status, 'active'),
+          isNull(products.deletedAt)
+        )
+      );
+
+    if (results.length === 0) return null;
+    const p = results[0];
+
+    return {
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: Number(p.priceConsumidor),
+      imageUrl: p.imageUrl,
+      categoryId: p.categoryId,
+      categoryName: p.categoryName,
+      slug: createSlug(p.name, p.id),
+    };
+  },
+
+  /**
+   * Obtiene todos los productos activos de una empresa, devolviendo únicamente el precio consumidor.
+   */
+  async getActiveProducts(companyId: string, categoryId?: string, search?: string): Promise<StorefrontProduct[]> {
     let conditions = [
+      eq(products.companyId, companyId),
       eq(products.status, 'active'),
       isNull(products.deletedAt)
     ];
@@ -78,9 +131,9 @@ export const StorefrontProductService = {
   },
 
   /**
-   * Obtiene todas las categorías activas
+   * Obtiene todas las categorías activas de una empresa
    */
-  async getActiveCategories(): Promise<StorefrontCategory[]> {
+  async getActiveCategories(companyId: string): Promise<StorefrontCategory[]> {
     const results = await db
       .select({
         id: productCategories.id,
@@ -89,6 +142,7 @@ export const StorefrontProductService = {
       .from(productCategories)
       .where(
         and(
+          eq(productCategories.companyId, companyId),
           eq(productCategories.status, 'active'),
           isNull(productCategories.deletedAt)
         )
@@ -98,6 +152,58 @@ export const StorefrontProductService = {
       id: c.id,
       name: c.name,
       slug: createSlug(c.name, c.id),
+    }));
+  },
+
+  /**
+   * Obtiene productos recomendados de una empresa (Fase 5). 
+   */
+  async getRecommendations(companyId: string, limitNum: number = 4, excludeProductId?: string, preferredCategoryId?: string): Promise<StorefrontProduct[]> {
+    let conditions = [
+      eq(products.companyId, companyId),
+      eq(products.status, 'active'),
+      isNull(products.deletedAt)
+    ];
+
+    const results = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        description: products.description,
+        priceConsumidor: products.priceConsumidor,
+        imageUrl: products.imageUrl,
+        categoryId: products.categoryId,
+        categoryName: productCategories.name,
+      })
+      .from(products)
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .where(and(...conditions))
+      .limit(20); // Buscamos un pool más grande para filtrar en memoria (por simplicidad y compatibilidad)
+
+    // Filtramos el excluido
+    let filtered = results.filter(p => p.id !== excludeProductId);
+
+    // Si hay categoría preferida, tratamos de poner esos primero
+    if (preferredCategoryId) {
+      filtered.sort((a, b) => {
+        if (a.categoryId === preferredCategoryId && b.categoryId !== preferredCategoryId) return -1;
+        if (a.categoryId !== preferredCategoryId && b.categoryId === preferredCategoryId) return 1;
+        return 0;
+      });
+    }
+
+    // Tomamos los primeros N
+    const finalSet = filtered.slice(0, limitNum);
+
+    return finalSet.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: Number(p.priceConsumidor),
+      imageUrl: p.imageUrl,
+      categoryId: p.categoryId,
+      categoryName: p.categoryName,
+      slug: createSlug(p.name, p.id),
     }));
   }
 };
