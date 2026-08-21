@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, ShoppingCart, ShieldCheck, Clock, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/storefront/ui/client-button';
 
 export default function StorefrontHomePage() {
   return (

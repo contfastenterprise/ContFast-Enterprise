@@ -1,7 +1,7 @@
 import { StorefrontProductService } from '@/services/storefront/productService';
 import Link from 'next/link';
 import { Package, Search, Filter, ShoppingCart, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/storefront/ui/client-button';
 
 export const dynamic = 'force-dynamic';
 
