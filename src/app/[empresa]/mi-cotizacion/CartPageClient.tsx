@@ -16,7 +16,7 @@ interface CartItem {
   addedAt: string;
 }
 
-export default function CartPageClient({ empresaSlug }: { empresaSlug: string }) {
+export default function CartPageClient({ empresaSlug, companyPhone }: { empresaSlug: string, companyPhone?: string | null }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
@@ -207,7 +207,10 @@ export default function CartPageClient({ empresaSlug }: { empresaSlug: string })
 
           <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-lg p-4 flex gap-3 text-sm mb-6">
             <AlertCircle className="h-5 w-5 shrink-0 text-blue-600" />
-            <p>Los productos seleccionados serán enviados como una solicitud de cotización. Nuestro equipo revisará tu selección y te enviará la cotización final oficial.</p>
+            <p>
+              Los productos seleccionados serán enviados como una solicitud de cotización. Nuestro equipo revisará tu selección y te enviará la cotización final oficial.
+              {companyPhone && ` También puedes llamarnos al ${companyPhone}.`}
+            </p>
           </div>
 
           <div className="space-y-3">

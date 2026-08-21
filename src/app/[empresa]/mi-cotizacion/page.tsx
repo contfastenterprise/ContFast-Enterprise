@@ -35,7 +35,7 @@ export default async function MiCotizacionPage({ params }: { params: Promise<{ e
           <p className="text-slate-500 mt-1">Revisa los productos seleccionados y envía tu solicitud.</p>
         </div>
         
-        <CartPageClient empresaSlug={empresaSlug} />
+        <CartPageClient empresaSlug={empresaSlug} companyPhone={company.phone} />
 
         <ProductRecommendations products={recommended} title="Completa tu proyecto con estos productos" empresaSlug={empresaSlug} />
       </div>
