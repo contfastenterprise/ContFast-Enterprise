@@ -4,6 +4,7 @@ import { Button } from '@/components/storefront/ui/client-button';
 import CartBadgeClient from '@/components/storefront/CartBadgeClient';
 import HeaderAuthClient from '@/components/storefront/HeaderAuthClient';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
+import { StorefrontProductService } from '@/services/storefront/productService';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 
@@ -30,6 +31,8 @@ export default async function StorefrontLayout({
   if (!company) {
     notFound();
   }
+
+  const categories = await StorefrontProductService.getActiveCategories(company.id);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
@@ -121,12 +124,16 @@ export default async function StorefrontLayout({
             </div>
             
             <div>
-              <h3 className="font-semibold text-white mb-4">Categorías</h3>
+              <h3 className="font-semibold text-white mb-4">Catálogo</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href={`/${empresaSlug}/productos?categoria=puertas`} className="hover:text-[#c5a059] transition-colors">Puertas</Link></li>
-                <li><Link href={`/${empresaSlug}/productos?categoria=ventanas`} className="hover:text-[#c5a059] transition-colors">Ventanas</Link></li>
-                <li><Link href={`/${empresaSlug}/productos?categoria=closets`} className="hover:text-[#c5a059] transition-colors">Closets</Link></li>
-                <li><Link href={`/${empresaSlug}/productos?categoria=gabinetes`} className="hover:text-[#c5a059] transition-colors">Gabinetes</Link></li>
+                <li><Link href={`/${empresaSlug}/productos`} className="hover:text-[#c5a059] transition-colors">Todos los Productos</Link></li>
+                {categories.slice(0, 5).map(cat => (
+                  <li key={cat.id}>
+                    <Link href={`/${empresaSlug}/productos?categoria=${cat.id}`} className="hover:text-[#c5a059] transition-colors line-clamp-1" title={cat.name}>
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
 
