@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings, ShieldCheck, HelpCircle, Save, RefreshCw, Scale, AlertCircle } from 'lucide-react';
+import { Settings, ShieldCheck, HelpCircle, Save, RefreshCw, Scale, AlertCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Format currency helper
@@ -107,6 +107,43 @@ export default function ConfigPage() {
     }
   };
 
+  const handleResetToDefault = async () => {
+    if (!confirm('¿Estás seguro de que deseas restablecer y guardar los valores de fábrica?')) return;
+    try {
+      setSaving(true);
+      const payload = {
+        afpEmployee: 0.0287,
+        sfsEmployee: 0.0304,
+        afpEmployer: 0.0710,
+        sfsEmployer: 0.0709,
+        infotepEmployer: 0.010,
+        riskEmployer: 0.0110,
+        overtimeDiurnaRate: 1.35,
+        overtimeNocturnaRate: 1.85,
+        overtimeFestivaRate: 2.00,
+        overtimeDobleRate: 2.00,
+      };
+
+      const res = await fetch('/api/v1/hr/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        toast.success('Valores de fábrica restablecidos y guardados');
+        fetchConfig();
+      } else {
+        toast.error(resData.error?.message || 'Error al restablecer valores');
+      }
+    } catch (err) {
+      toast.error('Error de red');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
 
     <div className="space-y-6">
@@ -121,6 +158,16 @@ export default function ConfigPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleResetToDefault}
+            disabled={saving || loading}
+            className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-all disabled:opacity-50"
+            title="Restablecer a Valores de Fábrica"
+          >
+            {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+            Restablecer a Fábrica
+          </button>
           <button
             onClick={fetchConfig}
             className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
