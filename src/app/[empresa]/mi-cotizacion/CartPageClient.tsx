@@ -127,6 +127,8 @@ export default function CartPageClient({ empresaSlug, companyPhone }: { empresaS
   }
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const tax = subtotal * 0.18; // 18% ITBIS default
+  const total = subtotal + tax;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -138,35 +140,36 @@ export default function CartPageClient({ empresaSlug, companyPhone }: { empresaS
               {item.imageUrl ? (
                 <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain p-2 mix-blend-multiply" />
               ) : (
-                <Package className="h-8 w-8 text-slate-300" />
+                <Package className="h-10 w-10 text-slate-300" />
               )}
             </div>
             
             <div className="flex-grow text-center sm:text-left">
-              <h3 className="font-bold text-[#001e40] text-lg mb-1">{item.name}</h3>
-              <p className="text-[#c5a059] font-bold">
-                RD$ {item.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })} <span className="text-sm font-normal text-slate-500">c/u</span>
-              </p>
+              <Link href={`/${empresaSlug}/productos`} className="hover:underline">
+                <h3 className="font-bold text-[#001e40] text-lg mb-1">{item.name}</h3>
+              </Link>
+              <div className="text-slate-500 font-medium text-sm">
+                RD$ {item.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })} <span className="text-xs text-slate-400 font-normal">(+ ITBIS)</span>
+              </div>
             </div>
 
-            <div className="flex flex-col sm:items-end gap-3 w-full sm:w-auto">
-              <div className="flex items-center justify-between sm:justify-end w-full gap-4">
-                <div className="flex items-center border border-slate-200 rounded-md bg-slate-50">
+            <div className="flex flex-col items-center sm:items-end gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border border-slate-300 rounded-md bg-white">
                   <button 
                     onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="p-1.5 text-slate-500 hover:text-[#001e40] hover:bg-slate-100 transition-colors"
+                    className="p-1.5 text-slate-500 hover:text-[#001e40] hover:bg-slate-50 transition-colors"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="w-10 text-center font-medium text-sm text-slate-900">{item.quantity}</span>
+                  <span className="w-10 text-center font-medium text-slate-900 text-sm">{item.quantity}</span>
                   <button 
                     onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="p-1.5 text-slate-500 hover:text-[#001e40] hover:bg-slate-100 transition-colors"
+                    className="p-1.5 text-slate-500 hover:text-[#001e40] hover:bg-slate-50 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                
                 <button 
                   onClick={() => removeItem(item.productId)}
                   className="text-red-400 hover:text-red-600 p-2 transition-colors"
@@ -193,16 +196,20 @@ export default function CartPageClient({ empresaSlug, companyPhone }: { empresaS
               <span>Subtotal ({items.reduce((acc, i) => acc + i.quantity, 0)} items)</span>
               <span>RD$ {subtotal.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
             </div>
+            <div className="flex justify-between text-slate-600">
+              <span>ITBIS (18%)</span>
+              <span>RD$ {tax.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
           </div>
 
           <div className="border-t border-slate-200 pt-4 mb-6">
             <div className="flex justify-between items-end">
               <span className="font-bold text-slate-900">Total Estimado</span>
               <span className="text-2xl font-extrabold text-[#001e40]">
-                RD$ {subtotal.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-2 text-right">* Impuestos incluidos según aplique.</p>
+            <p className="text-xs text-slate-400 mt-2 text-right">* Precios sujetos a confirmación de inventario.</p>
           </div>
 
           <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-lg p-4 flex gap-3 text-sm mb-6">

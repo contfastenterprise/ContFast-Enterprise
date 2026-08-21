@@ -96,7 +96,8 @@ export default async function StorefrontProductDetailPage({
                 <span className="text-3xl font-extrabold text-slate-900">
                   RD$ {price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                 </span>
-                <p className="text-sm text-slate-500 mt-1">Precio sugerido detallista (ITBIS incluido según aplique)</p>
+                <span className="ml-2 text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
+                <p className="text-sm text-slate-500 mt-1">Precio sugerido detallista (No incluye impuestos)</p>
               </div>
 
               <div className="prose prose-sm text-slate-600 mb-8 max-w-none">

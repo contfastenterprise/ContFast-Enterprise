@@ -146,9 +146,12 @@ export default async function StorefrontProductsPage({
                         {product.description || 'Producto sin descripción.'}
                       </p>
                       <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50 group-hover:border-slate-100 transition-colors">
-                        <span className="font-bold text-xl text-[#001e40]">
-                          RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-xl text-[#001e40] leading-none">
+                            RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">+ ITBIS</span>
+                        </div>
                         <CatalogAddButton 
                           productId={product.id}
                           name={product.name}
