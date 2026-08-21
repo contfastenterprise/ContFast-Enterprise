@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
