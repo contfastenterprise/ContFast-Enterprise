@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Package, Trash2, ArrowRight, ShoppingCart, Plus, Minus, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/storefront/ui/client-button';
@@ -20,14 +20,15 @@ export default function CartPageClient({ empresaSlug }: { empresaSlug: string })
   const [items, setItems] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
-  const loadCart = () => {
+  const loadCart = useCallback(() => {
     try {
-      const cart = JSON.parse(localStorage.getItem('storefront_cart') || '[]');
+      const cartStr = localStorage.getItem('storefront_cart');
+      const cart = JSON.parse(cartStr || '[]');
       setItems(cart);
     } catch (e) {
       setItems([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -36,9 +37,19 @@ export default function CartPageClient({ empresaSlug }: { empresaSlug: string })
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'storefront_cart') loadCart();
     };
+    
+    const handleCartUpdate = () => {
+      loadCart();
+    };
+
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+    window.addEventListener('cart_updated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('cart_updated', handleCartUpdate);
+    };
+  }, [loadCart]);
 
   const saveCart = (newItems: CartItem[]) => {
     localStorage.setItem('storefront_cart', JSON.stringify(newItems));
