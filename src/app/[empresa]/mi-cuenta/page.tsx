@@ -1,7 +1,6 @@
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { getSession } from '@/middleware/auth';
 import { db } from '@/db';
 import { quotes } from '@/db/schema/invoices';
 import { eq, and, desc } from 'drizzle-orm';

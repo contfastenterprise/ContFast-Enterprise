@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { StorefrontQuoteService } from '@/services/storefront/quoteService';
-import { getSession } from '@/middleware/auth';
+import { verifyAuth } from '@/middleware/auth';
 
 const createQuoteSchema = z.object({
   empresaSlug: z.string(),
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Verificar Autenticación
     const headers = new Headers();
-    const session = await getSession(req, headers);
+    const session = await verifyAuth(req, headers);
     
     if (!session || !session.userId) {
       return NextResponse.json({ success: false, error: { message: 'Debes iniciar sesión para enviar una cotización' } }, { status: 401 });
