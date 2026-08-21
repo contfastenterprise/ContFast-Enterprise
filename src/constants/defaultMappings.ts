@@ -58,6 +58,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 8. Herramientas
   { id: '29', routePattern: '/dashboard/tools/desglose/ventanas%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Desglose Ventanas', groupName: 'Herramientas', iconName: 'Calculator', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '30', routePattern: '/dashboard/tools/glass-cutting%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Corte de Vidrio', groupName: 'Herramientas', iconName: 'Layers', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '35', routePattern: '/dashboard/tools/desglose/puertas%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Desglose Puertas Comerciales', groupName: 'Herramientas', iconName: 'DoorOpen', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
   
   // 9. Sistema
   { id: '31', routePattern: '/dashboard/settings%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Ajustes', groupName: 'Sistema', iconName: 'Settings', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },

@@ -653,6 +653,7 @@ export class PdfGenerator {
           let lateralPies = 0;
           let ruedas = 0;
           let cierres = 0;
+          let unionPies = 0;
           let gomaPies = 0;
 
           sysItems.forEach(item => {
@@ -674,21 +675,27 @@ export class PdfGenerator {
               rielPies += (w - 0.25) * qty / 12;
               lateralPies += (h - 0.5) * 2 * qty / 12;
               ruedas += 4 * qty;
-              cierres += 1 * qty;
+              if (vias <= 2) { cierres += 1 * qty; }
+              else if (vias === 3) { cierres += 2 * qty; }
+              else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 0.875) * 1 * qty / 12; }
             } else if (sys === 'P-65') {
               cabezalPies += (w - 1.25) * 2 * qty / 12;
               llavinPies += (h - 2) * 2 * qty / 12;
               rielPies += (w - 1.5) * qty / 12;
               lateralPies += (h - 0.125) * 2 * qty / 12;
               ruedas += 4 * qty;
-              cierres += 1 * qty;
+              if (vias <= 2) { cierres += 1 * qty; }
+              else if (vias === 3) { cierres += 2 * qty; }
+              else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 2) * 1 * qty / 12; }
             } else if (sys === 'P-92') {
               cabezalPies += (w - 0.875) * 2 * qty / 12;
               llavinPies += (h - 2.5) * 2 * qty / 12;
               rielPies += (w - 1.625) * qty / 12;
               lateralPies += (h - 0.125) * 2 * qty / 12;
               ruedas += 4 * qty;
-              cierres += 1 * qty;
+              if (vias <= 2) { cierres += 1 * qty; }
+              else if (vias === 3) { cierres += 2 * qty; }
+              else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 2.5) * 1 * qty / 12; }
             }
           });
 
@@ -711,6 +718,10 @@ export class PdfGenerator {
           sysY += 14;
           doc.text(`${padDots('Cierre de Centro:', 18)} ${cierres} unidades`, sysX + 5, sysY);
           sysY += 14;
+          if (unionPies > 0) {
+            doc.text(`${padDots('Unión Centro (4v):', 18)} ${formatPies(unionPies)}`, sysX + 5, sysY);
+            sysY += 14;
+          }
           doc.text(`${padDots('Goma:', 18)} ${formatPies(gomaPies)}`, sysX + 5, sysY);
           sysY += 16.5;
           doc.font('Courier-Bold').fontSize(10).text(`Total unidades: ${totalUnits}`, sysX + 5, sysY);

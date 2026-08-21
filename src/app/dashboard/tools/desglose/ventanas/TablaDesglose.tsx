@@ -106,7 +106,7 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
         const vH = cuts.vidrio.valueHeight;
         
         let offset = 0.625; // default 5/8 for Tradicional
-        if (sistemaKey === 'P-65') offset = -0.25;
+        if (sistemaKey === 'P-65') offset = -0.3746;
         if (sistemaKey === 'P-92') offset = -0.375;
 
         const vW2 = vW1 + offset;

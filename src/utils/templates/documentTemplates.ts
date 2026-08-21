@@ -2215,6 +2215,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       let lateralPies = 0;
       let ruedas = 0;
       let cierres = 0;
+      let unionPies = 0;
       let gomaPies = 0;
 
       sysItems.forEach(item => {
@@ -2236,21 +2237,27 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           rielPies += (w - 0.25) * qty / 12;
           lateralPies += (h - 0.5) * 2 * qty / 12;
           ruedas += 4 * qty;
-          cierres += 1 * qty;
+          if (vias <= 2) { cierres += 1 * qty; }
+          else if (vias === 3) { cierres += 2 * qty; }
+          else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 0.875) * 1 * qty / 12; }
         } else if (sys === 'P-65') {
           cabezalPies += (w - 1.25) * 2 * qty / 12;
           llavinPies += (h - 2) * 2 * qty / 12;
           rielPies += (w - 1.5) * qty / 12;
           lateralPies += (h - 0.125) * 2 * qty / 12;
           ruedas += 4 * qty;
-          cierres += 1 * qty;
+          if (vias <= 2) { cierres += 1 * qty; }
+          else if (vias === 3) { cierres += 2 * qty; }
+          else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 2) * 1 * qty / 12; }
         } else if (sys === 'P-92') {
           cabezalPies += (w - 0.875) * 2 * qty / 12;
           llavinPies += (h - 2.5) * 2 * qty / 12;
           rielPies += (w - 1.625) * qty / 12;
           lateralPies += (h - 0.125) * 2 * qty / 12;
           ruedas += 4 * qty;
-          cierres += 1 * qty;
+          if (vias <= 2) { cierres += 1 * qty; }
+          else if (vias === 3) { cierres += 2 * qty; }
+          else if (vias === 4) { cierres += 2 * qty; unionPies += (h - 2.5) * 1 * qty / 12; }
         }
       });
 
@@ -2264,6 +2271,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         lateralPies,
         ruedas,
         cierres,
+        unionPies,
         gomaPies
       };
     });
@@ -2354,6 +2362,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
               <span>${padDots('Cierre de Centro', 18)}</span>
               <span class="font-mono font-bold">${s.cierres} unidades</span>
             </div>
+            ${s.unionPies > 0 ? `
+            <div class="material-row">
+              <span>${padDots('Unión Centro (4v)', 18)}</span>
+              <span class="font-mono font-bold">${formatPies(s.unionPies)}</span>
+            </div>` : ''}
             <div class="material-row">
               <span>${padDots('Goma', 18)}</span>
               <span class="font-mono font-bold">${formatPies(s.gomaPies)}</span>
@@ -4769,6 +4782,330 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div style="text-align: right; color: #888;">
             Arqueo de Caja - Generado por ContFast Enterprise
           </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  static renderCommercialDoorBreakdown(data: { company: any; items: any[] }): string {
+    const { company, items } = data;
+    const now = new Date();
+    const currentDateStr = now.toISOString().split('T')[0];
+    
+    // Agregados
+    let jambaInches = 0;
+    let ruletaInches = 0;
+    let marcoInches = 0;
+    let glassPerimeterInches = 0;
+    let glassAreaSqIn = 0;
+    
+    let totalCerraduras = 0;
+    let totalManijas = 0;
+    let totalRuedas = 0;
+    
+    items.forEach(item => {
+      const w = parseFraction(item.ancho) || 0;
+      const h = parseFraction(item.alto) || 0;
+      const qty = Number(item.cantidad) || 0;
+      
+      const lateral = h - 0.25;
+      const dintel = w - 3.75;
+      const jamba = h - 2.875;
+      const ruleta = w - 8.125;
+      const criW = w - 12.125;
+      const criH = h - 8.875;
+      
+      jambaInches += (2 * jamba * qty);
+      ruletaInches += (2 * ruleta * qty);
+      marcoInches += ((2 * lateral + 1 * dintel) * qty);
+      glassPerimeterInches += ((criW + criH) * 2 * qty);
+      glassAreaSqIn += (criW * criH * qty);
+      
+      totalCerraduras += (1 * qty);
+      totalManijas += (2 * qty);
+      totalRuedas += (4 * qty);
+    });
+    
+    const jambaPies = jambaInches / 12;
+    const ruletaPies = ruletaInches / 12;
+    const marcoPies = marcoInches / 12;
+    const gomaPies = glassPerimeterInches / 12;
+    const planchas = (glassAreaSqIn / (130 * 84)) * 1.4; // 1.4 factor de merma (~0.75 para el ej)
+
+    const formatPies = (val: number) => val > 0 ? val.toFixed(2) : '0.00';
+    const formatBarras = (pies: number) => {
+      if (pies === 0) return '0';
+      const barras20 = Math.floor(pies / 20);
+      const resto = pies % 20;
+      if (barras20 === 0) return `${resto.toFixed(0)} pies`;
+      if (resto < 0.5) return `${barras20} barra${barras20 > 1 ? 's' : ''}`;
+      return `${barras20} + ${resto.toFixed(0)}'`;
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Resumen de Cortes</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+          
+          @page {
+            size: letter landscape;
+            margin: 10mm 15mm;
+          }
+          
+          body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 0;
+            font-size: 9pt;
+          }
+          
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+          }
+          
+          .company-name {
+            font-size: 16pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 2px;
+          }
+          
+          .company-info {
+            font-size: 8pt;
+            color: #475569;
+          }
+          
+          .doc-title-container {
+            text-align: right;
+          }
+          
+          .doc-title {
+            font-size: 14pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 2px 0;
+          }
+          
+          .doc-subtitle {
+            font-size: 8pt;
+            color: #475569;
+          }
+          
+          .grid-container {
+            display: grid;
+            grid-template-columns: 1.2fr 1.5fr 1.3fr;
+            gap: 15px;
+            margin-bottom: 20px;
+          }
+          
+          .panel {
+            background-color: #f8fafc;
+            border-radius: 4px;
+            overflow: hidden;
+          }
+          
+          .panel-header {
+            background-color: #e2e8f0;
+            padding: 6px 12px;
+            font-size: 9pt;
+            font-weight: 700;
+            color: #1e293b;
+          }
+          
+          .panel-body {
+            padding: 10px 12px;
+          }
+          
+          .info-row {
+            display: flex;
+            margin-bottom: 6px;
+            font-size: 8.5pt;
+          }
+          
+          .info-label {
+            width: 80px;
+            color: #475569;
+          }
+          
+          .info-value {
+            font-weight: 600;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+          }
+          
+          .material-table th, .material-table td {
+            text-align: right;
+            padding: 5px 0;
+          }
+          .material-table th:first-child, .material-table td:first-child {
+            text-align: left;
+          }
+          
+          .material-table th {
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 6px;
+            color: #0f172a;
+            font-weight: 700;
+          }
+          
+          .main-table {
+            margin-bottom: 20px;
+            border: 1px solid #cbd5e1;
+          }
+          
+          .main-table th {
+            background-color: #f8fafc;
+            padding: 8px 10px;
+            border-bottom: 1px solid #cbd5e1;
+            border-right: 1px solid #cbd5e1;
+            font-weight: 700;
+            color: #0f172a;
+            text-align: center;
+          }
+          
+          .main-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            text-align: center;
+          }
+          
+          .main-table tr:nth-child(even) {
+            background-color: #f8fafc;
+          }
+          
+          .notes-panel {
+            background-color: #f8fafc;
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 8.5pt;
+          }
+          
+          .notes-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #0f172a;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="company-name">${company.name || 'ContFast Enterprise'}</div>
+            <div class="company-info">Tel: ${company.phone || '809-000-0000'} · Santiago</div>
+          </div>
+          <div class="doc-title-container">
+            <h1 class="doc-title">Resumen de Cortes</h1>
+            <div class="doc-subtitle">Resumen de Cortes - OP-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')} · ${currentDateStr}</div>
+          </div>
+        </div>
+        
+        <div class="grid-container">
+          <div class="panel">
+            <div class="panel-header">ORDEN DE PRODUCCIÓN</div>
+            <div class="panel-body">
+              <div style="font-weight: 700; margin-bottom: 10px;">Puerta Comercial</div>
+              <div class="info-row"><div class="info-label">Cliente:</div><div class="info-value">Cliente por defecto</div></div>
+              <div class="info-row"><div class="info-label">Fecha:</div><div class="info-value">${currentDateStr}</div></div>
+              <div class="info-row"><div class="info-label">Vidrio:</div><div class="info-value">Natural 3mm (1/8")</div></div>
+              <div class="info-row"><div class="info-label">Color:</div><div class="info-value">Blanco</div></div>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <div class="panel-header">MATERIALES</div>
+            <div class="panel-body">
+              <table class="material-table">
+                <thead>
+                  <tr><th>Material</th><th>Barras</th><th>Pies</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Jamba Hoja - Puerta Comercial</td><td>${formatBarras(jambaPies)}</td><td>${formatPies(jambaPies)}</td></tr>
+                  <tr><td>Ruleta Hoja - Puerta Comercial</td><td>${formatBarras(ruletaPies)}</td><td>${formatPies(ruletaPies)}</td></tr>
+                  <tr><td>Tubo 1 3/4 x 1 3/4 - Puerta Comercial</td><td>${formatBarras(marcoPies)}</td><td>${formatPies(marcoPies)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <div class="panel-header">ACCESORIOS</div>
+            <div class="panel-body">
+              <table class="material-table">
+                <thead>
+                  <tr><th>Accesorio</th><th>Cantidad</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Cerradura - Puerta Comercial</td><td>${totalCerraduras}</td></tr>
+                  <tr><td>Goma Vidrio - Puerta Comercial</td><td>${formatPies(gomaPies)}</td></tr>
+                  <tr><td>Manija - Puerta Comercial</td><td>${totalManijas}</td></tr>
+                  <tr><td>Rueda - Puerta Comercial</td><td>${totalRuedas}</td></tr>
+                </tbody>
+              </table>
+              <div style="margin-top: 10px; font-weight: 700; font-size: 8pt;">Cantidad estimada de planchas</div>
+              <div style="display: flex; justify-content: space-between; font-size: 8.5pt; margin-top: 5px;">
+                <span>Natural 3mm (1/8") - 130" x 84"</span>
+                <span>${planchas.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="font-weight: 700; margin-bottom: 8px; color: #0f172a;">PUERTA COMERCIAL</div>
+        <table class="main-table">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Cantidad</th>
+              <th>Variaciones</th>
+              <th>Ancho</th>
+              <th>Alto</th>
+              <th>Lateral</th>
+              <th>Dintel</th>
+              <th>Jamba</th>
+              <th>Ruleta</th>
+              <th>Ancho Cri</th>
+              <th>Alto Cri</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((item, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.cantidad}</td>
+                <td>1 hoja</td>
+                <td>${item.ancho}"</td>
+                <td>${item.alto}"</td>
+                <td>${item.lateral}</td>
+                <td>${item.dintel}</td>
+                <td>${item.jamba}</td>
+                <td>${item.ruleta}</td>
+                <td>${item.vidrioW}</td>
+                <td>${item.vidrioH}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="notes-panel">
+          <div class="notes-title">NOTAS DE PRODUCCIÓN</div>
+          <div>Documento reconstruido en formato digital a partir de la hoja original.</div>
+          <div>Se eliminaron arrugas, manchas, marcas manuscritas y deterioro visual del papel.</div>
         </div>
       </body>
       </html>

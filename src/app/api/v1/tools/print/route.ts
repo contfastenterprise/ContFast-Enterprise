@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
     if (type === 'desglose') {
       const html = DocumentTemplates.renderWindowBreakdown({ company: companyInfo, items: data });
       pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta', true);
+    } else if (type === 'desglose_puerta_comercial') {
+      const html = DocumentTemplates.renderCommercialDoorBreakdown({ company: companyInfo, items: data });
+      pdfBuffer = await PuppeteerPdfGenerator.generatePdfFromHtml(html, 'carta', true); // horizontal letter
     } else if (type === 'corte') {
       const sw = Number(sheetWidth) || 96;
       const sh = Number(sheetHeight) || 72;

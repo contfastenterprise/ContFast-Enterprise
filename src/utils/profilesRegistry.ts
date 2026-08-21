@@ -110,14 +110,14 @@ export const windowProfiles: Record<string, ProfileSystem> = {
         llavinVal = +(h - 2).toFixed(4);
         rielVal = +(w - 1.5).toFixed(4);
         lateralVal = +(h - 0.125).toFixed(4);
-        glassW = +(cabezalVal - 2.5625).toFixed(4);
+        glassW = +(cabezalVal - 2.6254).toFixed(4);
         glassH = +(h - 5).toFixed(4);
 
         cabLabel = `(${6 * qty})`;
         llavLabel = `(${2 * qty})(${4 * qty})`;
         rielLabel = `(${qty})(${qty})`;
         latLabel = `(${2 * qty})`;
-        glassLabel = `(${2 * qty}) [W] * [H] y (${1 * qty}) [W-1/4] * [H]`;
+        glassLabel = `(${2 * qty}) [W] * [H] y (${1 * qty}) [W-0.3746] * [H]`;
       }
 
       return {
