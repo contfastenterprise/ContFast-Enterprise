@@ -2181,21 +2181,6 @@ function InvoicesList() {
         )}
       </AnimatePresence>
 
-      {/* Floating Action Button for New Invoice */}
-      {!showForm && (
-        <motion.button
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(true)}
-          className="fixed bottom-8 right-8 md:bottom-12 md:right-12 w-16 h-16 bg-[#003366] text-white rounded-full shadow-2xl shadow-[#003366]/50 flex items-center justify-center z-40 ring-4 ring-[#003366]/30 hover:bg-[#002244] transition-colors"
-          title="Nueva Factura e-CF"
-        >
-          <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </motion.button>
-      )}
-
       {/* ==============================================================================
             INVOICE DETAILS MODAL
             ============================================================================== */}
