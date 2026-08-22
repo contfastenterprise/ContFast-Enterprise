@@ -72,6 +72,18 @@ export class QuoteService {
 
       const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
 
+      for (const line of data.lines) {
+        if (line.productId) {
+          const [prod] = await tx.select({ cost: sql<string>`cost`, name: sql<string>`name` }).from(products).where(eq(products.id, line.productId)).limit(1);
+          if (prod) {
+            const cost = parseFloat(prod.cost || '0.00');
+            if (cost > 0 && line.unitPrice < cost) {
+              throw new Error(`El precio unitario (RD$ ${line.unitPrice.toFixed(2)}) para "${prod.name}" no puede ser inferior a su costo (RD$ ${cost.toFixed(2)}).`);
+            }
+          }
+        }
+      }
+
       const linesData = data.lines.map((line) => {
         const lineSubtotal = line.quantity * line.unitPrice;
         const lineDiscount = line.quantity * line.discount; // Assume discount sent is unit discount
@@ -234,6 +246,18 @@ export class QuoteService {
         let totalTaxes = 0;
 
         const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
+
+        for (const line of data.lines) {
+          if (line.productId) {
+            const [prod] = await tx.select({ cost: sql<string>`cost`, name: sql<string>`name` }).from(products).where(eq(products.id, line.productId)).limit(1);
+            if (prod) {
+              const cost = parseFloat(prod.cost || '0.00');
+              if (cost > 0 && line.unitPrice < cost) {
+                throw new Error(`El precio unitario (RD$ ${line.unitPrice.toFixed(2)}) para "${prod.name}" no puede ser inferior a su costo (RD$ ${cost.toFixed(2)}).`);
+              }
+            }
+          }
+        }
 
         const linesData = data.lines.map((line) => {
           const lineSubtotal = line.quantity * line.unitPrice;

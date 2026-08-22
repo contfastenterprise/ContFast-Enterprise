@@ -67,6 +67,15 @@ export class InvoiceDbBooker {
         if (!hasStock) {
           throw new Error(`Inventario insuficiente o por debajo del mínimo para el producto: ${line.name}`);
         }
+        
+        // Cost validation
+        const [prod] = await db.select({ cost: sql<string>`cost` }).from(sql`products`).where(eq(sql`id`, line.productId)).limit(1);
+        if (prod) {
+          const cost = parseFloat(prod.cost || '0.00');
+          if (cost > 0 && line.unitPrice < cost) {
+            throw new Error(`El precio unitario (RD$ ${line.unitPrice.toFixed(2)}) para "${line.name}" no puede ser inferior a su costo (RD$ ${cost.toFixed(2)}).`);
+          }
+        }
       }
     }
 

@@ -74,10 +74,14 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
             // Need to fetch product names since quoteLines only has productId
             const linesWithDetails = await Promise.all(q.lines.map(async (l: any) => {
               let productName = 'Producto Desconocido';
+              let productCost = 0;
               try {
                 const pRes = await fetch(`/api/v1/products/${l.productId}`);
                 const pData = await pRes.json();
-                if (pData.success) productName = pData.data.name;
+                if (pData.success) {
+                  productName = pData.data.name;
+                  productCost = Number(pData.data.cost) || 0;
+                }
               } catch (e) {}
               
               // Find the tax rate for this line or use default
@@ -88,6 +92,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 unitPrice: Number(l.unitPrice),
                 discount: Number(l.discount),
                 taxRate: 0.18, // Simplified: ideally we calculate it from taxes
+                productCost,
               };
             }));
             setLines(linesWithDetails);
@@ -128,6 +133,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         productName: product.name,
         unitPrice: Number(product.price),
         taxRate: Number(product.taxRate || 0.18),
+        productCost: Number(product.cost || 0),
       };
       setLines(newLines);
     }
@@ -160,6 +166,17 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
       return toast.error('Hay líneas sin producto seleccionado.');
     }
     
+    // Check unit price against cost
+    for (const line of lines) {
+      if (line.productId) {
+        const cost = line.productCost || 0;
+        if (cost > 0 && Number(line.unitPrice) < cost) {
+          toast.error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+          return;
+        }
+      }
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/v1/quotes/${id}`, {
@@ -352,20 +369,35 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                         )}
                       />
                     </div>
-                    <div className="w-32">
+                    <div className="w-32 relative group">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Precio (RD$)</label>
-                      <input 
-                        type="number" step="any"
-                        disabled={!isEditable}
-                        value={line.unitPrice}
-                        onChange={(e) => {
-                          const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
-                        }}
-                        className={clsx(
-                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
-                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
-                        )}
-                      />
+                      {(() => {
+                        const pCost = line.productCost || 0;
+                        const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+                        return (
+                          <div className="relative">
+                            <input 
+                              type="number" step="any"
+                              disabled={!isEditable}
+                              value={line.unitPrice}
+                              onChange={(e) => {
+                                const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
+                              }}
+                              className={clsx(
+                                "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
+                                !isEditable ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" :
+                                isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
+                                "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all"
+                              )}
+                            />
+                            {isBelowCost && (
+                              <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
+                                Precio por debajo del costo (RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="w-28 relative group">
                       <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">

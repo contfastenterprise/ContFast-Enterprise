@@ -749,6 +749,20 @@ function InvoicesList() {
     if (!warehouseId) {
       throw new Error('Debe seleccionar un almacén.');
     }
+    // Check unit price against cost for non-Credit Notes
+    if (ecfType !== '34') {
+      for (const line of lines) {
+        if (line.productId) {
+          const prod = dbProducts.find(p => p.id === line.productId);
+          if (prod) {
+            const cost = parseFloat(prod.cost) || 0;
+            if (cost > 0 && Number(line.unitPrice) < cost) {
+              throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+            }
+          }
+        }
+      }
+    }
   };
 
   // Handler: Save as Draft
@@ -879,6 +893,21 @@ function InvoicesList() {
         }
       }
 
+      // Check unit price against cost for non-Credit Notes
+      if (ecfType !== '34') {
+        for (const line of lines) {
+          if (line.productId) {
+            const prod = dbProducts.find(p => p.id === line.productId);
+            if (prod) {
+              const cost = parseFloat(prod.cost) || 0;
+              if (cost > 0 && Number(line.unitPrice) < cost) {
+                throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+              }
+            }
+          }
+        }
+      }
+
       const isNote = ecfType === '33' || ecfType === '34';
       if (isNote) {
         const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
@@ -919,6 +948,21 @@ function InvoicesList() {
         const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
         if (!validIndicadores.includes(indicadorNotaCredito)) {
           throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
+        }
+      }
+
+      // Check unit price against cost for non-Credit Notes
+      if (ecfType !== '34') {
+        for (const line of lines) {
+          if (line.productId) {
+            const prod = dbProducts.find(p => p.id === line.productId);
+            if (prod) {
+              const cost = parseFloat(prod.cost) || 0;
+              if (cost > 0 && Number(line.unitPrice) < cost) {
+                throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+              }
+            }
+          }
         }
       }
       const linesToSubmit = lines.map((l: any) => ({
@@ -1533,15 +1577,35 @@ function InvoicesList() {
                         </div>
 
                         {/* Precio Unit. */}
-                        <div className="space-y-1.5 md:space-y-0">
+                        <div className="space-y-1.5 md:space-y-0 relative group">
                           <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
-                          <input
-                            type="number"
-                            value={line.unitPrice}
-                            readOnly
-                            className="w-full rounded-lg bg-slate-100 border border-slate-300 py-1.5 px-2 text-[#003366]/70 cursor-not-allowed outline-none text-xs transition-all"
-                            min={0} step="any" required
-                          />
+                          {(() => {
+                            const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
+                            const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+                            
+                            return (
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  value={line.unitPrice}
+                                  onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                  disabled={!hasProduct}
+                                  className={clsx(
+                                    "w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all",
+                                    !hasProduct ? "bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed" : 
+                                    isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
+                                    "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30"
+                                  )}
+                                  min={0} step="any" required
+                                />
+                                {isBelowCost && (
+                                  <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
+                                    Precio por debajo del costo (RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Desc. Unit. */}
