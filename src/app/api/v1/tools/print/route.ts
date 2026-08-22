@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       name: company.name,
       rnc: company.rnc,
       address: company.address || 'Santiago, R.D.',
-      phone: '1-829-214-4128', // Latin Doors phone
-      email: settings?.msellerEmail || 'latindoors@gmail.com',
+      phone: company.phone || '1-829-214-4128',
+      email: company.email || settings?.msellerEmail || 'latindoors@gmail.com',
       logoUrl: settings?.logoUrl || undefined,
     };
 

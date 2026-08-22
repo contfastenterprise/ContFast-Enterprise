@@ -20,6 +20,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
+import { EditablePriceSelect } from '@/components/ui/editable-price-select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
@@ -757,7 +758,7 @@ function InvoicesList() {
           if (prod) {
             const cost = parseFloat(prod.cost) || 0;
             if (cost > 0 && Number(line.unitPrice) < cost) {
-              throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+              throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
             }
           }
         }
@@ -901,7 +902,7 @@ function InvoicesList() {
             if (prod) {
               const cost = parseFloat(prod.cost) || 0;
               if (cost > 0 && Number(line.unitPrice) < cost) {
-                throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+                throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
               }
             }
           }
@@ -959,7 +960,7 @@ function InvoicesList() {
             if (prod) {
               const cost = parseFloat(prod.cost) || 0;
               if (cost > 0 && Number(line.unitPrice) < cost) {
-                throw new Error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+                throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
               }
             }
           }
@@ -1461,11 +1462,10 @@ function InvoicesList() {
                 </div>
 
                 {/* Table Header for desktop */}
-                <div className="hidden md:grid md:grid-cols-[3fr_1.2fr_0.8fr_1.2fr_1fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
+                <div className="hidden md:grid md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
                   <div>Producto / Servicio</div>
                   <div>Medida</div>
                   <div>Cant.</div>
-                  <div>Nivel de Precio</div>
                   <div>Precio Unit.</div>
                   <div>Desc. Unit.</div>
                   <div>ITBIS</div>
@@ -1485,12 +1485,12 @@ function InvoicesList() {
                     // Fetch dynamic price tiers from dbProducts if available
                     const matchedProduct = dbProducts.find(p => p.id === line.productId);
                     const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : null;
-                    const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor) || parseFloat(matchedProduct.price) || 0) : null;
-                    const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista) || parseFloat(matchedProduct.price) || 0) : null;
-                    const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor) || parseFloat(matchedProduct.price) || 0) : null;
+                    const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : null;
+                    const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : null;
+                    const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : null;
 
                     return (
-                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_1.2fr_0.8fr_1.2fr_1fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
                         {/* Product Selection / Autocomplete */}
                         <div className="space-y-1.5 md:space-y-0">
                           <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
@@ -1539,71 +1539,34 @@ function InvoicesList() {
                           />
                         </div>
 
-                        {/* Price tier */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel de Precio</label>
-                          <select
-                            value={line.priceTier || 'consumidor'}
-                            onFocus={() => setActivePriceTierSelectIdx(idx)}
-                            onBlur={() => setActivePriceTierSelectIdx(null)}
-                            onChange={(e) => {
-                              handlePriceTierChange(idx, e.target.value as any);
-                              e.target.blur();
-                            }}
-                            disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          >
-                            <option value="base">
-                              {activePriceTierSelectIdx === idx
-                                ? 'Base'
-                                : (priceBase !== null ? priceBase.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Base')}
-                            </option>
-                            <option value="consumidor">
-                              {activePriceTierSelectIdx === idx
-                                ? 'Consumidor'
-                                : (priceConsumidor !== null ? priceConsumidor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Consumidor')}
-                            </option>
-                            <option value="mayorista">
-                              {activePriceTierSelectIdx === idx
-                                ? 'Mayorista'
-                                : (priceMayorista !== null ? priceMayorista.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Mayorista (P3)')}
-                            </option>
-                            <option value="proveedor">
-                              {activePriceTierSelectIdx === idx
-                                ? 'Proveedor'
-                                : (priceProveedor !== null ? priceProveedor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'Proveedor (P2)')}
-                            </option>
-                          </select>
-                        </div>
-
-                        {/* Precio Unit. */}
-                        <div className="space-y-1.5 md:space-y-0 relative group">
+                        {/* Precio Unit. (Unified) */}
+                        <div className="space-y-1.5 md:space-y-0 relative">
                           <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
                           {(() => {
                             const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
                             const isBelowCost = pCost > 0 && line.unitPrice < pCost;
                             
+                            const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : 0;
+                            const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : 0;
+                            const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : 0;
+                            const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : 0;
+
+                            const tiers = [
+                              { name: 'base', label: 'Base', price: priceBase },
+                              { name: 'consumidor', label: 'Consumidor', price: priceConsumidor },
+                              { name: 'mayorista', label: 'Mayorista', price: priceMayorista },
+                              { name: 'proveedor', label: 'Proveedor', price: priceProveedor },
+                            ];
+
                             return (
-                              <div className="relative">
-                                <input
-                                  type="number"
-                                  value={line.unitPrice}
-                                  onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                  disabled={!hasProduct}
-                                  className={clsx(
-                                    "w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all",
-                                    !hasProduct ? "bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed" : 
-                                    isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
-                                    "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30"
-                                  )}
-                                  min={0} step="any" required
-                                />
-                                {isBelowCost && (
-                                  <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
-                                    Precio por debajo del costo (RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                                  </div>
-                                )}
-                              </div>
+                              <EditablePriceSelect
+                                value={line.unitPrice}
+                                onChange={(val) => handleLineChange(idx, 'unitPrice', val)}
+                                disabled={!hasProduct}
+                                isBelowCost={isBelowCost}
+                                pCost={pCost}
+                                tiers={tiers}
+                              />
                             );
                           })()}
                         </div>

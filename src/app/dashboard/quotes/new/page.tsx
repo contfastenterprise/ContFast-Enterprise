@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
+import { EditablePriceSelect } from '@/components/ui/editable-price-select';
 
 export default function NewQuote() {
   const router = useRouter();
@@ -251,7 +252,7 @@ export default function NewQuote() {
         if (prod) {
           const cost = parseFloat(prod.cost) || 0;
           if (cost > 0 && Number(line.unitPrice) < cost) {
-            toast.error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+            toast.error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
             return;
           }
         }
@@ -389,10 +390,9 @@ export default function NewQuote() {
             <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
             
             {/* Table Header for desktop */}
-            <div className="hidden md:grid md:grid-cols-[3fr_0.8fr_1.2fr_1fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
+            <div className="hidden md:grid md:grid-cols-[3fr_0.8fr_1.5fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
               <div>Producto / Servicio</div>
               <div>Cant.</div>
-              <div>Nivel de Precio</div>
               <div>Precio Unit.</div>
               <div>Desc. Unit.</div>
               <div>ITBIS</div>
@@ -410,7 +410,7 @@ export default function NewQuote() {
                 const hasProduct = !!line.productId;
 
                 return (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_0.8fr_1.2fr_1fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_0.8fr_1.5fr_1.1fr_1fr_1.4fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
                     {/* Product Selection / Autocomplete */}
                     <div className="space-y-1.5 md:space-y-0">
                       <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
@@ -441,56 +441,35 @@ export default function NewQuote() {
                       />
                     </div>
 
-                    {/* Price Tier */}
-                    <div className="space-y-1.5 md:space-y-0">
-                      <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Nivel</label>
-                      <select
-                        value={line.priceTier || 'consumidor'}
-                        onFocus={() => setActivePriceTierSelectIdx(idx)}
-                        onBlur={() => setActivePriceTierSelectIdx(null)}
-                        onChange={(e) => {
-                          handlePriceTierChange(idx, e.target.value as any);
-                          e.target.blur();
-                        }}
-                        disabled={!hasProduct}
-                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                      >
-                        <option value="base">Base</option>
-                        <option value="consumidor">Consumidor</option>
-                        <option value="mayorista">Mayorista</option>
-                        <option value="proveedor">Proveedor</option>
-                      </select>
-                    </div>
-
-                    {/* Unit Price */}
-                    <div className="space-y-1.5 md:space-y-0 relative group">
+                    {/* Unit Price (Unified) */}
+                    <div className="space-y-1.5 md:space-y-0 relative">
                       <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
                       {(() => {
                         const prod = dbProducts.find(p => p.id === line.productId);
                         const pCost = prod ? (parseFloat(prod.cost) || 0) : 0;
                         const isBelowCost = pCost > 0 && line.unitPrice < pCost;
                         
+                        const priceBase = prod ? parseFloat(prod.price) : 0;
+                        const priceCons = prod ? parseFloat(prod.priceConsumidor || prod.price) : 0;
+                        const priceMay = prod ? parseFloat(prod.priceMayorista || prod.price) : 0;
+                        const priceProv = prod ? parseFloat(prod.priceProveedor || prod.price) : 0;
+
+                        const tiers = [
+                          { name: 'base', label: 'Base', price: priceBase },
+                          { name: 'consumidor', label: 'Consumidor', price: priceCons },
+                          { name: 'mayorista', label: 'Mayorista', price: priceMay },
+                          { name: 'proveedor', label: 'Proveedor', price: priceProv },
+                        ];
+
                         return (
-                          <div className="relative">
-                            <input
-                              type="number"
-                              value={line.unitPrice}
-                              onChange={(e) => handleLineChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                              disabled={!hasProduct}
-                              className={clsx(
-                                "w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all",
-                                !hasProduct ? "bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed" : 
-                                isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
-                                "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30"
-                              )}
-                              min={0} step="any" required
-                            />
-                            {isBelowCost && (
-                              <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
-                                Precio por debajo del costo (RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                              </div>
-                            )}
-                          </div>
+                          <EditablePriceSelect
+                            value={line.unitPrice}
+                            onChange={(val) => handleLineChange(idx, 'unitPrice', val)}
+                            disabled={!hasProduct}
+                            isBelowCost={isBelowCost}
+                            pCost={pCost}
+                            tiers={tiers}
+                          />
                         );
                       })()}
                     </div>

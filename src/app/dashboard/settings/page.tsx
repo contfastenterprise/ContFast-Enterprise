@@ -530,25 +530,30 @@ export default function SettingsPage() {
                 <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
                   <div className="flex items-start gap-4 mt-2">
-                    <div className="w-24 h-24 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {formData.logoUrl ? (
-                        <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                      ) : (
-                        <ImageIcon className="w-8 h-8 text-slate-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <label className="flex items-center justify-center w-full max-w-sm h-24 px-4 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-slate-50 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <UploadCloud className="w-6 h-6 text-slate-500 mb-2" />
-                          <p className="text-sm text-slate-500/70 font-medium">Haga clic para subir el logo</p>
-                          <p className="text-xs text-slate-500 mt-1">PNG, JPG, SVG (Recomendado 250x100px)</p>
-                        </div>
+                    {/* Botón de Subida (Izquierda, Pequeño) */}
+                    <div className="w-24 h-24 flex-shrink-0">
+                      <label className="flex flex-col items-center justify-center w-full h-full border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-white hover:bg-slate-50 transition-colors">
+                        <UploadCloud className="w-6 h-6 text-slate-500 mb-1" />
+                        <span className="text-[10px] text-slate-500/70 font-bold uppercase text-center leading-tight">Subir<br/>Logo</span>
                         <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                       </label>
+                    </div>
+
+                    {/* Previsualización del Logo (Derecha, Grande) */}
+                    <div className="flex-1 max-w-sm relative group">
+                      <div className="w-full h-24 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden">
+                        {formData.logoUrl ? (
+                          <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-contain p-2" />
+                        ) : (
+                          <div className="flex flex-col items-center text-slate-400">
+                            <ImageIcon className="w-8 h-8 mb-2 opacity-30" />
+                            <span className="text-xs font-medium opacity-50">Ningún logo cargado</span>
+                          </div>
+                        )}
+                      </div>
                       {formData.logoUrl && (
-                        <button type="button" onClick={() => setFormData({ ...formData, logoUrl: '' })} className="text-xs text-rose-500 font-bold mt-2 hover:underline">
-                          Remover Imagen
+                        <button type="button" onClick={() => setFormData({ ...formData, logoUrl: '' })} className="absolute -top-2 -right-2 bg-rose-100 text-rose-600 rounded-full p-1.5 hover:bg-rose-200 shadow-sm transition-colors opacity-0 group-hover:opacity-100" title="Remover Logo">
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>

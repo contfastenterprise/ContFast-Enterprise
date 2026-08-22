@@ -171,7 +171,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
       if (line.productId) {
         const cost = line.productCost || 0;
         if (cost > 0 && Number(line.unitPrice) < cost) {
-          toast.error(`El precio unitario de "${line.productName}" no puede ser menor a su costo (RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
+          toast.error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
           return;
         }
       }
@@ -392,7 +392,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                             />
                             {isBelowCost && (
                               <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
-                                Precio por debajo del costo (RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                El precio ingresado no es permitido (Mínimo: RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                               </div>
                             )}
                           </div>
