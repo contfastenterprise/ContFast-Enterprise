@@ -83,7 +83,7 @@ export default async function DocumentPage({
     modo: invoiceData.modo,
   };
 
-  const htmlContent = DocumentService.generateDocumentHtml(InvoiceTemplate, templateData, 'web');
+  const htmlContent = await DocumentService.generateDocumentHtml(InvoiceTemplate, templateData, 'web');
 
   return (
     <div className="h-[calc(100vh-4rem)]">

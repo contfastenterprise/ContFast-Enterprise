@@ -11,6 +11,7 @@ export default function DesglosePuertasComercialesPage() {
   const [ancho, setAncho] = useState('');
   const [altura, setAltura] = useState('');
   const [cantidad, setCantidad] = useState<number>(1);
+  const [hojas, setHojas] = useState<number>(1);
   const [enable, setEnable] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   
@@ -47,6 +48,7 @@ export default function DesglosePuertasComercialesPage() {
     setAncho('');
     setAltura('');
     setCantidad(1);
+    setHojas(1);
   };
 
   const handleLimpiar = async () => {
@@ -251,6 +253,36 @@ export default function DesglosePuertasComercialesPage() {
                       </button>
                     </div>
                   </div>
+
+                  <div className="space-y-1.5 mt-4">
+                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider pl-1 block">
+                      Variaciones (Hojas)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setHojas(1)}
+                        className={`h-11 rounded-xl font-bold text-sm transition-all border ${
+                          hojas === 1
+                            ? 'bg-[#003366] border-[#003366] text-white shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        1 Hoja
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHojas(2)}
+                        className={`h-11 rounded-xl font-bold text-sm transition-all border ${
+                          hojas === 2
+                            ? 'bg-[#003366] border-[#003366] text-white shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        2 Hojas
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <button
@@ -285,6 +317,7 @@ export default function DesglosePuertasComercialesPage() {
               ancho={ancho}
               altura={altura}
               cantidad={cantidad}
+              hojas={hojas}
               limpiarCampos={handleLimpiarCampos}
               onDataChange={handleDataChange}
             />

@@ -4809,22 +4809,34 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       const h = parseFraction(item.alto) || 0;
       const qty = Number(item.cantidad) || 0;
       
+      const hojasStr = item.variaciones || '1';
+      const hojas = hojasStr.includes('2') ? 2 : 1;
+      
       const lateral = h - 0.25;
       const dintel = w - 3.75;
+      
       const jamba = h - 2.875;
-      const ruleta = w - 8.125;
-      const criW = w - 12.125;
+      
+      let ruleta, criW;
+      if (hojas === 2) {
+        ruleta = (w - 11.625) / 2;
+        criW = (w - 19.625) / 2;
+      } else {
+        ruleta = w - 8.125;
+        criW = w - 12.125;
+      }
+      
       const criH = h - 8.875;
       
-      jambaInches += (2 * jamba * qty);
-      ruletaInches += (2 * ruleta * qty);
+      jambaInches += (2 * hojas * jamba * qty);
+      ruletaInches += (2 * hojas * ruleta * qty);
       marcoInches += ((2 * lateral + 1 * dintel) * qty);
-      glassPerimeterInches += ((criW + criH) * 2 * qty);
-      glassAreaSqIn += (criW * criH * qty);
+      glassPerimeterInches += ((criW + criH) * 2 * hojas * qty);
+      glassAreaSqIn += (criW * criH * hojas * qty);
       
       totalCerraduras += (1 * qty);
-      totalManijas += (2 * qty);
-      totalRuedas += (4 * qty);
+      totalManijas += (2 * hojas * qty);
+      totalRuedas += (4 * hojas * qty);
     });
     
     const jambaPies = jambaInches / 12;
@@ -5022,8 +5034,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
               <div style="font-weight: 700; margin-bottom: 10px;">Puerta Comercial</div>
               <div class="info-row"><div class="info-label">Cliente:</div><div class="info-value">Cliente por defecto</div></div>
               <div class="info-row"><div class="info-label">Fecha:</div><div class="info-value">${currentDateStr}</div></div>
-              <div class="info-row"><div class="info-label">Vidrio:</div><div class="info-value">Natural 3mm (1/8")</div></div>
-              <div class="info-row"><div class="info-label">Color:</div><div class="info-value">Blanco</div></div>
+              <div class="info-row"><div class="info-label">Vidrio:</div><div class="info-value">3/16"</div></div>
             </div>
           </div>
           
@@ -5035,9 +5046,11 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
                   <tr><th>Material</th><th>Barras</th><th>Pies</th></tr>
                 </thead>
                 <tbody>
+                  <tr><td colspan="3" style="text-align: left; font-weight: 700; background: #f1f5f9; padding-left: 5px;">Cuadro Hueco</td></tr>
+                  <tr><td>1 3/4 x 4 - Con Pestaña</td><td>${formatBarras(marcoPies)}</td><td>${formatPies(marcoPies)}</td></tr>
+                  <tr><td colspan="3" style="text-align: left; font-weight: 700; background: #f1f5f9; padding-left: 5px;">Cuadro Hoja</td></tr>
                   <tr><td>Jamba Hoja - Puerta Comercial</td><td>${formatBarras(jambaPies)}</td><td>${formatPies(jambaPies)}</td></tr>
                   <tr><td>Ruleta Hoja - Puerta Comercial</td><td>${formatBarras(ruletaPies)}</td><td>${formatPies(ruletaPies)}</td></tr>
-                  <tr><td>Tubo 1 3/4 x 1 3/4 - Puerta Comercial</td><td>${formatBarras(marcoPies)}</td><td>${formatPies(marcoPies)}</td></tr>
                 </tbody>
               </table>
             </div>
@@ -5059,7 +5072,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
               </table>
               <div style="margin-top: 10px; font-weight: 700; font-size: 8pt;">Cantidad estimada de planchas</div>
               <div style="display: flex; justify-content: space-between; font-size: 8.5pt; margin-top: 5px;">
-                <span>Natural 3mm (1/8") - 130" x 84"</span>
+                <span>3/16" - 130" x 84"</span>
                 <span>${planchas.toFixed(2)}</span>
               </div>
             </div>
@@ -5070,17 +5083,21 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <table class="main-table">
           <thead>
             <tr>
-              <th>No.</th>
-              <th>Cantidad</th>
-              <th>Variaciones</th>
-              <th>Ancho</th>
-              <th>Alto</th>
+              <th rowspan="2" style="vertical-align: middle;">No.</th>
+              <th rowspan="2" style="vertical-align: middle;">Cantidad</th>
+              <th rowspan="2" style="vertical-align: middle;">Variaciones</th>
+              <th rowspan="2" style="vertical-align: middle;">Ancho</th>
+              <th rowspan="2" style="vertical-align: middle;">Alto</th>
+              <th colspan="2" style="background: #e2e8f0;">Cuadro Hueco</th>
+              <th colspan="4" style="background: #e2e8f0;">Cuadro Hoja</th>
+            </tr>
+            <tr>
               <th>Lateral</th>
               <th>Dintel</th>
               <th>Jamba</th>
               <th>Ruleta</th>
-              <th>Ancho Cri</th>
-              <th>Alto Cri</th>
+              <th>W-Cristal</th>
+              <th>H-Cristal</th>
             </tr>
           </thead>
           <tbody>
@@ -5088,7 +5105,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.cantidad}</td>
-                <td>1 hoja</td>
+                <td>${item.variaciones || '1 hoja'}</td>
                 <td>${item.ancho}"</td>
                 <td>${item.alto}"</td>
                 <td>${item.lateral}</td>
@@ -5104,8 +5121,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         
         <div class="notes-panel">
           <div class="notes-title">NOTAS DE PRODUCCIÓN</div>
-          <div>Documento reconstruido en formato digital a partir de la hoja original.</div>
-          <div>Se eliminaron arrugas, manchas, marcas manuscritas y deterioro visual del papel.</div>
+          <div>La empresa no se hace responsable de cualquier error del desglose.</div>
         </div>
       </body>
       </html>

@@ -56,9 +56,12 @@ export async function getReceivablesDashboardData() {
       customerId: accountsReceivable.customerId,
       customerName: customers.name,
       createdAt: accountsReceivable.createdAt,
+      ncf: invoices.ncf,
+      codigoFactura: invoices.codigoFactura,
     })
     .from(accountsReceivable)
     .leftJoin(customers, eq(accountsReceivable.customerId, customers.id))
+    .leftJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
     .where(
       and(
         eq(accountsReceivable.companyId, companyId),

@@ -90,7 +90,7 @@ export default async function PublicDocumentPage({
     modo: invoiceData.modo,
   };
 
-  const htmlContent = DocumentService.generateDocumentHtml(InvoiceTemplate, templateData, 'web');
+  const htmlContent = await DocumentService.generateDocumentHtml(InvoiceTemplate, templateData, 'web');
 
   return (
     <div className="h-screen flex flex-col">

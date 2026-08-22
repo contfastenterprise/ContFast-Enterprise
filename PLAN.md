@@ -1,7 +1,6 @@
 # Sistema ERP e-CF Dominicana - Plan de Implementación
 
-El proyecto se encuentra **Verified & Polished** tras añadir el mapeo dinámico del usuario que emite/imprime la cotización (`session.userId` -> `users.name`) en las rutas API (`quotes/[id]/print` y `quotes/[id]/pdf`) para mostrar su nombre sobre la línea de firma "Elaborado por", la remoción de etiquetas y números duplicados en el encabezado, el mapeo de `logoUrl` desde `company_settings`, la homologación 1:1 de la plantilla de cotizaciones con la de facturas, la alineación de clases CSS del botón de guardado, la adición del método de alias `PdfGenerator.generatePdf`, y la creación de las rutas API `/api/v1/quotes/[id]/print` y `/api/v1/quotes/[id]/pdf`.
-
+El proyecto se encuentra **Verified & Polished** tras solucionar múltiples errores de TypeScript en las rutas de API de Next.js 15, repositorios y servicios de productos. Adicionalmente, se implementó el Generador de Código QR de la Tienda Online con personalización y plantillas de mostrador imprimibles. Se corrigió el cálculo de días vencidos en el listado de Cuentas por Cobrar para que inicie desde la fecha de emisión de la factura tanto en UI como en la exportación a Excel y la impresión de reporte PDF. Se integró una capa de manejo de errores en BullMQ para prevenir caídas de conexión a Redis (Upstash) por límites de requests excedidos y se corrigió el error de empaquetado de `react-dom/server` en Next.js.
 
 
 ## Módulos Implementados

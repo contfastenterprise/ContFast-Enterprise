@@ -1,5 +1,5 @@
 import React, { useState, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
-import { Trash2, Calculator, Edit2, Check, X, Tag, Ruler, KeySquare } from 'lucide-react';
+import { Trash2, Calculator, Edit2, Check, X, Tag, Ruler, KeySquare, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseFraction, decimalToFraccion } from '@/utils/calculos';
 import { commercialDoorProfiles } from '@/utils/commercialDoorRegistry';
@@ -28,12 +28,13 @@ interface Props {
   ancho: string;
   altura: string;
   cantidad: number;
+  hojas: number;
   limpiarCampos: () => void;
   onDataChange?: (datos: ItemPuerta[]) => void;
 }
 
 const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
-  ({ ancho, altura, cantidad, limpiarCampos, onDataChange }, ref) => {
+  ({ ancho, altura, cantidad, hojas, limpiarCampos, onDataChange }, ref) => {
     const [filas, setFilas] = useState<ItemPuerta[]>([]);
 
     const triggerDataChange = useCallback((updated: ItemPuerta[]) => {
@@ -66,7 +67,7 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
         }
 
         const profileSystem = commercialDoorProfiles["Puerta Comercial"];
-        const cuts = profileSystem.calculate(intAncho, intAltura, cantidad);
+        const cuts = profileSystem.calculate(intAncho, intAltura, cantidad, hojas);
 
         const lateral = `${cuts.lateral.label} ${decimalToFraccion(cuts.lateral.value)}`;
         const dintel = `${cuts.dintel.label} ${decimalToFraccion(cuts.dintel.value)}`;
@@ -87,7 +88,7 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
           ruleta,
           vidrioW,
           vidrioH,
-          variaciones: "1 hoja",
+          variaciones: `${hojas} hoja${hojas > 1 ? 's' : ''}`,
         };
 
         const updated = [...filas, nuevaFila];
@@ -126,7 +127,7 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
             <div key={fila.id} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden relative group">
               <div className="bg-[#002244] px-4 py-2 flex justify-between items-center text-white">
                 <span className="font-bold text-xs uppercase tracking-wider">Línea {index + 1}</span>
-                <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full">1 Hoja</span>
+                <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full capitalize">{fila.variaciones}</span>
               </div>
               
               <div className="p-4 space-y-4">
@@ -139,23 +140,24 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
                   </div>
                 </div>
                 
-                {/* 2. Medidas de Cortes */}
+                {/* 2. Cuadro Hueco */}
                 <div>
-                  <div className="text-[9px] font-bold text-[#003366] uppercase tracking-widest mb-1 flex items-center gap-1"><Ruler className="h-3 w-3" /> Cortes de Perfiles</div>
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs">
-                    <div><span className="text-slate-400 block text-[10px]">Lateral</span><span className="font-mono font-semibold">{fila.lateral}</span></div>
-                    <div><span className="text-slate-400 block text-[10px]">Dintel</span><span className="font-mono font-semibold">{fila.dintel}</span></div>
-                    <div><span className="text-slate-400 block text-[10px]">Jamba</span><span className="font-mono font-semibold">{fila.jamba}</span></div>
-                    <div><span className="text-slate-400 block text-[10px]">Ruleta</span><span className="font-mono font-semibold">{fila.ruleta}</span></div>
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1"><Ruler className="h-3 w-3" /> Cuadro Hueco</div>
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <div><span className="text-slate-400 block text-[10px]">Lateral</span><span className="font-mono font-semibold text-[#003366]">{fila.lateral}</span></div>
+                    <div><span className="text-slate-400 block text-[10px]">Dintel</span><span className="font-mono font-semibold text-[#003366]">{fila.dintel}</span></div>
                   </div>
                 </div>
 
-                {/* 3. Cristal */}
+                {/* 3. Cuadro Hoja */}
                 <div>
-                  <div className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Cristal</div>
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
-                    <div><span className="text-slate-400 block text-[10px]">Ancho</span><span className="font-mono font-semibold text-emerald-800">{fila.vidrioW}</span></div>
-                    <div><span className="text-slate-400 block text-[10px]">Alto</span><span className="font-mono font-semibold text-emerald-800">{fila.vidrioH}</span></div>
+                  <div className="text-[9px] font-bold text-[#003366] uppercase tracking-widest mb-1 flex items-center gap-1"><Layers className="h-3 w-3" /> Cuadro Hoja</div>
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-xs bg-[#003366]/5 p-2 rounded-lg border border-[#003366]/10">
+                    <div><span className="text-[#003366]/60 block text-[10px]">Jamba</span><span className="font-mono font-semibold text-[#003366]">{fila.jamba}</span></div>
+                    <div><span className="text-[#003366]/60 block text-[10px]">Ruleta</span><span className="font-mono font-semibold text-[#003366]">{fila.ruleta}</span></div>
+                    
+                    <div className="pt-2 border-t border-[#003366]/10"><span className="text-emerald-600 block text-[10px]">Cristal 3/16" (Ancho)</span><span className="font-mono font-semibold text-emerald-700">{fila.vidrioW}</span></div>
+                    <div className="pt-2 border-t border-[#003366]/10"><span className="text-emerald-600 block text-[10px]">Cristal 3/16" (Alto)</span><span className="font-mono font-semibold text-emerald-700">{fila.vidrioH}</span></div>
                   </div>
                 </div>
               </div>
@@ -175,17 +177,21 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead>
-                <tr className="bg-[#002244] text-white/90">
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-10 text-center">#</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center">Cant</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center border-r border-white/10">Base (A×H)</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Lateral</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Dintel</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Jamba</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider border-r border-white/10">Ruleta</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider bg-emerald-900/30">Cri Ancho</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider bg-emerald-900/30 border-r border-white/10">Cri Alto</th>
-                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-16">Acción</th>
+                <tr className="bg-[#002244] text-white/90 border-b border-white/10">
+                  <th rowSpan={2} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-10 text-center align-middle border-r border-white/10">#</th>
+                  <th rowSpan={2} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center align-middle border-r border-white/10">Cant</th>
+                  <th rowSpan={2} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center align-middle border-r border-white/10">Base (A×H)</th>
+                  <th colSpan={2} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-center bg-slate-800/50 border-r border-white/10">Cuadro Hueco</th>
+                  <th colSpan={4} className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-center bg-[#002c59] border-r border-white/10">Cuadro Hoja</th>
+                  <th rowSpan={2} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-16 align-middle">Acción</th>
+                </tr>
+                <tr className="bg-[#001a33] text-white/80">
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider border-r border-white/10">Lateral</th>
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider border-r border-white/10">Dintel</th>
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider border-r border-white/10">Jamba</th>
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider border-r border-white/10">Ruleta</th>
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider bg-emerald-900/30 border-r border-white/10">W-Cristal</th>
+                  <th className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider bg-emerald-900/30 border-r border-white/10">H-Cristal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

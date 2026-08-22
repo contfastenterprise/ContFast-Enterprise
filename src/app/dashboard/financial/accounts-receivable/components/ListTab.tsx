@@ -98,6 +98,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
               <tr>
                 <th class="col-id">Factura/Ref</th>
                 <th class="col-client">Cliente</th>
+                <th class="col-date">Emisión</th>
                 <th class="col-date">Vencimiento</th>
                 <th class="text-center col-days">Días Venc.</th>
                 <th class="text-right col-amount">Original</th>
@@ -119,8 +120,9 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                 
                 return `
                   <tr>
-                    <td>${item.id.split('-')[0].toUpperCase()}</td>
+                    <td>${item.codigoFactura || item.ncf || item.id.split('-')[0].toUpperCase()}</td>
                     <td><strong>${item.customerName}</strong></td>
+                    <td>${emission.toLocaleDateString('es-DO')}</td>
                     <td>${due.toLocaleDateString('es-DO')}</td>
                     <td class="text-center ${isOverdue ? 'status-vencida' : ''}">${isOverdue ? diffDays : '-'}</td>
                     <td class="text-right">${fmt(Number(item.amount))}</td>
@@ -150,7 +152,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
   };
 
   const handleExportCSV = () => {
-    const headers = ['Factura/Ref', 'Cliente', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
+    const headers = ['Factura/Ref', 'Cliente', 'Fecha Emision', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
     const rows = filteredData.map(item => {
       const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
       const due = new Date(item.dueDate);
@@ -162,8 +164,9 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
       const status = Number(item.balance) <= 0 ? 'Pagado' : (isOverdue ? 'Vencida' : 'Al Dia');
       
       return [
-        `CXC-${item.id.split('-')[0].toUpperCase()}`,
+        `"${item.codigoFactura || item.ncf || item.id.split('-')[0].toUpperCase()}"`,
         `"${item.customerName}"`,
+        emission.toLocaleDateString('es-DO'),
         due.toLocaleDateString('es-DO'),
         isOverdue ? diffDays : 0,
         item.amount || 0,
@@ -218,6 +221,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                 <div className="flex items-center gap-1">Cliente <ArrowUpDown className="w-3 h-3"/></div>
               </th>
               <th className="px-6 py-4 font-semibold">Factura / Ref</th>
+              <th className="px-6 py-4 font-semibold">Emisión</th>
               <th className="px-6 py-4 font-semibold cursor-pointer hover:bg-surface-container-high transition-colors" onClick={() => toggleSort('dueDate')}>
                 <div className="flex items-center gap-1">Vencimiento <ArrowUpDown className="w-3 h-3"/></div>
               </th>
@@ -248,7 +252,10 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                     {item.customerName}
                   </td>
                   <td className="px-6 py-4 text-neutral-500">
-                    {item.id.split('-')[0].toUpperCase()}
+                    {item.codigoFactura || item.ncf || item.id.split('-')[0].toUpperCase()}
+                  </td>
+                  <td className="px-6 py-4 text-neutral-600">
+                    {emission.toLocaleDateString('es-DO')}
                   </td>
                   <td className="px-6 py-4 text-neutral-600">
                     {due.toLocaleDateString('es-DO')}

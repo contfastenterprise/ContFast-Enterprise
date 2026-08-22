@@ -27,6 +27,7 @@ import {
   Shield,
   HelpCircle,
   Barcode,
+  QrCode,
 } from 'lucide-react';
 
 const GROUP_ICONS: Record<string, React.ComponentType<any>> = {
@@ -52,6 +53,7 @@ const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
   PackageMinus,
   HistoryIcon,
   Barcode,
+  QrCode,
   History: HistoryIcon,
   FileText,
   FileMinus,

@@ -5,7 +5,6 @@ import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { EmailService } from './emailService';
 import crypto from 'crypto';
 import * as React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { StorageService } from '@/services/storageService';
 
 export interface BaseDocumentData {
@@ -30,7 +29,7 @@ export class DocumentService {
     TemplateComponent: React.FC<any>,
     data: BaseDocumentData
   ): Promise<Buffer> {
-    // 1. Render React Component to HTML string
+    const { renderToStaticMarkup } = await import('react-dom/server');
     // @ts-ignore
     const htmlString = renderToStaticMarkup(React.createElement(TemplateComponent, { data, mode: 'pdf' }));
     
@@ -62,11 +61,12 @@ export class DocumentService {
   /**
    * Generates the HTML string suitable for Emails or Web Viewing
    */
-  static generateDocumentHtml(
+  static async generateDocumentHtml(
     TemplateComponent: React.FC<any>,
     data: BaseDocumentData,
     mode: 'web' | 'email' = 'web'
-  ): string {
+  ): Promise<string> {
+    const { renderToStaticMarkup } = await import('react-dom/server');
     // @ts-ignore
     const htmlString = renderToStaticMarkup(React.createElement(TemplateComponent, { data, mode }));
     
@@ -152,7 +152,7 @@ export class DocumentService {
     const { buffer: pdfBuffer } = await this.getOrGenerateDocumentPdf(type, id, TemplateComponent, data);
 
     // 2. Generate Email HTML
-    const emailHtml = this.generateDocumentHtml(TemplateComponent, data, 'email');
+    const emailHtml = await this.generateDocumentHtml(TemplateComponent, data, 'email');
 
     // 3. Send via EmailService
     const attachmentName = `${type.toUpperCase()}-${id.substring(0, 8)}.pdf`;
