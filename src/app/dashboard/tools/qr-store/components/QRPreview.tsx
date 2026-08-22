@@ -103,13 +103,18 @@ export default function QRPreview({ company, config, qrUrl }: QRPreviewProps) {
 
   const downloadSVG = async () => {
     try {
-      const svgStr = await QRCode.toString(qrUrl, {
-        type: 'svg',
-        margin: 2,
-        color: { dark: config.fgColor, light: config.bgColor },
-        errorCorrectionLevel: config.errorLevel,
-        width: config.size,
-      } as any);
+      const svgStr = await new Promise<string>((resolve, reject) => {
+        QRCode.toString(qrUrl, {
+          type: 'svg',
+          margin: 2,
+          color: { dark: config.fgColor, light: config.bgColor },
+          errorCorrectionLevel: config.errorLevel as any,
+          width: config.size,
+        }, (err, string) => {
+          if (err) reject(err);
+          else resolve(string);
+        });
+      });
       const blob = new Blob([svgStr], { type: 'image/svg+xml' });
       const link = document.createElement('a');
       link.download = `qr-tienda-${company.slug}.svg`;
