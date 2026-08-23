@@ -154,16 +154,16 @@ export default function LoginPage() {
       <Toaster position="top-right" richColors />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
         className="w-full max-w-4xl flex flex-col items-center justify-start min-h-screen z-10 px-4 sm:px-6 pt-4 pb-10"
       >
         <div className="w-full text-center mb-12 mt-20">
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 10 }}
+            initial={{ scale: 0.95, opacity: 0, y: 5 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, type: 'spring', stiffness: 200 }}
+            transition={{ duration: 0.4, type: 'spring', stiffness: 250, damping: 25 }}
           >
             <img 
               src="/Logo.svg" 
@@ -238,12 +238,10 @@ export default function LoginPage() {
             </div>
 
             {/* Action Button */}
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+            <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-[background-color,transform,box-shadow] duration-200 ease-out hover:scale-[1.02] active:scale-[0.98] active:duration-100"
             >
               {loading ? (
                 <>
@@ -256,7 +254,7 @@ export default function LoginPage() {
                   Acceder al Sistema
                 </>
               )}
-            </motion.button>
+            </button>
           </form>
         </div>
       </motion.div>
