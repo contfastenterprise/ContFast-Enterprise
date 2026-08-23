@@ -1,3 +1,4 @@
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -280,7 +281,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Summary Bento Grid ────────────────────────────────────────────── */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <ScrollReveal><section className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <BorderRotate
           borderRadius={24}
           borderWidth={2}
@@ -385,7 +386,7 @@ export default function DashboardPage() {
             <p className="font-body-sm text-error/80 mt-2.5 font-bold text-[13px]">{stats.alertCount > 0 ? 'Ver detalles →' : 'Sistema en óptimas condiciones'}</p>
           </div>
         </BorderRotate>
-      </section>
+      </section></ScrollReveal>
 
       {/* ── Period Selector ──────────────────────────────────────── */}
       <div className="flex justify-end items-center gap-2">
@@ -479,7 +480,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Detailed Data Table Section ─────────────────────────────────────── */}
-      <section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] rounded-xl overflow-hidden">
+      <ScrollReveal delay={0.1}><section className="bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.05)] rounded-xl overflow-hidden">
         <div className="p-4 border-b border-slate-200/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h4 className="font-headline-md text-xl font-bold text-primary">Últimos Comprobantes Emitidos</h4>
@@ -642,7 +643,7 @@ export default function DashboardPage() {
             <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500">Siguiente</button>
           </div>
         </div>
-      </section>
+      </section></ScrollReveal>
 
       {/* ── Alerts Modal ────────────────────────────────────────────────────── */}
       <AnimatePresence>
@@ -722,3 +723,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
