@@ -588,3 +588,6 @@ Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Po
 ### Tienda Online (Storefront)
 - **Verified & Polished**: Capa de comercio electrnico (Storefront) construida con Ã©xito y aislada de las tablas originales, respetando la estructura multi-empresa. Incluye catÃ¡logo, detalle de productos con sugerencias inteligentes, carrito en localStorage y pasarela de Checkout para crear Cotizaciones (Quotes) vÃ­a API, usando sesiÃ³n de clientes e interfaz adaptativa (Mobile & Desktop).
 
+
+## 2026-08-22 - UI/UX Audit & Optimization
+**Verified & Polished**: Completed UI/UX audit applying UI UX Pro Max guidelines. Fixed globals.css token collisions, replaced font-black globally for typographical consistency, improved accessibility in buttons, and refined table row hover states.

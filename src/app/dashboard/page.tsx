@@ -509,7 +509,7 @@ export default function DashboardPage() {
                   const date = new Date(inv.createdAt);
                   return (
                     <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
-                      <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-black">{inv.ncf || `e-${inv.ecfType}`}</td>
+                      <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
                       <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
                         {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
                       </td>
@@ -517,9 +517,9 @@ export default function DashboardPage() {
                         <p className="font-label-md font-bold text-slate-800 text-sm">{inv.buyerName || 'Consumidor Final'}</p>
                         {inv.buyerRnc && <p className="text-xs text-slate-500 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono-data font-black text-slate-800">{fmt(parseFloat(inv.total))}</td>
+                      <td className="px-4 py-3 text-sm font-mono-data font-extrabold text-slate-800">{fmt(parseFloat(inv.total))}</td>
                       <td className="px-4 py-2.5 text-xs">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-black uppercase tracking-wider`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-extrabold uppercase tracking-wider`}>
                           {badge.icon}
                           {badge.label}
                         </span>

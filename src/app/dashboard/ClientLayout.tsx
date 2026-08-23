@@ -330,7 +330,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
         {/* Environment Stripe */}
         {activeEnvironment === 'PRUEBA' && (
           <div className="w-full h-11 bg-[repeating-linear-gradient(45deg,#ef4444,#ef4444_15px,#f97316_15px,#f97316_30px)] text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md border-b-2 border-red-700 select-none">
-            <span className="font-label-md text-sm font-black flex items-center gap-2 uppercase tracking-widest text-white drop-shadow-md">
+            <span className="font-label-md text-sm font-extrabold flex items-center gap-2 uppercase tracking-widest text-white drop-shadow-md">
               <Shield className="h-5 w-5 animate-pulse text-white" />
               MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS
             </span>
@@ -389,7 +389,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
             {activeEnvironment === 'PRUEBA' && (
               <div 
                 onClick={() => toast.info('El ambiente está enlazado a la configuración de la empresa. Cámbielo en Ajustes.')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black tracking-wider border mr-2 select-none cursor-pointer transition-all duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-wider border mr-2 select-none cursor-pointer transition-all duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                 SANDBOX

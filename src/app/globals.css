@@ -40,7 +40,7 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  /* Design System Tokens */
+  /* Design System Tokens (Custom - non-conflicting) */
   --color-surface: #f8f9fa;
   --color-surface-dim: #d9dadb;
   --color-surface-bright: #f8f9fa;
@@ -56,13 +56,10 @@
   --color-outline: #737780;
   --color-outline-variant: #c3c6d1;
   --color-surface-tint: #3a5f94;
-  --color-primary: #001e40;
-  --color-on-primary: #ffffff;
+  /* Removed conflicting --color-primary, --color-background, etc. */
   --color-primary-container: #003366;
   --color-on-primary-container: #799dd6;
   --color-inverse-primary: #a7c8ff;
-  --color-secondary: #775a19;
-  --color-on-secondary: #ffffff;
   --color-secondary-container: #fed488;
   --color-on-secondary-container: #785a1a;
   --color-tertiary: #001f3d;
@@ -85,8 +82,6 @@
   --color-tertiary-fixed-dim: #a3c9ff;
   --color-on-tertiary-fixed: #001c39;
   --color-on-tertiary-fixed-variant: #004883;
-  --color-background: #f8f9fa;
-  --color-on-background: #191c1d;
   --color-surface-variant: #e1e3e4;
 
   --spacing-base: 4px;
