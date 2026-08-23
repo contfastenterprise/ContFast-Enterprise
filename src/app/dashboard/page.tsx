@@ -1,5 +1,5 @@
-import { ScrollReveal } from '@/components/ui/ScrollReveal';
 'use client';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -728,4 +728,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
