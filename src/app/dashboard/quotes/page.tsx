@@ -209,7 +209,66 @@ export default function QuotesList() {
 
         {/* Data Table */}
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
+          {/* Mobile View */}
+          <div className="md:hidden flex flex-col divide-y divide-slate-100">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <RefreshCw className="h-6 w-6 animate-spin text-[#C5A059]" />
+                <span className="text-slate-400 text-xs">Cargando cotizaciones...</span>
+              </div>
+            ) : filteredQuotes.length > 0 ? (
+              filteredQuotes.map((quote) => {
+                const badge = getStatusBadge(quote.status);
+                return (
+                  <div key={quote.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-xs font-bold text-[#003366]">
+                          {quote.sequenceNumber}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {new Date(quote.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <span className={clsx('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border', badge.cls)}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-[#003366] text-sm truncate">
+                        {quote.customerName || 'Cliente General'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                      <span className="font-mono font-bold text-[#003366] text-sm">
+                        RD$ {Number(quote.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                      </span>
+                      <div className="flex gap-1.5">
+                        {quote.status === 'pending' && (
+                          <button onClick={() => convertToInvoice(quote.id)} className="p-2 bg-slate-100 rounded text-emerald-600 hover:bg-emerald-50">
+                            <Check className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#C5A059] hover:bg-[#C5A059]/10">
+                          <Printer className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)} className="p-2 bg-slate-100 rounded text-[#003366] hover:bg-[#003366]/5">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <span className="text-slate-400 text-xs">No se encontraron cotizaciones.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>

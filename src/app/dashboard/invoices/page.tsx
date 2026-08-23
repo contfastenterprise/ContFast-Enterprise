@@ -1990,7 +1990,71 @@ function InvoicesList() {
 
             {/* Data Table */}
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
-              <div className="overflow-x-auto">
+              {/* Mobile View */}
+              <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
+                    <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                    <span className="text-on-surface-variant/80 text-sm font-medium">Cargando facturas electrónicas...</span>
+                  </div>
+                ) : invoices.length > 0 ? (
+                  invoices.map((inv) => {
+                    const badge = getStatusBadge(inv.status);
+                    return (
+                      <div key={inv.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-mono font-bold text-[#b08c4a] text-sm">
+                              {inv.ncf || `e-${inv.ecfType}`}
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              {new Date(inv.createdAt).toISOString().split('T')[0]}
+                            </span>
+                          </div>
+                          <span className={clsx('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border', badge.cls)}>
+                            {badge.icon || <span className={clsx('w-1.5 h-1.5 rounded-full mr-1', badge.dot)} />}
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-[#003366] text-sm truncate">
+                            {inv.buyerName || 'Consumidor Final'}
+                          </span>
+                          <span className="text-xs text-slate-500 mt-0.5">
+                            {getTypeLabel(inv.ecfType)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                          <span className="font-mono font-bold text-[#003366] text-sm">
+                            RD$ {parseFloat(inv.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                          </span>
+                          <div className="flex gap-1.5">
+                            <button onClick={() => viewInvoiceDetails(inv)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => handleDownloadPdf(inv)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
+                              <Printer className="h-4 w-4" />
+                            </button>
+                            {inv.status === 'draft' && (
+                              <button onClick={() => handleLoadDraft(inv.id)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
+                                <FilePlus className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 gap-3">
+                    <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
+                    <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50/80 border-b border-slate-200">
                     <tr>
