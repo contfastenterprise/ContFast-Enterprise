@@ -40,7 +40,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
         <select
           className={cn(
-            "w-full appearance-none bg-background border border-border text-foreground font-medium transition-all duration-200 outline-none cursor-pointer",
+            "w-full appearance-none bg-background border border-border text-foreground font-medium transition duration-200 outline-none cursor-pointer",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
             "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
             error &&

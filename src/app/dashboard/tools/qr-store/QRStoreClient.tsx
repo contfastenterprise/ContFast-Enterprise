@@ -132,7 +132,7 @@ export default function QRStoreClient() {
                 key={v}
                 onClick={() => setView(v)}
                 className={[
-                  'px-4 py-2 rounded-lg text-sm font-semibold transition-all',
+                  'px-4 py-2 rounded-lg text-sm font-semibold transition',
                   view === v ? 'bg-white text-[#001e40] shadow-sm' : 'text-slate-500 hover:text-slate-700',
                 ].join(' ')}
               >

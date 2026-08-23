@@ -206,7 +206,7 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                   handleAdd(ret);
                 }
               }}
-              className="w-full md:w-96 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all cursor-pointer font-medium"
+              className="w-full md:w-96 rounded-lg bg-white border border-slate-300 py-2 px-3 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition cursor-pointer font-medium"
             >
               <option value="">Seleccione una retención para agregar...</option>
               {availableRetentions.map((ret) => (

@@ -157,7 +157,7 @@ export default function DepartmentsPage() {
         </div>
         <button
           onClick={fetchData}
-          className="p-2 border border-outline hover:bg-surface-variant rounded-lg transition-all text-on-surface self-start md:self-auto"
+          className="p-2 border border-outline hover:bg-surface-variant rounded-lg transition text-on-surface self-start md:self-auto"
         >
           <RefreshCw className="h-4 w-4" />
         </button>
@@ -177,7 +177,7 @@ export default function DepartmentsPage() {
               </h3>
               <button
                 onClick={handleOpenDeptCreate}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Agregar
               </button>
@@ -221,7 +221,7 @@ export default function DepartmentsPage() {
               </h3>
               <button
                 onClick={handleOpenPosCreate}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-variant text-on-primary rounded-lg transition"
               >
                 <Plus className="h-3.5 w-3.5" /> Agregar
               </button>

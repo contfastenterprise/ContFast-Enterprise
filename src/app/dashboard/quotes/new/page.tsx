@@ -321,12 +321,12 @@ export default function NewQuote() {
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
               onClick={() => router.push('/dashboard/quotes')}
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800"
+              className="px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-[#c5a059] shadow-sm"
+              className="px-4 py-2 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
@@ -436,7 +436,7 @@ export default function NewQuote() {
                         value={line.quantity}
                         onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
                         disabled={!hasProduct}
-                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                         min={0.0001} step="any" required
                       />
                     </div>
@@ -482,7 +482,7 @@ export default function NewQuote() {
                         disabled={!hasProduct || !canEditDiscount}
                         value={line.discount}
                         onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${(!hasProduct || !canEditDiscount) ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${(!hasProduct || !canEditDiscount) ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                         min={0} step="any"
                       />
                     </div>
@@ -494,7 +494,7 @@ export default function NewQuote() {
                         value={line.taxRate}
                         onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value) || 0)}
                         disabled={!hasProduct}
-                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                       >
                         <option value={0.18}>18% ITBIS</option>
                         <option value={0.16}>16% ITBIS</option>
@@ -547,7 +547,7 @@ export default function NewQuote() {
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Ej: Condiciones especiales de la oferta, validez, tiempos de entrega..."
               rows={3}
-              className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all resize-y placeholder:text-slate-400"
+              className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition resize-y placeholder:text-slate-400"
             />
           </div>
 
@@ -576,7 +576,7 @@ export default function NewQuote() {
               <button
                 type="button"
                 onClick={() => router.push('/dashboard/quotes')}
-                className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Cancelar
               </button>
@@ -586,7 +586,7 @@ export default function NewQuote() {
                   type="submit"
                   disabled={submitting}
                   onClick={() => setSaveDropdownOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-l-lg bg-[#C5A059] px-4 py-2 h-full text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 rounded-l-lg bg-[#C5A059] px-4 py-2 h-full text-sm font-bold text-slate-950 hover:bg-[#b08c4a] disabled:opacity-50 transition active:scale-[0.98]"
                 >
                   {submitting ? (
                     <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
@@ -598,7 +598,7 @@ export default function NewQuote() {
                   type="button"
                   disabled={submitting}
                   onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                  className="flex items-center justify-center rounded-r-lg bg-[#C5A059] px-2.5 h-full text-slate-950 hover:bg-[#b08c4a] border-l border-[#a88840] disabled:opacity-50 transition-all active:scale-[0.98] outline-none"
+                  className="flex items-center justify-center rounded-r-lg bg-[#C5A059] px-2.5 h-full text-slate-950 hover:bg-[#b08c4a] border-l border-[#a88840] disabled:opacity-50 transition active:scale-[0.98] outline-none"
                   title="Más opciones"
                 >
                   <ChevronDown className="h-3.5 w-3.5" />

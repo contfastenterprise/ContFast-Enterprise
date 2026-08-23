@@ -156,20 +156,20 @@ export default function DesglosePuertasComercialesPage() {
           <div className="flex flex-wrap items-center gap-2 md:pl-0 pl-12">
             <button
               onClick={handleSaveDraft}
-              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl font-semibold text-sm transition flex items-center gap-2 shadow-sm"
             >
               <Save className="h-4 w-4 text-slate-400" /> Borrador
             </button>
             <button
               onClick={handleLimpiar}
-              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 shadow-sm"
+              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 rounded-xl font-semibold text-sm transition flex items-center gap-2 shadow-sm"
             >
               <RotateCcw className="h-4 w-4 text-slate-400 group-hover:text-red-500" /> Limpiar
             </button>
             <button
               onClick={handlePrint}
               disabled={isPrinting || itemsCount === 0}
-              className="px-5 py-2 bg-[#C5A059] hover:bg-[#B38D46] text-white rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#C5A059]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2 bg-[#C5A059] hover:bg-[#B38D46] text-white rounded-xl font-bold text-sm transition flex items-center gap-2 shadow-sm shadow-[#C5A059]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPrinting ? (
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -205,7 +205,7 @@ export default function DesglosePuertasComercialesPage() {
                         ref={anchoInputRef}
                         type="text"
                         placeholder="Ej: 54 1/2"
-                        className="w-full h-11 px-4 text-base font-medium rounded-xl border border-slate-200 focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/10 bg-white text-slate-800 transition-all placeholder:text-slate-300"
+                        className="w-full h-11 px-4 text-base font-medium rounded-xl border border-slate-200 focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/10 bg-white text-slate-800 transition placeholder:text-slate-300"
                         value={ancho}
                         onChange={(e) => setAncho(e.target.value)}
                         onKeyDown={(e) => {
@@ -221,7 +221,7 @@ export default function DesglosePuertasComercialesPage() {
                       <input
                         type="text"
                         placeholder="Ej: 84 1/2"
-                        className="w-full h-11 px-4 text-base font-medium rounded-xl border border-slate-200 focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/10 bg-white text-slate-800 transition-all placeholder:text-slate-300"
+                        className="w-full h-11 px-4 text-base font-medium rounded-xl border border-slate-200 focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/10 bg-white text-slate-800 transition placeholder:text-slate-300"
                         value={altura}
                         onChange={(e) => setAltura(e.target.value)}
                         onKeyDown={(e) => {
@@ -262,7 +262,7 @@ export default function DesglosePuertasComercialesPage() {
                       <button
                         type="button"
                         onClick={() => setHojas(1)}
-                        className={`h-11 rounded-xl font-bold text-sm transition-all border ${
+                        className={`h-11 rounded-xl font-bold text-sm transition border ${
                           hojas === 1
                             ? 'bg-[#003366] border-[#003366] text-white shadow-sm'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
@@ -273,7 +273,7 @@ export default function DesglosePuertasComercialesPage() {
                       <button
                         type="button"
                         onClick={() => setHojas(2)}
-                        className={`h-11 rounded-xl font-bold text-sm transition-all border ${
+                        className={`h-11 rounded-xl font-bold text-sm transition border ${
                           hojas === 2
                             ? 'bg-[#003366] border-[#003366] text-white shadow-sm'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
@@ -288,7 +288,7 @@ export default function DesglosePuertasComercialesPage() {
                 <button
                   onClick={handleAdd}
                   disabled={!enable}
-                  className="w-full h-12 bg-[#003366] hover:bg-[#002244] disabled:bg-slate-100 disabled:text-slate-400 disabled:border disabled:border-slate-200 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 mt-4 shadow-sm"
+                  className="w-full h-12 bg-[#003366] hover:bg-[#002244] disabled:bg-slate-100 disabled:text-slate-400 disabled:border disabled:border-slate-200 text-white rounded-xl font-bold transition flex items-center justify-center gap-2 mt-4 shadow-sm"
                 >
                   <Plus className="h-5 w-5" />
                   Agregar al Desglose

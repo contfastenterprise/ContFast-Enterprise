@@ -267,7 +267,7 @@ export default function InvoiceDetailPage() {
             <button
               onClick={handlePrint}
               disabled={printing}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#b08e4f] text-white px-4 py-2.5 rounded-lg border border-[#c5a059]/20 transition-all text-sm font-medium disabled:opacity-50 shadow-lg"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#b08e4f] text-white px-4 py-2.5 rounded-lg border border-[#c5a059]/20 transition text-sm font-medium disabled:opacity-50 shadow-lg"
             >
               {printing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 text-white" />}
               Imprimir / Ver PDF
@@ -276,7 +276,7 @@ export default function InvoiceDetailPage() {
             {(invoice.msellerXmlPath || invoice.signedXmlPath || invoice.xmlPath) && (
               <button
                 onClick={handleDownloadXml}
-                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2.5 rounded-lg transition-all text-sm font-medium shadow-lg"
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium shadow-lg"
               >
                 <FileCode className="h-4 w-4" />
                 Descargar XML

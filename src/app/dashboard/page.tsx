@@ -272,7 +272,7 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={() => router.push('/dashboard/purchases?tab=cheques')}
-            className="bg-amber-600 hover:bg-amber-750 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold transition-all hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
+            className="bg-amber-600 hover:bg-amber-750 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold transition hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
           >
             Ver y Aplicar
           </button>
@@ -290,7 +290,7 @@ export default function DashboardPage() {
             secondary: '#3b82f6',
             accent: '#1d4ed8'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-4">
             <div className="flex justify-between items-start mb-4">
@@ -298,7 +298,7 @@ export default function DashboardPage() {
                 <FileText className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
               </div>
               <span className={clsx(
-                "text-[11px] px-2 py-0.5 rounded-full font-bold transition-all",
+                "text-[11px] px-2 py-0.5 rounded-full font-bold transition",
                 (stats.invoicesTodayChangePct ?? 0) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
               )}>
                 {(stats.invoicesTodayChangePct ?? 0) >= 0 ? `+${stats.invoicesTodayChangePct ?? 0}` : stats.invoicesTodayChangePct}% vs ayer
@@ -319,7 +319,7 @@ export default function DashboardPage() {
             secondary: '#f59e0b',
             accent: '#b45309'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-4">
             <div className="flex justify-between items-start mb-4">
@@ -345,7 +345,7 @@ export default function DashboardPage() {
             secondary: '#10b981',
             accent: '#047857'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 group backdrop-blur-md"
         >
           <div className="p-4">
             <div className="flex justify-between items-start mb-4">
@@ -356,7 +356,7 @@ export default function DashboardPage() {
             <p className="font-label-md text-slate-500/60 uppercase tracking-[0.1em] text-[10px] font-bold">Ventas del Mes</p>
             <h3 className="font-display-lg text-[25px] font-extrabold text-primary mt-0.5">{fmt(stats.monthlySales, true)}</h3>
             <div className="w-full bg-slate-50 h-1.5 rounded-full mt-3.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-1000" style={{ width: `${salesPct}%` }}></div>
+              <div className="bg-gradient-to-r from-blue-300 to-emerald-500 h-full rounded-full group-hover:translate-x-2 transition-transform duration-300" style={{ width: `${salesPct}%` }}></div>
             </div>
             <p className="font-body-sm text-slate-500/80 mt-2.5 font-medium text-[13px]">{salesPct}% de la meta mensual</p>
           </div>
@@ -371,7 +371,7 @@ export default function DashboardPage() {
             secondary: '#ef4444',
             accent: '#b91c1c'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-[inset_6px_0_10px_-3px_rgba(220,38,38,0.75),_inset_2px_2px_4px_rgba(255,255,255,0.85),_inset_-2px_-2px_4px_rgba(0,0,0,0.15),_0_15px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 group backdrop-blur-md cursor-pointer"
         >
           <div className="p-4 h-full" onClick={() => { if (stats.alertCount > 0) setShowAlertsModal(true); }}>
             <div className="flex justify-between items-start mb-4">
@@ -393,7 +393,7 @@ export default function DashboardPage() {
           <button
             onClick={() => setChartPeriod('semana')}
             className={clsx(
-              "px-4 py-2 text-xs rounded-lg font-bold transition-all duration-300 cursor-pointer",
+              "px-4 py-2 text-xs rounded-lg font-bold transition duration-300 cursor-pointer",
               chartPeriod === 'semana'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
                 : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
@@ -404,7 +404,7 @@ export default function DashboardPage() {
           <button
             onClick={() => setChartPeriod('mes')}
             className={clsx(
-              "px-4 py-2 text-xs rounded-lg font-bold transition-all duration-300 cursor-pointer",
+              "px-4 py-2 text-xs rounded-lg font-bold transition duration-300 cursor-pointer",
               chartPeriod === 'mes'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
                 : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
@@ -428,7 +428,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-4 flex-1">
             {topCustomers.map((c, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-white hover:shadow-sm transition-all">
+              <div key={i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 hover:bg-white hover:shadow-sm transition">
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0">
                     {i + 1}
@@ -471,7 +471,7 @@ export default function DashboardPage() {
           </div>
           <button 
             onClick={() => router.push('/dashboard/invoices')}
-            className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition-all border border-primary/10 text-sm cursor-pointer"
+            className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition border border-primary/10 text-sm cursor-pointer"
           >
             Ver todo el historial
           </button>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
-                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all"
+                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition"
                           title="Ver PDF"
                         >
                           <Eye className="h-4 w-4" />
@@ -536,7 +536,7 @@ export default function DashboardPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                           disabled={resendingId === inv.id}
-                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all disabled:opacity-50"
+                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition disabled:opacity-50"
                           title="Reenviar por Correo"
                         >
                           {resendingId === inv.id ? (
@@ -580,7 +580,7 @@ export default function DashboardPage() {
                       <tr 
                         key={inv.id} 
                         onClick={() => router.push('/dashboard/invoices')}
-                        className="hover:bg-primary/5 transition-all group cursor-pointer"
+                        className="hover:bg-primary/5 transition group cursor-pointer"
                       >
                         <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
                         <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
@@ -601,7 +601,7 @@ export default function DashboardPage() {
                           <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
-                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
+                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition shadow-sm"
                               title="Ver PDF"
                             >
                               <Eye className="h-4 w-4" />
@@ -609,7 +609,7 @@ export default function DashboardPage() {
                             <button
                               onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                               disabled={resendingId === inv.id}
-                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Reenviar por Correo"
                             >
                               {resendingId === inv.id ? (
@@ -637,9 +637,9 @@ export default function DashboardPage() {
         <div className="p-4 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-4">
           <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>
           <div className="flex gap-2">
-            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition-all font-bold text-slate-500">Anterior</button>
-            <button className="px-3 py-1.5 h-8 text-xs rounded-lg bg-primary text-on-primary shadow-md shadow-primary/20 transition-all font-bold">1</button>
-            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition-all font-bold text-slate-500">Siguiente</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500">Anterior</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg bg-primary text-on-primary shadow-md shadow-primary/20 transition font-bold">1</button>
+            <button className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500">Siguiente</button>
           </div>
         </div>
       </section>

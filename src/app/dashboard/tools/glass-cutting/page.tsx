@@ -178,14 +178,14 @@ export default function GlassCuttingPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={clearAll}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Limpiar Todo
             </button>
             <button
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando...' : 'Imprimir Patrón'}
@@ -278,7 +278,7 @@ export default function GlassCuttingPage() {
                   <div className="flex-1 flex items-end">
                     <button
                       onClick={addPiece}
-                      className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                      className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       <Plus className="w-4 h-4" /> Agregar
                     </button>
@@ -370,7 +370,7 @@ export default function GlassCuttingPage() {
                         {sheet.placed.map((p, pIdx) => (
                           <div
                             key={pIdx}
-                            className="absolute border border-black/20 flex flex-col items-center justify-center overflow-hidden hover:brightness-105 transition-all cursor-help"
+                            className="absolute border border-black/20 flex flex-col items-center justify-center overflow-hidden hover:brightness-105 transition cursor-help"
                             style={{
                               left: `${(p.x / sheetWidth) * 100}%`,
                               top: `${(p.y / sheetHeight) * 100}%`,

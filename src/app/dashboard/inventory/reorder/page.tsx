@@ -176,7 +176,7 @@ export default function ReorderSuggestionsPage() {
                         <td className="py-4 px-4 text-right">
                           <button
                             onClick={() => handleGeneratePurchase(item)}
-                            className="bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all ml-auto cursor-pointer"
+                            className="bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition ml-auto cursor-pointer"
                           >
                             Generar Compra <ArrowRight className="w-3.5 h-3.5" />
                           </button>

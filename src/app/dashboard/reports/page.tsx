@@ -73,7 +73,7 @@ export default function ReportsPage() {
   const PdfCard = ({ color, icon: Icon, title, description, type }: {
     color: string; icon: any; title: string; description: string; type: string;
   }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
       <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
       <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
         <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export default function ReportsPage() {
           <button
             onClick={() => handleGeneratePdf(type)}
             disabled={loadingType !== null}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             {loadingType === type ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
             PDF
@@ -98,7 +98,7 @@ export default function ReportsPage() {
   const LinkCard = ({ color, icon: Icon, title, description, href }: {
     color: string; icon: any; title: string; description: string; href: string;
   }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
       <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
       <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
         <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function ReportsPage() {
           <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><BookOpen className="w-5 h-5 text-emerald-600"/> Cuentas por Cobrar y Pagar</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Estado de Cuentas por Cliente */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col h-full relative z-20">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col h-full relative z-20">
               <div className="w-full h-1 flex-shrink-0 bg-emerald-500 rounded-t-xl" />
               <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
                 <div className="flex items-center gap-2">
@@ -194,7 +194,7 @@ export default function ReportsPage() {
                   <button
                     onClick={() => handleGeneratePdf('ar_statement')}
                     disabled={!selectedCustomerId || loadingType !== null}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {loadingType === 'ar_statement' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     PDF
@@ -204,7 +204,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Estado de Cuentas por Proveedor */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col h-full relative z-10">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col h-full relative z-10">
               <div className="w-full h-1 flex-shrink-0 bg-rose-500 rounded-t-xl" />
               <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
                 <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export default function ReportsPage() {
                   <button
                     onClick={() => handleGeneratePdf('ap_statement')}
                     disabled={!selectedSupplierId || loadingType !== null}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {loadingType === 'ap_statement' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     PDF

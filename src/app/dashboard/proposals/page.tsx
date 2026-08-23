@@ -108,7 +108,7 @@ export default function ProposalsPage() {
         <Button 
           onClick={handleGenerate} 
           disabled={generating}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md transition-all active:scale-95"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md transition active:scale-95"
         >
           {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BrainCircuit className="w-4 h-4 mr-2" />}
           Generar Análisis de Flujo

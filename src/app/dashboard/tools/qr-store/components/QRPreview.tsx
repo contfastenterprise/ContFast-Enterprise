@@ -196,26 +196,26 @@ export default function QRPreview({ company, config, qrUrl }: QRPreviewProps) {
         <div className="grid grid-cols-2 gap-3 w-full">
           <button
             onClick={downloadPNG}
-            className="flex items-center justify-center gap-2 h-11 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition-all shadow-sm"
+            className="flex items-center justify-center gap-2 h-11 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition shadow-sm"
           >
             <Download className="h-4 w-4" /> Descargar PNG
           </button>
           <button
             onClick={downloadSVG}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-all"
+            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             <ImageIcon className="h-4 w-4" /> Descargar SVG
           </button>
           <button
             onClick={copyImage}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-all"
+            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
             Copiar Imagen
           </button>
           <button
             onClick={copyLink}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition-all"
+            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             <Copy className="h-4 w-4" /> Copiar Enlace
           </button>

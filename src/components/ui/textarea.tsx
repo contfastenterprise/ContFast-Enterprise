@@ -11,7 +11,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <textarea
         className={cn(
-          "w-full min-h-[80px] p-3.5 bg-background border border-border text-foreground placeholder:text-muted-foreground font-medium text-sm rounded-[10px] transition-all duration-200 outline-none resize-y",
+          "w-full min-h-[80px] p-3.5 bg-background border border-border text-foreground placeholder:text-muted-foreground font-medium text-sm rounded-[10px] transition duration-200 outline-none resize-y",
           "focus:border-primary focus:ring-2 focus:ring-primary/20",
           "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
           error &&

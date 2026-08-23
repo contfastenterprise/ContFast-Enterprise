@@ -192,7 +192,7 @@ export default function OvertimeAndEntriesPage() {
         <div className="flex gap-2">
           <button
             onClick={fetchData}
-            className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition-all"
+            className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -535,7 +535,7 @@ export default function OvertimeAndEntriesPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition-all"
+                  className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition"
                 >
                   Cancelar
                 </button>

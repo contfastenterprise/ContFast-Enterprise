@@ -443,13 +443,13 @@ export default function AccountingPage() {
               <>
                 <button
                   onClick={handlePrintCatalog}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Printer className="h-4 w-4 text-slate-500" /> Imprimir Catálogo
                 </button>
                 <button
                   onClick={() => setShowAccountModal(true)}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="h-4 w-4" /> Nueva Cuenta
                 </button>
@@ -458,7 +458,7 @@ export default function AccountingPage() {
             {activeTab === 'journals' && (
               <button
                 onClick={() => setShowJournalModal(true)}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <FileText className="h-4 w-4" /> Nuevo Asiento
               </button>
@@ -480,7 +480,7 @@ export default function AccountingPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={clsx(
-                'px-4 py-2 rounded-lg text-xs font-semibold transition-all',
+                'px-4 py-2 rounded-lg text-xs font-semibold transition',
                 activeTab === tab.id ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:text-slate-800'
               )}
             >
@@ -589,7 +589,7 @@ export default function AccountingPage() {
                     type="date" 
                     value={startDate} 
                     onChange={e => setStartDate(e.target.value)} 
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
@@ -598,13 +598,13 @@ export default function AccountingPage() {
                     type="date" 
                     value={endDate} 
                     onChange={e => setEndDate(e.target.value)} 
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
                   />
                 </div>
                 {(startDate || endDate) && (
                   <button 
                     onClick={() => { setStartDate(''); setEndDate(''); }}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Limpiar Filtros
                   </button>
@@ -787,7 +787,7 @@ export default function AccountingPage() {
                   <select 
                     value={selectedLedgerAccount} 
                     onChange={e => setSelectedLedgerAccount(e.target.value)}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
                   >
                     <option value="">-- Seleccione una cuenta --</option>
                     {accounts.filter(a => a.status === 'active').map(acc => (
@@ -798,11 +798,11 @@ export default function AccountingPage() {
                 <div className="w-full sm:w-auto flex gap-4">
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                   </div>
                 </div>
               </div>
@@ -918,11 +918,11 @@ export default function AccountingPage() {
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Desde</label>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha Hasta</label>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                 </div>
               </div>
 
@@ -1053,20 +1053,20 @@ export default function AccountingPage() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setActiveFinancialTab('income-statement')}
-                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition-all", activeFinancialTab === 'income-statement' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition", activeFinancialTab === 'income-statement' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
                   >
                     Estado de Resultados
                   </button>
                   <button 
                     onClick={() => setActiveFinancialTab('balance-sheet')}
-                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition-all", activeFinancialTab === 'balance-sheet' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
+                    className={clsx("px-4 py-2 rounded-lg text-xs font-semibold transition", activeFinancialTab === 'balance-sheet' ? 'bg-[#003366] text-white shadow' : 'text-slate-600 hover:bg-slate-100')}
                   >
                     Balance General
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-32 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                 </div>
               </div>
 
@@ -1188,7 +1188,7 @@ export default function AccountingPage() {
                 <h3 className="text-lg font-bold text-[#003366]">Períodos Contables</h3>
                 <button 
                   onClick={() => setShowPeriodModal(true)}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="w-4 h-4" /> Abrir Período
                 </button>
@@ -1311,15 +1311,15 @@ export default function AccountingPage() {
               <form onSubmit={handleCreateAccount} className="p-4 space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Código</label>
-                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all font-mono text-slate-800" placeholder="Ej. 1.1.01" />
+                  <input type="text" required value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition font-mono text-slate-800" placeholder="Ej. 1.1.01" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre de Cuenta</label>
-                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Efectivo en Caja y Banco" />
+                  <input type="text" required value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" placeholder="Efectivo en Caja y Banco" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo de Cuenta</label>
-                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800">
+                  <select required value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value as AccountType })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800">
                     <option value="asset">Activo</option>
                     <option value="liability">Pasivo</option>
                     <option value="equity">Capital</option>
@@ -1328,10 +1328,10 @@ export default function AccountingPage() {
                   </select>
                 </div>
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={() => setShowAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Guardar
                   </button>
                 </div>
@@ -1354,21 +1354,21 @@ export default function AccountingPage() {
               <form onSubmit={handleCreatePeriod} className="p-4 space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Período</label>
-                  <input type="text" required value={periodForm.name} onChange={e => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Ej. Enero 2026" />
+                  <input type="text" required value={periodForm.name} onChange={e => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" placeholder="Ej. Enero 2026" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Inicio</label>
-                  <input type="date" required value={periodForm.startDate} onChange={e => setPeriodForm({ ...periodForm, startDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" required value={periodForm.startDate} onChange={e => setPeriodForm({ ...periodForm, startDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha de Fin</label>
-                  <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" required value={periodForm.endDate} onChange={e => setPeriodForm({ ...periodForm, endDate: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                 </div>
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowPeriodModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={() => setShowPeriodModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="submit" disabled={periodSubmitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {periodSubmitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Abrir Período
                   </button>
                 </div>
@@ -1393,15 +1393,15 @@ export default function AccountingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha</label>
-                  <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" />
+                  <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                   </div>
                   <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia</label>
-                  <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all font-mono text-slate-800" placeholder="Ej. CHK-1024" />
+                  <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition font-mono text-slate-800" placeholder="Ej. CHK-1024" />
                   </div>
                   <div className="md:col-span-3">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Concepto / Descripción</label>
-                  <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800" placeholder="Registro de..." />
+                  <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" placeholder="Registro de..." />
                   </div>
                 </div>
 
@@ -1429,7 +1429,7 @@ export default function AccountingPage() {
                                 const matched = accounts.find(a => `${a.code} - ${a.name}` === val);
                                 handleJournalLineChange(idx, 'accountId', matched ? matched.id : val);
                               }}
-                              className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
+                              className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
                             />
                             <datalist id={`accounts-list-${idx}`}>
                               {accounts.map(acc => (
@@ -1438,10 +1438,10 @@ export default function AccountingPage() {
                             </datalist>
                           </td>
                           <td className="px-4 py-2.5">
-                            <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
+                            <input type="number" min="0" step="0.01" value={line.debit || ''} onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)} disabled={line.credit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
                           </td>
                           <td className="px-4 py-2.5">
-                            <input type="number" min="0" step="0.01" value={line.credit || ''} onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)} disabled={line.debit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
+                            <input type="number" min="0" step="0.01" value={line.credit || ''} onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)} disabled={line.debit > 0} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-right font-mono text-slate-800 disabled:opacity-50" placeholder="0.00" />
                           </td>
                           <td className="px-4 py-2.5 text-center">
                             {journalLines.length > 2 && (
@@ -1479,10 +1479,10 @@ export default function AccountingPage() {
                       <AlertTriangle className="w-3 h-3" /> Descuadrado
                     </div>
                   )}
-                  <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Contabilizar
                   </button>
                 </div>

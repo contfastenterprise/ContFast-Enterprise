@@ -327,7 +327,7 @@ export default function AvatarUploader({
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={clsx(
-            "w-full h-24 flex flex-col items-center justify-center border border-dashed rounded-xl cursor-pointer transition-all p-2 text-center",
+            "w-full h-24 flex flex-col items-center justify-center border border-dashed rounded-xl cursor-pointer transition p-2 text-center",
             dragActive
               ? "border-primary bg-primary/5"
               : "border-slate-300 hover:bg-slate-50"
@@ -381,7 +381,7 @@ export default function AvatarUploader({
           </div>
           <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2.5 rounded-full overflow-hidden">
             <div 
-              className="bg-primary h-full transition-all duration-300"
+              className="bg-primary h-full transition duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>

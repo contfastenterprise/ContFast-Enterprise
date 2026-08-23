@@ -29,7 +29,7 @@ export default function NotFound() {
           <div className="flex w-full">
             <button
               onClick={() => router.back()}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#001e40] text-white font-semibold hover:bg-[#00142a] shadow-md hover:shadow-lg transition-all active:scale-95"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#001e40] text-white font-semibold hover:bg-[#00142a] shadow-md hover:shadow-lg transition active:scale-95"
             >
               <ArrowLeft className="h-5 w-5 text-[#c5a059]" />
               Regresar

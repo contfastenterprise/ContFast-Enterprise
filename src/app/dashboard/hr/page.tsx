@@ -140,7 +140,7 @@ export default function HRDashboard() {
         </div>
         <button
           onClick={fetchDashboardData}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface hover:bg-surface-variant text-on-surface border border-outline rounded-lg transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface hover:bg-surface-variant text-on-surface border border-outline rounded-lg transition"
         >
           <RefreshCw className="h-3.5 w-3.5" /> Actualizar
         </button>
@@ -148,7 +148,7 @@ export default function HRDashboard() {
 
       {/* Info Indicators Panel */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-on-surface-variant/70 uppercase">Total Empleados</span>
             <div className="rounded-lg bg-primary/10 p-2 text-primary">
@@ -164,7 +164,7 @@ export default function HRDashboard() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary to-primary-variant" />
         </div>
 
-        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-on-surface-variant/70 uppercase">Costo Mensual Nómina</span>
             <div className="rounded-lg bg-[#003366]/10 p-2 text-[#003366]">
@@ -180,7 +180,7 @@ export default function HRDashboard() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#003366] to-[#005E6A]" />
         </div>
 
-        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-on-surface-variant/70 uppercase">Retenciones TSS (Patrono)</span>
             <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500">
@@ -196,7 +196,7 @@ export default function HRDashboard() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
         </div>
 
-        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-xl border border-outline bg-surface p-5 shadow-sm transition hover:shadow-md">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-on-surface-variant/70 uppercase">ISR Retenido (DGII)</span>
             <div className="rounded-lg bg-rose-500/10 p-2 text-rose-500">
@@ -232,7 +232,7 @@ export default function HRDashboard() {
                   </div>
                   <div className="h-2 w-full rounded-full bg-outline/20 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-primary to-primary-variant rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-primary to-primary-variant rounded-full transition duration-300"
                       style={{ width: `${pct}%` }}
                     />
                   </div>

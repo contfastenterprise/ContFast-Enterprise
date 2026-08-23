@@ -49,7 +49,7 @@ export default function CatalogAddButton({ productId, name, price, imageUrl }: C
         e.preventDefault(); // Por si está envuelto en un Link
         handleAddToCart();
       }}
-      className="bg-[#c5a059] hover:bg-[#b08c4a] text-slate-950 font-semibold px-4 rounded-full flex items-center shadow-md hover:shadow-lg transition-all active:scale-95"
+      className="bg-[#c5a059] hover:bg-[#b08c4a] text-slate-950 font-semibold px-4 rounded-full flex items-center shadow-md hover:shadow-lg transition active:scale-95"
     >
       <ShoppingCart className="h-4 w-4 mr-1.5" />
       Agregar

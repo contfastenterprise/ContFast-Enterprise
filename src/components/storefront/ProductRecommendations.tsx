@@ -26,7 +26,7 @@ export default function ProductRecommendations({ products, title = "También pod
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.map((product, index) => (
           <AnimateOnScroll key={product.id} index={index}>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden group flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#c5a059]/40 relative z-10 hover:z-20">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden group flex flex-col h-full transition duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#c5a059]/40 relative z-10 hover:z-20">
               <div className="relative aspect-[4/3] bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
                 {product.isOnSale && (
                   <div className="absolute top-2 left-2 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-sm shadow-md">
@@ -37,7 +37,7 @@ export default function ProductRecommendations({ products, title = "También pod
                   <img
                     src={product.imageUrl}
                     alt={product.name}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
                   <Package className="h-12 w-12 text-slate-300" />

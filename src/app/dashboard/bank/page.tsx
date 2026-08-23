@@ -354,10 +354,10 @@ export default function BankAccountsPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowNewAccountModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+            <button onClick={() => setShowNewAccountModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
               <Plus className="h-4 w-4" /> Nueva Cuenta
             </button>
-            <button disabled={!selectedAccount} onClick={() => setShowTxModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+            <button disabled={!selectedAccount} onClick={() => setShowTxModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
               <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
             </button>
           </div>
@@ -384,7 +384,7 @@ export default function BankAccountsPage() {
                     backgroundColor: acc.color || '#003366',
                     borderColor: selectedAccount?.id === acc.id ? '#C5A059' : 'transparent',
                   }}
-                  className={clsx("cursor-pointer rounded-2xl p-6 transition-all border-2 text-white shadow-md relative overflow-hidden", selectedAccount?.id === acc.id ? 'transform scale-[1.02] shadow-xl ring-2 ring-[#C5A059]/50' : 'hover:shadow-lg opacity-95 hover:opacity-100')}
+                  className={clsx("cursor-pointer rounded-2xl p-6 transition border-2 text-white shadow-md relative overflow-hidden", selectedAccount?.id === acc.id ? 'transform scale-[1.02] shadow-xl ring-2 ring-[#C5A059]/50' : 'hover:shadow-lg opacity-95 hover:opacity-100')}
                 >
                   {/* Decorative background elements */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
@@ -439,7 +439,7 @@ export default function BankAccountsPage() {
                   </div>
                   <button
                     onClick={handlePrintTransactions}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Printer className="h-4 w-4" />
                     Imprimir Reporte
@@ -632,8 +632,8 @@ export default function BankAccountsPage() {
                     </div>
                   </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
                   </button>
                 </div>
@@ -708,8 +708,8 @@ export default function BankAccountsPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowTxModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={() => setShowTxModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Procesar Movimiento
                   </button>
                 </div>

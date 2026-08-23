@@ -174,25 +174,25 @@ export default function BIInventory({ data }: BIInventoryProps) {
           <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'all' ? 'bg-primary text-white' : 'bg-surface-variant/40 text-on-surface-variant'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${filterStatus === 'all' ? 'bg-primary text-white' : 'bg-surface-variant/40 text-on-surface-variant'}`}
             >
               Todos ({stockLevels.length})
             </button>
             <button 
               onClick={() => setFilterStatus('exhausted')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'exhausted' ? 'bg-[#ff4d4d] text-white' : 'bg-red-50 text-[#ff4d4d]'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${filterStatus === 'exhausted' ? 'bg-[#ff4d4d] text-white' : 'bg-red-50 text-[#ff4d4d]'}`}
             >
               Agotado ({stockLevels.filter((l: any) => l.status === 'exhausted').length})
             </button>
             <button 
               onClick={() => setFilterStatus('critical')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'critical' ? 'bg-[#ff9900] text-white' : 'bg-amber-50 text-[#ff9900]'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${filterStatus === 'critical' ? 'bg-[#ff9900] text-white' : 'bg-amber-50 text-[#ff9900]'}`}
             >
               Bajo Mínimo ({stockLevels.filter((l: any) => l.status === 'critical').length})
             </button>
             <button 
               onClick={() => setFilterStatus('excessive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${filterStatus === 'excessive' ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${filterStatus === 'excessive' ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-600'}`}
             >
               Exceso ({stockLevels.filter((l: any) => l.status === 'excessive').length})
             </button>

@@ -184,13 +184,13 @@ export default function SetupWizard() {
           <div className="flex items-center justify-between relative">
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-surface-container-high -translate-y-1/2 z-0" />
             <div 
-              className="absolute top-1/2 left-0 h-0.5 bg-[#C5A059] -translate-y-1/2 z-0 transition-all duration-500" 
+              className="absolute top-1/2 left-0 h-0.5 bg-[#C5A059] -translate-y-1/2 z-0 transition duration-300" 
               style={{ width: `${(currentStep / 5) * 100}%` }}
             />
             {stepNames.map((name, idx) => (
               <div key={idx} className="relative z-10 flex flex-col items-center gap-1.5">
                 <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border-2 transition-all duration-300 ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border-2 transition duration-300 ${
                     idx === currentStep
                       ? 'border-[#C5A059] bg-[#001e40] text-[#fed488] scale-110 shadow-lg shadow-blue-900/30'
                       : idx < currentStep
@@ -211,7 +211,7 @@ export default function SetupWizard() {
         </div>
 
         {/* Form panel with Premium design */}
-        <div className="bg-surface-container-low/55 backdrop-blur-xl border border-outline-variant/30/80 rounded-xl p-8 shadow-2xl transition-all">
+        <div className="bg-surface-container-low/55 backdrop-blur-xl border border-outline-variant/30/80 rounded-xl p-8 shadow-2xl transition">
           <div className="mb-6 border-b border-outline-variant/30/60 pb-4">
             <h2 className="text-lg font-bold text-[#fed488] tracking-wider uppercase font-display">
               Paso {currentStep + 1}: {stepNames[currentStep]}
@@ -237,7 +237,7 @@ export default function SetupWizard() {
                       type="text"
                       value={company.name}
                       onChange={(e) => setCompany({ ...company, name: e.target.value })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                       placeholder="e.g. Mi Empresa SRL"
                     />
                   </div>
@@ -247,7 +247,7 @@ export default function SetupWizard() {
                       type="text"
                       value={company.rnc}
                       onChange={(e) => setCompany({ ...company, rnc: e.target.value.replace(/\D/g, '') })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm font-mono transition-all focus:scale-[1.01]"
+                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm font-mono transition focus:scale-[1.01]"
                       placeholder="1-01-XXXXX-X"
                       maxLength={11}
                     />
@@ -259,7 +259,7 @@ export default function SetupWizard() {
                       type="text"
                       value={company.businessActivity}
                       onChange={(e) => setCompany({ ...company, businessActivity: e.target.value })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                       placeholder="Venta al por mayor de insumos comerciales y desarrollo tecnológico"
                     />
                   </div>
@@ -274,7 +274,7 @@ export default function SetupWizard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div
                         onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'test' })}
-                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition-all ${
+                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition ${
                           fiscal.dgiiEnv === 'test'
                             ? 'border-[#C5A059] bg-[#001e40]/40'
                             : 'border-outline-variant/30 bg-background/40 hover:border-outline-variant/50'
@@ -285,7 +285,7 @@ export default function SetupWizard() {
                       </div>
                       <div
                         onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'production' })}
-                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition-all ${
+                        className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition ${
                           fiscal.dgiiEnv === 'production'
                             ? 'border-[#C5A059] bg-[#001e40]/40'
                             : 'border-outline-variant/30 bg-background/40 hover:border-outline-variant/50'
@@ -309,7 +309,7 @@ export default function SetupWizard() {
                           type="text"
                           value={fiscal.msellerUrl}
                           onChange={(e) => setFiscal({ ...fiscal, msellerUrl: e.target.value })}
-                          className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                          className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                           placeholder="https://api.mseller.app/v1"
                         />
                       </div>
@@ -321,7 +321,7 @@ export default function SetupWizard() {
                             type={showToken ? 'text' : 'password'}
                             value={fiscal.msellerApiKey}
                             onChange={(e) => setFiscal({ ...fiscal, msellerApiKey: e.target.value })}
-                            className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 pl-4 pr-10 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                            className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 pl-4 pr-10 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                             placeholder="mSeller Token"
                           />
                           <button
@@ -348,7 +348,7 @@ export default function SetupWizard() {
                       <div
                         key={layout}
                         onClick={() => setPrinting({ printLayout: layout })}
-                        className={`cursor-pointer rounded-lg border p-6 flex flex-col items-center justify-center transition-all ${
+                        className={`cursor-pointer rounded-lg border p-6 flex flex-col items-center justify-center transition ${
                           printing.printLayout === layout
                             ? 'border-[#C5A059] bg-[#001e40]/30 text-[#fed488]'
                             : 'border-outline-variant/30 bg-background/40 text-on-surface-variant hover:border-outline-variant/50'
@@ -404,7 +404,7 @@ export default function SetupWizard() {
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                       placeholder="Ing. Juan Pérez"
                     />
                   </div>
@@ -414,7 +414,7 @@ export default function SetupWizard() {
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                      className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 px-4 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                       placeholder="sistemas@empresa.com"
                     />
                   </div>
@@ -425,7 +425,7 @@ export default function SetupWizard() {
                         type={showPassword ? 'text' : 'password'}
                         value={user.password}
                         onChange={(e) => setUser({ ...user, password: e.target.value })}
-                        className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 pl-4 pr-10 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all focus:scale-[1.01]"
+                        className="block w-full rounded border border-outline-variant/30 bg-background/80 py-2.5 pl-4 pr-10 text-primary placeholder-slate-600 focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition focus:scale-[1.01]"
                         placeholder="Mínimo 8 caracteres"
                       />
                       <button

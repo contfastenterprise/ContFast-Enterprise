@@ -163,14 +163,14 @@ export default function DesgloseVentanasPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={handleLimpiar}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <RotateCcw className="h-4 w-4" />
               Limpiar Todo
             </button>
             <button
               onClick={handleSaveDraft}
-              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Save className="h-4 w-4 text-[#C5A059]" />
               Guardar Borrador
@@ -178,7 +178,7 @@ export default function DesgloseVentanasPage() {
             <button
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando PDF...' : 'Imprimir'}
@@ -208,7 +208,7 @@ export default function DesgloseVentanasPage() {
                         setVias(2);
                       }
                     }}
-                    className={`text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center ${
+                    className={`text-xs font-bold py-2 rounded-lg transition flex items-center justify-center ${
                       tab === idx
                         ? 'bg-[#003366] text-white shadow-sm'
                         : 'text-slate-500 hover:text-slate-800'
@@ -286,7 +286,7 @@ export default function DesgloseVentanasPage() {
               <button
                 onClick={handleAdd}
                 disabled={!enable}
-                className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Plus className="h-5 w-5" />
                 <span>Add</span>

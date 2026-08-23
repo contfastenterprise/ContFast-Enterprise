@@ -30,7 +30,7 @@ export default function BICustomers({ data, onNavigateToCustomer }: BICustomersP
       <div className="flex border-b border-outline-variant/30">
         <button
           onClick={() => setSubView('ranking')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subView === 'ranking' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -40,7 +40,7 @@ export default function BICustomers({ data, onNavigateToCustomer }: BICustomersP
         </button>
         <button
           onClick={() => setSubView('inactive')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subView === 'inactive' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'

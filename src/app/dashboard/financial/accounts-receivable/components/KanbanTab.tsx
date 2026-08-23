@@ -64,7 +64,7 @@ export default function KanbanTab({ data }: { data: any[] }) {
           {/* Tarjetas */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {col.items.map((item, j) => (
-              <div key={j} className="bg-white dark:bg-surface-dark-bright border border-outline-variant/30 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer group">
+              <div key={j} className="bg-white dark:bg-surface-dark-bright border border-outline-variant/30 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-primary/50 transition cursor-pointer group">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-xs font-medium text-neutral-500 group-hover:text-primary transition-colors">
                     FC-{item.id.split('-')[0].toUpperCase()}

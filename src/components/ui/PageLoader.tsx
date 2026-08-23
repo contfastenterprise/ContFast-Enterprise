@@ -22,7 +22,7 @@ export function PageLoader({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-all duration-300 select-none overflow-hidden',
+        'flex flex-col items-center justify-center bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition duration-300 select-none overflow-hidden',
         fullScreen ? 'fixed inset-0 z-50' : 'w-full h-full min-h-[300px]',
         className
       )}

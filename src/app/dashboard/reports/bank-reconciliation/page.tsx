@@ -400,7 +400,7 @@ export default function BankReconciliationPage() {
                     onClick={handlePostReconciliation}
                     disabled={submitting || !isReconciled}
                     className={clsx(
-                      "px-5 py-2 rounded-lg font-bold shadow text-white flex items-center gap-1.5 transition-all",
+                      "px-5 py-2 rounded-lg font-bold shadow text-white flex items-center gap-1.5 transition",
                       isReconciled 
                         ? 'bg-[#003366] hover:bg-[#002244] cursor-pointer' 
                         : 'bg-slate-300 cursor-not-allowed opacity-60'
@@ -495,7 +495,7 @@ export default function BankReconciliationPage() {
                     </div>
                   ) : (
                     reconciliations.map(recon => (
-                      <div key={recon.id} className="border border-slate-100 hover:border-slate-200 p-4 rounded-lg bg-slate-50/50 hover:bg-slate-50 transition-all text-xs space-y-2">
+                      <div key={recon.id} className="border border-slate-100 hover:border-slate-200 p-4 rounded-lg bg-slate-50/50 hover:bg-slate-50 transition text-xs space-y-2">
                         <div className="flex justify-between items-center font-bold">
                           <span className="text-[#003366]">Corte al {new Date(recon.endDate).toLocaleDateString('es-DO')}</span>
                           <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase text-[9px]">

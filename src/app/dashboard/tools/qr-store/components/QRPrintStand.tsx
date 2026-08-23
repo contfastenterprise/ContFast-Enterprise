@@ -94,7 +94,7 @@ export default function QRPrintStand({ company, config, qrUrl, mode }: QRPrintSt
         </div>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition-all shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition shadow-sm"
         >
           <Printer className="h-4 w-4" /> Imprimir
         </button>

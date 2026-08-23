@@ -75,7 +75,7 @@ function WorkspaceSwitcher({
     return (
       <div className="flex items-center justify-center py-4">
         <div
-          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-blue-600 text-on-primary flex items-center justify-center font-bold text-sm shadow-md shadow-primary/20 cursor-default transition-all hover:scale-105"
+          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-blue-600 text-on-primary flex items-center justify-center font-bold text-sm shadow-md shadow-primary/20 cursor-default transition hover:scale-105"
           title={companyName}
         >
           {companyName.charAt(0).toUpperCase()}
@@ -89,7 +89,7 @@ function WorkspaceSwitcher({
       <div
         onClick={() => isSistemas && setIsOpen(o => !o)}
         className={clsx(
-          'flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#003366]/20 bg-[#003366]/10 select-none group transition-all duration-300',
+          'flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#003366]/20 bg-[#003366]/10 select-none group transition duration-300',
           isSistemas
             ? 'hover:bg-[#003366]/15 hover:border-[#003366]/30 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.02)]'
             : 'cursor-default',
@@ -113,7 +113,7 @@ function WorkspaceSwitcher({
         {isSistemas && (
           <ChevronDown
             className={clsx(
-              'w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant/80 transition-all duration-200 shrink-0',
+              'w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant/80 transition duration-200 shrink-0',
               isOpen && 'rotate-180',
             )}
             strokeWidth={1.5}
@@ -175,7 +175,7 @@ function NavItem({
       onClick={onClick}
       title={collapsed ? item.name : undefined}
       className={clsx(
-        'group flex items-center rounded-xl transition-all duration-300 select-none w-full relative',
+        'group flex items-center rounded-xl transition duration-300 select-none w-full relative',
         collapsed ? 'justify-center p-3' : clsx('px-3.5 py-2.5', isSubItem ? 'pl-8 text-[12px] gap-2.5' : 'gap-3 text-[13px]'),
         isActive
           ? 'bg-[#003366] text-white font-bold border border-[#003366]/20 shadow-[0_4px_12px_rgba(0,51,102,0.15)]'
@@ -188,7 +188,7 @@ function NavItem({
       )}
       <item.icon
         className={clsx(
-          'shrink-0 transition-all duration-300',
+          'shrink-0 transition duration-300',
           collapsed ? 'w-[20px] h-[20px]' : isSubItem ? 'w-[15px] h-[15px]' : 'w-[18px] h-[18px]',
           isActive
             ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]'
@@ -397,7 +397,7 @@ function SidebarContent({
                   <button
                     title={group.title}
                     className={clsx(
-                      'group flex items-center justify-center rounded-xl w-full p-3 transition-all duration-300 select-none cursor-pointer',
+                      'group flex items-center justify-center rounded-xl w-full p-3 transition duration-300 select-none cursor-pointer',
                       isGroupActive
                         ? 'bg-primary/10 text-primary font-bold border border-primary/20'
                         : 'text-on-surface-variant/80 hover:bg-surface-container-high hover:text-on-surface border border-transparent'
@@ -405,7 +405,7 @@ function SidebarContent({
                   >
                     <group.icon
                       className={clsx(
-                        'shrink-0 transition-all duration-300 w-[20px] h-[20px]',
+                        'shrink-0 transition duration-300 w-[20px] h-[20px]',
                         isGroupActive ? 'text-primary drop-shadow-[0_0_4px_rgba(0,51,102,0.15)]' : 'text-on-surface-variant/50 group-hover:text-on-surface'
                       )}
                       strokeWidth={isGroupActive ? 2 : 1.5}
@@ -448,7 +448,7 @@ function SidebarContent({
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={clsx(
-                      'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px] text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] transition-all duration-300 w-full cursor-pointer select-none font-semibold border border-transparent',
+                      'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px] text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] transition duration-300 w-full cursor-pointer select-none font-semibold border border-transparent',
                       isGroupActive && 'text-primary font-bold'
                     )}
                   >
@@ -584,7 +584,7 @@ export default function NewAppSidebar({
             onClick={() => setSearchOpen(true)}
             className={clsx(
               'w-full flex items-center rounded-xl px-3 py-2 border border-outline-variant/20 bg-surface-container-low',
-              'text-on-surface-variant/60 hover:bg-surface-container hover:text-on-surface transition-all duration-300 group',
+              'text-on-surface-variant/60 hover:bg-surface-container hover:text-on-surface transition duration-300 group',
               collapsed ? 'justify-center' : 'gap-3',
             )}
             title={collapsed ? 'Buscar (⌘K)' : undefined}
@@ -648,7 +648,7 @@ export default function NewAppSidebar({
               <div className="px-4 pt-2 pb-2">
                 <button
                   onClick={() => { setSearchOpen(true); onMobileClose(); }}
-                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2 border border-outline-variant/20 bg-surface-container-low text-on-surface-variant/50 hover:bg-surface-container hover:text-on-surface transition-all duration-300"
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2 border border-outline-variant/20 bg-surface-container-low text-on-surface-variant/50 hover:bg-surface-container hover:text-on-surface transition duration-300"
                 >
                   <Search className="w-[17px] h-[17px] shrink-0 text-on-surface-variant/40" strokeWidth={1.5} />
                   <span className="text-[13px] tracking-wide flex-1 text-left">Buscar</span>

@@ -332,7 +332,7 @@ export default function BarcodeDashboardPage() {
               }
               setShowLabelModal(true);
             }}
-            className="bg-[#c5a059] hover:bg-[#b08e4f] text-[#001e40] font-bold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0"
+            className="bg-[#c5a059] hover:bg-[#b08e4f] text-[#001e40] font-bold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm shrink-0"
           >
             <Printer className="h-4 w-4" />
             {selectedProductIds.length > 0 ? `Imprimir Selección (${selectedProductIds.length})` : 'Imprimir Etiquetas'}
@@ -340,7 +340,7 @@ export default function BarcodeDashboardPage() {
           <button
             onClick={handleBulkGenerate}
             disabled={bulkGenerating || loading}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm shrink-0 disabled:opacity-50"
+            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm shrink-0 disabled:opacity-50"
           >
             {bulkGenerating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Autogenerar Faltantes
@@ -375,19 +375,19 @@ export default function BarcodeDashboardPage() {
         <div className="flex bg-slate-100 p-1 rounded-lg gap-1 self-start">
           <button
             onClick={() => { setFilterType('all'); setPage(1); }}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterType === 'all' ? 'bg-[#003366] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+            className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'all' ? 'bg-[#003366] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
             Todos
           </button>
           <button
             onClick={() => { setFilterType('with_code'); setPage(1); }}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterType === 'with_code' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+            className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'with_code' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
             Con Código
           </button>
           <button
             onClick={() => { setFilterType('without_code'); setPage(1); }}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterType === 'without_code' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+            className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'without_code' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
             Sin Código
           </button>

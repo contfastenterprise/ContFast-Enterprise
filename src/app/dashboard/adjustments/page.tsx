@@ -315,7 +315,7 @@ export default function AdjustmentsPage() {
                 </div>
                 <button
                   onClick={() => setShowForm(true)}
-                  className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm"
+                  className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm"
                 >
                   <Plus className="h-4 w-4" /> Crédito/Débito
                 </button>
@@ -517,7 +517,7 @@ export default function AdjustmentsPage() {
                           type="button"
                           onClick={() => { setNoteType('34'); setIndicadorNotaCredito(-1); }}
                           className={clsx(
-                            "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
+                            "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition flex items-center justify-center gap-2",
                             noteType === '34' ? "bg-rose-50 border-rose-300 text-rose-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
                           )}
                         >
@@ -527,7 +527,7 @@ export default function AdjustmentsPage() {
                           type="button"
                           onClick={() => { setNoteType('33'); setIndicadorNotaCredito(-1); }}
                           className={clsx(
-                            "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-2",
+                            "flex-1 py-3 px-4 rounded-xl border font-bold text-sm transition flex items-center justify-center gap-2",
                             noteType === '33' ? "bg-blue-50 border-blue-300 text-blue-700 shadow-sm" : "bg-white border-slate-200 text-slate-600"
                           )}
                         >
@@ -564,7 +564,7 @@ export default function AdjustmentsPage() {
                                 onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
                                 required
                                 className={clsx(
-                                  "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all",
+                                  "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition",
                                   indicadorNotaCredito < 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
                                 )}
                               >
@@ -579,7 +579,7 @@ export default function AdjustmentsPage() {
                                 onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
                                 required
                                 className={clsx(
-                                  "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all",
+                                  "w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition",
                                   indicadorNotaCredito < 0 ? "border-rose-400 bg-rose-50/30" : "border-slate-300"
                                 )}
                               >
@@ -721,14 +721,14 @@ export default function AdjustmentsPage() {
                   <button
                     type="button"
                     onClick={() => { setShowForm(false); setTargetInvoice(null); setAdjustedLines([]); }}
-                    className="border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-2.5 px-6 rounded-lg text-sm transition-all"
+                    className="border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-2.5 px-6 rounded-lg text-sm transition"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || !targetInvoice}
-                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition-all flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Emitir Nota
                   </button>
@@ -766,7 +766,7 @@ export default function AdjustmentsPage() {
                 placeholder="Búsqueda por NCF, Cliente o RNC..."
                 value={invoiceSearchQuery}
                 onChange={(e) => setInvoiceSearchQuery(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition-all"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition"
               />
               <button
                 onClick={handleSearchInvoices}

@@ -719,14 +719,14 @@ export default function ProductsPage() {
         <div className="flex gap-2.5 flex-wrap">
           <button
             onClick={() => router.push('/dashboard/products/barcodes')}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Printer className="h-4 w-4" />
             Gestión de Códigos
           </button>
           <button
             onClick={openNewModal}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
           >
             <Plus className="h-4 w-4" />
             Nuevo Producto
@@ -795,7 +795,7 @@ export default function ProductsPage() {
                   setPrintDropdownOpen(false);
                   handlePrintList(showStockInPrint);
                 }}
-                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-full rounded-l-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-full rounded-l-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 title="Imprimir listado filtrado"
               >
                 <Printer className="w-4 h-4" />
@@ -807,7 +807,7 @@ export default function ProductsPage() {
                   e.stopPropagation();
                   setPrintDropdownOpen(v => !v);
                 }}
-                className="flex items-center justify-center rounded-r-lg bg-[#C5A059] hover:bg-[#b08c4a] border-l border-[#a08044] px-2.5 h-full text-slate-950 transition-all active:scale-[0.98] outline-none"
+                className="flex items-center justify-center rounded-r-lg bg-[#C5A059] hover:bg-[#b08c4a] border-l border-[#a08044] px-2.5 h-full text-slate-950 transition active:scale-[0.98] outline-none"
                 title="Más opciones de impresión"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -1111,7 +1111,7 @@ export default function ProductsPage() {
                 disabled={page <= 1}
                 onClick={() => fetchProducts(search, selectedCategory, page - 1)}
                 type="button"
-                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Anterior
               </button>
@@ -1122,7 +1122,7 @@ export default function ProductsPage() {
                 disabled={page >= totalPages}
                 onClick={() => fetchProducts(search, selectedCategory, page + 1)}
                 type="button"
-                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Siguiente
               </button>
@@ -1428,7 +1428,7 @@ export default function ProductsPage() {
                           checked={formData.isOnSale} 
                           onChange={(e) => setFormData({ ...formData, isOnSale: e.target.checked })} 
                         />
-                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-red-600"></div>
                       </label>
                     </div>
 
@@ -1483,7 +1483,7 @@ export default function ProductsPage() {
                     type="button"
                     variant="ghost"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -1491,7 +1491,7 @@ export default function ProductsPage() {
                   <Button size="sm"
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
@@ -1556,7 +1556,7 @@ export default function ProductsPage() {
                     type="button"
                     variant="ghost"
                     onClick={() => setShowCategoryModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
@@ -1564,7 +1564,7 @@ export default function ProductsPage() {
                   <Button size="sm"
                     type="submit"
                     disabled={submittingCategory}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     Guardar
@@ -2023,10 +2023,10 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex gap-2 justify-end pt-3 border-t">
-                  <button onClick={() => setShowLabelModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button onClick={() => setShowLabelModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button onClick={handlePrintLabels} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button onClick={handlePrintLabels} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     <Printer className="h-4 w-4" />
                     Mandar a Imprimir
                   </button>

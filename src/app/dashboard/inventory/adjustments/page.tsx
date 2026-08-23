@@ -352,7 +352,7 @@ export default function InventoryAdjustmentsPage() {
               <button
                 onClick={handleAdjust}
                 disabled={loading || diff === 0 || diff === null || !reason}
-                className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-95 disabled:opacity-50"
+                className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition active:scale-95 disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                 <span className="font-label-md text-sm font-bold">Aplicar Ajuste</span>
@@ -442,7 +442,7 @@ export default function InventoryAdjustmentsPage() {
                         <button
                           onClick={() => handleTableAdjust(p.id)}
                           disabled={isRowLoading || inputVal === '' || isNaN(newQty) || newQty === currentStock}
-                          className="bg-[#001e40] text-white hover:bg-[#003366] p-1.5 rounded-lg inline-flex items-center justify-center transition-all disabled:opacity-40"
+                          className="bg-[#001e40] text-white hover:bg-[#003366] p-1.5 rounded-lg inline-flex items-center justify-center transition disabled:opacity-40"
                           title="Establecer cantidad"
                         >
                           {isRowLoading ? (

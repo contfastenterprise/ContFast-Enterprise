@@ -183,7 +183,7 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
             {filas.map((fila) => (
               <div 
                 key={fila.id} 
-                className="bg-white rounded-xl border border-slate-150 shadow-xs hover:shadow-md transition-all p-4 flex flex-row items-center justify-between gap-4 group min-w-[900px]"
+                className="bg-white rounded-xl border border-slate-150 shadow-xs hover:shadow-md transition p-4 flex flex-row items-center justify-between gap-4 group min-w-[900px]"
               >
                 {/* 1. Bloque de Identificación y Medidas Base (Horizontal) */}
                 <div className="flex items-center gap-4 min-w-[240px]">
@@ -256,7 +256,7 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
                 <div className="self-center">
                   <button
                     onClick={() => eliminarFila(fila.id)}
-                    className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition-all"
+                    className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition"
                     title="Eliminar registro"
                   >
                     <Trash2 className="h-4.5 w-4.5" />

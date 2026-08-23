@@ -66,7 +66,7 @@ export default function InvoiceImageUploader({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 min-h-[180px] ${
+          className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition duration-300 min-h-[180px] ${
             isDragActive 
               ? 'border-primary bg-primary/5' 
               : 'border-on-surface-variant/20 hover:border-primary hover:bg-surface-container-low'
@@ -101,7 +101,7 @@ export default function InvoiceImageUploader({
             </span>
             <div className="w-40 bg-surface-container-high h-1 rounded-full overflow-hidden mx-auto mt-2">
               <div 
-                className="bg-primary h-full transition-all duration-300 rounded-full" 
+                className="bg-primary h-full transition duration-300 rounded-full" 
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -133,7 +133,7 @@ export default function InvoiceImageUploader({
             />
             <button
               onClick={handleReset}
-              className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white rounded-xl p-1.5 shadow-md transition-all text-[10px] flex items-center gap-1 font-bold animate-fade-in"
+              className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white rounded-xl p-1.5 shadow-md transition text-[10px] flex items-center gap-1 font-bold animate-fade-in"
             >
               <RefreshCw className="w-3 h-3" /> Cambiar
             </button>
@@ -289,7 +289,7 @@ export default function InvoiceImageUploader({
               <button
                 type="button"
                 onClick={handleApplyData}
-                className="w-full bg-primary text-on-primary font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs mt-3 active:scale-95 cursor-pointer"
+                className="w-full bg-primary text-on-primary font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-xs mt-3 active:scale-95 cursor-pointer"
               >
                 <Check className="w-3.5 h-3.5" /> Importar al Formulario
               </button>

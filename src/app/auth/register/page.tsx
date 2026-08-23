@@ -163,7 +163,7 @@ export default function RegisterPage() {
                     type="text"
                     required
                     {...register('fullName')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
                     placeholder="Juan Pérez"
                   />
                 </div>
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                     type="email"
                     required
                     {...register('email')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
                     placeholder="juan.perez@empresa.do"
                   />
                 </div>
@@ -209,7 +209,7 @@ export default function RegisterPage() {
                     type="password"
                     required
                     {...register('password')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -232,7 +232,7 @@ export default function RegisterPage() {
                     type="password"
                     required
                     {...register('confirmPassword')}
-                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition-all duration-200 outline-none"
+                    className="block w-full rounded-md border-0 bg-background py-2.5 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -247,7 +247,7 @@ export default function RegisterPage() {
                 whileTap={{ scale: 0.99 }}
                 type="submit"
                 disabled={loading}
-                className="mt-6 flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="mt-6 flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-3 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
               >
                 {loading ? (
                   <>

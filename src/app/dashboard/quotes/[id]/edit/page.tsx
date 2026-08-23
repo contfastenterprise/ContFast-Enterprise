@@ -258,7 +258,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 type="button"
                 onClick={() => saveQuote(false)}
                 disabled={submitting}
-                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#003366] px-6 py-3 text-sm font-bold text-white hover:bg-[#002244] disabled:opacity-50 transition-all shadow-lg active:scale-[0.98] border-r border-[#002244]"
+                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#003366] px-6 py-3 text-sm font-bold text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98] border-r border-[#002244]"
               >
                 {submitting ? (
                   <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
@@ -270,7 +270,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 type="button"
                 disabled={submitting}
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                className="flex items-center justify-center rounded-r-xl bg-[#003366] px-3 py-3 text-white hover:bg-[#002244] disabled:opacity-50 transition-all shadow-lg active:scale-[0.98]"
+                className="flex items-center justify-center rounded-r-xl bg-[#003366] px-3 py-3 text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98]"
                 title="Más opciones"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -365,7 +365,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                         }}
                         className={clsx(
                           "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
-                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
+                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                         )}
                       />
                     </div>
@@ -387,7 +387,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                                 "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
                                 !isEditable ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" :
                                 isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
-                                "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all"
+                                "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
                               )}
                             />
                             {isBelowCost && (
@@ -417,7 +417,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
                           (!isEditable || !canEditDiscount)
                             ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" 
-                            : "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition-all"
+                            : "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
                         )}
                       />
                     </div>
@@ -456,7 +456,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 className={clsx(
-                  "w-full px-3 py-2.5 border rounded-lg text-xs font-medium outline-none transition-all",
+                  "w-full px-3 py-2.5 border rounded-lg text-xs font-medium outline-none transition",
                   isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                 )}
                 placeholder="Condiciones de pago, validez de la oferta, etc..."

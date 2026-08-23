@@ -51,7 +51,7 @@ export function ConfirmDialog({
         <AlertDialogFooter className="mt-4 flex sm:justify-end gap-2">
           <button
             type="button"
-            className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             onClick={onCancel}
             disabled={isConfirming}
           >
@@ -59,7 +59,7 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            className={`flex items-center gap-2 px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm text-white ${
+            className={`flex items-center gap-2 px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm text-white ${
               variant === 'destructive'
                 ? 'bg-rose-600 hover:bg-rose-700'
                 : 'bg-[#003366] hover:bg-[#002244]'

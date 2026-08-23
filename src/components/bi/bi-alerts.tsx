@@ -161,7 +161,7 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
 
               <a 
                 href={alert.actionLink}
-                className="flex items-center gap-1.5 px-4 py-2 bg-surface-bright border border-outline-variant/30 hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant shadow-xs shrink-0 self-end sm:self-center transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-surface-bright border border-outline-variant/30 hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant shadow-xs shrink-0 self-end sm:self-center transition"
               >
                 {alert.actionText}
                 <ArrowRight className="w-3.5 h-3.5" />

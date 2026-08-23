@@ -421,7 +421,7 @@ export default function AccountsPayablePage() {
           <button
             onClick={() => setActiveTab('bills')}
             className={clsx(
-              "px-4 py-2 text-xs font-bold transition-all rounded-lg",
+              "px-4 py-2 text-xs font-bold transition rounded-lg",
               activeTab === 'bills' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
@@ -430,7 +430,7 @@ export default function AccountsPayablePage() {
           <button
             onClick={() => setActiveTab('guarantees')}
             className={clsx(
-              "px-4 py-2 text-xs font-bold transition-all rounded-lg flex items-center gap-2",
+              "px-4 py-2 text-xs font-bold transition rounded-lg flex items-center gap-2",
               activeTab === 'guarantees' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
@@ -444,7 +444,7 @@ export default function AccountsPayablePage() {
           <button
             onClick={() => setActiveTab('history')}
             className={clsx(
-              "px-4 py-2 text-xs font-bold transition-all rounded-lg",
+              "px-4 py-2 text-xs font-bold transition rounded-lg",
               activeTab === 'history' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
@@ -495,7 +495,7 @@ export default function AccountsPayablePage() {
                           <button
                             onClick={() => handlePrintSupplierAP(supplier.supplierId)}
                             disabled={printingSupplierId === supplier.supplierId}
-                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 h-8 rounded-lg border border-slate-700 transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 h-8 rounded-lg border border-slate-700 transition flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
                             title="Imprimir Cuentas por Pagar"
                           >
                             <Printer className="w-4 h-4 text-amber-500" />
@@ -555,7 +555,7 @@ export default function AccountsPayablePage() {
                                   <td className="px-4 py-2.5 text-right">
                                     <button
                                       onClick={() => handleOpenPayment(supplier, bill)}
-                                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md transition-all active:scale-[0.98]"
+                                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md transition active:scale-[0.98]"
                                     >
                                       Registrar Pago
                                     </button>
@@ -587,7 +587,7 @@ export default function AccountsPayablePage() {
                 <button
                   onClick={handleApplyDueGuarantees}
                   disabled={applyingGuarantees || pendingGuarantees.length === 0}
-                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs justify-center"
+                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs justify-center"
                 >
                   {applyingGuarantees ? (
                     <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
@@ -1023,7 +1023,7 @@ export default function AccountsPayablePage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md hover:-translate-y-0.5 transition disabled:opacity-50"
                   >
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {paymentForm.isGuarantee ? 'Registrar Garantía' : 'Procesar'}

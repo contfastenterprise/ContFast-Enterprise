@@ -123,7 +123,7 @@ const SearchBar = ({
           value={searchQuery}
           onChange={handleChange}
           onFocus={() => setIsFocused(true)}
-          className="w-full h-8 pl-9 pr-9 py-1.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-xs text-slate-900 transition-all placeholder:text-neutral-400"
+          className="w-full h-8 pl-9 pr-9 py-1.5 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#c5a059] focus:border-[#c5a059] text-xs text-slate-900 transition placeholder:text-neutral-400"
         />
         {searchQuery && (
           <button

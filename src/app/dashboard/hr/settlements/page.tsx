@@ -228,7 +228,7 @@ export default function SettlementsPage() {
         <div className="flex gap-2">
           <button
             onClick={fetchData}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white h-8 w-8 text-slate-700 shadow-sm hover:bg-slate-50 transition-all"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white h-8 w-8 text-slate-700 shadow-sm hover:bg-slate-50 transition"
           >
             <RefreshCw className="h-4 w-4" />
           </button>
@@ -476,7 +476,7 @@ export default function SettlementsPage() {
                 <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setCalculation(null)}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 h-8 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-all"
+                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 h-8 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
                   >
                     Descartar
                   </button>

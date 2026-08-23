@@ -111,13 +111,13 @@ export default function QuotesList() {
         <div className="flex items-center gap-3 self-end md:self-auto">
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-[#c5a059] shadow-sm"
+              className="px-4 py-2 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
               onClick={() => router.push('/dashboard/quotes/new')}
-              className="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-500 hover:text-slate-800"
+              className="px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
@@ -175,7 +175,7 @@ export default function QuotesList() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as any); setPage(1); }}
-              className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:ring-1 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition-all appearance-none"
+              className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:ring-1 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition appearance-none"
             >
               <option value="">Todos los Estados</option>
               <option value="pending">Pendientes</option>
@@ -192,7 +192,7 @@ export default function QuotesList() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Ej: COT-2026-000001 o Cliente..."
-                className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 py-1.5 text-xs text-[#003366] placeholder:text-slate-500 focus:ring-1 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition-all"
+                className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg pl-10 pr-3 py-1.5 text-xs text-[#003366] placeholder:text-slate-500 focus:ring-1 focus:ring-[#C5A059]/20 focus:border-[#C5A059] outline-none transition"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             </div>
@@ -367,7 +367,7 @@ export default function QuotesList() {
                   disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
                   type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                 >
                   Anterior
                 </button>
@@ -378,7 +378,7 @@ export default function QuotesList() {
                   disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
                   type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                 >
                   Siguiente
                 </button>

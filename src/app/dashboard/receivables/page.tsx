@@ -400,7 +400,7 @@ export default function ReceivablesPage() {
           <button
             onClick={() => setActiveTab('pending')}
             className={clsx(
-              "px-4 py-2 text-xs font-semibold border-b-2 transition-all flex items-center gap-2",
+              "px-4 py-2 text-xs font-semibold border-b-2 transition flex items-center gap-2",
               activeTab === 'pending'
                 ? "border-[#003366] text-[#003366]"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -413,7 +413,7 @@ export default function ReceivablesPage() {
               setActiveTab('receipts');
             }}
             className={clsx(
-              "px-4 py-2 text-xs font-semibold border-b-2 transition-all flex items-center gap-2",
+              "px-4 py-2 text-xs font-semibold border-b-2 transition flex items-center gap-2",
               activeTab === 'receipts'
                 ? "border-[#003366] text-[#003366]"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -426,7 +426,7 @@ export default function ReceivablesPage() {
               setActiveTab('customer_statement');
             }}
             className={clsx(
-              "px-4 py-2 text-xs font-semibold border-b-2 transition-all flex items-center gap-2",
+              "px-4 py-2 text-xs font-semibold border-b-2 transition flex items-center gap-2",
               activeTab === 'customer_statement'
                 ? "border-[#003366] text-[#003366]"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -447,7 +447,7 @@ export default function ReceivablesPage() {
                 <input
                   type="text"
                   placeholder="Buscar cliente..."
-                  className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                  className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -487,13 +487,13 @@ export default function ReceivablesPage() {
                       <button
                         onClick={() => handlePrintCustomerStatement(customer.customerId)}
                         disabled={printingCustomerId === customer.customerId}
-                        className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                        className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                       >
                         <Printer className="h-3.5 w-3.5" /> Imprimir
                       </button>
                       <button
                         onClick={() => handleOpenPayment(customer)}
-                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                       >
                         <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
                       </button>
@@ -556,7 +556,7 @@ export default function ReceivablesPage() {
                   <input
                     type="text"
                     placeholder="Ej. Juan Pérez, REC-023a..."
-                    className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                    className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                     value={receiptSearchTerm}
                     onChange={(e) => setReceiptSearchTerm(e.target.value)}
                   />
@@ -568,7 +568,7 @@ export default function ReceivablesPage() {
                   type="date"
                   value={receiptStartDate}
                   onChange={(e) => setReceiptStartDate(e.target.value)}
-                  className="block w-full h-8 px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                  className="block w-full h-8 px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                 />
               </div>
               <div className="w-full md:w-40">
@@ -577,13 +577,13 @@ export default function ReceivablesPage() {
                   type="date"
                   value={receiptEndDate}
                   onChange={(e) => setReceiptEndDate(e.target.value)}
-                  className="block w-full h-8 px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                  className="block w-full h-8 px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                 />
               </div>
               <button
                 type="button"
                 onClick={fetchReceipts}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Search className="w-3.5 h-3.5" /> Buscar
               </button>
@@ -691,7 +691,7 @@ export default function ReceivablesPage() {
                       setShowCustomerDropdown(true);
                     }}
                     onFocus={() => setShowCustomerDropdown(true)}
-                    className="block w-full h-8 pl-9 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                    className="block w-full h-8 pl-9 pr-8 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                   />
                   {customerSearchInput && (
                     <button
@@ -751,7 +751,7 @@ export default function ReceivablesPage() {
                   <input
                     type="text"
                     placeholder="Filtrar resultados..."
-                    className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition-all outline-none"
+                    className="block w-full h-8 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                     value={statementSearch}
                     onChange={(e) => setStatementSearch(e.target.value)}
                   />
@@ -763,7 +763,7 @@ export default function ReceivablesPage() {
                   type="button"
                   disabled={printingCustomerId === selectedStatementCustomerId}
                   onClick={() => handlePrintCustomerStatement(selectedStatementCustomerId)}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   {printingCustomerId === selectedStatementCustomerId ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -959,7 +959,7 @@ export default function ReceivablesPage() {
                   <h3 className="text-white font-display font-bold text-lg flex items-center gap-2"><HandCoins className="w-5 h-5 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
                   <p className="text-[#C5A059] font-bold text-sm mt-0.5">{selectedCustomer.customerName}</p>
                 </div>
-                <button onClick={() => setShowPaymentModal(false)} className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl text-xs font-bold transition-all active:scale-95"><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowPaymentModal(false)} className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl text-xs font-bold transition active:scale-95"><X className="w-5 h-5" /></button>
               </div>
 
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
@@ -1081,7 +1081,7 @@ export default function ReceivablesPage() {
                                   step="0.01"
                                   value={applied || ''}
                                   onChange={(e) => handleManualApplyChange(inv.arId, e.target.value, inv.balance)}
-                                  className={clsx("w-full border rounded-xl px-3 py-1.5 text-right font-mono text-xs outline-none focus:ring-2 transition-all", applied > 0 ? 'border-emerald-500 bg-emerald-50/55 focus:ring-emerald-500 text-emerald-700 font-bold' : 'border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-[#003366]')}
+                                  className={clsx("w-full border rounded-xl px-3 py-1.5 text-right font-mono text-xs outline-none focus:ring-2 transition", applied > 0 ? 'border-emerald-500 bg-emerald-50/55 focus:ring-emerald-500 text-emerald-700 font-bold' : 'border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-[#003366]')}
                                   placeholder="0.00"
                                 />
                               </td>
@@ -1114,7 +1114,7 @@ export default function ReceivablesPage() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                       {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                       Procesar Recibo
                     </button>
@@ -1205,14 +1205,14 @@ export default function ReceivablesPage() {
               <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
                 <button
                   onClick={() => setShowReceiptDetailsModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   Cerrar
                 </button>
                 {selectedReceipt && (
                   <button
                     onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Printer className="w-4 h-4" /> Imprimir Recibo
                   </button>

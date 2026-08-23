@@ -296,7 +296,7 @@ export default function BIDashboardPage() {
             <select 
               value={warehouseId}
               onChange={e => setWarehouseId(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Almacenes</option>
               {warehouses.map(w => (
@@ -313,7 +313,7 @@ export default function BIDashboardPage() {
             <select 
               value={userId}
               onChange={e => setUserId(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Vendedores</option>
               {sellersList.map(s => (
@@ -330,7 +330,7 @@ export default function BIDashboardPage() {
             <select 
               value={categoryId}
               onChange={e => setCategoryId(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todas las Categorías</option>
               {categories.map(c => (
@@ -347,7 +347,7 @@ export default function BIDashboardPage() {
             <select 
               value={customerId}
               onChange={e => setCustomerId(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Clientes</option>
               {customersList.map(c => (
@@ -364,7 +364,7 @@ export default function BIDashboardPage() {
             <select 
               value={supplierId}
               onChange={e => setSupplierId(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Proveedores</option>
               {suppliersList.map(s => (
@@ -381,7 +381,7 @@ export default function BIDashboardPage() {
             <select 
               value={invoiceStatus}
               onChange={e => setInvoiceStatus(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Estados</option>
               <option value="accepted">Aceptado por DGII</option>
@@ -400,7 +400,7 @@ export default function BIDashboardPage() {
             <select 
               value={ecfType}
               onChange={e => setEcfType(e.target.value)}
-              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer h-[38px] shadow-sm"
+              className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Comprobantes</option>
               <option value="31">Factura Crédito Fiscal (E31)</option>
@@ -427,43 +427,43 @@ export default function BIDashboardPage() {
       <div className="flex overflow-x-auto gap-2 p-1.5 bg-surface-variant/40 rounded-2xl w-fit max-w-full custom-scrollbar">
         <button
           onClick={() => setActiveTab('general')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'general' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'general' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           General Ejecutiva
         </button>
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'products' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'products' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Productos
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'inventory' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'inventory' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Inventario
         </button>
         <button
           onClick={() => setActiveTab('customers')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'customers' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'customers' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Clientes
         </button>
         <button
           onClick={() => setActiveTab('billing')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'billing' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'billing' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Ventas y e-CF
         </button>
         <button
           onClick={() => setActiveTab('purchases')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'purchases' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'purchases' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Compras y Egresos
         </button>
         <button
           onClick={() => setActiveTab('alerts')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'alerts' ? 'bg-surface-bright text-[#003366] shadow-xs flex items-center gap-1' : 'text-on-surface-variant hover:text-on-surface flex items-center gap-1'}`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'alerts' ? 'bg-surface-bright text-[#003366] shadow-xs flex items-center gap-1' : 'text-on-surface-variant hover:text-on-surface flex items-center gap-1'}`}
         >
           Alertas
           {generalData?.productsLowStock > 0 || generalData?.overdueInvoices > 0 ? (

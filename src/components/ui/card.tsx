@@ -12,7 +12,7 @@ const Card = React.forwardRef<
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.2, ease: "easeOut" }}
     className={cn(
-      "rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md",
+      "rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition duration-200 hover:shadow-md",
       className
     )}
     {...props}

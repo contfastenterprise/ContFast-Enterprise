@@ -108,7 +108,7 @@ export const AutocompleteSelect = ({
           }}
           onFocus={() => setIsOpen(true)}
           className={cn(
-            "w-full pl-9 pr-9 py-2 border-none rounded-xl bg-surface-container-high focus:outline-none focus:ring-2 focus:ring-primary text-xs font-medium text-primary transition-all placeholder:text-neutral-400",
+            "w-full pl-9 pr-9 py-2 border-none rounded-xl bg-surface-container-high focus:outline-none focus:ring-2 focus:ring-primary text-xs font-medium text-primary transition placeholder:text-neutral-400",
             inputClassName
           )}
         />

@@ -1213,7 +1213,7 @@ function InvoicesList() {
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
               onClick={() => { setShowForm(false); router.replace('/dashboard/invoices'); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${!showForm
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!showForm
                   ? 'bg-white text-[#c5a059] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -1222,7 +1222,7 @@ function InvoicesList() {
             </button>
             <button
               onClick={() => { resetForm(); setShowForm(true); }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${showForm
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${showForm
                   ? 'bg-white text-[#c5a059] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -1353,7 +1353,7 @@ function InvoicesList() {
                       <button
                         type="button"
                         onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
-                        className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                        className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                       >
                         Remover Referencia
                       </button>
@@ -1371,7 +1371,7 @@ function InvoicesList() {
                             onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
                             required
                             className={clsx(
-                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
                               indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
                             )}
                           >
@@ -1386,7 +1386,7 @@ function InvoicesList() {
                             onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
                             required
                             className={clsx(
-                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition-all',
+                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
                               indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
                             )}
                           >
@@ -1515,7 +1515,7 @@ function InvoicesList() {
                             value={line.unitOfMeasure || 'unidad'}
                             onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
                             disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                           >
                             <option value="unidad">Unidad</option>
                             <option value="pie">Pie</option>
@@ -1534,7 +1534,7 @@ function InvoicesList() {
                             value={line.quantity}
                             onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
                             disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                             min={0.0001} step="any" required
                           />
                         </div>
@@ -1584,7 +1584,7 @@ function InvoicesList() {
                                 value={line.discount || 0}
                                 onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
                                 disabled={!hasProduct || !canEditDiscount}
-                                className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct
+                                className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct
                                   ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
                                   : !canEditDiscount
                                     ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
@@ -1605,7 +1605,7 @@ function InvoicesList() {
                             value={line.taxRate}
                             onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
                             disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition-all ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                           >
                             <option value="0.18">18% ITBIS</option>
                             <option value="0.16">16% ITBIS</option>
@@ -1639,7 +1639,7 @@ function InvoicesList() {
                   <button
                     type="button"
                     onClick={handleAddLine}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Plus className="h-4 w-4" />
                     Agregar Fila
@@ -1655,7 +1655,7 @@ function InvoicesList() {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ej: Términos de pago, garantía, o cualquier otra observación que aparecerá en la factura impresa..."
                   rows={3}
-                  className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition-all resize-y placeholder:text-slate-400"
+                  className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition resize-y placeholder:text-slate-400"
                 />
               </div>
 
@@ -1718,7 +1718,7 @@ function InvoicesList() {
                       router.replace('/dashboard/invoices');
                       resetForm();
                     }}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Cancelar
                   </button>
@@ -1729,7 +1729,7 @@ function InvoicesList() {
                     onClick={handleSaveDraft}
                     disabled={savingDraft || submitting}
                     title="Guardar como Borrador (sin emitir NCF)"
-                    className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {savingDraft ? (
                       <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
@@ -1745,7 +1745,7 @@ function InvoicesList() {
                       type="submit"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { setSaveDropdownOpen(false); }}
-                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-full rounded-l-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-full rounded-l-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       {submitting ? (
                         <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
@@ -1758,7 +1758,7 @@ function InvoicesList() {
                       type="button"
                       disabled={submitting || savingDraft}
                       onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                      className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed outline-none"
+                      className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed outline-none"
                       title="Más opciones"
                     >
                       <ChevronDown className="h-3.5 w-3.5" />
@@ -1951,7 +1951,7 @@ function InvoicesList() {
 
               <button
                 onClick={loadInvoices}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Filter className="h-4 w-4" />
                 FILTRAR
@@ -1970,7 +1970,7 @@ function InvoicesList() {
                     queryParams.append('excludeTypes', '33,34,03,04');
                     window.open(`/api/v1/invoices/report?${queryParams.toString()}`, '_blank');
                   }}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Printer className="h-4 w-4" />
                   REPORTE PDF
@@ -2213,7 +2213,7 @@ function InvoicesList() {
                                 setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
                                 setEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
                               }}
-                              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                             >
                               Limpiar Filtros
                             </button>
@@ -2235,13 +2235,13 @@ function InvoicesList() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setPage(1)} disabled={page === 1}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <ChevronsLeft className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -2255,13 +2255,13 @@ function InvoicesList() {
 
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setPage(totalPages)} disabled={page >= totalPages}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <ChevronsRight className="h-4 w-4" />
                   </button>

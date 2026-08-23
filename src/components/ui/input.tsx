@@ -43,7 +43,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            "w-full bg-background border border-border text-foreground placeholder:text-muted-foreground transition-all duration-200 outline-none",
+            "w-full bg-background border border-border text-foreground placeholder:text-muted-foreground transition duration-200 outline-none",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
             "disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60",
             error &&

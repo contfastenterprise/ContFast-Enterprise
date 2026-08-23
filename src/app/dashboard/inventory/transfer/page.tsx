@@ -419,7 +419,7 @@ export default function TransferPage() {
               <button
                 onClick={handleTransfer}
                 disabled={submitting || items.length === 0}
-                className="mt-4 w-full bg-[#003366] text-white font-bold py-2.5 rounded-xl shadow hover:bg-[#002244] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                className="mt-4 w-full bg-[#003366] text-white font-bold py-2.5 rounded-xl shadow hover:bg-[#002244] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
                 {submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                 {submitting ? 'Procesando...' : 'Confirmar Traslado'}

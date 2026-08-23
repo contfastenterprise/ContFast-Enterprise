@@ -49,7 +49,7 @@ export default function QRControls({ company, config, onChange }: QRControlsProp
                 type="button"
                 onClick={() => update({ targetPath: r.value })}
                 className={[
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-medium transition text-left',
                   config.targetPath === r.value
                     ? 'bg-[#001e40] border-[#001e40] text-white shadow-sm'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300',
@@ -71,7 +71,7 @@ export default function QRControls({ company, config, onChange }: QRControlsProp
               placeholder="src=mostrador&campaña=agosto"
               value={config.customParams}
               onChange={(e) => update({ customParams: e.target.value })}
-              className="w-full h-10 px-3 text-xs font-medium rounded-xl border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 bg-white text-slate-700 transition-all placeholder:text-slate-300"
+              className="w-full h-10 px-3 text-xs font-medium rounded-xl border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 bg-white text-slate-700 transition placeholder:text-slate-300"
             />
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function QRControls({ company, config, onChange }: QRControlsProp
                 onClick={() => update({ fgColor: c.value })}
                 title={c.label}
                 className={[
-                  'h-9 rounded-xl border-2 transition-all',
+                  'h-9 rounded-xl border-2 transition',
                   config.fgColor === c.value ? 'border-[#C5A059] scale-95' : 'border-transparent hover:scale-95',
                 ].join(' ')}
                 style={{ backgroundColor: c.value }}

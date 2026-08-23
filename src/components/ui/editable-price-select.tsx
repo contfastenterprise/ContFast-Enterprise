@@ -54,7 +54,7 @@ export function EditablePriceSelect({
           disabled={disabled}
           placeholder="0.00"
           className={clsx(
-            "w-full rounded-lg border py-1.5 pl-2 pr-7 outline-none text-xs transition-all",
+            "w-full rounded-lg border py-1.5 pl-2 pr-7 outline-none text-xs transition",
             disabled
               ? "bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed"
               : isBelowCost

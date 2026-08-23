@@ -123,7 +123,7 @@ export default async function StorefrontProductsPage({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {products.map((product, index) => (
                   <AnimateOnScroll key={product.id} index={index}>
-                    <article className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden group flex flex-col h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#c5a059]/40 dark:hover:border-[#c5a059]/60 relative z-10 hover:z-20 focus-within:ring-2 focus-within:ring-[#001e40] dark:focus-within:ring-[#c5a059]">
+                    <article className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden group flex flex-col h-full transition duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#c5a059]/40 dark:hover:border-[#c5a059]/60 relative z-10 hover:z-20 focus-within:ring-2 focus-within:ring-[#001e40] dark:focus-within:ring-[#c5a059]">
                       <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-900 flex items-center justify-center overflow-hidden shrink-0">
                         {product.isOnSale && (
                           <div className="absolute top-2 left-2 z-20 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-sm shadow-md" aria-label="Producto en oferta">
@@ -134,7 +134,7 @@ export default async function StorefrontProductsPage({
                           <img
                             src={product.imageUrl}
                             alt={`Imagen de ${product.name}`}
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
                           />
                         ) : (

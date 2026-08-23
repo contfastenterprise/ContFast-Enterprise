@@ -169,7 +169,7 @@ function NavItem({
   return (
     <div className="flex flex-col w-full">
       <div 
-        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition-all duration-200 select-none
+        className={`group flex items-center justify-between px-2.5 py-[7px] rounded-[6px] cursor-pointer transition duration-200 select-none
           ${isActive 
             ? 'bg-black/5 dark:bg-white/10 text-foreground font-medium' 
             : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground/90'
@@ -325,7 +325,7 @@ export default function SidebarNavPreview() {
         
         {/* Sidebar panel */}
         <div 
-          className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-card/50 border-r border-border/50 ${
+          className={`h-full transition duration-300 ease-in-out shrink-0 overflow-hidden bg-card/50 border-r border-border/50 ${
             isOpen ? 'w-[260px] opacity-100' : 'w-0 opacity-0 border-none'
           }`}
         >
@@ -339,7 +339,7 @@ export default function SidebarNavPreview() {
         </div>
         
         {/* Main content area */}
-        <div className="flex-1 bg-black/[0.02] dark:bg-white/[0.02] flex flex-col min-w-0 transition-all duration-300">
+        <div className="flex-1 bg-black/[0.02] dark:bg-white/[0.02] flex flex-col min-w-0 transition duration-300">
            {/* Topbar */}
            <div className="h-14 border-b border-border/50 flex items-center px-4 justify-between bg-card shrink-0">
              <div className="flex items-center gap-3">

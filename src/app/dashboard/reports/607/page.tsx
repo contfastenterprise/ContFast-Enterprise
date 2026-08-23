@@ -102,7 +102,7 @@ export default function Report607() {
         </div>
         <button
           onClick={exportTxt}
-          className="flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-lg font-bold text-sm transition-all shadow-md"
+          className="flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-lg font-bold text-sm transition shadow-md"
         >
           <Download className="h-4 w-4" /> Exportar TXT 607
         </button>

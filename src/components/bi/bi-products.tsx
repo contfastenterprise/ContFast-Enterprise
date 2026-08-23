@@ -46,7 +46,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
       <div className="flex border-b border-outline-variant/30">
         <button
           onClick={() => setSubTab('sales')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'sales' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -56,7 +56,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         </button>
         <button
           onClick={() => setSubTab('profit')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'profit' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -66,7 +66,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         </button>
         <button
           onClick={() => setSubTab('slow')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'slow' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'
@@ -76,7 +76,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         </button>
         <button
           onClick={() => setSubTab('returns')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'returns' 
               ? 'border-primary text-primary' 
               : 'border-transparent text-on-surface-variant hover:text-on-surface'

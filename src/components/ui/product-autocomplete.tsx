@@ -149,7 +149,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               }
               setIsOpen(true);
             }}
-            className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-3 pr-8 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition-all truncate"
+            className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-3 pr-8 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition truncate"
             placeholder={placeholder}
             title={displayValue || placeholder}
             required
@@ -161,7 +161,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                 e.stopPropagation();
                 if (onClear) onClear();
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition-all outline-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition outline-none"
               title="Borrar artículo seleccionado"
             >
               <X className="h-3.5 w-3.5 text-slate-400 hover:text-rose-500" />
@@ -299,7 +299,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
                                     >
                                       <span>{qty.toFixed(2)}</span>
                                       <span className={clsx(
-                                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all",
+                                        "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition",
                                         isSelected
                                           ? "border-amber-500 bg-amber-500 text-white text-[8px] font-bold"
                                           : isWarehouseDisabled

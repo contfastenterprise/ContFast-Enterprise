@@ -113,7 +113,7 @@ function WorkspaceSwitcher({
         {isSistemas && (
           <ChevronDown
             className={clsx(
-              'w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition-all duration-200 shrink-0',
+              'w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant transition duration-200 shrink-0',
               isOpen && 'rotate-180',
             )}
             strokeWidth={1.5}
@@ -175,7 +175,7 @@ function NavItem({
       onClick={onClick}
       title={collapsed ? item.name : undefined}
       className={clsx(
-        'group flex items-center rounded-[6px] transition-all duration-150 select-none w-full',
+        'group flex items-center rounded-[6px] transition duration-150 select-none w-full',
         collapsed ? 'justify-center px-2 py-2.5' : clsx('px-2.5 py-[7px]', isSubItem ? 'pl-8 text-[12px] gap-2' : 'gap-2.5 text-[13px]'),
         isActive
           ? 'bg-primary/10 text-primary font-semibold'
@@ -377,7 +377,7 @@ function SidebarContent({
                   <button
                     title={group.title}
                     className={clsx(
-                      'group flex items-center justify-center rounded-[6px] w-full px-2 py-2.5 transition-all duration-150 select-none cursor-pointer',
+                      'group flex items-center justify-center rounded-[6px] w-full px-2 py-2.5 transition duration-150 select-none cursor-pointer',
                       isGroupActive
                         ? 'bg-primary/10 text-primary font-semibold'
                         : 'text-on-surface-variant hover:bg-black/5 dark:hover:bg-white/5 hover:text-on-surface'

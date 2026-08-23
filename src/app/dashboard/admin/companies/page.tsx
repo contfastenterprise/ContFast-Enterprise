@@ -265,7 +265,7 @@ export default function AdminCompaniesPage() {
               Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
             </p>
           </div>
-          <button onClick={() => setShowNewCompanyModal(true)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm justify-center">
+          <button onClick={() => setShowNewCompanyModal(true)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm justify-center">
             <Plus className="h-4 w-4" /> Nueva Empresa
           </button>
         </div>
@@ -284,7 +284,7 @@ export default function AdminCompaniesPage() {
                   placeholder="Buscar por nombre o RNC..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                 />
               </div>
               <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors shrink-0" title="Actualizar">
@@ -422,7 +422,7 @@ export default function AdminCompaniesPage() {
                   required
                   value={companyForm.name}
                   onChange={e => setCompanyForm({...companyForm, name: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                   placeholder="Ej. Mi Empresa S.R.L."
                 />
               </div>
@@ -436,7 +436,7 @@ export default function AdminCompaniesPage() {
                   maxLength={11}
                   value={companyForm.rnc}
                   onChange={e => setCompanyForm({...companyForm, rnc: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
                   placeholder="Ej. 101001001"
                 />
               </div>
@@ -448,7 +448,7 @@ export default function AdminCompaniesPage() {
                   required
                   value={companyForm.email}
                   onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                   placeholder="Ej. contacto@empresa.com"
                 />
               </div>
@@ -459,7 +459,7 @@ export default function AdminCompaniesPage() {
                   type="text"
                   value={companyForm.businessActivity}
                   onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                   placeholder="Ej. Venta al por menor..."
                 />
               </div>
@@ -469,7 +469,7 @@ export default function AdminCompaniesPage() {
                 <textarea
                   value={companyForm.address}
                   onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all resize-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
                   rows={2}
                   placeholder="Dirección física..."
                 />
@@ -526,7 +526,7 @@ export default function AdminCompaniesPage() {
                   required
                   value={subForm.planId}
                   onChange={e => setSubForm({...subForm, planId: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                 >
                   <option value="">-- Elija un plan comercial --</option>
                   {plans.map(p => (
@@ -543,7 +543,7 @@ export default function AdminCompaniesPage() {
                   required
                   value={subForm.status}
                   onChange={e => setSubForm({...subForm, status: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
                 >
                   <option value="active">Activa (Vigente)</option>
                   <option value="past_due">Vencida (Pendiente de Pago)</option>
@@ -559,7 +559,7 @@ export default function AdminCompaniesPage() {
                   required
                   value={subForm.currentPeriodEnd}
                   onChange={e => setSubForm({...subForm, currentPeriodEnd: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition-all font-mono"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
                 />
               </div>
 

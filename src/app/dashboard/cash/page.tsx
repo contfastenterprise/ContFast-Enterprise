@@ -411,7 +411,7 @@ export default function CashPage() {
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             className={clsx(
-              'flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all rounded-t-lg',
+              'flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition rounded-t-lg',
               (view === tab.id || (tab.id === 'gestion' && view === 'apertura'))
                 ? 'border-[#c5a059] text-[#c5a059] bg-amber-50'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
@@ -462,7 +462,7 @@ export default function CashPage() {
                       <button
                         type="button"
                         onClick={() => setShowNewRegisterModal(true)}
-                        className={`text-xs font-bold px-2 py-0.5 rounded transition-all ${
+                        className={`text-xs font-bold px-2 py-0.5 rounded transition ${
                           registers.length === 0
                             ? 'bg-[#003366] text-white hover:bg-[#002244] animate-pulse hover:animate-none'
                             : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
@@ -474,7 +474,7 @@ export default function CashPage() {
                     <select
                       value={selectedRegisterId}
                       onChange={(e) => setSelectedRegisterId(e.target.value)}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all text-slate-800"
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
                       required
                     >
                       {registers.length === 0 && (
@@ -535,7 +535,7 @@ export default function CashPage() {
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className="w-full h-10 pl-12 pr-3 py-1.5 text-lg rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-mono font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
+                      className="w-full h-10 pl-12 pr-3 py-1.5 text-lg rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-mono font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
                       required
                     />
                   </div>
@@ -549,14 +549,14 @@ export default function CashPage() {
                   <button
                     type="button"
                     onClick={() => router.push('/dashboard')}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={submitting || registers.length === 0}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     {submitting ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
@@ -631,14 +631,14 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setShowNewRegisterModal(false)}
-                          className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                          className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                         >
                           Cancelar
                         </button>
                         <button
                           type="submit"
                           disabled={creatingRegister}
-                          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                         >
                           {creatingRegister ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Crear Terminal
                         </button>
@@ -671,21 +671,21 @@ export default function CashPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setMoveType('cash_in'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Entrada de Efectivo
                 </button>
                 <button
                   onClick={() => { setMoveType('cash_out'); setShowMoveModal(true); }}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Minus className="w-4 h-4" />
                   Salida de Efectivo
                 </button>
                 <button
                   onClick={() => handleTabChange('arqueo')}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Scale className="w-4 h-4" />
                   Arqueo y Cierre
@@ -916,7 +916,7 @@ export default function CashPage() {
                                 [d.value]: parseInt(e.target.value) || 0,
                               }))}
                               placeholder="0"
-                              className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-center font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition-all text-slate-800"
+                              className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-center font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition text-slate-800"
                             />
                           </div>
                           <div className="col-span-4 text-right font-mono text-xs font-bold text-slate-700">
@@ -941,7 +941,7 @@ export default function CashPage() {
                           value={coinsTotal}
                           onChange={(e) => setCoinsTotal(e.target.value)}
                           placeholder="Ingrese monto total en monedas"
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition-all text-slate-800"
+                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition text-slate-800"
                         />
                       </div>
                     </div>
@@ -957,7 +957,7 @@ export default function CashPage() {
                       onChange={(e) => setCloseObservations(e.target.value)}
                       placeholder="Escriba cualquier novedad o discrepancia detectada..."
                       rows={3}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none resize-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none resize-none transition"
                     />
                   </div>
                 </div>
@@ -1043,7 +1043,7 @@ export default function CashPage() {
                   <button
                     onClick={handleCloseSession}
                     disabled={closing}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm w-full"
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm w-full"
                   >
                     {closing ? (
                       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
@@ -1084,13 +1084,13 @@ export default function CashPage() {
                 <p className="text-xs text-slate-500 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={handleExportHistory} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                <button onClick={handleExportHistory} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                   <Download className="w-4 h-4" />
                   EXPORTAR XLS
                 </button>
                 <button
                   onClick={loadHistory}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   ACTUALIZAR
@@ -1125,13 +1125,13 @@ export default function CashPage() {
                 <div className="md:col-start-4 flex items-center gap-2">
                   <button
                     onClick={() => { setHistDateFrom(''); setHistStatus(''); }}
-                    className="flex-1 flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex-1 flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     LIMPIAR
                   </button>
                   <button
                     onClick={loadHistory}
-                    className="flex-[2] flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex-[2] flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <Filter className="w-3 h-3" />
                     APLICAR
@@ -1341,7 +1341,7 @@ export default function CashPage() {
                       type="button"
                       onClick={() => setMoveType(t)}
                       className={clsx(
-                        'flex-1 h-8 text-xs font-bold border transition-all rounded-lg',
+                        'flex-1 h-8 text-xs font-bold border transition rounded-lg',
                         moveType === t
                           ? t === 'cash_in' ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-300 text-red-700'
                           : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'
@@ -1385,7 +1385,7 @@ export default function CashPage() {
                   <button
                     type="button"
                     onClick={() => setShowMoveModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     Cancelar
                   </button>

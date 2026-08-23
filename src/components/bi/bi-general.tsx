@@ -79,7 +79,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
             secondary: '#3b82f6',
             accent: '#1d4ed8'
           }}
-          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-lg transition-all hover:-translate-y-0.5"
+          className="shadow-[0_4px_30px_rgba(0,0,0,0.05)] hover:shadow-lg transition hover:-translate-y-0.5"
         >
           <div className="p-6 h-full flex flex-col justify-between">
             <div className="flex justify-between items-start">
@@ -102,7 +102,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
         </BorderRotate>
 
         {/* Purchases Card */}
-        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition-all hover:-translate-y-0.5 shadow-sm">
+        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition hover:-translate-y-0.5 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Compras del Mes</p>
@@ -121,7 +121,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
         </div>
 
         {/* Profit Card */}
-        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition-all hover:-translate-y-0.5 shadow-sm">
+        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition hover:-translate-y-0.5 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Ganancia Estimada</p>
@@ -140,7 +140,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
         </div>
 
         {/* Inventory Value Card */}
-        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition-all hover:-translate-y-0.5 shadow-sm">
+        <div className="bg-surface-bright border border-outline-variant/30 p-6 rounded-3xl flex flex-col justify-between hover:shadow-md transition hover:-translate-y-0.5 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Valor del Inventario</p>

@@ -176,7 +176,7 @@ export default function ReceivablesReportPage() {
             <button
               onClick={handlePrint}
               disabled={printing}
-              className="bg-[#003366] hover:bg-[#002244] disabled:opacity-50 text-white font-bold py-2 px-4 h-10 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm"
+              className="bg-[#003366] hover:bg-[#002244] disabled:opacity-50 text-white font-bold py-2 px-4 h-10 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm"
             >
               <Printer className="h-4.5 w-4.5" /> 
               {printing ? 'Generando...' : 'Imprimir Reporte'}
@@ -266,7 +266,7 @@ export default function ReceivablesReportPage() {
                                         <button
                                           onClick={() => handlePrintCustomer(group.customerId)}
                                           disabled={printingCustomer === group.customerId}
-                                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 disabled:opacity-50 font-bold py-1.5 px-4 rounded-lg shadow-sm transition-all flex items-center gap-2 text-xs"
+                                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 disabled:opacity-50 font-bold py-1.5 px-4 rounded-lg shadow-sm transition flex items-center gap-2 text-xs"
                                         >
                                           <Printer className="h-4 w-4" /> 
                                           {printingCustomer === group.customerId ? 'Generando...' : 'Imprimir'}

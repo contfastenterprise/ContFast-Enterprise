@@ -106,7 +106,7 @@ export default function PwaInstallPrompt() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleInstallClick}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-indigo-600/10 active:scale-[0.98] transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-indigo-600/10 active:scale-[0.98] transition cursor-pointer"
           >
             <Download className="w-4 h-4" />
             Instalar ahora

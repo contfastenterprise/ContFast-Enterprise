@@ -912,7 +912,7 @@ export default function PurchasesPage() {
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
               onClick={() => setActiveTab('historial')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'historial'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'historial'
                   ? 'bg-white text-[#c5a059] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -924,7 +924,7 @@ export default function PurchasesPage() {
                 resetForm();
                 setActiveTab('nuevo');
               }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'nuevo'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'nuevo'
                   ? 'bg-white text-[#c5a059] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -933,7 +933,7 @@ export default function PurchasesPage() {
             </button>
             <button
               onClick={() => setActiveTab('cheques')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === 'cheques'
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'cheques'
                   ? 'bg-white text-[#c5a059] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
@@ -1038,7 +1038,7 @@ export default function PurchasesPage() {
                     }
                     window.open(url, '_blank');
                   }}
-                  className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
+                  className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
                 >
                   <Printer className="h-4 w-4" />
                   <span>Imprimir Reporte</span>
@@ -1047,7 +1047,7 @@ export default function PurchasesPage() {
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 text-xs rounded-lg flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition-all active:scale-95 disabled:opacity-50"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 text-xs rounded-lg flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition active:scale-95 disabled:opacity-50"
               >
                 {searchLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 <span className="font-bold text-xs">Buscar Registros</span>
@@ -1068,7 +1068,7 @@ export default function PurchasesPage() {
                   resetForm();
                   setActiveTab('nuevo');
                 }}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition-all active:scale-95"
+                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition active:scale-95"
               >
                 <Plus className="h-4 w-4" /> Registrar Compra o Gasto
               </button>
@@ -1230,14 +1230,14 @@ export default function PurchasesPage() {
                                   <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       onClick={() => viewDetails(e.id)}
-                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
+                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition"
                                       title="Ver Detalles"
                                     >
                                       <Eye className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
                                       title="Imprimir"
                                     >
                                       <Printer className="h-4 w-4" />
@@ -1245,7 +1245,7 @@ export default function PurchasesPage() {
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                                       <button
                                         onClick={() => handleEditFromList(e.id)}
-                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition"
                                         title="Editar"
                                       >
                                         <Edit className="h-4 w-4" />
@@ -1254,7 +1254,7 @@ export default function PurchasesPage() {
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                                       <button
                                         onClick={() => handleDeleteExpense(e.id)}
-                                        className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                                        className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
                                         title="Anular"
                                       >
                                         <Trash2 className="h-4 w-4" />
@@ -1278,7 +1278,7 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => setPurchasesPage(p => Math.max(1, p - 1))}
                           disabled={purchasesPage === 1}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Anterior
                         </button>
@@ -1288,7 +1288,7 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => setPurchasesPage(p => Math.min(totalPurchasesPages, p + 1))}
                           disabled={purchasesPage === totalPurchasesPages}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Siguiente
                         </button>
@@ -1401,14 +1401,14 @@ export default function PurchasesPage() {
                                   <div className="flex items-center justify-center gap-1.5">
                                     <button
                                       onClick={() => viewDetails(e.id)}
-                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
+                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition"
                                       title="Ver Detalles"
                                     >
                                       <Eye className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
                                       title="Imprimir"
                                     >
                                       <Printer className="h-4 w-4" />
@@ -1416,7 +1416,7 @@ export default function PurchasesPage() {
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                                       <button
                                         onClick={() => handleEditFromList(e.id)}
-                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition"
                                         title="Editar Gasto"
                                       >
                                         <Edit className="h-4 w-4" />
@@ -1425,7 +1425,7 @@ export default function PurchasesPage() {
                                     {userRole === 'sistemas' && (
                                       <button
                                         onClick={() => handleDeleteExpense(e.id)}
-                                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition"
                                         title="Eliminar Gasto"
                                       >
                                         <Trash2 className="h-4 w-4" />
@@ -1449,7 +1449,7 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => setExpensesPage(p => Math.max(1, p - 1))}
                           disabled={expensesPage === 1}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Anterior
                         </button>
@@ -1459,7 +1459,7 @@ export default function PurchasesPage() {
                         <button
                           onClick={() => setExpensesPage(p => Math.min(totalExpensesPages, p + 1))}
                           disabled={expensesPage === totalExpensesPages}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                         >
                           Siguiente
                         </button>
@@ -1484,7 +1484,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => setShowOcrModal(true)}
-                  className="bg-[#005E63] text-white hover:bg-[#004d52] transition-all px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
+                  className="bg-[#005E63] text-white hover:bg-[#004d52] transition px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
                 >
                   <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
                 </button>
@@ -1492,7 +1492,7 @@ export default function PurchasesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div
-                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-surface-container transition-all"
+                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-surface-container transition"
                   onClick={() => setIsMinorExpense(!isMinorExpense)}
                 >
                   {isMinorExpense ? <CheckSquare className="h-6 w-6 text-[#c5a059]" /> : <Square className="h-6 w-6 text-slate-400" />}
@@ -1522,7 +1522,7 @@ export default function PurchasesPage() {
                       <button
                         type="button"
                         onClick={() => setShowAddSupplierModal(true)}
-                        className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition-all p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
+                        className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
                         title="Agregar Nuevo Proveedor"
                       >
                         <Plus className="w-4 h-4" />
@@ -1764,7 +1764,7 @@ export default function PurchasesPage() {
                               <button
                                 type="button"
                                 onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-slate-600 outline-none"
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
                               >
                                 <Minus className="h-3.5 w-3.5" />
                               </button>
@@ -1778,7 +1778,7 @@ export default function PurchasesPage() {
                               <button
                                 type="button"
                                 onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition-all text-slate-600 outline-none"
+                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                               </button>
@@ -2029,7 +2029,7 @@ export default function PurchasesPage() {
               <button
                 onClick={saveExpense}
                 disabled={loading}
-                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition-all disabled:opacity-50"
+                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition disabled:opacity-50"
               >
                 {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                 <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
@@ -2039,7 +2039,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={cancelEdit}
-                  className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all active:scale-98"
+                  className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition active:scale-98"
                 >
                   Cancelar Edición
                 </button>
@@ -2091,7 +2091,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddSupplierModal(false)}
-                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition-all"
+                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -2159,14 +2159,14 @@ export default function PurchasesPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddSupplierModal(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                    className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingSupplier}
-                    className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50"
+                    className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50"
                   >
                     {isSavingSupplier ? (
                       <>
@@ -2205,7 +2205,7 @@ export default function PurchasesPage() {
                 </div>
                 <button
                   onClick={() => setSelectedExpense(null)}
-                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition-all"
+                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition"
                 >
                   Cerrar Ventana
                 </button>
@@ -2329,7 +2329,7 @@ export default function PurchasesPage() {
                 {userRole === 'sistemas' ? (
                   <button
                     onClick={() => handleDeleteExpense(selectedExpense.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-red-500/20"
+                    className="bg-red-500 hover:bg-red-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-md shadow-red-500/20"
                   >
                     <Trash2 className="h-4 w-4" /> Eliminar Transacción
                   </button>
@@ -2342,20 +2342,20 @@ export default function PurchasesPage() {
                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                   <button
                     onClick={() => startEditExpense(selectedExpense)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
+                    className="bg-amber-500 hover:bg-amber-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
                   >
                     <Edit className="h-4 w-4" /> Editar Transacción
                   </button>
                 )}
                 <button
                   onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank')}
-                  className={`bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
+                  className={`bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
                 >
                   <Printer className="h-4 w-4" /> Imprimir
                 </button>
                 <button
                   onClick={() => setSelectedExpense(null)}
-                  className="bg-primary text-on-primary h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+                  className="bg-primary text-on-primary h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95"
                 >
                   Cerrar Detalle
                 </button>
@@ -2473,7 +2473,7 @@ function GuaranteeChecksView() {
           <button
             onClick={fetchChecks}
             disabled={loading}
-            className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 self-start sm:self-auto"
+            className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 self-start sm:self-auto"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
             Buscar
@@ -2484,7 +2484,7 @@ function GuaranteeChecksView() {
               onClick={() => {
                 window.open(`/api/v1/ap/payments/report?startDate=${startDate}&endDate=${endDate}`, '_blank');
               }}
-              className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5 self-start sm:self-auto animate-fade-in"
+              className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1.5 self-start sm:self-auto animate-fade-in"
             >
               <Printer className="h-3.5 w-3.5" />
               Imprimir Reporte
@@ -2542,7 +2542,7 @@ function GuaranteeChecksView() {
                               <button
                                 onClick={() => handleApplyCheck(p.id, p.checkId, p.checkNumber)}
                                 disabled={applyingId === p.checkId}
-                                className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm shadow-amber-600/10 hover:shadow-md hover:shadow-amber-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm shadow-amber-600/10 hover:shadow-md hover:shadow-amber-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
                               >
                                 {applyingId === p.checkId ? 'Procesando...' : 'Aplicar'}
                               </button>
@@ -2563,7 +2563,7 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setPendingPage(p => Math.max(1, p - 1))}
                       disabled={pendingPage === 1}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Anterior
                     </button>
@@ -2573,7 +2573,7 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setPendingPage(p => Math.min(totalPendingPages, p + 1))}
                       disabled={pendingPage === totalPendingPages}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Siguiente
                     </button>
@@ -2637,7 +2637,7 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setAppliedPage(p => Math.max(1, p - 1))}
                       disabled={appliedPage === 1}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Anterior
                     </button>
@@ -2647,7 +2647,7 @@ function GuaranteeChecksView() {
                     <button
                       onClick={() => setAppliedPage(p => Math.min(totalAppliedPages, p + 1))}
                       disabled={appliedPage === totalAppliedPages}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
+                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
                     >
                       Siguiente
                     </button>

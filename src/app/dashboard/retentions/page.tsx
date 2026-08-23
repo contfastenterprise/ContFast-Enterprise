@@ -185,7 +185,7 @@ export default function RetentionsPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
         >
           <Plus className="w-4 h-4" /> Nueva Retención
         </button>
@@ -312,7 +312,7 @@ export default function RetentionsPage() {
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Ej: ISR Servicios Profesionales"
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
                   />
                 </div>
 
@@ -321,7 +321,7 @@ export default function RetentionsPage() {
                   <select
                     value={form.type}
                     onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
                   >
                     <option value="ISR">ISR — Impuesto Sobre la Renta</option>
                     <option value="ITBIS">ITBIS — Impuesto Transferencias</option>
@@ -338,7 +338,7 @@ export default function RetentionsPage() {
                       onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))}
                       placeholder="Ej: 10"
                       min={0.01} max={100} step="any"
-                      className="w-full h-8 px-3 py-1.5 pr-10 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-all"
+                      className="w-full h-8 px-3 py-1.5 pr-10 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
                     />
                     <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -348,14 +348,14 @@ export default function RetentionsPage() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar Cambios' : 'Crear Retención'}
                 </button>
@@ -392,13 +392,13 @@ export default function RetentionsPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
+                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
+                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
                 >
                   Sí, eliminar
                 </button>

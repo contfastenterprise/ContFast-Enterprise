@@ -339,7 +339,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   
         {/* TopNavBar */}
         <nav className={clsx(
-          "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition-all duration-300",
+          "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition duration-300",
           activeEnvironment === 'PRUEBA'
             ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
             : 'top-0 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-100 text-slate-900 border-indigo-200/50 shadow-sm'
@@ -347,7 +347,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
           <div className="flex items-center gap-3">
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 rounded-lg transition-all hover:bg-slate-200/50 text-inherit"
+              className="md:hidden p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
             >
@@ -360,7 +360,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
                 localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
                 return next;
                 })}
-              className="hidden md:flex p-2 rounded-lg transition-all hover:bg-slate-200/50 text-inherit"
+              className="hidden md:flex p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
               title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               {sidebarCollapsed
@@ -389,7 +389,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
             {activeEnvironment === 'PRUEBA' && (
               <div 
                 onClick={() => toast.info('El ambiente está enlazado a la configuración de la empresa. Cámbielo en Ajustes.')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-wider border mr-2 select-none cursor-pointer transition-all duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-wider border mr-2 select-none cursor-pointer transition duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                 SANDBOX

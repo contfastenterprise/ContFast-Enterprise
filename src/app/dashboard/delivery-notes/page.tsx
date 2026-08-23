@@ -360,7 +360,7 @@ export default function DeliveryNotesPage() {
                   </div>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs"
+                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs"
                   >
                     <Plus className="h-4 w-4" /> Nuevo Conduce
                   </button>
@@ -388,7 +388,7 @@ export default function DeliveryNotesPage() {
                     <button
                       onClick={handleApplyCode}
                       disabled={applying}
-                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs shrink-0 disabled:opacity-50"
+                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-xs shrink-0 disabled:opacity-50"
                     >
                       {applying ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -507,7 +507,7 @@ export default function DeliveryNotesPage() {
                           disabled={page <= 1}
                           onClick={() => setPage(page - 1)}
                           type="button"
-                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                         >
                           Anterior
                         </button>
@@ -518,7 +518,7 @@ export default function DeliveryNotesPage() {
                           disabled={page >= totalPages}
                           onClick={() => setPage(page + 1)}
                           type="button"
-                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
                         >
                           Siguiente
                         </button>
@@ -583,7 +583,7 @@ export default function DeliveryNotesPage() {
                               setShowInvoiceSearch(true);
                               handleSearchInvoices();
                             }}
-                            className="w-full h-8 text-xs font-semibold text-[#003366] dark:text-[#C5A059] border-dashed border-[#003366]/40 hover:border-[#003366] hover:bg-[#003366]/5 transition-all gap-1.5 justify-center cursor-pointer"
+                            className="w-full h-8 text-xs font-semibold text-[#003366] dark:text-[#C5A059] border-dashed border-[#003366]/40 hover:border-[#003366] hover:bg-[#003366]/5 transition gap-1.5 justify-center cursor-pointer"
                           >
                             <FileText className="h-3.5 w-3.5 text-[#C5A059]" />
                             <span>Vincular Factura Afectada</span>
@@ -719,14 +719,14 @@ export default function DeliveryNotesPage() {
                         setTargetInvoice(null);
                         setDispatchLines([]);
                       }}
-                      className="border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold h-8 px-3 py-1.5 rounded-lg text-xs transition-all"
+                      className="border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold h-8 px-3 py-1.5 rounded-lg text-xs transition"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={submitting || !targetInvoice}
-                      className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Registrar Conduce
                     </button>
