@@ -342,7 +342,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
                   >
                     <td className="px-4 py-3.5 font-mono text-xs text-on-surface-variant">{r.sku || 'N/A'}</td>
                     <td className="px-4 py-3.5 font-bold text-on-surface">{r.name}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-rose-500">{r.quantity.toLocaleString('es-DO')}</td>
+                    <td className="px-4 py-3.5 text-right font-extrabold text-rose-500">{r.quantity.toLocaleString('es-DO')}</td>
                   </tr>
                 ))}
                 {returns.length === 0 && (

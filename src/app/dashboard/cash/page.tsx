@@ -699,7 +699,7 @@ export default function CashPage() {
               <div className="col-span-12 md:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Balance Actual</p>
-                  <p className="text-4xl font-black text-[#001e40] tracking-tight">
+                  <p className="text-4xl font-extrabold text-[#001e40] tracking-tight">
                     {fmt(session?.expectedBalance || '0')}
                   </p>
                 </div>
@@ -977,12 +977,12 @@ export default function CashPage() {
                   <div className="space-y-4">
                     <div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Esperado en Sistema</p>
-                      <p className="text-3xl font-mono font-black tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
+                      <p className="text-3xl font-mono font-extrabold tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
                     </div>
                     <div className="h-px bg-slate-200" />
                     <div>
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Real (Contado)</p>
-                      <p className="text-3xl font-mono font-black tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
+                      <p className="text-3xl font-mono font-extrabold tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
                     </div>
                   </div>
 

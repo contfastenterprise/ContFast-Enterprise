@@ -245,7 +245,7 @@ export default function CustomerStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Por Cobrar (CxC)</p>
-            <h2 className="text-3xl font-black text-primary mt-2">
+            <h2 className="text-3xl font-extrabold text-primary mt-2">
               {loadingMetrics ? '...' : fmt(globalMetrics?.cxc?.totalPending)}
             </h2>
           </div>
@@ -255,7 +255,7 @@ export default function CustomerStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Vencido</p>
-            <h2 className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2">
+            <h2 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-2">
               {loadingMetrics ? '...' : fmt(globalMetrics?.cxc?.totalOverdue)}
             </h2>
           </div>
@@ -265,7 +265,7 @@ export default function CustomerStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Clientes con Balance Pendiente</p>
-            <h2 className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2">
+            <h2 className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
               {loadingMetrics ? '...' : (globalMetrics?.cxc?.morososCount || 0) + (globalMetrics?.cxc?.alDiaCount || 0)}
             </h2>
           </div>

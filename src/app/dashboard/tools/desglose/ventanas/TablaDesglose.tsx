@@ -190,13 +190,13 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
                   {/* Burbuja de Cantidad */}
                   <div className="w-11 h-11 rounded-xl bg-[#003366]/5 border border-[#003366]/10 flex flex-col items-center justify-center">
                     <span className="text-[10px] font-bold text-[#003366]/60 uppercase leading-none">Cant</span>
-                    <span className="font-black text-lg text-[#003366] leading-tight">{fila.cantidad}</span>
+                    <span className="font-extrabold text-lg text-[#003366] leading-tight">{fila.cantidad}</span>
                   </div>
 
                   {/* Detalles de Sistema y Vías */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider ${
                         fila.tipo === 'P-65' ? 'bg-blue-100 text-blue-800' :
                         fila.tipo === 'P-92' ? 'bg-purple-100 text-purple-800' :
                         'bg-emerald-100 text-emerald-800'

@@ -66,7 +66,7 @@ export default function ProductRecommendations({ products, title = "También pod
                         <span className="text-[10px] text-slate-400 line-through mb-0.5">
                           RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                         </span>
-                        <span className="font-black text-red-600 leading-none">
+                        <span className="font-extrabold text-red-600 leading-none">
                           RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                         </span>
                       </>

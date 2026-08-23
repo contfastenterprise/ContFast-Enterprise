@@ -14,7 +14,7 @@ export default async function StorefrontHomePage({ params }: { params: Promise<{
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
         </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-white mb-6 tracking-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white mb-6 tracking-tight">
             Fabricamos soluciones para <br className="hidden md:block" />
             <span className="text-[#c5a059]">tu espacio</span>
           </h1>

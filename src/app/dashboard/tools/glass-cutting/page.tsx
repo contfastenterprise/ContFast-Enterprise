@@ -328,17 +328,17 @@ export default function GlassCuttingPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-[#003366]/5 border border-[#003366]/10 text-center flex flex-col items-center justify-center">
                 <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Planchas Necesarias</span>
-                <span className="text-2xl font-black text-[#003366]">{optimizationResult.totalSheets}</span>
+                <span className="text-2xl font-extrabold text-[#003366]">{optimizationResult.totalSheets}</span>
               </div>
               <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/10 text-center flex flex-col items-center justify-center">
                 <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Piezas Cortadas</span>
-                <span className="text-2xl font-black text-green-600">
+                <span className="text-2xl font-extrabold text-green-600">
                   {optimizationResult.sheets.reduce((acc, s) => acc + s.placed.length, 0)}
                 </span>
               </div>
               <div className="p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/10 text-center flex flex-col items-center justify-center">
                 <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Piezas Sin Colocar</span>
-                <span className="text-2xl font-black text-yellow-600">{optimizationResult.unplaced.length}</span>
+                <span className="text-2xl font-extrabold text-yellow-600">{optimizationResult.unplaced.length}</span>
               </div>
             </div>
 

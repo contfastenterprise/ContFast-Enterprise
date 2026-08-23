@@ -99,7 +99,7 @@ export default async function StorefrontProductDetailPage({
                       RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                     </span>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-red-600 tracking-tight">
+                      <span className="text-4xl font-extrabold text-red-600 tracking-tight">
                         RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                       </span>
                       <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>

@@ -18,7 +18,7 @@ export default function NotFound() {
             <FileQuestion className="h-12 w-12 text-[#c5a059]" />
           </div>
 
-          <h1 className="text-7xl font-black text-[#001e40] mb-2 tracking-tight">404</h1>
+          <h1 className="text-7xl font-extrabold text-[#001e40] mb-2 tracking-tight">404</h1>
           <h2 className="text-2xl font-bold text-slate-800 mb-4">Página no encontrada</h2>
           
           <p className="text-slate-500 mb-10 leading-relaxed">

@@ -1089,7 +1089,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Compras de Inventario</p>
-                    <h3 className="text-2xl font-black text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <h3 className="text-2xl font-extrabold text-emerald-950 mt-1 font-mono-data">RD$ {kpis.totalPurchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-emerald-500/20 p-3 rounded-lg text-emerald-800">
                     <ShoppingCart className="h-6 w-6" />
@@ -1099,7 +1099,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-blue-800 tracking-wider">Gastos de Operación</p>
-                    <h3 className="text-2xl font-black text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <h3 className="text-2xl font-extrabold text-blue-950 mt-1 font-mono-data">RD$ {kpis.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-blue-500/20 p-3 rounded-lg text-blue-800">
                     <Activity className="h-6 w-6" />
@@ -1109,7 +1109,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-purple-800 tracking-wider">ITBIS Soportado</p>
-                    <h3 className="text-2xl font-black text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
+                    <h3 className="text-2xl font-extrabold text-purple-950 mt-1 font-mono-data">RD$ {kpis.totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
                   </div>
                   <div className="bg-purple-500/20 p-3 rounded-lg text-purple-800">
                     <DollarSign className="h-6 w-6" />
@@ -1119,7 +1119,7 @@ export default function PurchasesPage() {
                 <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 p-4 rounded-xl flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">Total Transacciones</p>
-                    <h3 className="text-2xl font-black text-amber-950 mt-1 font-mono-data">{kpis.totalTransactions}</h3>
+                    <h3 className="text-2xl font-extrabold text-amber-950 mt-1 font-mono-data">{kpis.totalTransactions}</h3>
                   </div>
                   <div className="bg-amber-500/20 p-3 rounded-lg text-amber-800">
                     <FileText className="h-6 w-6" />
@@ -1912,7 +1912,7 @@ export default function PurchasesPage() {
 
               <div className="pt-4 border-t border-slate-200/80 flex justify-between items-center mb-6">
                 <span className="text-sm font-bold text-slate-800">TOTAL NETO</span>
-                <span className="font-display-lg text-2xl font-black text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-display-lg text-2xl font-extrabold text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
 
               <button
@@ -2198,7 +2198,7 @@ export default function PurchasesPage() {
                         <span className="font-bold font-mono-data">RD$ {parseFloat(selectedExpense.otherTaxes).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
-                    <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-black text-[#c5a059]">
+                    <div className="pt-2.5 border-t border-surface-container-high flex justify-between text-sm font-extrabold text-[#c5a059]">
                       <span>TOTAL GENERAL</span>
                       <span className="font-mono-data">
                         RD$ {(

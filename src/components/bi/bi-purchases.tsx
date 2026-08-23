@@ -45,7 +45,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
           </div>
           <div>
             <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Cuentas por Pagar Totales</p>
-            <h3 className="text-xl md:text-2xl font-black text-on-surface mt-1">
+            <h3 className="text-xl md:text-2xl font-extrabold text-on-surface mt-1">
               {fmtDop(apStatus.total)}
             </h3>
           </div>
@@ -58,7 +58,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
           </div>
           <div>
             <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Monto Liquidado</p>
-            <h3 className="text-xl md:text-2xl font-black text-green-600 mt-1">
+            <h3 className="text-xl md:text-2xl font-extrabold text-green-600 mt-1">
               {fmtDop(apStatus.paid)}
             </h3>
           </div>
@@ -71,7 +71,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
           </div>
           <div>
             <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Monto Pendiente (Deuda)</p>
-            <h3 className="text-xl md:text-2xl font-black text-red-500 mt-1">
+            <h3 className="text-xl md:text-2xl font-extrabold text-red-500 mt-1">
               {fmtDop(apStatus.pending)}
             </h3>
           </div>
@@ -104,7 +104,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
                     <td className="px-4 py-3.5 text-right text-on-surface-variant font-medium">
                       {s.count}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-black text-[#800020]">
+                    <td className="px-4 py-3.5 text-right font-extrabold text-[#800020]">
                       {fmtDop(s.amount)}
                     </td>
                   </tr>
@@ -180,7 +180,7 @@ export default function BIPurchases({ data }: BIPurchasesProps) {
                   <td className="px-4 py-3.5 text-right text-on-surface-variant font-medium">
                     {fmtDop(p.avgCost)}
                   </td>
-                  <td className="px-4 py-3.5 text-right font-black text-rose-500">
+                  <td className="px-4 py-3.5 text-right font-extrabold text-rose-500">
                     {fmtDop(p.amount)}
                   </td>
                 </tr>

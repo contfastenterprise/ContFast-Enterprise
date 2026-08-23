@@ -85,7 +85,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Ventas del Mes</p>
-                <h3 className="text-xl md:text-2xl font-black text-[#003366] mt-1">
+                <h3 className="text-xl md:text-2xl font-extrabold text-[#003366] mt-1">
                   {fmtDop(generalData.salesMonth)}
                 </h3>
               </div>
@@ -106,7 +106,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Compras del Mes</p>
-              <h3 className="text-xl md:text-2xl font-black text-on-surface mt-1">
+              <h3 className="text-xl md:text-2xl font-extrabold text-on-surface mt-1">
                 {fmtDop(generalData.purchasesMonth)}
               </h3>
             </div>
@@ -125,7 +125,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Ganancia Estimada</p>
-              <h3 className="text-xl md:text-2xl font-black text-emerald-600 mt-1">
+              <h3 className="text-xl md:text-2xl font-extrabold text-emerald-600 mt-1">
                 {fmtDop(generalData.estimatedProfit)}
               </h3>
             </div>
@@ -144,7 +144,7 @@ export default function BIGeneral({ generalData, billingData, purchasesData }: B
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Valor del Inventario</p>
-              <h3 className="text-xl md:text-2xl font-black text-on-surface mt-1">
+              <h3 className="text-xl md:text-2xl font-extrabold text-on-surface mt-1">
                 {fmtDop(generalData.inventoryValue)}
               </h3>
             </div>

@@ -592,7 +592,7 @@ export default function SettlementsPage() {
                 <span className="block text-sm font-semibold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
                   Total Proyectado de Regalía Pascual ({dobleYear})
                 </span>
-                <span className="text-3xl font-black text-emerald-900 dark:text-emerald-400 mt-1 block">
+                <span className="text-3xl font-extrabold text-emerald-900 dark:text-emerald-400 mt-1 block">
                   {formatCurrency(totalDobleSum)}
                 </span>
               </div>

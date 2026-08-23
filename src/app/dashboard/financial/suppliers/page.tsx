@@ -241,7 +241,7 @@ export default function SupplierStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Por Pagar (CxP)</p>
-            <h2 className="text-3xl font-black text-red-600 dark:text-red-400 mt-2">
+            <h2 className="text-3xl font-extrabold text-red-600 dark:text-red-400 mt-2">
               {loadingMetrics ? '...' : fmt(globalMetrics?.cxp?.totalPending)}
             </h2>
           </div>
@@ -251,7 +251,7 @@ export default function SupplierStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Monto Total Vencido</p>
-            <h2 className="text-3xl font-black text-rose-600 dark:text-rose-400 mt-2">
+            <h2 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-2">
               {loadingMetrics ? '...' : fmt(globalMetrics?.cxp?.totalOverdue)}
             </h2>
           </div>
@@ -261,7 +261,7 @@ export default function SupplierStatementPage() {
         <div className="bg-white dark:bg-slate-900 border border-outline-variant/20 shadow-sm rounded-3xl p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Suplidores con Balance Pendiente</p>
-            <h2 className="text-3xl font-black text-indigo-600 dark:text-indigo-400 mt-2">
+            <h2 className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
               {loadingMetrics ? '...' : (globalMetrics?.cxp?.morososCount || 0) + (globalMetrics?.cxp?.alDiaCount || 0)}
             </h2>
           </div>

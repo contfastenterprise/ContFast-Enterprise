@@ -531,7 +531,7 @@ export default function PurchaseOrdersPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
             <FileText className="h-8 w-8 text-[#005E63]" />
             Pedidos a Suplidores
           </h1>
@@ -729,7 +729,7 @@ export default function PurchaseOrdersPage() {
               {/* Header */}
               <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-black text-[#003366]">
+                  <h2 className="text-lg font-extrabold text-[#003366]">
                     Pedido: {activeOrder.orderNumber}
                   </h2>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusBadges[activeOrder.status]}`}>
@@ -903,7 +903,7 @@ export default function PurchaseOrdersPage() {
             >
               {/* Header */}
               <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 className="text-lg font-black text-[#003366] flex items-center gap-2">
+                <h2 className="text-lg font-extrabold text-[#003366] flex items-center gap-2">
                   <Plus className="h-5 w-5 text-emerald-600" />
                   Registrar Recepción - {activeOrder.orderNumber}
                 </h2>
@@ -994,7 +994,7 @@ export default function PurchaseOrdersPage() {
             >
               {/* Modal Header */}
               <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 className="text-lg font-black text-[#003366] flex items-center gap-2">
+                <h2 className="text-lg font-extrabold text-[#003366] flex items-center gap-2">
                   <Plus className="h-5 w-5 text-[#005E63]" />
                   {editId ? 'Editar Pedido a Suplidor' : 'Nuevo Pedido a Suplidor'}
                 </h2>

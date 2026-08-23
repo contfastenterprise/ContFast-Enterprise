@@ -97,7 +97,7 @@ export default function BICustomers({ data, onNavigateToCustomer }: BICustomersP
                     <td className={`px-4 py-3.5 text-right font-semibold ${s.debt > 0 ? 'text-red-500' : 'text-on-surface-variant/40'}`}>
                       {s.debt > 0 ? fmtDop(s.debt) : 'RD$ 0.00'}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-black text-primary">
+                    <td className="px-4 py-3.5 text-right font-extrabold text-primary">
                       {fmtDop(s.totalSpent)}
                     </td>
                     <td className="px-4 py-3.5 text-right text-on-surface-variant/60 text-xs">

@@ -236,7 +236,7 @@ export default function InvoiceImageUploader({
                       <label className="block text-[9px] font-bold text-primary mb-1 uppercase tracking-wider">
                         Total en DOP (Calculado)
                       </label>
-                      <div className="h-7 flex items-center text-xs font-black text-primary font-mono">
+                      <div className="h-7 flex items-center text-xs font-extrabold text-primary font-mono">
                         RD$ {extractedData.totalDOP.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                       </div>
                     </div>

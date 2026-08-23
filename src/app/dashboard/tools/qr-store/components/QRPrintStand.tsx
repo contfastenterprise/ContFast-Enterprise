@@ -119,12 +119,12 @@ export default function QRPrintStand({ company, config, qrUrl, mode }: QRPrintSt
                 />
               </div>
             )}
-            <h1 className="text-2xl font-black tracking-tight text-white">{company.name}</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">{company.name}</h1>
           </div>
 
           {/* CTA */}
           <div className="px-8 py-6 text-center bg-white">
-            <p className="text-xl font-black text-slate-800 leading-tight">
+            <p className="text-xl font-extrabold text-slate-800 leading-tight">
               ¡Cotiza y ordena<br />desde tu celular!
             </p>
             <p className="text-slate-500 text-sm mt-2 font-medium">
@@ -149,7 +149,7 @@ export default function QRPrintStand({ company, config, qrUrl, mode }: QRPrintSt
               ].map((s) => (
                 <div key={s.step} className="flex flex-col items-center gap-2">
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-sm"
+                    className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-white text-sm"
                     style={{ background: config.fgColor }}
                   >
                     {s.step}

@@ -42,7 +42,7 @@ export default async function PromocionesPage({ params }: { params: Promise<{ em
               <Sparkles className="h-4 w-4 text-[#c5a059]" />
               <span className="text-[#c5a059]">Ofertas Exclusivas</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
               Promociones de Temporada
             </h1>
             <p className="text-lg text-slate-300 mb-8 leading-relaxed">

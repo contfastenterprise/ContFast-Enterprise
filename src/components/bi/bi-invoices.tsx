@@ -89,7 +89,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
               <div className={`p-3 rounded-2xl shrink-0 ${iconBg}`}>{icon}</div>
               <div>
                 <p className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">{mapStatusName(sc.status)}</p>
-                <h4 className="text-lg font-black text-on-surface mt-0.5">{sc.count}</h4>
+                <h4 className="text-lg font-extrabold text-on-surface mt-0.5">{sc.count}</h4>
                 <p className="text-[10px] text-on-surface-variant/60 font-mono mt-0.5">{fmtDop(sc.amount)}</p>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function BIInvoices({ data }: BIInvoicesProps) {
                   <td className="px-4 py-3.5 text-right font-semibold text-on-surface-variant">
                     {e.count.toLocaleString('es-DO')}
                   </td>
-                  <td className="px-4 py-3.5 text-right font-black text-primary">
+                  <td className="px-4 py-3.5 text-right font-extrabold text-primary">
                     {fmtDop(e.amount)}
                   </td>
                 </tr>

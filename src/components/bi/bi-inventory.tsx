@@ -121,7 +121,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
                     <td className="px-4 py-3.5 font-bold text-on-surface">{c.name || 'Sin Categoría'}</td>
                     <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(c.salesCost)}</td>
                     <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(c.stockValue)}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-primary">
+                    <td className="px-4 py-3.5 text-right font-extrabold text-primary">
                       {c.rotation.toFixed(2)}x
                     </td>
                   </tr>
@@ -150,7 +150,7 @@ export default function BIInventory({ data }: BIInventoryProps) {
                     <td className="px-4 py-3.5 font-bold text-on-surface">{w.name}</td>
                     <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(w.salesCost)}</td>
                     <td className="px-4 py-3.5 text-right text-on-surface-variant">{fmtDop(w.stockValue)}</td>
-                    <td className="px-4 py-3.5 text-right font-black text-primary">
+                    <td className="px-4 py-3.5 text-right font-extrabold text-primary">
                       {w.rotation.toFixed(2)}x
                     </td>
                   </tr>

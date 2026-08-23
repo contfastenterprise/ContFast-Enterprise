@@ -564,7 +564,7 @@ export default function AdminPage() {
                               onClick={() => toggleDayExpanded(day)}
                               className="bg-slate-100/70 hover:bg-slate-100 font-bold border-y border-slate-200 cursor-pointer select-none transition-colors"
                             >
-                              <td colSpan={6} className="px-6 py-2.5 text-[#003366] text-xs font-black uppercase tracking-wider">
+                              <td colSpan={6} className="px-6 py-2.5 text-[#003366] text-xs font-extrabold uppercase tracking-wider">
                                 <div className="flex items-center gap-2">
                                   {isExpanded ? <ChevronDown className="w-4 h-4 text-[#003366]" /> : <ChevronRight className="w-4 h-4 text-[#003366]" />}
                                   {day}

@@ -169,7 +169,7 @@ export default async function StorefrontProductsPage({
                                 <span className="text-xs text-slate-400 dark:text-slate-500 line-through mb-0.5" aria-label="Precio original">
                                   RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                                 </span>
-                                <span className="font-black text-xl text-red-600 dark:text-red-500 leading-none" aria-label="Precio de oferta">
+                                <span className="font-extrabold text-xl text-red-600 dark:text-red-500 leading-none" aria-label="Precio de oferta">
                                   RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                                 </span>
                               </>

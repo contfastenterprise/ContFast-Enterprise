@@ -279,7 +279,7 @@ export default function MovementsPage() {
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total Entradas</p>
-            <h3 className="text-xl font-black text-emerald-700 mt-0.5">+{summary.totalIn.toLocaleString()}</h3>
+            <h3 className="text-xl font-extrabold text-emerald-700 mt-0.5">+{summary.totalIn.toLocaleString()}</h3>
           </div>
         </div>
         <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3">
@@ -288,7 +288,7 @@ export default function MovementsPage() {
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Total Salidas</p>
-            <h3 className="text-xl font-black text-rose-700 mt-0.5">{summary.totalOut.toLocaleString()}</h3>
+            <h3 className="text-xl font-extrabold text-rose-700 mt-0.5">{summary.totalOut.toLocaleString()}</h3>
           </div>
         </div>
         <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl flex items-center gap-3">
@@ -297,7 +297,7 @@ export default function MovementsPage() {
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Variación Neta</p>
-            <h3 className={`text-xl font-black mt-0.5 ${summary.netChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+            <h3 className={`text-xl font-extrabold mt-0.5 ${summary.netChange >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
               {summary.netChange >= 0 ? '+' : ''}{summary.netChange.toLocaleString()}
             </h3>
           </div>

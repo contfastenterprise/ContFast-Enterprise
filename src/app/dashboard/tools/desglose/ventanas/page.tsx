@@ -406,11 +406,11 @@ export default function DesgloseVentanasPage() {
             <div className="grid grid-cols-2 gap-6 w-full my-6">
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipos Diferentes</span>
-                <div className="text-3xl font-black text-[#003366]">{itemsCount}</div>
+                <div className="text-3xl font-extrabold text-[#003366]">{itemsCount}</div>
               </div>
               <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 space-y-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Ventanas</span>
-                <div className="text-3xl font-black text-[#C5A059]">{totalWindowUnits} ud</div>
+                <div className="text-3xl font-extrabold text-[#C5A059]">{totalWindowUnits} ud</div>
               </div>
             </div>
 

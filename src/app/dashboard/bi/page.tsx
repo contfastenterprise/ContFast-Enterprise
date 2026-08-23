@@ -253,7 +253,7 @@ export default function BIDashboardPage() {
       {/* ─── HEADER SECTION ─── */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-outline-variant/20 pb-6">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-[#003366] flex items-center gap-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#003366] flex items-center gap-2">
             <BarChart2 className="w-8 h-8 text-primary" />
             Inteligencia de Negocios
           </h1>
