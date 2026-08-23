@@ -469,7 +469,10 @@ export default function DashboardPage() {
               <div className="text-center text-sm text-slate-500/60 py-4">No hay actividad reciente.</div>
             )}
           </div>
-          <button className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition-all border border-primary/10 text-sm">
+          <button 
+            onClick={() => router.push('/dashboard/invoices')}
+            className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition-all border border-primary/10 text-sm cursor-pointer"
+          >
             Ver todo el historial
           </button>
         </div>
@@ -498,7 +501,11 @@ export default function DashboardPage() {
                 const badge = statusBadge(inv.status);
                 const date = new Date(inv.createdAt);
                 return (
-                  <div key={inv.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3 cursor-pointer">
+                  <div 
+                    key={inv.id} 
+                    onClick={() => router.push('/dashboard/invoices')}
+                    className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3 cursor-pointer"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col gap-1">
                         <span className="font-mono-data text-primary font-extrabold text-sm">{inv.ncf || `e-${inv.ecfType}`}</span>
@@ -520,14 +527,14 @@ export default function DashboardPage() {
                       <span className="font-mono-data font-extrabold text-slate-800 text-sm">{fmt(parseFloat(inv.total))}</span>
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => handleViewPdf(inv.id, e)}
+                          onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
                           className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all"
                           title="Ver PDF"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={(e) => handleResendEmail(inv.id, e)}
+                          onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                           disabled={resendingId === inv.id}
                           className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all disabled:opacity-50"
                           title="Reenviar por Correo"
@@ -570,7 +577,11 @@ export default function DashboardPage() {
                     const badge = statusBadge(inv.status);
                     const date = new Date(inv.createdAt);
                     return (
-                      <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
+                      <tr 
+                        key={inv.id} 
+                        onClick={() => router.push('/dashboard/invoices')}
+                        className="hover:bg-primary/5 transition-all group cursor-pointer"
+                      >
                         <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
                         <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
                           {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -589,14 +600,14 @@ export default function DashboardPage() {
                         <td className="px-4 py-2.5 text-xs">
                           <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={(e) => handleViewPdf(inv.id, e)}
+                              onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
                               className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
                               title="Ver PDF"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={(e) => handleResendEmail(inv.id, e)}
+                              onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                               disabled={resendingId === inv.id}
                               className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Reenviar por Correo"
