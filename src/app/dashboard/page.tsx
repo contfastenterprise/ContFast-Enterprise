@@ -122,6 +122,8 @@ export default function DashboardPage() {
   });
   const [chartPeriod, setChartPeriod] = useState<'semana' | 'mes'>('semana');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [chartData, setChartData] = useState<{ day: string, pct: number, amount: number }[]>([]);
   const [comparisonChart, setComparisonChart] = useState<{ day: string, sales: number, purchases: number }[]>([]);
   const [topCustomers, setTopCustomers] = useState<{ name: string, total: number }[]>([]);
@@ -223,6 +225,9 @@ export default function DashboardPage() {
     inv.buyerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     inv.buyerRnc?.includes(searchQuery)
   );
+
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
+  const displayedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) {
     return (
@@ -466,7 +471,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))}
-            {filteredInvoices.length === 0 && (
+            {displayedInvoices.length === 0 && (
               <div className="text-center text-sm text-slate-500/60 py-4">No hay actividad reciente.</div>
             )}
           </div>
@@ -498,7 +503,7 @@ export default function DashboardPage() {
           {/* Mobile View */}
           <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
             {filteredInvoices.length > 0 ? (
-              filteredInvoices.map((inv) => {
+              displayedInvoices.map((inv) => {
                 const badge = statusBadge(inv.status);
                 const date = new Date(inv.createdAt);
                 return (
