@@ -591,3 +591,4 @@ Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Po
 
 ## 2026-08-22 - UI/UX Audit & Optimization
 **Verified & Polished**: Completed UI/UX audit applying UI UX Pro Max guidelines. Fixed globals.css token collisions, replaced font-black globally for typographical consistency, improved accessibility in buttons, and refined table row hover states.
+## Auditoría de Interfaces y Tablas Densas (Adaptive List-to-Table) - **Verified & Polished**

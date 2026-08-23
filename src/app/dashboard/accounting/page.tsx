@@ -494,7 +494,45 @@ export default function AccountingPage() {
           {activeTab === 'catalog' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
               <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Mobile View */}
+                <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+                  {loading ? (
+                    <div className="p-8 text-center text-slate-500"><RefreshCw className="h-6 w-6 animate-spin mx-auto" /></div>
+                  ) : accounts.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500/70 text-xs">No hay cuentas registradas en el catálogo.</div>
+                  ) : (
+                    accounts.map((acc) => (
+                      <div key={acc.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-2">
+                        <div className="flex justify-between items-start">
+                          <div className="flex flex-col">
+                            <span className="font-mono text-xs font-bold text-[#003366]">{acc.code}</span>
+                            <span className="font-semibold text-sm text-slate-800 leading-tight mt-0.5">{acc.name}</span>
+                          </div>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-800">
+                            Activo
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center mt-2 border-t border-slate-50 pt-2">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Clasificación</span>
+                          <span className={clsx(
+                            'inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider',
+                            acc.type === 'asset' && 'bg-blue-100 text-blue-800',
+                            acc.type === 'liability' && 'bg-rose-100 text-rose-800',
+                            acc.type === 'equity' && 'bg-purple-100 text-purple-800',
+                            acc.type === 'revenue' && 'bg-emerald-100 text-emerald-800',
+                            acc.type === 'expense' && 'bg-amber-100 text-amber-800'
+                          )}>
+                            {typeLabels[acc.type]}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
@@ -583,7 +621,76 @@ export default function AccountingPage() {
                 </div>
               ) : (
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
+                  {/* Mobile View */}
+                  <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                    {journals.map((journal) => {
+                      const isExpanded = !!expandedJournals[journal.id];
+                      return (
+                        <div key={journal.id} className="flex flex-col">
+                          {/* Main Card */}
+                          <div 
+                            onClick={() => toggleExpand(journal.id)}
+                            className="p-4 hover:bg-slate-50 transition-colors cursor-pointer flex flex-col gap-2"
+                          >
+                            <div className="flex justify-between items-start">
+                              <span className="font-mono text-xs font-bold text-[#003366]">
+                                {new Date(journal.date).toLocaleDateString('es-DO')}
+                              </span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-800">
+                                Contabilizado
+                              </span>
+                            </div>
+                            
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-semibold text-sm text-slate-800 leading-tight">{journal.description}</span>
+                              <span className="text-[10px] font-mono text-slate-500">Ref: {journal.reference || '-'}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center mt-2 border-t border-slate-50 pt-2">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Débito</span>
+                                <span className="font-mono text-xs font-bold text-slate-700">{fmt(journal.totalDebit)}</span>
+                              </div>
+                              <div className="flex flex-col text-right">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Crédito</span>
+                                <span className="font-mono text-xs font-bold text-slate-700">{fmt(journal.totalCredit)}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-center mt-1">
+                              {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                            </div>
+                          </div>
+                          
+                          {/* Expanded Details Mobile */}
+                          {isExpanded && (
+                            <div className="bg-slate-50/50 p-4 border-l-4 border-[#C5A059] text-xs">
+                              <div className="font-bold text-slate-700 mb-2 uppercase text-[10px] tracking-wider">Detalle de Cuentas</div>
+                              <div className="flex flex-col gap-3">
+                                {journal.lines.map((line, idx) => (
+                                  <div key={idx} className="flex flex-col pb-3 border-b border-slate-200/50 last:border-0 last:pb-0">
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex flex-col">
+                                        <span className="font-mono font-bold text-[#003366]">{line.accountCode}</span>
+                                        <span className="font-medium text-slate-800">{line.accountName}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1">
+                                      <span className="font-mono font-bold text-emerald-600">{parseFloat(line.debit) > 0 ? `Débito: ${fmt(line.debit)}` : ''}</span>
+                                      <span className="font-mono font-bold text-rose-600">{parseFloat(line.credit) > 0 ? `Crédito: ${fmt(line.credit)}` : ''}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
@@ -728,7 +835,47 @@ export default function AccountingPage() {
 
                   {/* Movements list */}
                   <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <table className="w-full text-left border-collapse text-sm">
+                    {/* Mobile View */}
+                    <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                      {ledgerData.movements.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500 text-xs">No se encontraron movimientos en el rango seleccionado.</div>
+                      ) : (
+                        ledgerData.movements.map((mov: any) => (
+                          <div key={mov.id} className="flex flex-col p-4 hover:bg-slate-50/50 gap-2">
+                            <div className="flex justify-between items-start">
+                              <span className="text-xs font-mono font-bold text-[#003366]">{new Date(mov.date).toLocaleDateString('es-DO')}</span>
+                              <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Ref: {mov.reference || '-'}</span>
+                            </div>
+                            <span className="font-semibold text-sm text-slate-800 leading-tight">{mov.description}</span>
+                            
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-50">
+                              <div className="flex gap-4">
+                                {mov.debit > 0 && (
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Débito</span>
+                                    <span className="font-mono text-xs font-bold text-slate-700">{fmt(mov.debit)}</span>
+                                  </div>
+                                )}
+                                {mov.credit > 0 && (
+                                  <div className="flex flex-col">
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Crédito</span>
+                                    <span className="font-mono text-xs font-bold text-slate-700">{fmt(mov.credit)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col text-right">
+                                <span className="text-[9px] text-[#003366] font-bold uppercase tracking-wider">Balance</span>
+                                <span className="font-mono text-xs font-bold text-[#003366]">{fmt(mov.balance)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200">
                           <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32">Fecha</th>
@@ -758,6 +905,7 @@ export default function AccountingPage() {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               )}
@@ -828,7 +976,44 @@ export default function AccountingPage() {
                 <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
               ) : (
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
+                  {/* Mobile View */}
+                  <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+                    {trialBalanceData.map((row) => (
+                      <div key={row.id} className={clsx("flex flex-col p-4 gap-2", row.level === 1 && "bg-slate-50 border-l-4 border-[#003366]")}>
+                        <div className="flex flex-col">
+                          <span className="font-mono text-[10px] text-slate-500">{row.code}</span>
+                          <span className={clsx("text-sm", row.level === 1 ? "font-bold text-slate-800" : "font-semibold text-slate-700")}>{row.name}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-50">
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Saldo Inicial</span>
+                            <span className="font-mono text-xs text-slate-600">{fmt(row.beginningBalance)}</span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-[9px] font-bold text-[#003366] uppercase tracking-wider">Saldo Final</span>
+                            <span className="font-mono text-xs font-bold text-[#003366]">{fmt(row.endingBalance)}</span>
+                          </div>
+                          
+                          {(row.debit > 0 || row.credit > 0) && (
+                            <>
+                              <div className="flex flex-col col-span-1">
+                                <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Débito</span>
+                                <span className="font-mono text-xs text-emerald-600">{row.debit > 0 ? fmt(row.debit) : '-'}</span>
+                              </div>
+                              <div className="flex flex-col col-span-1 text-right">
+                                <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wider">Crédito</span>
+                                <span className="font-mono text-xs text-rose-600">{row.credit > 0 ? fmt(row.credit) : '-'}</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="bg-[#003366] text-white">
@@ -1013,7 +1198,53 @@ export default function AccountingPage() {
                 <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
               ) : (
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                  <table className="w-full text-left border-collapse text-sm">
+                  {/* Mobile View */}
+                  <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                    {periods.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500 text-xs">No hay períodos fiscales abiertos.</div>
+                    ) : (
+                      periods.map((p) => (
+                        <div key={p.id} className="flex flex-col p-4 hover:bg-slate-50/50 gap-3">
+                          <div className="flex justify-between items-start">
+                            <span className="font-bold text-slate-800 text-sm">{p.name}</span>
+                            <span className={clsx(
+                              "px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider",
+                              p.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-800'
+                            )}>
+                              {p.status === 'open' ? 'Abierto' : 'Cerrado'}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Inicio</span>
+                              <span className="font-mono text-slate-700">{new Date(p.startDate).toLocaleDateString('es-DO')}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Cierre</span>
+                              <span className="font-mono text-slate-700">{new Date(p.endDate).toLocaleDateString('es-DO')}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end border-t border-slate-50 pt-2 mt-1">
+                            <button 
+                              onClick={() => handleTogglePeriodStatus(p.id, p.status)}
+                              className={clsx(
+                                "text-[10px] font-bold py-1.5 px-3 rounded-lg border transition-colors w-full",
+                                p.status === 'open' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-green-200 text-green-600 hover:bg-green-50'
+                              )}
+                            >
+                              {p.status === 'open' ? 'Cerrar Período' : 'Reabrir Período'}
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
                         <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre Período</th>
@@ -1058,6 +1289,7 @@ export default function AccountingPage() {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </motion.div>

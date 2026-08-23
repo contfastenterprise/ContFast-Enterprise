@@ -903,113 +903,201 @@ export default function ProductsPage() {
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-2.5 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={products.length > 0 && selectedProductIds.length === products.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedProductIds(products.map(p => p.id));
-                      } else {
-                        setSelectedProductIds([]);
-                      }
-                    }}
-                    className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">SKU / Código</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Medida</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Costo</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Precio Venta</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading && products.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
-                    Cargando catálogo...
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-12 text-center text-slate-400">
-                    <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                    No se encontraron productos.
-                  </td>
-                </tr>
-              ) : (
-                products.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                    <td className="px-4 py-2 w-10 text-center align-middle">
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(p.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedProductIds(prev => [...prev, p.id]);
-                          } else {
-                            setSelectedProductIds(prev => prev.filter(id => id !== p.id));
-                          }
-                        }}
-                        className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-xs font-mono text-slate-700">
-                      <div>{p.sku || 'N/A'}</div>
-                      {p.barcode && (
-                        <div className="text-[10px] text-slate-400 font-sans mt-0.5" title="Código de Barra">
-                          CB: {p.barcode}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-xs font-semibold text-[#003366]">{p.name}</td>
-                    <td className="px-4 py-2.5 align-middle text-xs text-slate-600 capitalize">{p.unitOfMeasure}</td>
-                    <td className="px-4 py-2.5 align-middle text-xs text-slate-700 text-right">{formatCurrency(p.cost)}</td>
-                    <td className="px-4 py-2.5 align-middle text-xs font-bold text-[#003366] text-right">{formatCurrency(p.price)}</td>
-                    <td className="px-4 py-2.5 align-middle text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'active' 
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                        : 'bg-slate-50 text-slate-500 border border-slate-200'
-                        }`}>
-                      {p.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLabelSelectedProduct(p);
-                            setLabelPrintMode('single');
-                            setLabelQuantity(1);
-                            setShowLabelModal(true);
-                          }}
-                          title="Imprimir Etiquetas"
-                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
-                          <Layers className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
+        <div className="border-t border-slate-200">
+          {/* Mobile View */}
+          <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+            {loading && products.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
+                Cargando catálogo...
+              </div>
+            ) : products.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                No se encontraron productos.
+              </div>
+            ) : (
+              products.map((p) => (
+                <div key={p.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedProductIds.includes(p.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProductIds(prev => [...prev, p.id]);
+                        } else {
+                          setSelectedProductIds(prev => prev.filter(id => id !== p.id));
+                        }
+                      }}
+                      className="mt-1 rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer shrink-0"
+                    />
+                    <div className="flex flex-col flex-1 gap-1">
+                      <div className="flex justify-between items-start">
+                        <span className="font-semibold text-[#003366] text-sm">
+                          {p.name}
+                        </span>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold shrink-0 ml-2 ${p.status === 'active' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-slate-50 text-slate-500 border border-slate-200'
+                          }`}>
+                          {p.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
                       </div>
+                      <div className="flex gap-3 text-xs text-slate-500 font-mono mt-0.5">
+                        <span>SKU: {p.sku || 'N/A'}</span>
+                        {p.barcode && <span>CB: {p.barcode}</span>}
+                      </div>
+                      <div className="text-xs text-slate-600 capitalize">
+                        {p.unitOfMeasure}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Precio Venta</span>
+                      <span className="font-bold text-[#003366]">{formatCurrency(p.price)}</span>
+                    </div>
+                    <div className="flex flex-col items-end mr-4">
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Costo</span>
+                      <span className="text-slate-700 text-sm">{formatCurrency(p.cost)}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLabelSelectedProduct(p);
+                          setLabelPrintMode('single');
+                          setLabelQuantity(1);
+                          setShowLabelModal(true);
+                        }}
+                        className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => openInventoryModal(p)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
+                        <Layers className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => openEditModal(p)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/80 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2.5 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={products.length > 0 && selectedProductIds.length === products.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProductIds(products.map(p => p.id));
+                        } else {
+                          setSelectedProductIds([]);
+                        }
+                      }}
+                      className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">SKU / Código</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Medida</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Costo</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Precio Venta</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {loading && products.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-12 text-center text-slate-400">
+                      <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
+                      Cargando catálogo...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : products.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-12 text-center text-slate-400">
+                      <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      No se encontraron productos.
+                    </td>
+                  </tr>
+                ) : (
+                  products.map((p) => (
+                    <tr key={p.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                      <td className="px-4 py-2 w-10 text-center align-middle">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedProductIds(prev => [...prev, p.id]);
+                            } else {
+                              setSelectedProductIds(prev => prev.filter(id => id !== p.id));
+                            }
+                          }}
+                          className="rounded border-slate-350 text-[#003366] focus:ring-[#003366] cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-xs font-mono text-slate-700">
+                        <div>{p.sku || 'N/A'}</div>
+                        {p.barcode && (
+                          <div className="text-[10px] text-slate-400 font-sans mt-0.5" title="Código de Barra">
+                            CB: {p.barcode}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-xs font-semibold text-[#003366]">{p.name}</td>
+                      <td className="px-4 py-2.5 align-middle text-xs text-slate-600 capitalize">{p.unitOfMeasure}</td>
+                      <td className="px-4 py-2.5 align-middle text-xs text-slate-700 text-right">{formatCurrency(p.cost)}</td>
+                      <td className="px-4 py-2.5 align-middle text-xs font-bold text-[#003366] text-right">{formatCurrency(p.price)}</td>
+                      <td className="px-4 py-2.5 align-middle text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${p.status === 'active' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-slate-50 text-slate-500 border border-slate-200'
+                          }`}>
+                        {p.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLabelSelectedProduct(p);
+                              setLabelPrintMode('single');
+                              setLabelQuantity(1);
+                              setShowLabelModal(true);
+                            }}
+                            title="Imprimir Etiquetas"
+                            className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
+                            <Layers className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Pagination Toolbar */}

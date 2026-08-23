@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer } from 'lucide-react';
+import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -376,67 +376,117 @@ export default function MovementsPage() {
             <RefreshCw className="h-6 w-6 text-[#003366] animate-spin" />
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha / Hora</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px]">Tipo</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Cantidad</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario / Detalle</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {movements.length > 0 ? (
-                movements.map((mov) => {
-                  const qty = parseFloat(mov.quantity);
-                  const isPositive = qty > 0;
-                  return (
-                    <tr key={mov.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-4 py-2.5">
-                        <div className="font-semibold text-xs text-[#003366]">{new Date(mov.createdAt).toLocaleDateString('es-DO')}</div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <p className="font-semibold text-xs text-[#003366] max-w-[200px] truncate" title={mov.productName || ''}>{mov.productName}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">SKU: {mov.productSku}</p>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="font-semibold text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">{mov.warehouseName}</span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {getMovementTypeBadge(mov.type)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
+          {/* Mobile View */}
+          <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+            {movements.length > 0 ? (
+              movements.map((mov) => {
+                const qty = parseFloat(mov.quantity);
+                const isPositive = qty > 0;
+                return (
+                  <div key={mov.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold text-xs text-[#003366]">
+                          {new Date(mov.createdAt).toLocaleDateString('es-DO')} <span className="text-[10px] text-slate-400 font-mono ml-1">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</span>
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          {getMovementTypeBadge(mov.type)}
+                          <span className="font-semibold text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded uppercase tracking-wider">{mov.warehouseName}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
                         <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                           {isPositive ? '+' : ''}{qty}
                         </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className="font-mono font-bold text-xs text-slate-700">{parseFloat(mov.balanceAfter)}</span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <p className="text-xs font-semibold text-slate-600">{mov.userName}</p>
-                        {mov.description && (
-                          <p className="text-[10px] text-slate-400 max-w-[200px] truncate" title={getMovementDescription(mov)}>{getMovementDescription(mov)}</p>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500 text-xs font-medium">
-                    No se encontraron movimientos para los filtros seleccionados.
-                  </td>
+                        <span className="text-[10px] text-slate-500 font-medium">Bal: <span className="font-mono font-bold text-slate-700">{parseFloat(mov.balanceAfter)}</span></span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                      <span className="font-semibold text-xs text-[#003366]">{mov.productName}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">SKU: {mov.productSku}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-[10px] pt-1">
+                      <span className="text-slate-500 max-w-[200px] truncate" title={getMovementDescription(mov)}>
+                        {mov.description ? getMovementDescription(mov) : 'Sin detalle'}
+                      </span>
+                      <span className="font-semibold text-slate-600 flex items-center gap-1">
+                        <User className="h-3 w-3" /> {mov.userName}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-12 text-center text-slate-400 text-sm font-medium">
+                No se encontraron movimientos para los filtros seleccionados.
+              </div>
+            )}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha / Hora</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider min-w-[120px]">Tipo</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Cantidad</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario / Detalle</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {movements.length > 0 ? (
+                  movements.map((mov) => {
+                    const qty = parseFloat(mov.quantity);
+                    const isPositive = qty > 0;
+                    return (
+                      <tr key={mov.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-xs text-[#003366]">{new Date(mov.createdAt).toLocaleDateString('es-DO')}</div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <p className="font-semibold text-xs text-[#003366] max-w-[200px] truncate" title={mov.productName || ''}>{mov.productName}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">SKU: {mov.productSku}</p>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className="font-semibold text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded">{mov.warehouseName}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {getMovementTypeBadge(mov.type)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                            {isPositive ? '+' : ''}{qty}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className="font-mono font-bold text-xs text-slate-700">{parseFloat(mov.balanceAfter)}</span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <p className="text-xs font-semibold text-slate-600">{mov.userName}</p>
+                          {mov.description && (
+                            <p className="text-[10px] text-slate-400 max-w-[200px] truncate" title={getMovementDescription(mov)}>{getMovementDescription(mov)}</p>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500 text-xs font-medium">
+                      No se encontraron movimientos para los filtros seleccionados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         
         {/* Pagination */}
         <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-200 flex justify-between items-center">

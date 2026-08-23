@@ -479,54 +479,101 @@ export default function BankAccountsPage() {
                   </div>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-white border-b border-slate-200 text-[10px] tracking-widest text-slate-500 uppercase font-bold">
-                    <tr>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción</th>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referencia</th>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {(() => {
-                      const filtered = transactions.filter(tx => {
-                        if (!bankSearch.trim()) return true;
-                        return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
-                          (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
-                      });
-                      if (filtered.length === 0) return (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-12 text-center text-slate-500/70">
-                            {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
-                          </td>
-                        </tr>
-                      );
-                      return filtered.map(tx => {
-                        const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
-                        return (
-                          <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</td>
-                            <td className="px-4 py-2.5 text-xs font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
-                            <td className="px-4 py-2.5 text-xs font-mono text-slate-500/70">{tx.reference || '-'}</td>
-                            <td className="px-4 py-2.5 text-xs">
-                              <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
-                                {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                                {tx.type}
-                              </span>
-                            </td>
-                            <td className={clsx("px-4 py-2.5 text-xs text-right font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
+              <>
+                {/* Mobile View */}
+                <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+                  {(() => {
+                    const filtered = transactions.filter(tx => {
+                      if (!bankSearch.trim()) return true;
+                      return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
+                        (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
+                    });
+                    if (filtered.length === 0) return (
+                      <div className="py-12 text-center">
+                        <p className="text-xs text-slate-500/70">
+                          {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
+                        </p>
+                      </div>
+                    );
+                    return filtered.map(tx => {
+                      const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
+                      return (
+                        <div key={tx.id} className="flex flex-col p-4 hover:bg-slate-50/50 transition-colors gap-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs text-slate-500/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</span>
+                            <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+                              {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                              {tx.type}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-col mt-1">
+                            <span className="text-sm font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</span>
+                            <span className="text-[10px] font-mono text-slate-500/70 mt-0.5">Ref: {tx.reference || '-'}</span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center pt-2 mt-1 border-t border-slate-50">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Monto</span>
+                            <span className={clsx("text-sm font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
                               {isIncoming ? '+' : '-'}{fmt(tx.amount)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-white border-b border-slate-200 text-[10px] tracking-widest text-slate-500 uppercase font-bold">
+                      <tr>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referencia</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {(() => {
+                        const filtered = transactions.filter(tx => {
+                          if (!bankSearch.trim()) return true;
+                          return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
+                            (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
+                        });
+                        if (filtered.length === 0) return (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-12 text-center text-slate-500/70">
+                              {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
                             </td>
                           </tr>
                         );
-                      });
-                    })()}
-                  </tbody>
-                </table>
-              </div>
+                        return filtered.map(tx => {
+                          const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
+                          return (
+                            <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-2.5 text-xs font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
+                              <td className="px-4 py-2.5 text-xs font-mono text-slate-500/70">{tx.reference || '-'}</td>
+                              <td className="px-4 py-2.5 text-xs">
+                                <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+                                  {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                                  {tx.type}
+                                </span>
+                              </td>
+                              <td className={clsx("px-4 py-2.5 text-xs text-right font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
+                                {isIncoming ? '+' : '-'}{fmt(tx.amount)}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             </div>
             )}
           </>

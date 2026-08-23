@@ -344,7 +344,79 @@ export default function CustomersPage() {
 
       {/* CUSTOMERS TABLE */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col divide-y divide-slate-100">
+          {loading ? (
+            <div className="py-16 text-center">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
+                <span className="text-slate-500 text-sm font-medium">Cargando clientes...</span>
+              </div>
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="py-16 text-center text-slate-500 text-sm">
+              No se encontraron clientes.
+            </div>
+          ) : (
+            customers.map((c) => (
+              <div key={c.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#C5A059] flex-shrink-0">
+                      {c.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-[#003366] text-sm">
+                        {c.name}
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] text-slate-500 mt-1">
+                        <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                        {c.rncCedula || 'S/N'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${
+                    c.status === 'active'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                    {c.status === 'active' ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+                
+                <div className="flex flex-col gap-1.5 mt-2">
+                  {c.email && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <Mail className="h-3.5 w-3.5 text-slate-400" /> {c.email}
+                    </div>
+                  )}
+                  {c.phone && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {c.phone}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex justify-end items-center mt-2 pt-3 border-t border-slate-100 gap-2">
+                  <Link href={`/dashboard/customers/${c.id}`}>
+                    <button className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Historial">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </Link>
+                  <button onClick={() => openEditModal(c)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10" title="Editar">
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDelete(c.id, c.name)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50" title="Eliminar">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
@@ -366,17 +438,14 @@ export default function CustomersPage() {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedCustomers.length === 0 ? (
+              ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <Users className="h-8 w-8 text-slate-300" />
-                      <span className="text-slate-500 text-sm">No se encontraron clientes. Haz clic en "Nuevo Cliente" para empezar.</span>
-                    </div>
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500 text-sm">
+                    No se encontraron clientes que coincidan con la búsqueda.
                   </td>
                 </tr>
               ) : (
-                paginatedCustomers.map((c) => (
+                customers.map((c) => (
                   <motion.tr
                     key={c.id}
                     initial={{ opacity: 0 }}

@@ -490,75 +490,138 @@ export default function DashboardPage() {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200/10">
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">e-NCF</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha/Hora</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Receptor</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monto (RD$)</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado DGII</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/10">
-              {filteredInvoices.length > 0 ? (
-                filteredInvoices.map((inv) => {
-                  const badge = statusBadge(inv.status);
-                  const date = new Date(inv.createdAt);
-                  return (
-                    <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
-                      <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
-                      <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
-                        {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-label-md font-bold text-slate-800 text-sm">{inv.buyerName || 'Consumidor Final'}</p>
-                        {inv.buyerRnc && <p className="text-xs text-slate-500 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-mono-data font-extrabold text-slate-800">{fmt(parseFloat(inv.total))}</td>
-                      <td className="px-4 py-2.5 text-xs">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-extrabold uppercase tracking-wider`}>
-                          {badge.icon}
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-xs">
-                        <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => handleViewPdf(inv.id, e)}
-                            className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
-                            title="Ver PDF"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => handleResendEmail(inv.id, e)}
-                            disabled={resendingId === inv.id}
-                            className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Reenviar por Correo"
-                          >
-                            {resendingId === inv.id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="h-4 w-4" />
-                            )}
-                          </button>
+        <div className="border-t border-slate-200/10">
+          {/* Mobile View */}
+          <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+            {filteredInvoices.length > 0 ? (
+              filteredInvoices.map((inv) => {
+                const badge = statusBadge(inv.status);
+                const date = new Date(inv.createdAt);
+                return (
+                  <div key={inv.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3 cursor-pointer">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono-data text-primary font-extrabold text-sm">{inv.ncf || `e-${inv.ecfType}`}</span>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          {date.toLocaleDateString('es-DO')} <span className="font-mono-data text-slate-400 ml-1">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium">
-                    No hay registros que coincidan con la búsqueda.
-                  </td>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${badge.cls} text-[9px] font-extrabold uppercase tracking-wider`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    
+                    <div className="flex flex-col bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1">
+                      <span className="font-label-md font-bold text-slate-800 text-xs truncate max-w-[250px]">{inv.buyerName || 'Consumidor Final'}</span>
+                      {inv.buyerRnc && <span className="text-[10px] text-slate-500 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</span>}
+                    </div>
+                    
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="font-mono-data font-extrabold text-slate-800 text-sm">{fmt(parseFloat(inv.total))}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => handleViewPdf(inv.id, e)}
+                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all"
+                          title="Ver PDF"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => handleResendEmail(inv.id, e)}
+                          disabled={resendingId === inv.id}
+                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition-all disabled:opacity-50"
+                          title="Reenviar por Correo"
+                        >
+                          {resendingId === inv.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="mx-auto h-12 w-12 text-slate-300" />
+                <h3 className="mt-4 text-sm font-semibold text-slate-800">No hay registros que coincidan</h3>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/10">
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">e-NCF</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha/Hora</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Receptor</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Monto (RD$)</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado DGII</th>
+                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200/10">
+                {filteredInvoices.length > 0 ? (
+                  filteredInvoices.map((inv) => {
+                    const badge = statusBadge(inv.status);
+                    const date = new Date(inv.createdAt);
+                    return (
+                      <tr key={inv.id} className="hover:bg-primary/5 transition-all group cursor-pointer">
+                        <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
+                        <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
+                          {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-label-md font-bold text-slate-800 text-sm">{inv.buyerName || 'Consumidor Final'}</p>
+                          {inv.buyerRnc && <p className="text-xs text-slate-500 font-mono-data mt-0.5">RNC: {inv.buyerRnc}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-mono-data font-extrabold text-slate-800">{fmt(parseFloat(inv.total))}</td>
+                        <td className="px-4 py-2.5 text-xs">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.cls} text-[10px] font-extrabold uppercase tracking-wider`}>
+                            {badge.icon}
+                            {badge.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs">
+                          <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => handleViewPdf(inv.id, e)}
+                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm"
+                              title="Ver PDF"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => handleResendEmail(inv.id, e)}
+                              disabled={resendingId === inv.id}
+                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Reenviar por Correo"
+                            >
+                              {resendingId === inv.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-medium">
+                      No hay registros que coincidan con la búsqueda.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
         <div className="p-4 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-4">
           <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{filteredInvoices.length}</span> de {stats.totalInvoices} registros</span>

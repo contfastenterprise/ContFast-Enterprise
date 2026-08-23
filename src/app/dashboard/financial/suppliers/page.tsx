@@ -510,68 +510,130 @@ export default function SupplierStatementPage() {
             </div>
 
             {/* Movements Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-outline-variant/10 text-xs text-neutral-500 uppercase">
-                    <th className="py-2">Fecha</th>
-                    <th className="py-2">Nº Doc / Ref</th>
-                    <th className="py-2">Tipo</th>
-                    <th className="py-2">Detalles / Notas</th>
-                    <th className="py-2 text-right text-emerald-700">Débito (-)</th>
-                    <th className="py-2 text-right text-red-700">Crédito (+)</th>
-                    <th className="py-2 text-right">Balance CxP</th>
-                    <th className="py-2 text-center">Estado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/5 text-sm">
-                  {statementData.movements.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-8 text-center text-neutral-500">No hay movimientos financieros para este suplidor con los filtros aplicados.</td>
-                    </tr>
-                  ) : (
-                    statementData.movements.map((m) => {
-                      const isInvoice = m.movementType === 'invoice' || m.movementType === 'debit_note';
-                      return (
-                        <tr key={m.id} className="hover:bg-surface-container-low/30">
-                          <td className="py-3 text-xs">{new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
-                          <td className="py-3 font-mono text-xs font-semibold">{m.documentNumber}</td>
-                          <td className="py-3 text-xs">
-                            <span className={clsx(
-                              "px-2 py-0.5 rounded-full font-bold text-[10px]",
-                              m.movementType === 'invoice' && "bg-blue-500/10 text-blue-700",
-                              m.movementType === 'payment' && "bg-emerald-500/10 text-emerald-700",
-                              m.movementType === 'credit_note' && "bg-emerald-500/10 text-emerald-700",
-                              m.movementType === 'debit_note' && "bg-indigo-500/10 text-indigo-700",
-                              m.movementType === 'retention' && "bg-indigo-500/10 text-indigo-700"
-                            )}>
-                              {m.movementType === 'invoice' ? 'GASTO' : m.movementType.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 text-xs text-neutral-500 max-w-xs truncate" title={m.notes}>{m.notes}</td>
-                          <td className="py-3 text-right font-mono font-bold text-emerald-700">
-                            {m.debit > 0 ? `-${fmt(m.debit)}` : '-'}
-                          </td>
-                          <td className="py-3 text-right font-mono font-bold text-red-700">
-                            {m.credit > 0 ? `+${fmt(m.credit)}` : '-'}
-                          </td>
-                          <td className="py-3 text-right font-mono font-bold text-neutral-800 dark:text-neutral-200">
+            <div className="border border-outline-variant/20 rounded-lg overflow-hidden">
+              {/* Mobile View */}
+              <div className="md:hidden flex flex-col divide-y divide-outline-variant/10 bg-white">
+                {statementData.movements.length === 0 ? (
+                  <div className="py-8 text-center text-neutral-500 text-xs">
+                    No hay movimientos financieros para este suplidor con los filtros aplicados.
+                  </div>
+                ) : (
+                  statementData.movements.map((m) => (
+                    <div key={m.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-xs font-bold text-neutral-800">
+                            {m.documentNumber}
+                          </span>
+                          <span className="text-[10px] text-neutral-500 font-mono">
+                            {new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={clsx(
+                            "px-2 py-0.5 rounded-full font-bold text-[9px] uppercase",
+                            m.movementType === 'invoice' && "bg-blue-500/10 text-blue-700",
+                            m.movementType === 'payment' && "bg-emerald-500/10 text-emerald-700",
+                            m.movementType === 'credit_note' && "bg-emerald-500/10 text-emerald-700",
+                            m.movementType === 'debit_note' && "bg-indigo-500/10 text-indigo-700",
+                            m.movementType === 'retention' && "bg-indigo-500/10 text-indigo-700"
+                          )}>
+                            {m.movementType === 'invoice' ? 'GASTO' : m.movementType}
+                          </span>
+                          <span className={clsx(
+                            "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
+                            m.status === 'active' ? "bg-emerald-500/10 text-emerald-700" : "bg-neutral-500/10 text-neutral-600"
+                          )}>
+                            {m.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-neutral-600 truncate" title={m.notes}>
+                          {m.notes || '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-3 border-t border-outline-variant/10 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          {m.debit > 0 && <span className="font-mono font-bold text-emerald-700">Déb. -{fmt(m.debit)}</span>}
+                          {m.credit > 0 && <span className="font-mono font-bold text-red-700">Créd. +{fmt(m.credit)}</span>}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[9px] uppercase text-neutral-500 font-bold">Balance</span>
+                          <span className="font-mono font-bold text-neutral-800">
                             {fmt(m.balance)}
-                          </td>
-                          <td className="py-3 text-center">
-                            <span className={clsx(
-                              "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase",
-                              m.status === 'active' ? "bg-emerald-500/10 text-emerald-700" : "bg-neutral-500/10 text-neutral-600"
-                            )}>
-                              {m.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse bg-white">
+                  <thead>
+                    <tr className="border-b border-outline-variant/10 text-xs text-neutral-500 uppercase">
+                      <th className="px-4 py-2.5">Fecha</th>
+                      <th className="px-4 py-2.5">Nº Doc / Ref</th>
+                      <th className="px-4 py-2.5">Tipo</th>
+                      <th className="px-4 py-2.5">Detalles / Notas</th>
+                      <th className="px-4 py-2.5 text-right text-emerald-700">Débito (-)</th>
+                      <th className="px-4 py-2.5 text-right text-red-700">Crédito (+)</th>
+                      <th className="px-4 py-2.5 text-right">Balance CxP</th>
+                      <th className="px-4 py-2.5 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/5 text-sm">
+                    {statementData.movements.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-neutral-500">No hay movimientos financieros para este suplidor con los filtros aplicados.</td>
+                      </tr>
+                    ) : (
+                      statementData.movements.map((m) => {
+                        const isInvoice = m.movementType === 'invoice' || m.movementType === 'debit_note';
+                        return (
+                          <tr key={m.id} className="hover:bg-surface-container-low/30">
+                            <td className="px-4 py-3 text-xs">{new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-3 font-mono text-xs font-semibold">{m.documentNumber}</td>
+                            <td className="px-4 py-3 text-xs">
+                              <span className={clsx(
+                                "px-2 py-0.5 rounded-full font-bold text-[10px]",
+                                m.movementType === 'invoice' && "bg-blue-500/10 text-blue-700",
+                                m.movementType === 'payment' && "bg-emerald-500/10 text-emerald-700",
+                                m.movementType === 'credit_note' && "bg-emerald-500/10 text-emerald-700",
+                                m.movementType === 'debit_note' && "bg-indigo-500/10 text-indigo-700",
+                                m.movementType === 'retention' && "bg-indigo-500/10 text-indigo-700"
+                              )}>
+                                {m.movementType === 'invoice' ? 'GASTO' : m.movementType.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-neutral-500 max-w-xs truncate" title={m.notes}>{m.notes}</td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-emerald-700">
+                              {m.debit > 0 ? `-${fmt(m.debit)}` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-red-700">
+                              {m.credit > 0 ? `+${fmt(m.credit)}` : '-'}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-neutral-800 dark:text-neutral-200">
+                              {fmt(m.balance)}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={clsx(
+                                "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase",
+                                m.status === 'active' ? "bg-emerald-500/10 text-emerald-700" : "bg-neutral-500/10 text-neutral-600"
+                              )}>
+                                {m.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
+import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -646,72 +646,122 @@ export default function PurchaseOrdersPage() {
         ) : filteredOrders.length === 0 ? (
           <div className="p-16 text-center text-slate-500 text-sm">No se encontraron pedidos de mercancía.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">No. Pedido</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Total Artículos</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
-                  <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                    <td className="px-4 py-2.5 align-middle">
-                      <span className="font-mono text-slate-700 whitespace-nowrap">
-                        {new Date(order.orderDate).toLocaleDateString('es-DO')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 align-middle">
-                      <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors">
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col divide-y divide-slate-100">
+              {filteredOrders.map(order => (
+                <div key={order.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-mono text-xs font-bold text-[#b08c4a]">
                         {order.orderNumber}
                       </span>
-                    </td>
-                    <td className="px-4 py-2.5 align-middle">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-[#003366] block truncate max-w-[200px]">
-                          {order.supplierName}
-                        </span>
-                        {order.supplierRnc && (
-                          <span className="text-[10px] text-slate-500 font-mono">
-                            RNC: {order.supplierRnc}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-center font-bold text-slate-800">
-                      {order.totalItemsCount}
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-slate-600">
-                      {order.userName}
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${statusBadges[order.status]}`}>
-                        {statusLabels[order.status]}
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {new Date(order.orderDate).toLocaleDateString('es-DO')}
                       </span>
-                    </td>
-                    <td className="px-4 py-2.5 align-middle text-right space-x-2 whitespace-nowrap">
-                      <button onClick={() => viewOrderDetails(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
-                        Ver
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${statusBadges[order.status]}`}>
+                      {statusLabels[order.status]}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-[#003366] text-sm truncate">
+                      {order.supplierName}
+                    </span>
+                    <span className="text-xs text-slate-500 mt-0.5">
+                      RNC: {order.supplierRnc || '-'} | Creado por: {order.userName}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                    <span className="font-bold text-slate-800 text-xs">
+                      {order.totalItemsCount} Artículos
+                    </span>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => viewOrderDetails(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                        <Eye className="h-4 w-4" />
                       </button>
-                      <button onClick={() => handlePrint(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer" title="Imprimir PDF">
-                        <Printer className="h-4 w-4 inline" />
+                      <button onClick={() => handlePrint(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                        <Printer className="h-4 w-4" />
                       </button>
                       {order.status === 'Draft' && (
-                        <button onClick={() => openEditModal(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#C5A059] cursor-pointer" title="Editar">
-                          <Edit2 className="h-4 w-4 inline" />
+                        <button onClick={() => openEditModal(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#C5A059]">
+                          <Edit2 className="h-4 w-4" />
                         </button>
                       )}
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">No. Pedido</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Total Artículos</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Usuario</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                    <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredOrders.map(order => (
+                    <tr key={order.id} className="hover:bg-[#C5A059]/5 transition-colors group">
+                      <td className="px-4 py-2.5 align-middle">
+                        <span className="font-mono text-slate-700 whitespace-nowrap">
+                          {new Date(order.orderDate).toLocaleDateString('es-DO')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 align-middle">
+                        <span className="font-mono font-bold text-[#b08c4a] group-hover:text-[#9a7a3e] transition-colors">
+                          {order.orderNumber}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 align-middle">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-semibold text-[#003366] block truncate max-w-[200px]">
+                            {order.supplierName}
+                          </span>
+                          {order.supplierRnc && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              RNC: {order.supplierRnc}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-center font-bold text-slate-800">
+                        {order.totalItemsCount}
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-slate-600">
+                        {order.userName}
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${statusBadges[order.status]}`}>
+                          {statusLabels[order.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 align-middle text-right space-x-2 whitespace-nowrap">
+                        <button onClick={() => viewOrderDetails(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
+                          Ver
+                        </button>
+                        <button onClick={() => handlePrint(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer" title="Imprimir PDF">
+                          <Printer className="h-4 w-4 inline" />
+                        </button>
+                        {order.status === 'Draft' && (
+                          <button onClick={() => openEditModal(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#C5A059] cursor-pointer" title="Editar">
+                            <Edit2 className="h-4 w-4 inline" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

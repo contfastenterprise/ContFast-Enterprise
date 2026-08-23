@@ -1139,9 +1139,64 @@ export default function PurchasesPage() {
                       {searchResults.filter(e => !e.isMinorExpense).length} Comprobantes
                     </span>
                   </h3>
-
                   <div className="border border-slate-200 rounded-lg overflow-hidden mt-4">
-                    <div className="overflow-x-auto">
+                    {/* Mobile View */}
+                    <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                      {paginatedPurchases.length === 0 ? (
+                        <div className="py-8 text-center text-slate-500 text-xs">
+                          No hay compras registradas.
+                        </div>
+                      ) : (
+                        paginatedPurchases.map(e => (
+                          <div key={e.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-mono text-xs font-bold text-[#c5a059]">
+                                  {e.ncf || 'Sin NCF'}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  {formatDateDisplay(e.issueDate)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-[#c5a059] text-sm truncate">
+                                {e.supplierName || 'Desconocido'}
+                              </span>
+                              <span className="text-xs text-slate-500 mt-0.5">
+                                RNC: {e.supplierRnc || '-'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                              <span className="font-mono font-bold text-emerald-600 text-sm">
+                                RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                              </span>
+                              <div className="flex gap-1.5">
+                                <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                                {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                  <>
+                                    <button onClick={() => handleEditFromList(e.id)} className="p-2 bg-slate-100 rounded text-amber-500 hover:bg-amber-500/10">
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                    <button onClick={() => handleDeleteExpense(e.id)} className="p-2 bg-slate-100 rounded text-rose-500 hover:bg-rose-500/10">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-surface-container-high text-[11px] font-bold text-slate-500 uppercase">
@@ -1153,61 +1208,62 @@ export default function PurchasesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
-                          {paginatedPurchases.map(e => (
-                            <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-4 py-2.5">
-                                <p className="font-bold text-xs text-[#c5a059]">{e.supplierName || 'Desconocido'}</p>
-                                <p className="text-[10px] text-slate-500">{e.supplierRnc || '-'}</p>
-                              </td>
-                              <td className="px-4 py-2.5 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
-                              <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
-                              <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-emerald-600">
-                                RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    onClick={() => viewDetails(e.id)}
-                                    className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
-                                    title="Ver Detalles"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                    className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
-                                    title="Imprimir"
-                                  >
-                                    <Printer className="h-4 w-4" />
-                                  </button>
-                                  {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                                    <button
-                                      onClick={() => handleEditFromList(e.id)}
-                                      className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
-                                      title="Editar Compra"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  {userRole === 'sistemas' && (
-                                    <button
-                                      onClick={() => handleDeleteExpense(e.id)}
-                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                                      title="Eliminar Compra"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {filteredPurchases.length === 0 && (
+                          {paginatedPurchases.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="py-8 text-center text-xs text-slate-600">
-                                No hay compras comerciales en el rango de búsqueda.
+                              <td colSpan={5} className="py-8 text-center text-slate-500 text-xs">
+                                No hay compras registradas.
                               </td>
                             </tr>
+                          ) : (
+                            paginatedPurchases.map(e => (
+                              <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-4 py-2.5">
+                                  <p className="font-bold text-xs text-[#c5a059]">{e.supplierName || 'Desconocido'}</p>
+                                  <p className="text-[10px] text-slate-500">{e.supplierRnc || '-'}</p>
+                                </td>
+                                <td className="px-4 py-2.5 font-mono text-xs font-semibold">{e.ncf || 'Sin NCF'}</td>
+                                <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
+                                <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-emerald-600">
+                                  RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => viewDetails(e.id)}
+                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
+                                      title="Ver Detalles"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                      title="Imprimir"
+                                    >
+                                      <Printer className="h-4 w-4" />
+                                    </button>
+                                    {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                      <button
+                                        onClick={() => handleEditFromList(e.id)}
+                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                        title="Editar"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                    {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                      <button
+                                        onClick={() => handleDeleteExpense(e.id)}
+                                        className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                                        title="Anular"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
                           )}
                         </tbody>
                       </table>
@@ -1253,7 +1309,61 @@ export default function PurchasesPage() {
                   </h3>
 
                   <div className="border border-slate-200 rounded-lg overflow-hidden mt-4">
-                    <div className="overflow-x-auto">
+                    {/* Mobile View */}
+                    <div className="md:hidden flex flex-col divide-y divide-slate-100">
+                      {paginatedExpenses.length === 0 ? (
+                        <div className="py-8 text-center text-slate-500 text-xs">
+                          No hay gastos menores registrados.
+                        </div>
+                      ) : (
+                        paginatedExpenses.map(e => (
+                          <div key={e.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-bold text-xs text-[#c5a059]">
+                                  {e.description || 'Gasto General'}
+                                </span>
+                                {e.ncf && <span className="text-[10px] text-slate-500 font-mono">{e.ncf}</span>}
+                              </div>
+                              <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-semibold whitespace-nowrap">
+                                {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
+                              <div className="flex flex-col">
+                                <span className="font-mono font-bold text-blue-600 text-sm">
+                                  RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  {formatDateDisplay(e.issueDate)}
+                                </span>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                                {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                  <>
+                                    <button onClick={() => handleEditFromList(e.id)} className="p-2 bg-slate-100 rounded text-amber-500 hover:bg-amber-500/10">
+                                      <Edit className="h-4 w-4" />
+                                    </button>
+                                    <button onClick={() => handleDeleteExpense(e.id)} className="p-2 bg-slate-100 rounded text-rose-500 hover:bg-rose-500/10">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-surface-container-high text-[11px] font-bold text-slate-500 uppercase">
@@ -1265,65 +1375,66 @@ export default function PurchasesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
-                          {paginatedExpenses.map(e => (
-                            <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
-                              <td className="px-4 py-2.5">
-                                <p className="font-bold text-xs text-[#c5a059]">{e.description || 'Gasto General'}</p>
-                                {e.ncf && <p className="text-[10px] font-mono text-slate-500">{e.ncf}</p>}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-semibold inline-block">
-                                  {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
-                              <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-blue-600">
-                                RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    onClick={() => viewDetails(e.id)}
-                                    className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
-                                    title="Ver Detalles"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
-                                    className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
-                                    title="Imprimir"
-                                  >
-                                    <Printer className="h-4 w-4" />
-                                  </button>
-                                  {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                                    <button
-                                      onClick={() => handleEditFromList(e.id)}
-                                      className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
-                                      title="Editar Gasto"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  {userRole === 'sistemas' && (
-                                    <button
-                                      onClick={() => handleDeleteExpense(e.id)}
-                                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                                      title="Eliminar Gasto"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {filteredExpenses.length === 0 && (
+                          {paginatedExpenses.length === 0 ? (
                             <tr>
-                              <td colSpan={5} className="p-8 text-center text-xs text-slate-600">
-                                No hay gastos registrados en el rango de búsqueda.
+                              <td colSpan={5} className="py-8 text-center text-slate-500 text-xs">
+                                No hay gastos menores registrados.
                               </td>
                             </tr>
+                          ) : (
+                            paginatedExpenses.map(e => (
+                              <tr key={e.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-4 py-2.5">
+                                  <p className="font-bold text-xs text-[#c5a059]">{e.description || 'Gasto General'}</p>
+                                  {e.ncf && <p className="text-[10px] font-mono text-slate-500">{e.ncf}</p>}
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-semibold inline-block">
+                                    {e.expenseType === '01' ? 'Personal' : e.expenseType === '02' ? 'Servicios' : e.expenseType === '09' ? 'Inventario' : 'Otros'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5 text-xs text-slate-600">{formatDateDisplay(e.issueDate)}</td>
+                                <td className="px-4 py-2.5 text-right font-bold font-mono-data text-xs text-blue-600">
+                                  RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
+                                </td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      onClick={() => viewDetails(e.id)}
+                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition-all"
+                                      title="Ver Detalles"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition-all"
+                                      title="Imprimir"
+                                    >
+                                      <Printer className="h-4 w-4" />
+                                    </button>
+                                    {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
+                                      <button
+                                        onClick={() => handleEditFromList(e.id)}
+                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition-all"
+                                        title="Editar Gasto"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                    {userRole === 'sistemas' && (
+                                      <button
+                                        onClick={() => handleDeleteExpense(e.id)}
+                                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                                        title="Eliminar Gasto"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
                           )}
                         </tbody>
                       </table>

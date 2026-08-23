@@ -250,7 +250,60 @@ export default function EmployeesPage() {
       ) : (
         <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile View */}
+            <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+              {pagedEmployees.map((emp) => (
+                <div key={emp.id} className="flex flex-col p-4 hover:bg-slate-50 transition-colors gap-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-sm text-slate-800">{emp.firstName} {emp.lastName}</span>
+                      <span className="font-mono font-bold text-xs text-[#003366]">{emp.employeeCode}</span>
+                    </div>
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase ${emp.status === 'active' 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                      : 'bg-slate-50 text-slate-500 border border-slate-200'
+                      }`}>
+                      {emp.status === 'active' ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 text-xs text-slate-600">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Cédula:</span>
+                      <span className="font-mono">{emp.cedula.replace(/(\d{3})(\d{7})(\d{1})/, '$1-$2-$3')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Cargo:</span>
+                      <span className="font-semibold">{positions.find(p => p.id === emp.positionId)?.name || 'Sin Puesto'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Salario:</span>
+                      <span className="font-bold text-[#003366] font-mono">{parseFloat(emp.salary).toLocaleString('es-DO', { style: 'currency', currency: 'DOP' })}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => handleOpenEdit(emp)}
+                      className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10 flex items-center justify-center"
+                      title="Editar"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(emp.id)}
+                      className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50/80 border-b border-slate-200">
                   <tr>
