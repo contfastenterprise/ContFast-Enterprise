@@ -641,7 +641,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="p-4 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{displayedInvoices.length}</span> de {filteredInvoices.length} encontrados (Total: {stats.totalInvoices})</span>
+          <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{displayedInvoices.length}</span> de los {filteredInvoices.length} más recientes (Historial total: {stats.totalInvoices})</span>
           <div className="flex gap-2">
             <button 
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -742,6 +742,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
