@@ -502,7 +502,7 @@ export default function DashboardPage() {
         <div className="border-t border-slate-200/10">
           {/* Mobile View */}
           <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
-            {filteredInvoices.length > 0 ? (
+            {displayedInvoices.length > 0 ? (
               displayedInvoices.map((inv) => {
                 const badge = statusBadge(inv.status);
                 const date = new Date(inv.createdAt);
@@ -578,8 +578,8 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/10">
-                {filteredInvoices.length > 0 ? (
-                  filteredInvoices.map((inv) => {
+                {displayedInvoices.length > 0 ? (
+                  displayedInvoices.map((inv) => {
                     const badge = statusBadge(inv.status);
                     const date = new Date(inv.createdAt);
                     return (
@@ -728,5 +728,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
