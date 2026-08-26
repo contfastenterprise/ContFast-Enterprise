@@ -240,8 +240,8 @@ export class ApRepository {
     .from(apPayments)
     .innerJoin(accountsPayable, eq(apPayments.apId, accountsPayable.id))
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
-    .innerJoin(debitAccount, eq(apPayments.debitAccountId, debitAccount.id))
-    .innerJoin(creditAccount, eq(apPayments.creditAccountId, creditAccount.id))
+    .leftJoin(debitAccount, eq(apPayments.debitAccountId, debitAccount.id))
+    .leftJoin(creditAccount, eq(apPayments.creditAccountId, creditAccount.id))
     .leftJoin(checks, eq(apPayments.checkId, checks.id))
     .where(and(...conditions));
 
@@ -271,10 +271,10 @@ export class ApRepository {
       ...r.payment,
       paymentDate: formatUtcDateString(r.payment.paymentDate) || '',
       supplierName: r.supplier.name,
-      debitAccountName: r.debit.name,
-      debitAccountCode: r.debit.code,
-      creditAccountName: r.credit.name,
-      creditAccountCode: r.credit.code,
+      debitAccountName: r.debit?.name || 'N/A',
+      debitAccountCode: r.debit?.code || 'N/A',
+      creditAccountName: r.credit?.name || 'N/A',
+      creditAccountCode: r.credit?.code || 'N/A',
       checkNumber: r.check?.checkNumber,
       dueDate: formatUtcDateString(r.check?.dueDate) || undefined,
       checkStatus: r.check?.status,

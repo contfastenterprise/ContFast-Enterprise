@@ -592,3 +592,8 @@ Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Po
 ## 2026-08-22 - UI/UX Audit & Optimization
 **Verified & Polished**: Completed UI/UX audit applying UI UX Pro Max guidelines. Fixed globals.css token collisions, replaced font-black globally for typographical consistency, improved accessibility in buttons, and refined table row hover states.
 ## Auditoría de Interfaces y Tablas Densas (Adaptive List-to-Table) - **Verified & Polished**
+
+### 37. Corrección en Listado de Historial de Pagos y Cheques en Garantía (Cuentas por Pagar)
+- **Problema de Filtrado (Join Drop):** Se detectó que tanto la tabla de Historial de Pagos como la tabla de Cheques en Garantía Diferidos se mostraban vacías a pesar de existir registros de pagos y notificaciones de cheques vencidos en el Dashboard.
+- **Resolución en Base de Datos (ApRepository):** Se modificó la consulta SQL de getPayments cambiando los innerJoin de las cuentas contables (débito y crédito) a leftJoin. Esto previene que los registros de pagos se oculten de la vista en caso de que alguna cuenta contable asociada esté deshabilitada, eliminada o tenga inconsistencias temporales en el catálogo de cuentas.
+- **Acceso Seguro a Propiedades (Null Safety):** Se implementó acceso seguro opcional (?.) al mapear los nombres y códigos de las cuentas contables retornadas por la consulta para evitar caídas en el frontend (TypeError: Cannot read properties of null), retornando un valor predeterminado 'N/A' cuando la cuenta contable no puede ser resuelta.
