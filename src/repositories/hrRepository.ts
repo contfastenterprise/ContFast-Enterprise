@@ -730,6 +730,8 @@ export class HRRepository {
         firstName: employees.firstName,
         lastName: employees.lastName,
         employeeCode: employees.employeeCode,
+        hireDate: employees.hireDate,
+        status: employees.status,
         generatedDays: sql<number>`coalesce(${employeeVacations.generatedDays}, 0)`,
         takenDays: sql<number>`coalesce(${employeeVacations.takenDays}, 0)`,
         availableDays: sql<number>`coalesce(${employeeVacations.availableDays}, 0)`,

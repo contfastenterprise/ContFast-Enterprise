@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Banknote, Calendar, ShieldAlert, Award, FileText, HeartPulse, ShieldCheck, RefreshCw, BarChart3, TrendingUp, UserCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Banknote, Calendar, ShieldAlert, Award, FileText, HeartPulse, ShieldCheck, RefreshCw, BarChart3, TrendingUp, UserCheck, Palmtree, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Format currency helper
@@ -44,6 +45,13 @@ export default function HRDashboard() {
       // Fetch config & departments
       const deptRes = await fetch('/api/v1/hr/departments');
       const deptData = await deptRes.json();
+
+      // Saldo real de vacaciones (antes era emps.length * 5, un numero inventado)
+      const vacRes = await fetch('/api/v1/hr/vacations');
+      const vacData = await vacRes.json();
+      const diasVacaciones = (vacData.data || [])
+        .filter((v: any) => v.status === 'active')
+        .reduce((acc: number, v: any) => acc + Number(v.availableDays || 0), 0);
 
       const emps = empData.data || [];
       const payrollList = prData.data || [];
@@ -92,7 +100,7 @@ export default function HRDashboard() {
         activeEmployees: active,
         monthlyPayroll: monthlyCost,
         annualPayroll: annualCost,
-        pendingVacations: emps.length * 5, // Simulated pending vacation days
+        pendingVacations: diasVacaciones,
         pendingSettlements: emps.filter((e: any) => e.status === 'suspended' || e.status === 'inactive').length,
         tssCost: tssSum,
         isrRetained: isrSum,
@@ -211,6 +219,42 @@ export default function HRDashboard() {
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-orange-500" />
         </div>
+      </div>
+
+      {/* Metricas que antes se calculaban y no se mostraban en ninguna parte.
+          La de vacaciones venia ademas de un numero inventado (emps.length * 5). */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/dashboard/hr/vacations"
+          className="group flex items-center justify-between rounded-xl border border-outline bg-surface p-4 shadow-sm transition hover:shadow-md hover:border-emerald-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600">
+              <Palmtree className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium uppercase text-on-surface-variant/70">Días de Vacaciones Disponibles</div>
+              <div className="text-xl font-bold text-on-surface">{metrics.pendingVacations}</div>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-on-surface-variant/40 transition group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+        </Link>
+
+        <Link
+          href="/dashboard/hr/settlements"
+          className="group flex items-center justify-between rounded-xl border border-outline bg-surface p-4 shadow-sm transition hover:shadow-md hover:border-rose-500/40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-rose-500/10 p-2 text-rose-500">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium uppercase text-on-surface-variant/70">Empleados Fuera de Nómina</div>
+              <div className="text-xl font-bold text-on-surface">{metrics.pendingSettlements}</div>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-on-surface-variant/40 transition group-hover:translate-x-0.5 group-hover:text-rose-500" />
+        </Link>
       </div>
 
       {/* Charts & Audits */}

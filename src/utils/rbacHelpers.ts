@@ -28,6 +28,7 @@ import {
   HelpCircle,
   Barcode,
   QrCode,
+  Palmtree,
 } from 'lucide-react';
 
 const GROUP_ICONS: Record<string, React.ComponentType<any>> = {
@@ -54,6 +55,7 @@ const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
   HistoryIcon,
   Barcode,
   QrCode,
+  Palmtree,
   History: HistoryIcon,
   FileText,
   FileMinus,

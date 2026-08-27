@@ -183,6 +183,46 @@ export class PayrollCalculationService {
   }
 
   /**
+   * Dias de vacaciones que le corresponden a un empleado por su antiguedad,
+   * segun el Codigo de Trabajo dominicano (Art. 177 y su parrafo).
+   *
+   *   menos de 5 meses .... 0   (no genera derecho)
+   *   5 a 11 meses ........ escala proporcional, de 6 a 12 dias
+   *   1 a 5 anos .......... 14 dias
+   *   5 anos o mas ........ 18 dias
+   *
+   * Son dias LABORABLES: no cuentan domingos ni feriados nacionales.
+   *
+   * ADVERTENCIA: sobre el tramo de 5 anos o mas no hay lectura unica. Algunas
+   * fuentes lo leen como 18 dias de descanso y otras como 14 dias de descanso
+   * pagados a razon de 18 dias de salario. Aqui se devuelve 18 porque es la
+   * lectura mas extendida y la mas favorable al trabajador, pero el resultado
+   * es una SUGERENCIA: la pantalla deja ajustarlo antes de guardar. No lo
+   * conviertas en un calculo automatico sin consultarlo con el asesor laboral.
+   */
+  public static calcularDiasVacacionesPorAntiguedad(hireDate: Date | string, referenceDate: Date | string = new Date()): number {
+    const alta = new Date(hireDate);
+    const corte = new Date(referenceDate);
+    if (isNaN(alta.getTime()) || isNaN(corte.getTime()) || corte < alta) return 0;
+
+    // Meses completos entre las dos fechas, contando el dia del mes.
+    //
+    // El caso de fin de mes hay que tratarlo aparte: quien entro un 31 cumple
+    // el mes el 30 de junio, porque el 31 de junio no existe. Sin esta
+    // salvedad, a todo el que entra un 29, 30 o 31 se le come un mes en los
+    // meses cortos y se le niegan dias que le corresponden.
+    let meses = (corte.getFullYear() - alta.getFullYear()) * 12 + (corte.getMonth() - alta.getMonth());
+    const ultimoDiaDelMesDeCorte = new Date(corte.getFullYear(), corte.getMonth() + 1, 0).getDate();
+    const cumpleElMes = corte.getDate() >= alta.getDate() || corte.getDate() === ultimoDiaDelMesDeCorte;
+    if (!cumpleElMes) meses -= 1;
+    if (meses < 5) return 0;
+    if (meses < 12) return meses + 1;   // 5->6, 6->7, ... 11->12
+
+    const anios = Math.floor(meses / 12);
+    return anios >= 5 ? 18 : 14;
+  }
+
+  /**
    * Calculates settlements/severance according to DR Labor Code
    */
   public static calculateSettlement(params: {
