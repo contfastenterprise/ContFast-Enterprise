@@ -113,6 +113,7 @@ export class ApRepository {
    */
   static async createPayment(tx: any, data: {
     companyId: string;
+    modo?: 'PRODUCCION' | 'PRUEBA';
     apId: string;
     amount: number;
     paymentMethod: string;
@@ -125,6 +126,7 @@ export class ApRepository {
     const [payment] = await tx.insert(apPayments)
       .values({
         companyId: data.companyId,
+        modo: data.modo ?? 'PRODUCCION',
         apId: data.apId,
         amount: data.amount.toString(),
         paymentMethod: data.paymentMethod,
@@ -162,6 +164,7 @@ export class ApRepository {
    */
   static async createCheck(tx: any, data: {
     companyId: string;
+    modo?: 'PRODUCCION' | 'PRUEBA';
     bankAccountId: string;
     checkNumber: string;
     payee: string;
@@ -171,10 +174,13 @@ export class ApRepository {
     isGuarantee: boolean;
     apId?: string;
     status: 'pending' | 'cleared' | 'voided';
+    /** Fecha real de cobro. Solo aplica cuando status === 'cleared'. */
+    clearedDate?: Date | string;
   }) {
     const [check] = await tx.insert(checks)
       .values({
         companyId: data.companyId,
+        modo: data.modo ?? 'PRODUCCION',
         bankAccountId: data.bankAccountId,
         checkNumber: data.checkNumber,
         payee: data.payee,
@@ -184,6 +190,9 @@ export class ApRepository {
         isGuarantee: data.isGuarantee,
         apId: data.apId,
         status: data.status,
+        clearedDate: data.status === 'cleared'
+          ? formatLocalDate(data.clearedDate ?? new Date())
+          : null,
       })
       .returning();
     return check;
@@ -191,6 +200,12 @@ export class ApRepository {
 
   /**
    * Find payments for a company with pagination and filters.
+   *
+   * `dateField` decide sobre que fecha aplica el rango startDate/endDate:
+   *  - 'payment' (default): ap_payments.payment_date = fecha de EMISION del cheque.
+   *  - 'cleared': checks.cleared_date = fecha REAL de cobro. Es la unica correcta para
+   *    el historial de cheques en garantia, que son post-fechados: un cheque emitido
+   *    en junio y cobrado en agosto nunca aparece si se filtra por payment_date.
    */
   static async getPayments(companyId: string, filters?: { 
     apId?: string, 
@@ -199,7 +214,9 @@ export class ApRepository {
     search?: string, 
     limit?: number, 
     offset?: number,
-    status?: string
+    status?: string,
+    modo?: 'PRODUCCION' | 'PRUEBA',
+    dateField?: 'payment' | 'cleared'
   }) {
     const debitAccount = alias(chartOfAccounts, 'debit_account');
     const creditAccount = alias(chartOfAccounts, 'credit_account');
@@ -207,17 +224,30 @@ export class ApRepository {
     let conditions: any[] = [
       eq(apPayments.companyId, companyId)
     ];
+    if (filters?.modo) {
+      conditions.push(eq(apPayments.modo, filters.modo));
+    }
     if (filters?.status) {
       conditions.push(eq(apPayments.status, filters.status));
     }
     if (filters?.apId) {
       conditions.push(eq(apPayments.apId, filters.apId));
     }
+
+    const dateField = filters?.dateField === 'cleared' ? 'cleared' : 'payment';
     if (filters?.startDate) {
-      conditions.push(gte(apPayments.paymentDate, filters.startDate));
+      conditions.push(
+        dateField === 'cleared'
+          ? gte(checks.clearedDate, filters.startDate)
+          : gte(apPayments.paymentDate, filters.startDate)
+      );
     }
     if (filters?.endDate) {
-      conditions.push(lte(apPayments.paymentDate, filters.endDate));
+      conditions.push(
+        dateField === 'cleared'
+          ? lte(checks.clearedDate, filters.endDate)
+          : lte(apPayments.paymentDate, filters.endDate)
+      );
     }
     if (filters?.search) {
       const searchStr = `%${filters.search}%`;
@@ -279,6 +309,9 @@ export class ApRepository {
       dueDate: formatUtcDateString(r.check?.dueDate) || undefined,
       checkStatus: r.check?.status,
       checkBankAccountId: r.check?.bankAccountId,
+      isGuarantee: r.check?.isGuarantee ?? false,
+      // Fecha real de cobro (null mientras el cheque siga pendiente)
+      clearedDate: formatUtcDateString(r.check?.clearedDate) || undefined,
     }));
 
     return { items, total };
@@ -287,8 +320,30 @@ export class ApRepository {
   /**
    * Find all due guarantee checks that are pending.
    */
-  static async findPendingGuaranteeChecks(companyId: string, beforeDate: Date = new Date()) {
+  static async findPendingGuaranteeChecks(
+    companyId: string,
+    beforeDate: Date = new Date(),
+    modo?: 'PRODUCCION' | 'PRUEBA'
+  ) {
     const formattedDate = beforeDate.toISOString().split('T')[0];
+    const conditions: any[] = [
+      eq(checks.companyId, companyId),
+      eq(checks.isGuarantee, true),
+      eq(checks.status, 'pending'),
+      isNull(checks.deletedAt),
+      eq(apPayments.status, 'pending_guarantee'),
+      isNull(accountsPayable.deletedAt),
+      lte(checks.dueDate, formattedDate)
+    ];
+
+    // Aislamiento de entorno: nunca aplicar contablemente cheques de PRUEBA
+    // estando en PRODUCCION (generarian asientos y movimientos bancarios reales).
+    if (modo) {
+      conditions.push(eq(checks.modo, modo));
+      conditions.push(eq(apPayments.modo, modo));
+      conditions.push(eq(accountsPayable.modo, modo));
+    }
+
     return await db.select({
       check: checks,
       payment: apPayments,
@@ -299,12 +354,6 @@ export class ApRepository {
     .innerJoin(apPayments, eq(apPayments.checkId, checks.id))
     .innerJoin(accountsPayable, eq(apPayments.apId, accountsPayable.id))
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
-    .where(and(
-      eq(checks.companyId, companyId),
-      eq(checks.isGuarantee, true),
-      eq(checks.status, 'pending'),
-      eq(apPayments.status, 'pending_guarantee'),
-      lte(checks.dueDate, formattedDate)
-    ));
+    .where(and(...conditions));
   }
 }

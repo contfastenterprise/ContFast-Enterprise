@@ -1,4 +1,4 @@
-import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories } from '@/db';
+import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 
 export class DashboardRepository {
@@ -89,7 +89,12 @@ export class DashboardRepository {
       invoicesTodayChangePct = 100;
     }
 
-    // Query due guarantee checks count and details
+    // Query due guarantee checks count and details.
+    // IMPORTANTE: esta consulta debe coincidir 1:1 con la que alimenta la pestana
+    // "Cheques en Garantia" (ApRepository.findPendingGuaranteeChecks). Si solo se
+    // consultara la tabla `checks`, un cheque huerfano (sin ap_payment, con la CxP
+    // borrada o soft-deleted) dispararia la alerta para siempre mientras la pantalla
+    // aparece vacia, y no habria forma de limpiarlo desde la UI.
     const formattedToday = today.toISOString().split('T')[0];
     const dueChecks = await db.select({
       id: checks.id,
@@ -97,13 +102,23 @@ export class DashboardRepository {
       payee: checks.payee,
       amount: checks.amount
     }).from(checks)
+    .innerJoin(apPayments, eq(apPayments.checkId, checks.id))
+    .innerJoin(accountsPayable, eq(accountsPayable.id, apPayments.apId))
     .where(
       withTenantMode(
         checks,
         ctx,
         eq(checks.isGuarantee, true),
         eq(checks.status, 'pending'),
-        lte(checks.dueDate, formattedToday)
+        lte(checks.dueDate, formattedToday),
+        isNull(checks.deletedAt),
+        // El pago debe seguir pendiente de aplicar
+        eq(apPayments.status, 'pending_guarantee'),
+        eq(apPayments.modo, modo),
+        // La cuenta por pagar debe seguir viva y con balance
+        isNull(accountsPayable.deletedAt),
+        eq(accountsPayable.modo, modo),
+        sql`${accountsPayable.balance} > 0`
       )
     );
     const dueGuaranteeChecksCount = dueChecks.length;

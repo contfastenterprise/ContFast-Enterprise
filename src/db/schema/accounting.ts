@@ -180,11 +180,16 @@ export const checks = pgTable('checks', {
   isGuarantee: boolean('is_guarantee').default(false).notNull(),
   apId: uuid('ap_id').references(() => accountsPayable.id),
   status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | cleared | voided
+  // Fecha real en que el cheque fue cobrado/aplicado contablemente.
+  // NO confundir con dueDate (fecha pactada) ni con issueDate (fecha de emision).
+  // El historial de cheques cobrados se filtra por esta columna.
+  clearedDate: date('cleared_date'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyCheckIdx: uniqueIndex('checks_company_num_modo_idx').on(table.companyId, table.checkNumber, table.modo),
+  clearedDateIdx: index('checks_cleared_date_idx').on(table.clearedDate),
   statusIdx: index('checks_status_idx').on(table.status),
   apIdx: index('checks_ap_idx').on(table.apId),
 }));

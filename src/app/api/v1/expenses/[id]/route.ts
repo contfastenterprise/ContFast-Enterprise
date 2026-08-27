@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments } from '@/db';
+import { db, expenses, expenseLines, suppliers, warehouses, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
-import { eq, and, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, inArray, sql, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
@@ -273,6 +273,78 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         .delete(inventoryMovements)
         .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId)));
 
+      // 4-bis. Limpiar la cadena de Cuentas por Pagar del gasto:
+      //        accounts_payable -> checks (garantía) -> ap_payments.
+      //
+      // Antes esto NO se hacía: al borrar una compra a crédito la CxP, el cheque en
+      // garantía y el ap_payment quedaban vivos. El cheque se quedaba en 'pending'
+      // para siempre, disparando la alerta "listo para cobro" del dashboard sin que
+      // ninguna pantalla pudiera aplicarlo ni limpiarlo.
+      //
+      // Nota: la CxP se crea con id = id del gasto (ver POST /expenses), y además
+      // guarda expense_id. Se buscan las dos formas por compatibilidad.
+      const relatedAps = await tx
+        .select({ id: accountsPayable.id })
+        .from(accountsPayable)
+        .where(and(
+          eq(accountsPayable.companyId, session.companyId),
+          eq(accountsPayable.modo, session.modo),
+          or(eq(accountsPayable.expenseId, id), eq(accountsPayable.id, id))
+        ));
+
+      for (const ap of relatedAps) {
+        // Seguridad contable: un pago ya aplicado significa que hubo movimiento real
+        // de dinero (asiento contable, salida de banco, movimiento financiero).
+        // Borrarlo en silencio descuadraría el banco y el mayor, así que se bloquea
+        // el borrado y se exige revertir el pago primero.
+        const apPaymentRows = await tx
+          .select({ id: apPayments.id, checkId: apPayments.checkId, status: apPayments.status })
+          .from(apPayments)
+          .where(eq(apPayments.apId, ap.id));
+
+        const appliedCount = apPaymentRows.filter((r: any) => r.status === 'applied').length;
+
+        if (appliedCount > 0) {
+          const err: any = new Error(
+            'No se puede eliminar esta compra: ya tiene pagos aplicados contablemente (afectaron banco y mayor). Revierta o anule esos pagos antes de eliminarla.'
+          );
+          err.status = 409;
+          throw err;
+        }
+
+        const [spaCount] = await tx
+          .select({ n: sql<number>`count(*)` })
+          .from(supplierPaymentApplied)
+          .where(eq(supplierPaymentApplied.apId, ap.id));
+
+        if (Number(spaCount?.n || 0) > 0) {
+          const err: any = new Error(
+            'No se puede eliminar esta compra: tiene pagos a suplidor aplicados contra su balance. Desaplique esos pagos antes de eliminarla.'
+          );
+          err.status = 409;
+          throw err;
+        }
+
+        // Solo quedan cheques en garantía pendientes: no generan asiento, ni salida
+        // de banco, ni movimiento financiero. Se pueden borrar sin efecto contable.
+        // Orden obligatorio por las llaves foráneas: pagos -> cheques -> CxP.
+        const linkedCheckIds = apPaymentRows
+          .map((r: any) => r.checkId)
+          .filter((v: string | null): v is string => Boolean(v));
+
+        await tx.delete(apPayments).where(eq(apPayments.apId, ap.id));
+
+        // Por apId y además por los checkId referenciados: un cheque re-apuntado
+        // durante una edición previa puede tener apId distinto y quedaría huérfano.
+        await tx.delete(checks).where(
+          linkedCheckIds.length > 0
+            ? or(eq(checks.apId, ap.id), inArray(checks.id, linkedCheckIds))
+            : eq(checks.apId, ap.id)
+        );
+
+        await tx.delete(accountsPayable).where(eq(accountsPayable.id, ap.id));
+      }
+
       // 5. Delete accounting journal entries linked to this expense
       const jes = await tx
         .select({ id: journalEntries.id })
@@ -312,7 +384,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     return NextResponse.json({ success: true, message: 'Compra/Gasto y sus registros contables asociados eliminados exitosamente' });
   } catch (err: any) {
     console.error('Error deleting expense:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    // err.status permite devolver 409 cuando el borrado se bloquea por pagos aplicados.
+    return NextResponse.json({ success: false, error: { message: err.message } }, { status: err.status || 500 });
   }
 }
 

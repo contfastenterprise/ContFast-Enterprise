@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     const result = checkId
-      ? await ApService.applySingleGuaranteeCheck(auth.companyId, checkId)
-      : await ApService.applyDueGuaranteeChecks(auth.companyId);
+      ? await ApService.applySingleGuaranteeCheck(auth.companyId, checkId, auth.modo)
+      : await ApService.applyDueGuaranteeChecks(auth.companyId, auth.modo);
 
     return NextResponse.json(
       { 

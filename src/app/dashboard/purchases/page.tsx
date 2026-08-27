@@ -674,7 +674,12 @@ export default function PurchasesPage() {
           setSelectedExpense(null);
           handleSearch(); // Refresh list
         } else {
-          throw new Error(data.error?.message || 'Error al eliminar');
+          // El provider de confirmación muestra un mensaje genérico al capturar el
+          // error, así que la razón real (ej. 409: la compra tiene pagos aplicados)
+          // se muestra aquí para que el usuario sepa qué hacer.
+          const message = data.error?.message || 'Error al eliminar';
+          toast.error(message, { duration: 6000 });
+          throw new Error(message);
         }
       },
       onSuccessMessage: 'Compra/Gasto eliminado exitosamente',
@@ -2370,7 +2375,8 @@ export default function PurchasesPage() {
 
 function GuaranteeChecksView() {
   const [loading, setLoading] = useState(true);
-  const [paymentsList, setPaymentsList] = useState<any[]>([]);
+  const [pendingList, setPendingList] = useState<any[]>([]);
+  const [appliedList, setAppliedList] = useState<any[]>([]);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   // Date filters
@@ -2382,13 +2388,24 @@ function GuaranteeChecksView() {
   const [appliedPage, setAppliedPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Los cheques en garantía son POST-FECHADOS: se emiten meses antes de cobrarse.
+  // Por eso las dos listas se consultan distinto:
+  //  - Pendientes: sin filtro de fecha (es un worklist accionable; filtrarlos por
+  //    fecha de emisión escondía cheques vencidos y contradecía la alerta del dashboard).
+  //  - Aplicados: el rango de fechas aplica sobre la fecha REAL de cobro (cleared_date),
+  //    no sobre la de emisión.
   const fetchChecks = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/v1/ap?payments=true&startDate=${startDate}&endDate=${endDate}&pageSize=1000`);
-      const data = await res.json();
-      if (data.success) {
-        setPaymentsList(data.data?.items || data.data || []);
+      const [pendingRes, appliedRes] = await Promise.all([
+        fetch(`/api/v1/ap?payments=true&status=pending_guarantee&pageSize=1000`),
+        fetch(`/api/v1/ap?payments=true&status=applied&dateField=cleared&startDate=${startDate}&endDate=${endDate}&pageSize=1000`)
+      ]);
+      const [pendingData, appliedData] = await Promise.all([pendingRes.json(), appliedRes.json()]);
+
+      if (pendingData.success && appliedData.success) {
+        setPendingList(pendingData.data?.items || []);
+        setAppliedList(appliedData.data?.items || []);
         setPendingPage(1);
         setAppliedPage(1);
       } else {
@@ -2429,11 +2446,12 @@ function GuaranteeChecksView() {
     }
   };
 
-  // Filter guarantee checks: checkStatus is mapped from r.check?.status, so if it is not undefined/null, it's a guarantee check.
-  const guaranteePayments = paymentsList.filter(p => p.checkStatus !== undefined && p.checkStatus !== null);
+  // Solo cheques en garantía. Antes se usaba `checkStatus != null`, que también
+  // dejaba pasar cheques ordinarios (no en garantía) al historial de aplicados.
+  const isGuaranteeCheck = (p: any) => p.isGuarantee === true;
 
-  const pendingChecks = guaranteePayments.filter(p => p.status === 'pending_guarantee');
-  const appliedChecks = guaranteePayments.filter(p => p.status === 'applied');
+  const pendingChecks = pendingList.filter(isGuaranteeCheck);
+  const appliedChecks = appliedList.filter(isGuaranteeCheck);
 
   const pendingStart = (pendingPage - 1) * itemsPerPage;
   const pendingEnd = pendingStart + itemsPerPage;
@@ -2453,12 +2471,13 @@ function GuaranteeChecksView() {
         </h3>
         <p className="text-xs text-slate-500 mb-6">
           Aquí se listan todos los cheques dejados en garantía de compras a crédito. Puedes aplicarlos contablemente de manera manual cuando el suplidor confirme su cobro.
+          Los <strong>pendientes</strong> se muestran siempre completos (sin filtro de fecha); el rango de fechas solo filtra el <strong>historial de cobrados</strong>.
         </p>
 
         {/* Date Filter Panel */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-8 pb-6 border-b border-slate-200">
           <div className="w-full max-w-md">
-            <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Rango de Fechas</label>
+            <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase">Rango de Fechas (historial de cobrados)</label>
             <div className="w-full [&>div]:w-full [&_button]:w-full">
               <DateRangePicker
                 from={startDate}
@@ -2613,7 +2632,7 @@ function GuaranteeChecksView() {
                           <td className="px-4 py-2.5 text-xs font-bold text-slate-600">{p.supplierName}</td>
                           <td className="px-4 py-2.5 text-xs font-mono font-medium">{p.checkNumber || 'S/N'}</td>
                           <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{formatDateDisplay(p.paymentDate)}</td>
-                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{formatDateDisplay(p.dueDate)}</td>
+                          <td className="px-4 py-2.5 text-xs font-mono font-medium">{formatDateDisplay(p.clearedDate || p.dueDate)}</td>
                           <td className="px-4 py-2.5 text-xs text-right font-mono font-bold text-slate-600">
                             RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>

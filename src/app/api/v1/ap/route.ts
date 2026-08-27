@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
       const endDate = url.searchParams.get('endDate') || undefined;
       const search = url.searchParams.get('search') || undefined;
       const status = url.searchParams.get('status') || undefined;
+      // 'cleared' filtra por la fecha REAL de cobro del cheque (checks.cleared_date).
+      // 'payment' (default) filtra por ap_payments.payment_date = fecha de emision.
+      const dateField = url.searchParams.get('dateField') === 'cleared' ? 'cleared' as const : 'payment' as const;
 
       const offset = (page - 1) * pageSize;
 
@@ -38,7 +41,9 @@ export async function GET(req: NextRequest) {
         search,
         limit: pageSize,
         offset,
-        status
+        status,
+        modo: auth.modo,
+        dateField
       });
 
       return NextResponse.json(

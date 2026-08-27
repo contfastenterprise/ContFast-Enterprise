@@ -17,17 +17,27 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    // Fetch payments list via repository (limit to 1000 items)
-    const { items } = await ApRepository.getPayments(session.companyId, {
-      startDate,
-      endDate,
+    // Pendientes: SIN filtro de fecha. Son un worklist accionable y los cheques en
+    // garantia son post-fechados; filtrarlos por fecha de emision los ocultaba.
+    const { items: pendingItems } = await ApRepository.getPayments(session.companyId, {
+      status: 'pending_guarantee',
+      modo: session.modo,
       limit: 1000
     });
 
-    // Filter to guarantee checks
-    const guaranteeChecks = items.filter(p => p.checkStatus !== null && p.checkStatus !== undefined);
-    const pendingChecks = guaranteeChecks.filter(p => p.status === 'pending_guarantee');
-    const appliedChecks = guaranteeChecks.filter(p => p.status === 'applied');
+    // Aplicados: el rango aplica sobre la fecha REAL de cobro (checks.cleared_date).
+    const { items: appliedItems } = await ApRepository.getPayments(session.companyId, {
+      status: 'applied',
+      dateField: 'cleared',
+      startDate,
+      endDate,
+      modo: session.modo,
+      limit: 1000
+    });
+
+    const isGuaranteeCheck = (p: any) => p.isGuarantee === true;
+    const pendingChecks = pendingItems.filter(isGuaranteeCheck);
+    const appliedChecks = appliedItems.filter(isGuaranteeCheck);
 
     // Fetch company info
     const [company] = await db

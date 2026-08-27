@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     const result = await ApService.registerPayment({
       ...parsed.data,
       companyId: session.companyId,
+      modo: session.modo,
       bankAccountId: parsed.data.bankAccountId || undefined,
       checkNumber: parsed.data.checkNumber || undefined,
       payee: parsed.data.payee || undefined,

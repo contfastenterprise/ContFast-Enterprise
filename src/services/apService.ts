@@ -8,6 +8,7 @@ import { FinancialMovementService } from '@/services/financialMovementService';
 
 export interface RegisterPaymentInput {
   companyId: string;
+  modo?: 'PRODUCCION' | 'PRUEBA';
   apId: string;
   amount: number;
   paymentMethod: 'cash' | 'transfer' | 'check';
@@ -68,6 +69,7 @@ export class ApService {
           // Register guarantee check as pending
           const check = await ApRepository.createCheck(tx, {
             companyId: input.companyId,
+            modo: input.modo,
             bankAccountId: input.bankAccountId,
             checkNumber: input.checkNumber,
             payee: input.payee,
@@ -83,6 +85,7 @@ export class ApService {
           // Register payment as pending_guarantee
           const payment = await ApRepository.createPayment(tx, {
             companyId: input.companyId,
+            modo: input.modo,
             apId: input.apId,
             amount: input.amount,
             paymentMethod: 'check',
@@ -102,6 +105,7 @@ export class ApService {
           // Regular check - cleared immediately
           const check = await ApRepository.createCheck(tx, {
             companyId: input.companyId,
+            modo: input.modo,
             bankAccountId: input.bankAccountId,
             checkNumber: input.checkNumber,
             payee: input.payee,
@@ -110,6 +114,7 @@ export class ApService {
             isGuarantee: false,
             apId: input.apId,
             status: 'cleared',
+            clearedDate: input.paymentDate,
           });
           checkId = check.id;
         }
@@ -119,6 +124,7 @@ export class ApService {
       // Save payment record
       const payment = await ApRepository.createPayment(tx, {
         companyId: input.companyId,
+        modo: input.modo,
         apId: input.apId,
         amount: input.amount,
         paymentMethod: input.paymentMethod,
@@ -187,11 +193,12 @@ export class ApService {
   /**
    * Scans and applies all due guarantee checks for a company.
    */
-  static async applyDueGuaranteeChecks(companyId: string) {
+  static async applyDueGuaranteeChecks(companyId: string, modo?: 'PRODUCCION' | 'PRUEBA') {
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
 
     return await db.transaction(async (tx) => {
-      const pendingChecks = await ApRepository.findPendingGuaranteeChecks(companyId, today);
+      const pendingChecks = await ApRepository.findPendingGuaranteeChecks(companyId, today, modo);
       
       let appliedCount = 0;
       let totalAppliedAmount = 0;
@@ -208,8 +215,9 @@ export class ApService {
         const newBalance = Math.max(0, apBalance - amountNum);
 
         // 1. Update check status to cleared
+        // clearedDate = fecha real de cobro; es la que usa el historial de cheques aplicados.
         await tx.update(checks)
-          .set({ status: 'cleared', updatedAt: new Date() })
+          .set({ status: 'cleared', clearedDate: todayStr, updatedAt: new Date() })
           .where(eq(checks.id, check.id));
 
         // 2. Update payment status to applied
@@ -302,15 +310,21 @@ export class ApService {
   /**
    * Applies/Clears a single guarantee check.
    */
-  static async applySingleGuaranteeCheck(companyId: string, checkId: string) {
+  static async applySingleGuaranteeCheck(companyId: string, checkId: string, modo?: 'PRODUCCION' | 'PRUEBA') {
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
 
     return await db.transaction(async (tx) => {
       // 1. Get the check
+      // Aislamiento de entorno: un cheque de PRUEBA no debe aplicarse desde PRODUCCION.
       const [check] = await tx
         .select()
         .from(checks)
-        .where(and(eq(checks.id, checkId), eq(checks.companyId, companyId)));
+        .where(and(
+          eq(checks.id, checkId),
+          eq(checks.companyId, companyId),
+          ...(modo ? [eq(checks.modo, modo)] : [])
+        ));
 
       if (!check) {
         throw new Error('Cheque en garantía no encontrado.');
@@ -350,8 +364,9 @@ export class ApService {
       const newBalance = Math.max(0, apBalance - amountNum);
 
       // 4. Update check status to cleared
+      // clearedDate = fecha real de cobro; es la que usa el historial de cheques aplicados.
       await tx.update(checks)
-        .set({ status: 'cleared', updatedAt: new Date() })
+        .set({ status: 'cleared', clearedDate: todayStr, updatedAt: new Date() })
         .where(eq(checks.id, check.id));
 
       // 5. Update payment status to applied
