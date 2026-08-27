@@ -70,6 +70,7 @@ export async function PATCH(req: NextRequest) {
 
     // Log the audit event
     await db.insert(auditLogs).values({
+      modo: session.modo,
       companyId: session.companyId,
       userId: session.userId,
       action: 'Usuario actualizó su foto de perfil',

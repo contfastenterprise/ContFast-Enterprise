@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
         .insert(invoices)
         .values({
           companyId: auth.companyId,
+          modo: auth.modo,
           warehouseId: data.warehouseId,
           customerId: data.customerId,
           userId: auth.userId,

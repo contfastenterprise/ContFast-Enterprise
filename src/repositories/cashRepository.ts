@@ -3,6 +3,7 @@ import { eq, and, isNull, desc, count } from 'drizzle-orm';
 
 export interface OpenSessionInput {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   cashRegisterId: string;
   userId: string;
   initialBalance: number;
@@ -29,7 +30,7 @@ export class CashRepository {
   /**
    * Gets the active session for a specific cashier.
    */
-  static async getActiveSession(userId: string, companyId: string) {
+  static async getActiveSession(userId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const [session] = await db
       .select()
       .from(cashSessions)
@@ -37,6 +38,7 @@ export class CashRepository {
         and(
           eq(cashSessions.userId, userId),
           eq(cashSessions.companyId, companyId),
+          eq(cashSessions.modo, modo),
           eq(cashSessions.status, 'open')
         )
       )
@@ -47,13 +49,14 @@ export class CashRepository {
   /**
    * Gets any active open session in the company (not user-specific).
    */
-  static async getAnyActiveSession(companyId: string) {
+  static async getAnyActiveSession(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const [session] = await db
       .select()
       .from(cashSessions)
       .where(
         and(
           eq(cashSessions.companyId, companyId),
+          eq(cashSessions.modo, modo),
           eq(cashSessions.status, 'open')
         )
       )
@@ -87,6 +90,7 @@ export class CashRepository {
         .insert(cashSessions)
         .values({
           companyId: data.companyId,
+          modo: data.modo,
           cashRegisterId: data.cashRegisterId,
           userId: data.userId,
           initialBalance: data.initialBalance.toString(),
@@ -145,6 +149,8 @@ export class CashRepository {
         .insert(cashSessionSummary)
         .values({
           companyId,
+          // El resumen pertenece al mismo entorno que la sesion que resume.
+          modo: session.modo,
           cashSessionId: sessionId,
           initialBalance: session.initialBalance,
           totalCashIn: totalCashIn.toString(),

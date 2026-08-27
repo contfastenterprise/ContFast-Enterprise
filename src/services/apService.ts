@@ -261,6 +261,8 @@ export class ApService {
             await tx.insert(bankTransactions).values({
               id: uuidv4(),
               companyId,
+              // El movimiento pertenece al mismo entorno que el cheque que lo origina.
+              modo: check.modo,
               bankAccountId: check.bankAccountId,
               date: today.toISOString().split('T')[0],
               type: 'withdrawal',
@@ -410,6 +412,8 @@ export class ApService {
           await tx.insert(bankTransactions).values({
             id: uuidv4(),
             companyId,
+            // El movimiento pertenece al mismo entorno que el cheque que lo origina.
+            modo: check.modo,
             bankAccountId: check.bankAccountId,
             date: today.toISOString().split('T')[0],
             type: 'withdrawal',

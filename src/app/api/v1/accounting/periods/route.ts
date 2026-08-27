@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
     const [period] = await db.insert(accountingPeriods).values({
       id: uuidv4(),
       companyId: session.companyId,
+      modo: session.modo,
       name: parsed.data.name,
       startDate: parsed.data.startDate,
       endDate: parsed.data.endDate,

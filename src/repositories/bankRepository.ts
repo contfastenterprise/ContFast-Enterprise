@@ -14,6 +14,7 @@ export interface CreateBankAccountInput {
 
 export interface RegisterBankTransactionInput {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   bankAccountId: string;
   date: string;
   type: 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'fee';
@@ -91,6 +92,7 @@ export class BankRepository {
       const [transaction] = await tx.insert(bankTransactions).values({
         id: txId,
         companyId: data.companyId,
+        modo: data.modo,
         bankAccountId: data.bankAccountId,
         date: data.date,
         type: data.type,
@@ -116,6 +118,7 @@ export class BankRepository {
           await tx.insert(journalEntries).values({
             id: entryId,
             companyId: data.companyId,
+            modo: data.modo,
             date: data.date,
             reference: data.reference || txId.slice(0, 8),
             description: `Movimiento Bancario: ${data.description || data.type}`,
@@ -125,6 +128,7 @@ export class BankRepository {
           const bankAccountLine = {
             id: uuidv4(),
             companyId: data.companyId,
+            modo: data.modo,
             journalEntryId: entryId,
             accountId: bankChartAccount,
             debit: isIncoming ? data.amount.toString() : '0.00',
@@ -134,6 +138,7 @@ export class BankRepository {
           const contraAccountLine = {
             id: uuidv4(),
             companyId: data.companyId,
+            modo: data.modo,
             journalEntryId: entryId,
             accountId: data.contraAccountId,
             debit: isOutgoing ? data.amount.toString() : '0.00',

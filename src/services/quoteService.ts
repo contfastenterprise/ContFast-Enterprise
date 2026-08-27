@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateQuoteInput {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   warehouseId?: string;
   customerId?: string;
   userId: string;
@@ -21,7 +22,7 @@ export class QuoteService {
   /**
    * Generates a sequence number for a quote (e.g., COT-2026-000001)
    */
-  static async generateSequence(companyId: string): Promise<string> {
+  static async generateSequence(companyId: string, modo: 'PRODUCCION' | 'PRUEBA'): Promise<string> {
     const currentYear = new Date().getFullYear();
 
     return await db.transaction(async (tx) => {
@@ -31,6 +32,7 @@ export class QuoteService {
         .from(quoteSequences)
         .where(and(
           eq(quoteSequences.companyId, companyId),
+          eq(quoteSequences.modo, modo),
           eq(quoteSequences.currentYear, currentYear)
         ))
         .limit(1)
@@ -48,6 +50,7 @@ export class QuoteService {
         await tx.insert(quoteSequences).values({
           id: uuidv4(),
           companyId,
+          modo,
           currentYear,
           currentSequence: nextSeqNumber,
         });
@@ -63,7 +66,7 @@ export class QuoteService {
    */
   static async createQuote(data: CreateQuoteInput) {
     return await db.transaction(async (tx) => {
-      const sequenceNumber = await this.generateSequence(data.companyId);
+      const sequenceNumber = await this.generateSequence(data.companyId, data.modo);
 
       // Calculate totals
       let subtotal = 0;
@@ -128,6 +131,7 @@ export class QuoteService {
       await tx.insert(quotes).values({
         id: quoteId,
         companyId: data.companyId,
+        modo: data.modo,
         warehouseId: data.warehouseId || null,
         customerId: data.customerId || null,
         userId: data.userId,

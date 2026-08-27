@@ -36,6 +36,7 @@ async function getOrCreateAccount(tx: any, companyId: string, code: string, name
  */
 export async function createExpense(expenseData: {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   warehouseId?: string;
   supplierId: string;
   expenseType: string; // '01'..'11'
@@ -67,6 +68,7 @@ export async function createExpense(expenseData: {
       .values({
         id: uuidv4(),
         companyId: expenseData.companyId,
+        modo: expenseData.modo,
         warehouseId: expenseData.warehouseId,
         supplierId: expenseData.supplierId,
         expenseType: expenseData.expenseType,
@@ -93,6 +95,7 @@ export async function createExpense(expenseData: {
       .values({
         id: uuidv4(),
         companyId: expenseData.companyId,
+        modo: expenseData.modo,
         supplierId: expenseData.supplierId,
         amount: expenseData.amount.toString(),
         balance: isCredit ? expenseData.amount.toString() : '0.00',

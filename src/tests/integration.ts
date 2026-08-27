@@ -259,7 +259,7 @@ async function runTests() {
 
     // A. Negative initial fund (Should throw error)
     try {
-      await CashService.openSession(cashierUserId1, testCompanyId1, cashRegisterId, -100);
+      await CashService.openSession(cashierUserId1, testCompanyId1, 'PRODUCCION', cashRegisterId, -100);
       throw new Error('Cashier Rules Failed: Allowed opening session with negative initial fund.');
     } catch (e: any) {
       if (!e.message.includes('fondo inicial de caja no puede ser negativo')) {
@@ -269,13 +269,13 @@ async function runTests() {
     }
 
     // B. Open a valid session
-    const session = await CashService.openSession(cashierUserId1, testCompanyId1, cashRegisterId, 1000);
+    const session = await CashService.openSession(cashierUserId1, testCompanyId1, 'PRODUCCION', cashRegisterId, 1000);
     const sessionId = session.id;
     console.log(`B. Session opened successfully with ID: ${sessionId}`);
 
     // C. Open second session (Should throw error)
     try {
-      await CashService.openSession(cashierUserId1, testCompanyId1, cashRegisterId, 500);
+      await CashService.openSession(cashierUserId1, testCompanyId1, 'PRODUCCION', cashRegisterId, 500);
       throw new Error('Cashier Rules Failed: Allowed opening multiple active sessions for the same cashier.');
     } catch (e: any) {
       if (!e.message.includes('Ya tiene una sesión de caja activa')) {

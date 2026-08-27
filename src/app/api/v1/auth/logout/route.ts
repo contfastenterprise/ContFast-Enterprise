@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Record audit log
     await db.insert(auditLogs).values({
+      modo: authPayload.modo,
       companyId: authPayload.companyId,
       userId: authPayload.userId,
       action: 'logout',

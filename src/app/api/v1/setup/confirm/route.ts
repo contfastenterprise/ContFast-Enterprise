@@ -209,6 +209,10 @@ export async function POST(req: NextRequest) {
 
       // 2.7. Record audit log entry
       await tx.insert(auditLogs).values({
+        // Evento de cuenta, no de entorno: al autenticarse todavia no se ha
+        // elegido PRUEBA ni PRODUCCION. Se registra en PRODUCCION, que es
+        // ademas el valor por omision de la columna.
+        modo: 'PRODUCCION' as const,
         companyId: newCompany.id,
         userId: newUser.id,
         action: 'system_initialization',

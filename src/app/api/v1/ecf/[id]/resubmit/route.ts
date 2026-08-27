@@ -25,7 +25,7 @@ export async function POST(
 
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
 
     if (!invoice) {
       return NextResponse.json(
@@ -53,6 +53,9 @@ export async function POST(
       .insert(dgiiSubmissions)
       .values({
         companyId: auth.companyId,
+        // La factura se busca ya dentro del modo de la sesion, asi que el
+        // envio queda en el mismo entorno que ella.
+        modo: auth.modo,
         invoiceId: invoice.id,
         status: 'pending',
         retryCount: 0,
@@ -70,6 +73,7 @@ export async function POST(
 
     // Audit log
     await db.insert(auditLogs).values({
+      modo: auth.modo,
       companyId: auth.companyId,
       userId: auth.userId,
       action: 'invoice_resubmitted_to_dgii',

@@ -193,6 +193,7 @@ export async function POST(
         .insert(bankTransactions)
         .values({
           companyId: auth.companyId,
+          modo: auth.modo,
           bankAccountId: id,
           date: date.toISOString().split('T')[0],
           type,
@@ -232,6 +233,7 @@ export async function POST(
 
       // Register audit log
       await tx.insert(auditLogs).values({
+        modo: auth.modo,
         companyId: auth.companyId,
         userId: auth.userId,
         action: 'bank_transaction_registered',

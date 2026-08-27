@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     // Enforce "caja:read" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
 
-    const activeSession = await CashRepository.getActiveSession(auth.userId, auth.companyId);
+    const activeSession = await CashRepository.getActiveSession(auth.userId, auth.companyId, auth.modo);
 
     return NextResponse.json(
       { success: true, data: activeSession },

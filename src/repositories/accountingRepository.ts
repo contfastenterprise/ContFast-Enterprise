@@ -215,13 +215,13 @@ export class AccountingRepository {
     });
   }
 
-  static async isPeriodOpen(companyId: string, dateStr: string, tx: any = db): Promise<boolean> {
+  static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: any = db): Promise<boolean> {
     const formattedDate = formatLocalDate(dateStr);
     
     // Check if there are any periods defined
     const periodsCount = await tx.select({ count: sql<number>`count(*)` })
       .from(accountingPeriods)
-      .where(eq(accountingPeriods.companyId, companyId));
+      .where(and(eq(accountingPeriods.companyId, companyId), eq(accountingPeriods.modo, modo)));
 
     const count = Number(periodsCount[0]?.count || 0);
     if (count === 0) {
@@ -238,6 +238,7 @@ export class AccountingRepository {
       await tx.insert(accountingPeriods).values({
         id: uuidv4(),
         companyId,
+        modo,
         name: periodName,
         startDate,
         endDate,
@@ -250,6 +251,7 @@ export class AccountingRepository {
       .from(accountingPeriods)
       .where(and(
         eq(accountingPeriods.companyId, companyId),
+        eq(accountingPeriods.modo, modo),
         eq(accountingPeriods.status, 'open'),
         sql`${formattedDate} BETWEEN ${accountingPeriods.startDate} AND ${accountingPeriods.endDate}`
       ))
@@ -289,7 +291,7 @@ export class AccountingRepository {
 
     const executeInsertion = async (transactionContext: any) => {
       // 2. Validate open period
-      const isOpen = await this.isPeriodOpen(data.companyId, formattedDate, transactionContext);
+      const isOpen = await this.isPeriodOpen(data.companyId, formattedDate, data.modo || 'PRODUCCION', transactionContext);
       if (!isOpen) {
         throw new Error(`El periodo contable para la fecha ${formattedDate} está cerrado o no existe.`);
       }

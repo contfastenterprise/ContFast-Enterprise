@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
     const receipt = await ArRepository.registerReceipt({
       ...parsed.data,
       companyId: session.companyId,
+      modo: session.modo,
       userId: session.userId,
       reference: parsed.data.reference || undefined,
       notes: parsed.data.notes || undefined

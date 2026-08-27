@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
         .insert(bankReconciliations)
         .values({
           companyId: auth.companyId,
+          modo: auth.modo,
           bankAccountId,
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
@@ -169,6 +170,7 @@ export async function POST(req: NextRequest) {
 
       // Register audit log
       await tx.insert(auditLogs).values({
+        modo: auth.modo,
         companyId: auth.companyId,
         userId: auth.userId,
         action: 'bank_reconciliation_created',

@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
 
     const transaction = await BankRepository.registerTransaction({
       ...parsed.data,
-      companyId: session.companyId
+      companyId: session.companyId,
+      modo: session.modo
     });
 
     return NextResponse.json({ success: true, data: transaction }, { status: 201 });

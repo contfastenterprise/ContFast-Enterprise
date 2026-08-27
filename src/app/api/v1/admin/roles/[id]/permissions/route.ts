@@ -174,6 +174,7 @@ export async function PATCH(
 
         // Write audit log entry
         await tx.insert(auditLogs).values({
+          modo: auth.modo,
           companyId: auth.companyId,
           userId: auth.userId,
           action: 'role_permission_changed',

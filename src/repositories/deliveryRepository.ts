@@ -4,6 +4,7 @@ import { checkStock, deductStock } from '@/services/inventoryService';
 
 export interface CreateDeliveryNoteInput {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   invoiceId: string;
   userId: string;
   deliveryDate: Date;
@@ -65,6 +66,7 @@ export class DeliveryRepository {
         .insert(deliveryNotes)
         .values({
           companyId: data.companyId,
+          modo: data.modo,
           invoiceId: data.invoiceId,
           userId: data.userId,
           deliveryNumber,

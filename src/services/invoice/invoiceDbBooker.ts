@@ -14,6 +14,7 @@ export class InvoiceDbBooker {
    */
   static async determineActiveCashSession(
     companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     userId: string,
     paymentType: string,
     providedCashSessionId?: string
@@ -35,12 +36,12 @@ export class InvoiceDbBooker {
 
       let activeSession = null;
       if (isAdminOrSys) {
-        activeSession = await CashRepository.getActiveSession(userId, companyId);
+        activeSession = await CashRepository.getActiveSession(userId, companyId, modo);
         if (!activeSession) {
-          activeSession = await CashRepository.getAnyActiveSession(companyId);
+          activeSession = await CashRepository.getAnyActiveSession(companyId, modo);
         }
       } else {
-        activeSession = await CashRepository.getActiveSession(userId, companyId);
+        activeSession = await CashRepository.getActiveSession(userId, companyId, modo);
       }
 
       if (!activeSession) {
@@ -60,17 +61,17 @@ export class InvoiceDbBooker {
     data: IssueInvoiceInput,
     totals: CalculatedTotals
   ) {
-    // NOTA (auditoria F1-04): aqui NO se valida existencia de inventario.
-    //
-    // Facturar no descuenta stock: la deduccion esta diferida al conduce de
-    // entrega (ver el comentario de executeDbTransaction, "Deduccion diferida
-    // a Conduce de Entrega"). El unico punto que puede dejar un nivel en
-    // negativo es el despacho, y ahi si se bloquea, en
-    // deliveryRepository.approveDeliveryNote.
-    //
-    // Bloquear aqui impediria facturar mercancia que aun esta por fabricar o
-    // por recibir, que es una venta perfectamente legitima, sin evitar ni un
-    // solo negativo adicional.
+      // NOTA (auditoria F1-04): aqui NO se valida existencia de inventario.
+      //
+      // Facturar no descuenta stock: la deduccion esta diferida al conduce de
+      // entrega (ver el comentario de executeDbTransaction, "Deduccion diferida
+      // a Conduce de Entrega"). El unico punto que puede dejar un nivel en
+      // negativo es el despacho, y ahi si se bloquea, en
+      // deliveryRepository.approveDeliveryNote.
+      //
+      // Bloquear aqui impediria facturar mercancia que aun esta por fabricar o
+      // por recibir, que es una venta perfectamente legitima, sin evitar ni un
+      // solo negativo adicional.
     if (data.ecfType !== '34') {
       for (const line of totals.itemLines) {
         // Cost validation

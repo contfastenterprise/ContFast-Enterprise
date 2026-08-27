@@ -180,6 +180,7 @@ export class InvoiceFileGenerator {
       try {
         const draftNote = await DeliveryRepository.create({
           companyId: data.companyId,
+          modo: data.modo || 'PRODUCCION',
           invoiceId: invoiceId,
           userId: data.userId,
           deliveryDate: new Date(),

@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     const result = await QuoteService.createQuote({
       ...data,
       companyId: auth.companyId,
+      modo: auth.modo,
       userId: auth.userId,
       warehouseId: data.warehouseId || undefined,
       customerId: data.customerId || undefined,

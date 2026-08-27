@@ -66,6 +66,10 @@ export async function POST(req: NextRequest) {
     if (!passwordMatch) {
       // Register failed audit log
       await db.insert(auditLogs).values({
+        // Evento de cuenta, no de entorno: al autenticarse todavia no se ha
+        // elegido PRUEBA ni PRODUCCION. Se registra en PRODUCCION, que es
+        // ademas el valor por omision de la columna.
+        modo: 'PRODUCCION' as const,
         companyId: user.companyId,
         userId: user.id,
         action: 'login_failed',
@@ -103,6 +107,10 @@ export async function POST(req: NextRequest) {
 
     // 6. Register audit log
     await db.insert(auditLogs).values({
+        // Evento de cuenta, no de entorno: al autenticarse todavia no se ha
+        // elegido PRUEBA ni PRODUCCION. Se registra en PRODUCCION, que es
+        // ademas el valor por omision de la columna.
+        modo: 'PRODUCCION' as const,
       companyId: user.companyId,
       userId: user.id,
       action: 'login_success',

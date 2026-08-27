@@ -208,6 +208,7 @@ export async function POST(req: NextRequest) {
 
       // Register audit log
       await tx.insert(auditLogs).values({
+        modo: auth.modo,
         companyId: auth.companyId,
         userId: auth.userId,
         action: 'manual_journal_entry_created',

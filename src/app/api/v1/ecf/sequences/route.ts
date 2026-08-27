@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
       .where(
         and(
           eq(ecfSequences.companyId, auth.companyId),
+          eq(ecfSequences.modo, auth.modo),
           eq(ecfSequences.ecfType, ecfType),
           eq(ecfSequences.status, 'active'),
           isNull(ecfSequences.deletedAt)
@@ -158,6 +159,7 @@ export async function POST(req: NextRequest) {
       .insert(ecfSequences)
       .values({
         companyId: auth.companyId,
+        modo: auth.modo,
         ecfType,
         prefix: prefix || 'E',
         currentSequence: startSeq - 1, // Will be incremented on first use

@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
     // Create delivery note
     const note = await DeliveryRepository.create({
       companyId: auth.companyId,
+      modo: auth.modo,
       invoiceId,
       userId: auth.userId,
       deliveryDate,

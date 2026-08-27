@@ -9,19 +9,20 @@ export class CashService {
    * 1. Only one active session per cashier (user) at a time.
    * 2. The opening balance (initial fund) must be provided.
    */
-  static async openSession(userId: string, companyId: string, cashRegisterId: string, initialBalance: number) {
+  static async openSession(userId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', cashRegisterId: string, initialBalance: number) {
     if (initialBalance < 0) {
       throw new Error('El fondo inicial de caja no puede ser negativo.');
     }
 
     // Checking active session
-    const active = await CashRepository.getActiveSession(userId, companyId);
+    const active = await CashRepository.getActiveSession(userId, companyId, modo);
     if (active) {
       throw new Error('Ya tiene una sesión de caja activa. Debe cerrarla antes de abrir una nueva.');
     }
 
     return await CashRepository.openSession({
       companyId,
+      modo,
       cashRegisterId,
       userId,
       initialBalance,

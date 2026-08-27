@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
 
     // Registrar en auditoría el cambio de empresa
     await db.insert(auditLogs).values({
+      modo: session.modo,
       companyId: newCompanyId,
       userId: session.userId,
       action: 'switch_company',

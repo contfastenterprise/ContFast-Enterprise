@@ -6,6 +6,7 @@ import { FinancialMovementService } from '@/services/financialMovementService';
 
 export interface RegisterReceiptInput {
   companyId: string;
+  modo: 'PRODUCCION' | 'PRUEBA';
   customerId: string;
   userId: string;
   date: string;
@@ -80,6 +81,7 @@ export class ArRepository {
       const [receipt] = await tx.insert(customerReceipts).values({
         id: receiptId,
         companyId: data.companyId,
+        modo: data.modo,
         customerId: data.customerId,
         date: data.date,
         paymentMethod: data.paymentMethod,
@@ -162,6 +164,7 @@ export class ArRepository {
       await tx.insert(journalEntries).values({
         id: entryId,
         companyId: data.companyId,
+        modo: data.modo,
         date: data.date,
         reference: receiptId.slice(0, 8),
         description: `Recibo de Cobro - Cliente ID: ${data.customerId.slice(0,8)}`,
@@ -172,6 +175,7 @@ export class ArRepository {
         {
           id: uuidv4(),
           companyId: data.companyId,
+          modo: data.modo,
           journalEntryId: entryId,
           accountId: accCaja.id,
           debit: data.amount.toString(),
@@ -180,6 +184,7 @@ export class ArRepository {
         {
           id: uuidv4(),
           companyId: data.companyId,
+          modo: data.modo,
           journalEntryId: entryId,
           accountId: accCxC.id,
           debit: '0.00',

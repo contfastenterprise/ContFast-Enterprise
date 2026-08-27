@@ -26,6 +26,7 @@ export class InvoiceService {
     // ── 1. Determine the active cash session ──────────────────────────────────
     const activeCashSessionId = await InvoiceDbBooker.determineActiveCashSession(
       data.companyId,
+      data.modo || 'PRODUCCION',
       data.userId,
       data.paymentType,
       data.cashSessionId

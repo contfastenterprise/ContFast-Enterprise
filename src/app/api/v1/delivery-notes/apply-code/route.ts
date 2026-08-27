@@ -168,6 +168,7 @@ export async function POST(req: NextRequest) {
         const targetWarehouseId = whId === 'default' ? null : whId;
         const newNote = await DeliveryRepository.create({
           companyId: auth.companyId,
+          modo: auth.modo,
           invoiceId: invoice.id,
           userId: auth.userId,
           deliveryDate: new Date(),

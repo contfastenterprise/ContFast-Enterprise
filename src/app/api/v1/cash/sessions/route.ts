@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
     const session = await CashService.openSession(
       auth.userId,
       auth.companyId,
+      auth.modo,
       result.data.cashRegisterId,
       result.data.initialBalance
     );
