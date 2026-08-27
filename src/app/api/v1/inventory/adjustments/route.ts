@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, inventoryLevels, inventoryMovements } from '@/db';
+import { db, inventoryLevels, inventoryMovements, products, warehouses } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
@@ -26,14 +26,56 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'Cantidad inválida.' } }, { status: 400 });
     }
 
+    // El almacen tiene que ser uno de los asignados al usuario, igual que en
+    // /inventory/transfer. Sin esto, un usuario de bodega puede ajustar la
+    // existencia de un almacen al que no tiene acceso.
+    const rolNormalizado = session.role.toLowerCase();
+    if (rolNormalizado !== 'administracion' && rolNormalizado !== 'sistemas') {
+      if (!session.allowedWarehouses.includes(warehouseId)) {
+        return NextResponse.json(
+          { success: false, error: { message: 'No tienes acceso a este almacén.' } },
+          { status: 403 }
+        );
+      }
+    }
+
+    // El producto y el almacen tienen que ser de la empresa de la sesion. Sin
+    // esta comprobacion se podia crear un nivel de inventario para el producto
+    // de otra empresa colgandolo del companyId propio.
+    const [producto] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.id, productId), eq(products.companyId, session.companyId), isNull(products.deletedAt)))
+      .limit(1);
+    if (!producto) {
+      return NextResponse.json({ success: false, error: { message: 'Producto no encontrado.' } }, { status: 404 });
+    }
+
+    const [almacen] = await db
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(and(eq(warehouses.id, warehouseId), eq(warehouses.companyId, session.companyId), isNull(warehouses.deletedAt)))
+      .limit(1);
+    if (!almacen) {
+      return NextResponse.json({ success: false, error: { message: 'Almacén no encontrado.' } }, { status: 404 });
+    }
+
     const result = await db.transaction(async (tx) => {
-      // 1. Obtener balance actual
-      const levelResult = await tx.select()
-        .from(inventoryLevels)
-        .where(and(
-          eq(inventoryLevels.productId, productId),
-          eq(inventoryLevels.warehouseId, warehouseId)
-        ));
+      // Auditoria F1-04: el filtro por companyId y sobre todo por modo es
+      // obligatorio. El indice unico de inventory_levels es
+      // (product_id, warehouse_id, modo), asi que existe una fila por modo para
+      // el mismo producto y almacen. Sin el filtro, este UPDATE afectaba a las
+      // dos: un ajuste hecho en PRUEBA reescribia la existencia de PRODUCCION.
+      const alcance = and(
+        eq(inventoryLevels.companyId, session.companyId),
+        eq(inventoryLevels.modo, session.modo),
+        eq(inventoryLevels.productId, productId),
+        eq(inventoryLevels.warehouseId, warehouseId)
+      );
+
+      // 1. Obtener balance actual (con bloqueo: dos ajustes simultaneos sobre el
+      //    mismo nivel calculaban la diferencia sobre el mismo balance leido).
+      const levelResult = await tx.select().from(inventoryLevels).where(alcance).for('update');
 
       let currentBalance = 0;
       let levelExists = false;
@@ -54,14 +96,12 @@ export async function POST(req: NextRequest) {
       if (levelExists) {
         await tx.update(inventoryLevels)
           .set({ quantity: newQtyNum.toString(), updatedAt: new Date() })
-          .where(and(
-            eq(inventoryLevels.productId, productId),
-            eq(inventoryLevels.warehouseId, warehouseId)
-          ));
+          .where(alcance);
       } else {
         await tx.insert(inventoryLevels).values({
           id: uuidv4(),
           companyId: session.companyId,
+          modo: session.modo,
           productId: productId,
           warehouseId: warehouseId,
           quantity: newQtyNum.toString()
@@ -73,6 +113,7 @@ export async function POST(req: NextRequest) {
       await tx.insert(inventoryMovements).values({
         id: moveId,
         companyId: session.companyId,
+        modo: session.modo,
         productId: productId,
         warehouseId: warehouseId,
         userId: session.userId,
