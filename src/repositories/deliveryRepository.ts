@@ -253,7 +253,10 @@ export class DeliveryRepository {
         // Verify stock in warehouse
         const hasStock = await checkStock(line.productId, invoice.warehouseId!, currentQty, tx);
         if (!hasStock) {
-          throw new Error('Inventario insuficiente en el almacén para realizar el despacho.');
+          throw new Error(
+            `Inventario insuficiente en el almacén para despachar el producto ${line.productId}: ` +
+            `se solicitan ${currentQty} unidades.`
+          );
         }
       }
 

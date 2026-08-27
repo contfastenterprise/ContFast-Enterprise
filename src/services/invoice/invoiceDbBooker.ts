@@ -5,7 +5,7 @@ import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
-import { checkStock, deductStock } from '@/services/inventoryService';
+import { checkStock, deductStock, getProvisionalStock } from '@/services/inventoryService';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 
 export class InvoiceDbBooker {
@@ -251,7 +251,13 @@ export class InvoiceDbBooker {
         for (const line of totals.itemLines) {
           const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true, data.modo || 'PRODUCCION');
           if (!hasStock) {
-            throw new Error(`Inventario insuficiente para el producto: ${line.name}`);
+            const disponible = await getProvisionalStock(
+              line.productId, data.warehouseId, tx, data.modo || 'PRODUCCION'
+            );
+            throw new Error(
+              `Inventario insuficiente para "${line.name}": se solicitan ${line.quantity} y ` +
+              `hay ${disponible} disponibles (descontando lo ya facturado y pendiente de despacho).`
+            );
           }
         }
       }

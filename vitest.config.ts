@@ -58,6 +58,16 @@ export default defineConfig({
       },
     },
 
+    // Variables de entorno para las pruebas.
+    // src/db/index.ts aborta al importarse si falta DATABASE_URL, de modo que
+    // cualquier prueba de un modulo que importe la capa de datos fallaba antes
+    // de arrancar. El pool de postgres.js es perezoso: con esta cadena ficticia
+    // no se abre ninguna conexion mientras las pruebas no ejecuten consultas
+    // reales (las unitarias pasan un doble de `tx`).
+    env: {
+      DATABASE_URL: 'postgresql://vitest:vitest@127.0.0.1:5432/vitest',
+    },
+
     // TypeScript path aliases matching tsconfig.json
     alias: {
       '@': path.resolve(__dirname, './src'),

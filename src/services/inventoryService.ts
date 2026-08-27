@@ -115,19 +115,28 @@ export async function checkStock(
 
   const minStock = level ? Number(level.minStock || 0) : 0;
 
-  // Rule: If minStock > 0, product cannot be sold if current stock <= minStock
-  if (minStock > 0) {
-    const currentStock = useProvisional
-      ? await getProvisionalStock(productId, warehouseId, tx, modo)
-      : (level ? Number(level.quantity || 0) : 0);
+  // Auditoria F1-04. Esta funcion tenia DOS defectos:
+  //
+  //  1. Con minStock = 0 -que es el valor por defecto- devolvia true sin
+  //     comparar nunca `quantityNeeded` contra la existencia. Se podia facturar
+  //     y despachar 100 unidades de un producto con 3, dejando el nivel en -97
+  //     y el kardex con balance_after negativo.
+  //
+  //  2. Con minStock > 0 comparaba `currentStock <= minStock`, ignorando
+  //     igualmente la cantidad pedida. Con 20 en almacen y un minimo de 10 se
+  //     podian sacar 15 unidades: la condicion miraba el stock ANTES de la
+  //     operacion, no despues, y el nivel terminaba en 5, por debajo del minimo.
+  //
+  // La regla correcta es sobre la existencia RESULTANTE.
+  const currentStock = useProvisional
+    ? await getProvisionalStock(productId, warehouseId, tx, modo)
+    : (level ? Number(level.quantity || 0) : 0);
 
-    if (currentStock <= minStock) {
-      return false;
-    }
-  }
-
-  // If minStock === 0, product can always be sold (returning true)
-  return true;
+  // Las cantidades son decimal(15,4): se compara con una tolerancia minima para
+  // que restar una cantidad exacta no falle por ruido de coma flotante
+  // (p. ej. 3 - 3 puede dar -4.44e-16).
+  const restante = currentStock - quantityNeeded;
+  return restante >= minStock - 1e-6;
 }
 
 export async function addStock(
