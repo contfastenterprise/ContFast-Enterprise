@@ -26,7 +26,7 @@ export async function GET(
         userId: cashSessions.userId,
       })
       .from(cashSessions)
-      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId)))
+      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId), eq(cashSessions.modo, auth.modo)))
       .limit(1);
 
     if (!session) return NextResponse.json({ error: 'Sesión no encontrada.' }, { status: 404 });
@@ -37,7 +37,7 @@ export async function GET(
     const [summary] = await db
       .select()
       .from(cashSessionSummary)
-      .where(and(eq(cashSessionSummary.cashSessionId, id), eq(cashSessionSummary.companyId, auth.companyId)))
+      .where(and(eq(cashSessionSummary.cashSessionId, id), eq(cashSessionSummary.companyId, auth.companyId), eq(cashSessionSummary.modo, auth.modo)))
       .limit(1);
 
     if (!summary) return NextResponse.json({ error: 'Arqueo no generado.' }, { status: 404 });

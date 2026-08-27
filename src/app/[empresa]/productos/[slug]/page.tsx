@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ empresa: string; slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const company = await StorefrontCompanyService.resolveCompanyBySlug(resolvedParams.empresa);
-  const product = await StorefrontProductService.getProductBySlug(resolvedParams.slug);
+  if (!company) return { title: 'Producto no encontrado' };
+  const product = await StorefrontProductService.getProductBySlug(resolvedParams.slug, company.id);
   
   if (!product) return { title: 'Producto no encontrado' };
   
@@ -35,7 +36,7 @@ export default async function StorefrontProductDetailPage({
     notFound();
   }
 
-  const product = await StorefrontProductService.getProductBySlug(resolvedParams.slug);
+  const product = await StorefrontProductService.getProductBySlug(resolvedParams.slug, company.id);
 
   if (!product) {
     notFound();

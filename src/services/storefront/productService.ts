@@ -52,7 +52,20 @@ export const StorefrontProductService = {
   /**
    * Obtiene un producto individual por su slug (extrayendo el ID)
    */
-  async getProductBySlug(slug: string): Promise<StorefrontProduct | null> {
+  /**
+   * Ficha de producto de la tienda publica.
+   *
+   * El companyId es OBLIGATORIO. Antes la consulta se identificaba solo por el
+   * UUID que va dentro del slug, y ese slug lo escribe el visitante: entrando a
+   * /<empresaA>/productos/loquesea--<uuid-de-un-producto-de-empresaB> se
+   * renderizaba el producto de la empresa B dentro de la tienda de la A, con su
+   * nombre, descripcion, precio de venta y precio promocional. Y como
+   * generateMetadata usa lo mismo para el <title>, quedaba indexable.
+   *
+   * Es superficie publica y sin autenticar, asi que el filtro va aqui y no en
+   * la pagina.
+   */
+  async getProductBySlug(slug: string, companyId: string): Promise<StorefrontProduct | null> {
     const id = this.getIdFromSlug(slug);
     if (!id) return null;
 
@@ -73,6 +86,7 @@ export const StorefrontProductService = {
       .where(
         and(
           eq(products.id, id),
+          eq(products.companyId, companyId),
           eq(products.status, 'active'),
           isNull(products.deletedAt)
         )

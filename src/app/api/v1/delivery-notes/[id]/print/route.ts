@@ -37,7 +37,7 @@ export async function GET(
     const [invoice] = await db
       .select()
       .from(invoices)
-      .where(and(eq(invoices.id, note.invoiceId), eq(invoices.companyId, auth.companyId)))
+      .where(and(eq(invoices.id, note.invoiceId), eq(invoices.companyId, auth.companyId), eq(invoices.modo, auth.modo)))
       .limit(1);
 
     if (!invoice) {
@@ -111,6 +111,11 @@ export async function GET(
       .where(
         and(
           eq(deliveryNotes.invoiceId, invoice.id),
+          eq(deliveryNotes.companyId, auth.companyId),
+          // Sin filtrar por entorno, los conduces de PRUEBA sumaban en
+          // previouslyDeliveredQty y el conduce impreso salia con cantidades
+          // pendientes que no eran las reales.
+          eq(deliveryNotes.modo, auth.modo),
           eq(deliveryNotes.status, 'approved'),
           isNull(deliveryNotes.deletedAt)
         )

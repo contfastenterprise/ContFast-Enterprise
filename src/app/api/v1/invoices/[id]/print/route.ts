@@ -6,12 +6,12 @@ import { db, invoices, companies, companySettings, customers, invoiceLines, invo
 import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
-async function getInvoicePdfBuffer(invoiceId: string, companyId: string, isReprint: boolean = false) {
+async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', isReprint: boolean = false) {
   // 1. Fetch invoice from DB
   const [invoiceRecordDb] = await db
     .select()
     .from(invoices)
-    .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)))
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId), eq(invoices.modo, modo)))
     .limit(1);
 
   if (!invoiceRecordDb) {
@@ -243,7 +243,7 @@ export async function GET(
     const { id: invoiceId } = await params;
     const { searchParams } = new URL(request.url);
     const isReprint = searchParams.get('reprint') === 'true';
-    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId, session.companyId, isReprint);
+    const { pdfBuffer, filename } = await getInvoicePdfBuffer(invoiceId, session.companyId, session.modo, isReprint);
 
     const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');
@@ -273,7 +273,7 @@ export async function POST(
     }
 
     const { id: invoiceId } = await params;
-    const { pdfBuffer } = await getInvoicePdfBuffer(invoiceId, session.companyId);
+    const { pdfBuffer } = await getInvoicePdfBuffer(invoiceId, session.companyId, session.modo);
 
     // 6. Almacenar el archivo temporalmente
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');

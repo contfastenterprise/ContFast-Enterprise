@@ -55,7 +55,7 @@ export async function GET(
       .leftJoin(users, eq(cashSessions.userId, users.id))
       // Aislamiento multiempresa (auditoria F0-06): sin el filtro de companyId,
       // un cajero podia imprimir el arqueo de otra empresa cambiando el id de la URL.
-      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId)))
+      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId), eq(cashSessions.modo, auth.modo)))
       .limit(1);
 
     if (!cashSession) {
@@ -98,10 +98,22 @@ export async function GET(
       const missingIdsArray = Array.from(missingInvoiceIds);
       
       // 1. Direct Invoice UUIDs
+      //
+      // OJO con el origen de missingIdsArray: son UUIDs sacados por expresion
+      // regular del texto libre `description` y `reference` de los movimientos,
+      // y ese texto lo escribe el usuario al registrar el movimiento. Sin el
+      // filtro por empresa bastaba con crear un movimiento cuya descripcion
+      // llevara el UUID de una factura ajena e imprimir el arqueo: el
+      // codigoFactura de esa factura de otra empresa acababa estampado en el
+      // PDF, lo que permite enumerar y confirmar documentos de otro inquilino.
       const missingInvoicesData = await db
         .select({ id: invoices.id, codigoFactura: invoices.codigoFactura })
         .from(invoices)
-        .where(inArray(invoices.id, missingIdsArray));
+        .where(and(
+          inArray(invoices.id, missingIdsArray),
+          eq(invoices.companyId, auth.companyId),
+          eq(invoices.modo, auth.modo)
+        ));
       
       missingInvoicesData.forEach(inv => {
         if (inv.codigoFactura) {
@@ -115,7 +127,13 @@ export async function GET(
         .from(customerReceiptApplied)
         .innerJoin(accountsReceivable, eq(customerReceiptApplied.arId, accountsReceivable.id))
         .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
-        .where(inArray(customerReceiptApplied.receiptId, missingIdsArray));
+        .where(and(
+          inArray(customerReceiptApplied.receiptId, missingIdsArray),
+          // Mismo vector que arriba, por la via del recibo.
+          eq(accountsReceivable.companyId, auth.companyId),
+          eq(invoices.companyId, auth.companyId),
+          eq(invoices.modo, auth.modo)
+        ));
 
       receiptInvoicesData.forEach(row => {
         if (row.codigoFactura) {
