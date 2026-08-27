@@ -597,3 +597,176 @@ Actualización: Agregado tipo de precio por defecto en clientes. **Verified & Po
 - **Problema de Filtrado (Join Drop):** Se detectó que tanto la tabla de Historial de Pagos como la tabla de Cheques en Garantía Diferidos se mostraban vacías a pesar de existir registros de pagos y notificaciones de cheques vencidos en el Dashboard.
 - **Resolución en Base de Datos (ApRepository):** Se modificó la consulta SQL de getPayments cambiando los innerJoin de las cuentas contables (débito y crédito) a leftJoin. Esto previene que los registros de pagos se oculten de la vista en caso de que alguna cuenta contable asociada esté deshabilitada, eliminada o tenga inconsistencias temporales en el catálogo de cuentas.
 - **Acceso Seguro a Propiedades (Null Safety):** Se implementó acceso seguro opcional (?.) al mapear los nombres y códigos de las cuentas contables retornadas por la consulta para evitar caídas en el frontend (TypeError: Cannot read properties of null), retornando un valor predeterminado 'N/A' cuando la cuenta contable no puede ser resuelta.
+
+---
+
+# PLAN DE REMEDIACION — AUDITORIA 26-AGO-2026 (Fase 0 y Fase 1)
+
+> Origen: auditoria tecnica integral del 26/08/2026 sobre la rama `develop`.
+> Version navegable con checklist: https://claude.ai/code/artifact/2cd332c7-7c28-4f06-92f3-c2fc6f3378c1
+> Informe completo: https://claude.ai/code/artifact/ab731b95-f6c6-45f3-8324-718b97eb341e
+>
+> Estado global: **NO INICIADO**. Ningun archivo fue modificado durante la auditoria.
+> Los pasos marcados [OK-REQUERIDO] cambian comportamiento que hoy funciona y no se
+> ejecutan sin autorizacion explicita (regla del proyecto).
+
+## Preparacion (obligatoria antes de cualquier paso)
+
+- [ ] **P-01** Rama `fix/auditoria-fase-0`, snapshot de Supabase, y `.gitattributes` con
+      `* text=auto eol=crlf` commiteado aparte (hoy ~424 archivos difieren solo en CRLF
+      y hacen ilegible cualquier diff posterior). — 15 min
+- [ ] **P-02** Linea base de tipos: `pnpm exec tsc --noEmit | tee tsc-baseline.txt` y
+      contar errores. Sin ese numero no se puede decidir cuando retirar
+      `ignoreBuildErrors: true` de `next.config.ts:4`. — 20 min
+- [ ] **P-03** Verificar en Vercel que existen con valor real: `INTERNAL_API_KEY`,
+      `URL_SIGNATURE_SECRET`, `RECOVERY_SECRET_KEY`, `REDIS_URL`,
+      `CERTIFICATE_ENCRYPTION_KEY`. Tres caen a un literal publico del repo si faltan. — 15 min
+
+## FASE 0 — Contencion inmediata (dias 1-2)
+
+Cierra el acceso de terceros a datos de clientes. Independientes entre si; se pueden
+desplegar por separado. No dependen de la reconciliacion de esquema.
+
+- [ ] **F0-01** [CRITICO] Rotar la clave de Groq (`packages/ai-core/.env:1`, commiteada)
+      y crear `.gitignore` en la raiz. Purgar historial con `git filter-repo`. — 20 min
+- [ ] **F0-02** [CRITICO] [OK-REQUERIDO] Cerrar el registro publico a empresas existentes.
+      `src/app/api/v1/auth/register/route.ts:44-51` permite unirse a cualquier empresa
+      con solo su RNC (dato publico) y otorga rol `administracion`. — 30 min
+- [ ] **F0-03** [CRITICO] `verifyAuth` + filtro de tenant en `/api/documents/{pdf,email,share}`,
+      o eliminar las rutas (no tienen consumidores). Ampliar el matcher de `src/proxy.ts:349`
+      a `/api/:path*`. — 1 h
+- [ ] **F0-04** [CRITICO] Eliminar fallbacks de secretos en `documentService.ts:11`,
+      `actions/payables.ts:14`, `actions/receivables.ts:14`, `middleware/auth.ts:68`,
+      `proxy.ts:225,298`. Patron correcto ya existe en `middleware/auth.ts:12-14`.
+      **Ejecutar despues de P-03** o el despliegue no arranca. — 30 min
+- [ ] **F0-05** [CRITICO] Bloquear asignacion de roles fijos en `admin/users/route.ts:49`.
+      La tabla `roles` es global y se puede asignar `sistemas` desde `administracion`.
+      Ademas, sustituir `includes('sistema')` por comparacion exacta en
+      `middleware/permissions.ts:41-44,127-130`. — 45 min
+- [ ] **F0-06** [ALTO] Filtro `companyId` en los 5 IDOR de lectura:
+      `cash/sessions/[id]/print:39`, `ap/print:36`, `reports/receivables/print:33`,
+      `reports/payables/print:34`, `ar/receipts/by-customer/print:41`. — 45 min
+- [ ] **F0-07** [ALTO] `enforcePermission(..., 'proveedores', 'write')` en
+      `ap/payments/route.ts:40` y mapear `/api/v1/ap` en `proxy.ts:69-100`. Hoy cualquier
+      usuario autenticado puede emitir un cheque. — 30 min
+
+**Criterio de salida:** clave vieja de Groq devuelve 401; registro con RNC ajeno devuelve 403;
+`/api/documents/**` sin sesion devuelve 401; ningun secreto con fallback; un `cajero` no puede
+emitir cheques ni leer la caja de otra empresa; `tsc --noEmit` no supera la linea base de P-02.
+
+## FASE 1 — Integridad de datos y cumplimiento fiscal (semanas 1-3)
+
+El orden entre bloques no es negociable. Dentro de cada bloque los pasos son independientes.
+
+### Bloque A — Cimientos
+
+- [ ] **F1-01** [CRITICO] Reconciliar esquema y migraciones. 9 migraciones huerfanas fuera
+      del journal, 7 tablas sin `CREATE TABLE` y 10 columnas sin migracion. `0026` hace
+      `DROP INDEX` sin `IF EXISTS` sobre un indice que crea una migracion huerfana.
+      **Verificacion: `drizzle-kit migrate` sobre una base vacia debe terminar sin error.**
+      Regla que empieza aqui: ningun cambio de esquema entra por el editor de Supabase. — 2-3 dias
+- [ ] **F1-02** [ALTO] Red de pruebas minima: `src/tests/invoiceCalculator.vitest.ts`.
+      Ademas: `integration.ts` no lo recoge vitest, `payroll.test.ts` es un duplicado, y el
+      umbral de cobertura esta en 10%. Modelo a replicar: `payroll.vitest.ts`. — 1-2 dias
+
+### Bloque B — Correcciones quirurgicas
+
+- [ ] **F1-03** [CRITICO] Nomina multiempresa: anadir `companyId` e `inArray(employeeId,
+      employeeIds)` a los 3 UPDATE de `hrRepository.ts:481-512`. `employeeIds` ya esta
+      calculado en la linea 478 y no se usa. Revisar tambien lineas 312, 464 y 528. — 30 min
+- [ ] **F1-04** [CRITICO] [OK-REQUERIDO] `checkStock` (`inventoryService.ts:116-131`) nunca
+      compara `quantityNeeded` con la existencia si `minStock = 0` (el default). Anadir
+      `CHECK (quantity >= 0)`. Cambia comportamiento: ventas que hoy pasan se rechazaran. — 1 h
+- [ ] **F1-05** [CRITICO] `msellerClient.ts:347`: default `'Aceptado'` cuando la respuesta
+      de la DGII no se puede interpretar, precedido de `catch (e) {}` vacio en :343.
+      Cambiar a estado desconocido con reintento. Mismo tratamiento en :247 y
+      `ecf/dgii-status/batch/route.ts:158`. — 1 h
+- [ ] **F1-06** [ALTO] Eliminar el fallback `'Latin Doors SRL'` / `'latindoors@gmail.com'`
+      en 17 archivos. Una empresa con nombre nulo emite descargos laborales y facturas con
+      la identidad de otro cliente. — 2 h
+- [ ] **F1-07** [ALTO] 606: rango `${month}-31` invalido (falla feb/abr/jun/sep/nov) y sin
+      filtro de `modo` ni `deletedAt` (`expenseService.ts:228-238`). 607: no excluye
+      `rejected`, no filtra `modo`, y emite `ncfModified` vacio
+      (`reports/607/txt/route.ts:53-62,92`). — 3 h
+
+### Bloque C — Contabilidad correcta
+
+- [ ] **F1-08** [CRITICO] Resolver cuentas por `getMappings()` y retirar las 5 copias de
+      `getOrCreateAccount`. Los mappings ya estan sembrados con los codigos correctos
+      (`accountingRepository.ts:405-411`); los modulos operativos los ignoran, y de ahi
+      sale que `1.1.02` sea a la vez Cuentas por Cobrar y Banco.
+      **Requiere decidir con el contador que hacer con los asientos ya emitidos.** — 2 dias
+- [ ] **F1-09** [CRITICO] Asiento de Costo de Ventas al aprobar el conduce
+      (`deliveryRepository.ts:260-274`). Hoy la venta no descarga inventario del mayor:
+      margen bruto inflado al 100% y activo sobrevaluado.
+      **Requiere decidir el metodo de costeo con el contador.** Depende de F1-08 y F1-18. — 1 dia
+- [ ] **F1-10** [CRITICO] Asiento contable de nomina en `approvePayroll`
+      (`hrRepository.ts:462-526`, cero referencias a `journalEntries` en 862 lineas).
+      Las cuentas `6.1.01.01` y `6.1.01.02` ya se siembran y no se usan. Depende de F1-08 y F1-03. — 1-2 dias
+- [ ] **F1-11** [ALTO] `modo` y `deletedAt` en Estado de Resultados, Balance General y
+      Estado de CxC (`reportRepository.ts:38-47,116-125,186-203`). La Balanza si filtra:
+      hoy los tres reportes dan cifras distintas del mismo periodo. — 4 h
+- [ ] **F1-12** [ALTO] `arRepository.registerReceipt:108-188`: usar `createJournalEntry`,
+      acreditar por `sum(amountApplied)` y no por el total del recibo, y anadir filtro de
+      empresa mas validacion de rango. — 4 h
+- [ ] **F1-13** [ALTO] ISC y propina legal fuera de la CxP y del asiento
+      (`expenses/route.ts:199`); `itbisProportionality` se captura y nunca se aplica
+      (`expenses/route.ts:299-302`). — 1 dia
+
+### Bloque D — Concurrencia (tratarla como familia, no como casos sueltos)
+
+- [ ] **F1-14** [ALTO] Sustituir el patron "leer en JS, calcular en JS, escribir absoluto"
+      por delta SQL con `FOR UPDATE` en los 6 saldos: CxP, CxC, banco, inventario, caja
+      (`expected_balance`) y sesion de caja abierta. **Primero:** `ApRepository.findById`
+      (`apRepository.ts:82`) debe aceptar `tx` — hoy usa el `db` global dentro de una
+      transaccion, y esa es la causa raiz de la doble aplicacion de pagos.
+      Anadir `CHECK (balance >= 0)` y el indice unico parcial de sesion de caja. — 3 dias
+
+### Bloque E — Fiscal critico
+
+- [ ] **F1-15** [CRITICO] [OK-REQUERIDO] Reordenar reserva de NCF y envio a la DGII
+      (`invoiceService.ts:41,49,83`). Hoy se predice sin bloqueo, se transmite, y solo
+      despues se reserva: dos cajeros simultaneos transmiten el mismo e-NCF.
+      Nuevo flujo: reservar con `FOR UPDATE` -> persistir `reserved` -> transmitir ->
+      marcar `accepted`/`rejected`. Corregir `codigo_factura` (`count(*)+1` e indice unico
+      global) en el mismo movimiento.
+      **Ejecutar al final, con B/C/D verificados y los tests de F1-02 en verde.** — 3-4 dias
+
+### Bloque F — Aislamiento de entorno y trazabilidad
+
+- [ ] **F1-16** [ALTO] `modo` como claim del JWT en vez de cookie `cf_environment`
+      editable desde `document.cookie` (`ClientLayout.tsx:109-111`). Nuevo endpoint
+      `switch-environment` auditado, siguiendo el patron de `switch-company`. — 1 dia
+- [ ] **F1-17** [ALTO] Auditar los 13 de 15 eventos fiscales que hoy no dejan rastro.
+      Prioridad: secuencias e-CF, `clear-sandbox`, configuracion fiscal, cierre de caja,
+      asientos manuales, cierre de periodos, gestion de usuarios. Corregir `ipAddress:
+      'server'`/'System'. Consolidar las 5 rutas duplicadas donde la que audita esta
+      muerta y la viva no audita. — 1-2 dias
+- [ ] **F1-18** [ALTO] Propagar `modo` en `deliveryRepository.ts:253,263-273,353-363`
+      (despachar en PRUEBA vacia el stock real) y en los asientos de `apService`,
+      `arRepository` y transacciones bancarias. Considerar quitar el
+      `.default('PRODUCCION')` para convertir estos olvidos en errores de compilacion. — 4 h
+
+**Criterio de salida:** `drizzle-kit migrate` reconstruye desde cero; los tres estados
+financieros cuadran entre si y excluyen PRUEBA; vender mercancia comprada a 100 y facturada
+a 150 da utilidad bruta de 50; el 606 de febrero descarga; dos pagos simultaneos sobre la
+misma CxP -> uno falla; dos emisiones simultaneas -> NCF distintos; los 15 eventos fiscales
+dejan rastro con IP real; `pnpm test:unit` en verde.
+
+## Decisiones de negocio pendientes (bloquean su paso)
+
+1. **F1-09** — Metodo de costeo para el asiento de Costo de Ventas (estandar, promedio
+   ponderado o PEPS).
+2. **F1-08** — Que hacer con los asientos ya emitidos contra cuentas equivocadas:
+   reclasificar con asiento de ajuste, o arrancar limpio desde una fecha de corte.
+3. **F1-04** — Si se permite vender contra stock que aun no ha entrado.
+
+Consultar con el contador antes de la semana 2.
+
+## Fuera de alcance de este plan
+
+Fases 2 a 5 de la auditoria: rendimiento (Redis nunca conecta, N+1 en factura y nomina,
+`rebuildBalances` cuadratico, Puppeteer en la lambda, `per_page` sin tope), calidad de
+codigo y arquitectura, interfaz y accesibilidad, y escalabilidad. Varias de esas
+correcciones son de menos de 20 lineas, pero ninguna compromete datos de terceros ni cifras
+que se declaran — que es el criterio con el que se ordeno esta fase.
