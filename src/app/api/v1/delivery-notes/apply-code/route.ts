@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     if (existingNote) {
       if (existingNote.status === 'draft') {
-        const result = await DeliveryRepository.approve(existingNote.id, auth.userId, auth.companyId);
+        const result = await DeliveryRepository.approve(existingNote.id, auth.userId, auth.companyId, auth.modo);
         return NextResponse.json(
           { success: true, message: `Conduce ${existingNote.deliveryNumber} aprobado y stock descontado exitosamente.` },
           { headers: resHeaders }
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       if (draftNotes.length > 0) {
         const approvedNames = [];
         for (const draftNote of draftNotes) {
-          await DeliveryRepository.approve(draftNote.id, auth.userId, auth.companyId);
+          await DeliveryRepository.approve(draftNote.id, auth.userId, auth.companyId, auth.modo);
           approvedNames.push(draftNote.deliveryNumber);
         }
         return NextResponse.json(
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         });
 
         // If the newNote created successfully, approve it
-        await DeliveryRepository.approve(newNote.id, auth.userId, auth.companyId);
+        await DeliveryRepository.approve(newNote.id, auth.userId, auth.companyId, auth.modo);
         createdNotes.push(newNote.deliveryNumber);
       }
 

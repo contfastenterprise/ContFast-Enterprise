@@ -18,19 +18,44 @@
 import { describe, it, expect } from 'vitest';
 import { checkStock } from '../services/inventoryService';
 
-/** Doble de `tx` que responde siempre con el nivel de inventario indicado. */
+/**
+ * Doble de `tx` que responde siempre con el nivel indicado y ademas ANOTA el
+ * predicado con el que se le pregunto. Asi la prueba puede comprobar no solo el
+ * resultado sino que la consulta lleva el filtro por empresa: sin el,
+ * `checkStock` leia el nivel de otra empresa y autorizaba la salida sobre una
+ * existencia que no era suya.
+ */
 function txCon(nivel: { quantity: number; minStock?: number } | null) {
-  return {
+  const preguntas: any[] = [];
+  const tx: any = {
+    preguntas,
     select: () => ({
       from: () => ({
-        where: async () => (nivel ? [{ quantity: nivel.quantity, minStock: nivel.minStock ?? 0 }] : []),
+        where: async (cond: any) => {
+          preguntas.push(cond);
+          return nivel ? [{ quantity: nivel.quantity, minStock: nivel.minStock ?? 0 }] : [];
+        },
       }),
     }),
-  } as any;
+  };
+  return tx;
+}
+
+/**
+ * Recoge las cadenas que hay dentro del predicado de Drizzle. No se puede usar
+ * JSON.stringify: el arbol de condiciones referencia la tabla y la tabla a sus
+ * columnas, asi que la estructura es circular.
+ */
+function cadenasDe(nodo: any, vistos = new Set<any>()): string[] {
+  if (typeof nodo === 'string') return [nodo];
+  if (!nodo || typeof nodo !== 'object' || vistos.has(nodo)) return [];
+  vistos.add(nodo);
+  return Object.values(nodo).flatMap((v) => cadenasDe(v, vistos));
 }
 
 const puedeSacar = (existencia: number | null, pedido: number, minimo = 0) =>
   checkStock(
+    'empresa-1',
     'prod-1',
     'almacen-1',
     pedido,
@@ -79,6 +104,22 @@ describe('checkStock — con stock minimo definido', () => {
   it('rechaza si la existencia ya esta en el minimo', async () => {
     expect(await puedeSacar(10, 1, 10)).toBe(false);
     expect(await puedeSacar(10, 0, 10)).toBe(true);
+  });
+});
+
+describe('checkStock — aislamiento entre empresas', () => {
+  it('pregunta por el nivel filtrando por la empresa', async () => {
+    // Sin companyId en la consulta, checkStock resolvia el nivel por producto y
+    // almacen a secas y podia autorizar una salida contra la existencia de otra
+    // empresa. El filtro es parte del contrato de la funcion, no un detalle.
+    const tx = txCon({ quantity: 10 });
+    await checkStock('empresa-1', 'prod-1', 'almacen-1', 1, tx, false);
+
+    expect(tx.preguntas.length).toBe(1);
+    const valores = cadenasDe(tx.preguntas[0]);
+    expect(valores).toContain('empresa-1');
+    expect(valores).toContain('prod-1');
+    expect(valores).toContain('almacen-1');
   });
 });
 

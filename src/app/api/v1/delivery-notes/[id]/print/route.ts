@@ -28,7 +28,7 @@ export async function GET(
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
 
     // 1. Fetch delivery note
-    const note = await DeliveryRepository.getById(id, auth.companyId);
+    const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);
     if (!note) {
       return new NextResponse('Conduce no encontrado.', { status: 404 });
     }

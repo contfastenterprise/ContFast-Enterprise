@@ -26,7 +26,7 @@ export async function POST(
     // Enforce "facturacion:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
-    const result = await DeliveryRepository.approve(id, auth.userId, auth.companyId);
+    const result = await DeliveryRepository.approve(id, auth.userId, auth.companyId, auth.modo);
 
     return NextResponse.json(
       { success: true, message: `Conduce ${result.deliveryNumber} aprobado y stock descontado exitosamente.`, data: result },

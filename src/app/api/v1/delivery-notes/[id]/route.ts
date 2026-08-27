@@ -26,7 +26,7 @@ export async function GET(
     // Enforce "facturacion:read" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
 
-    const note = await DeliveryRepository.getById(id, auth.companyId);
+    const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);
 
     if (!note) {
       return NextResponse.json(
@@ -80,7 +80,7 @@ export async function DELETE(
     // Enforce "facturacion:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
 
-    const note = await DeliveryRepository.getById(id, auth.companyId);
+    const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);
 
     if (!note) {
       return NextResponse.json(
@@ -97,13 +97,13 @@ export async function DELETE(
     }
 
     if (note.status === 'approved') {
-      await DeliveryRepository.void(id, auth.userId, auth.companyId);
+      await DeliveryRepository.void(id, auth.userId, auth.companyId, auth.modo);
       return NextResponse.json(
         { success: true, message: 'Conduce/Remisión de entrega anulado y revertido stock exitosamente.' },
         { headers: resHeaders }
       );
     } else {
-      await DeliveryRepository.softDelete(id, auth.companyId);
+      await DeliveryRepository.softDelete(id, auth.companyId, auth.modo);
       return NextResponse.json(
         { success: true, message: 'Borrador de conduce eliminado exitosamente.' },
         { headers: resHeaders }

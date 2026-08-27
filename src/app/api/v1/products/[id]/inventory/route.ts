@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
 
     const detailedLevels = await Promise.all(
       levels.map(async (level) => {
-        const provStock = await getProvisionalStock(productId, level.warehouseId);
+        const provStock = await getProvisionalStock(auth.companyId, productId, level.warehouseId, undefined, auth.modo);
         return {
           ...level,
           availableQuantity: provStock.toString(),

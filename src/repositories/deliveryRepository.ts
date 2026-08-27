@@ -98,7 +98,7 @@ export class DeliveryRepository {
   /**
    * Fetches a delivery note by ID, including its lines.
    */
-  static async getById(id: string, companyId: string) {
+  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const [note] = await db
       .select()
       .from(deliveryNotes)
@@ -106,6 +106,7 @@ export class DeliveryRepository {
         and(
           eq(deliveryNotes.id, id),
           eq(deliveryNotes.companyId, companyId),
+          eq(deliveryNotes.modo, modo),
           isNull(deliveryNotes.deletedAt)
         )
       )
@@ -186,10 +187,10 @@ export class DeliveryRepository {
   /**
    * Approves a delivery note, validating quantities and deducting inventory.
    */
-  static async approve(id: string, userId: string, companyId: string) {
+  static async approve(id: string, userId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     return await db.transaction(async (tx) => {
       // 1. Fetch delivery note
-      const note = await this.getById(id, companyId);
+      const note = await this.getById(id, companyId, modo);
       if (!note) {
         throw new Error('Conduce no encontrado.');
       }
@@ -253,7 +254,10 @@ export class DeliveryRepository {
         }
 
         // Verify stock in warehouse
-        const hasStock = await checkStock(line.productId, invoice.warehouseId!, currentQty, tx);
+        // Sin `modo` estas dos llamadas caian en el valor por defecto
+        // 'PRODUCCION': aprobar un conduce en PRUEBA comprobaba y descontaba
+        // las existencias REALES.
+        const hasStock = await checkStock(companyId, line.productId, invoice.warehouseId!, currentQty, tx, false, modo);
         if (!hasStock) {
           throw new Error(
             `Inventario insuficiente en el almacén para despachar el producto ${line.productId}: ` +
@@ -274,7 +278,8 @@ export class DeliveryRepository {
           'sale',
           invoice.id,
           `Despacho físico Conduce ${note.deliveryNumber}`,
-          tx
+          tx,
+          modo
         );
       }
 
@@ -330,10 +335,10 @@ export class DeliveryRepository {
   /**
    * Voids/Cancels an approved delivery note, returning inventory to the warehouse.
    */
-  static async void(id: string, userId: string, companyId: string) {
+  static async void(id: string, userId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     return await db.transaction(async (tx) => {
       // 1. Fetch delivery note
-      const note = await this.getById(id, companyId);
+      const note = await this.getById(id, companyId, modo);
       if (!note) {
         throw new Error('Conduce no encontrado.');
       }
@@ -443,8 +448,8 @@ export class DeliveryRepository {
   /**
    * Soft deletes a delivery note (only if it is in draft status).
    */
-  static async softDelete(id: string, companyId: string) {
-    const note = await this.getById(id, companyId);
+  static async softDelete(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
+    const note = await this.getById(id, companyId, modo);
     if (!note) {
       throw new Error('Conduce no encontrado.');
     }

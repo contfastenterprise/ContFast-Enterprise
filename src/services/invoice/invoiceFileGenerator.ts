@@ -193,7 +193,7 @@ export class InvoiceFileGenerator {
           })),
         });
 
-        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId);
+        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId, data.modo || 'PRODUCCION');
       } catch (autoErr) {
         Logger.error('[InvoiceFileGenerator] Error creating automatic delivery note', autoErr);
       }

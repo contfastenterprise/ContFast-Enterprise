@@ -14,10 +14,11 @@ import {
 import { eq, and, sql, inArray, not, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function getProvisionalStock(productId: string, warehouseId: string, tx: any = db, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<number> {
+export async function getProvisionalStock(companyId: string, productId: string, warehouseId: string, tx: any = db, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
+      eq(inventoryLevels.companyId, companyId),
       eq(inventoryLevels.productId, productId), 
       eq(inventoryLevels.warehouseId, warehouseId),
       eq(inventoryLevels.modo, modo)
@@ -33,6 +34,7 @@ export async function getProvisionalStock(productId: string, warehouseId: string
     .from(invoices)
     .where(
       and(
+        eq(invoices.companyId, companyId),
         eq(invoices.warehouseId, warehouseId),
         eq(invoices.modo, modo),
         inArray(invoices.status, ['signed', 'submitted', 'accepted']),
@@ -98,6 +100,7 @@ export async function getProvisionalStock(productId: string, warehouseId: string
 }
 
 export async function checkStock(
+  companyId: string,
   productId: string,
   warehouseId: string,
   quantityNeeded: number,
@@ -107,6 +110,7 @@ export async function checkStock(
 ): Promise<boolean> {
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
+      eq(inventoryLevels.companyId, companyId),
       eq(inventoryLevels.productId, productId), 
       eq(inventoryLevels.warehouseId, warehouseId),
       eq(inventoryLevels.modo, modo)
@@ -129,7 +133,7 @@ export async function checkStock(
   //
   // La regla correcta es sobre la existencia RESULTANTE.
   const currentStock = useProvisional
-    ? await getProvisionalStock(productId, warehouseId, tx, modo)
+    ? await getProvisionalStock(companyId, productId, warehouseId, tx, modo)
     : (level ? Number(level.quantity || 0) : 0);
 
   // Las cantidades son decimal(15,4): se compara con una tolerancia minima para
