@@ -31,6 +31,11 @@ function resolveEntorno(dgiiEnv: string | null): string {
 /**
  * Core business logic for submitting an invoice to the DGII.
  */
+// Nota de aislamiento: estas actualizaciones de dgii_submissions no filtran
+// por `modo` y no hace falta. Se localizan por invoiceId, y una factura vive
+// en un solo entorno, asi que todos sus envios comparten el suyo. Anadirlo
+// obligaria a meter el modo en el payload de la cola, con los trabajos que ya
+// estan encolados apuntando al formato viejo.
 export async function processDgiiSubmissionJob(data: { companyId: string; invoiceId: string; attemptsMade?: number }): Promise<any> {
   const { companyId, invoiceId } = data;
   const attemptsMade = data.attemptsMade ?? 0;

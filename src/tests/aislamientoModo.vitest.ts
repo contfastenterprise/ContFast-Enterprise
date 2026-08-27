@@ -62,11 +62,40 @@ function tablasConModo(): Set<string> {
   return con;
 }
 
-/** Texto de la sentencia que contiene la posicion dada. */
+/**
+ * Texto de la sentencia que empieza en la posicion dada.
+ *
+ * Avanza contando parentesis y llaves, y corta en el primer `;` que aparece a
+ * profundidad cero. Hace falta esa precision: una cadena como
+ * `.update(t).set({ ... }).where(...)` lleva llaves y saltos de linea en medio,
+ * y cortar por el primer `;` o por la llave anterior parte la sentencia y hace
+ * creer que al `where` le falta un filtro que si esta.
+ */
 function sentencia(texto: string, i: number): string {
-  const ini = Math.max(texto.lastIndexOf(';', i), texto.lastIndexOf('{', i), texto.lastIndexOf('}', i)) + 1;
-  const fin = texto.indexOf(';', i);
-  return texto.slice(ini, fin === -1 ? texto.length : fin);
+  let prof = 0;
+  for (let j = i; j < texto.length; j++) {
+    const c = texto[j];
+    if (c === '(' || c === '{' || c === '[') prof++;
+    else if (c === ')' || c === '}' || c === ']') prof--;
+    else if (c === ';' && prof <= 0) return texto.slice(i, j);
+  }
+  return texto.slice(i);
+}
+
+/**
+ * Muchas consultas no escriben el filtro a mano: pasan un predicado ya armado,
+ * como `.where(alcance)` o `.where(cond(payrolls))`. Eso es correcto y ademas
+ * preferible, pero leyendo solo la sentencia parece que falta el filtro. Aqui se
+ * resuelve el identificador contra su definicion en el mismo fichero.
+ */
+function aplicaPredicadoConModo(texto: string, st: string): boolean {
+  const m = /\.where\(\s*([A-Za-z_$][\w$]*)\s*[()]/.exec(st);
+  if (!m) return false;
+  const nombre = m[1];
+  const def = new RegExp(`(?:const|let|function)\\s+${nombre}\\b`).exec(texto);
+  if (!def) return false;
+  // La definicion es corta en la practica; con mirar lo que sigue basta.
+  return /\.modo\b/.test(texto.slice(def.index, def.index + 400));
 }
 
 describe('aislamiento por entorno — INSERT', () => {
@@ -106,6 +135,55 @@ describe('aislamiento por entorno — INSERT', () => {
 
     expect(olvidos, `\n${olvidos.join('\n')}\n\nAnade \`modo\` al INSERT. La columna tiene DEFAULT 'PRODUCCION', ` +
       'asi que olvidarlo NO falla: guarda la fila en el entorno equivocado sin avisar.').toEqual([]);
+  });
+
+  /**
+   * Grupo C de la auditoria. Un UPDATE o un DELETE que no se localiza por clave
+   * primaria alcanza a todas las filas que cumplan el criterio, y si el criterio
+   * no incluye el entorno, alcanza tambien a las del otro. Asi la conciliacion
+   * bancaria marcaba como conciliados los movimientos de PRUEBA: filtraba por
+   * cuenta y rango de fechas, y una fecha no distingue entornos.
+   *
+   * Localizar por `id` si es suficiente: el UUID pertenece a una sola fila y por
+   * tanto a un solo entorno.
+   */
+  it('todo UPDATE/DELETE no localizado por id filtra por modo', () => {
+    // Excepciones revisadas una a una. Cada una lleva su motivo en el codigo.
+    const PERMITIDO = [
+      // La cola no lleva el modo en el payload, pero invoiceId ya fija el entorno:
+      // una factura vive en uno solo y todos sus envios comparten el suyo.
+      'src/infrastructure/jobRunners.ts',
+      'src/infrastructure/worker.ts',
+      // Ante un token robado hay que cerrar TODAS las sesiones del usuario,
+      // tambien las de otras empresas y las del otro entorno.
+      'src/middleware/auth.ts',
+    ];
+
+    const olvidos: string[] = [];
+
+    for (const ruta of ficheros(SRC)) {
+      const rel = relative(RAIZ, ruta).split('\\').join('/');
+      if (PERMITIDO.includes(rel)) continue;
+      const texto = readFileSync(ruta, 'utf8');
+      const re = /\.(update|delete)\((\w+)\)/g;
+      let m: RegExpExecArray | null;
+
+      while ((m = re.exec(texto))) {
+        const tabla = m[2];
+        if (!CON_MODO.has(tabla)) continue;
+
+        const st = sentencia(texto, m.index);
+        const porClave = new RegExp(`eq\\(\\s*${tabla}\\.id\\b`).test(st);
+        if (porClave || st.includes(`${tabla}.modo`) || /\bmodo\s*[,:]/.test(st)) continue;
+        if (aplicaPredicadoConModo(texto, st)) continue;
+
+        const linea = texto.slice(0, m.index).split('\n').length;
+        olvidos.push(`${rel}:${linea} — ${m[1]}(${tabla}) sin modo y sin localizar por id`);
+      }
+    }
+
+    expect(olvidos, `\n${olvidos.join('\n')}\n\nUn ${'UPDATE/DELETE'} por criterios amplios alcanza ` +
+      'tambien las filas del otro entorno. Anade el filtro por modo, o localizalo por id.').toEqual([]);
   });
 
   it('las excepciones anotadas siguen existiendo y siguen fijando el modo', () => {

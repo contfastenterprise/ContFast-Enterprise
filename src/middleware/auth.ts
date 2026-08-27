@@ -162,7 +162,12 @@ export async function verifyAuth(
     if (!session || session.invalidatedAt || new Date() > new Date(session.expiresAt)) {
       if (session && session.invalidatedAt) {
         console.warn(`[Security] Reused Refresh Token detected for User: ${session.userId}. Invalidating all active sessions.`);
-        // Reused token! Kill ALL active sessions of this user as a security measure
+        // Reused token! Kill ALL active sessions of this user as a security measure.
+        //
+        // A proposito SIN filtrar por companyId ni modo: ante un token robado
+        // hay que cerrar todas las sesiones del usuario, tambien las de otras
+        // empresas y las del otro entorno. Acotarlo dejaria vivas justo las
+        // sesiones que el atacante podria seguir usando.
         await db
           .update(sessions)
           .set({ invalidatedAt: new Date() })

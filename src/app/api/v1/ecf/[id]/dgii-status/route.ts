@@ -143,7 +143,8 @@ export async function GET(
         })
         .where(and(
           eq(dgiiSubmissions.invoiceId, id),
-          eq(dgiiSubmissions.companyId, auth.companyId)
+          eq(dgiiSubmissions.companyId, auth.companyId),
+          eq(dgiiSubmissions.modo, auth.modo)
         ));
     }
 

@@ -160,6 +160,11 @@ export async function POST(req: NextRequest) {
           })
           .where(
             and(
+              eq(bankTransactions.companyId, auth.companyId),
+              // Sin este filtro se conciliaban tambien los movimientos del otro
+              // entorno: la misma cuenta bancaria tiene transacciones en PRUEBA
+              // y en PRODUCCION, y el rango de fechas no las distingue.
+              eq(bankTransactions.modo, auth.modo),
               eq(bankTransactions.bankAccountId, bankAccountId),
               gte(bankTransactions.date, startDate.toISOString().split('T')[0]),
               lte(bankTransactions.date, endDate.toISOString().split('T')[0]),

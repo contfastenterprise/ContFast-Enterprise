@@ -210,7 +210,8 @@ export async function POST(req: NextRequest) {
           })
           .where(and(
             eq(dgiiSubmissions.invoiceId, inv.id),
-            eq(dgiiSubmissions.companyId, auth.companyId)
+            eq(dgiiSubmissions.companyId, auth.companyId),
+            eq(dgiiSubmissions.modo, auth.modo)
           ));
 
         updatePerformed = true;

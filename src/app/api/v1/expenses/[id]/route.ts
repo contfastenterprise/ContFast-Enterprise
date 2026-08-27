@@ -271,7 +271,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       // 4. Delete inventory movements associated with this purchase
       await tx
         .delete(inventoryMovements)
-        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId)));
+        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId), eq(inventoryMovements.modo, session.modo)));
 
       // 4-bis. Limpiar la cadena de Cuentas por Pagar del gasto:
       //        accounts_payable -> checks (garantía) -> ap_payments.
@@ -332,15 +332,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
           .map((r: any) => r.checkId)
           .filter((v: string | null): v is string => Boolean(v));
 
-        await tx.delete(apPayments).where(eq(apPayments.apId, ap.id));
+        await tx.delete(apPayments).where(and(eq(apPayments.apId, ap.id), eq(apPayments.companyId, session.companyId), eq(apPayments.modo, session.modo)));
 
         // Por apId y además por los checkId referenciados: un cheque re-apuntado
         // durante una edición previa puede tener apId distinto y quedaría huérfano.
-        await tx.delete(checks).where(
+        await tx.delete(checks).where(and(
+          eq(checks.companyId, session.companyId),
+          eq(checks.modo, session.modo),
           linkedCheckIds.length > 0
             ? or(eq(checks.apId, ap.id), inArray(checks.id, linkedCheckIds))
             : eq(checks.apId, ap.id)
-        );
+        ));
 
         await tx.delete(accountsPayable).where(eq(accountsPayable.id, ap.id));
       }
@@ -355,7 +357,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         // Delete lines first to satisfy foreign key constraints
         await tx
           .delete(journalEntryLines)
-          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId)));
+          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId), eq(journalEntryLines.modo, session.modo)));
         
         // Delete header
         await tx
@@ -565,7 +567,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       // 4. Delete old inventory movements
       await tx
         .delete(inventoryMovements)
-        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId)));
+        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId), eq(inventoryMovements.modo, session.modo)));
 
       // 5. Delete old journal entries
       const jes = await tx
@@ -576,7 +578,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       for (const je of jes) {
         await tx
           .delete(journalEntryLines)
-          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId)));
+          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId), eq(journalEntryLines.modo, session.modo)));
         await tx
           .delete(journalEntries)
           .where(and(eq(journalEntries.id, je.id), eq(journalEntries.companyId, session.companyId)));
@@ -735,7 +737,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               expenseId: id,
               updatedAt: new Date()
             })
-            .where(eq(accountsPayable.id, existingAp.id));
+            .where(and(eq(accountsPayable.id, existingAp.id), eq(accountsPayable.companyId, session.companyId), eq(accountsPayable.modo, session.modo)));
         } else {
           // Create new Accounts Payable record
           await tx.insert(accountsPayable).values({
@@ -819,7 +821,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
                 amount: checkAmount.toString(),
                 paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
               })
-              .where(eq(apPayments.checkId, existingCheck.id));
+              .where(and(eq(apPayments.checkId, existingCheck.id), eq(apPayments.companyId, session.companyId), eq(apPayments.modo, session.modo)));
           } else {
             // Create new guarantee check
             const checkId = uuidv4();
@@ -870,10 +872,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           for (const chk of existingChecks) {
             await tx
               .delete(apPayments)
-              .where(eq(apPayments.checkId, chk.id));
+              .where(and(eq(apPayments.checkId, chk.id), eq(apPayments.companyId, session.companyId), eq(apPayments.modo, session.modo)));
             await tx
               .delete(checks)
-              .where(eq(checks.id, chk.id));
+              .where(and(eq(checks.id, chk.id), eq(checks.companyId, session.companyId), eq(checks.modo, session.modo)));
           }
         }
       } else {
@@ -913,16 +915,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           for (const chk of associatedChecks) {
             await tx
               .delete(apPayments)
-              .where(eq(apPayments.checkId, chk.id));
+              .where(and(eq(apPayments.checkId, chk.id), eq(apPayments.companyId, session.companyId), eq(apPayments.modo, session.modo)));
             await tx
               .delete(checks)
-              .where(eq(checks.id, chk.id));
+              .where(and(eq(checks.id, chk.id), eq(checks.companyId, session.companyId), eq(checks.modo, session.modo)));
           }
 
           // Delete accountsPayable record
           await tx
             .delete(accountsPayable)
-            .where(eq(accountsPayable.id, existingAp.id));
+            .where(and(eq(accountsPayable.id, existingAp.id), eq(accountsPayable.companyId, session.companyId), eq(accountsPayable.modo, session.modo)));
         }
       }
 

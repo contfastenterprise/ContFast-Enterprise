@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
               await tx.update(inventoryLevels)
                 .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
                 .where(and(
+                  eq(inventoryLevels.companyId, session.companyId),
                   eq(inventoryLevels.productId, line.productId),
                   eq(inventoryLevels.warehouseId, warehouseId),
                   eq(inventoryLevels.modo, session.modo)

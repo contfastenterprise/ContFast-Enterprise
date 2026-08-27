@@ -29,6 +29,11 @@ if (redis && !isBuildPhase) {
     console.log(`[Worker] Job ${job.id} (dgii-submissions) completed successfully.`);
   });
 
+// Nota de aislamiento: estas actualizaciones de dgii_submissions no filtran
+// por `modo` y no hace falta. Se localizan por invoiceId, y una factura vive
+// en un solo entorno, asi que todos sus envios comparten el suyo. Anadirlo
+// obligaria a meter el modo en el payload de la cola, con los trabajos que ya
+// estan encolados apuntando al formato viejo.
   dgiiWorker.on('failed', (job, err) => {
     console.error(`[Worker] Job ${job?.id} (dgii-submissions) failed (attempt ${job?.attemptsMade}): ${err.message}`);
     // On final failure (all retries exhausted), mark submission as failed
