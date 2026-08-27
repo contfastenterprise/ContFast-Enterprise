@@ -22,17 +22,17 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
 
     if (id) {
-      const payroll = await HRRepository.findPayrollById(id, session.companyId);
+      const payroll = await HRRepository.findPayrollById(id, session.companyId, session.modo);
       if (!payroll) {
         return NextResponse.json({ success: false, error: { message: 'Nómina no encontrada' } }, { status: 404 });
       }
-      const details = await HRRepository.findPayrollDetails(id, session.companyId);
+      const details = await HRRepository.findPayrollDetails(id, session.companyId, session.modo);
       return NextResponse.json({ success: true, data: { payroll, details } });
     }
 
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
-    const result = await HRRepository.findPayrolls(session.companyId, limit, offset);
+    const result = await HRRepository.findPayrolls(session.companyId, session.modo, limit, offset);
 
     return NextResponse.json({
       success: true,
@@ -70,12 +70,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
     }
 
-    const payroll = await HRRepository.createPayroll(session.companyId, {
+    const payroll = await HRRepository.createPayroll(session.companyId, session.modo, {
       ...parsed.data,
       createdBy: session.userId,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'create_payroll', 'payrolls', payroll.id, null, payroll);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_payroll', 'payrolls', payroll.id, null, payroll);
 
     return NextResponse.json({ success: true, data: payroll }, { status: 201 });
   } catch (error: any) {
@@ -100,14 +100,14 @@ export async function PUT(req: NextRequest) {
     const action = body.action; // 'recalculate' | 'approve'
 
     if (action === 'recalculate') {
-      await HRRepository.recalculatePayroll(id, session.companyId);
-      const payroll = await HRRepository.findPayrollById(id, session.companyId);
-      await HRRepository.logAudit(session.companyId, session.userId, 'recalculate_payroll', 'payrolls', id, null, payroll);
+      await HRRepository.recalculatePayroll(id, session.companyId, session.modo);
+      const payroll = await HRRepository.findPayrollById(id, session.companyId, session.modo);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'recalculate_payroll', 'payrolls', id, null, payroll);
       return NextResponse.json({ success: true, message: 'Nómina recalculada exitosamente' });
     }
 
     if (action === 'approve') {
-      await HRRepository.approvePayroll(id, session.companyId, session.userId);
+      await HRRepository.approvePayroll(id, session.companyId, session.modo, session.userId);
       return NextResponse.json({ success: true, message: 'Nómina aprobada exitosamente' });
     }
 
@@ -130,10 +130,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'ID es obligatorio' } }, { status: 400 });
     }
 
-    const oldPayroll = await HRRepository.findPayrollById(id, session.companyId);
-    await HRRepository.deletePayroll(id, session.companyId);
+    const oldPayroll = await HRRepository.findPayrollById(id, session.companyId, session.modo);
+    await HRRepository.deletePayroll(id, session.companyId, session.modo);
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'delete_payroll', 'payrolls', id, oldPayroll, null);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_payroll', 'payrolls', id, oldPayroll, null);
 
     return NextResponse.json({ success: true, message: 'Nómina eliminada/cancelada exitosamente' });
   } catch (error: any) {

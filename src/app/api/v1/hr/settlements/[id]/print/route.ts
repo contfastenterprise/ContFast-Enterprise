@@ -16,7 +16,7 @@ export async function GET(
 
     const { id: settlementId } = await segmentData.params;
 
-    const settlement = await HRRepository.findSettlementById(settlementId, session.companyId);
+    const settlement = await HRRepository.findSettlementById(settlementId, session.companyId, session.modo);
     if (!settlement) {
       return NextResponse.json({ success: false, error: { message: 'Liquidación no encontrada' } }, { status: 404 });
     }

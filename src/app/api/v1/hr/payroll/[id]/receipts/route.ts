@@ -18,12 +18,12 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const employeeId = searchParams.get('employeeId');
 
-    const payroll = await HRRepository.findPayrollById(payrollId, session.companyId);
+    const payroll = await HRRepository.findPayrollById(payrollId, session.companyId, session.modo);
     if (!payroll) {
       return NextResponse.json({ success: false, error: { message: 'Nómina no encontrada' } }, { status: 404 });
     }
 
-    let details = await HRRepository.findPayrollDetails(payrollId, session.companyId);
+    let details = await HRRepository.findPayrollDetails(payrollId, session.companyId, session.modo);
     if (employeeId) {
       details = details.filter(d => d.employeeId === employeeId);
       if (details.length === 0) {

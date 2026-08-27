@@ -25,6 +25,11 @@ import {
   payrollDetails, 
   payrolls, 
   overtimeRecords, 
+  employeeIncome,
+  employeeDeductions,
+  employeeVacations,
+  employeeLeaves,
+  employeeSettlements,
   financialMovements,
   checks,
   supplierPayments,
@@ -124,9 +129,23 @@ export async function POST(
       await tx.delete(inventoryLevels).where(cond(inventoryLevels));
 
       // 8. Payroll & HR
+      //
+      // Auditoria: aqui solo se limpiaban nominas y horas extra. Faltaban las
+      // otras cinco tablas de RRHH que llevan `modo`. Mientras hrRepository
+      // ignoraba la columna nada de esto llegaba a PRUEBA y el hueco no se
+      // notaba; ahora que RRHH escribe en el modo correcto, si.
+      //
+      // Los empleados, departamentos, cargos, tramos de ISR y la configuracion
+      // de nomina NO se borran: son catalogo compartido entre los dos modos,
+      // igual que productos, clientes y almacenes.
       await tx.delete(payrollDetails).where(cond(payrollDetails));
       await tx.delete(payrolls).where(cond(payrolls));
       await tx.delete(overtimeRecords).where(cond(overtimeRecords));
+      await tx.delete(employeeIncome).where(cond(employeeIncome));
+      await tx.delete(employeeDeductions).where(cond(employeeDeductions));
+      await tx.delete(employeeSettlements).where(cond(employeeSettlements));
+      await tx.delete(employeeLeaves).where(cond(employeeLeaves));
+      await tx.delete(employeeVacations).where(cond(employeeVacations));
 
       // 9. Accounting entries
       await tx.delete(financialMovements).where(cond(financialMovements));

@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
     const config = await HRRepository.updatePayrollConfig(session.companyId, stringifiedData);
 
     await HRRepository.logAudit(
-      session.companyId,
+      session.companyId, session.modo,
       session.userId,
       'update_payroll_config',
       'payroll_configs',

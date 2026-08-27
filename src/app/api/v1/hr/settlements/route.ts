@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    const data = await HRRepository.findSettlements(session.companyId);
+    const data = await HRRepository.findSettlements(session.companyId, session.modo);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     const totalCalculated = calculation.preaviso + calculation.cesantia + calculation.vacaciones + calculation.navidad + otros;
 
     if (action === 'save') {
-      const record = await HRRepository.createSettlement(session.companyId, {
+      const record = await HRRepository.createSettlement(session.companyId, session.modo, {
         employeeId,
         preaviso: calculation.preaviso,
         cesantia: calculation.cesantia,
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         settlementDate: terminationDate,
       });
 
-      await HRRepository.logAudit(session.companyId, session.userId, 'create_settlement', 'employee_settlements', record.id, null, record);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_settlement', 'employee_settlements', record.id, null, record);
 
       return NextResponse.json({
         success: true,
@@ -144,9 +144,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'ID es obligatorio' } }, { status: 400 });
     }
 
-    const deleted = await HRRepository.deleteSettlement(id, session.companyId);
+    const deleted = await HRRepository.deleteSettlement(id, session.companyId, session.modo);
     if (deleted) {
-      await HRRepository.logAudit(session.companyId, session.userId, 'delete_settlement', 'employee_settlements', id, deleted, null);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_settlement', 'employee_settlements', id, deleted, null);
     }
 
     return NextResponse.json({ success: true, message: 'Liquidación eliminada' });

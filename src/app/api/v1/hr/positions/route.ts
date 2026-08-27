@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'create_position', 'positions', pos.id, null, pos);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_position', 'positions', pos.id, null, pos);
 
     return NextResponse.json({ success: true, data: pos }, { status: 201 });
   } catch (error: any) {
@@ -74,7 +74,7 @@ export async function PUT(req: NextRequest) {
       description: parsed.data.description,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'update_position', 'positions', id, oldPos, pos);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'update_position', 'positions', id, oldPos, pos);
 
     return NextResponse.json({ success: true, data: pos });
   } catch (error: any) {
@@ -98,7 +98,7 @@ export async function DELETE(req: NextRequest) {
     const oldPos = (await HRRepository.findPositions(session.companyId)).find(p => p.id === id);
     const pos = await HRRepository.deletePosition(id, session.companyId);
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'delete_position', 'positions', id, oldPos, null);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_position', 'positions', id, oldPos, null);
 
     return NextResponse.json({ success: true, data: pos });
   } catch (error: any) {

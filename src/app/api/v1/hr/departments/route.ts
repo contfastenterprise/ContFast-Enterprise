@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'create_department', 'departments', dept.id, null, dept);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_department', 'departments', dept.id, null, dept);
 
     return NextResponse.json({ success: true, data: dept }, { status: 201 });
   } catch (error: any) {
@@ -74,7 +74,7 @@ export async function PUT(req: NextRequest) {
       description: parsed.data.description,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'update_department', 'departments', id, oldDept, dept);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'update_department', 'departments', id, oldDept, dept);
 
     return NextResponse.json({ success: true, data: dept });
   } catch (error: any) {
@@ -98,7 +98,7 @@ export async function DELETE(req: NextRequest) {
     const oldDept = (await HRRepository.findDepartments(session.companyId)).find(d => d.id === id);
     const dept = await HRRepository.deleteDepartment(id, session.companyId);
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'delete_department', 'departments', id, oldDept, null);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_department', 'departments', id, oldDept, null);
 
     return NextResponse.json({ success: true, data: dept });
   } catch (error: any) {

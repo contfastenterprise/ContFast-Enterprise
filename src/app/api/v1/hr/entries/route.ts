@@ -37,20 +37,20 @@ export async function GET(req: NextRequest) {
     const entryType = searchParams.get('entryType'); // 'overtime' | 'income' | 'deduction'
 
     if (entryType === 'overtime') {
-      const data = await HRRepository.findOvertimeRecords(session.companyId);
+      const data = await HRRepository.findOvertimeRecords(session.companyId, session.modo);
       return NextResponse.json({ success: true, data });
     } else if (entryType === 'income') {
-      const data = await HRRepository.findIncomeRecords(session.companyId);
+      const data = await HRRepository.findIncomeRecords(session.companyId, session.modo);
       return NextResponse.json({ success: true, data });
     } else if (entryType === 'deduction') {
-      const data = await HRRepository.findDeductionRecords(session.companyId);
+      const data = await HRRepository.findDeductionRecords(session.companyId, session.modo);
       return NextResponse.json({ success: true, data });
     }
 
     // Return all
-    const overtime = await HRRepository.findOvertimeRecords(session.companyId);
-    const income = await HRRepository.findIncomeRecords(session.companyId);
-    const deduction = await HRRepository.findDeductionRecords(session.companyId);
+    const overtime = await HRRepository.findOvertimeRecords(session.companyId, session.modo);
+    const income = await HRRepository.findIncomeRecords(session.companyId, session.modo);
+    const deduction = await HRRepository.findDeductionRecords(session.companyId, session.modo);
 
     return NextResponse.json({
       success: true,
@@ -80,24 +80,24 @@ export async function POST(req: NextRequest) {
       if (!parsed.success) {
         return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
       }
-      const record = await HRRepository.createOvertimeRecord(session.companyId, parsed.data);
-      await HRRepository.logAudit(session.companyId, session.userId, 'create_overtime', 'overtime_records', record.id, null, record);
+      const record = await HRRepository.createOvertimeRecord(session.companyId, session.modo, parsed.data);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_overtime', 'overtime_records', record.id, null, record);
       return NextResponse.json({ success: true, data: record }, { status: 201 });
     } else if (entryType === 'income') {
       const parsed = incomeSchema.safeParse(body.data);
       if (!parsed.success) {
         return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
       }
-      const record = await HRRepository.createIncomeRecord(session.companyId, parsed.data);
-      await HRRepository.logAudit(session.companyId, session.userId, 'create_income', 'employee_income', record.id, null, record);
+      const record = await HRRepository.createIncomeRecord(session.companyId, session.modo, parsed.data);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_income', 'employee_income', record.id, null, record);
       return NextResponse.json({ success: true, data: record }, { status: 201 });
     } else if (entryType === 'deduction') {
       const parsed = deductionSchema.safeParse(body.data);
       if (!parsed.success) {
         return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
       }
-      const record = await HRRepository.createDeductionRecord(session.companyId, parsed.data);
-      await HRRepository.logAudit(session.companyId, session.userId, 'create_deduction', 'employee_deductions', record.id, null, record);
+      const record = await HRRepository.createDeductionRecord(session.companyId, session.modo, parsed.data);
+      await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_deduction', 'employee_deductions', record.id, null, record);
       return NextResponse.json({ success: true, data: record }, { status: 201 });
     }
 
@@ -123,21 +123,21 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (entryType === 'overtime') {
-      const record = await HRRepository.deleteOvertimeRecord(id, session.companyId);
+      const record = await HRRepository.deleteOvertimeRecord(id, session.companyId, session.modo);
       if (record) {
-        await HRRepository.logAudit(session.companyId, session.userId, 'delete_overtime', 'overtime_records', id, record, null);
+        await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_overtime', 'overtime_records', id, record, null);
       }
       return NextResponse.json({ success: true, message: 'Registro de horas extras eliminado' });
     } else if (entryType === 'income') {
-      const record = await HRRepository.deleteIncomeRecord(id, session.companyId);
+      const record = await HRRepository.deleteIncomeRecord(id, session.companyId, session.modo);
       if (record) {
-        await HRRepository.logAudit(session.companyId, session.userId, 'delete_income', 'employee_income', id, record, null);
+        await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_income', 'employee_income', id, record, null);
       }
       return NextResponse.json({ success: true, message: 'Ingreso adicional eliminado' });
     } else if (entryType === 'deduction') {
-      const record = await HRRepository.deleteDeductionRecord(id, session.companyId);
+      const record = await HRRepository.deleteDeductionRecord(id, session.companyId, session.modo);
       if (record) {
-        await HRRepository.logAudit(session.companyId, session.userId, 'delete_deduction', 'employee_deductions', id, record, null);
+        await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_deduction', 'employee_deductions', id, record, null);
       }
       return NextResponse.json({ success: true, message: 'Deducción eliminada' });
     }

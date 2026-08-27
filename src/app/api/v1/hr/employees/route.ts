@@ -91,12 +91,12 @@ export async function POST(req: NextRequest) {
     // Clean cedula format to store raw numbers (or keep standard formatted string)
     const cleanCedula = parsed.data.cedula.replace(/-/g, '');
 
-    const emp = await HRRepository.createEmployee(session.companyId, {
+    const emp = await HRRepository.createEmployee(session.companyId, session.modo, {
       ...parsed.data,
       cedula: cleanCedula,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'create_employee', 'employees', emp.id, null, emp);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_employee', 'employees', emp.id, null, emp);
 
     return NextResponse.json({ success: true, data: emp }, { status: 201 });
   } catch (error: any) {
@@ -139,7 +139,7 @@ export async function PUT(req: NextRequest) {
       cedula: cleanCedula,
     });
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'update_employee', 'employees', id, oldEmp, emp);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'update_employee', 'employees', id, oldEmp, emp);
 
     return NextResponse.json({ success: true, data: emp });
   } catch (error: any) {
@@ -167,7 +167,7 @@ export async function DELETE(req: NextRequest) {
 
     const emp = await HRRepository.deleteEmployee(id, session.companyId);
 
-    await HRRepository.logAudit(session.companyId, session.userId, 'delete_employee', 'employees', id, oldEmp, null);
+    await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_employee', 'employees', id, oldEmp, null);
 
     return NextResponse.json({ success: true, data: emp });
   } catch (error: any) {

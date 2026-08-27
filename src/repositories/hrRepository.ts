@@ -18,6 +18,20 @@ import {
 import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 
+/**
+ * Entorno de trabajo. El proyecto separa PRODUCCION de PRUEBA en las tablas
+ * transaccionales; los catalogos (empleados, departamentos, cargos, tramos de
+ * ISR, configuracion de nomina) son compartidos y no llevan columna `modo`,
+ * igual que productos, clientes, suplidores y almacenes.
+ *
+ * Auditoria: hasta este cambio ninguna consulta de RRHH miraba `modo`, aunque
+ * ocho de sus tablas lo tienen y `clear-sandbox` ya borra nominas filtrando por
+ * el. Los INSERT se apoyaban en el DEFAULT 'PRODUCCION' de la columna, asi que
+ * trabajar en PRUEBA escribia sobre los datos reales: generar una nomina de
+ * prueba consumia las horas extra y las comisiones pendientes de verdad.
+ */
+type Modo = 'PRODUCCION' | 'PRUEBA';
+
 export class HRRepository {
   // ─── DEPARTMENTS & POSITIONS ───────────────────────────────────────────────
 
@@ -129,7 +143,7 @@ export class HRRepository {
     };
   }
 
-  static async createEmployee(companyId: string, data: any) {
+  static async createEmployee(companyId: string, modo: Modo, data: any) {
     return db.transaction(async (tx) => {
       // 1. Create employee record
       const [newEmp] = await tx
@@ -144,6 +158,7 @@ export class HRRepository {
       // 2. Initialize vacation record
       await tx.insert(employeeVacations).values({
         companyId,
+        modo,
         employeeId: newEmp.id,
         generatedDays: 0,
         takenDays: 0,
@@ -215,20 +230,22 @@ export class HRRepository {
     return db.select().from(isrBrackets).orderBy(isrBrackets.fromAmount);
   }
 
-  static async findPayrollById(id: string, companyId: string) {
+  static async findPayrollById(id: string, companyId: string, modo: Modo) {
     const [payroll] = await db
       .select()
       .from(payrolls)
-      .where(and(eq(payrolls.id, id), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .where(and(eq(payrolls.id, id), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
       .limit(1);
     return payroll;
   }
 
-  static async findPayrolls(companyId: string, limit = 50, offset = 0) {
+  static async findPayrolls(companyId: string, modo: Modo, limit = 50, offset = 0) {
+    const alcance = and(eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt));
+
     const data = await db
       .select()
       .from(payrolls)
-      .where(and(eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .where(alcance)
       .limit(limit)
       .offset(offset)
       .orderBy(desc(payrolls.periodStart));
@@ -236,7 +253,7 @@ export class HRRepository {
     const [countResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(payrolls)
-      .where(and(eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)));
+      .where(alcance);
 
     return {
       data,
@@ -244,7 +261,7 @@ export class HRRepository {
     };
   }
 
-  static async findPayrollDetails(payrollId: string, companyId: string) {
+  static async findPayrollDetails(payrollId: string, companyId: string, modo: Modo) {
     return db
       .select({
         id: payrollDetails.id,
@@ -271,17 +288,18 @@ export class HRRepository {
       })
       .from(payrollDetails)
       .innerJoin(employees, eq(payrollDetails.employeeId, employees.id))
-      .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)))
+      .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)))
       .orderBy(employees.firstName);
   }
 
-  static async createPayroll(companyId: string, data: { periodStart: string; periodEnd: string; paymentDate: string; frequency?: string; createdBy?: string }) {
+  static async createPayroll(companyId: string, modo: Modo, data: { periodStart: string; periodEnd: string; paymentDate: string; frequency?: string; createdBy?: string }) {
     return db.transaction(async (tx) => {
       // 1. Create payroll record
       const [payroll] = await tx
         .insert(payrolls)
         .values({
           companyId,
+          modo,
           periodStart: data.periodStart,
           periodEnd: data.periodEnd,
           paymentDate: data.paymentDate,
@@ -292,19 +310,19 @@ export class HRRepository {
         .returning();
 
       // 2. Perform initial calculations
-      await this.recalculatePayrollTx(tx, payroll.id, companyId);
+      await this.recalculatePayrollTx(tx, payroll.id, companyId, modo);
 
       return payroll;
     });
   }
 
-  static async recalculatePayroll(payrollId: string, companyId: string) {
+  static async recalculatePayroll(payrollId: string, companyId: string, modo: Modo) {
     return db.transaction(async (tx) => {
-      await this.recalculatePayrollTx(tx, payrollId, companyId);
+      await this.recalculatePayrollTx(tx, payrollId, companyId, modo);
     });
   }
 
-  private static async recalculatePayrollTx(tx: any, payrollId: string, companyId: string) {
+  private static async recalculatePayrollTx(tx: any, payrollId: string, companyId: string, modo: Modo) {
     // Auditoria F1-03: el companyId llegaba como parametro pero no se usaba en
     // ninguna de estas consultas. `payrollId` viene del querystring, asi que un
     // usuario de la empresa A podia recalcular la nomina de la empresa B: se le
@@ -317,14 +335,14 @@ export class HRRepository {
     const [payroll] = await tx
       .select()
       .from(payrolls)
-      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
       .limit(1);
     if (!payroll) throw new Error('Payroll period not found');
 
     // 2. Clear existing details
     await tx
       .delete(payrollDetails)
-      .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
+      .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
 
     const start = payroll.periodStart;
     const end = payroll.periodEnd;
@@ -392,6 +410,7 @@ export class HRRepository {
         .where(
           and(
             eq(overtimeRecords.companyId, companyId),
+            eq(overtimeRecords.modo, modo),
             inArray(overtimeRecords.employeeId, employeeIds),
             eq(overtimeRecords.status, 'pending'),
             between(overtimeRecords.dateWorked, start, end)
@@ -412,6 +431,7 @@ export class HRRepository {
         .where(
           and(
             eq(employeeIncome.companyId, companyId),
+            eq(employeeIncome.modo, modo),
             inArray(employeeIncome.employeeId, employeeIds),
             eq(employeeIncome.status, 'pending'),
             between(employeeIncome.date, start, end)
@@ -431,6 +451,7 @@ export class HRRepository {
         .where(
           and(
             eq(employeeDeductions.companyId, companyId),
+            eq(employeeDeductions.modo, modo),
             inArray(employeeDeductions.employeeId, employeeIds),
             eq(employeeDeductions.status, 'pending'),
             between(employeeDeductions.date, start, end)
@@ -484,6 +505,7 @@ export class HRRepository {
       // Insert payroll details row
       await tx.insert(payrollDetails).values({
         companyId,
+        modo,
         payrollId,
         employeeId: emp.id,
         baseSalary: payrollCalcs.baseSalary.toString(),
@@ -507,15 +529,15 @@ export class HRRepository {
     await tx
       .update(payrolls)
       .set({ status: 'calculated' })
-      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId)));
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo)));
   }
 
-  static async approvePayroll(payrollId: string, companyId: string, userId: string) {
+  static async approvePayroll(payrollId: string, companyId: string, modo: Modo, userId: string) {
     return db.transaction(async (tx) => {
       const [payroll] = await tx
         .select()
         .from(payrolls)
-        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
         .limit(1);
       if (!payroll) throw new Error('Nómina no encontrada');
       if (payroll.status !== 'calculated' && payroll.status !== 'draft') {
@@ -529,7 +551,7 @@ export class HRRepository {
       await tx
         .update(payrolls)
         .set({ status: 'approved', updatedAt: new Date() })
-        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId)));
+        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo)));
 
       // 2. Mark overtime records, incomes, and deductions as processed in this period
       //
@@ -543,7 +565,7 @@ export class HRRepository {
       const details = await tx
         .select()
         .from(payrollDetails)
-        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
       const employeeIds: string[] = details.map((d: any) => d.employeeId);
 
       if (employeeIds.length > 0) {
@@ -554,6 +576,7 @@ export class HRRepository {
           .where(
             and(
               eq(overtimeRecords.companyId, companyId),
+              eq(overtimeRecords.modo, modo),
               inArray(overtimeRecords.employeeId, employeeIds),
               between(overtimeRecords.dateWorked, start, end),
               eq(overtimeRecords.status, 'pending')
@@ -567,6 +590,7 @@ export class HRRepository {
           .where(
             and(
               eq(employeeIncome.companyId, companyId),
+              eq(employeeIncome.modo, modo),
               inArray(employeeIncome.employeeId, employeeIds),
               between(employeeIncome.date, start, end),
               eq(employeeIncome.status, 'pending')
@@ -580,6 +604,7 @@ export class HRRepository {
           .where(
             and(
               eq(employeeDeductions.companyId, companyId),
+              eq(employeeDeductions.modo, modo),
               inArray(employeeDeductions.employeeId, employeeIds),
               between(employeeDeductions.date, start, end),
               eq(employeeDeductions.status, 'pending')
@@ -590,6 +615,7 @@ export class HRRepository {
       // 3. Log Audit Trail
       await tx.insert(auditLogs).values({
         companyId,
+        modo,
         userId,
         action: 'approve_payroll',
         entityType: 'payrolls',
@@ -601,7 +627,7 @@ export class HRRepository {
     });
   }
 
-  static async deletePayroll(payrollId: string, companyId: string) {
+  static async deletePayroll(payrollId: string, companyId: string, modo: Modo) {
     // Auditoria F1-03: sin el filtro por companyId, la comprobacion de estado se
     // hacia sobre la nomina de cualquier empresa y el borrado de los detalles
     // tambien. El UPDATE final si filtraba, asi que la nomina ajena quedaba viva
@@ -609,7 +635,7 @@ export class HRRepository {
     const [payroll] = await db
       .select()
       .from(payrolls)
-      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
       .limit(1);
     if (!payroll) throw new Error('Nómina no encontrada');
     if (payroll.status !== 'draft' && payroll.status !== 'calculated') {
@@ -619,18 +645,18 @@ export class HRRepository {
     return db.transaction(async (tx) => {
       await tx
         .delete(payrollDetails)
-        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
       return tx
         .update(payrolls)
         .set({ deletedAt: new Date(), updatedAt: new Date(), status: 'cancelled' })
-        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId)))
+        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo)))
         .returning();
     });
   }
 
   // ─── ADDITIONAL ENTRIES (OVERTIME, INCOME, DEDUCTIONS) ────────────────────
 
-  static async createOvertimeRecord(companyId: string, data: any) {
+  static async createOvertimeRecord(companyId: string, modo: Modo, data: any) {
     const config = await this.getPayrollConfig(companyId);
     const employee = await this.findEmployeeById(data.employeeId, companyId);
     if (!employee) throw new Error('Empleado no encontrado');
@@ -647,6 +673,7 @@ export class HRRepository {
       .values({
         ...data,
         companyId,
+        modo,
         hours: data.hours.toString(),
         amount: amount.toString(),
         status: 'pending',
@@ -655,12 +682,13 @@ export class HRRepository {
     return inserted;
   }
 
-  static async createIncomeRecord(companyId: string, data: any) {
+  static async createIncomeRecord(companyId: string, modo: Modo, data: any) {
     const [inserted] = await db
       .insert(employeeIncome)
       .values({
         ...data,
         companyId,
+        modo,
         amount: data.amount.toString(),
         status: 'pending',
       })
@@ -668,12 +696,13 @@ export class HRRepository {
     return inserted;
   }
 
-  static async createDeductionRecord(companyId: string, data: any) {
+  static async createDeductionRecord(companyId: string, modo: Modo, data: any) {
     const [inserted] = await db
       .insert(employeeDeductions)
       .values({
         ...data,
         companyId,
+        modo,
         amount: data.amount.toString(),
         status: 'pending',
       })
@@ -683,7 +712,7 @@ export class HRRepository {
 
   // ─── VACATIONS & LEAVES ───────────────────────────────────────────────────
 
-  static async findVacations(companyId: string) {
+  static async findVacations(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeVacations.id,
@@ -697,16 +726,18 @@ export class HRRepository {
       })
       .from(employeeVacations)
       .innerJoin(employees, eq(employeeVacations.employeeId, employees.id))
-      .where(eq(employeeVacations.companyId, companyId))
+      .where(and(eq(employeeVacations.companyId, companyId), eq(employeeVacations.modo, modo)))
       .orderBy(employees.firstName);
   }
 
-  static async updateVacationDays(employeeId: string, companyId: string, generated: number, taken: number) {
-    const [vac] = await db
-      .select()
-      .from(employeeVacations)
-      .where(and(eq(employeeVacations.employeeId, employeeId), eq(employeeVacations.companyId, companyId)))
-      .limit(1);
+  static async updateVacationDays(employeeId: string, companyId: string, modo: Modo, generated: number, taken: number) {
+    const alcance = and(
+      eq(employeeVacations.employeeId, employeeId),
+      eq(employeeVacations.companyId, companyId),
+      eq(employeeVacations.modo, modo)
+    );
+
+    const [vac] = await db.select().from(employeeVacations).where(alcance).limit(1);
 
     const newGen = (vac?.generatedDays || 0) + generated;
     const newTaken = (vac?.takenDays || 0) + taken;
@@ -720,12 +751,12 @@ export class HRRepository {
         availableDays: newAvail,
         updatedAt: new Date(),
       })
-      .where(and(eq(employeeVacations.employeeId, employeeId), eq(employeeVacations.companyId, companyId)))
+      .where(alcance)
       .returning();
     return updated;
   }
 
-  static async findLeaves(companyId: string) {
+  static async findLeaves(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeLeaves.id,
@@ -740,23 +771,24 @@ export class HRRepository {
       })
       .from(employeeLeaves)
       .innerJoin(employees, eq(employeeLeaves.employeeId, employees.id))
-      .where(eq(employeeLeaves.companyId, companyId))
+      .where(and(eq(employeeLeaves.companyId, companyId), eq(employeeLeaves.modo, modo)))
       .orderBy(desc(employeeLeaves.createdAt));
   }
 
-  static async createLeave(companyId: string, data: any) {
+  static async createLeave(companyId: string, modo: Modo, data: any) {
     const [inserted] = await db
       .insert(employeeLeaves)
       .values({
         ...data,
         companyId,
+        modo,
         status: 'approved',
       })
       .returning();
     return inserted;
   }
 
-  static async findOvertimeRecords(companyId: string) {
+  static async findOvertimeRecords(companyId: string, modo: Modo) {
     return db
       .select({
         id: overtimeRecords.id,
@@ -773,19 +805,19 @@ export class HRRepository {
       })
       .from(overtimeRecords)
       .innerJoin(employees, eq(overtimeRecords.employeeId, employees.id))
-      .where(eq(overtimeRecords.companyId, companyId))
+      .where(and(eq(overtimeRecords.companyId, companyId), eq(overtimeRecords.modo, modo)))
       .orderBy(desc(overtimeRecords.dateWorked));
   }
 
-  static async deleteOvertimeRecord(id: string, companyId: string) {
+  static async deleteOvertimeRecord(id: string, companyId: string, modo: Modo) {
     const [deleted] = await db
       .delete(overtimeRecords)
-      .where(and(eq(overtimeRecords.id, id), eq(overtimeRecords.companyId, companyId)))
+      .where(and(eq(overtimeRecords.id, id), eq(overtimeRecords.companyId, companyId), eq(overtimeRecords.modo, modo)))
       .returning();
     return deleted;
   }
 
-  static async findIncomeRecords(companyId: string) {
+  static async findIncomeRecords(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeIncome.id,
@@ -802,19 +834,19 @@ export class HRRepository {
       })
       .from(employeeIncome)
       .innerJoin(employees, eq(employeeIncome.employeeId, employees.id))
-      .where(eq(employeeIncome.companyId, companyId))
+      .where(and(eq(employeeIncome.companyId, companyId), eq(employeeIncome.modo, modo)))
       .orderBy(desc(employeeIncome.date));
   }
 
-  static async deleteIncomeRecord(id: string, companyId: string) {
+  static async deleteIncomeRecord(id: string, companyId: string, modo: Modo) {
     const [deleted] = await db
       .delete(employeeIncome)
-      .where(and(eq(employeeIncome.id, id), eq(employeeIncome.companyId, companyId)))
+      .where(and(eq(employeeIncome.id, id), eq(employeeIncome.companyId, companyId), eq(employeeIncome.modo, modo)))
       .returning();
     return deleted;
   }
 
-  static async findDeductionRecords(companyId: string) {
+  static async findDeductionRecords(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeDeductions.id,
@@ -831,24 +863,25 @@ export class HRRepository {
       })
       .from(employeeDeductions)
       .innerJoin(employees, eq(employeeDeductions.employeeId, employees.id))
-      .where(eq(employeeDeductions.companyId, companyId))
+      .where(and(eq(employeeDeductions.companyId, companyId), eq(employeeDeductions.modo, modo)))
       .orderBy(desc(employeeDeductions.date));
   }
 
-  static async deleteDeductionRecord(id: string, companyId: string) {
+  static async deleteDeductionRecord(id: string, companyId: string, modo: Modo) {
     const [deleted] = await db
       .delete(employeeDeductions)
-      .where(and(eq(employeeDeductions.id, id), eq(employeeDeductions.companyId, companyId)))
+      .where(and(eq(employeeDeductions.id, id), eq(employeeDeductions.companyId, companyId), eq(employeeDeductions.modo, modo)))
       .returning();
     return deleted;
   }
 
-  static async createSettlement(companyId: string, data: any) {
+  static async createSettlement(companyId: string, modo: Modo, data: any) {
     const [inserted] = await db
       .insert(employeeSettlements)
       .values({
         ...data,
         companyId,
+        modo,
         preaviso: data.preaviso.toString(),
         cesantia: data.cesantia.toString(),
         vacaciones: data.vacaciones.toString(),
@@ -871,7 +904,7 @@ export class HRRepository {
     return inserted;
   }
 
-  static async findSettlements(companyId: string) {
+  static async findSettlements(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeSettlements.id,
@@ -891,11 +924,11 @@ export class HRRepository {
       })
       .from(employeeSettlements)
       .innerJoin(employees, eq(employeeSettlements.employeeId, employees.id))
-      .where(eq(employeeSettlements.companyId, companyId))
+      .where(and(eq(employeeSettlements.companyId, companyId), eq(employeeSettlements.modo, modo)))
       .orderBy(desc(employeeSettlements.settlementDate));
   }
 
-  static async findSettlementById(id: string, companyId: string) {
+  static async findSettlementById(id: string, companyId: string, modo: Modo) {
     const [settlement] = await db
       .select({
         id: employeeSettlements.id,
@@ -918,24 +951,25 @@ export class HRRepository {
       })
       .from(employeeSettlements)
       .innerJoin(employees, eq(employeeSettlements.employeeId, employees.id))
-      .where(and(eq(employeeSettlements.id, id), eq(employeeSettlements.companyId, companyId)))
+      .where(and(eq(employeeSettlements.id, id), eq(employeeSettlements.companyId, companyId), eq(employeeSettlements.modo, modo)))
       .limit(1);
     return settlement;
   }
 
-  static async deleteSettlement(id: string, companyId: string) {
+  static async deleteSettlement(id: string, companyId: string, modo: Modo) {
     const [deleted] = await db
       .delete(employeeSettlements)
-      .where(and(eq(employeeSettlements.id, id), eq(employeeSettlements.companyId, companyId)))
+      .where(and(eq(employeeSettlements.id, id), eq(employeeSettlements.companyId, companyId), eq(employeeSettlements.modo, modo)))
       .returning();
     return deleted;
   }
 
   // ─── AUDIT TRAILS LOGGING ─────────────────────────────────────────────────
 
-  static async logAudit(companyId: string, userId: string, action: string, entityType: string, entityId: string, oldValues?: any, newValues?: any) {
+  static async logAudit(companyId: string, modo: Modo, userId: string, action: string, entityType: string, entityId: string, oldValues?: any, newValues?: any) {
     await db.insert(auditLogs).values({
       companyId,
+      modo,
       userId,
       action,
       entityType,
