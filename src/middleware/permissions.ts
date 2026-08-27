@@ -35,15 +35,17 @@ export async function hasPermission(
 ): Promise<boolean> {
   const permissionKey = `${module}:${action}`;
 
-  const normalizedRole = roleName.toLowerCase();
+  const normalizedRole = roleName.toLowerCase().trim();
 
   // 1. Check Fixed Roles (Sistemas & Administracion)
-  if (normalizedRole.includes('sistema')) {
+  // Auditoria F0-05: comparacion EXACTA. Con includes(), un rol creado con nombre
+  // libre como "admin de ventas" o "sistemas de inventario" obtenia acceso total.
+  if (normalizedRole === 'sistemas') {
     // Total access to everything, including audit logs modification config and technical parameters
     return true;
   }
 
-  if (normalizedRole.includes('admin')) {
+  if (normalizedRole === 'administracion') {
     // Access to all operational modules, read-only for audit logs
     if (module === 'auditoria') {
       return action === 'read';
@@ -125,8 +127,11 @@ export async function enforcePermission(
 }
 
 export function isAdminOrSistemas(roleName: string): boolean {
-  const normalizedRole = roleName.toLowerCase();
-  return normalizedRole.includes('sistema') || normalizedRole.includes('admin');
+  // Auditoria F0-05: comparacion exacta contra la lista cerrada de roles fijos.
+  // Antes usaba includes(), de modo que cualquier rol cuyo nombre contuviera
+  // "admin" o "sistema" pasaba este control.
+  const normalizedRole = roleName.toLowerCase().trim();
+  return normalizedRole === 'sistemas' || normalizedRole === 'administracion';
 }
 
 export function enforceAdminOrSistemas(roleName: string): void {

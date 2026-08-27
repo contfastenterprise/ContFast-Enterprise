@@ -7,7 +7,7 @@ import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { db, companies, companySettings, customers } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
     const [customer] = await db
       .select()
       .from(customers)
-      .where(eq(customers.id, customerId))
+      // Aislamiento multiempresa (auditoria F0-06).
+      .where(and(eq(customers.id, customerId), eq(customers.companyId, session.companyId)))
       .limit(1);
 
     if (!customer) {

@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     const [supplier] = await db
       .select()
       .from(suppliers)
-      .where(eq(suppliers.id, supplierId))
+      // Aislamiento multiempresa (auditoria F0-06).
+      .where(and(eq(suppliers.id, supplierId), eq(suppliers.companyId, session.companyId)))
       .limit(1);
 
     if (!supplier) {

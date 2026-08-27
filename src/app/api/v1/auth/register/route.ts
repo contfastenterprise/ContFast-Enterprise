@@ -18,7 +18,10 @@ const registerSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    const isAllowed = await checkRateLimit(ip, 'strict');
+    // Preset 'auth' (5/min): el unico con fallback en memoria cuando Redis no esta
+    // disponible. Antes decia 'strict', que no existe en RATE_LIMIT_PRESETS y habria
+    // lanzado un TypeError en cuanto Redis conectara.
+    const isAllowed = await checkRateLimit(ip, 'auth');
     if (!isAllowed) {
       return NextResponse.json({ success: false, error: { message: 'Demasiadas solicitudes. Intente más tarde.' } }, { status: 429 });
     }
@@ -37,29 +40,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'El correo electrónico ya está registrado.' } }, { status: 400 });
     }
 
-    let companyId: string;
-    let isNewCompany = false;
-
-    // If RNC is provided, check if company exists, otherwise create Demo company
+    // SEGURIDAD (auditoria F0-02): el registro publico NO puede incorporar usuarios
+    // a una empresa que ya existe. Antes bastaba con enviar su RNC —dato publico, que
+    // la propia app expone en /api/v1/dgii/rnc/[rnc]— para obtener una cuenta activa
+    // con rol 'administracion' en el tenant ajeno, sin invitacion ni verificacion.
+    // Para sumar usuarios a una empresa existente se usa POST /api/v1/admin/users,
+    // que exige sesion y permiso de administracion.
     if (rnc) {
-      const [existingComp] = await db.select().from(companies).where(eq(companies.rnc, rnc)).limit(1);
-      if (!existingComp) {
-        return NextResponse.json({ success: false, error: { message: 'La empresa con el RNC especificado no existe. Por favor use el asistente de configuración para crearla.' } }, { status: 400 });
-      }
-      companyId = existingComp.id;
-    } else {
-      const [newCompany] = await db
-        .insert(companies)
-        .values({
-          name: 'Empresa Demo S.R.L.',
-          rnc: '101001001',
-          businessActivity: 'Servicios Generales',
-          status: 'active',
-        })
-        .returning();
-      companyId = newCompany.id;
-      isNewCompany = true;
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'REGISTRATION_CLOSED',
+            message: 'Para unirte a una empresa existente necesitas una invitación de su administrador.',
+          },
+        },
+        { status: 403 }
+      );
     }
+
+    // El registro publico solo crea una empresa nueva.
+    const isNewCompany = true;
+    const [newCompany] = await db
+      .insert(companies)
+      .values({
+        name: 'Empresa Demo S.R.L.',
+        rnc: '101001001',
+        businessActivity: 'Servicios Generales',
+        status: 'active',
+      })
+      .returning();
+    const companyId: string = newCompany.id;
 
     // Ensure global roles are seeded if empty
     const checkRoles = await db.select({ value: count() }).from(roles);

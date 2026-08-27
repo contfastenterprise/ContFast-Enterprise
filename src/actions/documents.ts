@@ -2,26 +2,32 @@
 
 import { db } from '@/db';
 import { invoices } from '@/db/schema/invoices';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
 // import { requireAuth } from '@/utils/auth';
 
+// Auditoria F0-03: estas rutas no verificaban sesion ni empresa, y quedaban fuera
+// del matcher del proxy. Cualquiera con el UUID de una factura podia descargar su
+// PDF, reenviarla por correo a un destinatario arbitrario o generar un enlace
+// publico de 30 dias, sin autenticarse y sin importar de que empresa fuera.
 export async function sendDocumentEmailAction(
   documentType: string,
   documentId: string,
-  toEmail: string
+  toEmail: string,
+  companyId: string
 ) {
   try {
-    // const session = await requireAuth();
-    // Verify document belongs to company ...
+    if (!companyId) {
+      throw new Error('Falta el contexto de empresa.');
+    }
 
     if (documentType !== 'invoice') {
       throw new Error('Tipo de documento no soportado');
     }
 
     const invoiceData = await db.query.invoices.findFirst({
-      where: eq(invoices.id, documentId),
+      where: and(eq(invoices.id, documentId), eq(invoices.companyId, companyId)),
       with: {
         company: true,
         customer: true,
@@ -96,16 +102,22 @@ export async function sendDocumentEmailAction(
   }
 }
 
-export async function createShareTokenAction(documentType: string, documentId: string) {
+export async function createShareTokenAction(
+  documentType: string,
+  documentId: string,
+  companyId: string
+) {
   try {
-    // const session = await requireAuth();
+    if (!companyId) {
+      throw new Error('Falta el contexto de empresa.');
+    }
 
     if (documentType !== 'invoice') {
       throw new Error('Tipo de documento no soportado');
     }
 
     const doc = await db.query.invoices.findFirst({
-      where: eq(invoices.id, documentId),
+      where: and(eq(invoices.id, documentId), eq(invoices.companyId, companyId)),
       columns: { companyId: true }
     });
 

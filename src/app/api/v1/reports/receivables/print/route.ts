@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
     let customerFilterName = 'Todos los clientes';
     if (customerId && customerId !== 'all') {
       queryConditions = and(queryConditions, eq(accountsReceivable.customerId, customerId));
-      const [cust] = await db.select().from(customers).where(eq(customers.id, customerId)).limit(1);
+      // Aislamiento multiempresa (auditoria F0-06).
+      const [cust] = await db.select().from(customers)
+        .where(and(eq(customers.id, customerId), eq(customers.companyId, companyId))).limit(1);
       if (cust) customerFilterName = cust.name;
     }
 

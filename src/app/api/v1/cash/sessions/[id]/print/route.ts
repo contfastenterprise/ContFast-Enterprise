@@ -4,7 +4,7 @@ import { cashSessions, cashMovements, cashRegisters } from '@/db/schema/cash';
 import { invoices } from '@/db/schema/invoices';
 import { users } from '@/db/schema/auth';
 import { companies, companySettings } from '@/db/schema/companies';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { customerReceiptApplied, accountsReceivable } from '@/db/schema/accounting';
 import { verifyAuth } from '@/middleware/auth';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -53,7 +53,9 @@ export async function GET(
       .from(cashSessions)
       .leftJoin(cashRegisters, eq(cashSessions.cashRegisterId, cashRegisters.id))
       .leftJoin(users, eq(cashSessions.userId, users.id))
-      .where(eq(cashSessions.id, id))
+      // Aislamiento multiempresa (auditoria F0-06): sin el filtro de companyId,
+      // un cajero podia imprimir el arqueo de otra empresa cambiando el id de la URL.
+      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId)))
       .limit(1);
 
     if (!cashSession) {

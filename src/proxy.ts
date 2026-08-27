@@ -81,6 +81,9 @@ const STATIC_ROUTE_MAPPINGS = [
   { pattern: /^\/api\/v1\/customers/, module: 'clientes', action: null },
   { pattern: /^\/dashboard\/suppliers/, module: 'proveedores', action: 'read' },
   { pattern: /^\/api\/v1\/suppliers/, module: 'proveedores', action: null },
+  // Auditoria F0-07: /api/v1/ap (cuentas por pagar y emision de cheques) no estaba
+  // mapeado, asi que caia en el 'return true' por defecto del final de esta funcion.
+  { pattern: /^\/api\/v1\/ap/, module: 'proveedores', action: null },
   { pattern: /^\/dashboard\/products/, module: 'catalogo', action: 'read' },
   { pattern: /^\/api\/v1\/products/, module: 'catalogo', action: null },
   { pattern: /^\/dashboard\/inventory/, module: 'catalogo', action: 'read' },
@@ -192,6 +195,8 @@ export async function proxy(req: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/api/v1') ||
+    // Auditoria F0-03: /api/documents servia PDF y enviaba correos sin autenticacion.
+    pathname.startsWith('/api/documents') ||
     pathname.startsWith('/bank') ||
     pathname.startsWith('/reports') ||
     pathname.startsWith('/support');
@@ -349,6 +354,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/api/v1/:path*',
+    '/api/documents/:path*',
     '/bank/:path*',
     '/reports/:path*',
     '/support/:path*',

@@ -31,7 +31,9 @@ export async function GET(req: NextRequest) {
     let supplierFilterName = 'Todos los proveedores';
     if (supplierId && supplierId !== 'all') {
       queryConditions = and(queryConditions, eq(accountsPayable.supplierId, supplierId));
-      const [supp] = await db.select().from(suppliers).where(eq(suppliers.id, supplierId)).limit(1);
+      // Aislamiento multiempresa (auditoria F0-06).
+      const [supp] = await db.select().from(suppliers)
+        .where(and(eq(suppliers.id, supplierId), eq(suppliers.companyId, companyId))).limit(1);
       if (supp) supplierFilterName = supp.name;
     }
 

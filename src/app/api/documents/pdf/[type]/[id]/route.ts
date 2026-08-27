@@ -3,7 +3,8 @@ import { db } from '@/db';
 import { invoices } from '@/db/schema/invoices';
 import { companies } from '@/db/schema/companies';
 import { customers } from '@/db/schema/contacts';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { verifyAuth } from '@/middleware/auth';
 import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
 // Ideally you would have an Auth check here using your standard auth provider (e.g. Supabase Auth)
@@ -14,21 +15,25 @@ export async function GET(
   { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
+    // Auditoria F0-03: estas rutas no verificaban sesion ni empresa, y quedaban fuera
+    // del matcher del proxy. Cualquiera con el UUID de una factura podia descargar su
+    // PDF, reenviarla por correo a un destinatario arbitrario o generar un enlace
+    // publico de 30 dias, sin autenticarse y sin importar de que empresa fuera.
+    const auth = await verifyAuth(req);
+    if (!auth) {
+      return new NextResponse('No autorizado', { status: 401 });
+    }
+
     const resolvedParams = await params;
     const { type, id } = resolvedParams;
-    
-    // TODO: Verify user authentication and extract companyId from session
-    // const supabase = createClient();
-    // const { data: { session } } = await supabase.auth.getSession();
-    // if (!session) return new NextResponse('Unauthorized', { status: 401 });
 
-    // Since this is a demo/implementation, we assume the invoice exists and we fetch it directly
     if (type !== 'invoice') {
       return new NextResponse('Unsupported document type', { status: 400 });
     }
 
     const invoiceData = await db.query.invoices.findFirst({
-      where: eq(invoices.id, id),
+      // El filtro por companyId es lo que impide leer facturas de otra empresa.
+      where: and(eq(invoices.id, id), eq(invoices.companyId, auth.companyId)),
       with: {
         company: true,
         customer: true,
@@ -38,10 +43,8 @@ export async function GET(
     }) as any;
 
     if (!invoiceData) {
-      return new NextResponse('Document not found', { status: 404 });
+      return new NextResponse('Documento no encontrado', { status: 404 });
     }
-
-    // TODO: Verify invoiceData.companyId === session.user.companyId
 
     const templateData = {
       company: {
