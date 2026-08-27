@@ -26,7 +26,11 @@ yarn-debug.log*
 yarn-error.log*
 tmp/
 storage/
-invoices/
+# Anclado a la raiz: sin la barra inicial este patron tapaba TAMBIEN
+# src/app/api/v1/invoices/ y src/app/dashboard/invoices/, que son codigo
+# fuente. Lo ya versionado seguia funcionando, pero cualquier fichero nuevo
+# en esas dos carpetas habria desaparecido en silencio.
+/invoices/
 
 # Editor y sistema operativo
 .DS_Store
