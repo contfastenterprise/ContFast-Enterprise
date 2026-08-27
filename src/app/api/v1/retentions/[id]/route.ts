@@ -91,7 +91,25 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     }
 
     if (existing[0].companyId === null) {
-      // Global retention — only deactivate, never delete
+      // Retencion global (company_id NULL): aplica a TODAS las empresas.
+      //
+      // Desactivarla la apaga para todas, no solo para quien pulsa el boton, y
+      // desde la aplicacion no hay forma de volver a activarla. Por eso queda
+      // reservada al rol sistemas, que es el operador del servicio, igual que
+      // en admin/subscriptions. Antes podia hacerlo cualquier usuario con
+      // permiso de administracion de cualquier empresa.
+      //
+      // Nota: la aplicacion tampoco puede CREAR retenciones globales -- el POST
+      // fija siempre companyId: auth.companyId --, asi que estas filas solo
+      // pueden venir de la base. Si en el futuro se quiere que cada empresa las
+      // desactive por su cuenta, hace falta una tabla de excepciones por
+      // empresa; apagar la fila compartida no es eso.
+      if (auth.role !== 'sistemas') {
+        return NextResponse.json(
+          { success: false, error: { code: 'FORBIDDEN', message: 'Esta retención es global y aplica a todas las empresas. Solo el rol sistemas puede desactivarla.' } },
+          { status: 403, headers: resHeaders }
+        );
+      }
       await db.update(retentions).set({ active: false }).where(eq(retentions.id, id));
       return NextResponse.json({ success: true, message: 'Retención global desactivada.' }, { headers: resHeaders });
     }
