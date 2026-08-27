@@ -26,12 +26,35 @@ export default defineConfig({
         'src/db/run-sql.ts',
         '**/*.d.ts',
       ],
-      // Minimum thresholds — raise progressively as coverage improves
+      // Umbrales de cobertura.
+      //
+      // Los globales actuan como trinquete: estan justo por debajo de la
+      // cobertura real de hoy, de modo que cualquier bajada rompe la build.
+      // Hay que SUBIRLOS conforme se anadan pruebas, no bajarlos.
+      // (Antes estaban en 10 con una cobertura real del 0,96%, asi que
+      // `pnpm test:coverage` fallaba siempre y nadie lo ejecutaba.)
+      //
+      // Los umbrales por archivo protegen de verdad lo que si esta probado:
+      // si alguien toca el calculo de facturacion o de nomina y baja la
+      // cobertura, falla aunque el global siga igual.
       thresholds: {
-        lines: 10,
-        functions: 10,
-        branches: 10,
-        statements: 10,
+        lines: 0.9,
+        functions: 0.9,
+        branches: 0.6,
+        statements: 0.9,
+
+        'src/services/invoice/invoiceCalculator.ts': {
+          lines: 100,
+          functions: 100,
+          branches: 90,
+          statements: 100,
+        },
+        'src/services/payrollCalculationService.ts': {
+          lines: 84,
+          functions: 100,
+          branches: 55,
+          statements: 79,
+        },
       },
     },
 

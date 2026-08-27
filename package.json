@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx src/tests/payroll.test.ts",
+    "test": "vitest run",
     "test:unit": "vitest run",
+    "test:integration": "tsx src/tests/integration.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:load": "artillery run tests/load-tests/artillery-config.yml"
