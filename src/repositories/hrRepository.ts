@@ -15,7 +15,7 @@ import {
   payrollConfigs,
   auditLogs,
 } from '@/db';
-import { eq, and, isNull, sql, desc, or, between, like } from 'drizzle-orm';
+import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 
 export class HRRepository {
@@ -305,12 +305,26 @@ export class HRRepository {
   }
 
   private static async recalculatePayrollTx(tx: any, payrollId: string, companyId: string) {
-    // 1. Clear existing details
-    await tx.delete(payrollDetails).where(eq(payrollDetails.payrollId, payrollId));
+    // Auditoria F1-03: el companyId llegaba como parametro pero no se usaba en
+    // ninguna de estas consultas. `payrollId` viene del querystring, asi que un
+    // usuario de la empresa A podia recalcular la nomina de la empresa B: se le
+    // borraban los detalles y se rehacian con los empleados de A.
+    //
+    // Se busca la nomina PRIMERO y se aborta si no es de esta empresa, antes de
+    // borrar nada.
 
-    // 2. Fetch payroll period
-    const [payroll] = await tx.select().from(payrolls).where(eq(payrolls.id, payrollId)).limit(1);
+    // 1. Fetch payroll period
+    const [payroll] = await tx
+      .select()
+      .from(payrolls)
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .limit(1);
     if (!payroll) throw new Error('Payroll period not found');
+
+    // 2. Clear existing details
+    await tx
+      .delete(payrollDetails)
+      .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
 
     const start = payroll.periodStart;
     const end = payroll.periodEnd;
@@ -354,50 +368,84 @@ export class HRRepository {
       .where(eq(isrBrackets.year, targetYear))
       .orderBy(isrBrackets.fromAmount);
 
-    // 5. For each employee, fetch incomes/deductions and compute details
-    for (const emp of activeEmployees) {
-      // Fetch Overtime sum for this employee in period
-      const [overtimeSum] = await tx
-        .select({ total: sql<string>`sum(amount)` })
+    // 5. Traer horas extra, ingresos y deducciones del periodo para TODOS los
+    //    empleados de golpe.
+    //
+    //    Antes esto eran tres consultas por empleado dentro del bucle: una
+    //    nomina de 80 personas lanzaba 240 consultas dentro de la transaccion.
+    //    Ahora son tres, agrupadas por empleado. Ademas se filtra por companyId:
+    //    las tres consultas originales solo miraban employeeId.
+    const employeeIds: string[] = activeEmployees.map((e: any) => e.id);
+
+    const overtimePorEmpleado = new Map<string, number>();
+    const comisionPorEmpleado = new Map<string, number>();
+    const bonoPorEmpleado = new Map<string, number>();
+    const deduccionPorEmpleado = new Map<string, number>();
+
+    if (employeeIds.length > 0) {
+      const overtimeRows = await tx
+        .select({
+          employeeId: overtimeRecords.employeeId,
+          total: sql<string>`sum(${overtimeRecords.amount})`,
+        })
         .from(overtimeRecords)
         .where(
           and(
-            eq(overtimeRecords.employeeId, emp.id),
+            eq(overtimeRecords.companyId, companyId),
+            inArray(overtimeRecords.employeeId, employeeIds),
             eq(overtimeRecords.status, 'pending'),
             between(overtimeRecords.dateWorked, start, end)
           )
-        );
+        )
+        .groupBy(overtimeRecords.employeeId);
+      for (const r of overtimeRows) overtimePorEmpleado.set(r.employeeId, Number(r.total || 0));
 
-      // Fetch Commissions/Bonuses (employee_income) sum in period
-      const incomes = await tx
-        .select()
+      // Los ingresos se traen fila a fila porque hay que separar comisiones de
+      // bonos, igual que hacia el bucle original.
+      const incomeRows = await tx
+        .select({
+          employeeId: employeeIncome.employeeId,
+          type: employeeIncome.type,
+          amount: employeeIncome.amount,
+        })
         .from(employeeIncome)
         .where(
           and(
-            eq(employeeIncome.employeeId, emp.id),
+            eq(employeeIncome.companyId, companyId),
+            inArray(employeeIncome.employeeId, employeeIds),
             eq(employeeIncome.status, 'pending'),
             between(employeeIncome.date, start, end)
           )
         );
-      
-      let commissionSum = 0;
-      let bonusSum = 0;
-      for (const inc of incomes) {
-        if (inc.type === 'comision') commissionSum += Number(inc.amount);
-        else bonusSum += Number(inc.amount);
+      for (const inc of incomeRows) {
+        const destino = inc.type === 'comision' ? comisionPorEmpleado : bonoPorEmpleado;
+        destino.set(inc.employeeId, (destino.get(inc.employeeId) || 0) + Number(inc.amount));
       }
 
-      // Fetch Deductions sum in period
-      const [deductionSum] = await tx
-        .select({ total: sql<string>`sum(amount)` })
+      const deductionRows = await tx
+        .select({
+          employeeId: employeeDeductions.employeeId,
+          total: sql<string>`sum(${employeeDeductions.amount})`,
+        })
         .from(employeeDeductions)
         .where(
           and(
-            eq(employeeDeductions.employeeId, emp.id),
+            eq(employeeDeductions.companyId, companyId),
+            inArray(employeeDeductions.employeeId, employeeIds),
             eq(employeeDeductions.status, 'pending'),
             between(employeeDeductions.date, start, end)
           )
-        );
+        )
+        .groupBy(employeeDeductions.employeeId);
+      for (const r of deductionRows) deduccionPorEmpleado.set(r.employeeId, Number(r.total || 0));
+    }
+
+    // 6. Calcular el detalle de cada empleado
+    for (const emp of activeEmployees) {
+      const overtimeAmount = overtimePorEmpleado.get(emp.id) || 0;
+      const commissionSum = comisionPorEmpleado.get(emp.id) || 0;
+      const bonusSum = bonoPorEmpleado.get(emp.id) || 0;
+      const deductionTotal = deduccionPorEmpleado.get(emp.id) || 0;
 
       // Calculate details using service
       // We divide the monthly salary by the factor to get the period base salary
@@ -409,10 +457,10 @@ export class HRRepository {
       const payrollCalcs = PayrollCalculationService.calculateDetails({
         baseSalary: periodBaseSalary,
         frequency: payroll.frequency as any,
-        overtimeAmount: Number(overtimeSum?.total || 0),
+        overtimeAmount,
         bonusAmount: bonusSum,
         commissionAmount: commissionSum,
-        otherDeductions: Number(deductionSum?.total || 0),
+        otherDeductions: deductionTotal,
         isrBrackets: brackets.map((b: any) => ({
           fromAmount: Number(b.fromAmount),
           toAmount: b.toAmount ? Number(b.toAmount) : null,
@@ -456,12 +504,19 @@ export class HRRepository {
     }
 
     // Set status to calculated
-    await tx.update(payrolls).set({ status: 'calculated' }).where(eq(payrolls.id, payrollId));
+    await tx
+      .update(payrolls)
+      .set({ status: 'calculated' })
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId)));
   }
 
   static async approvePayroll(payrollId: string, companyId: string, userId: string) {
     return db.transaction(async (tx) => {
-      const [payroll] = await tx.select().from(payrolls).where(eq(payrolls.id, payrollId)).limit(1);
+      const [payroll] = await tx
+        .select()
+        .from(payrolls)
+        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+        .limit(1);
       if (!payroll) throw new Error('Nómina no encontrada');
       if (payroll.status !== 'calculated' && payroll.status !== 'draft') {
         throw new Error('Solo se pueden aprobar nóminas calculadas o borradores');
@@ -471,11 +526,25 @@ export class HRRepository {
       const end = payroll.periodEnd;
 
       // 1. Update status to approved
-      await tx.update(payrolls).set({ status: 'approved', updatedAt: new Date() }).where(eq(payrolls.id, payrollId));
+      await tx
+        .update(payrolls)
+        .set({ status: 'approved', updatedAt: new Date() })
+        .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId)));
 
       // 2. Mark overtime records, incomes, and deductions as processed in this period
-      const details = await tx.select().from(payrollDetails).where(eq(payrollDetails.payrollId, payrollId));
-      const employeeIds = details.map((d: any) => d.employeeId);
+      //
+      // Auditoria F1-03: `employeeIds` se calculaba y no se usaba. Las tres
+      // actualizaciones filtraban solo por rango de fechas y estado, asi que
+      // aprobar una nomina marcaba como procesadas TODAS las horas extra,
+      // ingresos y deducciones pendientes de ese periodo en toda la base: las
+      // de las demas empresas y las de los empleados que no entran en esta
+      // nomina (otra frecuencia de pago, o de alta posterior). Esos conceptos
+      // desaparecian sin llegar a pagarse a nadie.
+      const details = await tx
+        .select()
+        .from(payrollDetails)
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
+      const employeeIds: string[] = details.map((d: any) => d.employeeId);
 
       if (employeeIds.length > 0) {
         // Mark overtime records as processed
@@ -484,6 +553,8 @@ export class HRRepository {
           .set({ status: 'processed' })
           .where(
             and(
+              eq(overtimeRecords.companyId, companyId),
+              inArray(overtimeRecords.employeeId, employeeIds),
               between(overtimeRecords.dateWorked, start, end),
               eq(overtimeRecords.status, 'pending')
             )
@@ -495,6 +566,8 @@ export class HRRepository {
           .set({ status: 'processed' })
           .where(
             and(
+              eq(employeeIncome.companyId, companyId),
+              inArray(employeeIncome.employeeId, employeeIds),
               between(employeeIncome.date, start, end),
               eq(employeeIncome.status, 'pending')
             )
@@ -506,6 +579,8 @@ export class HRRepository {
           .set({ status: 'processed' })
           .where(
             and(
+              eq(employeeDeductions.companyId, companyId),
+              inArray(employeeDeductions.employeeId, employeeIds),
               between(employeeDeductions.date, start, end),
               eq(employeeDeductions.status, 'pending')
             )
@@ -527,13 +602,24 @@ export class HRRepository {
   }
 
   static async deletePayroll(payrollId: string, companyId: string) {
-    const [payroll] = await db.select().from(payrolls).where(eq(payrolls.id, payrollId)).limit(1);
-    if (payroll && payroll.status !== 'draft' && payroll.status !== 'calculated') {
+    // Auditoria F1-03: sin el filtro por companyId, la comprobacion de estado se
+    // hacia sobre la nomina de cualquier empresa y el borrado de los detalles
+    // tambien. El UPDATE final si filtraba, asi que la nomina ajena quedaba viva
+    // pero sin ninguna linea: se destruia el detalle de otra empresa.
+    const [payroll] = await db
+      .select()
+      .from(payrolls)
+      .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), isNull(payrolls.deletedAt)))
+      .limit(1);
+    if (!payroll) throw new Error('Nómina no encontrada');
+    if (payroll.status !== 'draft' && payroll.status !== 'calculated') {
       throw new Error('No se pueden eliminar nóminas aprobadas o pagadas');
     }
-    
+
     return db.transaction(async (tx) => {
-      await tx.delete(payrollDetails).where(eq(payrollDetails.payrollId, payrollId));
+      await tx
+        .delete(payrollDetails)
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId)));
       return tx
         .update(payrolls)
         .set({ deletedAt: new Date(), updatedAt: new Date(), status: 'cancelled' })
