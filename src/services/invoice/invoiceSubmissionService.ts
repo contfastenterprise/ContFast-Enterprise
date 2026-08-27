@@ -87,6 +87,11 @@ export class InvoiceSubmissionService {
             .where(
               and(
                 eq(invoices.id, data.modifiedInvoiceId),
+                // modifiedInvoiceId llega del cuerpo de la peticion. Sin el
+                // filtro por empresa se leian el total y la fecha de la factura
+                // de otra empresa, y esos dos datos viajan DENTRO del e-CF que
+                // se envia a la DGII a nombre propio.
+                eq(invoices.companyId, data.companyId),
                 eq(invoices.modo, data.modo || 'PRODUCCION')
               )
             )

@@ -422,10 +422,18 @@ export class SupplierOrderService {
       for (const rec of receptions) {
         if (rec.quantityToReceive <= 0) continue;
 
+        // El itemId llega del cuerpo de la peticion. purchase_order_items no
+        // tiene companyId, asi que la pertenencia se comprueba por su pedido:
+        // sin esto se podia aumentar la cantidad recibida de una linea de un
+        // pedido de otra empresa, y peor, el addStock de mas abajo metia el
+        // producto de esa otra empresa en el almacen propio.
         const [item] = await tx
           .select()
           .from(purchaseOrderItems)
-          .where(eq(purchaseOrderItems.id, rec.itemId))
+          .where(and(
+            eq(purchaseOrderItems.id, rec.itemId),
+            eq(purchaseOrderItems.purchaseOrderId, order.id)
+          ))
           .limit(1)
           .for('update');
 
@@ -440,7 +448,10 @@ export class SupplierOrderService {
         await tx
           .update(purchaseOrderItems)
           .set({ quantityReceived: newReceived, updatedAt: new Date() })
-          .where(eq(purchaseOrderItems.id, rec.itemId));
+          .where(and(
+            eq(purchaseOrderItems.id, rec.itemId),
+            eq(purchaseOrderItems.purchaseOrderId, order.id)
+          ));
 
         // Update inventory level ONLY at reception
         await addStock(
