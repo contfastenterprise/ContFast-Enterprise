@@ -178,6 +178,24 @@ export async function proxy(req: NextRequest) {
     pathname === '/favicon.ico' ||
     pathname === '/contfast-logo.png'
   ) {
+    // Auditoria F0-04: las rutas excluidas salian con NextResponse.next() sin limpiar
+    // las cabeceras de identidad entrantes, de modo que un cliente podia inyectar
+    // x-user-id / x-company-id / x-user-role y que verifyAuth las creyera. Se eliminan
+    // siempre: solo el bloque de inyeccion de mas abajo puede establecerlas.
+    const sanitized = new Headers(req.headers);
+    for (const h of [
+      'x-internal-proxy-signature',
+      'x-user-id',
+      'x-company-id',
+      'x-user-role',
+      'x-role-id',
+      'x-session-id',
+      'x-allowed-warehouses',
+      'x-user-permissions',
+    ]) {
+      sanitized.delete(h);
+    }
+
     // If authenticated user goes to login/register, redirect them to dashboard
     if (pathname === '/auth/login' || pathname === '/auth/register') {
       const accessToken = req.cookies.get('accessToken')?.value;
@@ -188,7 +206,7 @@ export async function proxy(req: NextRequest) {
         }
       }
     }
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: sanitized } });
   }
 
   // 2. Route Protection Target: /dashboard/*, /api/v1/*, /bank/*, /reports/*, /support/*
@@ -227,8 +245,14 @@ export async function proxy(req: NextRequest) {
         const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
         requestHeaders.set('x-environment', environment);
 
-        const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
-        requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
+        // Auditoria F0-04: sin literal por defecto. Si la variable no esta definida no
+        // se firma nada, y verifyAuth ignora las cabeceras y verifica el JWT por cookie.
+        const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
+        if (INTERNAL_API_KEY) {
+          requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
+        } else {
+          requestHeaders.delete('x-internal-proxy-signature');
+        }
         requestHeaders.set('x-user-id', decoded.userId);
         requestHeaders.set('x-company-id', decoded.companyId);
         requestHeaders.set('x-user-role', decoded.role);
@@ -300,8 +324,13 @@ export async function proxy(req: NextRequest) {
                 return NextResponse.redirect(new URL('/403', req.url));
               }
 
-              const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
-              requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
+              // Auditoria F0-04: mismo criterio que en la rama principal, sin literal.
+              const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
+              if (INTERNAL_API_KEY) {
+                requestHeaders.set('x-internal-proxy-signature', INTERNAL_API_KEY);
+              } else {
+                requestHeaders.delete('x-internal-proxy-signature');
+              }
               requestHeaders.set('x-user-id', decodedNew.userId);
               requestHeaders.set('x-company-id', decodedNew.companyId);
               requestHeaders.set('x-user-role', decodedNew.role);

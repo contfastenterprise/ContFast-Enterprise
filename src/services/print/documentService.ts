@@ -8,7 +8,13 @@ const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERC
 const PDF_TEMP_DIR = isProduction
   ? path.join(os.tmpdir(), 'contfast-temp-docs')
   : (process.env.PDF_TEMP_DIR || path.join(os.tmpdir(), 'contfast-temp-docs'));
-const URL_SIGNATURE_SECRET = process.env.URL_SIGNATURE_SECRET || 'default_secret';
+// Auditoria F0-04: sin valor por defecto. Con 'default_secret' cualquiera podia
+// forjar la firma y el vencimiento de una URL de descarga conociendo el UUID.
+const URL_SIGNATURE_SECRET_ENV = process.env.URL_SIGNATURE_SECRET;
+if (!URL_SIGNATURE_SECRET_ENV) {
+  throw new Error('La variable de entorno URL_SIGNATURE_SECRET es obligatoria.');
+}
+const URL_SIGNATURE_SECRET: string = URL_SIGNATURE_SECRET_ENV;
 
 export class DocumentService {
   /**

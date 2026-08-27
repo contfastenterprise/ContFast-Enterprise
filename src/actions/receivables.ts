@@ -11,7 +11,13 @@ async function getAuthContext() {
   if (!token) return null;
 
   try {
-    const secret = process.env.JWT_SECRET || 'fallback_secret';
+    // Auditoria F0-04: sin valor por defecto. El resto del sistema ya aborta al
+    // arrancar si falta JWT_SECRET (src/middleware/auth.ts), asi que aceptar un
+    // secreto publico aqui solo abria la puerta a tokens forjados.
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('La variable de entorno JWT_SECRET es obligatoria.');
+    }
     const decoded = jwt.verify(token, secret) as any;
     
     const environmentCookie = cookieStore.get('cf_environment')?.value;

@@ -65,9 +65,18 @@ export async function verifyAuth(
   const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
   const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
   const internalSignature = req.headers.get('x-internal-proxy-signature');
-  const expectedSignature = process.env.INTERNAL_API_KEY || 'cf_internal_proxy_secret';
+  // Auditoria F0-04: antes esto caia a un literal publicado en el repositorio
+  // ('cf_internal_proxy_secret') cuando INTERNAL_API_KEY no estaba definida. Como
+  // verifyAuth construye la sesion COMPLETA a partir de cabeceras —incluidos el rol
+  // y la lista de permisos—, conocer ese literal permitia suplantar a cualquier
+  // usuario de cualquier empresa en toda superficie que no pase por el proxy.
+  //
+  // Ahora, si la variable no esta definida, la via de cabeceras queda DESACTIVADA y
+  // la peticion cae al camino normal de cookie + JWT firmado (mas abajo en esta
+  // misma funcion). Es algo mas lento, pero no confia en un secreto conocido.
+  const expectedSignature = process.env.INTERNAL_API_KEY;
 
-  if (userId && companyId && role && roleId) {
+  if (expectedSignature && userId && companyId && role && roleId) {
     if (internalSignature !== expectedSignature) {
       console.warn(`[Security] Spoofed internal headers detected from IP. Missing or invalid x-internal-proxy-signature.`);
       return null;
