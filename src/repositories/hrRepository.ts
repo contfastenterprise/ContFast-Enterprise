@@ -712,48 +712,94 @@ export class HRRepository {
 
   // ─── VACATIONS & LEAVES ───────────────────────────────────────────────────
 
+  /**
+   * Saldo de vacaciones de cada empleado en el modo activo.
+   *
+   * El saldo es transaccional: PRUEBA y PRODUCCION llevan cuentas separadas.
+   * Los empleados, en cambio, son catalogo compartido, asi que la consulta
+   * parte de `employees` con LEFT JOIN: un empleado que todavia no tiene fila
+   * de saldo en este modo aparece igual, con cero dias. Antes partia de
+   * `employeeVacations` con INNER JOIN y esos empleados desaparecian de la
+   * lista, que es justo lo que pasa al entrar por primera vez en un modo.
+   */
   static async findVacations(companyId: string, modo: Modo) {
     return db
       .select({
         id: employeeVacations.id,
-        employeeId: employeeVacations.employeeId,
+        employeeId: employees.id,
         firstName: employees.firstName,
         lastName: employees.lastName,
         employeeCode: employees.employeeCode,
-        generatedDays: employeeVacations.generatedDays,
-        takenDays: employeeVacations.takenDays,
-        availableDays: employeeVacations.availableDays,
+        generatedDays: sql<number>`coalesce(${employeeVacations.generatedDays}, 0)`,
+        takenDays: sql<number>`coalesce(${employeeVacations.takenDays}, 0)`,
+        availableDays: sql<number>`coalesce(${employeeVacations.availableDays}, 0)`,
       })
-      .from(employeeVacations)
-      .innerJoin(employees, eq(employeeVacations.employeeId, employees.id))
-      .where(and(eq(employeeVacations.companyId, companyId), eq(employeeVacations.modo, modo)))
+      .from(employees)
+      .leftJoin(
+        employeeVacations,
+        and(
+          eq(employeeVacations.employeeId, employees.id),
+          eq(employeeVacations.companyId, companyId),
+          eq(employeeVacations.modo, modo)
+        )
+      )
+      .where(and(eq(employees.companyId, companyId), isNull(employees.deletedAt)))
       .orderBy(employees.firstName);
   }
 
+  /**
+   * Suma dias generados y tomados al saldo del empleado en el modo activo.
+   *
+   * Crea la fila si no existe. Es necesario porque la fila inicial solo se
+   * genera al dar de alta al empleado, y en el modo activo de ese momento: un
+   * empleado creado en PRODUCCION no tiene saldo en PRUEBA hasta que se le
+   * mueve algo. Antes el UPDATE no encontraba fila, no actualizaba nada y
+   * devolvia undefined sin avisar, asi que los dias se perdian en silencio.
+   */
   static async updateVacationDays(employeeId: string, companyId: string, modo: Modo, generated: number, taken: number) {
-    const alcance = and(
-      eq(employeeVacations.employeeId, employeeId),
-      eq(employeeVacations.companyId, companyId),
-      eq(employeeVacations.modo, modo)
-    );
+    const empleado = await this.findEmployeeById(employeeId, companyId);
+    if (!empleado) throw new Error('Empleado no encontrado');
 
-    const [vac] = await db.select().from(employeeVacations).where(alcance).limit(1);
+    return db.transaction(async (tx) => {
+      const alcance = and(
+        eq(employeeVacations.employeeId, employeeId),
+        eq(employeeVacations.companyId, companyId),
+        eq(employeeVacations.modo, modo)
+      );
 
-    const newGen = (vac?.generatedDays || 0) + generated;
-    const newTaken = (vac?.takenDays || 0) + taken;
-    const newAvail = Math.max(0, newGen - newTaken);
+      const [vac] = await tx.select().from(employeeVacations).where(alcance).limit(1).for('update');
 
-    const [updated] = await db
-      .update(employeeVacations)
-      .set({
-        generatedDays: newGen,
-        takenDays: newTaken,
-        availableDays: newAvail,
-        updatedAt: new Date(),
-      })
-      .where(alcance)
-      .returning();
-    return updated;
+      const newGen = (vac?.generatedDays || 0) + generated;
+      const newTaken = (vac?.takenDays || 0) + taken;
+      const newAvail = Math.max(0, newGen - newTaken);
+
+      if (!vac) {
+        const [inserted] = await tx
+          .insert(employeeVacations)
+          .values({
+            companyId,
+            modo,
+            employeeId,
+            generatedDays: newGen,
+            takenDays: newTaken,
+            availableDays: newAvail,
+          })
+          .returning();
+        return inserted;
+      }
+
+      const [updated] = await tx
+        .update(employeeVacations)
+        .set({
+          generatedDays: newGen,
+          takenDays: newTaken,
+          availableDays: newAvail,
+          updatedAt: new Date(),
+        })
+        .where(alcance)
+        .returning();
+      return updated;
+    });
   }
 
   static async findLeaves(companyId: string, modo: Modo) {
