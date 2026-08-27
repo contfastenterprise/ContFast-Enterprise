@@ -1,0 +1,23 @@
+# Normalizacion de finales de linea.
+# El repositorio guarda LF; el arbol de trabajo en Windows usa CRLF.
+* text=auto eol=crlf
+
+# Binarios: nunca convertir.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.pdf binary
+*.traineddata binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+
+# Archivos que deben conservar LF aunque se editen en Windows.
+*.sh text eol=lf
