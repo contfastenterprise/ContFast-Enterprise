@@ -76,7 +76,14 @@ export class BankRepository {
   static async registerTransaction(data: RegisterBankTransactionInput) {
     return await db.transaction(async (tx) => {
       // 1. Get the account to verify it exists and get its current balance
-      const [account] = await tx.select().from(bankAccounts).where(eq(bankAccounts.id, data.bankAccountId));
+      // El bankAccountId llega del cuerpo de la peticion. Sin el filtro por
+      // empresa se podia mover el saldo de la cuenta de otra empresa, y encima
+      // la transaccion y el asiento quedaban con el companyId propio, asi que la
+      // victima no veia el movimiento por ninguna parte.
+      const [account] = await tx
+        .select()
+        .from(bankAccounts)
+        .where(and(eq(bankAccounts.id, data.bankAccountId), eq(bankAccounts.companyId, data.companyId)));
       if (!account) throw new Error('Cuenta bancaria no encontrada');
 
       const isIncoming = ['deposit', 'transfer_in'].includes(data.type);

@@ -202,7 +202,7 @@ export class InvoiceFileGenerator {
     if (data.quoteId) {
       try {
         const { QuoteService } = await import('@/services/quoteService');
-        await QuoteService.markAsInvoiced(data.quoteId);
+        await QuoteService.markAsInvoiced(data.quoteId, data.companyId, data.modo || 'PRODUCCION');
       } catch (err) {
         Logger.error('[InvoiceFileGenerator] Error marking quote as invoiced', err);
       }

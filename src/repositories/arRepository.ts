@@ -118,7 +118,16 @@ export class ArRepository {
         });
 
         // Update AR balance
-        const [ar] = await tx.select().from(accountsReceivable).where(eq(accountsReceivable.id, applied.arId));
+        // arId viene del cuerpo de la peticion: sin filtrar por empresa se
+        // podia saldar la cuenta por cobrar de otra empresa.
+        const [ar] = await tx
+          .select()
+          .from(accountsReceivable)
+          .where(and(
+            eq(accountsReceivable.id, applied.arId),
+            eq(accountsReceivable.companyId, data.companyId),
+            eq(accountsReceivable.modo, data.modo)
+          ));
         if (ar) {
           const newBalance = parseFloat(ar.balance as any) - applied.amountApplied;
           await tx.update(accountsReceivable)
@@ -126,7 +135,11 @@ export class ArRepository {
               balance: newBalance.toString(),
               status: newBalance <= 0.01 ? 'paid' : 'pending'
             })
-            .where(eq(accountsReceivable.id, applied.arId));
+            .where(and(
+              eq(accountsReceivable.id, applied.arId),
+              eq(accountsReceivable.companyId, data.companyId),
+              eq(accountsReceivable.modo, data.modo)
+            ));
         }
       }
 

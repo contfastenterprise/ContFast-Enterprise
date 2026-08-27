@@ -502,6 +502,10 @@ export class InvoiceDbBooker {
             .where(
               and(
                 eq(accountsReceivable.invoiceId, data.modifiedInvoiceId),
+                // modifiedInvoiceId llega del cuerpo de la peticion. Sin el
+                // filtro por empresa, una nota de credito e-34 rebajaba el
+                // balance de la cuenta por cobrar de otra empresa.
+                eq(accountsReceivable.companyId, data.companyId),
                 eq(accountsReceivable.modo, data.modo || 'PRODUCCION')
               )
             )

@@ -102,10 +102,17 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(parsed.data.password, salt);
 
     // Verificar si el correo ya existe (aunque esté inactivo)
+    // La guarda anti-backdoor de arriba solo mira los usuarios activos de
+    // companyResult, pero esta busqueda era global por correo: con un correo de
+    // otra empresa se reactivaba a ese usuario y se le fijaba una contrasena
+    // nueva. La busqueda tiene que quedar dentro de la empresa que se recupera.
     const [existingUser] = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.email, parsed.data.email.toLowerCase()))
+      .where(and(
+        eq(users.email, parsed.data.email.toLowerCase()),
+        eq(users.companyId, companyResult.id)
+      ))
       .limit(1);
 
     let recoveredUserId: string;

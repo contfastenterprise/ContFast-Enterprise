@@ -152,8 +152,12 @@ export async function addStock(
   modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ) {
   // Ensure level exists
+  // El companyId es imprescindible: productId y warehouseId llegan del cuerpo
+  // de la peticion y ninguna capa comprueba que sean de esta empresa, asi que
+  // sin el se movian las existencias de otra.
   let [level] = await tx.select().from(inventoryLevels).where(
     and(
+      eq(inventoryLevels.companyId, companyId),
       eq(inventoryLevels.productId, productId), 
       eq(inventoryLevels.warehouseId, warehouseId),
       eq(inventoryLevels.modo, modo)
@@ -238,6 +242,7 @@ export async function transferStock(
       // 1. Check stock
       const [sourceLevel] = await tx.select().from(inventoryLevels).where(
         and(
+          eq(inventoryLevels.companyId, companyId),
           eq(inventoryLevels.productId, item.productId), 
           eq(inventoryLevels.warehouseId, sourceWarehouseId),
           eq(inventoryLevels.modo, modo)
@@ -279,6 +284,7 @@ export async function transferStock(
       // 4. Add to destination
       let [destLevel] = await tx.select().from(inventoryLevels).where(
         and(
+          eq(inventoryLevels.companyId, companyId),
           eq(inventoryLevels.productId, item.productId), 
           eq(inventoryLevels.warehouseId, destinationWarehouseId),
           eq(inventoryLevels.modo, modo)

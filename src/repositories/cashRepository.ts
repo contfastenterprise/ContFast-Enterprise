@@ -196,11 +196,22 @@ export class CashRepository {
 
     // 2. Update Cash Session Expected Balance
     // In Drizzle, we can do direct update:
+    // cashSessionId puede venir del cuerpo de la peticion (al facturar con
+    // paymentType distinto de 'cash' no se sustituye por la sesion propia), asi
+    // que sin filtrar por empresa se alteraba el saldo esperado de la caja de
+    // otra empresa.
+    const alcanceSesion = and(
+      eq(cashSessions.id, data.cashSessionId),
+      eq(cashSessions.companyId, data.companyId)
+    );
+
     const session = await tx
       .select({ expectedBalance: cashSessions.expectedBalance })
       .from(cashSessions)
-      .where(eq(cashSessions.id, data.cashSessionId))
+      .where(alcanceSesion)
       .limit(1);
+
+    if (!session[0]) throw new Error('Sesión de caja no encontrada para esta empresa.');
 
     const currentExpected = parseFloat(session[0]?.expectedBalance || '0');
     const amt = data.amount;
@@ -215,7 +226,7 @@ export class CashRepository {
     await tx
       .update(cashSessions)
       .set({ expectedBalance: newExpected.toString(), updatedAt: new Date() })
-      .where(eq(cashSessions.id, data.cashSessionId));
+      .where(alcanceSesion);
 
     return movement;
   }

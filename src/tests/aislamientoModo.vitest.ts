@@ -88,14 +88,17 @@ function sentencia(texto: string, i: number): string {
  * preferible, pero leyendo solo la sentencia parece que falta el filtro. Aqui se
  * resuelve el identificador contra su definicion en el mismo fichero.
  */
-function aplicaPredicadoConModo(texto: string, st: string): boolean {
+function aplicaPredicadoConModo(texto: string, st: string, tabla: string): boolean {
   const m = /\.where\(\s*([A-Za-z_$][\w$]*)\s*[()]/.exec(st);
   if (!m) return false;
   const nombre = m[1];
   const def = new RegExp(`(?:const|let|function)\\s+${nombre}\\b`).exec(texto);
   if (!def) return false;
   // La definicion es corta en la practica; con mirar lo que sigue basta.
-  return /\.modo\b/.test(texto.slice(def.index, def.index + 400));
+  const cuerpo = texto.slice(def.index, def.index + 400);
+  // Vale por el modo o por la clave primaria: son las dos formas de acotar, y
+  // al predicado auxiliar se le aplica el mismo criterio que a la sentencia.
+  return /\.modo\b/.test(cuerpo) || new RegExp(`eq\\(\\s*${tabla}\\.id\\b`).test(cuerpo);
 }
 
 describe('aislamiento por entorno — INSERT', () => {
@@ -175,7 +178,7 @@ describe('aislamiento por entorno — INSERT', () => {
         const st = sentencia(texto, m.index);
         const porClave = new RegExp(`eq\\(\\s*${tabla}\\.id\\b`).test(st);
         if (porClave || st.includes(`${tabla}.modo`) || /\bmodo\s*[,:]/.test(st)) continue;
-        if (aplicaPredicadoConModo(texto, st)) continue;
+        if (aplicaPredicadoConModo(texto, st, tabla)) continue;
 
         const linea = texto.slice(0, m.index).split('\n').length;
         olvidos.push(`${rel}:${linea} — ${m[1]}(${tabla}) sin modo y sin localizar por id`);

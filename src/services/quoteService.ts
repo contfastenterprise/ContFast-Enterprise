@@ -449,9 +449,14 @@ export class QuoteService {
   /**
    * Mark quote as invoiced
    */
-  static async markAsInvoiced(quoteId: string) {
+  /**
+   * El quoteId llega del cuerpo de POST /api/v1/invoices y no se valida en
+   * ninguna capa anterior, asi que la empresa es obligatoria: sin ella se podia
+   * marcar como facturada la cotizacion de otra empresa.
+   */
+  static async markAsInvoiced(quoteId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     await db.update(quotes)
       .set({ status: 'invoiced', updatedAt: new Date() })
-      .where(eq(quotes.id, quoteId));
+      .where(and(eq(quotes.id, quoteId), eq(quotes.companyId, companyId), eq(quotes.modo, modo)));
   }
 }
