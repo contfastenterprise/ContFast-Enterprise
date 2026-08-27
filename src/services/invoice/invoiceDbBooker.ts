@@ -5,7 +5,7 @@ import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
-import { checkStock, deductStock, getProvisionalStock } from '@/services/inventoryService';
+import { deductStock } from '@/services/inventoryService';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 
 export class InvoiceDbBooker {
@@ -60,14 +60,19 @@ export class InvoiceDbBooker {
     data: IssueInvoiceInput,
     totals: CalculatedTotals
   ) {
-    // Verify Stock Availability (Skip for Credit Notes since it increases stock)
+    // NOTA (auditoria F1-04): aqui NO se valida existencia de inventario.
+    //
+    // Facturar no descuenta stock: la deduccion esta diferida al conduce de
+    // entrega (ver el comentario de executeDbTransaction, "Deduccion diferida
+    // a Conduce de Entrega"). El unico punto que puede dejar un nivel en
+    // negativo es el despacho, y ahi si se bloquea, en
+    // deliveryRepository.approveDeliveryNote.
+    //
+    // Bloquear aqui impediria facturar mercancia que aun esta por fabricar o
+    // por recibir, que es una venta perfectamente legitima, sin evitar ni un
+    // solo negativo adicional.
     if (data.ecfType !== '34') {
       for (const line of totals.itemLines) {
-        const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, db, true, data.modo || 'PRODUCCION');
-        if (!hasStock) {
-          throw new Error(`Inventario insuficiente o por debajo del mínimo para el producto: ${line.name}`);
-        }
-        
         // Cost validation
         const [prod] = await db.select({ cost: sql<string>`cost` }).from(sql`products`).where(eq(sql`id`, line.productId)).limit(1);
         if (prod) {
@@ -246,21 +251,9 @@ export class InvoiceDbBooker {
       const nextNum = Number(countResult?.count || 0) + 1;
       const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
 
-      // Verify Stock Availability (Skip for Credit Notes since it increases stock)
-      if (data.ecfType !== '34') {
-        for (const line of totals.itemLines) {
-          const hasStock = await checkStock(line.productId, data.warehouseId, line.quantity, tx, true, data.modo || 'PRODUCCION');
-          if (!hasStock) {
-            const disponible = await getProvisionalStock(
-              line.productId, data.warehouseId, tx, data.modo || 'PRODUCCION'
-            );
-            throw new Error(
-              `Inventario insuficiente para "${line.name}": se solicitan ${line.quantity} y ` +
-              `hay ${disponible} disponibles (descontando lo ya facturado y pendiente de despacho).`
-            );
-          }
-        }
-      }
+      // Sin validacion de existencia: ver la nota en preFlightValidations.
+      // Se elimina tambien el bucle que la ejecutaba, que era un N+1 por linea
+      // repetido dos veces (fuera y dentro de la transaccion).
 
       // Verify Credit Limit for credit sales
       if (data.paymentType === 'credit' && data.customerId && data.ecfType !== '34') {
