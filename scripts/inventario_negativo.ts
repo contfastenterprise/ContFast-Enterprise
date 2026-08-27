@@ -36,6 +36,9 @@
  * Es idempotente: al terminar no queda ningun nivel negativo, y una segunda
  * ejecucion no encuentra nada que corregir.
  */
+// Tiene que ir ANTES que cualquier import que toque la base: src/db aborta al
+// cargarse si falta DATABASE_URL, y tsx no lee .env por su cuenta.
+import './_cargarEnv';
 import { db, inventoryLevels, inventoryMovements, products, warehouses, companies, users } from '../src/db';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import { writeFileSync } from 'fs';
