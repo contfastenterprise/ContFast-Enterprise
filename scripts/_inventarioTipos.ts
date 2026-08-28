@@ -38,6 +38,7 @@ export interface Plan {
   iguales: Ajuste[];      // el conteo coincide: no se toca
   nuevos: Ajuste[];       // contado sin fila de nivel: se crea
   desconocidos: { sku: string; cantidad: number; lineas: number[] }[]; // SKU que no existe
+  sinInventario: { sku: string; nombre: string; cantidad: number }[];  // servicios y venta por encargo
   noContados: Nivel[];    // hay nivel pero el CSV no lo menciona
   repetidos: { sku: string; lineas: number[]; total: number }[];
   // `sku` en todos ellos es el texto TAL COMO viene en el CSV: el usuario va a

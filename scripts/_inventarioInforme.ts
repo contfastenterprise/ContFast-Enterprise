@@ -144,6 +144,21 @@ export function imprimirPlan(plan: Plan, opciones: { ausentes: 'ignorar' | 'cero
     console.log('  O el SKU esta mal escrito, o el producto no esta dado de alta.');
   }
 
+  if (plan.sinInventario.length > 0) {
+    console.log('');
+    console.log(
+      `AVISO: ${plan.sinInventario.length} producto(s) del CSV no llevan control de ` +
+        'existencia (servicio o venta por encargo). NO se cargan:'
+    );
+    for (const s of plan.sinInventario) {
+      console.log(`  [${s.sku}] ${s.nombre} -- contado ${cantidad(s.cantidad)}`);
+    }
+    console.log(
+      '  Su nivel de inventario no deberia existir. Para retirarlo, ver el final de\n' +
+        '  drizzle/0033_producto_sin_inventario.sql.'
+    );
+  }
+
   if (plan.noContados.length > 0) {
     const negativos = plan.noContados.filter((n) => n.quantity < 0);
     console.log('');

@@ -148,6 +148,7 @@ async function construirPlan(
   const catalogo = await db
     .select({
       id: products.id, name: products.name, sku: products.sku, cost: products.cost,
+      tracksInventory: products.tracksInventory,
       activo: sql<boolean>`(${products.deletedAt} is null and ${products.status} = 'active')`,
     })
     .from(products)
@@ -176,7 +177,7 @@ async function construirPlan(
   const nivelPorProducto = new Map(niveles.map((n) => [n.productId, n]));
 
   const plan: Plan = {
-    ajustes: [], iguales: [], nuevos: [], desconocidos: [], noContados: [], repetidos,
+    ajustes: [], iguales: [], nuevos: [], desconocidos: [], sinInventario: [], noContados: [], repetidos,
   };
   const contados = new Set<string>();
 
@@ -187,6 +188,15 @@ async function construirPlan(
       continue;
     }
     contados.add(producto.id);
+
+    // Un servicio o una venta por encargo no tienen existencia que cargar. Se
+    // apartan aqui: si no, este script -- que escribe niveles directamente, sin
+    // pasar por inventoryService -- volveria a crear el nivel que precisamente
+    // no deberia existir.
+    if (!producto.tracksInventory) {
+      plan.sinInventario.push({ sku: producto.sku || v.sku, nombre: producto.name, cantidad: v.cantidad });
+      continue;
+    }
 
     const nivel = nivelPorProducto.get(producto.id);
     const base: Nivel = nivel || {

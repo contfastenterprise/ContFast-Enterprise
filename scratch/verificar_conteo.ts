@@ -14,6 +14,7 @@
  *   ZP-02  nivel   8   no aparece en el CSV           -> aviso, no se toca
  *   NG-05  nivel  -6   no aparece en el CSV           -> aviso "SIGUE EN NEGATIVO"
  *   XX-99  no existe   contado 5                      -> aviso, no se carga
+ *   SRV-99 servicio (tracks_inventory=false), contado 9 -> aviso, no se carga
  *
  * Controles que NO se pueden mover (son el aislamiento):
  *   PC-01 en PRUEBA / Principal ....... 99
@@ -38,6 +39,7 @@ const MR09 = 'dddddddd-0000-0000-0000-00000000000a';
 const ZP02 = 'dddddddd-0000-0000-0000-00000000000b';
 const NG05 = 'dddddddd-0000-0000-0000-00000000000c';
 const PC01_B = 'dddddddd-0000-0000-0000-00000000000d'; // mismo SKU, empresa Beta
+const SRV01 = 'dddddddd-0000-0000-0000-00000000000e'; // servicio: no lleva inventario
 const USUARIO = 'ana@alfa.do';
 const CSV = '/tmp/conteo_prueba.csv';
 
@@ -82,7 +84,9 @@ async function movimientos(): Promise<{ sku: string; quantity: string; balance_a
 async function sembrar() {
   await db.execute(sql`DELETE FROM inventory_movements`);
   await db.execute(sql`DELETE FROM inventory_levels`);
-  await db.execute(sql`DELETE FROM products WHERE id IN (${MR09}::uuid, ${ZP02}::uuid, ${NG05}::uuid, ${PC01_B}::uuid)`);
+  await db.execute(sql`DELETE FROM inventory_transfer_lines`);
+  await db.execute(sql`DELETE FROM inventory_transfers`);
+  await db.execute(sql`DELETE FROM products WHERE id IN (${MR09}::uuid, ${ZP02}::uuid, ${NG05}::uuid, ${PC01_B}::uuid, ${SRV01}::uuid)`);
 
   await db.execute(sql`
     INSERT INTO products (id, company_id, sku, name, cost) VALUES
@@ -90,6 +94,10 @@ async function sembrar() {
       (${ZP02}::uuid, ${A}::uuid, 'ZP-02', 'Zapata',        150.00),
       (${NG05}::uuid, ${A}::uuid, 'NG-05', 'Panel nogal',  4100.00),
       (${PC01_B}::uuid, ${B}::uuid, 'PC-01', 'Puerta caoba Beta', 7000.00)
+  `);
+  await db.execute(sql`
+    INSERT INTO products (id, company_id, sku, name, cost, tracks_inventory)
+    VALUES (${SRV01}::uuid, ${A}::uuid, 'SRV-99', 'Instalacion', 0, false)
   `);
 
   await db.execute(sql`
@@ -122,6 +130,7 @@ async function sembrar() {
        'PC-01;2',
        'XX-99;5',        // no existe en el catalogo
        'BI-03;0,5',      // decimal con coma -> 7.5 en total
+       'SRV-99;9',       // servicio: no lleva inventario
        ''].join('\r\n'),
     'utf8'
   );
@@ -147,6 +156,9 @@ async function main() {
   ok('MR-09 se marca como nivel nuevo', /MR-09.*\(nivel nuevo\)/.test(seco.salida));
   ok('no imprime ningun asiento contable', !/DEBE|HABER/.test(seco.salida));
   ok('explica por que no hay asiento', /POR QUE NO HAY ASIENTO/.test(seco.salida));
+  ok('aparta el servicio del CSV', /no llevan control de \s*\n?\s*existencia/s.test(seco.salida)
+    || /no llevan control de/.test(seco.salida));
+  ok('y lo nombra', /SRV-99\] Instalacion/.test(seco.salida));
 
   ok('PC-01 sigue en -10 tras la simulacion', (await nivel(PC01, PRINCIPAL, 'PRODUCCION')) === -10);
   ok('no se creo el nivel de MR-09', (await nivel(MR09, PRINCIPAL, 'PRODUCCION')) === null);
@@ -168,6 +180,8 @@ async function main() {
   ok('BI-03 queda en 7,5', (await nivel(BI03, PRINCIPAL, 'PRODUCCION')) === 7.5);
   ok('SV-01 sigue en 25 sin tocarse', (await nivel(SV01, PRINCIPAL, 'PRODUCCION')) === 25);
   ok('MR-09 se crea en 3', (await nivel(MR09, PRINCIPAL, 'PRODUCCION')) === 3);
+  ok('el servicio NO recibe nivel', (await nivel(SRV01, PRINCIPAL, 'PRODUCCION')) === null,
+    String(await nivel(SRV01, PRINCIPAL, 'PRODUCCION')));
   ok('ZP-02 no contado sigue en 8', (await nivel(ZP02, PRINCIPAL, 'PRODUCCION')) === 8);
   ok('NG-05 no contado sigue en -6', (await nivel(NG05, PRINCIPAL, 'PRODUCCION')) === -6);
 
