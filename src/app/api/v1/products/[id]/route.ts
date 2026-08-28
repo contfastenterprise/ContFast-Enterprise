@@ -21,6 +21,7 @@ const updateProductSchema = z.object({
   barcode: z.string().max(100).nullable().optional(),
   status: z.string().max(50).optional(),
   isOnSale: z.boolean().optional(),
+  tracksInventory: z.boolean().optional(),
   promotionalPrice: z.number().nonnegative('El precio promocional no puede ser negativo').optional(),
 });
 

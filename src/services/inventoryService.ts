@@ -14,6 +14,39 @@ import {
 import { eq, and, sql, inArray, not, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * ¿Este producto lleva control de existencia?
+ *
+ * Un servicio -instalacion, transporte, mano de obra- o una mercancia que se
+ * vende por encargo no esta en ningun almacen. Antes no habia forma de decirlo:
+ * toda linea de factura descontaba, y "Servicios Instalacion" acumulo -116
+ * unidades, una por cada instalacion vendida.
+ *
+ * La comprobacion vive AQUI, en el servicio, y no en cada ruta que despacha. Es
+ * deliberado: `checkStock` y `addStock` son el paso obligado de todo el
+ * movimiento de inventario de la aplicacion, asi que una ruta nueva que use el
+ * servicio hereda el comportamiento correcto sin acordarse de nada.
+ *
+ * Filtra por empresa porque `productId` llega del cuerpo de la peticion.
+ */
+export async function llevaInventario(
+  companyId: string,
+  productId: string,
+  tx: any = db
+): Promise<boolean> {
+  const [producto] = await tx
+    .select({ tracksInventory: products.tracksInventory })
+    .from(products)
+    // Sin .limit(): products.id es la clave primaria, asi que devuelve una fila
+    // o ninguna.
+    .where(and(eq(products.id, productId), eq(products.companyId, companyId)));
+
+  // Si el producto no existe o no es de esta empresa, no se toca su inventario.
+  // Quien tenga que dar el error 404 es la ruta, no este servicio.
+  if (!producto) return false;
+  return producto.tracksInventory;
+}
+
 export async function getProvisionalStock(companyId: string, productId: string, warehouseId: string, tx: any = db, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
@@ -108,6 +141,10 @@ export async function checkStock(
   useProvisional = false,
   modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ): Promise<boolean> {
+  // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
+  // despacho por falta de stock.
+  if (!(await llevaInventario(companyId, productId, tx))) return true;
+
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
       eq(inventoryLevels.companyId, companyId),
@@ -155,6 +192,11 @@ export async function addStock(
   tx: any = db,
   modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
 ) {
+  // Un producto sin control de existencia no mueve inventario ni deja rastro en
+  // el kardex. Aqui se cortan las dos direcciones de golpe: `deductStock` es
+  // esta misma funcion con la cantidad en negativo.
+  if (!(await llevaInventario(companyId, productId, tx))) return;
+
   // Ensure level exists
   // El companyId es imprescindible: productId y warehouseId llegan del cuerpo
   // de la peticion y ninguna capa comprueba que sean de esta empresa, asi que
@@ -243,6 +285,16 @@ export async function transferStock(
     });
 
     for (const item of items) {
+      // Un producto sin control de existencia no se puede transferir: no esta
+      // en ningun almacen. Sin esta comprobacion el error habria sido
+      // "Insufficient stock", que manda a buscar el problema donde no esta.
+      if (!(await llevaInventario(companyId, item.productId, tx))) {
+        throw new Error(
+          `El producto ${item.productId} no lleva control de existencia (servicio o venta ` +
+          'por encargo), asi que no se puede transferir entre almacenes.'
+        );
+      }
+
       // 1. Check stock
       const [sourceLevel] = await tx.select().from(inventoryLevels).where(
         and(

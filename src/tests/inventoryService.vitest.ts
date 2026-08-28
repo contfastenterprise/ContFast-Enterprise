@@ -17,6 +17,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { checkStock } from '../services/inventoryService';
+import { products } from '../db/schema';
 
 /**
  * Doble de `tx` que responde siempre con el nivel indicado y ademas ANOTA el
@@ -25,14 +26,22 @@ import { checkStock } from '../services/inventoryService';
  * `checkStock` leia el nivel de otra empresa y autorizaba la salida sobre una
  * existencia que no era suya.
  */
-function txCon(nivel: { quantity: number; minStock?: number } | null) {
+function txCon(
+  nivel: { quantity: number; minStock?: number } | null,
+  llevaInventario = true
+) {
   const preguntas: any[] = [];
   const tx: any = {
     preguntas,
     select: () => ({
-      from: () => ({
+      // `checkStock` consulta DOS tablas: primero `products`, para saber si el
+      // producto lleva control de existencia -- un servicio no tiene nada que
+      // comprobar -- y despues `inventory_levels`. El doble responde a cada una
+      // por identidad de tabla y no por orden de llamada, que seria fragil.
+      from: (tabla: any) => ({
         where: async (cond: any) => {
           preguntas.push(cond);
+          if (tabla === products) return [{ tracksInventory: llevaInventario }];
           return nivel ? [{ quantity: nivel.quantity, minStock: nivel.minStock ?? 0 }] : [];
         },
       }),
@@ -115,11 +124,31 @@ describe('checkStock — aislamiento entre empresas', () => {
     const tx = txCon({ quantity: 10 });
     await checkStock('empresa-1', 'prod-1', 'almacen-1', 1, tx, false);
 
+    // Dos consultas: primero si el producto lleva inventario, despues el nivel.
+    expect(tx.preguntas.length).toBe(2);
+
+    // La del producto tambien filtra por empresa: el productId llega del cuerpo
+    // de la peticion, asi que preguntar solo por id dejaria que el ajuste de una
+    // empresa dependiera de como este configurado el producto de otra.
+    const delProducto = cadenasDe(tx.preguntas[0]);
+    expect(delProducto).toContain('empresa-1');
+    expect(delProducto).toContain('prod-1');
+
+    const delNivel = cadenasDe(tx.preguntas[1]);
+    expect(delNivel).toContain('empresa-1');
+    expect(delNivel).toContain('prod-1');
+    expect(delNivel).toContain('almacen-1');
+  });
+
+  it('un producto sin control de existencia nunca bloquea la salida', async () => {
+    // Un servicio -instalacion, mano de obra- no esta en ningun almacen. Antes
+    // de `tracks_inventory` no habia forma de decirlo y cada venta le descontaba
+    // una unidad: "Servicios Instalacion" acumulo -116.
+    const tx = txCon(null, false);
+    expect(await checkStock('empresa-1', 'srv-1', 'almacen-1', 500, tx, false)).toBe(true);
+
+    // Y ni siquiera llega a mirar el nivel: no tiene sentido preguntarlo.
     expect(tx.preguntas.length).toBe(1);
-    const valores = cadenasDe(tx.preguntas[0]);
-    expect(valores).toContain('empresa-1');
-    expect(valores).toContain('prod-1');
-    expect(valores).toContain('almacen-1');
   });
 });
 

@@ -72,12 +72,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
     // triple (producto, almacen, modo) quedaba ocupado en el indice unico,
     // asi que su verdadero dueno ya no podia crear el suyo.
     const [producto] = await db
-      .select({ id: products.id })
+      .select({ id: products.id, tracksInventory: products.tracksInventory })
       .from(products)
       .where(and(eq(products.id, productId), eq(products.companyId, auth.companyId), isNull(products.deletedAt)))
       .limit(1);
     if (!producto) {
       return NextResponse.json({ success: false, error: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    // Fijar minimos y maximos a un servicio no significa nada, y crearia el
+    // nivel de inventario que este producto no deberia tener.
+    if (!producto.tracksInventory) {
+      return NextResponse.json(
+        { success: false, error: 'Este producto no lleva control de existencia (servicio o venta por encargo).' },
+        { status: 400 }
+      );
     }
 
     const [almacen] = await db

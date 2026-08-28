@@ -43,12 +43,21 @@ export async function POST(req: NextRequest) {
     // esta comprobacion se podia crear un nivel de inventario para el producto
     // de otra empresa colgandolo del companyId propio.
     const [producto] = await db
-      .select({ id: products.id })
+      .select({ id: products.id, tracksInventory: products.tracksInventory })
       .from(products)
       .where(and(eq(products.id, productId), eq(products.companyId, session.companyId), isNull(products.deletedAt)))
       .limit(1);
     if (!producto) {
       return NextResponse.json({ success: false, error: { message: 'Producto no encontrado.' } }, { status: 404 });
+    }
+
+    // Un servicio o una venta por encargo no tienen existencia que ajustar.
+    // Permitirlo crearia el nivel que precisamente no deberia existir.
+    if (!producto.tracksInventory) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Este producto no lleva control de existencia (servicio o venta por encargo), así que no admite ajustes de inventario.' } },
+        { status: 400 }
+      );
     }
 
     const [almacen] = await db

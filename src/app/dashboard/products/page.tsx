@@ -110,6 +110,7 @@ export default function ProductsPage() {
     priceProveedor: '',
     status: 'active',
     isOnSale: false,
+    tracksInventory: true,
     promotionalPrice: ''
   });
 
@@ -302,7 +303,7 @@ export default function ProductsPage() {
     setSecondaryBarcodes([]);
     setBarcodeType('code128');
     setShowSecondarySection(false);
-    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active', isOnSale: false, promotionalPrice: '' });
+    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active', isOnSale: false, tracksInventory: true, promotionalPrice: '' });
     setShowModal(true);
   };
 
@@ -325,6 +326,9 @@ export default function ProductsPage() {
       priceProveedor: product.priceProveedor || product.price,
       status: product.status,
       isOnSale: product.isOnSale || false,
+      // Por defecto lleva inventario: los productos anteriores a este campo
+      // vienen sin el y no deben cambiar de comportamiento.
+      tracksInventory: product.tracksInventory !== false,
       promotionalPrice: product.promotionalPrice || ''
     });
     fetchSecondaryBarcodes(product.id);
@@ -362,6 +366,7 @@ export default function ProductsPage() {
         priceMayorista: Number(formData.priceMayorista),
         priceProveedor: Number(formData.priceProveedor),
         isOnSale: formData.isOnSale,
+        tracksInventory: formData.tracksInventory,
         promotionalPrice: formData.promotionalPrice ? Number(formData.promotionalPrice) : undefined,
         secondaryBarcodes: !editId ? secondaryBarcodes : undefined
       };
@@ -1412,6 +1417,32 @@ export default function ProductsPage() {
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Control de existencia */}
+                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-slate-600" />
+                        <label className="text-xs font-bold text-slate-900">Lleva control de existencia</label>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={formData.tracksInventory}
+                          onChange={(e) => setFormData({ ...formData, tracksInventory: e.target.checked })}
+                        />
+                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-slate-700"></div>
+                      </label>
+                    </div>
+                    {!formData.tracksInventory && (
+                      <p className="text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-200/70">
+                        Este producto no se almacena: no se le comprueba ni se le descuenta existencia
+                        al despachar, y no admite ajustes ni transferencias. Úsalo para servicios
+                        (instalación, transporte, mano de obra) y para mercancía que se vende por encargo.
+                      </p>
+                    )}
                   </div>
 
                   {/* Ofertas y Promociones */}

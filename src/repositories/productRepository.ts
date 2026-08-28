@@ -17,6 +17,8 @@ export interface CreateProductInput {
   barcode?: string | null;
   status?: string;
   isOnSale?: boolean;
+  /** false = servicio o venta por encargo: no lleva control de existencia. */
+  tracksInventory?: boolean;
   promotionalPrice?: number | null;
   secondaryBarcodes?: { barcode: string; barcodeType: string }[];
 }
@@ -36,6 +38,8 @@ export interface UpdateProductInput {
   barcode?: string | null;
   status?: string;
   isOnSale?: boolean;
+  /** false = servicio o venta por encargo: no lleva control de existencia. */
+  tracksInventory?: boolean;
   promotionalPrice?: number | null;
 }
 
@@ -103,6 +107,8 @@ export class ProductRepository {
         barcode: data.barcode ?? undefined,
         status: data.status || 'active',
         isOnSale: data.isOnSale ?? false,
+        // Por defecto SI lleva inventario: lo excepcional es el servicio.
+        tracksInventory: data.tracksInventory ?? true,
         promotionalPrice: data.promotionalPrice != null ? data.promotionalPrice.toString() : undefined,
       })
       .returning();
@@ -371,6 +377,7 @@ export class ProductRepository {
     if (data.barcode !== undefined) updateValues.barcode = data.barcode;
     if (data.status !== undefined) updateValues.status = data.status;
     if (data.isOnSale !== undefined) updateValues.isOnSale = data.isOnSale;
+    if (data.tracksInventory !== undefined) updateValues.tracksInventory = data.tracksInventory;
     if (data.promotionalPrice !== undefined) updateValues.promotionalPrice = data.promotionalPrice !== null ? data.promotionalPrice.toString() : null;
 
     const [product] = await db

@@ -23,6 +23,7 @@ const createProductSchema = z.object({
   barcode: z.string().max(100).nullable().optional(),
   status: z.string().max(50).default('active'),
   isOnSale: z.boolean().default(false).optional(),
+  tracksInventory: z.boolean().default(true).optional(),
   promotionalPrice: z.number().nonnegative('El precio promocional no puede ser negativo').optional(),
   secondaryBarcodes: z.array(z.object({
     barcode: z.string().min(1),

@@ -95,6 +95,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Productos que NO llevan control de existencia (servicios, venta por
+    // encargo). Se resuelve una vez aqui y se consulta al recorrer las lineas.
+    const sinInventario = new Set<string>();
+
     // El almacen y los productos que llegan en el cuerpo tienen que ser de la
     // empresa de la sesion. Mismo control que hace ya
     // /api/v1/inventory/adjustments: sin el, un gasto podia quedar guardado
@@ -121,7 +125,7 @@ export async function POST(req: NextRequest) {
       )] as string[];
       if (idsProducto.length > 0) {
         const propios = await db
-          .select({ id: products.id })
+          .select({ id: products.id, tracksInventory: products.tracksInventory })
           .from(products)
           .where(and(
             inArray(products.id, idsProducto),
@@ -133,6 +137,7 @@ export async function POST(req: NextRequest) {
             { status: 404 }
           );
         }
+        for (const pr of propios) if (!pr.tracksInventory) sinInventario.add(pr.id);
       }
     }
 
@@ -182,7 +187,11 @@ export async function POST(req: NextRequest) {
           });
 
           // 3. Update Inventory if product and warehouse specified
-          if (line.productId && warehouseId) {
+          //
+          // `sinInventario` son los servicios y la mercancia por encargo. Una
+          // linea de gasto suya no crea ni mueve existencia: comprar mano de
+          // obra no llena un almacen.
+          if (line.productId && warehouseId && !sinInventario.has(line.productId)) {
             const qty = parseFloat(line.quantity);
 
             // Fetch current level

@@ -27,6 +27,15 @@ export const products = pgTable('products', {
   price: decimal('price', { precision: 15, scale: 2 }).default('0.00').notNull(),
   cost: decimal('cost', { precision: 15, scale: 2 }).default('0.00').notNull(),
   unitOfMeasure: varchar('unit_of_measure', { length: 50 }).default('unidad').notNull(),
+  /**
+   * false = el producto no lleva control de existencia: un servicio, o
+   * mercancia que se vende por encargo y nunca esta en almacen.
+   *
+   * No habia forma de declararlo, asi que toda linea de factura descontaba
+   * existencia y "Servicios Instalacion" acumulo -116 unidades. Con esto en
+   * false el producto deja de comprobar y de descontar; ver inventoryService.
+   */
+  tracksInventory: boolean('tracks_inventory').default(true).notNull(),
   priceConsumidor: decimal('price_consumidor', { precision: 15, scale: 2 }).default('0.00').notNull(),
   priceProveedor: decimal('price_proveedor', { precision: 15, scale: 2 }).default('0.00').notNull(),
   priceMayorista: decimal('price_mayorista', { precision: 15, scale: 2 }).default('0.00').notNull(),
