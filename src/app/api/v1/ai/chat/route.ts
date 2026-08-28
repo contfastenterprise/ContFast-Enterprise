@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const permissions = await RbacService.getUserPermissions(user.id, user.role, user.roleId);
+    const permissions = await RbacService.getUserPermissions(user.id, user.role, user.roleId, auth.companyId);
 
     // Failsafe: Asegurar que los administradores tengan acceso a los reportes de IA
     // aunque la tabla de permisos en DB esté incompleta.

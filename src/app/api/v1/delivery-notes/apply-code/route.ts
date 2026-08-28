@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce write permission for invoice/delivery notes
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const { code } = await req.json();
     if (!code || typeof code !== 'string') {

@@ -21,7 +21,8 @@ export class RbacService {
   static async getUserPermissions(
     userId: string,
     roleName: string,
-    roleId: string
+    roleId: string,
+    companyId: string
   ): Promise<string[]> {
     const normalizedRole = roleName.toLowerCase();
     const allPerms = await db.select().from(permissions);
@@ -63,7 +64,13 @@ export class RbacService {
         })
         .from(rolePermissions)
         .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(eq(rolePermissions.roleId, roleId)),
+        // `roles` es global; lo que cada empresa concede a un rol vive en
+        // role_permissions con indice unico (company_id, role_id, permission_id).
+        // Sin el filtro por empresa esto traia las filas de TODAS y las volcaba
+        // en roleOverrideMap, donde ganaba la ultima sin ningun orden. Y como
+        // esta lista se firma dentro del JWT al iniciar sesion, el permiso ajeno
+        // quedaba ademas guardado en el token.
+        .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.companyId, companyId))),
     ]);
 
     // Build map of user overrides: "module:action" -> granted

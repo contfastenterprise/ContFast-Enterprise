@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
     const body = await req.json();
     const data = updateSchema.parse(body);
 
@@ -83,7 +83,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       }, { status: 403, headers: resHeaders });
     }
 
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
 
     const existing = await db.select().from(retentions).where(eq(retentions.id, id)).limit(1);
     if (!existing.length) {

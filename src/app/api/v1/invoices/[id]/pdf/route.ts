@@ -50,7 +50,7 @@ export async function GET(
       }
       // Enforce read permission
       try {
-        await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+        await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
         companyId = auth.companyId;
         modo = auth.modo;
       } catch (err: any) {

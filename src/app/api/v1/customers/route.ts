@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'clientes', 'read');
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || undefined;
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'clientes', 'write');
 
     const body = await req.json();
     const parsed = createCustomerSchema.safeParse(body);

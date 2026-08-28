@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'read');
 
     const supplier = await SupplierRepository.findById(id, session.companyId);
     if (!supplier) {
@@ -68,7 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'write');
 
     const body = await req.json();
     const parsed = updateSupplierSchema.safeParse(body);
@@ -115,7 +115,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'delete');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'delete');
 
     const deleted = await SupplierRepository.softDelete(id, session.companyId);
     if (!deleted) {

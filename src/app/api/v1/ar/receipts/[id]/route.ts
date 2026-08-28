@@ -23,7 +23,7 @@ export async function GET(
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const { id } = await params;
     const receipt = await ArRepository.getReceiptDetails(session.companyId, id);

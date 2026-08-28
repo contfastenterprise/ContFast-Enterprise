@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
     let users = await AdminRepository.getUsers(session.companyId);
     const currentUserIsSystem = session.role?.toLowerCase() === 'sistemas' || session.role?.toLowerCase() === 'sistema';
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'write');
 
     const body = await req.json();
     const parsed = userSchema.safeParse(body);
@@ -99,7 +99,7 @@ export async function PATCH(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'write');
 
     const body = await req.json();
     if (!body.userId) {

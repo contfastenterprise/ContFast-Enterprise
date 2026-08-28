@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const result = saveDraftSchema.safeParse(body);

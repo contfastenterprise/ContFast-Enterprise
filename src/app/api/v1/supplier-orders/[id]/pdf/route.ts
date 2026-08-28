@@ -20,7 +20,7 @@ export async function GET(
     }
 
     try {
-      await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'read');
+      await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'read');
     } catch (err: any) {
       return new NextResponse('Sin permisos', { status: 403 });
     }

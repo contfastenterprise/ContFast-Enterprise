@@ -23,7 +23,7 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'write');
 
     const body = await req.json();
     const parsed = updateUserSchema.safeParse(body);

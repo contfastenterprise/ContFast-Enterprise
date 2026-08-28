@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);

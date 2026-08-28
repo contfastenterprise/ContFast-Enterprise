@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'clientes', 'read');
 
     const cacheKey = `cache:customers:${session.companyId}:id_${id}`;
     const cached = await getCache(cacheKey);
@@ -81,7 +81,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'clientes', 'write');
 
     const body = await req.json();
     const parsed = updateCustomerSchema.safeParse(body);
@@ -139,7 +139,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'clientes', 'delete');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'clientes', 'delete');
 
     const deleted = await CustomerRepository.softDelete(id, session.companyId);
     if (!deleted) {

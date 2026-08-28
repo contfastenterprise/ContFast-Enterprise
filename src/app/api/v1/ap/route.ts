@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'read');
 
     const url = new URL(req.url);
     const getPayments = url.searchParams.get('payments') === 'true';

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'write');
 
     const body = await req.json();
     const { 
@@ -357,7 +357,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'read');
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate');

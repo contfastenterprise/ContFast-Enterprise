@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const receivables = await ArRepository.getPendingAR(session.companyId);
 

@@ -35,7 +35,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "caja:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'read');
 
     // Cajero validation: Can only see their own active or closed session
     const [session] = await db
@@ -96,7 +96,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "caja:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'write');
 
     const body = await req.json();
     const result = createMovementSchema.safeParse(body);

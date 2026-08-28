@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const body = await req.json().catch(() => ({}));
     const { invoiceIds } = body;

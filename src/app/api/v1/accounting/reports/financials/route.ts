@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'read');
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate') || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];

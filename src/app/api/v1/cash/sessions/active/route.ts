@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "caja:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'read');
 
     const activeSession = await CashRepository.getActiveSession(auth.userId, auth.companyId, auth.modo);
 

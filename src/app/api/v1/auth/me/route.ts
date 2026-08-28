@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Resolve permissions dynamically from DB to ensure backward compatibility and real-time correctness
-    const userPermissionsList = await RbacService.getUserPermissions(user.id, user.role, user.roleId);
+    const userPermissionsList = await RbacService.getUserPermissions(user.id, user.role, user.roleId, auth.companyId);
 
     return NextResponse.json(
       { 

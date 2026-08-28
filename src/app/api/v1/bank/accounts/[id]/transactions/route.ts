@@ -59,7 +59,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "banco:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'banco', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'banco', 'read');
 
     // Verify bank account exists
     const [account] = await db
@@ -140,7 +140,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "banco:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'banco', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'banco', 'write');
 
     const body = await req.json();
     const result = createTransactionSchema.safeParse(body);

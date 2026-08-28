@@ -24,7 +24,7 @@ export async function POST(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'write');
     const { id } = await params;
 
     const order = await SupplierOrderService.getOrderById(id, auth.companyId, auth.modo);

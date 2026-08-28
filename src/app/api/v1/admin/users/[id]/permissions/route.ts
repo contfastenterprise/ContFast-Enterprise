@@ -33,7 +33,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "administracion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'read');
 
     // Fetch the target user
     const [targetUser] = await db
@@ -107,7 +107,7 @@ export async function PATCH(
     const { id } = await params;
 
     // Enforce "administracion:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
 
     // 1. Fetch and validate user along with their role
     const [targetUser] = await db

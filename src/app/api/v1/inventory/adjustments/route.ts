@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'catalogo', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'catalogo', 'write');
 
     const { warehouseId, productId, newQuantity, reason } = await req.json();
 

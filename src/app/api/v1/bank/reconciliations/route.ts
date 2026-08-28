@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "banco:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'banco', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'banco', 'read');
 
     const { searchParams } = new URL(req.url);
     const bankAccountId = searchParams.get('bank_account_id');
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce "banco:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'banco', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'banco', 'write');
 
     const body = await req.json();
     const result = createReconciliationSchema.safeParse(body);

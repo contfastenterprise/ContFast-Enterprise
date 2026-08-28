@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   try {
     // Assuming quotes use 'facturacion' permission for now, or maybe a new 'cotizaciones' permission.
     // To be safe we will use facturacion permission.
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const data = createQuoteSchema.parse(body);

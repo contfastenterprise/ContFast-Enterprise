@@ -26,7 +26,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'write');
 
     const body = await req.json();
     const { status } = body;

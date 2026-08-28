@@ -39,7 +39,7 @@ export async function PUT(
       );
     }
 
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const { status, currentSequence, maxSequence, sequenceExpiry } = body;

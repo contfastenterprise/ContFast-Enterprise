@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "facturacion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce "facturacion:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const result = createDeliveryNoteSchema.safeParse(body);

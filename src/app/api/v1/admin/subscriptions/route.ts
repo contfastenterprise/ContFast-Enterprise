@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Only systems or administration role can see subscriptions
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
     const results = await db
       .select({

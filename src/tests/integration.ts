@@ -204,20 +204,20 @@ async function runTests() {
     console.log('\n[TEST 2] Testing Permissions Resolution Flow...');
 
     // A. Fixed Role: sistemas (Must always be true)
-    const sistemasAllowed = await hasPermission(supervisorUserId, 'sistemas', adminRoleId, 'administracion', 'write');
+    const sistemasAllowed = await hasPermission(supervisorUserId, 'sistemas', adminRoleId, testCompanyId1, 'administracion', 'write');
     if (!sistemasAllowed) {
       throw new Error('Permissions Resolution Failed: "sistemas" should have access to administration:write.');
     }
 
     // B. Fixed Role: administracion (Operational full access, restricted audit)
-    const adminAllowedOp = await hasPermission(supervisorUserId, 'administracion', adminRoleId, 'caja', 'write');
-    const adminAllowedAudit = await hasPermission(supervisorUserId, 'administracion', adminRoleId, 'auditoria', 'write');
+    const adminAllowedOp = await hasPermission(supervisorUserId, 'administracion', adminRoleId, testCompanyId1, 'caja', 'write');
+    const adminAllowedAudit = await hasPermission(supervisorUserId, 'administracion', adminRoleId, testCompanyId1, 'auditoria', 'write');
     if (!adminAllowedOp || adminAllowedAudit) {
       throw new Error(`Permissions Resolution Failed: "administracion" roles has wrong rules. Op allowed: ${adminAllowedOp}, Audit allowed: ${adminAllowedAudit}`);
     }
 
     // C. Default Role Permissions: cajero (facturacion:read should be false by default)
-    const cashierDefaultAllowed = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, 'facturacion', 'read');
+    const cashierDefaultAllowed = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, testCompanyId1, 'facturacion', 'read');
     if (cashierDefaultAllowed) {
       throw new Error('Permissions Resolution Failed: Cajero should not have "facturacion:read" by default.');
     }
@@ -231,7 +231,7 @@ async function runTests() {
       updatedBy: supervisorUserId,
     });
 
-    const cashierOverriddenAllowed = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, 'facturacion', 'read');
+    const cashierOverriddenAllowed = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, testCompanyId1, 'facturacion', 'read');
     if (!cashierOverriddenAllowed) {
       throw new Error('Permissions Resolution Failed: Cajero should have "facturacion:read" after explicit override grant.');
     }
@@ -245,7 +245,7 @@ async function runTests() {
       updatedBy: supervisorUserId,
     });
 
-    const cashierOverriddenDenied = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, 'caja', 'read');
+    const cashierOverriddenDenied = await hasPermission(cashierUserId1, 'cajero', cashierRoleId, testCompanyId1, 'caja', 'read');
     if (cashierOverriddenDenied) {
       throw new Error('Permissions Resolution Failed: Cajero should not have "caja:read" after explicit override deny.');
     }

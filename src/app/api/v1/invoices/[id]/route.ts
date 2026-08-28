@@ -33,7 +33,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "facturacion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
 
@@ -97,7 +97,7 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
     if (!invoice) {

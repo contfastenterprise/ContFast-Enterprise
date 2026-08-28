@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const sequences = await db
       .select()
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const { ecfType, prefix, startSequence, maxSequence, sequenceExpiry } = body;

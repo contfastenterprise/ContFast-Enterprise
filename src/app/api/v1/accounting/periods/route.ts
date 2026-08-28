@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'read');
 
     const periods = await db.select()
       .from(accountingPeriods)
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'write');
 
     const body = await req.json();
     const parsed = createPeriodSchema.safeParse(body);

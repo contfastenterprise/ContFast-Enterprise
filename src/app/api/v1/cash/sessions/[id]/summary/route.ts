@@ -22,7 +22,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "caja:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'read');
 
     // Fetch cash session
     const [session] = await db

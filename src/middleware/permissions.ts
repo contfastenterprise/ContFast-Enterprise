@@ -30,6 +30,7 @@ export async function hasPermission(
   userId: string,
   roleName: string,
   roleId: string,
+  companyId: string,
   module: PermissionModule,
   action: PermissionAction
 ): Promise<boolean> {
@@ -63,6 +64,12 @@ export async function hasPermission(
   }
 
   // 2. Check User Override (user_permissions)
+  //
+  // Aqui NO se filtra por empresa a proposito. El indice unico es
+  // (user_id, permission_id): un usuario solo puede tener una fila por permiso,
+  // y el usuario pertenece a una empresa, asi que el userId ya acota el ambito.
+  // Filtrar ademas por la empresa ACTIVA romperia al rol `sistemas`, que puede
+  // cambiar de empresa mientras su users.company_id sigue siendo el de origen.
   const userOverride = await db
     .select({ granted: userPermissions.granted })
     .from(userPermissions)
@@ -81,6 +88,13 @@ export async function hasPermission(
   }
 
   // 3. Check Role Override (role_permissions)
+  //
+  // `roles` es un catalogo GLOBAL: no tiene company_id. Lo que cada empresa
+  // decide sobre su rol "cajero" vive aqui, y el indice unico es
+  // (company_id, role_id, permission_id) -- una fila por empresa para el mismo
+  // roleId. Sin el filtro por empresa, este .limit(1) resolvia la autorizacion
+  // con la fila de OTRA empresa, en las dos direcciones: heredando permisos que
+  // el propio administrador nunca concedio, y perdiendo los que si concedio.
   const roleOverride = await db
     .select({ granted: rolePermissions.granted })
     .from(rolePermissions)
@@ -88,6 +102,7 @@ export async function hasPermission(
     .where(
       and(
         eq(rolePermissions.roleId, roleId),
+        eq(rolePermissions.companyId, companyId),
         eq(permissions.module, module),
         eq(permissions.action, action)
       )
@@ -114,10 +129,11 @@ export async function enforcePermission(
   userId: string,
   roleName: string,
   roleId: string,
+  companyId: string,
   module: PermissionModule,
   action: PermissionAction
 ): Promise<void> {
-  const allowed = await hasPermission(userId, roleName, roleId, module, action);
+  const allowed = await hasPermission(userId, roleName, roleId, companyId, module, action);
   if (!allowed) {
     const err: any = new Error('No tiene permisos para realizar esta acción.');
     err.status = 403;

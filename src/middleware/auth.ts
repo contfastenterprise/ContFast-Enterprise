@@ -197,10 +197,14 @@ export async function verifyAuth(
     const allowedWarehouses = await fetchAllowedWarehouses(userWithRole.id, userWithRole.roleName);
     
     // Fetch user permissions
+    // La empresa que manda aqui es la de la SESION, no users.company_id: el rol
+    // `sistemas` puede haber cambiado de empresa y sus permisos tienen que
+    // resolverse contra la empresa en la que esta trabajando.
     const permissionsList = await RbacService.getUserPermissions(
       userWithRole.id,
       userWithRole.roleName,
-      userWithRole.roleId
+      userWithRole.roleId,
+      session.companyId
     );
 
     // Generate new Access and Refresh tokens
@@ -285,7 +289,7 @@ export async function createSession(
   const allowedWarehouses = await fetchAllowedWarehouses(userId, role);
 
   // Fetch user permissions
-  const permissionsList = await RbacService.getUserPermissions(userId, role, roleId);
+  const permissionsList = await RbacService.getUserPermissions(userId, role, roleId, companyId);
 
   // Generate tokens
   const accessToken = jwt.sign(

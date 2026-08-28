@@ -21,7 +21,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "administracion:write" or equivalent supervisor permissions
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
 
     const session = await CashService.approveSession(auth.userId, auth.companyId, id);
 

@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const quote = await QuoteService.getQuote(id);
     if (!quote || quote.companyId !== auth.companyId) {
@@ -68,7 +68,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const quote = await QuoteService.getQuote(id);
     if (!quote || quote.companyId !== auth.companyId) {

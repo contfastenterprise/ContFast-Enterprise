@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate') || undefined;
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'write');
 
     const body = await req.json();
     const parsed = registerReceiptSchema.safeParse(body);

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'reportes', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get('companyId');
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'write');
 
     const body = await req.json();
 

@@ -24,7 +24,7 @@ export async function GET(
     }
 
     try {
-      await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+      await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
     } catch (err: any) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: err.message } },

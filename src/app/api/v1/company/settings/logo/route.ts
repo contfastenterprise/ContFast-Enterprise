@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Authorization (only admins can change company logo)
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'write');
 
     // 4. Parse FormData
     const formData = await req.formData();

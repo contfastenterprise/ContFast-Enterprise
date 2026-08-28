@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'reportes', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');

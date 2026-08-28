@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'write');
 
     const body = await req.json();
     const data = createOrderSchema.parse(body);

@@ -27,7 +27,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "caja:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'write');
 
     const body = await req.json();
     const result = closeSessionSchema.safeParse(body);

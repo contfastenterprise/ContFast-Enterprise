@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'catalogo', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'catalogo', 'read');
 
     const { searchParams } = new URL(req.url);
     const idsParam = searchParams.get('ids');

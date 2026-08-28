@@ -24,7 +24,7 @@ export async function POST(
     const { id } = await params;
 
     // Enforce "facturacion:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
 

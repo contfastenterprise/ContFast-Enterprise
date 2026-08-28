@@ -23,7 +23,7 @@ export async function GET(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'read');
 
     const barcodes = await ProductRepository.getBarcodesByProductId(params.id, auth.companyId);
     return NextResponse.json({ success: true, data: barcodes }, { headers: resHeaders });
@@ -46,7 +46,7 @@ export async function POST(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const body = await req.json();
     const result = addBarcodeSchema.safeParse(body);
@@ -81,7 +81,7 @@ export async function DELETE(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const { searchParams } = new URL(req.url);
     const barcodeId = searchParams.get('barcodeId');

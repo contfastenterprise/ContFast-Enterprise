@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'administracion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
     const body = await req.json();
     const data = retentionSchema.parse(body);
 

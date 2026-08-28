@@ -25,7 +25,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "facturacion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     // 1. Fetch delivery note
     const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);

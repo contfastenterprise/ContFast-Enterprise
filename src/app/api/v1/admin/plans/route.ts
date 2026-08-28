@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Only sistemas or administration can list plans
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
     const allPlans = await db.select().from(plans).orderBy(plans.price);
     return NextResponse.json({ success: true, data: allPlans }, { headers: resHeaders });

@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "facturacion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce "facturacion:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
     const result = createInvoiceSchema.safeParse(body);

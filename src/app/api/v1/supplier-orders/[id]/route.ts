@@ -36,7 +36,7 @@ export async function GET(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'read');
     const { id } = await params;
 
     const result = await SupplierOrderService.getOrderById(id, auth.companyId, auth.modo);
@@ -77,7 +77,7 @@ export async function PUT(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'write');
     const { id } = await params;
 
     const body = await req.json();
@@ -121,7 +121,7 @@ export async function DELETE(
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'proveedores', 'delete');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'delete');
     const { id } = await params;
 
     await SupplierOrderService.deleteOrder(id, auth.companyId, auth.modo);

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'read');
 
     const nextBarcode = await ProductRepository.getNextBarcode(auth.companyId);
     return NextResponse.json({ success: true, barcode: nextBarcode }, { headers: resHeaders });

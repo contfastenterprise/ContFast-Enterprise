@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // Auditoria F0-07: esta ruta registra pagos y emite cheques a un beneficiario
     // arbitrario, y no verificaba ningun permiso. Cualquier usuario autenticado del
     // tenant podia usarla. La ruta hermana /api/v1/ap si exige 'proveedores'.
-    await enforcePermission(session.userId, session.role, session.roleId, 'proveedores', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'proveedores', 'write');
 
     const body = await req.json();
     const parsed = registerPaymentSchema.safeParse(body);

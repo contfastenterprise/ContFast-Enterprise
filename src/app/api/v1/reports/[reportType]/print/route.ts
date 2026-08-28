@@ -15,7 +15,7 @@ export async function POST(
     }
 
     // Verify user has permission to read reports
-    await enforcePermission(session.userId, session.role, session.roleId, 'reportes', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'reportes', 'read');
 
     const { reportType } = await params;
     

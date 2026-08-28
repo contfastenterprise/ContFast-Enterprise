@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const body = await req.json();
     const { customerId, search } = body;

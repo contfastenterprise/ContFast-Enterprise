@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'read');
 
     const sessions = await CashRepository.listSessions(auth.companyId);
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce "caja:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'caja', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'write');
 
     const body = await req.json();
     const result = openSessionSchema.safeParse(body);

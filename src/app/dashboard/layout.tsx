@@ -51,7 +51,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           .limit(1);
 
         if (user) {
-          const userPermissionsList = await RbacService.getUserPermissions(user.id, user.role, user.roleId);
+          const userPermissionsList = await RbacService.getUserPermissions(user.id, user.role, user.roleId, user.companyId);
           initialUser = {
             id: user.id,
             companyId: user.companyId,

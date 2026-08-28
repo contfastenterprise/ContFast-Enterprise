@@ -28,7 +28,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'cobros', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const { id: receiptId } = await params;
     const hideBalance = req.nextUrl.searchParams.get('hideBalance') === 'true';

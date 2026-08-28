@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'read');
 
     const cacheKey = `cache:products:${auth.companyId}:id_${id}`;
     const cached = await getCache(cacheKey);
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const body = await req.json();
     const result = updateProductSchema.safeParse(body);
@@ -182,7 +182,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       }, { status: 403, headers: resHeaders });
     }
 
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const product = await ProductRepository.delete(id, auth.companyId);
 

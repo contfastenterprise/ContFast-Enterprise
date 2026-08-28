@@ -31,7 +31,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const invoice = await InvoiceRepository.getById(id, auth.companyId);
 

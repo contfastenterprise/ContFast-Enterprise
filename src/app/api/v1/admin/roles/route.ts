@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
-    await enforcePermission(session.userId, session.role, session.roleId, 'administracion', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
     const roles = await AdminRepository.getRoles();
     return NextResponse.json({ success: true, data: roles });

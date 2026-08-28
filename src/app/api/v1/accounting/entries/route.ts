@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "contabilidad:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'contabilidad', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'contabilidad', 'read');
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Enforce "contabilidad:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'contabilidad', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'contabilidad', 'write');
 
     // Enforce active plan subscription
     const active = await hasActivePlan(auth.companyId);

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const auth = await verifyAuth(req, resHeaders);
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const data = await req.json();
     const { sourceWarehouseId, destinationWarehouseId, items, reason } = data;

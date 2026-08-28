@@ -24,7 +24,7 @@ export async function GET(
     const { id } = await params;
 
     // Enforce "facturacion:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
     const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);
 
@@ -78,7 +78,7 @@ export async function DELETE(
     }
 
     // Enforce "facturacion:write" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const note = await DeliveryRepository.getById(id, auth.companyId, auth.modo);
 

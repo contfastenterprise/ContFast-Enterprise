@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'reportes', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
     const companyId = searchParams.get('companyId');

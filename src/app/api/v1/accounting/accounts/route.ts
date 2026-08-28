@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'read');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'read');
 
     // Caching layer
     const cacheKey = `cache:accounts:${session.companyId}`;
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    await enforcePermission(session.userId, session.role, session.roleId, 'contabilidad', 'write');
+    await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'write');
 
     const body = await req.json();
     const parsed = createAccountSchema.safeParse(body);

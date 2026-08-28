@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
   }
 
   try {
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'facturacion', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const quote = await QuoteService.getQuote(id);
     if (!quote || quote.companyId !== auth.companyId) {

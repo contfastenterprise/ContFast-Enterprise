@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Enforce "reportes:read" permission
-    await enforcePermission(auth.userId, auth.role, auth.roleId, 'reportes', 'read');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
     const startDateStr = searchParams.get('start_date');
