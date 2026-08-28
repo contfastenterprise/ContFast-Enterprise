@@ -35,6 +35,8 @@ const ok = (t: string, c: boolean, d = '') => {
 
 async function limpiar() {
   await db.execute(sql`DELETE FROM invoice_sequences`);
+  // Antes que las facturas: las lineas las referencian por clave foranea.
+  await db.execute(sql`DELETE FROM invoice_lines`);
   await db.execute(sql`DELETE FROM accounts_receivable`);
   await db.execute(sql`DELETE FROM invoices`);
 }

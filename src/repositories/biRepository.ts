@@ -8,6 +8,9 @@ import {
 } from '@/db/schema';
 import { eq, and, gte, lte, sql, desc, asc, isNull, inArray, notInArray } from 'drizzle-orm';
 
+/** PRODUCCION o PRUEBA. Obligatorio: ver la nota de cabecera de la clase. */
+export type Modo = 'PRODUCCION' | 'PRUEBA';
+
 export interface BIFilters {
   startDate?: string;
   endDate?: string;
@@ -20,6 +23,19 @@ export interface BIFilters {
   ecfType?: string;
 }
 
+/**
+ * Consultas del tablero ejecutivo (GET /api/v1/bi/stats).
+ *
+ * Este fichero no mencionaba `modo` ni una vez, frente a 66 usos de
+ * `companyId`: separaba empresas pero no entornos. Como la columna tiene
+ * DEFAULT 'PRODUCCION', omitirla nunca da error -- la consulta funciona y suma
+ * las dos realidades. El resultado era que ventas, margen, costo de ventas,
+ * cartera, deuda e inventario valorizado mezclaban lo real con lo de practicas,
+ * que es justo lo que se mira para decidir.
+ *
+ * `modo` es parametro OBLIGATORIO de los seis metodos para que el compilador
+ * localice cualquier llamada que lo olvide.
+ */
 export class BIRepository {
   
   private static activeSalesStatuses = ['accepted', 'signed', 'submitted'];
@@ -46,7 +62,7 @@ export class BIRepository {
   }
 
   // ─── 1. GENERAL EXECUTIVE DASHBOARD ─────────────────────────────────────────
-  static async getGeneralStats(companyId: string, filters: BIFilters) {
+  static async getGeneralStats(companyId: string, modo: Modo, filters: BIFilters) {
     const todayStr = new Date().toISOString().split('T')[0];
     const startOfMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const startOfYearStr = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
@@ -61,6 +77,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       ...invoiceConds
@@ -74,6 +91,7 @@ export class BIRepository {
     .innerJoin(products, eq(invoiceLines.productId, products.id))
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       ...invoiceConds
@@ -86,6 +104,7 @@ export class BIRepository {
     }).from(expenses)
     .where(and(
       eq(expenses.companyId, companyId),
+      eq(expenses.modo, modo),
       isNull(expenses.deletedAt),
       ...expenseConds
     ));
@@ -104,6 +123,7 @@ export class BIRepository {
     .innerJoin(products, eq(inventoryLevels.productId, products.id))
     .where(and(
       eq(inventoryLevels.companyId, companyId),
+      eq(inventoryLevels.modo, modo),
       isNull(products.deletedAt),
       filters.warehouseId && filters.warehouseId !== 'all' ? eq(inventoryLevels.warehouseId, filters.warehouseId) : undefined,
       filters.categoryId && filters.categoryId !== 'all' ? eq(products.categoryId, filters.categoryId) : undefined
@@ -117,6 +137,7 @@ export class BIRepository {
     .innerJoin(products, eq(inventoryLevels.productId, products.id))
     .where(and(
       eq(inventoryLevels.companyId, companyId),
+      eq(inventoryLevels.modo, modo),
       isNull(products.deletedAt),
       filters.warehouseId && filters.warehouseId !== 'all' ? eq(inventoryLevels.warehouseId, filters.warehouseId) : undefined
     ));
@@ -129,6 +150,7 @@ export class BIRepository {
     }).from(accountsReceivable)
     .where(and(
       eq(accountsReceivable.companyId, companyId),
+      eq(accountsReceivable.modo, modo),
       eq(accountsReceivable.status, 'pending'),
       isNull(accountsReceivable.deletedAt),
       filters.customerId && filters.customerId !== 'all' ? eq(accountsReceivable.customerId, filters.customerId) : undefined
@@ -139,6 +161,7 @@ export class BIRepository {
     }).from(accountsPayable)
     .where(and(
       eq(accountsPayable.companyId, companyId),
+      eq(accountsPayable.modo, modo),
       eq(accountsPayable.status, 'pending'),
       isNull(accountsPayable.deletedAt),
       filters.supplierId && filters.supplierId !== 'all' ? eq(accountsPayable.supplierId, filters.supplierId) : undefined
@@ -175,7 +198,7 @@ export class BIRepository {
   }
 
   // ─── 2. PRODUCT ANALYSIS ────────────────────────────────────────────────────
-  static async getProductStats(companyId: string, filters: BIFilters) {
+  static async getProductStats(companyId: string, modo: Modo, filters: BIFilters) {
     const invoiceConds = this.applyInvoiceFilters(filters);
     
     // Top Sold Products by Volume & Profit
@@ -194,6 +217,7 @@ export class BIRepository {
     .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       filters.categoryId && filters.categoryId !== 'all' ? eq(products.categoryId, filters.categoryId) : undefined,
@@ -267,6 +291,7 @@ export class BIRepository {
     .innerJoin(products, eq(inventoryMovements.productId, products.id))
     .where(and(
       eq(inventoryMovements.companyId, companyId),
+      eq(inventoryMovements.modo, modo),
       eq(inventoryMovements.type, 'refund'),
       filters.startDate ? gte(inventoryMovements.createdAt, new Date(filters.startDate)) : undefined,
       filters.endDate ? lte(inventoryMovements.createdAt, new Date(filters.endDate)) : undefined
@@ -294,9 +319,10 @@ export class BIRepository {
   }
 
   // ─── 3. INVENTORY FLOW & ROTATION ──────────────────────────────────────────
-  static async getInventoryStats(companyId: string, filters: BIFilters) {
+  static async getInventoryStats(companyId: string, modo: Modo, filters: BIFilters) {
     // Flow Aggregations
-    const movementsConds = [eq(inventoryMovements.companyId, companyId)];
+    const movementsConds = [eq(inventoryMovements.companyId, companyId),
+      eq(inventoryMovements.modo, modo)];
     if (filters.startDate) movementsConds.push(gte(inventoryMovements.createdAt, new Date(filters.startDate)));
     if (filters.endDate) movementsConds.push(lte(inventoryMovements.createdAt, new Date(filters.endDate)));
     if (filters.warehouseId && filters.warehouseId !== 'all') movementsConds.push(eq(inventoryMovements.warehouseId, filters.warehouseId));
@@ -332,6 +358,7 @@ export class BIRepository {
     .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
     .where(and(
       eq(inventoryLevels.companyId, companyId),
+      eq(inventoryLevels.modo, modo),
       isNull(products.deletedAt),
       filters.warehouseId && filters.warehouseId !== 'all' ? eq(inventoryLevels.warehouseId, filters.warehouseId) : undefined,
       filters.categoryId && filters.categoryId !== 'all' ? eq(products.categoryId, filters.categoryId) : undefined
@@ -388,6 +415,7 @@ export class BIRepository {
     .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       ...this.applyInvoiceFilters(filters)
@@ -411,6 +439,7 @@ export class BIRepository {
     .innerJoin(warehouses, eq(invoices.warehouseId, warehouses.id))
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       ...this.applyInvoiceFilters(filters)
@@ -454,7 +483,7 @@ export class BIRepository {
   }
 
   // ─── 4. CUSTOMER ANALYTICS & RANKING ────────────────────────────────────────
-  static async getCustomerStats(companyId: string, filters: BIFilters) {
+  static async getCustomerStats(companyId: string, modo: Modo, filters: BIFilters) {
     const invoiceConds = this.applyInvoiceFilters(filters);
 
     // Spender rankings
@@ -535,6 +564,7 @@ export class BIRepository {
     .innerJoin(customers, eq(accountsReceivable.customerId, customers.id))
     .where(and(
       eq(accountsReceivable.companyId, companyId),
+      eq(accountsReceivable.modo, modo),
       eq(accountsReceivable.status, 'pending'),
       isNull(accountsReceivable.deletedAt)
     ))
@@ -579,7 +609,7 @@ export class BIRepository {
   }
 
   // ─── 5. BILLING & SALES TRENDS ──────────────────────────────────────────────
-  static async getBillingStats(companyId: string, filters: BIFilters) {
+  static async getBillingStats(companyId: string, modo: Modo, filters: BIFilters) {
     const invoiceConds = this.applyInvoiceFilters(filters);
 
     // Sales by hour
@@ -589,6 +619,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       ...invoiceConds
     ))
@@ -602,6 +633,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       ...invoiceConds
     ))
@@ -616,6 +648,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       ...invoiceConds
     ))
@@ -631,6 +664,7 @@ export class BIRepository {
     .innerJoin(users, eq(invoices.userId, users.id))
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       ...invoiceConds
     ))
@@ -645,6 +679,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses)
     ))
     .groupBy(sql`EXTRACT(YEAR FROM ${invoices.createdAt})`, sql`EXTRACT(MONTH FROM ${invoices.createdAt})`)
@@ -658,6 +693,7 @@ export class BIRepository {
     }).from(invoices)
     .where(and(
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       ...invoiceConds
     ))
     .groupBy(invoices.status);
@@ -673,7 +709,7 @@ export class BIRepository {
   }
 
   // ─── 6. PURCHASES & EXPENSES ────────────────────────────────────────────────
-  static async getPurchaseStats(companyId: string, filters: BIFilters) {
+  static async getPurchaseStats(companyId: string, modo: Modo, filters: BIFilters) {
     const expenseConds = this.applyExpenseFilters(filters);
 
     // Purchases by supplier
@@ -687,6 +723,7 @@ export class BIRepository {
     .innerJoin(suppliers, eq(expenses.supplierId, suppliers.id))
     .where(and(
       eq(expenses.companyId, companyId),
+      eq(expenses.modo, modo),
       isNull(expenses.deletedAt),
       ...expenseConds
     ))
@@ -706,6 +743,7 @@ export class BIRepository {
     .innerJoin(products, eq(expenseLines.productId, products.id))
     .where(and(
       eq(expenses.companyId, companyId),
+      eq(expenses.modo, modo),
       isNull(expenses.deletedAt),
       ...expenseConds
     ))
@@ -721,6 +759,7 @@ export class BIRepository {
     }).from(expenses)
     .where(and(
       eq(expenses.companyId, companyId),
+      eq(expenses.modo, modo),
       isNull(expenses.deletedAt)
     ))
     .groupBy(sql`EXTRACT(YEAR FROM ${expenses.issueDate})`, sql`EXTRACT(MONTH FROM ${expenses.issueDate})`)
@@ -731,7 +770,7 @@ export class BIRepository {
       totalAp: sql<number>`SUM(CAST(${accountsPayable.amount} AS numeric))`,
       balanceAp: sql<number>`SUM(CAST(${accountsPayable.balance} AS numeric))`
     }).from(accountsPayable)
-    .where(eq(accountsPayable.companyId, companyId));
+    .where(and(eq(accountsPayable.companyId, companyId), eq(accountsPayable.modo, modo)));
 
     const totalAp = Number(apStats?.totalAp) || 0;
     const balanceAp = Number(apStats?.balanceAp) || 0;

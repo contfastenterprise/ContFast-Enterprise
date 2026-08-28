@@ -42,6 +42,9 @@ const ok = (t: string, c: boolean, d = '') => {
 async function sembrar() {
   await db.execute(sql`DELETE FROM journal_entry_lines`);
   await db.execute(sql`DELETE FROM journal_entries`);
+  // Las lineas cuelgan de la factura por clave foranea: van primero. Otro banco
+  // puede haber dejado lineas sembradas, y este tiene que poder correr igual.
+  await db.execute(sql`DELETE FROM invoice_lines`);
   await db.execute(sql`DELETE FROM accounts_receivable`);
   await db.execute(sql`DELETE FROM accounts_payable`);
   await db.execute(sql`DELETE FROM expenses`);

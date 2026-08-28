@@ -45,7 +45,10 @@ export async function GET(req: NextRequest) {
     // Standardize filter properties to make cache key deterministic
     const serializedFilters = JSON.stringify(filters, Object.keys(filters).sort());
     const filterHash = crypto.createHash('md5').update(serializedFilters).digest('hex');
-    const cacheKey = `cache:bi:${auth.companyId}:${tab}:${filterHash}`;
+    // El entorno forma parte de la clave. Sin el, el resultado calculado en
+    // PRODUCCION se servia durante cinco minutos a quien estuviera en PRUEBA, y
+    // al reves: arreglar las consultas sin tocar esto no habria servido de nada.
+    const cacheKey = `cache:bi:${auth.companyId}:${auth.modo}:${tab}:${filterHash}`;
 
     const cachedData = await getCache(cacheKey);
     if (cachedData) {
@@ -61,22 +64,22 @@ export async function GET(req: NextRequest) {
 
     switch (tab) {
       case 'general':
-        result = await BIRepository.getGeneralStats(auth.companyId, filters);
+        result = await BIRepository.getGeneralStats(auth.companyId, auth.modo, filters);
         break;
       case 'products':
-        result = await BIRepository.getProductStats(auth.companyId, filters);
+        result = await BIRepository.getProductStats(auth.companyId, auth.modo, filters);
         break;
       case 'inventory':
-        result = await BIRepository.getInventoryStats(auth.companyId, filters);
+        result = await BIRepository.getInventoryStats(auth.companyId, auth.modo, filters);
         break;
       case 'customers':
-        result = await BIRepository.getCustomerStats(auth.companyId, filters);
+        result = await BIRepository.getCustomerStats(auth.companyId, auth.modo, filters);
         break;
       case 'billing':
-        result = await BIRepository.getBillingStats(auth.companyId, filters);
+        result = await BIRepository.getBillingStats(auth.companyId, auth.modo, filters);
         break;
       case 'purchases':
-        result = await BIRepository.getPurchaseStats(auth.companyId, filters);
+        result = await BIRepository.getPurchaseStats(auth.companyId, auth.modo, filters);
         break;
       default:
         return NextResponse.json(
