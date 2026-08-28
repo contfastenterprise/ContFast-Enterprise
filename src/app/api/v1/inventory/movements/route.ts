@@ -24,7 +24,10 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate');
     const search = searchParams.get('search');
 
-    let filters = [eq(inventoryMovements.companyId, session.companyId)];
+    let filters = [
+      eq(inventoryMovements.companyId, session.companyId),
+      eq(inventoryMovements.modo, session.modo),
+    ];
 
     if (warehouseId && warehouseId !== 'all') {
       filters.push(eq(inventoryMovements.warehouseId, warehouseId));

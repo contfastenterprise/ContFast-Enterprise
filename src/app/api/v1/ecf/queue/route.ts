@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const [totalResult] = await db
       .select({ value: count() })
       .from(dgiiSubmissions)
-      .where(eq(dgiiSubmissions.companyId, auth.companyId));
+      .where(and(eq(dgiiSubmissions.companyId, auth.companyId), eq(dgiiSubmissions.modo, auth.modo)));
 
     const submissions = await db
       .select({
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       })
       .from(dgiiSubmissions)
       .leftJoin(invoices, eq(dgiiSubmissions.invoiceId, invoices.id))
-      .where(eq(dgiiSubmissions.companyId, auth.companyId))
+      .where(and(eq(dgiiSubmissions.companyId, auth.companyId), eq(dgiiSubmissions.modo, auth.modo)))
       .orderBy(desc(dgiiSubmissions.createdAt))
       .limit(perPage)
       .offset(offset);

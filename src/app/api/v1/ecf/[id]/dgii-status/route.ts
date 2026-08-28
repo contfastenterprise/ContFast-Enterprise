@@ -33,7 +33,7 @@ export async function GET(
 
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
 
     if (!invoice) {
       return NextResponse.json(

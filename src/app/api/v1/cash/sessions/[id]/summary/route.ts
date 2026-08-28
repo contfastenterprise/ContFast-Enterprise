@@ -28,7 +28,8 @@ export async function GET(
     const [session] = await db
       .select({ userId: cashSessions.userId })
       .from(cashSessions)
-      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId)))
+      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId),
+        eq(cashSessions.modo, auth.modo)))
       .limit(1);
 
     if (!session) {
@@ -50,7 +51,8 @@ export async function GET(
     const [summary] = await db
       .select()
       .from(cashSessionSummary)
-      .where(and(eq(cashSessionSummary.cashSessionId, id), eq(cashSessionSummary.companyId, auth.companyId)))
+      .where(and(eq(cashSessionSummary.cashSessionId, id), eq(cashSessionSummary.companyId, auth.companyId),
+        eq(cashSessionSummary.modo, auth.modo)))
       .limit(1);
 
     if (!summary) {

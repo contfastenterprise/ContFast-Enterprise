@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
     // Build conditions
     const conditions: any[] = [
       eq(invoices.companyId, auth.companyId),
+      eq(invoices.modo, auth.modo),
       isNull(invoices.deletedAt),
     ];
 
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(invoices.companyId, auth.companyId),
+            eq(invoices.modo, auth.modo),
             isNull(invoices.deletedAt),
             sql`${invoices.modifiedInvoiceId} IS NOT NULL`
           )

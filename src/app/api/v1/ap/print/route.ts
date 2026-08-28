@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       .from(accountsPayable)
       .where(and(
         eq(accountsPayable.companyId, session.companyId),
+        eq(accountsPayable.modo, session.modo),
         eq(accountsPayable.supplierId, supplierId),
         isNull(accountsPayable.deletedAt)
       ))

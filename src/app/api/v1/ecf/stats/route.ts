@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
 
     const baseConditions = and(
       eq(invoices.companyId, auth.companyId),
+      eq(invoices.modo, auth.modo),
       isNull(invoices.deletedAt),
       gte(invoices.createdAt, from),
       lte(invoices.createdAt, to)

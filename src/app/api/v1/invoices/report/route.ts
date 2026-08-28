@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
 
     const baseConditions: any[] = [
       eq(invoices.companyId, session.companyId),
+      eq(invoices.modo, session.modo),
       sql`${invoices.deletedAt} IS NULL`,
     ];
 

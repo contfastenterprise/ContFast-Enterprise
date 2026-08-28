@@ -163,7 +163,10 @@ export class InvoiceRepository {
   /**
    * Fetches an invoice by ID, ensuring tenancy checks.
    */
-  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+  // `modo` es OBLIGATORIO. Tenia 'PRODUCCION' por defecto y cuatro llamadores lo
+  // omitian, asi que en PRUEBA devolvia la factura del otro entorno o nada --
+  // uno de ellos, delivery-notes, en un camino de escritura.
+  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const ctx = { companyId, modo };
     const [invoice] = await db
       .select({

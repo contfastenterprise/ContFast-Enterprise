@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     const { invoiceId, deliveryDate, driverName, driverLicense, vehiclePlate, dispatcherName, notes, lines } = result.data;
 
     // Verify invoice exists and belongs to the same company
-    const invoice = await InvoiceRepository.getById(invoiceId, auth.companyId);
+    const invoice = await InvoiceRepository.getById(invoiceId, auth.companyId, auth.modo);
     if (!invoice) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Factura no encontrada.' } },

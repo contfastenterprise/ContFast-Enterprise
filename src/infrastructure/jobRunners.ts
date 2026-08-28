@@ -42,7 +42,24 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   Logger.info(`[JobRunner] Processing DGII submission for invoice ${invoiceId} (attempt ${attemptsMade + 1})...`);
 
   // 1. Load invoice with lines
-  const invoice = await InvoiceRepository.getById(invoiceId, companyId);
+  //
+  // El payload de la cola no lleva el entorno, y anadirselo romperia los
+  // trabajos ya encolados. Se deduce de la propia factura: el id es clave
+  // primaria, asi que id + empresa la localiza sin ambiguedad. Antes se dejaba
+  // el valor por defecto de getById, que era 'PRODUCCION', de modo que una
+  // factura emitida en PRUEBA no se encontraba y el trabajo moria diciendo que
+  // no existia.
+  const [ref] = await db
+    .select({ modo: invoices.modo })
+    .from(invoices)
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)))
+    .limit(1);
+  if (!ref) {
+    throw new Error(`Invoice ${invoiceId} not found for company ${companyId}`);
+  }
+  const modo = ref.modo as 'PRODUCCION' | 'PRUEBA';
+
+  const invoice = await InvoiceRepository.getById(invoiceId, companyId, modo);
   if (!invoice) {
     throw new Error(`Invoice ${invoiceId} not found for company ${companyId}`);
   }
@@ -101,6 +118,9 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     .where(
       and(
         eq(ecfSequences.companyId, companyId),
+        // Cada entorno tiene su autorizacion SACF; sin esto el envio real
+        // podia avanzar la secuencia de pruebas.
+        eq(ecfSequences.modo, modo),
         eq(ecfSequences.ecfType, invoice.ecfType),
         eq(ecfSequences.status, 'active'),
         isNull(ecfSequences.deletedAt)

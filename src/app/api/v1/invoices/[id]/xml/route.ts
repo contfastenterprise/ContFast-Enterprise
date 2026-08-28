@@ -5,7 +5,7 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decryptAsync } from '@/utils/encryption';
 import { db, companySettings, dgiiSubmissions } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(
   req: NextRequest,
@@ -32,7 +32,7 @@ export async function GET(
       );
     }
 
-    const invoice = await InvoiceRepository.getById(id, auth.companyId);
+    const invoice = await InvoiceRepository.getById(id, auth.companyId, auth.modo);
     if (!invoice) {
       return new NextResponse('Factura no encontrada.', { status: 404 });
     }
@@ -46,7 +46,9 @@ export async function GET(
         const [submission] = await db
           .select()
           .from(dgiiSubmissions)
-          .where(eq(dgiiSubmissions.invoiceId, id))
+          // La factura ya se resolvio con su entorno, pero el filtro va igual:
+          // dgii_submissions tiene su propia columna `modo`.
+          .where(and(eq(dgiiSubmissions.invoiceId, id), eq(dgiiSubmissions.modo, auth.modo)))
           .limit(1);
 
         if (submission && submission.responsePayload) {

@@ -100,6 +100,7 @@ export async function POST(
         .where(
           and(
             eq(expenses.companyId, session.companyId),
+            eq(expenses.modo, session.modo),
             eq(expenses.supplierId, supplierId),
             eq(expenses.paymentMethod, '04'), // credit
             sql`expenses.deleted_at IS NULL`,
