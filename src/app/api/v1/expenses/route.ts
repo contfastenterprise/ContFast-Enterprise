@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, chartOfAccounts, checks, apPayments } from '@/db';
+import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { eq, sql, and, between } from 'drizzle-orm';
+import { eq, sql, and, between, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
@@ -95,6 +95,47 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // El almacen y los productos que llegan en el cuerpo tienen que ser de la
+    // empresa de la sesion. Mismo control que hace ya
+    // /api/v1/inventory/adjustments: sin el, un gasto podia quedar guardado
+    // apuntando al almacen de otra empresa, y todas las lecturas de inventario
+    // que cuelgan de ese gasto arrastraban despues el error.
+    if (warehouseId) {
+      const [almacen] = await db
+        .select({ id: warehouses.id })
+        .from(warehouses)
+        .where(and(
+          eq(warehouses.id, warehouseId),
+          eq(warehouses.companyId, session.companyId)
+        ))
+        .limit(1);
+      if (!almacen) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Almacén no encontrado.' } },
+          { status: 404 }
+        );
+      }
+
+      const idsProducto = [...new Set(
+        (lines || []).map((l: { productId?: string }) => l.productId).filter(Boolean)
+      )] as string[];
+      if (idsProducto.length > 0) {
+        const propios = await db
+          .select({ id: products.id })
+          .from(products)
+          .where(and(
+            inArray(products.id, idsProducto),
+            eq(products.companyId, session.companyId)
+          ));
+        if (propios.length !== idsProducto.length) {
+          return NextResponse.json(
+            { success: false, error: { message: 'Uno o más productos no pertenecen a la empresa.' } },
+            { status: 404 }
+          );
+        }
+      }
+    }
+
     const result = await db.transaction(async (tx) => {
       // 1. Insert Expense header
       const newExpenseId = uuidv4();
@@ -145,9 +186,18 @@ export async function POST(req: NextRequest) {
             const qty = parseFloat(line.quantity);
 
             // Fetch current level
+            //
+            // El filtro por empresa es obligatorio: productId y warehouseId
+            // llegan del cuerpo de la peticion. Sin el, esta lectura devolvia la
+            // existencia del almacen de OTRA empresa, ese balance ajeno se usaba
+            // para calcular balanceAfter y quedaba grabado en el kardex propio.
+            // (La propiedad de ambos se comprueba mas arriba, antes de abrir la
+            // transaccion, pero el filtro se queda igualmente: es la consulta la
+            // que tiene que ser correcta por si sola.)
             const levelResult = await tx.select({ balance: inventoryLevels.quantity })
               .from(inventoryLevels)
               .where(and(
+                eq(inventoryLevels.companyId, session.companyId),
                 eq(inventoryLevels.productId, line.productId),
                 eq(inventoryLevels.warehouseId, warehouseId),
                 eq(inventoryLevels.modo, session.modo)

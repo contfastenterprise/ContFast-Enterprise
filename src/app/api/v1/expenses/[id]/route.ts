@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied } from '@/db';
+import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { eq, and, or, inArray, sql, isNull } from 'drizzle-orm';
@@ -247,10 +247,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
           if (line.productId) {
             const qty = parseFloat(line.quantity) || 0;
             // Fetch current inventory level
+            // El filtro por empresa es obligatorio: productId y warehouseId
+            // llegan del cuerpo de la peticion. Sin el, esta lectura localizaba
+            // el nivel de OTRA empresa y el UPDATE de abajo, que se ancla en
+            // levelResult[0].id, le reescribia la existencia. Era escritura
+            // cruzada, no solo lectura.
             const levelResult = await tx
               .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
               .from(inventoryLevels)
               .where(and(
+                eq(inventoryLevels.companyId, session.companyId),
                 eq(inventoryLevels.productId, line.productId),
                 eq(inventoryLevels.warehouseId, warehouseId),
                 eq(inventoryLevels.modo, session.modo)
@@ -455,6 +461,47 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     } else {
       if (ncf && ncf.trim().length > 0 && isElectronicNcf(ncf)) {
         return NextResponse.json({ success: false, error: { message: 'Esta compra no puede guardarse como gasto menor ya que tiene e-NCF' } }, { status: 400 });
+      }
+    }
+
+    // El almacen y los productos que llegan en el cuerpo tienen que ser de la
+    // empresa de la sesion. Mismo control que hace ya
+    // /api/v1/inventory/adjustments: sin el, un gasto podia quedar guardado
+    // apuntando al almacen de otra empresa, y todas las lecturas de inventario
+    // que cuelgan de ese gasto arrastraban despues el error.
+    if (warehouseId) {
+      const [almacen] = await db
+        .select({ id: warehouses.id })
+        .from(warehouses)
+        .where(and(
+          eq(warehouses.id, warehouseId),
+          eq(warehouses.companyId, session.companyId)
+        ))
+        .limit(1);
+      if (!almacen) {
+        return NextResponse.json(
+          { success: false, error: { message: 'Almacén no encontrado.' } },
+          { status: 404 }
+        );
+      }
+
+      const idsProducto = [...new Set(
+        (lines || []).map((l: { productId?: string }) => l.productId).filter(Boolean)
+      )] as string[];
+      if (idsProducto.length > 0) {
+        const propios = await db
+          .select({ id: products.id })
+          .from(products)
+          .where(and(
+            inArray(products.id, idsProducto),
+            eq(products.companyId, session.companyId)
+          ));
+        if (propios.length !== idsProducto.length) {
+          return NextResponse.json(
+            { success: false, error: { message: 'Uno o más productos no pertenecen a la empresa.' } },
+            { status: 404 }
+          );
+        }
       }
     }
 

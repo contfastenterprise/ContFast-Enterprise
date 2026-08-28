@@ -1,5 +1,5 @@
 import { db, products, productCategories } from '@/db';
-import { sql, eq, inArray } from 'drizzle-orm';
+import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
@@ -53,7 +53,15 @@ export class InvoiceFileGenerator {
           })
           .from(products)
           .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-          .where(inArray(products.id, productIds as string[]));
+          // Los productIds salen de lines[].productId del cuerpo de la peticion
+          // y el esquema Zod de POST /api/v1/invoices solo valida que sean UUID.
+          // Sin el filtro por empresa, mandando el UUID de un producto ajeno su
+          // sku, unidad y categoria acababan impresos en el PDF fiscal que esta
+          // empresa envia a su cliente.
+          .where(and(
+            inArray(products.id, productIds as string[]),
+            eq(products.companyId, data.companyId)
+          ));
       }
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
