@@ -19,7 +19,7 @@ export class ReportRepository {
     return company;
   }
 
-  static async getIncomeStatement(companyId: string, startDate: string, endDate: string) {
+  static async getIncomeStatement(companyId: string, startDate: string, endDate: string, modo: 'PRODUCCION' | 'PRUEBA') {
     // Income Statement accounts are Revenue (revenue) and Expenses (expense/cost)
     // We get the sum of credits - debits for revenue, and debits - credits for expenses.
     // Or we just get net changes per account.
@@ -41,6 +41,11 @@ export class ReportRepository {
     .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
     .where(and(
       eq(journalEntries.companyId, companyId),
+      // Sin el filtro de entorno los asientos de PRUEBA entraban en un estado
+      // financiero que se presenta como oficial. `modo` tiene DEFAULT
+      // 'PRODUCCION', asi que la omision no daba ningun error.
+      eq(journalEntries.modo, modo),
+      eq(journalEntryLines.modo, modo),
       eq(journalEntries.status, 'posted'),
       gte(journalEntries.date, startDate),
       lte(journalEntries.date, endDate)
@@ -100,7 +105,7 @@ export class ReportRepository {
     };
   }
 
-  static async getBalanceSheet(companyId: string, asOfDate: string) {
+  static async getBalanceSheet(companyId: string, asOfDate: string, modo: 'PRODUCCION' | 'PRUEBA') {
     // Balance sheet accounts: asset, liability, equity
     const accounts = await db.select()
       .from(chartOfAccounts)
@@ -119,6 +124,8 @@ export class ReportRepository {
     .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
     .where(and(
       eq(journalEntries.companyId, companyId),
+      eq(journalEntries.modo, modo),
+      eq(journalEntryLines.modo, modo),
       eq(journalEntries.status, 'posted'),
       lte(journalEntries.date, asOfDate)
     ))
@@ -172,7 +179,7 @@ export class ReportRepository {
     };
   }
 
-  static async getARStatement(companyId: string, customerId: string) {
+  static async getARStatement(companyId: string, customerId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const [customer] = await db.select()
       .from(customers)
       .where(and(
@@ -198,6 +205,7 @@ export class ReportRepository {
     .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
     .where(and(
       eq(accountsReceivable.companyId, companyId),
+      eq(accountsReceivable.modo, modo),
       eq(accountsReceivable.customerId, customerId),
       sql`${accountsReceivable.balance} > 0`
     ))
@@ -215,7 +223,7 @@ export class ReportRepository {
     };
   }
 
-  static async getAPStatement(companyId: string, supplierId: string) {
+  static async getAPStatement(companyId: string, supplierId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const [supplier] = await db.select()
       .from(suppliers)
       .where(and(
@@ -239,6 +247,7 @@ export class ReportRepository {
     .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
     .where(and(
       eq(accountsPayable.companyId, companyId),
+      eq(accountsPayable.modo, modo),
       eq(accountsPayable.supplierId, supplierId),
       sql`${accountsPayable.balance} > 0`
     ))
@@ -256,10 +265,11 @@ export class ReportRepository {
     };
   }
 
-  static async getSalesVsPurchases(companyId: string, startDate: string, endDate: string, warehouseId?: string) {
+  static async getSalesVsPurchases(companyId: string, startDate: string, endDate: string, modo: 'PRODUCCION' | 'PRUEBA', warehouseId?: string) {
     // Ventas
     const salesConditions = [
       eq(invoices.companyId, companyId),
+      eq(invoices.modo, modo),
       gte(sql`DATE(${invoices.createdAt})`, startDate),
       lte(sql`DATE(${invoices.createdAt})`, endDate),
       sql`${invoices.status} != 'rejected'`
@@ -278,6 +288,7 @@ export class ReportRepository {
     // Compras (Expenses)
     const expensesConditions = [
       eq(expenses.companyId, companyId),
+      eq(expenses.modo, modo),
       gte(expenses.issueDate, startDate),
       lte(expenses.issueDate, endDate)
     ];

@@ -45,6 +45,10 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(journalEntryLines.companyId, auth.companyId),
+          // Sin el filtro de entorno los asientos de PRUEBA entraban en un
+          // estado financiero presentado como oficial.
+          eq(journalEntryLines.modo, auth.modo),
+          eq(journalEntries.modo, auth.modo),
           gte(journalEntries.date, startDateStr),
           lte(journalEntries.date, endDateStr),
           eq(journalEntries.status, 'posted'),

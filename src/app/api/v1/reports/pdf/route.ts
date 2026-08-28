@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       if (!start || !end) {
         return NextResponse.json({ success: false, error: { message: 'Fechas requeridas' } }, { status: 400 });
       }
-      const data = await ReportRepository.getIncomeStatement(session.companyId, start, end);
+      const data = await ReportRepository.getIncomeStatement(session.companyId, start, end, session.modo);
 
       const [settings] = await db
         .select()
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     } 
     else if (type === 'balance_sheet') {
       const asOf = end || getDRLocalDateString();
-      const data = await ReportRepository.getBalanceSheet(session.companyId, asOf);
+      const data = await ReportRepository.getBalanceSheet(session.companyId, asOf, session.modo);
 
       const [settings] = await db
         .select()
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: 'Cliente requerido' } }, { status: 400 });
       }
       const asOf = end || getDRLocalDateString();
-      const data = await ReportRepository.getARStatement(session.companyId, customerId);
+      const data = await ReportRepository.getARStatement(session.companyId, customerId, session.modo);
 
       const [settings] = await db
         .select()
@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: 'Proveedor requerido' } }, { status: 400 });
       }
       const asOf = end || getDRLocalDateString();
-      const data = await ReportRepository.getAPStatement(session.companyId, supplierId);
+      const data = await ReportRepository.getAPStatement(session.companyId, supplierId, session.modo);
 
       const [settings] = await db
         .select()
@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: 'Fechas requeridas' } }, { status: 400 });
       }
       const warehouseId = searchParams.get('warehouseId');
-      const data = await ReportRepository.getSalesVsPurchases(session.companyId, start, end, warehouseId || undefined);
+      const data = await ReportRepository.getSalesVsPurchases(session.companyId, start, end, session.modo, warehouseId || undefined);
 
       const [settings] = await db
         .select()

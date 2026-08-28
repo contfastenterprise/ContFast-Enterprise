@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const txtContent = await generate606Txt(companyId, period);
+    const txtContent = await generate606Txt(companyId, period, auth.modo);
     
     // Merge resHeaders into the download headers
     const headers = new Headers(resHeaders);

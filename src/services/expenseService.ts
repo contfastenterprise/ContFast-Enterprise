@@ -228,7 +228,7 @@ export async function createExpense(expenseData: {
 }
 
 /** Fetch expenses for a company within a month (YYYY-MM) */
-export async function getExpenses(companyId: string, period: string) {
+export async function getExpenses(companyId: string, period: string, modo: 'PRODUCCION' | 'PRUEBA') {
   const [year, month] = period.split('-');
   const start = `${year}-${month}-01`;
   const end = `${year}-${month}-31`;
@@ -236,13 +236,21 @@ export async function getExpenses(companyId: string, period: string) {
     .select()
     .from(expenses)
     .where(
-      and(eq(expenses.companyId, companyId), between(expenses.issueDate, start, end))
+      and(
+        eq(expenses.companyId, companyId),
+        // `modo` tiene DEFAULT 'PRODUCCION': sin este filtro el 606 y el TXT que
+        // se remite a la DGII incluian las compras registradas en PRUEBA, con su
+        // NCF y su monto, indistinguibles de las reales. Es parametro
+        // obligatorio para que ninguna llamada nueva pueda olvidarlo.
+        eq(expenses.modo, modo),
+        between(expenses.issueDate, start, end)
+      )
     );
 }
 
 /** Generate the 606 TXT file content */
-export async function generate606Txt(companyId: string, period: string) {
-  const rows = await getExpenses(companyId, period);
+export async function generate606Txt(companyId: string, period: string, modo: 'PRODUCCION' | 'PRUEBA') {
+  const rows = await getExpenses(companyId, period, modo);
   const lines = rows.map((e) => {
     const fields = [
       (e.ncf || '').padEnd(19, ' '),

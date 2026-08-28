@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(invoices.companyId, auth.companyId),
+          // `modo` tiene DEFAULT 'PRODUCCION': sin este filtro el fichero que
+          // se remite a la DGII incluia los comprobantes emitidos en PRUEBA,
+          // indistinguibles de los reales.
+          eq(invoices.modo, auth.modo),
           isNull(invoices.deletedAt),
           gte(invoices.createdAt, new Date(startDateStr + 'T00:00:00-04:00')),
           lte(invoices.createdAt, new Date(endDateStr + 'T23:59:59.999-04:00')),

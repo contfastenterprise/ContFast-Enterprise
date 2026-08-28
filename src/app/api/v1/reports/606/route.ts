@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const expenses = await getExpenses(companyId, period);
+    const expenses = await getExpenses(companyId, period, auth.modo);
     const totals = expenses.reduce(
       (acc, e) => {
         acc.amount += Number(e.amount);
