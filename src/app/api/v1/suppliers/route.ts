@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const hasDebt = searchParams.get('hasDebt') === 'true';
 
-    const result = await SupplierRepository.findAll(session.companyId, search, limit, offset, hasDebt);
+    const result = await SupplierRepository.findAll(session.companyId, session.modo, search, limit, offset, hasDebt);
 
     return NextResponse.json({
       success: true,

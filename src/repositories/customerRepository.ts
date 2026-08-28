@@ -24,6 +24,14 @@ export interface UpdateCustomerInput {
   status?: string;
 }
 
+type Modo = 'PRODUCCION' | 'PRUEBA';
+
+/**
+ * `customers` es catalogo: no tiene columna `modo`, y sus altas, bajas y
+ * busquedas no dependen del entorno. Lo que si depende son las consultas que
+ * cruzan a tablas transaccionales -- deuda pendiente e historial -- y esas
+ * llevan el filtro. Por eso `modo` aparece solo en dos metodos y no en todos.
+ */
 export class CustomerRepository {
   /**
    * Find a customer by ID and companyId
@@ -69,7 +77,7 @@ export class CustomerRepository {
   /**
    * Retrieve all customers for a company, with optional search and pagination
    */
-  static async findAll(companyId: string, search?: string, limit = 50, offset = 0, hasDebt?: boolean) {
+  static async findAll(companyId: string, modo: Modo, search?: string, limit = 50, offset = 0, hasDebt?: boolean) {
     const filters = [
       eq(customers.companyId, companyId),
       isNull(customers.deletedAt)
@@ -93,6 +101,10 @@ export class CustomerRepository {
               and(
                 eq(accountsReceivable.customerId, customers.id),
                 eq(accountsReceivable.companyId, companyId),
+                // `hasDebt` filtra clientes por su saldo pendiente. Sin el
+                // entorno, un cliente sin deuda real aparecia como moroso por
+                // una factura de practicas.
+                eq(accountsReceivable.modo, modo),
                 sql`${accountsReceivable.balance} > 0`,
                 isNull(accountsReceivable.deletedAt)
               )
@@ -205,7 +217,7 @@ export class CustomerRepository {
   /**
    * Obtiene el historial financiero de un cliente (Métricas + Facturas + Pagos)
    */
-  static async getCustomerHistory(id: string, companyId: string) {
+  static async getCustomerHistory(id: string, companyId: string, modo: Modo) {
     // 1. Obtener datos del cliente
     const customer = await this.findById(id, companyId);
     if (!customer) throw new Error('Cliente no encontrado');
@@ -214,12 +226,14 @@ export class CustomerRepository {
     const [invoiceSum] = await db
       .select({ total: sql<number>`COALESCE(SUM(${invoices.total}), 0)` })
       .from(invoices)
-      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)));
+      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId),
+        eq(invoices.modo, modo), isNull(invoices.deletedAt)));
 
     const [arSum] = await db
       .select({ balance: sql<number>`COALESCE(SUM(${accountsReceivable.balance}), 0)` })
       .from(accountsReceivable)
-      .where(and(eq(accountsReceivable.customerId, id), eq(accountsReceivable.companyId, companyId), isNull(accountsReceivable.deletedAt)));
+      .where(and(eq(accountsReceivable.customerId, id), eq(accountsReceivable.companyId, companyId),
+        eq(accountsReceivable.modo, modo), isNull(accountsReceivable.deletedAt)));
 
     const totalInvoiced = Number(invoiceSum?.total || 0);
     const currentBalance = Number(arSum?.balance || 0);
@@ -235,7 +249,8 @@ export class CustomerRepository {
         status: invoices.status,
       })
       .from(invoices)
-      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId), isNull(invoices.deletedAt)))
+      .where(and(eq(invoices.customerId, id), eq(invoices.companyId, companyId),
+        eq(invoices.modo, modo), isNull(invoices.deletedAt)))
       .orderBy(desc(invoices.createdAt))
       .limit(10);
 
@@ -256,6 +271,10 @@ export class CustomerRepository {
         .from(cashMovements)
         .where(and(
           eq(cashMovements.companyId, companyId),
+          // Los ids ya vienen de una consulta filtrada por entorno, pero el
+          // filtro va igual: un cobro registrado en PRUEBA podia quedar colgado
+          // de una factura de PRODUCCION.
+          eq(cashMovements.modo, modo),
           inArray(cashMovements.invoiceId, customerInvoiceIds),
           eq(cashMovements.type, 'sale')
         ))

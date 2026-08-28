@@ -26,7 +26,7 @@ export async function GET(
     
     // Validar formato UUID (opcional si ya está garantizado por la ruta)
     
-    const history = await CustomerRepository.getCustomerHistory(id, session.companyId);
+    const history = await CustomerRepository.getCustomerHistory(id, session.companyId, session.modo);
 
     return NextResponse.json({
       success: true,

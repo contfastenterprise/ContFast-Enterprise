@@ -3,8 +3,14 @@ import { suppliers } from '@/db/schema';
 import { eq, and, or, ilike, desc, sql, isNull, exists } from 'drizzle-orm';
 import { accountsPayable } from '@/db/schema';
 
+type Modo = 'PRODUCCION' | 'PRUEBA';
+
+/**
+ * `suppliers` es catalogo y no tiene columna `modo`. El unico sitio que depende
+ * del entorno es el filtro de deuda pendiente, que cruza a accounts_payable.
+ */
 export class SupplierRepository {
-  static async findAll(companyId: string, search?: string, limit: number = 50, offset: number = 0, hasDebt?: boolean) {
+  static async findAll(companyId: string, modo: Modo, search?: string, limit: number = 50, offset: number = 0, hasDebt?: boolean) {
     let conditions: any[] = [
       eq(suppliers.companyId, companyId),
       isNull(suppliers.deletedAt)
@@ -28,6 +34,9 @@ export class SupplierRepository {
               and(
                 eq(accountsPayable.supplierId, suppliers.id),
                 eq(accountsPayable.companyId, companyId),
+                // Sin el entorno, un suplidor sin deuda real salia como
+                // pendiente de pago por una compra de practicas.
+                eq(accountsPayable.modo, modo),
                 sql`${accountsPayable.balance} > 0`,
                 isNull(accountsPayable.deletedAt)
               )

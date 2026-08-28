@@ -43,13 +43,16 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const hasDebt = searchParams.get('hasDebt') === 'true';
 
-    const cacheKey = `cache:customers:${session.companyId}:limit_${limit}_offset_${offset}_search_${search || ''}_hasDebt_${hasDebt}`;
+    // El entorno va en la clave. Con `hasDebt` el resultado depende de el, y la
+    // cache dura una hora: sin esto, la lista de morosos calculada en PRUEBA se
+    // servia durante 3600 segundos a quien estuviera en PRODUCCION.
+    const cacheKey = `cache:customers:${session.companyId}:${session.modo}:limit_${limit}_offset_${offset}_search_${search || ''}_hasDebt_${hasDebt}`;
     const cached = await getCache(cacheKey);
     if (cached) {
       return NextResponse.json(JSON.parse(cached), { headers: resHeaders });
     }
 
-    const result = await CustomerRepository.findAll(session.companyId, search, limit, offset, hasDebt);
+    const result = await CustomerRepository.findAll(session.companyId, session.modo, search, limit, offset, hasDebt);
     const responseData = {
       success: true,
       data: result.data,
