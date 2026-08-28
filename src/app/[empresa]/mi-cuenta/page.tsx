@@ -4,11 +4,17 @@ import { Metadata } from 'next';
 import { db } from '@/db';
 import { quotes } from '@/db/schema/invoices';
 import { eq, and, desc } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
 import { Package, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/storefront/ui/client-button';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
+
+const JWT_SECRET: string = process.env.JWT_SECRET ?? '';
+if (!JWT_SECRET) {
+  throw new Error('La variable de entorno JWT_SECRET es obligatoria y debe estar definida.');
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ empresa: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
@@ -25,12 +31,15 @@ export default async function MiCuentaPage({ params }: { params: Promise<{ empre
   const company = await StorefrontCompanyService.resolveCompanyBySlug(empresaSlug);
   if (!company) notFound();
 
-  // Validate session (this should ideally be protected by middleware but doing it here for simplicity)
-  // Workaround since `getSession` requires a request, in Server Components we can use `cookies()` directly or mock it
-  // But wait, the standard Next.js way to protect Server Component is to check auth inside it.
-  // The system uses a JWT cookie `cf_access_token`. 
-  // Wait, I can't easily read `req` here. I'll read from `cookies()`.
-  
+  // Esta es una pagina publica y no pasa por `verifyAuth`, que necesita el
+  // NextRequest. Aqui se lee la cookie a mano, pero el token se VERIFICA con la
+  // misma clave y la misma libreria que usa el resto del sistema.
+  //
+  // Auditoria: antes esto partia el token por los puntos y hacia JSON.parse del
+  // payload sin mirar la firma. Cualquiera podia fabricar la cookie con el
+  // userId que quisiera y ver las cotizaciones de esa persona -- numero, estado,
+  // total y fecha -- y su nombre. La empresa salia del slug de la URL, asi que
+  // se recorrian todas visitando cada tienda.
   const { cookies } = await import('next/headers');
   const cookieStore = await cookies();
   const token = cookieStore.get('accessToken')?.value;
@@ -48,16 +57,17 @@ export default async function MiCuentaPage({ params }: { params: Promise<{ empre
     );
   }
 
-  // Parse token manually since we don't have the req object for the middleware
   let userId: string | null = null;
   let userName: string = 'Usuario';
   try {
-    const [header, payload, sig] = token.split('.');
-    const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
-    userId = decoded.userId;
-    // user name might not be in the token, but we have userId
-  } catch (e) {
-    // Token invalido
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string; companyId?: string };
+    // La empresa la manda el TOKEN, no el slug de la URL. Un token legitimo de
+    // otra empresa no autoriza en esta tienda.
+    if (decoded.userId && decoded.companyId === company.id) {
+      userId = decoded.userId;
+    }
+  } catch {
+    // Firma invalida, token caducado o malformado: se trata como no autenticado.
   }
 
   if (!userId) {
@@ -73,7 +83,13 @@ export default async function MiCuentaPage({ params }: { params: Promise<{ empre
 
   // Load User Details
   const { users } = await import('@/db/schema/auth');
-  const [userDb] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+  const [userDb] = await db
+    .select({ name: users.name })
+    .from(users)
+    // El userId ya viene de un token verificado, pero la empresa se acota igual:
+    // el nombre que se pinta en la pagina no puede salir de otra empresa.
+    .where(and(eq(users.id, userId), eq(users.companyId, company.id)))
+    .limit(1);
   if (userDb) {
     userName = userDb.name.split(' ')[0]; // Primer nombre
   }
@@ -91,7 +107,12 @@ export default async function MiCuentaPage({ params }: { params: Promise<{ empre
     .where(
       and(
         eq(quotes.companyId, company.id),
-        eq(quotes.userId, userId)
+        eq(quotes.userId, userId),
+        // `quotes.modo` tiene DEFAULT 'PRODUCCION'. La tienda publica no tiene
+        // selector de entorno, asi que solo puede mostrar el real: sin este
+        // filtro el cliente veia sus cotizaciones de prueba mezcladas con las
+        // buenas, con numero de secuencia y total.
+        eq(quotes.modo, 'PRODUCCION')
       )
     )
     .orderBy(desc(quotes.createdAt));
