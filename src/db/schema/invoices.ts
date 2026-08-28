@@ -38,6 +38,31 @@ export const quoteSequences = pgTable('quote_sequences', {
   companyYearIdx: uniqueIndex('quote_seq_company_year_modo_idx').on(table.companyId, table.currentYear, table.modo),
 }));
 
+/**
+ * Numeracion interna del documento (`invoices.codigo_factura`).
+ *
+ * Antes se generaba contando: SELECT count(*) ... LIKE 'FAC-2026-%' y sumar uno.
+ * COUNT(*) no bloquea nada, asi que dos facturas simultaneas se llevaban el
+ * mismo numero. El avance ahora es un INSERT ... ON CONFLICT DO UPDATE
+ * ... RETURNING, una sola sentencia y por tanto atomica.
+ *
+ * `prefix` es FAC, NC o ND: son series distintas y cada una lleva su cuenta.
+ * Misma forma que quote_sequences y supplier_order_sequences.
+ */
+export const invoiceSequences = pgTable('invoice_sequences', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
+  prefix: varchar('prefix', { length: 8 }).notNull(),
+  currentYear: integer('current_year').notNull(),
+  currentSequence: integer('current_sequence').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  companyPrefixYearIdx: uniqueIndex('invoice_seq_company_prefix_year_modo_idx')
+    .on(table.companyId, table.prefix, table.currentYear, table.modo),
+}));
+
 export const quotes = pgTable('quotes', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
@@ -131,7 +156,12 @@ export const invoices = pgTable('invoices', {
   companyNcfIdx: uniqueIndex('invoices_company_ncf_modo_idx').on(table.companyId, table.ncf, table.modo),
   statusIdx: index('invoices_status_idx').on(table.status),
   createdIdx: index('invoices_created_idx').on(table.createdAt),
-  codigoFacturaIdx: uniqueIndex('invoices_codigo_factura_modo_idx').on(table.codigoFactura, table.modo),
+  // La unicidad del numero interno es POR EMPRESA. Antes era
+  // (codigo_factura, modo) a secas, sin empresa: como cada empresa arranca su
+  // numeracion en FAC-AAAA-000001, la segunda que emitiera su primera factura
+  // del anio chocaba contra la primera. Ver drizzle/0034.
+  codigoFacturaIdx: uniqueIndex('invoices_company_codigo_factura_modo_idx')
+    .on(table.companyId, table.codigoFactura, table.modo),
   companyStatusCreatedIdx: index('invoices_comp_status_created_modo_idx').on(table.companyId, table.status, table.createdAt, table.modo),
 }));
 

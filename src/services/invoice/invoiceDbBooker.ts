@@ -6,6 +6,7 @@ import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRepository';
 import { deductStock } from '@/services/inventoryService';
+import { siguienteCodigoFactura } from './codigoFactura';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 
 export class InvoiceDbBooker {
@@ -163,21 +164,12 @@ export class InvoiceDbBooker {
         throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
       }
 
-      // Generate internal document number (codigoFactura) in format: PREFIX-YYYY-XXXXXX (e.g. NC-2026-000001)
-      const year = new Date().getFullYear();
-      const docPrefix = data.ecfType === '34' ? 'NC' : data.ecfType === '33' ? 'ND' : 'FAC';
-      const [countResult] = await tx
-        .select({ count: sql<number>`count(*)` })
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.companyId, data.companyId),
-            eq(invoices.modo, data.modo || 'PRODUCCION'),
-            sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
-          )
-        );
-      const nextNum = Number(countResult?.count || 0) + 1;
-      const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
+      // El numero interno se reserva con una sentencia atomica. Antes se contaba
+      // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
+      // el mismo numero. Ver src/services/invoice/codigoFactura.ts.
+      const codigoFactura = await siguienteCodigoFactura(
+        tx, data.companyId, data.modo || 'PRODUCCION', data.ecfType
+      );
 
       await InvoiceRepository.create({
         companyId: data.companyId,
@@ -236,21 +228,12 @@ export class InvoiceDbBooker {
         throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
       }
 
-      // Generate internal document number (codigoFactura) in format: PREFIX-YYYY-XXXXXX (e.g. NC-2026-000001)
-      const year = new Date().getFullYear();
-      const docPrefix = data.ecfType === '34' ? 'NC' : data.ecfType === '33' ? 'ND' : 'FAC';
-      const [countResult] = await tx
-        .select({ count: sql<number>`count(*)` })
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.companyId, data.companyId),
-            eq(invoices.modo, data.modo || 'PRODUCCION'),
-            sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
-          )
-        );
-      const nextNum = Number(countResult?.count || 0) + 1;
-      const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
+      // El numero interno se reserva con una sentencia atomica. Antes se contaba
+      // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
+      // el mismo numero. Ver src/services/invoice/codigoFactura.ts.
+      const codigoFactura = await siguienteCodigoFactura(
+        tx, data.companyId, data.modo || 'PRODUCCION', data.ecfType
+      );
 
       // Sin validacion de existencia: ver la nota en preFlightValidations.
       // Se elimina tambien el bucle que la ejecutaba, que era un N+1 por linea

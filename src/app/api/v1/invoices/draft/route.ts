@@ -4,6 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, invoiceLines, invoiceTaxes } from '@/db';
 import { sql, and, eq } from 'drizzle-orm';
+import { siguienteCodigoFactura } from '@/services/invoice/codigoFactura';
 
 // Zod validation schema for saving a draft invoice
 const saveDraftSchema = z.object({
@@ -109,23 +110,14 @@ export async function POST(req: NextRequest) {
     const draftNcf = `DFT${(Date.now() % 10000000000).toString().padStart(10, '0')}`;
 
 
-    // Generate codigoFactura for draft
-    const year = new Date().getFullYear();
-    const docPrefix = data.ecfType === '34' ? 'NC' : data.ecfType === '33' ? 'ND' : 'FAC';
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(invoices)
-      .where(
-        and(
-          eq(invoices.companyId, auth.companyId),
-          sql`codigo_factura LIKE ${docPrefix + '-' + year + '-%'}`
-        )
-      );
-    const nextNum = Number(countResult?.count || 0) + 1;
-    const codigoFactura = `${docPrefix}-${year}-${nextNum.toString().padStart(6, '0')}`;
-
     // Save draft in a transaction
     const draftInvoice = await db.transaction(async (tx) => {
+      // El numero se reserva DENTRO de la transaccion. Antes se contaba fuera y
+      // sin filtrar `modo`, asi que un borrador de PRUEBA consumia un numero del
+      // correlativo real. Ver src/services/invoice/codigoFactura.ts.
+      const codigoFactura = await siguienteCodigoFactura(
+        tx, auth.companyId, auth.modo, data.ecfType
+      );
       const [invoice] = await tx
         .insert(invoices)
         .values({
