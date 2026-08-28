@@ -1,65 +1,62 @@
 /**
- * inventario_negativo.ts — corrige los niveles de inventario en negativo.
+ * inventario_negativo.ts — diagnostica los niveles en negativo y carga el
+ * conteo fisico que los corrige.
  *
  * CONTEXTO (auditoria F1-04)
  * --------------------------
  * `checkStock` no comparaba la cantidad pedida contra la existencia, asi que
- * autorizaba cualquier salida. El resultado son filas de `inventory_levels`
- * con cantidad negativa: mercancia que el sistema dice que salio pero que
- * nunca existio en el almacen.
+ * autorizaba cualquier salida. El resultado son filas de `inventory_levels` con
+ * cantidad negativa: mercancia que el sistema dice que salio y que nunca entro.
  *
- * Este script las lleva a cero dejando rastro: por cada nivel negativo emite
- * un movimiento `adjustment` con la diferencia, igual que lo hace la pantalla
- * de ajuste manual (`/api/v1/inventory/adjustments`). El kardex queda cuadrado
- * y la correccion es auditable.
+ * El diagnostico (`scratch/diagnostico_negativos.sql`) mostro que los productos
+ * afectados tienen ventas y CERO compras registradas. No falta una salida: falta
+ * la entrada. Por eso este script NO lleva los niveles a cero — cero es tan
+ * falso como el negativo. El unico dato correcto es el conteo fisico, y eso es
+ * lo que carga.
  *
- * ADVERTENCIA CONTABLE
- * --------------------
- * Ningun ajuste de inventario de la aplicacion genera asiento contable hoy
- * (la ruta de ajustes no toca `journal_entries`). Este script tampoco lo hace:
- * imprime el asiento que HARIA FALTA para que el mayor cuadre con el kardex, y
- * lo deja a criterio del contador. La cuenta a la que se imputa el faltante es
- * una decision del negocio, no del script.
+ * SIN ASIENTO CONTABLE, A PROPOSITO
+ * ---------------------------------
+ * Las compras de estos productos se imputan directamente a costo de ventas. El
+ * costo ya paso por resultados, asi que registrar aqui una merma lo contaria dos
+ * veces. El ajuste mueve el kardex y nada mas. Lo que si corrige el resultado es
+ * el inventario final del cierre, y eso lo hace el contador.
  *
  * USO
  * ---
- *   npx tsx scripts/inventario_negativo.ts                      # solo reporta
- *   npx tsx scripts/inventario_negativo.ts --empresa=<uuid>     # filtra empresa
- *   npx tsx scripts/inventario_negativo.ts --modo=PRODUCCION    # filtra modo
- *   npx tsx scripts/inventario_negativo.ts --csv=faltantes.csv  # exporta detalle
- *   npx tsx scripts/inventario_negativo.ts --aplicar --usuario=admin@empresa.do
+ *   # 1. Diagnostico. No escribe nada.
+ *   npx tsx scripts/inventario_negativo.ts
+ *   npx tsx scripts/inventario_negativo.ts --empresa="Latin Doors" --csv=faltantes.csv
+ *
+ *   # 2. Simulacion de la carga del conteo. Tampoco escribe nada.
+ *   npx tsx scripts/inventario_negativo.ts --conteo=conteo.csv \
+ *       --empresa="Latin Doors" --modo=PRODUCCION --almacen=Principal
+ *
+ *   # 3. Carga real.
+ *   npx tsx scripts/inventario_negativo.ts --conteo=conteo.csv \
+ *       --empresa="Latin Doors" --modo=PRODUCCION --almacen=Principal \
+ *       --aplicar --usuario=admin@empresa.do
+ *
+ * El CSV necesita dos columnas: `sku` y `cantidad_contada`. Acepta separador
+ * `,` `;` o tabulador y varios nombres de cabecera; ver `_conteoCsv.ts`.
  *
  * Sin `--aplicar` no escribe absolutamente nada. `--usuario` es obligatorio al
- * aplicar porque `inventory_movements.user_id` es NOT NULL: el movimiento tiene
- * que quedar a nombre de alguien.
- *
- * Es idempotente: al terminar no queda ningun nivel negativo, y una segunda
- * ejecucion no encuentra nada que corregir.
+ * aplicar porque `inventory_movements.user_id` es NOT NULL. Es idempotente: una
+ * segunda ejecucion con el mismo conteo no encuentra ninguna diferencia.
  */
 // Tiene que ir ANTES que cualquier import que toque la base: src/db aborta al
 // cargarse si falta DATABASE_URL, y tsx no lee .env por su cuenta.
 import './_cargarEnv';
-import { db, inventoryLevels, inventoryMovements, products, warehouses, companies, users } from '../src/db';
-import { and, eq, lt, sql } from 'drizzle-orm';
-import { writeFileSync } from 'fs';
-
-type Modo = 'PRODUCCION' | 'PRUEBA';
-
-interface Fila {
-  levelId: string;
-  companyId: string;
-  companyName: string;
-  modo: Modo;
-  productId: string;
-  productName: string;
-  sku: string | null;
-  cost: number;
-  warehouseId: string;
-  warehouseName: string;
-  quantity: number;
-  /** Valor del faltante = |cantidad| * costo unitario. */
-  valor: number;
-}
+import { db, inventoryLevels, inventoryMovements, products } from '../src/db';
+import { and, eq, isNull, lt, sql } from 'drizzle-orm';
+import { leerConteo } from './_conteoCsv';
+import { CERO, type Modo, type Nivel, type Ajuste, type Plan } from './_inventarioTipos';
+import {
+  resolverEmpresa, resolverAlmacen, resolverUsuario,
+  buscarNegativos, nivelesDelAlmacen, contarCeros,
+} from './_inventarioDatos';
+import {
+  cantidad, etiqueta, imprimirNegativos, imprimirNotaContable, imprimirPlan, exportarCsv,
+} from './_inventarioInforme';
 
 // ---------------------------------------------------------------- argumentos
 
@@ -75,269 +72,246 @@ function leerArgumentos() {
     throw new Error(`--modo debe ser PRODUCCION o PRUEBA, no "${modo}".`);
   }
 
-  const opciones = {
+  const ausentes = valor('ausentes') || 'ignorar';
+  if (ausentes !== 'ignorar' && ausentes !== 'cero') {
+    throw new Error(`--ausentes debe ser "ignorar" o "cero", no "${ausentes}".`);
+  }
+
+  const o = {
     empresa: valor('empresa'),
     modo: modo as Modo | undefined,
+    almacen: valor('almacen'),
+    conteo: valor('conteo'),
+    referencia: valor('referencia'),
+    ausentes: ausentes as 'ignorar' | 'cero',
     csv: valor('csv'),
     usuario: valor('usuario'),
     aplicar: args.includes('--aplicar'),
   };
 
   const desconocidos = args.filter(
-    (a) => a !== '--aplicar' && !/^--(empresa|modo|csv|usuario)=/.test(a)
+    (a) => a !== '--aplicar' &&
+      !/^--(empresa|modo|almacen|conteo|referencia|ausentes|csv|usuario)=/.test(a)
   );
   if (desconocidos.length > 0) {
     throw new Error(`Argumentos no reconocidos: ${desconocidos.join(', ')}`);
   }
 
-  if (opciones.aplicar && !opciones.usuario) {
+  if (o.aplicar && !o.conteo) {
+    throw new Error(
+      'No hay nada que aplicar sin --conteo=<fichero.csv>.\n' +
+        'Este script ya no lleva los niveles a cero: el diagnostico mostro que a estos ' +
+        'productos les falta la entrada, no les sobra la salida, asi que cero seria tan ' +
+        'falso como el negativo. La correccion es cargar el conteo fisico del almacen.'
+    );
+  }
+  if (o.aplicar && !o.usuario) {
     throw new Error(
       'Al aplicar hay que indicar --usuario=<correo o uuid>: el movimiento de ajuste ' +
         'se registra a nombre de ese usuario (inventory_movements.user_id es obligatorio).'
     );
   }
-
-  return opciones;
-}
-
-// ------------------------------------------------------------------ consulta
-
-async function buscarNegativos(empresa?: string, modo?: Modo): Promise<Fila[]> {
-  const filtros = [lt(inventoryLevels.quantity, '0')];
-  if (empresa) filtros.push(eq(inventoryLevels.companyId, empresa));
-  if (modo) filtros.push(eq(inventoryLevels.modo, modo));
-
-  const filas = await db
-    .select({
-      levelId: inventoryLevels.id,
-      companyId: inventoryLevels.companyId,
-      companyName: companies.name,
-      modo: inventoryLevels.modo,
-      productId: inventoryLevels.productId,
-      productName: products.name,
-      sku: products.sku,
-      cost: products.cost,
-      warehouseId: inventoryLevels.warehouseId,
-      warehouseName: warehouses.name,
-      quantity: inventoryLevels.quantity,
-    })
-    .from(inventoryLevels)
-    .innerJoin(products, eq(products.id, inventoryLevels.productId))
-    .innerJoin(warehouses, eq(warehouses.id, inventoryLevels.warehouseId))
-    .innerJoin(companies, eq(companies.id, inventoryLevels.companyId))
-    .where(and(...filtros))
-    .orderBy(companies.name, inventoryLevels.modo, warehouses.name, products.name);
-
-  return filas.map((f) => {
-    const quantity = Number(f.quantity);
-    const cost = Number(f.cost || 0);
-    return {
-      ...f,
-      modo: f.modo as Modo,
-      quantity,
-      cost,
-      valor: Math.abs(quantity) * cost,
-    };
-  });
-}
-
-/** Cuenta los niveles en cero. No requieren correccion; se informan aparte. */
-async function contarCeros(empresa?: string, modo?: Modo): Promise<number> {
-  const filtros = [eq(inventoryLevels.quantity, '0')];
-  if (empresa) filtros.push(eq(inventoryLevels.companyId, empresa));
-  if (modo) filtros.push(eq(inventoryLevels.modo, modo));
-
-  const [fila] = await db
-    .select({ total: sql<string>`count(*)` })
-    .from(inventoryLevels)
-    .where(and(...filtros));
-  return Number(fila?.total || 0);
-}
-
-// ------------------------------------------------------------------- reporte
-
-const dinero = (n: number) =>
-  n.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const cantidad = (n: number) =>
-  n.toLocaleString('es-DO', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-
-function imprimirReporte(filas: Fila[], ceros: number) {
-  console.log('');
-  console.log('NIVELES DE INVENTARIO EN NEGATIVO');
-  console.log('='.repeat(100));
-
-  let empresaActual = '';
-  let almacenActual = '';
-  for (const f of filas) {
-    const clave = `${f.companyName} [${f.modo}]`;
-    if (clave !== empresaActual) {
-      empresaActual = clave;
-      almacenActual = '';
-      console.log('');
-      console.log(clave);
-    }
-    if (f.warehouseName !== almacenActual) {
-      almacenActual = f.warehouseName;
-      console.log(`  Almacen: ${almacenActual}`);
-    }
-    const nombre = `${f.sku ? `[${f.sku}] ` : ''}${f.productName}`;
-    console.log(
-      `    ${nombre.padEnd(52).slice(0, 52)} ` +
-        `${cantidad(f.quantity).padStart(14)}  ` +
-        `x costo ${dinero(f.cost).padStart(12)}  ` +
-        `= ${dinero(f.valor).padStart(14)}`
-    );
-  }
-
-  const total = filas.reduce((acc, f) => acc + f.valor, 0);
-  const unidades = filas.reduce((acc, f) => acc + Math.abs(f.quantity), 0);
-
-  console.log('');
-  console.log('-'.repeat(100));
-  console.log(`Niveles en negativo : ${filas.length}`);
-  console.log(`Unidades faltantes  : ${cantidad(unidades)}`);
-  console.log(`Valor del faltante  : RD$ ${dinero(total)}`);
-  console.log(`Niveles en cero     : ${ceros}  (normales, no se tocan)`);
-
-  const sinCosto = filas.filter((f) => f.cost <= 0);
-  if (sinCosto.length > 0) {
-    console.log('');
-    console.log(
-      `AVISO: ${sinCosto.length} de estos productos tienen costo 0, asi que su faltante ` +
-        'no aporta valor al total. Revisa el costo antes de dar el monto por bueno.'
-    );
-  }
-
-  return total;
-}
-
-function imprimirAsiento(total: number) {
-  console.log('');
-  console.log('ASIENTO CONTABLE QUE HARIA FALTA (no se registra)');
-  console.log('='.repeat(100));
-  console.log(
-    'Ningun ajuste de inventario de la aplicacion genera asiento contable hoy, asi que\n' +
-      'este script tampoco lo hace. Para que el mayor cuadre con el kardex hay que\n' +
-      'registrar, con la cuenta de faltantes que decida el contador:'
-  );
-  console.log('');
-  console.log(`  DEBE   Faltantes / Merma de inventario     RD$ ${dinero(total)}`);
-  console.log(`  HABER  Inventario de mercancias            RD$ ${dinero(total)}`);
-  console.log('');
-  console.log(
-    'La cuenta de faltantes es una decision del negocio (gasto operativo, costo de\n' +
-      'ventas o cuenta por cobrar a un responsable, segun el caso). Deficit no\n' +
-      'documentado tratado como gasto puede no ser deducible ante la DGII: consultalo\n' +
-      'con el contador antes de registrarlo.'
-  );
-}
-
-function exportarCsv(filas: Fila[], ruta: string) {
-  const escapar = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const lineas = [
-    ['empresa', 'modo', 'almacen', 'sku', 'producto', 'cantidad', 'costo_unitario', 'valor_faltante', 'level_id']
-      .map(escapar)
-      .join(','),
-    ...filas.map((f) =>
-      [f.companyName, f.modo, f.warehouseName, f.sku || '', f.productName,
-       f.quantity.toFixed(4), f.cost.toFixed(2), f.valor.toFixed(2), f.levelId]
-        .map(escapar)
-        .join(',')
-    ),
-  ];
-  writeFileSync(ruta, lineas.join('\n') + '\n', 'utf8');
-  console.log('');
-  console.log(`Detalle exportado a ${ruta}`);
-}
-
-// ------------------------------------------------------------------ correccion
-
-/**
- * Resuelve el usuario que firmara los ajustes. Acepta correo o uuid, y exige
- * que pertenezca a la empresa cuyos niveles se van a corregir: un movimiento
- * firmado por un usuario de otra empresa seria un registro invalido.
- */
-async function resolverUsuario(identificador: string, companyId: string) {
-  const porUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identificador);
-  const [usuario] = await db
-    .select({ id: users.id, email: users.email, companyId: users.companyId })
-    .from(users)
-    .where(porUuid ? eq(users.id, identificador) : eq(users.email, identificador))
-    .limit(1);
-
-  if (!usuario) throw new Error(`No existe ningun usuario con "${identificador}".`);
-  if (usuario.companyId !== companyId) {
+  if (o.conteo && (!o.empresa || !o.modo || !o.almacen)) {
     throw new Error(
-      `El usuario ${usuario.email} no pertenece a la empresa ${companyId}. ` +
-        'Ejecuta el script por empresa (--empresa=<uuid>) con un usuario de cada una.'
+      'Cargar un conteo exige --empresa, --modo y --almacen: el fichero describe la ' +
+        'existencia de UN almacen en UN entorno, y aplicarlo al que no es reescribiria ' +
+        'las existencias equivocadas.'
     );
   }
-  return usuario;
+
+  return o;
 }
 
-async function corregir(filas: Fila[], identificadorUsuario: string) {
-  // Un usuario por empresa: el movimiento tiene que quedar firmado por alguien
-  // de la misma empresa del nivel.
-  const empresas = [...new Set(filas.map((f) => f.companyId))];
+// ---------------------------------------------------- modo 2: carga de conteo
+
+async function construirPlan(
+  ruta: string, companyId: string, modo: Modo, warehouseId: string, warehouseName: string
+): Promise<Plan> {
+  const lineas = leerConteo(ruta);
+
+  // Un mismo SKU puede venir en varias filas (varias estanterias). Se suman,
+  // pero se avisa: tambien puede ser una captura duplicada.
+  const porSku = new Map<string, { sku: string; cantidad: number; lineas: number[] }>();
+  for (const l of lineas) {
+    const clave = l.sku.trim().toLowerCase();
+    const previo = porSku.get(clave);
+    if (previo) { previo.cantidad += l.cantidad; previo.lineas.push(l.linea); }
+    else porSku.set(clave, { sku: l.sku.trim(), cantidad: l.cantidad, lineas: [l.linea] });
+  }
+
+  const repetidos = [...porSku.values()]
+    .filter((v) => v.lineas.length > 1)
+    .map((v) => ({ sku: v.sku, lineas: v.lineas, total: v.cantidad }));
+
+  // Catalogo de la empresa. `products.sku` es NULLABLE y su indice NO es unico,
+  // asi que dos productos pueden compartir SKU: hay que detectarlo, no elegir.
+  const catalogo = await db
+    .select({
+      id: products.id, name: products.name, sku: products.sku, cost: products.cost,
+      activo: sql<boolean>`(${products.deletedAt} is null and ${products.status} = 'active')`,
+    })
+    .from(products)
+    .where(and(eq(products.companyId, companyId), isNull(products.deletedAt)));
+
+  const porClave = new Map<string, typeof catalogo>();
+  for (const p of catalogo) {
+    if (!p.sku) continue;
+    const clave = p.sku.trim().toLowerCase();
+    porClave.set(clave, [...(porClave.get(clave) || []), p]);
+  }
+
+  const ambiguos = [...porSku.entries()]
+    .filter(([clave]) => (porClave.get(clave)?.length || 0) > 1)
+    .map(([, v]) => v.sku);
+  if (ambiguos.length > 0) {
+    throw new Error(
+      `Estos SKU del conteo corresponden a mas de un producto de la empresa: ` +
+        `${ambiguos.join(', ')}. La tabla products no impone SKU unico. Depura el ` +
+        'catalogo antes de cargar el conteo: no puedo elegir por ti a que producto ' +
+        'pertenece la existencia contada.'
+    );
+  }
+
+  const niveles = await nivelesDelAlmacen(companyId, modo, warehouseId);
+  const nivelPorProducto = new Map(niveles.map((n) => [n.productId, n]));
+
+  const plan: Plan = {
+    ajustes: [], iguales: [], nuevos: [], desconocidos: [], noContados: [], repetidos,
+  };
+  const contados = new Set<string>();
+
+  for (const [clave, v] of porSku) {
+    const producto = porClave.get(clave)?.[0];
+    if (!producto) {
+      plan.desconocidos.push({ sku: v.sku, cantidad: v.cantidad, lineas: v.lineas });
+      continue;
+    }
+    contados.add(producto.id);
+
+    const nivel = nivelPorProducto.get(producto.id);
+    const base: Nivel = nivel || {
+      levelId: null,
+      companyId, modo,
+      productId: producto.id,
+      productName: producto.name,
+      sku: producto.sku,
+      activo: producto.activo,
+      cost: Number(producto.cost || 0),
+      warehouseId, warehouseName,
+      quantity: 0,
+    };
+
+    const diferencia = v.cantidad - base.quantity;
+    const ajuste: Ajuste = {
+      ...base,
+      contado: v.cantidad,
+      diferencia,
+      valor: Math.abs(diferencia) * base.cost,
+    };
+
+    if (!nivel) plan.nuevos.push(ajuste);
+    else if (Math.abs(diferencia) < CERO) plan.iguales.push(ajuste);
+    else plan.ajustes.push(ajuste);
+  }
+
+  plan.noContados = niveles.filter((n) => !contados.has(n.productId));
+  return plan;
+}
+
+// ----------------------------------------------------------------- escritura
+
+async function aplicar(ajustes: Ajuste[], identificadorUsuario: string, referencia: string) {
+  const empresas = [...new Set(ajustes.map((a) => a.companyId))];
   const usuarioPorEmpresa = new Map<string, string>();
   for (const companyId of empresas) {
-    const usuario = await resolverUsuario(identificadorUsuario, companyId);
-    usuarioPorEmpresa.set(companyId, usuario.id);
+    usuarioPorEmpresa.set(companyId, (await resolverUsuario(identificadorUsuario, companyId)).id);
   }
 
-  let corregidos = 0;
+  let escritos = 0;
   let omitidos = 0;
 
-  for (const f of filas) {
+  for (const a of ajustes) {
     await db.transaction(async (tx) => {
-      // Relee con bloqueo: entre el reporte y la correccion el nivel pudo
-      // cambiar (una compra, otro ajuste). Si ya no esta en negativo, se deja.
-      const [actual] = await tx
-        .select({ quantity: inventoryLevels.quantity })
-        .from(inventoryLevels)
-        .where(eq(inventoryLevels.id, f.levelId))
-        .for('update');
+      // Relee con bloqueo. Entre la simulacion y la carga el nivel pudo moverse
+      // (una venta, un despacho), asi que la diferencia se recalcula contra lo
+      // que hay AHORA, no contra lo que habia al construir el plan. El destino
+      // es siempre la cantidad contada.
+      //
+      // Si el nivel ya existia se localiza por su clave primaria. No es un
+      // capricho: la busqueda compuesta necesita empresa Y modo Y producto Y
+      // almacen, y olvidar el modo la deja apuntando a dos filas -- la de
+      // PRODUCCION y la de PRUEBA -- de las que Postgres devuelve la que le
+      // parece. Por el id no hay filtro que olvidar.
+      const [actual] = a.levelId
+        ? await tx
+            .select({ id: inventoryLevels.id, quantity: inventoryLevels.quantity })
+            .from(inventoryLevels)
+            .where(eq(inventoryLevels.id, a.levelId))
+            .for('update')
+        : await tx
+            // Sin id todavia: el producto se conto y no tenia nivel. Aqui la
+            // busqueda compuesta es obligatoria, y el modo con ella, porque el
+            // mismo producto puede tener nivel en el OTRO entorno y este
+            // insert no debe convertirse en una actualizacion de aquel.
+            .select({ id: inventoryLevels.id, quantity: inventoryLevels.quantity })
+            .from(inventoryLevels)
+            .where(
+              and(
+                eq(inventoryLevels.companyId, a.companyId),
+                eq(inventoryLevels.modo, a.modo),
+                eq(inventoryLevels.productId, a.productId),
+                eq(inventoryLevels.warehouseId, a.warehouseId)
+              )
+            )
+            .for('update');
 
-      if (!actual) {
+      const desde = actual ? Number(actual.quantity) : 0;
+      const diferencia = a.contado - desde;
+
+      if (actual && Math.abs(diferencia) < CERO) {
         omitidos++;
+        console.log(`  omitido: ${etiqueta(a)} ya esta en ${cantidad(desde)}`);
         return;
       }
-      const cantidadActual = Number(actual.quantity);
-      if (cantidadActual >= 0) {
-        omitidos++;
-        console.log(`  omitido: ${f.productName} @ ${f.warehouseName} ya esta en ${cantidad(cantidadActual)}`);
-        return;
+
+      if (actual) {
+        await tx
+          .update(inventoryLevels)
+          .set({ quantity: a.contado.toFixed(4), updatedAt: new Date() })
+          .where(eq(inventoryLevels.id, actual.id));
+      } else {
+        await tx.insert(inventoryLevels).values({
+          companyId: a.companyId,
+          modo: a.modo,
+          productId: a.productId,
+          warehouseId: a.warehouseId,
+          quantity: a.contado.toFixed(4),
+        });
       }
-
-      const diferencia = -cantidadActual; // positiva: el ajuste sube el nivel a cero
-
-      await tx
-        .update(inventoryLevels)
-        .set({ quantity: '0.0000', updatedAt: new Date() })
-        .where(eq(inventoryLevels.id, f.levelId));
 
       await tx.insert(inventoryMovements).values({
-        companyId: f.companyId,
-        modo: f.modo,
-        productId: f.productId,
-        warehouseId: f.warehouseId,
-        userId: usuarioPorEmpresa.get(f.companyId)!,
+        companyId: a.companyId,
+        modo: a.modo,
+        productId: a.productId,
+        warehouseId: a.warehouseId,
+        userId: usuarioPorEmpresa.get(a.companyId)!,
         type: 'adjustment',
         quantity: diferencia.toFixed(4),
-        balanceAfter: '0.0000',
+        balanceAfter: a.contado.toFixed(4),
         description:
-          `Ajuste F1-04: correccion de existencia negativa (${cantidadActual.toFixed(4)} -> 0). ` +
-          `Salidas registradas sin existencia por la validacion de stock defectuosa. ` +
-          `Valor estimado del faltante: RD$ ${(Math.abs(cantidadActual) * f.cost).toFixed(2)}.`,
+          `Conteo fisico ${referencia}: existencia ajustada de ${desde.toFixed(4)} a ` +
+          `${a.contado.toFixed(4)} en ${a.warehouseName}. ` +
+          (actual ? '' : 'El producto no tenia nivel en este almacen. ') +
+          'Sin asiento contable: las compras van directas a costo de ventas.',
       });
 
-      corregidos++;
+      escritos++;
     });
   }
 
   console.log('');
-  console.log(`Niveles corregidos: ${corregidos}`);
-  if (omitidos > 0) console.log(`Niveles omitidos  : ${omitidos} (ya no estaban en negativo)`);
+  console.log(`Niveles escritos : ${escritos}`);
+  if (omitidos > 0) console.log(`Niveles omitidos : ${omitidos} (ya coincidian con el conteo)`);
 }
 
 /**
@@ -355,11 +329,8 @@ async function sugerirValidacionDelCheck() {
   console.log('');
   if (restantes > 0) {
     console.log(
-      restantes === 1
-        ? 'Queda 1 nivel en negativo fuera del alcance de esta ejecucion (otra empresa o ' +
-          'el otro modo). Corrigelo antes del ultimo paso.'
-        : `Quedan ${restantes} niveles en negativo fuera del alcance de esta ejecucion ` +
-          '(otras empresas o el otro modo). Corrigelos antes del ultimo paso.'
+      `Quedan ${restantes} nivel(es) en negativo fuera del alcance de esta ejecucion ` +
+        '(otro almacen, otra empresa o el otro modo). Corrigelos antes del ultimo paso.'
     );
     return;
   }
@@ -378,37 +349,79 @@ async function sugerirValidacionDelCheck() {
 // ---------------------------------------------------------------------- main
 
 async function main() {
-  const opciones = leerArgumentos();
+  const o = leerArgumentos();
 
-  const [filas, ceros] = await Promise.all([
-    buscarNegativos(opciones.empresa, opciones.modo),
-    contarCeros(opciones.empresa, opciones.modo),
-  ]);
+  const empresa = o.empresa ? await resolverEmpresa(o.empresa) : undefined;
 
-  if (filas.length === 0) {
+  // ---------------------------------------------------------- diagnostico
+  if (!o.conteo) {
+    const [filas, ceros] = await Promise.all([
+      buscarNegativos(empresa?.id, o.modo),
+      contarCeros(empresa?.id, o.modo),
+    ]);
+
+    if (filas.length === 0) {
+      console.log('');
+      console.log('No hay ningun nivel de inventario en negativo.');
+      console.log(`Niveles en cero: ${ceros} (normales, no se tocan).`);
+      return;
+    }
+
+    imprimirNegativos(filas, ceros);
+    if (o.csv) exportarCsv(filas, o.csv);
+    imprimirNotaContable();
+
     console.log('');
-    console.log('No hay ningun nivel de inventario en negativo.');
-    console.log(`Niveles en cero: ${ceros} (normales, no se tocan).`);
+    console.log('='.repeat(100));
+    console.log('SIMULACION: no se escribio nada. Esto es solo el diagnostico.');
+    console.log('Para corregir hace falta el conteo fisico del almacen:');
+    console.log('  npx tsx scripts/inventario_negativo.ts --conteo=conteo.csv \\');
+    console.log('      --empresa=<uuid> --modo=PRODUCCION --almacen=Principal');
     return;
   }
 
-  const total = imprimirReporte(filas, ceros);
-  if (opciones.csv) exportarCsv(filas, opciones.csv);
-  imprimirAsiento(total);
+  // -------------------------------------------------------- carga de conteo
+  const almacen = await resolverAlmacen(o.almacen!, empresa!.id);
+  const referencia = o.referencia || new Date().toISOString().slice(0, 10);
 
-  if (!opciones.aplicar) {
+  console.log('');
+  console.log(`Empresa   : ${empresa!.name}`);
+  console.log(`Entorno   : ${o.modo}`);
+  console.log(`Almacen   : ${almacen.name} (${almacen.code})`);
+  console.log(`Conteo    : ${o.conteo}   referencia "${referencia}"`);
+
+  const plan = await construirPlan(o.conteo, empresa!.id, o.modo!, almacen.id, almacen.name);
+
+  if (o.ausentes === 'cero') {
+    for (const n of plan.noContados) {
+      if (Math.abs(n.quantity) < CERO) continue; // ya esta en cero
+      plan.ajustes.push({ ...n, contado: 0, diferencia: -n.quantity, valor: Math.abs(n.quantity) * n.cost });
+    }
+  }
+
+  const escribibles = imprimirPlan(plan, o);
+  if (o.csv) exportarCsv([...escribibles, ...plan.iguales], o.csv);
+  imprimirNotaContable();
+
+  if (!o.aplicar) {
     console.log('');
     console.log('='.repeat(100));
     console.log('SIMULACION: no se escribio nada.');
-    console.log('Para aplicar la correccion:');
-    console.log('  npx tsx scripts/inventario_negativo.ts --aplicar --usuario=<correo>');
+    console.log('Revisa los avisos de arriba. Para aplicar, la misma orden con:');
+    console.log('  --aplicar --usuario=<correo>');
+    return;
+  }
+
+  if (escribibles.length === 0) {
+    console.log('');
+    console.log('No hay ninguna diferencia que cargar.');
     return;
   }
 
   console.log('');
   console.log('='.repeat(100));
-  console.log('APLICANDO CORRECCION...');
-  await corregir(filas, opciones.usuario!);
+  console.log('CARGANDO CONTEO...');
+  await aplicar(escribibles, o.usuario!, referencia);
   await sugerirValidacionDelCheck();
 }
 
