@@ -64,7 +64,9 @@ export async function GET(req: NextRequest) {
     const hasBarcode = hasBarcodeParam === 'true' ? true : hasBarcodeParam === 'false' ? false : undefined;
 
     if (barcode) {
-      const cacheKeyBarcode = `cache:products:${auth.companyId}:barcode_${barcode}`;
+      // El entorno va en la clave: la respuesta incluye existencias, que son
+      // distintas en cada uno, y la cache dura 3600 segundos.
+      const cacheKeyBarcode = `cache:products:${auth.companyId}:${auth.modo}:barcode_${barcode}`;
       const cachedBarcode = await getCache(cacheKeyBarcode);
       if (cachedBarcode) {
         return NextResponse.json(JSON.parse(cachedBarcode), { headers: resHeaders });
@@ -86,6 +88,10 @@ export async function GET(req: NextRequest) {
           .where(
             and(
               eq(inventoryLevels.companyId, auth.companyId),
+              // El indice unico es (product_id, warehouse_id, modo): sin el
+              // filtro cada almacen salia DUPLICADO en la respuesta, una vez
+              // por entorno, y el POS mostraba existencias que no son de este.
+              eq(inventoryLevels.modo, auth.modo),
               eq(inventoryLevels.productId, product.id)
             )
           );
@@ -111,7 +117,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(responseData, { headers: resHeaders });
     }
 
-    const cacheKeyList = `cache:products:${auth.companyId}:page_${page}:perPage_${perPage}:search_${search || ''}:cat_${categoryId || ''}:hb_${hasBarcodeParam || ''}`;
+    const cacheKeyList = `cache:products:${auth.companyId}:${auth.modo}:page_${page}:perPage_${perPage}:search_${search || ''}:cat_${categoryId || ''}:hb_${hasBarcodeParam || ''}`;
     const cachedList = await getCache(cacheKeyList);
     if (cachedList) {
       return NextResponse.json(JSON.parse(cachedList), { headers: resHeaders });
@@ -136,6 +142,7 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(inventoryLevels.companyId, auth.companyId),
+            eq(inventoryLevels.modo, auth.modo),
             inArray(inventoryLevels.productId, productIds)
           )
         );

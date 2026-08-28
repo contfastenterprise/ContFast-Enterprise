@@ -21,7 +21,13 @@ export async function GET(req: NextRequest) {
     const warehouseId = searchParams.get('warehouseId');
     const ncf = searchParams.get('ncf');
 
-    const filters: any[] = [eq(expenses.companyId, session.companyId)];
+    // El informe de compras se imprime y se entrega. Sin el filtro de entorno
+    // incluia las compras de practicas con su NCF y su monto, indistinguibles
+    // de las reales.
+    const filters: any[] = [
+      eq(expenses.companyId, session.companyId),
+      eq(expenses.modo, session.modo),
+    ];
 
     if (startDate && endDate) {
       filters.push(between(expenses.issueDate, startDate, endDate));

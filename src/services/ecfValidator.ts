@@ -95,7 +95,8 @@ export class EcfValidator {
    */
   static async validateSequence(
     companyId: string,
-    ecfType: string
+    ecfType: string,
+    modo: 'PRODUCCION' | 'PRUEBA'
   ): Promise<EcfValidationError[]> {
     const errors: EcfValidationError[] = [];
 
@@ -105,6 +106,12 @@ export class EcfValidator {
       .where(
         and(
           eq(ecfSequences.companyId, companyId),
+          // El indice unico de la tabla es (company_id, ecf_type, modo): hay DOS
+          // secuencias por tipo, una por entorno, con autorizaciones SACF
+          // distintas de la DGII. Sin este filtro la consulta elegia por fecha
+          // de creacion, asi que una emision real podia validarse contra el
+          // rango y el vencimiento de la secuencia de pruebas -- y al reves.
+          eq(ecfSequences.modo, modo),
           eq(ecfSequences.ecfType, ecfType),
           eq(ecfSequences.status, 'active'),
           isNull(ecfSequences.deletedAt)
@@ -175,6 +182,11 @@ export class EcfValidator {
         .where(
           and(
             eq(invoices.companyId, companyId),
+            // El limite del plan cuenta comprobantes REALES. Sin este filtro,
+            // practicar en PRUEBA consumia la cuota pagada. Se fija a
+            // PRODUCCION a proposito y no al entorno de la sesion: el limite es
+            // comercial, sobre lo que de verdad se emite a la DGII.
+            eq(invoices.modo, 'PRODUCCION'),
             gte(invoices.createdAt, sub.currentPeriodStart),
             lte(invoices.createdAt, sub.currentPeriodEnd)
           )
@@ -205,6 +217,7 @@ export class EcfValidator {
     companyId: string,
     ecfType: string,
     companyRnc: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     strictRncLookup = false
   ): Promise<EcfValidationResult> {
     const errors: EcfValidationError[] = [];
@@ -222,7 +235,7 @@ export class EcfValidator {
     if (rncError) errors.push(rncError);
 
     // 2–4. Sequence checks (run even if RNC check failed so we surface all errors at once)
-    const seqErrors = await EcfValidator.validateSequence(companyId, ecfType);
+    const seqErrors = await EcfValidator.validateSequence(companyId, ecfType, modo);
     errors.push(...seqErrors);
 
     return { valid: errors.length === 0, errors };

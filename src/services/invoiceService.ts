@@ -21,7 +21,7 @@ export class InvoiceService {
       throw new Error('Compañía no encontrada.');
     }
 
-    await InvoiceValidator.validatePreEmission(data.companyId, data.ecfType, company.rnc);
+    await InvoiceValidator.validatePreEmission(data.companyId, data.ecfType, company.rnc, data.modo || 'PRODUCCION');
 
     // ── 1. Determine the active cash session ──────────────────────────────────
     const activeCashSessionId = await InvoiceDbBooker.determineActiveCashSession(

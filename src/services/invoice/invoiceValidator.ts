@@ -4,8 +4,15 @@ export class InvoiceValidator {
   /**
    * Helper to run pre-emission validation via EcfValidator.
    */
-  static async validatePreEmission(companyId: string, ecfType: string, rnc: string) {
-    const preCheck = await EcfValidator.runAll(companyId, ecfType, rnc);
+  static async validatePreEmission(
+    companyId: string,
+    ecfType: string,
+    rnc: string,
+    modo: 'PRODUCCION' | 'PRUEBA'
+  ) {
+    // El entorno hace falta para elegir la secuencia e-CF correcta: cada uno
+    // tiene su propia autorizacion SACF de la DGII.
+    const preCheck = await EcfValidator.runAll(companyId, ecfType, rnc, modo);
     if (!preCheck.valid) {
       const messages = preCheck.errors.map((e) => e.message).join(' | ');
       const err: any = new Error(`No se puede emitir el e-CF: ${messages}`);
