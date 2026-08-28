@@ -49,7 +49,7 @@ export class GetCustomerCatalogTool implements Tool {
         .where(
           and(
             tenantCondition,
-            eq(invoices.modo, 'PRODUCCION'),
+            eq(invoices.modo, context.modo),
             sql`invoices.status IN ('signed', 'submitted', 'accepted')`,
             sql`invoices.payment_status IN ('unpaid', 'partial')`
           )
@@ -71,7 +71,7 @@ export class GetCustomerCatalogTool implements Tool {
         .where(
           and(
             tenantCondition,
-            eq(invoices.modo, 'PRODUCCION'),
+            eq(invoices.modo, context.modo),
             sql`invoices.status IN ('signed', 'submitted', 'accepted')`
           )
         )

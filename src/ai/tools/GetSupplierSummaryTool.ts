@@ -62,7 +62,7 @@ export class GetSupplierSummaryTool implements Tool {
         .where(
           and(
             eq(accountsPayable.companyId, context.tenantId),
-            eq(accountsPayable.modo, 'PRODUCCION'),
+            eq(accountsPayable.modo, context.modo),
             eq(accountsPayable.supplierId, supplier.id),
             sql`${accountsPayable.status} != 'paid'`
           )
@@ -77,7 +77,7 @@ export class GetSupplierSummaryTool implements Tool {
         .where(
           and(
             eq(expenses.companyId, context.tenantId),
-            eq(expenses.modo, 'PRODUCCION'),
+            eq(expenses.modo, context.modo),
             eq(expenses.supplierId, supplier.id)
           )
         );

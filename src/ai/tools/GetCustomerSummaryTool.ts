@@ -66,7 +66,7 @@ export class GetCustomerSummaryTool implements Tool {
         .where(
           and(
             eq(invoices.companyId, context.tenantId),
-            eq(invoices.modo, 'PRODUCCION'),
+            eq(invoices.modo, context.modo),
             eq(invoices.customerId, customer.id),
             sql`invoices.status IN ('signed', 'submitted', 'accepted')`
           )
@@ -82,7 +82,7 @@ export class GetCustomerSummaryTool implements Tool {
         .where(
           and(
             eq(invoices.companyId, context.tenantId),
-            eq(invoices.modo, 'PRODUCCION'),
+            eq(invoices.modo, context.modo),
             eq(invoices.customerId, customer.id),
             sql`invoices.status IN ('signed', 'submitted', 'accepted')`,
             sql`invoices.payment_status IN ('unpaid', 'partial')`

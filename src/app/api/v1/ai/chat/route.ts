@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
     const context: AgentContext = {
       tenantId: auth.companyId,
       userId: user.id,
+      modo: auth.modo,
       language: 'es', // Opcionalmente extraer del header Accept-Language
       timezone: 'UTC', // Opcionalmente extraer del frontend
       permissions,

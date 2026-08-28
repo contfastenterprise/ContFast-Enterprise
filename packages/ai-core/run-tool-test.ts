@@ -42,6 +42,7 @@ async function main() {
   const hackerContext: AgentContext = {
     tenantId: "TENANT_DEMO_001",
     userId: "USER_GUEST_007",
+    modo: "PRODUCCION",
     language: "es", timezone: "UTC",
     permissions: ["invoice:read"], // SOLO PUEDE LEER
     enabledModules: ["sales"],
@@ -59,6 +60,7 @@ async function main() {
   const adminContext: AgentContext = {
     tenantId: "TENANT_DEMO_001",
     userId: "USER_ADMIN_999",
+    modo: "PRODUCCION",
     language: "es", timezone: "UTC",
     permissions: ["invoice:read", "invoice:delete"], // TIENE EL PERMISO
     enabledModules: ["sales"],

@@ -26,7 +26,7 @@ export class GetAccountingSummaryTool implements Tool {
     try {
       const baseCondition = and(
         eq(accountsReceivable.companyId, context.tenantId),
-        eq(accountsReceivable.modo, 'PRODUCCION')
+        eq(accountsReceivable.modo, context.modo)
       );
 
       // Total AR (Cuentas por Cobrar pendientes)
@@ -42,7 +42,7 @@ export class GetAccountingSummaryTool implements Tool {
         .where(
           and(
             eq(accountsPayable.companyId, context.tenantId),
-            eq(accountsPayable.modo, 'PRODUCCION'),
+            eq(accountsPayable.modo, context.modo),
             sql`${accountsPayable.status} != 'paid'`
           )
         );
@@ -54,7 +54,7 @@ export class GetAccountingSummaryTool implements Tool {
         .where(
           and(
             eq(expenses.companyId, context.tenantId),
-            eq(expenses.modo, 'PRODUCCION'),
+            eq(expenses.modo, context.modo),
             isNull(expenses.deletedAt)
           )
         );

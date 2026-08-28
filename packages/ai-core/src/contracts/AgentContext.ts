@@ -14,6 +14,15 @@ export interface AgentContext {
   
   /** Sucursal seleccionada en el ERP */
   readonly branchId?: string;
+
+  /**
+   * Entorno en el que trabaja el usuario: PRODUCCION o PRUEBA.
+   *
+   * Obligatorio. Las herramientas lo llevaban escrito a mano como 'PRODUCCION',
+   * asi que el agente respondia con cifras reales a un usuario que estaba
+   * trabajando en el entorno de pruebas.
+   */
+  readonly modo: 'PRODUCCION' | 'PRUEBA';
   
   /** Idioma preferido por el usuario */
   readonly language: string;

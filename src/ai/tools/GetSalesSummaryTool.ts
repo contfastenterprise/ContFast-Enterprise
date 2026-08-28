@@ -34,7 +34,7 @@ export class GetSalesSummaryTool implements Tool {
     
     const conditions = [
       eq(invoices.companyId, context.tenantId),
-      eq(invoices.modo, 'PRODUCCION'),
+      eq(invoices.modo, context.modo),
       isNull(invoices.deletedAt)
     ];
 

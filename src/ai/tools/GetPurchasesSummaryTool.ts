@@ -34,7 +34,7 @@ export class GetPurchasesSummaryTool implements Tool {
     
     const conditions = [
       eq(expenses.companyId, context.tenantId),
-      eq(expenses.modo, 'PRODUCCION'),
+      eq(expenses.modo, context.modo),
       isNull(expenses.deletedAt)
     ];
 

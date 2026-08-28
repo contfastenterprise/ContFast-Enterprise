@@ -48,7 +48,7 @@ export class GetSupplierCatalogTool implements Tool {
         .where(
           and(
             tenantCondition,
-            eq(accountsPayable.modo, 'PRODUCCION'),
+            eq(accountsPayable.modo, context.modo),
             sql`${accountsPayable.status} != 'paid'`
           )
         )
@@ -68,7 +68,7 @@ export class GetSupplierCatalogTool implements Tool {
         .where(
           and(
             tenantCondition,
-            eq(expenses.modo, 'PRODUCCION')
+            eq(expenses.modo, context.modo)
           )
         )
         .groupBy(suppliers.id, suppliers.name, suppliers.rnc)

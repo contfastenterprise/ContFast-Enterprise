@@ -25,7 +25,7 @@ export class GetInventorySummaryTool implements Tool {
     try {
       const tenantCondition = and(
         eq(inventoryLevels.companyId, context.tenantId),
-        eq(inventoryLevels.modo, 'PRODUCCION'),
+        eq(inventoryLevels.modo, context.modo),
         eq(products.status, 'active')
       );
 

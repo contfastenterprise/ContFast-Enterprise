@@ -39,7 +39,7 @@ export class GetCashSummaryTool implements Tool {
         .where(
           and(
             eq(cashSessions.companyId, context.tenantId),
-            eq(cashSessions.modo, 'PRODUCCION'),
+            eq(cashSessions.modo, context.modo),
             eq(cashSessions.status, 'open')
           )
         );
