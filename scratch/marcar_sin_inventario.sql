@@ -3,11 +3,24 @@
 -- Marca los productos que NO llevan control de existencia y retira sus niveles.
 -- Se ejecuta DESPUES de aplicar drizzle/0033_producto_sin_inventario.sql.
 --
--- Por que hace falta: un servicio o una mercancia que se vende por encargo no
+-- Por que hace falta: un servicio o una mercancia que se fabrica por pedido no
 -- esta en ningun almacen, pero el sistema le descontaba una unidad por cada
--- venta. "Servicios Instalacion" llego a -116 y "Ventana Corrediza" a -129 por
+-- venta. "Ventana Corrediza" llego a -129 y "Servicios Instalacion" a -116 por
 -- esa via. Poner el nivel a cero no arregla nada: la siguiente factura lo
 -- devuelve a negativo. Hay que declarar que el producto no lleva inventario.
+--
+-- Son nueve, y entre todos suman 379 de las 1.003 unidades en negativo del
+-- almacen Principal. Ninguna se corrige contando: no hay nada fisico que contar.
+--
+--   PROD-000055  Servicios Instalacion         -116   servicio
+--   PROD-000052  Ventana Corrediza             -129   por pedido
+--   PROD-000060  Closet Blanco -EN FACIA        -42   por pedido
+--   PROD-000057  Cuadro para Meseta Blanca      -40   por pedido
+--   PROD-000058  Despenda Blanca -Solo Frente   -33   por pedido
+--   PROD-000056  Gabinetes Blanco               -16   por pedido
+--   PROD-000069  Canaleta Cajon Roble            -1   por pedido
+--   PROD-000064  Cortina de Bano Alta            -1   por pedido
+--   PROD-000061  Gaveta                          -1   por pedido
 --
 -- Los pasos 1 y 4 son de solo lectura. Ejecuta el 1, mira la lista, y sigue.
 
@@ -20,7 +33,9 @@ SELECT p.sku,
        count(l.id)                  AS niveles_a_retirar
 FROM products p
 LEFT JOIN inventory_levels l ON l.product_id = p.id
-WHERE p.sku IN ('PROD-000055', 'PROD-000052')
+WHERE p.sku IN ('PROD-000055', 'PROD-000052', 'PROD-000060', 'PROD-000057',
+                 'PROD-000058', 'PROD-000056', 'PROD-000069', 'PROD-000064',
+                 'PROD-000061')
 GROUP BY p.sku, p.name
 ORDER BY p.sku;
 
@@ -30,7 +45,9 @@ ORDER BY p.sku;
 UPDATE products
 SET tracks_inventory = false,
     updated_at = now()
-WHERE sku IN ('PROD-000055', 'PROD-000052');
+WHERE sku IN ('PROD-000055', 'PROD-000052', 'PROD-000060', 'PROD-000057',
+                 'PROD-000058', 'PROD-000056', 'PROD-000069', 'PROD-000064',
+                 'PROD-000061');
 
 -- ---------------------------------------------------------------------------
 -- 3. Retirar sus niveles.
