@@ -23,6 +23,30 @@
 --   PROD-000061  Gaveta                          -1   por pedido
 --
 -- Los pasos 1 y 4 son de solo lectura. Ejecuta el 1, mira la lista, y sigue.
+--
+-- Desde psql conviene cortar en el primer error, para que un fallo del paso 0 no
+-- arrastre errores posteriores que despistan:
+--
+--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scratch/marcar_sin_inventario.sql
+--
+-- En el editor SQL de Supabase no hace falta: aborta solo.
+
+-- ---------------------------------------------------------------------------
+-- 0. Comprobar que la migracion ya esta aplicada.
+--
+-- Sin esto el fichero falla en el paso 2 con "column tracks_inventory does not
+-- exist", que no dice que hacer. Aqui corta arriba y lo dice.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'products' AND column_name = 'tracks_inventory'
+  ) THEN
+    RAISE EXCEPTION
+      'Falta la columna products.tracks_inventory. Aplica primero drizzle/0033_producto_sin_inventario.sql y vuelve a ejecutar este fichero.';
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 1. QUE se va a marcar. Revisa esto antes de nada.
