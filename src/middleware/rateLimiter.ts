@@ -109,9 +109,22 @@ export async function checkRateLimit(
     // Un script Lua se ejecuta entero y sin interrupciones dentro de Redis, asi
     // que el contador NUNCA puede quedarse sin TTL. Ademas es una sola ida y
     // vuelta en vez de dos. Los limites y las ventanas no cambian.
+    //
+    // Y ADEMAS SE CURA SOLO.
+    //
+    // Poner el `EXPIRE` unicamente cuando el contador vale 1 arregla el futuro
+    // pero no el pasado: una clave que YA quedo sin caducidad no vuelve a valer
+    // 1 nunca, asi que seguiria eterna y su endpoint seguiria en 429 despues de
+    // desplegar el arreglo. Habria que ir a borrarla a mano en Redis.
+    //
+    // `TTL` devuelve -1 cuando la clave existe pero no caduca (y -2 si no
+    // existe). Con esa condicion, la primera peticion que toque una clave
+    // huerfana le pone la ventana y el bloqueo se levanta solo.
     const LUA_CONTAR_Y_CADUCAR = `
       local c = redis.call('INCR', KEYS[1])
-      if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+      if c == 1 or redis.call('TTL', KEYS[1]) == -1 then
+        redis.call('EXPIRE', KEYS[1], ARGV[1])
+      end
       return c
     `;
 

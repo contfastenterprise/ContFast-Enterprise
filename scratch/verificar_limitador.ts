@@ -74,10 +74,23 @@ class RedisDeMentirijillas {
       v += 1;
       this.valores.set(key, v);
     }
-    if (/if c == 1 then redis\.call\('EXPIRE', KEYS\[1\], ARGV\[1\]\) end/.test(script)) {
-      if (v === 1) this.ttl.set(key, Number(arg));
+    // La condicion del EXPIRE se lee del script, trozo a trozo.
+    const mCond = script.match(/if ([^\n]*?) then\s*redis\.call\('EXPIRE', KEYS\[1\], ARGV\[1\]\)/);
+    if (mCond) {
+      const cond = mCond[1];
+      const porPrimera = /c == 1/.test(cond) && v === 1;
+      // TTL: -1 = existe sin caducidad, -2 = no existe.
+      const ttlActual = !this.valores.has(key) ? -2 : (this.ttl.has(key) ? this.ttl.get(key)! : -1);
+      const porHuerfana = /redis\.call\('TTL', KEYS\[1\]\) == -1/.test(cond) && ttlActual === -1;
+      if (porPrimera || porHuerfana) this.ttl.set(key, Number(arg));
     }
     return v;
+  }
+
+  /** Deja la clave como quedaba con el codigo viejo: con contador y sin TTL. */
+  dejarHuerfana(k: string, valor: number) {
+    this.valores.set(k, valor);
+    this.ttl.delete(k);
   }
 
   tieneCaducidad(k: string) { return this.ttl.has(k); }
@@ -183,6 +196,34 @@ async function comoEsAhora(r: RedisDeMentirijillas, key: string, ventana: number
     ok('el contador cuenta bien', nuevo.valores.get('k') === 6, String(nuevo.valores.get('k')));
   }
 
+  console.log('\n3b) Una clave que YA quedo eterna se cura sola\n');
+
+  // Esto es lo que hay ahora mismo en el Redis de la empresa: la clave
+  // `ratelimit:standard:127.0.0.1` con el contador por encima del limite y sin
+  // caducidad. Sin curarse sola, desplegar el arreglo no levantaria el 429:
+  // el contador ya nunca vuelve a valer 1.
+  {
+    const r = new RedisDeMentirijillas();
+    r.dejarHuerfana('k', 812); // muy por encima de los 500 del preset standard
+
+    ok('de partida: contador alto y sin caducidad', !r.tieneCaducidad('k'));
+
+    // Con el codigo VIEJO seguiria eterna para siempre.
+    const viejo = new RedisDeMentirijillas();
+    viejo.dejarHuerfana('k', 812);
+    for (let i = 0; i < 3; i++) await comoEraAntes(viejo, 'k', 60);
+    ok('el codigo viejo NO la cura: sigue sin caducidad', !viejo.tieneCaducidad('k'));
+
+    // Con el nuevo, la primera peticion que la toca le pone la ventana.
+    const c = await comoEsAhora(r, 'k', 60);
+    ok('el nuevo le pone la caducidad en la primera peticion', r.tieneCaducidad('k'));
+    ok('y es la ventana del preset', r.ttl.get('k') === 60, String(r.ttl.get('k')));
+    ok('el contador no se falsea: sigue siendo el que habia +1', c === 813, String(c));
+    // Ese 813 sigue por encima del limite, asi que esa peticion aun se rechaza
+    // -- correcto: lo que se arregla es que ahora la ventana CADUCA y a los 60
+    // segundos el endpoint vuelve solo.
+  }
+
   console.log('\n4) El codigo de verdad usa el script, no las dos ordenes\n');
 
   {
@@ -190,6 +231,8 @@ async function comoEsAhora(r: RedisDeMentirijillas, key: string, ventana: number
     ok('cuenta y caduca con un script Lua',
       /redis\.call\('INCR', KEYS\[1\]\)/.test(LUA_REAL)
       && /redis\.call\('EXPIRE', KEYS\[1\], ARGV\[1\]\)/.test(LUA_REAL));
+    ok('y tambien caduca las claves que ya estaban huerfanas',
+      /redis\.call\('TTL', KEYS\[1\]\) == -1/.test(LUA_REAL));
     ok('y el script no se queda de adorno: se usa',
       (src.match(/LUA_CONTAR_Y_CADUCAR/g) || []).length === 2,
       String((src.match(/LUA_CONTAR_Y_CADUCAR/g) || []).length));
