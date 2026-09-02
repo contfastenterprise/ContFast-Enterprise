@@ -107,7 +107,11 @@ export async function GET(
       )
       .limit(1);
 
-    const ncfExpiry = sequence?.sequenceExpiry || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : '31-12-2027');
+    // Era `: '31-12-2027'`. Una fecha de vencimiento inventada, impresa en el
+  // comprobante del cliente bajo el rotulo "Fecha Vencimiento". Sin fecha no se
+  // imprime la linea: la plantilla ya la omite cuando esto es null.
+  const ncfExpiry = sequence?.sequenceExpiry
+    || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : null);
 
     if (!company) {
       return new NextResponse('Company profile not found', { status: 404 });

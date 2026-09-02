@@ -1,32 +1,63 @@
--- ¿Que contesto mSeller de verdad? Solo lee.
+-- ============================================================================
+--  QUE CONTESTO mSELLER, LITERALMENTE
+-- ============================================================================
 --
--- El sintoma reportado: al emitir queda en "enviado" y hay que sincronizar a
--- mano para que llegue el estado final.
+--  UNA SOLA CONSULTA, A PROPOSITO
+--  ------------------------------
+--  La version anterior tenia tres. El editor SQL de Supabase devuelve solo el
+--  resultado de la ULTIMA, asi que las dos primeras -- que eran las que
+--  importaban -- no llegaban nunca. Ahora todo va en un unico SELECT.
 --
--- Eso NO es un tiempo de espera corto. Un timeout deja `dgii_message` con
--- "Error de red: timeout ...". "Enviado" (submitted) significa otra cosa:
--- mSeller SI contesto, dentro de plazo, pero su respuesta no traia veredicto
--- de la DGII. `leerEstado` lo deja en 'submitted' -- mandado, pendiente de
--- confirmar -- en vez de inventarse un "Aceptado".
+--  LA PREGUNTA QUE RESPONDE
+--  ------------------------
+--  "El estado se queda en ENVIADO y tengo que sincronizar para que aparezcan
+--  la firma, el QR y el codigo de seguridad."
 --
--- Si eso es lo que pasa, esperar mas no cambia nada: mSeller no esta
--- reteniendo la conexion hasta que la DGII decida. Lo que hay que hacer es
--- confirmar solo, sin que nadie pulse "sincronizar".
+--  Ya sabemos, por el reparto de estados, que las dos filas en 'submitted'
+--  TRAEN codigo de seguridad. O sea que mSeller no se quedo callado: contesto,
+--  y con material de firma dentro. Lo que no supimos leer fue el ESTADO.
 --
--- Esta consulta enseña la respuesta CRUDA de los ultimos envios. Con eso se ve
--- si mSeller devolvio veredicto o solo un acuse.
+--  Quedan dos variantes, y las distingue la columna "Mensaje del envio":
+--
+--    A1  "...la respuesta no trae estado de la DGII..."
+--        -> el estado no viene en NINGUNO de los campos que mira `leerEstado`
+--           (dgiiResponse[].estado, dgiiStatus, estadoDGII, status, estado).
+--           Hay que encontrar donde viene, y para eso esta el JSON crudo.
+--
+--    A2  "...Estado no reconocido (\"X\")..."
+--        -> si viene, con un texto que `leerEstado` no contempla. Ese X es lo
+--           que hay que anadir a la lista de sinonimos.
+--
+--  CUIDADO CON UNA COSA
+--  --------------------
+--  `response_payload` lo REESCRIBE cada consulta de estado. La columna
+--  "JSON sin pisar" dice si lo que se ve es la respuesta del ENVIO o ya la de
+--  una sincronizacion posterior. Si sale `false` en todas las filas, emite un
+--  comprobante mas y corre esto ANTES de sincronizar.
+--
+--  Si en el JSON aparece algo que parezca una credencial, tapalo antes de
+--  pegarlo. Aqui solo hace falta la parte del estado.
+-- ============================================================================
 
-SELECT i.ncf                                   AS "NCF",
-       i.created_at::time(0)                   AS "Hora",
-       i.status                                AS "Estado factura",
-       s.status                                AS "Estado envio",
-       coalesce(left(i.dgii_message, 60), '')  AS "Mensaje",
-       coalesce(s.track_id, '(sin trackId)')   AS "trackId",
-       coalesce(nullif(s.security_code, ''), '(sin codigo)') AS "Codigo",
-       left(coalesce(s.response_payload, '(vacio)'), 300)    AS "Respuesta cruda de mSeller"
-  FROM invoices i
-  LEFT JOIN dgii_submissions s ON s.invoice_id = i.id
+SELECT i.ncf                                              AS "e-NCF",
+       'e-' || i.ecf_type                                 AS "Tipo",
+       i.modo                                             AS "Modo",
+       i.status                                           AS "Estado factura",
+       d.status                                           AS "Estado envio",
+       to_char(d.created_at, 'DD-MM HH24:MI:SS')          AS "Enviado",
+       round(extract(epoch from (d.updated_at - d.created_at))::numeric, 1)
+                                                          AS "Seg. hasta cambio",
+       (d.created_at = d.updated_at)                      AS "JSON sin pisar",
+       coalesce(d.security_code, '(nulo)')                AS "Cod. envio",
+       coalesce(i.security_code, '(nulo)')                AS "Cod. factura",
+       -- ESTAS DOS SON LAS QUE DISTINGUEN A1 DE A2:
+       coalesce(d.response_message, '(nulo)')             AS "Mensaje del envio",
+       coalesce(i.dgii_message, '(nulo)')                 AS "Mensaje en factura",
+       coalesce(d.response_code, '(nulo)')                AS "Cod. resp.",
+       -- Y ESTE ES EL DATO DECISIVO:
+       left(coalesce(d.response_payload, '(vacio)'), 2000) AS "JSON crudo de mSeller"
+  FROM dgii_submissions d
+  JOIN invoices i ON i.id = d.invoice_id
  WHERE i.deleted_at IS NULL
-   AND i.created_at > now() - interval '2 days'
- ORDER BY i.created_at DESC
- LIMIT 8;
+ ORDER BY d.created_at DESC
+ LIMIT 4;

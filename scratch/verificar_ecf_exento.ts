@@ -307,7 +307,100 @@ function main() {
       JSON.stringify(p));
   }
 
-  console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
+  console.log('\nX) TipoIngresos: el catalogo de la DGII, no un numero fijo\n');
+
+// El catalogo (DGII, Formato e-CF v1.0, IdDoc campo 8):
+//     01 Ingresos por operaciones (No financieros)
+//     05 Ingresos por Venta de Activo Depreciable
+//
+// Estaba fijo en '05' en TODAS las facturas de venta. Cada venta se declaraba
+// como venta de un activo depreciable. No provoca rechazo -- el validador
+// acepta cualquier codigo del catalogo -- asi que llevaba ahi sin que nadie lo
+// viera. Confirmado contra un e-44 ACEPTADO de la propia empresa, que trae 01.
+{
+  const cli = fuente('src/services/dgii/msellerClient.ts');
+  ok('ninguna rama declara Venta de Activo Depreciable',
+    !/TipoIngresos: '05'/.test(cli));
+  ok('el valor sale de una constante con nombre',
+    /const TIPO_INGRESOS_OPERACIONES = '01';/.test(cli));
+  ok('y TODAS las ramas la usan',
+    (cli.match(/TipoIngresos: TIPO_INGRESOS_OPERACIONES,/g) || []).length === 4,
+    String((cli.match(/TipoIngresos: TIPO_INGRESOS_OPERACIONES,/g) || []).length));
+  ok('no queda ningun literal suelto',
+    !/TipoIngresos: '\d\d'/.test(cli));
+}
+
+console.log('\nY) La nota de credito dice POR QUE modifica, no CUANDO\n');
+
+// Dos campos con catalogos distintos, tratados como uno:
+//
+//   IndicadorNotaCredito -> CUANDO. Si la original tiene mas de 30 dias.
+//   CodigoModificacion   -> POR QUE. 1 anula todo | 2 texto | 3 montos.
+//
+// El e-34 ACEPTADO de la empresa los lleva con valores DISTINTOS en el mismo
+// documento: IndicadorNotaCredito=0 y CodigoModificacion=3. Deducir uno del
+// otro daba CodigoModificacion=0 (no existe) o, si faltaba, 1 = ANULACION
+// TOTAL: una nota por devolucion parcial declarando anulada la factura entera.
+{
+  const cli = fuente('src/services/dgii/msellerClient.ts');
+  ok('CodigoModificacion ya no sale de IndicadorNotaCredito',
+    !/CodigoModificacion = params\.indicadorNotaCredito/.test(cli));
+  ok('sale de una constante con nombre',
+    /refItem\.CodigoModificacion = CODIGO_MODIFICACION_MONTOS;/.test(cli));
+  ok('y esa constante es 3 (correccion de montos)',
+    /const CODIGO_MODIFICACION_MONTOS = 3;/.test(cli));
+  ok('nunca cae por defecto en 1 (anulacion total)',
+    !/CodigoModificacion = .*\?\? 1/.test(cli));
+  ok('el bloque de referencia sigue enviandose',
+    /ecfObj\.InformacionReferencia = refItem;/.test(cli)
+    && /NCFModificado: params\.modifiedNcf/.test(cli));
+}
+
+console.log('\nZ) El ORDEN de los campos de Totales (es una secuencia XSD)\n');
+
+// EL RECHAZO REAL, sobre una nota de credito de PRODUCCION el 2026-09-02:
+//
+//   "The element 'Totales' has invalid child element 'MontoExento'.
+//    List of possible elements expected: 'ITBIS2, ITBIS3, TotalITBIS,
+//    TotalITBIS1, TotalITBIS2, TotalITBIS3, MontoImpuestoAdicional,
+//    ImpuestosAdicionales, MontoTotal'."
+//
+// La lista empieza en ITBIS2 porque el validador ya habia consumido ITBIS1:
+// MontoExento llegaba TARDE. El bloque emparejaba MontoGravadoI{n} con
+// ITBIS{n} en el mismo bucle y ponia MontoExento detras.
+//
+// Esto no se comprueba mirando si los campos EXISTEN -- existian todos. Hay
+// que mirar en que ORDEN se escriben, que en un objeto JSON es el orden de las
+// claves y por tanto el de los elementos del XML.
+{
+  const cli = fuente('src/services/dgii/msellerClient.ts');
+  const desde = cli.indexOf('totales.MontoGravadoTotal = montoGravadoTotal;');
+  const hasta = cli.indexOf('totales.MontoNoFacturable', desde);
+  const bloque = cli.slice(desde, hasta);
+
+  const pos = (aguja: string) => bloque.indexOf(aguja);
+  const pGravado  = pos('totales.MontoGravadoTotal');
+  const pBases    = pos('totales[`MontoGravadoI${i2 + 1}`]');
+  const pExento   = pos('totales.MontoExento');
+  const pTasas    = pos('totales[`ITBIS${i2 + 1}`]');
+  const pTotalIt  = pos('totales.TotalITBIS =');
+  const pTotal    = pos('totales.MontoTotal');
+
+  ok('todas las posiciones se encuentran',
+    [pGravado, pBases, pExento, pTasas, pTotalIt, pTotal].every((n) => n >= 0));
+  ok('MontoGravadoTotal va primero', pGravado < pBases);
+  ok('las bases MontoGravadoI* van antes que MontoExento', pBases < pExento);
+  ok('MontoExento va ANTES que las tasas ITBIS*  <-- el rechazo', pExento < pTasas);
+  ok('las tasas van antes que TotalITBIS', pTasas < pTotalIt);
+  ok('y MontoTotal va al final', pTotalIt < pTotal);
+
+  ok('las bases y las tasas ya NO se escriben en el mismo bucle',
+    !/totales\[`MontoGravadoI\$\{i2 \+ 1\}`\] = base;\s*totales\[`ITBIS\$\{i2 \+ 1\}`\] = pct;/.test(bloque));
+  ok('y el tramo de tasa cero tampoco los junta',
+    !/totales\[`MontoGravadoI\$\{tramoTasaCero\}`\] = baseTasaCero;\s*totales\[`ITBIS\$\{tramoTasaCero\}`\] = 0;/.test(bloque));
+}
+
+console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);
 }
 

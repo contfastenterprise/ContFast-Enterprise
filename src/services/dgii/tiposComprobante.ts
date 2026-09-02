@@ -58,19 +58,32 @@ export interface TipoComprobante {
    * ofrecerlos al facturar.
    */
   emitible: boolean;
+  /**
+   * Si el e-CF lleva `FechaVencimientoSecuencia` en el `IdDoc`.
+   *
+   * NO es un detalle de estilo: la DGII marca el campo como **No Aplica** para
+   * el e-32, el e-34 y el e-47. Mandarlo en esos tres es mandar un campo que su
+   * validador no espera; exigirlo es impedir que se emitan.
+   *
+   * Fuente: DGII, "Formato Comprobante Fiscal Electronico (e-CF) v1.0",
+   * seccion IdDoc, campo 4 -- Obligatorio en 31, 33, 41, 43, 44, 45 y 46; No
+   * Aplica en 32, 34 y 47. Coincide con los ejemplos de mSeller, que omiten el
+   * campo justo en el 32 y el 34.
+   */
+  exigeVencimiento: boolean;
 }
 
 export const TIPOS_COMPROBANTE: readonly TipoComprobante[] = [
-  { codigo: '31', nombre: 'Factura de Crédito Fiscal Electrónica',            corto: 'Crédito Fiscal',       emitible: true  },
-  { codigo: '32', nombre: 'Factura de Consumo Electrónica',                   corto: 'Consumo',              emitible: true  },
-  { codigo: '33', nombre: 'Nota de Débito Electrónica',                       corto: 'Nota de Débito',       emitible: true  },
-  { codigo: '34', nombre: 'Nota de Crédito Electrónica',                      corto: 'Nota de Crédito',      emitible: true  },
-  { codigo: '41', nombre: 'Comprobante Electrónico de Compras',               corto: 'Compras',              emitible: false },
-  { codigo: '43', nombre: 'Comprobante Electrónico para Gastos Menores',      corto: 'Gastos Menores',       emitible: false },
-  { codigo: '44', nombre: 'Comprobante Electrónico para Regímenes Especiales', corto: 'Regímenes Especiales', emitible: true  },
-  { codigo: '45', nombre: 'Comprobante Electrónico Gubernamental',            corto: 'Gubernamental',        emitible: true  },
-  { codigo: '46', nombre: 'Comprobante Electrónico para Exportaciones',       corto: 'Exportaciones',        emitible: true  },
-  { codigo: '47', nombre: 'Comprobante Electrónico para Pagos al Exterior',   corto: 'Pagos al Exterior',    emitible: false },
+  { codigo: '31', nombre: 'Factura de Crédito Fiscal Electrónica',            corto: 'Crédito Fiscal',       emitible: true,  exigeVencimiento: true  },
+  { codigo: '32', nombre: 'Factura de Consumo Electrónica',                   corto: 'Consumo',              emitible: true,  exigeVencimiento: false },
+  { codigo: '33', nombre: 'Nota de Débito Electrónica',                       corto: 'Nota de Débito',       emitible: true,  exigeVencimiento: true  },
+  { codigo: '34', nombre: 'Nota de Crédito Electrónica',                      corto: 'Nota de Crédito',      emitible: true,  exigeVencimiento: false },
+  { codigo: '41', nombre: 'Comprobante Electrónico de Compras',               corto: 'Compras',              emitible: false, exigeVencimiento: true  },
+  { codigo: '43', nombre: 'Comprobante Electrónico para Gastos Menores',      corto: 'Gastos Menores',       emitible: false, exigeVencimiento: true  },
+  { codigo: '44', nombre: 'Comprobante Electrónico para Regímenes Especiales', corto: 'Regímenes Especiales', emitible: true,  exigeVencimiento: true  },
+  { codigo: '45', nombre: 'Comprobante Electrónico Gubernamental',            corto: 'Gubernamental',        emitible: true,  exigeVencimiento: true  },
+  { codigo: '46', nombre: 'Comprobante Electrónico para Exportaciones',       corto: 'Exportaciones',        emitible: true,  exigeVencimiento: true  },
+  { codigo: '47', nombre: 'Comprobante Electrónico para Pagos al Exterior',   corto: 'Pagos al Exterior',    emitible: false, exigeVencimiento: false },
 ] as const;
 
 const POR_CODIGO = new Map(TIPOS_COMPROBANTE.map((t) => [t.codigo, t]));
@@ -81,6 +94,28 @@ export const CODIGOS_EMITIBLES = TIPOS_COMPROBANTE.filter((t) => t.emitible).map
 
 /** Los que modifican otro comprobante y por tanto exigen `modifiedNcf`. */
 export const CODIGOS_NOTA = ['33', '34'] as const;
+
+/**
+ * Los comprobantes de venta a los que se les puede emitir una nota.
+ *
+ * Son los emitibles menos las propias notas: una nota de credito modifica una
+ * FACTURA, no otra nota.
+ *
+ * Existe porque el buscador de la pantalla de ajustes llevaba la lista escrita
+ * a mano -- `'31' || '32' || '45'` -- y se dejaba fuera el e-44 y el e-46. Con
+ * la empresa facturando e-44 en produccion, eso significaba no poder emitirle
+ * una nota de credito a ningun regimen especial ni a ninguna exportacion. Otra
+ * lista paralela mas, del mismo tipo que las seis que ya se unificaron aqui.
+ */
+export const CODIGOS_MODIFICABLES_POR_NOTA =
+  TIPOS_COMPROBANTE
+    .filter((t) => t.emitible && !(CODIGOS_NOTA as readonly string[]).includes(t.codigo))
+    .map((t) => t.codigo);
+
+/** ¿A este comprobante se le puede emitir una nota de credito o debito? */
+export function esModificablePorNota(codigo: string | null | undefined): boolean {
+  return CODIGOS_MODIFICABLES_POR_NOTA.includes(String(codigo ?? '').trim());
+}
 
 /**
  * El nombre oficial de un tipo.
@@ -111,4 +146,17 @@ export function etiquetaTipo(codigo: string | null | undefined): string {
 /** ¿Este codigo lo emite el flujo de ventas? */
 export function esEmitible(codigo: string | null | undefined): boolean {
   return POR_CODIGO.get(String(codigo ?? '').trim())?.emitible === true;
+}
+
+/**
+ * ¿Este tipo lleva `FechaVencimientoSecuencia`?
+ *
+ * Un codigo desconocido devuelve `true`: si no sabemos que tipo es, se pide la
+ * fecha y como mucho el envio se detiene con un mensaje. Lo contrario --
+ * suponer que no hace falta -- omitiria un campo obligatorio en un comprobante
+ * que la DGII espera con el.
+ */
+export function exigeVencimientoSecuencia(codigo: string | null | undefined): boolean {
+  const t = POR_CODIGO.get(String(codigo ?? '').trim());
+  return t ? t.exigeVencimiento : true;
 }

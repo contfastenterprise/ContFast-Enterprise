@@ -1,105 +1,116 @@
--- PASO 1 de 2 — Rellenar la fecha de vencimiento de las secuencias e-CF.
+-- ============================================================================
+--  FECHAS DE VENCIMIENTO DE LAS SECUENCIAS e-CF: QUE FALTA DE VERDAD
+-- ============================================================================
 --
--- POR QUE
--- -------
--- `ecf_sequences.sequence_expiry` esta vacia para el e-32 y el e-34 de Latin
--- Doors. Cuando falta, el codigo NO se detiene: pone `31-12-2026` a pelo y esa
--- fecha viaja dentro del comprobante como `FechaVencimientoSecuencia`. Es un
--- dato fiscal inventado.
+--  ESTE FICHERO PEDIA UN DATO QUE NO EXISTE
+--  ----------------------------------------
+--  La version anterior daba por hecho que el e-32 y el e-34 estaban
+--  "incompletos" por no tener `sequence_expiry`, y pedia cargar sus fechas de
+--  autorizacion SACF a mano.
 --
--- Han salido ya 27 comprobantes e-32 con esa fecha. Fueron a TesteCF, asi que
--- no hay dano. Pero antes de conmutar al ambiente real hay que poner las
--- fechas de verdad, porque despues cada comprobante es una presentacion firme.
+--  Es falso, y lo corrigio el cliente. La DGII marca
+--  `FechaVencimientoSecuencia` como **No Aplica** en el e-32 (Consumo), el
+--  e-34 (Nota de Credito) y el e-47. En esos tres el campo NO VA en el
+--  documento: no tener fecha es el estado correcto, no un hueco.
 --
--- COMO SE USA
--- -----------
--- 1. Abre tu autorizacion SACF de la DGII.
--- 2. Sustituye las dos fechas de abajo por las que diga ese documento,
---    en formato dd-MM-aaaa.
--- 3. Ejecuta. Si dejas los valores de ejemplo, el script se niega a correr.
+--      Obligatorio : 31, 33, 41, 43, 44, 45, 46
+--      No Aplica   : 32, 34, 47
 --
--- El PASO 2 (quitar del codigo el `31-12-2026` fijo) va DESPUES de esto.
--- En ese orden no se rompe nada: para cuando el codigo exija la fecha, ya
--- estara puesta.
+--  Fuente: DGII, "Formato Comprobante Fiscal Electronico (e-CF) v1.0",
+--  seccion IdDoc, campo 4. Coincide con los ejemplos de mSeller, que omiten el
+--  campo justo en el 32 y el 34.
+--
+--  QUE HACE AHORA
+--  --------------
+--  Solo MIRA. No escribe nada. Lista cada secuencia activa y dice si su fecha
+--  esta como debe estar:
+--
+--      FALTA        el tipo la exige y no la tiene  -> no se puede emitir
+--      VENCIDA      la tiene, pero ya paso          -> renovar en la DGII
+--      OK           la tiene y esta vigente
+--      NO APLICA    el tipo no la lleva (32/34/47)  -> vacia es lo correcto
+--
+--  Lo que salga como FALTA es lo unico que hay que cargar, y se carga desde
+--  Ajustes > Secuencias con la fecha que diga la autorizacion SACF -- no desde
+--  aqui, para que quede el registro de quien la puso.
+--
+--  POR QUE IMPORTA QUE ESTO NO ESCRIBA
+--  -----------------------------------
+--  La fecha que va en el comprobante tiene que ser la de la autorizacion real.
+--  Una migracion no puede saberla: solo puede copiar lo que alguien le diga, y
+--  entonces el error queda escrito sin que nadie lo revise. Es el mismo patron
+--  que el `'31-12-2026'` que origino todo esto.
+-- ============================================================================
 
-DO $$
-DECLARE
-  -- ─────────────────────────────────────────────────────────────────────
-  --  PON AQUI TUS FECHAS REALES  (formato dd-MM-aaaa)
-  v_fecha_e32 text := 'RELLENAR';   -- p. ej. '31-12-2027'
-  v_fecha_e34 text := 'RELLENAR';   -- p. ej. '31-12-2027'
-  -- ─────────────────────────────────────────────────────────────────────
-  v_empresa  uuid;
-  v_n        integer;
-  r          record;
-BEGIN
-  IF v_fecha_e32 = 'RELLENAR' OR v_fecha_e34 = 'RELLENAR' THEN
-    RAISE EXCEPTION 'Faltan las fechas. Sustituye v_fecha_e32 y v_fecha_e34 por las de tu autorizacion de la DGII.';
-  END IF;
-
-  -- Formato dd-MM-aaaa, y que sea una fecha que existe. Un '31-02-2027'
-  -- pasaria un simple LIKE y no es una fecha.
-  IF v_fecha_e32 !~ '^\d{2}-\d{2}-\d{4}$' OR v_fecha_e34 !~ '^\d{2}-\d{2}-\d{4}$' THEN
-    RAISE EXCEPTION 'Las fechas deben ir en formato dd-MM-aaaa. Recibido: % y %', v_fecha_e32, v_fecha_e34;
-  END IF;
-  PERFORM to_date(v_fecha_e32, 'DD-MM-YYYY');
-  PERFORM to_date(v_fecha_e34, 'DD-MM-YYYY');
-
-  IF to_date(v_fecha_e32, 'DD-MM-YYYY') <= current_date
-     OR to_date(v_fecha_e34, 'DD-MM-YYYY') <= current_date THEN
-    RAISE EXCEPTION 'Alguna fecha ya paso (% / %). Una autorizacion vencida no sirve para emitir.',
-      v_fecha_e32, v_fecha_e34;
-  END IF;
-
-  -- La empresa que factura: la unica con usuario Y contrasena de mSeller.
-  SELECT cs.company_id INTO v_empresa
-    FROM company_settings cs
-   WHERE cs.mseller_email IS NOT NULL AND cs.mseller_password_encrypted IS NOT NULL;
-
-  IF v_empresa IS NULL THEN
-    RAISE EXCEPTION 'No se encontro una empresa con credenciales de mSeller completas.';
-  END IF;
-
-  -- Solo las de modo PRODUCCION y solo las que NO tienen fecha. Las de PRUEBA
-  -- se dejan como estan: su vencimiento no es una autorizacion real.
-  UPDATE ecf_sequences
-     SET sequence_expiry = v_fecha_e32, updated_at = now()
-   WHERE company_id = v_empresa AND modo = 'PRODUCCION' AND ecf_type = '32'
-     AND deleted_at IS NULL
-     AND coalesce(btrim(sequence_expiry), '') = '';
-  GET DIAGNOSTICS v_n = ROW_COUNT;
-  RAISE NOTICE 'e-32: % secuencia(s) actualizada(s) a %.', v_n, v_fecha_e32;
-
-  UPDATE ecf_sequences
-     SET sequence_expiry = v_fecha_e34, updated_at = now()
-   WHERE company_id = v_empresa AND modo = 'PRODUCCION' AND ecf_type = '34'
-     AND deleted_at IS NULL
-     AND coalesce(btrim(sequence_expiry), '') = '';
-  GET DIAGNOSTICS v_n = ROW_COUNT;
-  RAISE NOTICE 'e-34: % secuencia(s) actualizada(s) a %.', v_n, v_fecha_e34;
-
-  -- Comprobacion final: ninguna secuencia de PRODUCCION puede quedar sin
-  -- fecha, porque cualquiera de ellas acabaria declarando la inventada.
-  FOR r IN
-    SELECT ecf_type FROM ecf_sequences
-     WHERE company_id = v_empresa AND modo = 'PRODUCCION' AND deleted_at IS NULL
-       AND coalesce(btrim(sequence_expiry), '') = ''
-       AND expiry_date IS NULL
-  LOOP
-    RAISE EXCEPTION 'La secuencia e-% sigue sin fecha de vencimiento. Rellenala antes de seguir.', r.ecf_type;
-  END LOOP;
-
-  RAISE NOTICE 'Todas las secuencias de PRODUCCION tienen fecha. Se puede aplicar el paso 2.';
-END $$;
-
--- Como quedaron.
-SELECT s.ecf_type AS "tipo e-CF",
-       s.current_sequence AS "actual",
-       s.max_sequence AS "hasta",
-       coalesce(nullif(btrim(s.sequence_expiry), ''), s.expiry_date::text, '(SIN FECHA)') AS "vence",
-       s.status AS "estado"
+WITH exigencia(ecf_type, aplica) AS (
+  VALUES ('31', true),  ('32', false), ('33', true),  ('34', false),
+         ('41', true),  ('43', true),  ('44', true),  ('45', true),
+         ('46', true),  ('47', false)
+)
+SELECT c.name                                        AS "Empresa",
+       s.modo                                        AS "Modo",
+       'e-' || s.ecf_type                            AS "Tipo",
+       coalesce(nullif(btrim(s.sequence_expiry), ''), '(vacia)') AS "Vencimiento",
+       CASE
+         -- Con fecha cargada se dice, porque NO es inofensivo: los validadores
+         -- (`ecfValidator` y `companyRepository`) bloquean la emision cuando la
+         -- fecha pasa, sin mirar el tipo. Una fecha que la DGII no usa para
+         -- este comprobante puede aun asi impedir facturar.
+         WHEN e.aplica IS NOT TRUE AND nullif(btrim(s.sequence_expiry), '') IS NOT NULL
+           THEN 'NO APLICA pero TIENE fecha (' || s.sequence_expiry || ') - bloqueara la emision al pasar'
+         WHEN e.aplica IS NOT TRUE THEN 'NO APLICA - vacia es lo correcto'
+         WHEN nullif(btrim(s.sequence_expiry), '') IS NULL
+           THEN 'FALTA - este tipo la exige; no se puede emitir'
+         WHEN to_date(s.sequence_expiry, 'DD-MM-YYYY') < current_date
+           THEN 'VENCIDA el ' || s.sequence_expiry || ' - renovar SACF'
+         ELSE 'OK'
+       END                                           AS "Estado",
+       s.current_sequence                            AS "Actual",
+       s.max_sequence                                AS "Maxima"
   FROM ecf_sequences s
-  JOIN company_settings cs ON cs.company_id = s.company_id
- WHERE s.modo = 'PRODUCCION' AND s.deleted_at IS NULL
-   AND cs.mseller_email IS NOT NULL AND cs.mseller_password_encrypted IS NOT NULL
- ORDER BY s.ecf_type;
+  JOIN companies c ON c.id = s.company_id
+  LEFT JOIN exigencia e ON e.ecf_type = s.ecf_type
+ WHERE s.deleted_at IS NULL
+   AND s.status = 'active'
+   AND c.deleted_at IS NULL
+ ORDER BY c.name, s.modo, s.ecf_type;
+
+
+-- ----------------------------------------------------------------------------
+-- El resumen: cuantas bloquean la emision hoy.
+-- ----------------------------------------------------------------------------
+DO $fechas$
+DECLARE
+  v_faltan integer;
+  v_vencidas integer;
+  v_detalle text;
+BEGIN
+  SELECT count(*), string_agg(DISTINCT 'e-' || ecf_type, ', ')
+    INTO v_faltan, v_detalle
+    FROM ecf_sequences s
+   WHERE s.deleted_at IS NULL
+     AND s.status = 'active'
+     AND s.ecf_type IN ('31', '33', '41', '43', '44', '45', '46')
+     AND nullif(btrim(s.sequence_expiry), '') IS NULL;
+
+  SELECT count(*) INTO v_vencidas
+    FROM ecf_sequences s
+   WHERE s.deleted_at IS NULL
+     AND s.status = 'active'
+     AND s.ecf_type IN ('31', '33', '41', '43', '44', '45', '46')
+     AND nullif(btrim(s.sequence_expiry), '') IS NOT NULL
+     AND to_date(s.sequence_expiry, 'DD-MM-YYYY') < current_date;
+
+  IF v_faltan = 0 THEN
+    RAISE NOTICE 'Ninguna secuencia bloquea la emision por falta de fecha.';
+  ELSE
+    RAISE NOTICE '% secuencia(s) SIN fecha en tipos que la exigen (%). Cargarlas en Ajustes > Secuencias.',
+      v_faltan, v_detalle;
+  END IF;
+
+  IF v_vencidas > 0 THEN
+    RAISE NOTICE '% secuencia(s) con la autorizacion YA VENCIDA. Renovar el SACF en la DGII.', v_vencidas;
+  END IF;
+
+  RAISE NOTICE 'El e-32, el e-34 y el e-47 sin fecha NO son un problema: su formato no lleva el campo.';
+END $fechas$;

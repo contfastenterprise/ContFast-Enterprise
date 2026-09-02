@@ -7,6 +7,7 @@ import { MSellerClient } from '@/services/dgii/msellerClient';
 import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
 import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
+import { leerDesenlace, mensajeDesconocido } from '@/services/dgii/desenlaceEnvio';
 
 export class InvoiceSubmissionService {
   /**
@@ -151,45 +152,47 @@ export class InvoiceSubmissionService {
           dgiiMessage = mensajeEstado(lectura, msellerRes.message);
           msellerResponsePayload = msellerRes.rawResponse;
         } else {
+          // EL RECHAZO SE AFIRMA, NO SE SUPONE.
+          //
+          // Esto preguntaba "?es un error de red?" contra una lista de siete
+          // cadenas, y si no coincidia ninguna concluia que la DGII habia
+          // rechazado. La lista no puede estar completa: `read ECONNRESET` la
+          // esquivo -- "econnreset" no contiene "connection" -- y un corte de
+          // conexion se guardo como rechazo estructural de la DGII.
+          //
+          // Ahora se busca la MARCA del rechazo. Sin marca, el desenlace es
+          // desconocido, y un documento que salio con desenlace desconocido es
+          // `submitted`: pudo llegar, y `sincronizarPendientes` lo resuelve.
           const errMsg = msellerRes.message || '';
-          const lowerErrMsg = errMsg.toLowerCase();
-          const isCommunicationError =
-            lowerErrMsg.includes('auth failed') ||
-            lowerErrMsg.includes('fetcherror') ||
-            lowerErrMsg.includes('timeout') ||
-            lowerErrMsg.includes('timed out') ||
-            lowerErrMsg.includes('connection') ||
-            lowerErrMsg.includes('typeerror') ||
-            lowerErrMsg.includes('aborted') ||
-            lowerErrMsg.includes('failed to fetch') ||
-            lowerErrMsg.includes('network request failed');
+          const lectura = leerDesenlace(errMsg, msellerRes.rawResponse);
 
-          if (isCommunicationError) {
-            if (!data.ignoreCommunicationError) {
-              throw new MSellerCommunicationError(errMsg);
-            } else {
-              Logger.warn('[InvoiceSubmissionService] Bypassing MSeller communication error since ignoreCommunicationError is true', { error: errMsg });
-              finalStatus = 'signed';
-              dgiiMessage = `Error de red: ${errMsg}. Emitida localmente, pendiente de envío.`;
-            }
-          } else {
-            // DGII Structural Rejection
+          if (lectura.desenlace === 'rechazo') {
             throw new EcfRejectedError(errMsg);
           }
+
+          // Desenlace desconocido. NO se reenvia -- reenviar un documento que la
+          // DGII pudo aceptar es arriesgarse a duplicar un comprobante fiscal.
+          Logger.warn('[InvoiceSubmissionService] desenlace desconocido; queda pendiente de consulta', {
+            ncf, error: errMsg,
+          });
+          finalStatus = 'submitted';
+          dgiiMessage = mensajeDesconocido(errMsg);
+          msellerResponsePayload = msellerRes.rawResponse ?? null;
         }
       } catch (err: any) {
         if (err instanceof MSellerCommunicationError || err instanceof EcfRejectedError) {
           throw err;
         }
 
-        // Unhandled connection/fetch exception
-        if (!data.ignoreCommunicationError) {
-          throw new MSellerCommunicationError(err.message);
-        } else {
-          Logger.warn('[InvoiceSubmissionService] Bypassing fetch network error since ignoreCommunicationError is true', { error: err.message });
-          finalStatus = 'signed';
-          dgiiMessage = `Error de red: ${err.message}. Emitida localmente, pendiente de envío.`;
-        }
+        // Excepcion sin respuesta: la conexion se rompio en algun punto. Mismo
+        // criterio que arriba -- puede que el documento saliera, asi que no se
+        // afirma ni un rechazo ni un fallo de emision. Queda pendiente de
+        // consulta, y NO se reenvia.
+        Logger.warn('[InvoiceSubmissionService] excepcion de red; desenlace desconocido', {
+          ncf, error: err.message,
+        });
+        finalStatus = 'submitted';
+        dgiiMessage = mensajeDesconocido(err.message);
       }
     }
 

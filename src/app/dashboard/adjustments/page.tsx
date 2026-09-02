@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
+import { esModificablePorNota } from '@/services/dgii/tiposComprobante';
 
 export default function AdjustmentsPage() {
   const [loading, setLoading] = useState(true);
@@ -134,8 +135,17 @@ export default function AdjustmentsPage() {
       const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&status=accepted&excludeAdjusted=true&per_page=30`);
       const data = await res.json();
       if (data.success) {
-        // Standard invoices e-31, e-32, e-45
-        const validInvoices = data.data.filter((inv: any) => inv.ecfType === '31' || inv.ecfType === '32' || inv.ecfType === '45');
+        //  QUE FACTURAS SE PUEDEN AJUSTAR.
+        //
+        //  Estaba escrito a mano: `'31' || '32' || '45'`. Se dejaba fuera el
+        //  e-44 (Regimenes Especiales) y el e-46 (Exportaciones), asi que a esos
+        //  dos no habia forma de emitirles una nota de credito desde el sistema
+        //  -- y el e-44 es lo que esta facturando la empresa en produccion.
+        //
+        //  Sale de la lista unica de tipos: los emitibles menos las propias
+        //  notas, porque una nota modifica una FACTURA, no otra nota. Asi, un
+        //  tipo nuevo aparece aqui solo, sin que nadie tenga que acordarse.
+        const validInvoices = data.data.filter((inv: any) => esModificablePorNota(inv.ecfType));
         setInvoicesList(validInvoices);
       }
     } catch (err) {

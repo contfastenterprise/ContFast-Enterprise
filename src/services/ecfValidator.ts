@@ -5,12 +5,25 @@
  *  1. Contributor status  — RNC must be active in DGII.
  *  2. Authorized sequence — An active sequence record must exist for the ecfType.
  *  3. Available range     — currentSequence < maxSequence.
- *  4. Sequence expiry     — Validated ONLY when sequenceExpiry was supplied by DGII (non-null).
+ *  4. Sequence expiry     — Solo en los tipos que la DGII marca con vencimiento
+ *                          obligatorio, y solo si la fecha consta.
+ *
+ * SOBRE EL PUNTO 4
+ * ----------------
+ * `FechaVencimientoSecuencia` es **No Aplica** en el e-32, el e-34 y el e-47.
+ * Esta comprobacion miraba la fecha sin mirar el tipo, y eso convertia un dato
+ * que la DGII no usa para esos comprobantes en un bloqueo de la emision.
+ *
+ * No es teorico: el e-32 de produccion tenia cargado `31-12-2026` -- una fecha
+ * puesta a mano, no una autorizacion real -- y el 1 de enero de 2027 habria
+ * dejado de poder emitirse la factura de consumo, el tipo mas comun del
+ * sistema, con un error que habla de renovar un SACF que no hacia falta.
  */
 
 import { db, ecfSequences, subscriptions, plans, invoices } from '@/db';
 import { eq, and, isNull, desc, count, gte, lte } from 'drizzle-orm';
 import { DGIIService } from '@/services/dgii/rncLookup';
+import { exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 
 // ─── Result Types ─────────────────────────────────────────────────────────────
 
@@ -137,8 +150,11 @@ export class EcfValidator {
       });
     }
 
-    // Check 4: expiry — ONLY if DGII supplied the date
-    if (seq.sequenceExpiry) {
+    // Check 4: vencimiento — solo en los tipos que lo llevan, y solo si consta.
+    // En el e-32, el e-34 y el e-47 la fecha no va en el documento: una que
+    // este cargada ahi no describe ninguna autorizacion que la DGII compruebe,
+    // y no puede impedir facturar.
+    if (exigeVencimientoSecuencia(ecfType) && seq.sequenceExpiry) {
       const expiryDate = parseExpiryDate(seq.sequenceExpiry);
       if (new Date() > expiryDate) {
         errors.push({
@@ -147,7 +163,7 @@ export class EcfValidator {
         });
       }
     }
-    // If sequenceExpiry is null → no expiry constraint was set by DGII → skip check entirely.
+    // Sin fecha, o en un tipo que no la lleva: no hay restriccion que comprobar.
 
     return errors;
   }

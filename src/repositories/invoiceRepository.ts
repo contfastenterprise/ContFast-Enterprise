@@ -36,6 +36,22 @@ export interface CreateInvoiceInput {
   codigoFactura?: string;
   deliveryStatus?: string;
   quoteId?: string;
+  /**
+   * LA FIRMA QUE DEVUELVE mSELLER AL EMITIR.
+   *
+   * mSeller firma en el momento y devuelve `securityCode` y `qr_url` en la
+   * respuesta del envio; el VEREDICTO de la DGII, en cambio, llega despues, al
+   * consultar el estado. Son dos cosas distintas y llegan en dos momentos
+   * distintos.
+   *
+   * Estos campos no existian aqui, asi que la firma se guardaba unicamente en
+   * `dgii_submissions` y la factura se quedaba sin ella hasta que alguien
+   * pulsaba "sincronizar". Por eso el comprobante recien emitido salia sin
+   * codigo y sin QR aunque mSeller ya los hubiera dado.
+   */
+  securityCode?: string | null;
+  signatureDate?: string | null;
+  qrUrl?: string | null;
   lines: {
     productId: string;
     quantity: number;
@@ -116,6 +132,11 @@ export class InvoiceRepository {
           modifiedInvoiceId: data.modifiedInvoiceId,
           indicadorNotaCredito: data.indicadorNotaCredito ?? null,
           codigoFactura: data.codigoFactura,
+          // Se guarda lo que mSeller haya devuelto YA. Nulo si no vino: la
+          // firma no se fabrica, pero tampoco se tira si esta.
+          securityCode: data.securityCode ?? null,
+          signatureDate: data.signatureDate ?? null,
+          qrUrl: data.qrUrl ?? null,
         })
         .returning();
 

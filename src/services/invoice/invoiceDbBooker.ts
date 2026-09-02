@@ -8,6 +8,7 @@ import { InvoiceRepository, CreateInvoiceInput } from '@/repositories/invoiceRep
 import { deductStock } from '@/services/inventoryService';
 import { siguienteCodigoFactura } from './codigoFactura';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
+import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
 
 export class InvoiceDbBooker {
   /**
@@ -381,6 +382,23 @@ export class InvoiceDbBooker {
         }
       }
 
+      // LA FIRMA QUE mSELLER YA DEVOLVIO.
+      //
+      // mSeller firma en el momento del envio: `securityCode` y `qr_url` vienen
+      // en esa respuesta. El VEREDICTO de la DGII no -- ese se consulta despues.
+      // Son dos cosas distintas y llegan en dos momentos distintos, y confundir
+      // una con la otra es lo que hacia que un comprobante recien emitido
+      // saliera sin codigo y sin QR aunque mSeller ya los hubiera dado: se
+      // guardaban solo en `dgii_submissions` y la factura no los veia hasta que
+      // alguien pulsaba "sincronizar".
+      //
+      // Se lee del payload ademas de `securityHash` porque la fecha de firma
+      // solo viene ahi, y porque el codigo puede llegar anidado.
+      const firma = leerDatosFirma(submission.msellerResponsePayload);
+      const codigoFirma = submission.securityHash?.trim() || firma.codigo || null;
+      const enlaceQr = submission.qrCode?.trim() || firma.qr || null;
+      const fechaFirma = firma.fechaFirma || null;
+
       // Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
         companyId: data.companyId,
@@ -392,6 +410,11 @@ export class InvoiceDbBooker {
         ncf,
         ecfType: data.ecfType,
         status: submission.finalStatus,
+        // Nulos si no vinieron. La firma no se fabrica -- pero tampoco se tira
+        // cuando esta.
+        securityCode: codigoFirma,
+        signatureDate: fechaFirma,
+        qrUrl: enlaceQr,
         paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
         paymentType: data.paymentType,
         bankName: data.bankName,

@@ -10,7 +10,9 @@ export interface ECFPayload {
       IdDoc: {
         TipoeCF: string;
         eNCF: string;
-        FechaVencimientoSecuencia: string;
+        //  No va en el e-32, el e-34 ni el e-47: la DGII lo marca "No Aplica"
+        //  para esos tres. Se OMITE, no se manda vacio.
+        FechaVencimientoSecuencia?: string;
         IndicadorEnvioDiferido?: string;
         //  No va en el e-44: la DGII lo rechaza con
         //  "The element 'IdDoc' has invalid child element 'IndicadorMontoGravado'".
@@ -484,7 +486,11 @@ export class MSellerClient {
   static buildECFPayload(params: {
     ncf: string;
     ecfType: string;
-    sequenceExpiry: string; // dd-MM-yyyy
+    /**
+     * dd-MM-yyyy, o `null` en los tipos donde el campo No Aplica (e-32, e-34,
+     * e-47). `null` significa OMITIR el campo. Lo calcula `vencimientoSecuencia`.
+     */
+    sequenceExpiry: string | null;
     paymentType: '1' | '2'; // 1=contado, 2=crédito
     paymentDueDate?: string; // dd-MM-yyyy, solo crédito
     issueDate: Date;
@@ -687,6 +693,44 @@ export class MSellerClient {
     // TipoeCF → eNCF → IndicadorNotaCredito → IndicadorEnvioDiferido → IndicadorMontoGravado → TipoIngresos → TipoPago
     let idDoc: any;
 
+    // El campo va o NO VA, segun el tipo. La DGII lo marca "No Aplica" en el
+    // e-32, el e-34 y el e-47; `vencimientoSecuencia` devuelve null en esos y
+    // aqui eso se traduce en omitirlo. Mandarlo vacio no es lo mismo que no
+    // mandarlo: el validador lo rechaza igual.
+    //
+    // Se arma como objeto para poder esparcirlo EN SU SITIO dentro del IdDoc:
+    // el orden de los elementos importa cuando mSeller lo convierte a XML.
+    const vencimiento = params.sequenceExpiry
+      ? { FechaVencimientoSecuencia: params.sequenceExpiry }
+      : {};
+
+    // TIPO DE INGRESOS. El catalogo de la DGII:
+    //
+    //     01  Ingresos por operaciones (No financieros)
+    //     02  Ingresos Financieros
+    //     03  Ingresos Extraordinarios
+    //     04  Ingresos por Arrendamientos
+    //     05  Ingresos por Venta de Activo Depreciable
+    //     06  Otros Ingresos
+    //
+    // Estaba fijo en '05' en las facturas de venta -- e-31, e-32, e-44, e-45 y
+    // e-46 -- o sea que cada venta se declaraba como VENTA DE UN ACTIVO
+    // DEPRECIABLE. Una ventana o un servicio de instalacion no lo son.
+    //
+    // No provocaba rechazo: el validador de la DGII acepta cualquier codigo del
+    // catalogo, y por eso llevaba ahi sin que nadie lo viera. Lo que hacia era
+    // declarar mal el ingreso en todos los comprobantes emitidos. Las notas
+    // (e-33 y e-34) ya usaban '01', lo que dejaba el sistema contradiciendose
+    // consigo mismo.
+    //
+    // Confirmado contra un e-44 ACEPTADO de la propia empresa, que trae '01'.
+    // Fuente del catalogo: DGII, Formato e-CF v1.0, IdDoc campo 8.
+    const TIPO_INGRESOS_OPERACIONES = '01';
+
+    // 1 anulacion total del e-CF | 2 corrige texto | 3 correccion de montos.
+    // Fuente: DGII, Comunidad de Ayuda CA4275.
+    const CODIGO_MODIFICACION_MONTOS = 3;
+
     if (params.ecfType === '34') {
       idDoc = {
         TipoeCF: params.ecfType,
@@ -694,7 +738,7 @@ export class MSellerClient {
         IndicadorNotaCredito: 0,                // position 3 — integer required, MUST be 0 for e-34
         IndicadorEnvioDiferido: 1,              // position 4 — MUST be 1 (AUTORIZADO) per DGII error 164
         IndicadorMontoGravado: '0',             // position 5
-        TipoIngresos: '01',                    // '01' = Ingresos por operaciones (per reference XML)
+        TipoIngresos: TIPO_INGRESOS_OPERACIONES,
         TipoPago: params.paymentType,
       };
     } else if (params.ecfType === '33') {
@@ -702,9 +746,9 @@ export class MSellerClient {
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        FechaVencimientoSecuencia: params.sequenceExpiry,
+        ...vencimiento,
         IndicadorMontoGravado: '0',
-        TipoIngresos: '01',
+        TipoIngresos: TIPO_INGRESOS_OPERACIONES,
         TipoPago: params.paymentType,
       };
     } else if (esSoloExento) {
@@ -712,8 +756,8 @@ export class MSellerClient {
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        FechaVencimientoSecuencia: params.sequenceExpiry,
-        TipoIngresos: '05',
+        ...vencimiento,
+        TipoIngresos: TIPO_INGRESOS_OPERACIONES,
         TipoPago: params.paymentType,
       };
     } else {
@@ -721,9 +765,9 @@ export class MSellerClient {
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
-        FechaVencimientoSecuencia: params.sequenceExpiry,
+        ...vencimiento,
         IndicadorMontoGravado: '0',
-        TipoIngresos: '05',
+        TipoIngresos: TIPO_INGRESOS_OPERACIONES,
         TipoPago: params.paymentType,
       };
     }
@@ -771,19 +815,61 @@ export class MSellerClient {
       totales.MontoExento = Number(params.total.toFixed(2));
       totales.MontoTotal = Number(params.total.toFixed(2));
     } else {
+      //  EL ORDEN DE ESTOS CAMPOS NO ES ESTILO: ES EL XSD.
+      //
+      //  `Totales` es una SECUENCIA en el esquema de la DGII, asi que los
+      //  elementos tienen que ir en su sitio exacto:
+      //
+      //      MontoGravadoTotal
+      //      MontoGravadoI1, MontoGravadoI2, MontoGravadoI3
+      //      MontoExento          <-- AQUI, antes de las tasas
+      //      ITBIS1, ITBIS2, ITBIS3
+      //      TotalITBIS, TotalITBIS1..3
+      //      MontoTotal
+      //      MontoNoFacturable
+      //
+      //  Este bloque emparejaba `MontoGravadoI{n}` con `ITBIS{n}` en el mismo
+      //  bucle y dejaba `MontoExento` DESPUES. O sea que salia
+      //  ...MontoGravadoI1, ITBIS1, MontoExento..., y el validador lo rechaza:
+      //
+      //    "The element 'Totales' has invalid child element 'MontoExento'.
+      //     List of possible elements expected: 'ITBIS2, ITBIS3, TotalITBIS,
+      //     TotalITBIS1, TotalITBIS2, TotalITBIS3, MontoImpuestoAdicional,
+      //     ImpuestosAdicionales, MontoTotal'."
+      //
+      //  Esa lista empieza en ITBIS2 porque el validador ya habia consumido
+      //  ITBIS1: MontoExento llegaba tarde. Rechazo real sobre una nota de
+      //  credito de PRODUCCION, 2026-09-02.
+      //
+      //  Afecta a TODO comprobante con al menos una linea gravada -- no solo a
+      //  las notas -- porque todos pasan por aqui. El orden es el que documenta
+      //  mSeller en su ejemplo de Totales, y el que nombra el validador.
+      //
+      //  Como en el objeto JSON el orden de las claves ES el orden de los
+      //  elementos del XML, los dos grupos van en bucles SEPARADOS.
       totales.MontoGravadoTotal = montoGravadoTotal;
-      //  Un tramo por cada tasa presente. Sin lineas gravadas no se declara
-      //  ningun tramo: la factura es exenta entera.
-      tramos.forEach(([pct, base], i2) => {
+
+      //  Primero las bases. Un tramo por cada tasa presente; sin lineas
+      //  gravadas no se declara ninguno: la factura es exenta entera.
+      tramos.forEach(([, base], i2) => {
         totales[`MontoGravadoI${i2 + 1}`] = base;
-        totales[`ITBIS${i2 + 1}`] = pct;
       });
       //  El tramo de tasa 0% va en el tercero, emparejado con el indicador 3.
       if (baseTasaCero > 0) {
         totales[`MontoGravadoI${tramoTasaCero}`] = baseTasaCero;
+      }
+
+      //  Entre las bases y las tasas. Ni antes ni despues.
+      totales.MontoExento = montoExento;
+
+      //  Y ahora las tasas, en el mismo orden que sus bases.
+      tramos.forEach(([pct], i2) => {
+        totales[`ITBIS${i2 + 1}`] = pct;
+      });
+      if (baseTasaCero > 0) {
         totales[`ITBIS${tramoTasaCero}`] = 0;
       }
-      totales.MontoExento = montoExento;
+
       totales.TotalITBIS = Number(params.totalTaxes.toFixed(2));
       tramos.forEach(([pct, base], i2) => {
         totales[`TotalITBIS${i2 + 1}`] = Number((base * pct / 100).toFixed(2));
@@ -843,8 +929,32 @@ export class MSellerClient {
       if (params.modifiedNcfDate) {
         refItem.FechaNCFModificado = formatDate(params.modifiedNcfDate);
       }
-      // CodigoModificacion matches IndicadorNotaCredito value
-      refItem.CodigoModificacion = params.indicadorNotaCredito ?? 1;
+      // CODIGO DE MODIFICACION. Dos campos distintos, no uno.
+      //
+      // Esto decia `params.indicadorNotaCredito ?? 1`, tratando dos campos con
+      // catalogos distintos como si fueran el mismo:
+      //
+      //   IndicadorNotaCredito  -> CUANDO. Si la factura original tiene mas de
+      //                            30 dias (afecta el ITBIS, Regl. 293-11).
+      //   CodigoModificacion    -> POR QUE. 1 anulacion total del e-CF,
+      //                            2 corrige texto, 3 correccion de montos.
+      //
+      // El e-34 ACEPTADO de la propia empresa lo demuestra: lleva
+      // IndicadorNotaCredito=0 y CodigoModificacion=3 en el mismo documento.
+      //
+      // Lo que hacia el codigo viejo:
+      //   - el e-34 fija IndicadorNotaCredito en 0, asi que salia
+      //     CodigoModificacion=0, que no existe en el catalogo;
+      //   - y si el campo no llegaba, el `?? 1` declaraba ANULACION TOTAL. Una
+      //     nota por una devolucion parcial le decia a la DGII que la factura
+      //     entera quedaba anulada.
+      //
+      // Se fija en 3 (correccion de montos), que es el caso de una nota que
+      // ajusta importes -- devoluciones, descuentos, correcciones -- y es lo
+      // que trae el documento aceptado de referencia. La anulacion total (1) y
+      // la correccion de texto (2) existen, pero hoy no hay ningun sitio en el
+      // sistema donde elegirlas: cuando lo haya, este valor sale de ahi.
+      refItem.CodigoModificacion = CODIGO_MODIFICACION_MONTOS;
 
       // Plain object — not an array — so MSeller generates a single <InformacionReferencia> element
       ecfObj.InformacionReferencia = refItem;

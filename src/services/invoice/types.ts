@@ -12,6 +12,17 @@ export interface IssueInvoiceInput {
   buyerRnc?: string;
   buyerName?: string;
   notes?: string;
+  /**
+   * OBSOLETO. Ya no lo lee nadie.
+   *
+   * Servia para decir "emite localmente aunque falle la red". Desde que un
+   * desenlace desconocido queda en `submitted` -- en vez de quemar el NCF o
+   * declararlo rechazado -- eso ES el comportamiento por defecto, y el
+   * interruptor no distingue nada.
+   *
+   * Se sigue aceptando en la peticion para no romper a quien lo mande, pero no
+   * cambia nada. Se quita cuando se confirme que ningun cliente lo envia.
+   */
   ignoreCommunicationError?: boolean;
   modifiedNcf?: string;
   modifiedInvoiceId?: string;
@@ -72,6 +83,14 @@ export class EcfRejectedError extends Error {
   }
 }
 
+/**
+ * OBSOLETO como senal de emision. Ya no lo lanza nadie.
+ *
+ * Marcaba "fallo de comunicacion" para que el NCF se quemara sin factura. Hoy
+ * un desenlace desconocido queda en `submitted`, porque el documento pudo haber
+ * llegado y `sincronizarPendientes` lo resuelve. La clase se conserva porque
+ * `invoiceService` todavia la distingue en su `catch`.
+ */
 export class MSellerCommunicationError extends Error {
   status: number;
   code: string;

@@ -1,6 +1,7 @@
 import { db, companies, companySettings, ecfSequences } from '@/db';
 import { eq, and, isNull, sql, desc } from 'drizzle-orm';
 import { getCache, setCache } from '@/infrastructure/redis';
+import { exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 
 export class CompanyRepository {
   /**
@@ -127,8 +128,12 @@ export class CompanyRepository {
       throw new Error(`La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seq.maxSequence}) en ambiente ${modo}. Solicite una nueva autorización SACF.`);
     }
 
-    // Expiry check — ONLY when DGII supplied a date. If null, no constraint applies.
-    if (seq.sequenceExpiry) {
+    // Vencimiento — solo en los tipos que lo llevan (la DGII lo marca No Aplica
+    // en el e-32, el e-34 y el e-47) y solo si la fecha consta. Comprobarlo sin
+    // mirar el tipo convertia una fecha que no describe ninguna autorizacion en
+    // un bloqueo de la emision: el e-32 de produccion tenia `31-12-2026` puesto
+    // a mano y habria dejado de facturar el 1 de enero de 2027.
+    if (exigeVencimientoSecuencia(ecfType) && seq.sequenceExpiry) {
       const [dd, mm, yyyy] = (seq.sequenceExpiry as string).split('-').map(Number);
       const expiryDate = new Date(yyyy, mm - 1, dd, 23, 59, 59, 999);
       if (new Date() > expiryDate) {

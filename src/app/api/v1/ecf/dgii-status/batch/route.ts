@@ -9,7 +9,7 @@ import { credencialesMseller } from '@/services/dgii/credenciales';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
-import { camposDeFirma } from '@/services/dgii/estadoEnvio';
+import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -142,49 +142,32 @@ export async function POST(req: NextRequest) {
       let updatePerformed = false;
 
       if (result.found) {
-        let dgiiStatus = (result.status || '').toLowerCase();
+        // EL ESTADO SE LEE EN UN SOLO SITIO.
+        //
+        // Aqui habia una copia propia de la interpretacion. Con la de la
+        // sincronizacion individual y la de `estadoEnvio` eran TRES cadenas de
+        // `includes` haciendo lo mismo, y esta comprobaba "acept" ANTES que
+        // "rechaz": un "No Aceptado" se habria leido como ACEPTADO.
+        //
+        // Lo que SI se conserva es juntar los mensajes del validador de la
+        // DGII, porque eso `leerEstado` no lo hace y es lo que explica al
+        // usuario POR QUE se rechazo.
+        const lectura = leerEstado(result.data ?? { status: result.status });
+        newStatus = lectura.estado;
+
         let dgiiMessages: any[] = [];
-        
-        if (result.data) {
-          const rawDoc = result.data;
-          let dgiiEstado = rawDoc.dgiiStatus || rawDoc.estadoDGII || null;
-          
-          if (rawDoc.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
-            for (const respStr of rawDoc.dgiiResponse) {
-              try {
-                const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
-                if (parsed) {
-                  if (parsed.estado) {
-                    dgiiEstado = parsed.estado;
-                  }
-                  if (parsed.mensajes && Array.isArray(parsed.mensajes)) {
-                    dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
-                  }
-                }
-              } catch (e) {}
+        const rawDoc = result.data;
+        if (rawDoc?.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
+          for (const respStr of rawDoc.dgiiResponse) {
+            try {
+              const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
+              if (parsed?.mensajes && Array.isArray(parsed.mensajes)) {
+                dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
+              }
+            } catch {
+              // Un elemento ilegible no invalida los demas.
             }
           }
-          if (dgiiEstado) {
-            dgiiStatus = dgiiEstado.toLowerCase();
-          }
-        }
-
-        if (
-          dgiiStatus.includes('acept') || 
-          dgiiStatus.includes('aprob') || 
-          dgiiStatus === 'accepted' || 
-          dgiiStatus === 'approved'
-        ) {
-          newStatus = 'accepted';
-        } else if (dgiiStatus.includes('rechaz') || dgiiStatus === 'rejected') {
-          newStatus = 'rejected';
-        } else if (
-          dgiiStatus.includes('envi') || 
-          dgiiStatus.includes('recib') || 
-          dgiiStatus === 'submitted' || 
-          dgiiStatus === 'received'
-        ) {
-          newStatus = 'submitted';
         }
 
         // Construct detailed message for batch status update

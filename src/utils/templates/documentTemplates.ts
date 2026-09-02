@@ -1,5 +1,5 @@
 import { parseFraction } from '../calculos';
-import { etiquetaTipo } from '@/services/dgii/tiposComprobante';
+import { etiquetaTipo, exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 import { windowProfiles } from '../profilesRegistry';
 
 function deepEscape<T>(obj: T): T {
@@ -434,7 +434,10 @@ export class DocumentTemplates {
               <div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
                 Fecha Emis: <span style="font-family: monospace; font-weight: normal;">${formattedEmiDate}</span>
               </div>
-              ${['31', '44', '45', '46'].includes(inv.ecfType) && inv.ncfExpiryDate
+              ${/* La lista estaba a mano aqui y se olvidaba el e-33, que SI lleva
+                    vencimiento. Sale de la misma tabla que usa la emision, para
+                    que lo impreso y lo enviado no puedan discrepar. */ ''}
+              ${exigeVencimientoSecuencia(inv.ecfType) && inv.ncfExpiryDate
             ? `<div style="font-size: 10pt; color: #333; margin-top: 5px; font-weight: bold;">
                     Fecha Vencimiento: <span style="font-family: monospace; font-weight: normal;">${inv.ncfExpiryDate}</span>
                    </div>`

@@ -9,7 +9,7 @@ import { credencialesMseller } from '@/services/dgii/credenciales';
 import { eq, and, isNull } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
-import { camposDeFirma } from '@/services/dgii/estadoEnvio';
+import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
 
 export async function GET(
   req: NextRequest,
@@ -97,27 +97,25 @@ export async function GET(
     // Query mSeller for document status
     const statusResult = await client.getDocumentStatus(invoice.ncf);
 
-    // Map mSeller status to our internal status
+    // EL ESTADO SE LEE EN UN SOLO SITIO.
+    //
+    // Aqui habia una copia propia de la interpretacion, escrita a mano. Con la
+    // de la ruta batch y la de `estadoEnvio` eran TRES cadenas de `includes`
+    // haciendo lo mismo -- el mismo patron que desincronizo las seis tablas de
+    // tipos de comprobante y las cuatro resoluciones de entorno.
+    //
+    // Y esta copia comprobaba "acept" ANTES que "rechaz", asi que un
+    // "No Aceptado" se habria leido como ACEPTADO. No consta que la DGII use
+    // esa forma, pero `leerEstado` mira el rechazo primero justo por eso.
     let newStatus = invoice.status;
     if (statusResult.success) {
-      const dgiiStatus = (statusResult.dgiiStatus || statusResult.status || '').toLowerCase();
-      if (
-        dgiiStatus.includes('acept') || 
-        dgiiStatus.includes('aprob') || 
-        dgiiStatus === 'accepted' || 
-        dgiiStatus === 'approved'
-      ) {
-        newStatus = 'accepted';
-      } else if (dgiiStatus.includes('rechaz') || dgiiStatus === 'rejected') {
-        newStatus = 'rejected';
-      } else if (
-        dgiiStatus.includes('envi') || 
-        dgiiStatus.includes('recib') || 
-        dgiiStatus === 'submitted' || 
-        dgiiStatus === 'received'
-      ) {
-        newStatus = 'submitted';
-      }
+      const lectura = leerEstado(statusResult.rawResponse ?? {
+        dgiiStatus: statusResult.dgiiStatus,
+        status: statusResult.status,
+      });
+      // Un 'submitted' que sigue siendo 'submitted' no cambia nada; los otros
+      // dos son veredicto y si se escriben.
+      newStatus = lectura.estado;
 
       // Always update invoice status and dgiiMessage on sync
       await db

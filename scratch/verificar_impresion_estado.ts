@@ -88,5 +88,42 @@ console.log('\n3) El dialogo de confirmacion nombra el comprobante correcto\n');
     /TIPO NO RECONOCIDO/.test(form));
 }
 
+console.log('\n4) La firma se guarda EN LA FACTURA al emitir, no al sincronizar\n');
+
+// mSeller firma en el momento del envio y devuelve `securityCode` y `qr_url`
+// ahi mismo; el VEREDICTO de la DGII llega despues, al consultar el estado.
+// Son dos momentos distintos.
+//
+// `CreateInvoiceInput` no tenia estos campos, asi que la firma aterrizaba solo
+// en `dgii_submissions` y la factura se quedaba sin ella. Sintoma reportado por
+// el cliente: "tengo que sincronizar para que me de la firma, el QR y el
+// codigo". Confirmado en sus datos: dos envios en 'submitted' con codigo en el
+// envio, y solo uno de los dos con codigo en la factura.
+{
+  const repo = fuente('src/repositories/invoiceRepository.ts');
+  const desde = repo.indexOf('interface CreateInvoiceInput');
+  const tipo = repo.slice(desde, repo.indexOf('lines: {', desde));
+  ok('CreateInvoiceInput admite la firma',
+    /securityCode\?: string \| null;/.test(tipo)
+    && /signatureDate\?: string \| null;/.test(tipo)
+    && /qrUrl\?: string \| null;/.test(tipo));
+
+  const ins = repo.slice(repo.indexOf('.insert(invoices)'), repo.indexOf('.returning()'));
+  ok('y el INSERT los escribe',
+    /securityCode: data\.securityCode/.test(ins)
+    && /signatureDate: data\.signatureDate/.test(ins)
+    && /qrUrl: data\.qrUrl/.test(ins));
+
+  const booker = fuente('src/services/invoice/invoiceDbBooker.ts');
+  ok('el booker lee la firma de la respuesta de mSeller',
+    /leerDatosFirma\(submission\.msellerResponsePayload\)/.test(booker));
+  ok('y se la pasa a la factura',
+    /securityCode: codigoFirma/.test(booker)
+    && /signatureDate: fechaFirma/.test(booker)
+    && /qrUrl: enlaceQr/.test(booker));
+  ok('sin inventar nada cuando no vino',
+    /const codigoFirma = submission\.securityHash\?\.trim\(\) \|\| firma\.codigo \|\| null;/.test(booker));
+}
+
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);

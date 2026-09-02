@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
-import { eq, and, isNull, desc, count, ilike, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, ilike, gte, lte, sql, notInArray } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
@@ -51,7 +51,24 @@ export async function GET(req: NextRequest) {
       conditions.push(ilike(invoices.ncf, `%${q}%`));
     }
     if (excludeAdjusted) {
-      // Find all invoice IDs that have been modified (i.e. have a note pointing to them)
+      //  UNA NOTA RECHAZADA NO AJUSTO NADA.
+      //
+      //  Esto excluia toda factura que tuviera una nota apuntandole, MIRARA EL
+      //  ESTADO O NO. Una nota que la DGII rechazo cuenta igual que una
+      //  aceptada, asi que la factura original desaparece del buscador PARA
+      //  SIEMPRE y no hay forma de volver a emitirle la nota.
+      //
+      //  Pasado de verdad: la nota E340000000002 se rechazo por el orden de los
+      //  campos de `Totales`, y su factura dejo de aparecer. El sistema dejaba
+      //  al usuario sin salida por un documento que no llego a existir.
+      //
+      //  Una nota rechazada consumio un numero y nada mas: no modifico ningun
+      //  comprobante. Lo mismo una anulada. Las que si cuentan son las que
+      //  existen o pueden acabar existiendo -- aceptada, enviada, firmada --
+      //  porque emitir una segunda mientras una esta en vuelo si seria
+      //  duplicar el ajuste.
+      const ESTADOS_QUE_NO_AJUSTAN = ['rejected', 'void'];
+
       const adjustedSubquery = db
         .select({ id: invoices.modifiedInvoiceId })
         .from(invoices)
@@ -60,7 +77,8 @@ export async function GET(req: NextRequest) {
             eq(invoices.companyId, auth.companyId),
             eq(invoices.modo, auth.modo),
             isNull(invoices.deletedAt),
-            sql`${invoices.modifiedInvoiceId} IS NOT NULL`
+            sql`${invoices.modifiedInvoiceId} IS NOT NULL`,
+            notInArray(invoices.status, ESTADOS_QUE_NO_AJUSTAN as any)
           )
         );
       
