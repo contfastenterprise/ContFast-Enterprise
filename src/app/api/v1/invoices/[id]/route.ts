@@ -5,7 +5,7 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { db, dgiiSubmissions, invoices, withTenantMode } from '@/db';
 import { eq } from 'drizzle-orm';
-import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
 
 export async function GET(
   req: NextRequest,
@@ -51,11 +51,15 @@ export async function GET(
     // en un solo sitio: envioVigente.
     const submission = await envioVigente(id, auth.companyId, auth.modo);
 
-    // Y la lectura del codigo vive en datosFirmaDeEnvio. Aqui habia un
+    // Y la lectura del codigo vive en firmaDelComprobante. Aqui habia un
     // `if (!securityCode) securityCode = sha256(id + ncf)...`: se inventaba el
     // codigo de seguridad de un comprobante fiscal cuando no constaba. Ahora
     // cadena vacia significa que no consta, y quien imprime lo dice.
-    const { codigo: securityCode } = datosFirmaDeEnvio(submission);
+    // DB-23: la firma sale de la FACTURA, y del envio solo como respaldo. Antes
+    // se leia unicamente del envio, donde el `response_payload` lo reescribe
+    // cualquier consulta de estado: sincronizar una factura aceptada le borraba
+    // el codigo de seguridad y la fecha de firma.
+    const { codigo: securityCode } = firmaDelComprobante(invoice, submission);
 
     return NextResponse.json(
       { success: true, data: { ...invoice, securityCode } },

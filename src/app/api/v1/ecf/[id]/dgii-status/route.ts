@@ -6,8 +6,9 @@ import { db, dgiiSubmissions, companySettings, companies, invoices } from '@/db'
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decryptAsync } from '@/utils/encryption';
 import { eq, and, isNull } from 'drizzle-orm';
-import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
+import { camposDeFirma } from '@/services/dgii/estadoEnvio';
 
 function resolveEntorno(dgiiEnv: string | null): string {
   if (!dgiiEnv) return 'TesteCF';
@@ -130,6 +131,11 @@ export async function GET(
         .set({
           status: newStatus as any,
           dgiiMessage: statusResult.message || null,
+          // DB-22: la firma que devuelve mSeller se guarda en la FACTURA, que es
+          // donde nada la pisa. `camposDeFirma` solo trae lo que vino, asi que
+          // un dato ausente no aparece en el objeto y este `set` NUNCA sustituye
+          // un valor bueno por uno vacio.
+          ...camposDeFirma(statusResult.rawResponse),
           updatedAt: new Date()
         })
         .where(and(eq(invoices.id, invoice.id), eq(invoices.companyId, auth.companyId)));
@@ -182,20 +188,17 @@ export async function GET(
         // el de las facturas que lo perdieron. Si no trae, no se borra el que
         // haya: `undefined` deja la columna como esta.
         const codigoConsultado = leerCodigoSeguridad(statusResult.rawResponse);
-        const yaTenia = datosFirmaDeEnvio(envio).codigo;
 
         await db
           .update(dgiiSubmissions)
           .set({
             status: newStatus as any,
             responseMessage: statusResult.message,
-            // La respuesta del envio manda sobre la de una consulta de estado:
-            // es la que lleva la firma. Solo se sustituye cuando la que hay no
-            // aporta codigo de seguridad, o cuando la nueva tambien lo trae.
-            responsePayload:
-              !yaTenia || codigoConsultado
-                ? JSON.stringify(statusResult.rawResponse)
-                : undefined,
+            // El `response_payload` de un envio pertenece a ESE envio y una
+            // consulta de estado ya no lo toca. Antes lo reescribia, y como la
+            // respuesta de una consulta no trae la firma, sincronizar una
+            // factura aceptada le borraba el codigo de seguridad. Ahora la firma
+            // vive en la factura (arriba) y aqui no hay nada que rescatar.
             securityCode: codigoConsultado || undefined,
             updatedAt: new Date(),
           })

@@ -1,6 +1,6 @@
 import { db, invoices, dgiiSubmissions, ecfSequences, companySettings, companies } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
-import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
+import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
 import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
@@ -260,6 +260,11 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
         status: newStatus as any,
         msellerTrackId: result.trackId || null,
         dgiiMessage: mensajeEstado(lectura, result.message),
+        // DB-22: la firma que devuelve mSeller se guarda en la FACTURA, que es
+        // donde nada la pisa. `camposDeFirma` solo trae lo que vino, asi que
+        // un dato ausente no aparece en el objeto y este `set` NUNCA sustituye
+        // un valor bueno por uno vacio.
+        ...camposDeFirma(result.rawResponse),
         updatedAt: new Date(),
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));

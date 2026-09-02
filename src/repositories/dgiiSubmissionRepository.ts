@@ -150,3 +150,43 @@ export function datosFirmaDeEnvio(envio: {
     fechaFirma: delPayload.fechaFirma,
   };
 }
+
+/**
+ * La firma del comprobante, con la FACTURA por delante y el envio de respaldo.
+ *
+ * Hallazgo DB-23. `datosFirmaDeEnvio` resuelve bien de donde sacar el dato
+ * dentro de un envio, pero mira solo al envio, y ahi el dato es fragil: el
+ * `response_payload` lo reescribe cualquier consulta de estado. Por eso las
+ * migraciones 0042 y 0043 llevaron la firma a `invoices`, donde nada la pisa.
+ *
+ * El orden es el que importa:
+ *   1. Las columnas de la factura. Es la constancia.
+ *   2. El envio, para los comprobantes anteriores a la 0042 y para los que
+ *      acaban de emitirse (la emision escribe la firma en el envio antes de
+ *      que ninguna sincronizacion la copie a la factura).
+ *   3. Nada. Cadena vacia. No se fabrica: un comprobante sin firma es un
+ *      comprobante PENDIENTE, y asi se imprime.
+ *
+ * Un valor vacio en la factura NUNCA gana sobre uno bueno del envio, y al reves
+ * tampoco: cada campo se resuelve por separado, porque mSeller puede traer el
+ * codigo sin la fecha o al reves.
+ */
+export function firmaDelComprobante(
+  factura: {
+    securityCode?: string | null;
+    signatureDate?: string | null;
+    qrUrl?: string | null;
+  } | null,
+  envio: {
+    securityCode?: string | null;
+    responsePayload?: string | null;
+  } | null
+): DatosFirma {
+  const delEnvio = datosFirmaDeEnvio(envio);
+
+  return {
+    codigo: (factura?.securityCode || '').trim() || delEnvio.codigo,
+    qr: (factura?.qrUrl || '').trim() || delEnvio.qr,
+    fechaFirma: (factura?.signatureDate || '').trim() || delEnvio.fechaFirma,
+  };
+}

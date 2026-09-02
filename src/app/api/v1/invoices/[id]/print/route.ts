@@ -4,7 +4,7 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories, warehouses } from '@/db';
 import { eq, and } from 'drizzle-orm';
-import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { verifyAuth } from '@/middleware/auth';
 
@@ -111,7 +111,7 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
   const submission = await envioVigente(invoiceId, companyId, modo);
 
   // La lectura del codigo de seguridad, el QR y la fecha de firma vive en
-  // datosFirmaDeEnvio. Aqui habia treinta lineas repetidas en cuatro rutas
+  // firmaDelComprobante. Aqui habia treinta lineas repetidas en cuatro rutas
   // que acababan en:
   //
   //     if (!securityCode) securityCode = sha256(id + ncf).slice(0,16)
@@ -119,7 +119,11 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
   // o sea, inventarse el codigo de seguridad de un comprobante fiscal. Y
   // peor: el QR se construia con ESE codigo inventado apuntando a la
   // consulta de la DGII, donde no puede validar nunca.
-  const firma = datosFirmaDeEnvio(submission);
+  // DB-23: la firma sale de la FACTURA, y del envio solo como respaldo. Antes
+  // se leia unicamente del envio, donde el `response_payload` lo reescribe
+  // cualquier consulta de estado: sincronizar una factura aceptada le borraba
+  // el codigo de seguridad y la fecha de firma.
+  const firma = firmaDelComprobante(invoiceRecordDb, submission);
   const securityCode = firma.codigo;
   const signedDate = firma.fechaFirma;
   let qrBase64 = '';
@@ -157,7 +161,10 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
     notes: invoiceRecordDb.notes || '',
     codigoFactura: invoiceRecordDb.codigoFactura,
     securityCode,
-    signatureDate: signedDate || invoiceRecordDb.createdAt.toISOString(),
+    // DB-23: sin respaldo a la fecha de CREACION. Son cosas distintas y la
+      // DGII compara contra la suya; poner una por otra es firmar con una
+      // fecha que no es. Vacia significa pendiente, y asi se imprime.
+      signatureDate: signedDate || null,
     ncfExpiryDate: ncfExpiry,
     lines: lines.map(l => ({
       quantity: Number(l.quantity),

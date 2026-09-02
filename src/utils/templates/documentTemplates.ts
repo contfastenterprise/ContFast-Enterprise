@@ -172,6 +172,17 @@ export class DocumentTemplates {
     const { company, customer, invoice, lines, taxes } = data;
     const inv = invoice || data;
 
+    // DB-23: la fecha de FIRMA y la de EMISION son cosas distintas, y la DGII
+    // compara la primera contra la suya. Aqui se mezclaban en una sola
+    // expresion -- `inv.signatureDate || inv.createdAt` -- de modo que un
+    // comprobante todavia sin firmar imprimia su fecha de creacion bajo el
+    // rotulo "Fecha de Firma". Un dato inventado con aspecto de bueno.
+    //
+    // La firma se declara por su ausencia o su presencia, y de ahi salen el
+    // rotulo y la fecha en los dos formatos.
+    const hayFirma = !!inv.signatureDate;
+    const estadoFirma = !hayFirma ? 'Pendiente' : 'Firmado';
+
     if (layout === 'carta') {
       const padDots = (label: string, length: number) => {
         const dotsNeeded = length - label.length;
@@ -346,8 +357,10 @@ export class DocumentTemplates {
         </tr>
       `;
 
-      // Signature Date formatting
-      let sigDate = new Date(inv.signatureDate || inv.createdAt);
+      // Formato de la fecha. `sigDate` es la de firma cuando consta, y la de
+      // emision cuando no: quien decide cual se rotula es `hayFirma`, no esta
+      // variable.
+      let sigDate = new Date(hayFirma ? inv.signatureDate : inv.createdAt);
       if (isNaN(sigDate.getTime()) && inv.signatureDate) {
         // Try parsing DD-MM-YYYY or DD/MM/YYYY or other common formats
         const match = String(inv.signatureDate).match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+(.*))?$/);
@@ -494,10 +507,10 @@ export class DocumentTemplates {
             <div style="display: flex; align-items: center; gap: 15px;">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
-                ${inv.securityCode
-                  ? `Código de seguridad: ${inv.securityCode}<br>
+                ${hayFirma
+                  ? `Código de seguridad: ${inv.securityCode || 'No consta'}<br>
                 Fecha Firma: ${formattedSigDate}`
-                  : `Pendiente de confirmación de la DGII<br>
+                  : `${estadoFirma} de confirmación de la DGII<br>
                 Emitido: ${formattedSigDate}`}
               </div>
             </div>
@@ -767,14 +780,14 @@ export class DocumentTemplates {
         -->
         <div class="qr-section">
           <div class="qr-text">
-            ${inv.securityCode
+            ${hayFirma
               ? `<strong>Firma Digital Válida</strong><br>
-            <strong>Código de Seguridad:</strong> ${inv.securityCode}<br>
-            <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate || inv.createdAt).toLocaleString('es-DO')}<br>
+            <strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
+            <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate).toLocaleString('es-DO')}<br>
             Puede validar este e-CF en el portal de la DGII.`
-              : `<strong>Pendiente de confirmación de la DGII</strong><br>
-            <strong>Fecha de emisión:</strong> ${new Date(inv.signatureDate || inv.createdAt).toLocaleString('es-DO')}<br>
-            Este comprobante aún no tiene código de seguridad de la DGII.`}
+              : `<strong>${estadoFirma} de confirmación de la DGII</strong><br>
+            <strong>Fecha de emisión:</strong> ${new Date(inv.createdAt).toLocaleString('es-DO')}<br>
+            Este comprobante aún no tiene la firma de la DGII.`}
           </div>
           ${qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
         </div>

@@ -159,6 +159,26 @@ export const invoices = pgTable('invoices', {
   deliveryStatus: varchar('delivery_status', { length: 50 }).default('pending').notNull(),
   totalRetained: decimal('total_retained', { precision: 15, scale: 2 }).default('0.00').notNull(),
   totalNet: decimal('total_net', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  // La firma del comprobante, tal y como la devuelve mSeller. Las columnas
+  // existen en la base desde las migraciones 0042 y 0043, pero el esquema no
+  // las declaraba: para drizzle no existian, asi que nadie podia escribirlas ni
+  // leerlas y se quedaron con lo que les puso el relleno de la migracion.
+  //
+  // Viven en la FACTURA y no solo dentro de `dgii_submissions.response_payload`
+  // porque cada consulta de estado reescribia ese JSON con una respuesta que no
+  // trae la firma: sincronizar una factura aceptada le borraba los dos datos.
+  //
+  // NULO significa "no consta", nunca "todavia no lo hemos calculado": la firma
+  // no se fabrica. Un comprobante sin ella se imprime como pendiente.
+  securityCode: varchar('security_code', { length: 64 }),
+  // Texto, no timestamp: se guarda tal cual lo manda mSeller (dd-MM-yyyy con
+  // hora). Es lo que la DGII compara contra lo suyo, y reformatearlo seria
+  // arriesgarse a cambiarlo.
+  signatureDate: varchar('signature_date', { length: 40 }),
+  // El enlace del codigo QR lo da mSeller. No se arma a mano: la URL que se
+  // construia por nuestra cuenta no era el endpoint de consulta de la DGII y el
+  // QR impreso llevaba a una direccion que no existe.
+  qrUrl: text('qr_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

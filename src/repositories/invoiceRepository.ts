@@ -220,6 +220,14 @@ export class InvoiceRepository {
         modifiedNcf: invoices.modifiedNcf || null,
         modifiedInvoiceId: invoices.modifiedInvoiceId || null,
         codigoFactura: invoices.codigoFactura,
+        // La firma del comprobante (0042 y 0043). Este SELECT enumera las
+        // columnas una a una, y una lista explicita no falla al anadir una
+        // nueva: la ignora en silencio. El PDF, el correo y el detalle recibian
+        // `undefined` y el comprobante salia marcado como pendiente aunque la
+        // factura tuviera la firma guardada.
+        securityCode: invoices.securityCode,
+        signatureDate: invoices.signatureDate,
+        qrUrl: invoices.qrUrl,
         createdAt: invoices.createdAt,
         updatedAt: invoices.updatedAt,
         customerName: customers.name,

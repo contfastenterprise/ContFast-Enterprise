@@ -94,8 +94,29 @@ describe('DB-22 · la sincronización ya no borra la firma', () => {
     'src/app/api/v1/ecf/dgii-status/batch/route.ts',
   ];
 
+  /**
+   * El cuerpo de cada `.update(dgiiSubmissions).set({ ... })` de un fichero.
+   *
+   * Se mira el UPDATE y no el fichero entero a proposito: lo que arruinaba la
+   * firma era REESCRIBIR el payload de un envio que ya existia. Cuando la
+   * consulta descubre que la factura no tiene ningun envio registrado, insertar
+   * uno CON su payload no destruye nada -- es la constancia que faltaba -- y
+   * prohibirlo solo tiraria evidencia.
+   */
+  const setsDeEnvio = (fuente: string) => {
+    const trozos: string[] = [];
+    for (let i = fuente.indexOf('.update(dgiiSubmissions)'); i > -1;
+         i = fuente.indexOf('.update(dgiiSubmissions)', i + 1)) {
+      const fin = fuente.indexOf('.where(', i);
+      trozos.push(fuente.slice(i, fin > -1 ? fin : fuente.length));
+    }
+    return trozos;
+  };
+
   it('ninguna consulta de estado sobrescribe el payload del envío', () => {
-    const culpables = RUTAS_SYNC.filter((r) => leer(r).includes('responsePayload:'));
+    const culpables = RUTAS_SYNC.filter((r) =>
+      setsDeEnvio(leer(r)).some((bloque) => bloque.includes('responsePayload:'))
+    );
     expect(
       culpables,
       'El payload de un envío pertenece a ese envío. Una consulta de estado actualiza el estado y el ' +
@@ -123,13 +144,25 @@ describe('DB-23 · la firma se lee de la factura', () => {
     ['src/app/api/v1/invoices/[id]/print/route.ts', 'invoiceRecordDb'],
   ];
 
+  /*
+   * Antes esta prueba exigia el bloque literal de treinta lineas que las cuatro
+   * rutas repetian. Esas treinta lineas se unificaron en `firmaDelComprobante`,
+   * y comprobar la forma del codigo habria obligado a volver a duplicarlas. Lo
+   * que importa no es como se escribe, sino de donde sale el dato y en que
+   * orden: la factura primero, el envio de respaldo. Eso es lo que se mira
+   * ahora, y `firmaDelComprobante` lo fija en su firma -- la factura es el
+   * primer argumento.
+   */
   it('las cuatro rutas prefieren la columna antes que el JSON del envío', () => {
     for (const [ruta, variable] of LECTURAS) {
       const fuente = leer(ruta);
-      expect(fuente, `${ruta}: el código de seguridad debe salir de la columna`)
-        .toContain(`let securityCode = ${variable}.securityCode || '';`);
-      expect(fuente, `${ruta}: el JSON del envío es respaldo, no debe pisar la columna`)
-        .toContain('securityCode = securityCode || payload.securityCode');
+      expect(fuente, `${ruta}: la firma debe resolverse con firmaDelComprobante`)
+        .toContain(`firmaDelComprobante(${variable}, submission)`);
+      expect(
+        fuente.includes('datosFirmaDeEnvio('),
+        `${ruta}: leer solo del envío se salta la columna de la factura, que es la que ` +
+          'no pisa ninguna sincronización'
+      ).toBe(false);
     }
   });
 
@@ -193,11 +226,12 @@ describe('DB-23 · la firma se lee de la factura', () => {
   });
 
   it('el QR sale del enlace guardado en la factura', () => {
-    for (const [ruta, variable] of LECTURAS.filter(([r]) => !r.endsWith('[id]/route.ts'))) {
-      expect(leer(ruta), `${ruta}: el QR debe salir de la columna`)
-        .toContain(`let qrBase64 = ${variable}.qrUrl ? await PdfGenerator.generateQrBase64(${variable}.qrUrl) : '';`);
-      expect(leer(ruta), `${ruta}: el JSON del envío es respaldo, no debe pisar`)
-        .toContain('if (!qrBase64 && rawQr)');
+    // Mismo motivo que arriba: el enlace se resuelve en `firmaDelComprobante`,
+    // que mira `invoices.qr_url` antes que el payload del envio. Aqui se
+    // comprueba que las rutas que imprimen usan ESE resultado y no otro.
+    for (const [ruta] of LECTURAS.filter(([r]) => !r.endsWith('[id]/route.ts'))) {
+      expect(leer(ruta), `${ruta}: el QR debe salir de la firma resuelta`)
+        .toContain('firma.qr');
     }
     const repo = leer('src/repositories/invoiceRepository.ts');
     const desde = repo.indexOf('static async getById');

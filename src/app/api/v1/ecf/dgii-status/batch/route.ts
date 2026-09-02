@@ -6,8 +6,9 @@ import { db, dgiiSubmissions, companySettings, invoices } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decryptAsync } from '@/utils/encryption';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
-import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
+import { camposDeFirma } from '@/services/dgii/estadoEnvio';
 
 function resolveEntorno(dgiiEnv: string | null): string {
   if (!dgiiEnv) return 'TesteCF';
@@ -207,6 +208,11 @@ export async function POST(req: NextRequest) {
           .set({
             status: newStatus as any,
             dgiiMessage: displayMessage,
+            // DB-22: la firma que devuelve mSeller se guarda en la FACTURA, que es
+            // donde nada la pisa. `camposDeFirma` solo trae lo que vino, asi que
+            // un dato ausente no aparece en el objeto y este `set` NUNCA sustituye
+            // un valor bueno por uno vacio.
+            ...camposDeFirma(result.data),
             updatedAt: new Date()
           })
           .where(and(eq(invoices.id, inv.id), eq(invoices.companyId, auth.companyId)));
@@ -219,17 +225,15 @@ export async function POST(req: NextRequest) {
         const envio = await envioVigente(inv.id, auth.companyId, auth.modo);
         if (envio) {
           const codigoConsultado = leerCodigoSeguridad(result.data);
-          const yaTenia = datosFirmaDeEnvio(envio).codigo;
 
           await db
             .update(dgiiSubmissions)
             .set({
               status: newStatus as any,
               responseMessage: displayMessage,
-              responsePayload:
-                !yaTenia || codigoConsultado
-                  ? JSON.stringify(result.data || {})
-                  : undefined,
+              // El `response_payload` del envio ya no se reescribe desde una
+              // consulta de estado: ver la nota en la sincronizacion individual.
+              // La firma se guarda en la factura, unas lineas mas arriba.
               securityCode: codigoConsultado || undefined,
               updatedAt: new Date(),
             })
