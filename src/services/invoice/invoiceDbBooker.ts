@@ -126,26 +126,84 @@ export class InvoiceDbBooker {
   }
 
   /**
-   * Predicts the next NCF.
+   * Reserva el siguiente NCF de la secuencia y lo devuelve.
+   *
+   * Auditoria DB-04. Este paso LEIA la secuencia sin bloqueo y devolvia el
+   * numero; la reserva de verdad ocurria al final, con el comprobante ya
+   * enviado a la DGII. Entre una cosa y otra estaba la llamada de red: dos
+   * emisiones simultaneas leian el mismo numero y LAS DOS lo mandaban. Al
+   * serializarse, la segunda detectaba el conflicto y abortaba su transaccion
+   * entera; quedaban dos comprobantes con el mismo numero ante la DGII y una
+   * venta entregada al cliente que no existia en el sistema: sin ingreso, sin
+   * ITBIS y sin inventario.
+   *
+   * Ahora el numero se compromete ANTES de enviar nada. Un envio fallido deja
+   * un hueco en la secuencia, y para eso esta `registrarNcfSinUsar`: un hueco
+   * se explica ante la DGII, un numero duplicado no.
+   *
+   * Este es el UNICO punto del flujo de emision que avanza la secuencia.
+   * `src/tests/secuenciaNcf.vitest.ts` lo comprueba contando llamadas: si
+   * `executeDbTransaction` o `saveRejectedInvoice` vuelven a reservar, la
+   * prueba falla.
    */
-  static async predictNextNcf(companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
-    const seqRecord = await CompanyRepository.getSequence(companyId, ecfType, modo);
-    if (!seqRecord) {
-      throw new Error(`No existe una secuencia e-CF activa y autorizada para el tipo ${ecfType} en ambiente ${modo}.`);
-    }
-    if (seqRecord.currentSequence >= seqRecord.maxSequence) {
-      throw new Error(
-        `La secuencia de comprobantes e-CF tipo ${ecfType} ha llegado a su límite máximo (${seqRecord.maxSequence}) en ambiente ${modo}. Solicite una nueva autorización SACF.`
+  static async reservarNcf(
+    companyId: string,
+    ecfType: string,
+    modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  ): Promise<{ ncf: string }> {
+    // El bloqueo de fila vive dentro de `allocateNextNcf` y solo funciona
+    // dentro de una transaccion. Esta es la SUYA, aparte de la que registra la
+    // factura: el numero tiene que quedar comprometido antes de que salga nada
+    // hacia la DGII, no al final.
+    const ncf = await db.transaction(async (tx) =>
+      await CompanyRepository.allocateNextNcf(tx, companyId, ecfType, modo)
+    );
+
+    return { ncf };
+  }
+
+  /**
+   * Deja constancia de un NCF que se reservo y no llego a respaldar ninguna
+   * factura.
+   *
+   * Es la contrapartida de reservar antes de enviar: si el envio a la DGII
+   * falla, o si el comprobante sale pero luego no se puede registrar, el
+   * numero ya esta consumido y la secuencia queda con un hueco. Un hueco sin
+   * explicacion es un problema ante la DGII; con esta traza se puede decir
+   * cual numero, cuando y por que.
+   *
+   * NO devuelve el numero a la secuencia. Retroceder `current_sequence` es
+   * exactamente la carrera que este cambio vino a cerrar, y ademas el
+   * comprobante puede haber llegado a la DGII de todas formas.
+   *
+   * No relanza: se llama desde el manejo de un error que ya se esta
+   * propagando, y perder el error original porque falle la escritura de la
+   * traza seria cambiar un problema por otro peor.
+   */
+  static async registrarNcfSinUsar(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    userId: string,
+    ncf: string,
+    ecfType: string,
+    motivo: string
+  ) {
+    try {
+      await db.insert(auditLogs).values({
+        companyId,
+        userId,
+        action: 'ncf_reservado_sin_usar',
+        entityType: 'ecf_sequences',
+        newValues: { ncf, ecfType, motivo },
+        ipAddress: 'server',
+        modo,
+      });
+    } catch (err) {
+      console.error(
+        `[InvoiceDbBooker] No se pudo registrar el hueco de secuencia del NCF ${ncf}:`,
+        err
       );
     }
-
-    const nextVal = seqRecord.currentSequence + 1;
-    const isElectronic = seqRecord.prefix.toUpperCase().startsWith('E');
-    const padLength = isElectronic ? 10 : 8;
-    const sequenceStr = nextVal.toString().padStart(padLength, '0');
-    const ncf = `${seqRecord.prefix}${ecfType}${sequenceStr}`;
-
-    return { ncf, seqRecord };
   }
 
   /**
@@ -159,10 +217,11 @@ export class InvoiceDbBooker {
     errMsg: string
   ) {
     return await db.transaction(async (tx) => {
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo);
-      if (allocatedNcf !== ncf) {
-        throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
-      }
+      // El NCF llega ya reservado por `reservarNcf`, antes del envio. Aqui se
+      // reservaba OTRA VEZ y se comparaba: la secuencia avanzaba dos veces por
+      // cada comprobante rechazado, y la comparacion fallaba siempre que dos
+      // emisiones se solaparan. Un rechazo de la DGII no deja hueco -- la
+      // factura se guarda con su numero.
 
       // El numero interno se reserva con una sentencia atomica. Antes se contaba
       // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
@@ -222,11 +281,11 @@ export class InvoiceDbBooker {
     msellerXmlPath: string
   ) {
     return await db.transaction(async (tx) => {
-      // Allocate and increment NCF inside the transaction to lock and commit it
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo);
-      if (allocatedNcf !== ncf) {
-        throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
-      }
+      // El NCF ya viene reservado desde antes del envio a la DGII, asi que aqui
+      // no se toca la secuencia. Mientras se reservaba tambien aqui, cada
+      // factura la avanzaba dos veces y dos emisiones simultaneas hacian que la
+      // segunda abortara su transaccion entera -- con el comprobante ya
+      // presentado a la DGII y la venta ya entregada.
 
       // El numero interno se reserva con una sentencia atomica. Antes se contaba
       // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
@@ -370,11 +429,21 @@ export class InvoiceDbBooker {
       // Deduct or add inventory (Deducción diferida a Conduce de Entrega. Solo Nota de Crédito e-34 agrega stock aquí)
       if (data.ecfType === '34') {
         for (const line of totals.itemLines) {
+          // La mercancia vuelve al almacen DE DONDE SALIO, no al general del
+          // formulario. Antes iba siempre a `data.warehouseId`: una factura
+          // despachada desde dos almacenes se devolvia entera a uno solo, y el
+          // otro quedaba con existencia de menos para siempre.
+          //
+          // El almacen de la linea viene ya validado contra la empresa desde la
+          // ruta (POST /api/v1/invoices); si la linea no lo trae -- facturas
+          // antiguas, o un almacen que ya no existe -- se cae al general, que es
+          // exactamente lo que se hacia hasta ahora.
+          const almacenDeLinea = line.warehouseId || data.warehouseId;
           await deductStock(
             data.companyId,
             data.modo,
             line.productId,
-            data.warehouseId,
+            almacenDeLinea,
             -line.quantity,
             data.userId,
             'return',

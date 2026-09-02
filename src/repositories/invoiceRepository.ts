@@ -239,6 +239,12 @@ export class InvoiceRepository {
         id: invoiceLines.id,
         invoiceId: invoiceLines.invoiceId,
         productId: invoiceLines.productId,
+        // El almacen de ESTA linea. Se guarda desde siempre (`create` lo
+        // escribe), pero aqui no se leia: el detalle salia sin el y la nota de
+        // credito devolvia TODA la mercancia al almacen general del formulario.
+        // En una factura despachada desde varios almacenes, el inventario
+        // volvia al que no era.
+        warehouseId: invoiceLines.warehouseId,
         quantity: invoiceLines.quantity,
         unitPrice: invoiceLines.unitPrice,
         discount: invoiceLines.discount,

@@ -494,8 +494,11 @@ export class DocumentTemplates {
             <div style="display: flex; align-items: center; gap: 15px;">
               ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
-                Código de seguridad: ${inv.securityCode || 'N/A'}<br>
-                Fecha Firma: ${formattedSigDate}
+                ${inv.securityCode
+                  ? `Código de seguridad: ${inv.securityCode}<br>
+                Fecha Firma: ${formattedSigDate}`
+                  : `Pendiente de confirmación de la DGII<br>
+                Emitido: ${formattedSigDate}`}
               </div>
             </div>
 
@@ -748,12 +751,30 @@ export class DocumentTemplates {
           </div>
         </div>
 
+        <!--
+          La leyenda de firma válida se imprimía SIEMPRE, constara o no la firma.
+          (No se cita aquí su texto literal: los bancos buscan esa frase en este
+          fichero, y un comentario que la repite los hace contarse a sí mismos.)
+          Es la misma clase de fallo que el código de seguridad fabricado con
+          sha256: el papel afirmaba algo que el sistema no sabía. Y desde que el
+          código dejó de inventarse, el caso se ve: un comprobante sin código
+          seguía declarándose firmado y remitiendo al portal de la DGII, donde
+          no hay nada que consultar.
+
+          El código de seguridad es lo que permite validar el e-CF ante la
+          DGII, así que es la prueba de que la firma consta. Sin él, el
+          comprobante dice que está pendiente, que es la verdad.
+        -->
         <div class="qr-section">
           <div class="qr-text">
-            <strong>Firma Digital Válida</strong><br>
-            ${inv.securityCode ? `<strong>Código de Seguridad:</strong> ${inv.securityCode}<br>` : ''}
+            ${inv.securityCode
+              ? `<strong>Firma Digital Válida</strong><br>
+            <strong>Código de Seguridad:</strong> ${inv.securityCode}<br>
             <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate || inv.createdAt).toLocaleString('es-DO')}<br>
-            Puede validar este e-CF en el portal de la DGII.
+            Puede validar este e-CF en el portal de la DGII.`
+              : `<strong>Pendiente de confirmación de la DGII</strong><br>
+            <strong>Fecha de emisión:</strong> ${new Date(inv.signatureDate || inv.createdAt).toLocaleString('es-DO')}<br>
+            Este comprobante aún no tiene código de seguridad de la DGII.`}
           </div>
           ${qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
         </div>

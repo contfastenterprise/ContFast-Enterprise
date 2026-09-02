@@ -5,8 +5,8 @@ import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { InvoiceService } from '@/services/invoiceService';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
-import { db, invoices, subscriptions, plans } from '@/db';
-import { eq, and, count, gte, lte } from 'drizzle-orm';
+import { db, invoices, subscriptions, plans, warehouses } from '@/db';
+import { eq, and, count, gte, lte, inArray, isNull } from 'drizzle-orm';
 
 /**
  * Cuanto puede durar la emision en la plataforma.
@@ -189,6 +189,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Los almacenes llegan en el cuerpo de la peticion: el general de la
+    // factura y, desde que la nota de credito arrastra el de cada linea de la
+    // factura original, uno por linea. De ellos salen movimientos de
+    // inventario y ninguna capa mas abajo comprueba de quien son (lo dice el
+    // propio `addStock`). Se comprueba AQUI, antes de firmar y transmitir: mas
+    // abajo el e-CF ya esta presentado a la DGII y un fallo no lo deshace.
+    const almacenesPedidos = Array.from(new Set([
+      result.data.warehouseId,
+      ...result.data.lines
+        .map((l) => l.warehouseId)
+        .filter((w): w is string => !!w),
+    ]));
+
+    const almacenesValidos = new Set(
+      (
+        await db
+          .select({ id: warehouses.id })
+          .from(warehouses)
+          .where(
+            and(
+              eq(warehouses.companyId, auth.companyId),
+              isNull(warehouses.deletedAt),
+              inArray(warehouses.id, almacenesPedidos)
+            )
+          )
+      ).map((w) => w.id)
+    );
+
+    if (!almacenesValidos.has(result.data.warehouseId)) {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'El almacén seleccionado no existe o no pertenece a esta empresa.' } },
+        { status: 400, headers: resHeaders }
+      );
+    }
+
+    // Un almacen de linea que no sea de esta empresa -- o que ya se haya
+    // eliminado, caso normal al hacer la nota de credito de una factura vieja
+    // -- no bloquea el comprobante: se cae al almacen general de la factura,
+    // que es exactamente lo que se hacia antes de leer el almacen por linea.
+    const lineasSaneadas = result.data.lines.map((l) => ({
+      ...l,
+      warehouseId: l.warehouseId && almacenesValidos.has(l.warehouseId) ? l.warehouseId : undefined,
+    }));
+
     // Check invoice limits from subscription (only count production invoices)
     const subscriptionInfo = await db
       .select({ maxEcfLimit: plans.maxEcfLimit })
@@ -233,6 +277,7 @@ export async function POST(req: NextRequest) {
       modo: auth.modo,
       userId: auth.userId,
       ...result.data,
+      lines: lineasSaneadas,
     });
 
     return NextResponse.json(

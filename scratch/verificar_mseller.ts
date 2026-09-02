@@ -260,6 +260,53 @@ async function main() {
       /securityCode:\s*leerCodigoSeguridad/.test(sinEnvio));
   }
 
+
+  console.log('\n9) El papel no afirma una firma que no consta\n');
+
+  // La leyenda de firma valida se imprimia SIEMPRE. Misma clase que el sha256
+  // fabricado: el papel afirmando lo que el sistema no sabe. Se vio al dejar de
+  // inventar el codigo -- un comprobante sin codigo seguia declarandose firmado
+  // y remitiendo al portal de la DGII, donde no hay nada que consultar.
+  {
+    const tpl = fuente('src/utils/templates/documentTemplates.ts');
+    const firma = 'Firma Digital V' + '\u00e1lida';
+    const portal = 'Puede validar este e-CF en el portal';
+
+    ok('la leyenda de firma aparece UNA vez (no se cuenta un comentario)',
+      (tpl.match(new RegExp(firma, 'g')) || []).length === 1,
+      String((tpl.match(new RegExp(firma, 'g')) || []).length));
+    // Si hay firma, la rama de "hay codigo" es la que la lleva.
+    const iFirma = tpl.indexOf(firma);
+    const antes = tpl.slice(Math.max(0, iFirma - 120), iFirma);
+    ok('va dentro de la rama que exige codigo de seguridad',
+      /inv\.securityCode\s*$|inv\.securityCode[\s\S]*\?/.test(antes), antes.trim().slice(-60));
+    ok('sin codigo se dice que esta pendiente, no que esta firmado',
+      tpl.includes('Pendiente de confirmaci' + '\u00f3n de la DGII'));
+    ok('el envio al portal va con la firma, no suelto',
+      (tpl.match(new RegExp(portal, 'g')) || []).length === 1 &&
+      tpl.indexOf(portal) > iFirma);
+    ok('el pie repetido ya no imprime "N/A" como codigo',
+      !/securityCode \|\| 'N\/A'/.test(tpl));
+
+    // Los DOS sitios (comprobante y pie repetido) tienen que colgar de que
+    // EXISTA el codigo. Comprobar solo el texto no basta: una mutacion que
+    // cambia `inv.securityCode ?` por `true ?` deja el texto intacto y vuelve a
+    // afirmar la firma siempre. Se exige la condicion justo antes de cada
+    // rama de "pendiente".
+    const pendiente = 'Pendiente de confirmaci' + '\u00f3n de la DGII';
+    const sitios: number[] = [];
+    for (let k = tpl.indexOf(pendiente); k >= 0; k = tpl.indexOf(pendiente, k + 1)) sitios.push(k);
+    ok('la rama "pendiente" aparece en los dos sitios que imprimen firma',
+      sitios.length === 2, String(sitios.length));
+    // Se cuenta la CONDICION en si, no una ventana de texto alrededor. Con la
+    // ventana no valia: dentro de la rama "hay codigo" vuelve a aparecer
+    // `inv.securityCode` para imprimirlo, asi que cambiar el `if` por `true`
+    // dejaba la ventana igual de poblada y la comprobacion pasaba.
+    const condicionales = (tpl.match(/\$\{inv\.securityCode\s*\n\s*\?/g) || []).length;
+    ok('y las dos cuelgan de que exista el codigo de seguridad',
+      condicionales === 2, `${condicionales} condicional(es)`);
+  }
+
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);
 }
