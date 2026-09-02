@@ -83,18 +83,47 @@ export async function checkRateLimit(
   const redisKey = `ratelimit:${preset}:${key}`;
 
   try {
-    // Increment with a 200ms timeout to avoid blocking the request if Redis is slow
-    const incrPromise = r.incr(redisKey);
+    // CONTAR Y CADUCAR TIENEN QUE SER LA MISMA OPERACION.
+    //
+    // Antes eran dos:
+    //
+    //     const currentCount = await Promise.race([incrPromise, timeoutPromise]);
+    //     if (currentCount === 1) {
+    //       r.expire(redisKey, windowSeconds).catch(() => {});  // fire and forget
+    //     }
+    //
+    // El `EXPIRE` solo se ponia cuando el contador valia exactamente 1. Si esa
+    // PRIMERA peticion tardaba mas de 200 ms, la carrera se resolvia por el
+    // timeout y saltaba al `catch` -- pero el `INCR` YA se habia ejecutado en
+    // Redis. El codigo nunca veia el 1, asi que el `EXPIRE` no se ponia nunca.
+    //
+    // A partir de ahi la clave vive SIN CADUCIDAD: el contador sube con cada
+    // peticion y, pasado el limite, el endpoint devuelve 429 PARA SIEMPRE.
+    // Esperar no sirve, porque no hay ventana que se reinicie. Lo mismo si el
+    // proceso se reinicia entre las dos ordenes, o si el propio `expire` falla
+    // -- el `.catch(() => {})` se lo tragaba en silencio.
+    //
+    // Paso de verdad: la lista de facturas quedo bloqueada con 429 de forma
+    // permanente y hubo que borrar la clave a mano.
+    //
+    // Un script Lua se ejecuta entero y sin interrupciones dentro de Redis, asi
+    // que el contador NUNCA puede quedarse sin TTL. Ademas es una sola ida y
+    // vuelta en vez de dos. Los limites y las ventanas no cambian.
+    const LUA_CONTAR_Y_CADUCAR = `
+      local c = redis.call('INCR', KEYS[1])
+      if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+      return c
+    `;
+
+    // El timeout sigue: si Redis va lento, no se bloquea la peticion del
+    // usuario. La diferencia es que ahora un timeout no puede dejar la clave
+    // a medias -- o el script corrio entero, o no corrio.
+    const evalPromise = r.eval(LUA_CONTAR_Y_CADUCAR, 1, redisKey, String(windowSeconds));
     const timeoutPromise = new Promise<number>((_, reject) =>
       setTimeout(() => reject(new Error('Redis timeout')), 200)
     );
 
-    const currentCount = await Promise.race([incrPromise, timeoutPromise]);
-
-    // If it's the first request in the window, set the expiration
-    if (currentCount === 1) {
-      r.expire(redisKey, windowSeconds).catch(() => {}); // Fire and forget
-    }
+    const currentCount = Number(await Promise.race([evalPromise, timeoutPromise]));
 
     if (currentCount > limit) {
       console.warn(`[Rate Limit] Key ${key} exceeded the limit for preset "${preset}" (${currentCount}/${limit})`);
