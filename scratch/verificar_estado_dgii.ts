@@ -149,7 +149,56 @@ function main() {
     /\|\|\s*'Aceptado/.test(conComentarios));
   ok('control: y el limpio no', !/\|\|\s*'Aceptado/.test(jr));
 
-  console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
+  console.log('\nZ) `dgiiResponse` es un HISTORIAL: vale la ULTIMA entrada\n');
+
+// EL CASO REAL. E440000000001 de PRODUCCION: la DGII ya lo habia ACEPTADO,
+// mSeller lo decia, el sistema escribio "Aceptado" en el mensaje... y el
+// estado se quedo en "Enviado".
+//
+// `dgiiResponse` no es un dato suelto: es el historial del comprobante. La
+// DGII anade entradas segun avanza ("Recibido", luego "Aceptado"). Esta
+// funcion devolvia la PRIMERA -- un `return` dentro del bucle -- asi que leia
+// "Recibido" e ignoraba el "Aceptado" que venia detras.
+//
+// El codigo que habia en las rutas de sincronizacion recorria todas y se
+// quedaba con la ultima. Al unificar la lectura aqui se perdio ese detalle.
+{
+  const historial = (...estados: string[]) => ({
+    dgiiResponse: estados.map((e) => JSON.stringify({ estado: e })),
+  });
+
+  ok('Recibido -> Aceptado  =>  aceptado',
+    leerEstado(historial('Recibido', 'Aceptado')).estado === 'accepted',
+    leerEstado(historial('Recibido', 'Aceptado')).textoCrudo ?? '');
+  ok('Recibido -> Rechazado =>  rechazado',
+    leerEstado(historial('Recibido', 'Rechazado')).estado === 'rejected');
+  ok('En Proceso -> Aceptado => aceptado',
+    leerEstado(historial('En Proceso', 'Aceptado')).estado === 'accepted');
+
+  // Con tres entradas, sigue mandando la ultima.
+  ok('Recibido -> En Proceso -> Aceptado => aceptado',
+    leerEstado(historial('Recibido', 'En Proceso', 'Aceptado')).estado === 'accepted');
+
+  // Y si la ultima es un "en curso", NO se adelanta un veredicto.
+  ok('Aceptado -> Recibido => submitted (manda la ultima, sea cual sea)',
+    leerEstado(historial('Aceptado', 'Recibido')).estado === 'submitted');
+
+  // Una sola entrada se comporta igual que antes.
+  ok('una sola entrada sigue funcionando',
+    leerEstado(historial('Aceptado')).estado === 'accepted');
+
+  // Entradas vacias o ilegibles no tapan a la buena.
+  ok('una entrada ilegible no invalida las demas',
+    leerEstado({ dgiiResponse: ['no es json', '{\"estado\":\"Aceptado\"}'] }).estado === 'accepted');
+  ok('un estado vacio no cuenta como ultimo',
+    leerEstado({ dgiiResponse: ['{\"estado\":\"Aceptado\"}', '{\"estado\":\"\"}'] }).estado === 'accepted');
+
+  // Sin historial, se siguen mirando los campos de primer nivel.
+  ok('sin dgiiResponse, manda el campo de primer nivel',
+    leerEstado({ status: 'Aceptado' }).estado === 'accepted');
+}
+
+console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);
 }
 

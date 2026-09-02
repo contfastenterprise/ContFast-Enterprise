@@ -86,9 +86,10 @@ export async function GET(req: NextRequest) {
         rechazados: acc.rechazados + r.rechazados,
         sinCambio: acc.sinCambio + r.sinCambio,
         desconocidos: acc.desconocidos + r.desconocidos,
+        requierenAtencion: acc.requierenAtencion + r.requierenAtencion,
         conError: acc.conError + (r.error ? 1 : 0),
       }),
-      { consultados: 0, aceptados: 0, rechazados: 0, sinCambio: 0, desconocidos: 0, conError: 0 }
+      { consultados: 0, aceptados: 0, rechazados: 0, sinCambio: 0, desconocidos: 0, requierenAtencion: 0, conError: 0 }
     );
 
     Logger.info('[cron/sincronizar-ecf] pasada completada', { ...totales, segundos });

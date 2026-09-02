@@ -980,7 +980,21 @@ function ComprobantesTab() {
                           <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"><FileCode className="h-4 w-4" /></button>
                         )}
                         <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
-                        {['rejected', 'failed'].includes(inv.status) && (
+                        {/* CUANDO SE PUEDE REENVIAR.
+                            Decia `['rejected', 'failed']`. Dos problemas:
+                            - 'failed' NO es un estado de factura. Los estados
+                              son draft, signed, submitted, accepted, rejected
+                              y void: esa mitad no se cumplia nunca.
+                            - Faltaba 'signed', que significa emitida en local
+                              y NUNCA enviada. Es el caso que mas claramente
+                              hay que poder reenviar, y no habia boton.
+                            El endpoint ya aceptaba los cuatro; el boton era
+                            mas restrictivo que la regla real.
+                            'submitted' se queda FUERA a proposito: ahi el
+                            documento SI salio y puede estar en la DGII
+                            esperando veredicto. Reenviarlo duplicaria un
+                            comprobante fiscal, y eso no se retira. */}
+                        {['rejected', 'signed', 'draft'].includes(inv.status) && (
                           <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"><ArrowRight className="h-4 w-4" /></button>
                         )}
                       </div>

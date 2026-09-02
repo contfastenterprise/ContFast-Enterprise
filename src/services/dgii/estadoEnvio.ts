@@ -58,15 +58,30 @@ export function textoEstado(raw: any): string | null {
   if (!raw || typeof raw !== 'object') return null;
 
   // Lo que dijo la DGII, si viene anidado.
+  //
+  // `dgiiResponse` es un HISTORIAL, no un dato suelto: la DGII va anadiendo
+  // entradas segun avanza el comprobante ("Recibido" y despues "Aceptado").
+  // Vale la ULTIMA, que es el estado actual.
+  //
+  // Esto devolvia la PRIMERA -- un `return` dentro del bucle -- y por eso
+  // E440000000001 de PRODUCCION se quedaba en "Enviado" despues de que la DGII
+  // ya lo hubiera aceptado: la consulta traia el historial completo, se leia
+  // "Recibido" y se ignoraba el "Aceptado" que venia detras.
+  //
+  // El codigo que habia antes en las rutas de sincronizacion recorria TODAS y
+  // se quedaba con la ultima. Al unificar la lectura aqui se perdio ese
+  // detalle: la unificacion era correcta, la implementacion no.
   if (Array.isArray(raw.dgiiResponse)) {
+    let ultimo: string | null = null;
     for (const item of raw.dgiiResponse) {
       try {
         const p = typeof item === 'string' ? JSON.parse(item) : item;
-        if (p?.estado != null && String(p.estado).trim() !== '') return String(p.estado);
+        if (p?.estado != null && String(p.estado).trim() !== '') ultimo = String(p.estado);
       } catch {
         // Un elemento ilegible no invalida los demas.
       }
     }
+    if (ultimo !== null) return ultimo;
   }
 
   for (const campo of [raw.dgiiStatus, raw.estadoDGII, raw.status, raw.estado]) {

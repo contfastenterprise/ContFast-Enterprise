@@ -59,6 +59,11 @@ export interface ResultadoSincronizacion {
   sinCambio: number;
   /** e-NCF que mSeller dice no conocer pese a llevar rato enviados. */
   desconocidos: number;
+  /**
+   * e-NCF que mSeller SI conoce, pero sobre los que dice algo que no es un
+   * veredicto -- "Error", por ejemplo. Necesitan que alguien mire.
+   */
+  requierenAtencion: number;
   error?: string;
 }
 
@@ -99,6 +104,7 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
       companyId: invoices.companyId,
       modo: invoices.modo,
       emitida: invoices.createdAt,
+      mensaje: invoices.dgiiMessage,
       empresa: companies.name,
     })
     .from(invoices)
@@ -131,7 +137,7 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
     const lote = grupo.slice(0, MAXIMO_POR_LOTE);
     const resumen: ResultadoSincronizacion = {
       empresa, modo, consultados: lote.length,
-      aceptados: 0, rechazados: 0, sinCambio: 0, desconocidos: 0,
+      aceptados: 0, rechazados: 0, sinCambio: 0, desconocidos: 0, requierenAtencion: 0,
     };
 
     try {
@@ -193,10 +199,47 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
         // aceptacion, porque "no aceptado" contiene "aceptado".
         const lectura = leerEstado(r.data ?? { status: r.status });
 
-        // Solo se escribe cuando hay veredicto. Un pendiente que sigue siendo
-        // pendiente no se toca: reescribirlo por reescribirlo solo sirve para
-        // mover `updated_at` y perder la pista de cuando cambio de verdad.
-        if (lectura.estado === 'submitted') { resumen.sinCambio++; continue; }
+        // SIN VEREDICTO TODAVIA -- pero no todos los "sin veredicto" son
+        // iguales.
+        //
+        // `leerEstado` devuelve 'submitted' en dos casos muy distintos:
+        //
+        //   a) mSeller dice algo que ES un "en curso" ("Recibido", "En
+        //      Proceso"). No hay nada que hacer: se espera.
+        //
+        //   b) mSeller dice algo que NO se reconoce como veredicto. El caso
+        //      real: E440000000001 de PRODUCCION figura en mSeller con estado
+        //      "Error" y respuesta de la DGII "read ECONNRESET" -- el corte
+        //      fue entre mSeller y la DGII, no entre el sistema y mSeller.
+        //
+        // El (b) NO se resuelve esperando: mSeller ya termino y fallo. Antes
+        // caia en el mismo `continue` mudo que el (a) y el comprobante se
+        // quedaba en "Enviado" para siempre, sin que nadie supiera que mSeller
+        // habia dado el envio por fallido.
+        //
+        // No se reenvia solo: reenviar es cosa de una persona que mire primero
+        // si la DGII llego a recibirlo. Se deja escrito para que se vea.
+        if (lectura.estado === 'submitted') {
+          if (!lectura.reconocido && lectura.textoCrudo) {
+            const aviso =
+              `mSeller reporta este comprobante como "${lectura.textoCrudo}", que no es ` +
+              'un veredicto de la DGII. El envio no va a resolverse solo: revisar en el ' +
+              'panel de mSeller si la DGII llego a recibirlo y, si no, reenviar el MISMO ' +
+              'e-NCF desde la factura. NO emitir uno nuevo.';
+
+            // Solo se escribe si cambia algo. Reescribir el mismo aviso cada
+            // pasada mueve `updated_at` y borra la pista de cuando ocurrio.
+            if (factura.mensaje !== aviso) {
+              await db.update(invoices)
+                .set({ dgiiMessage: aviso, updatedAt: new Date() })
+                .where(and(eq(invoices.id, factura.id), eq(invoices.companyId, companyId)));
+            }
+            resumen.requierenAtencion++;
+          } else {
+            resumen.sinCambio++;
+          }
+          continue;
+        }
 
         const mensaje = mensajeEstado(lectura, null);
 

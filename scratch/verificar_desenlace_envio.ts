@@ -77,6 +77,71 @@ ok('un estado que no es rechazo no lo convierte en uno',
 ok('sin respuesta, sin marcas: desconocido',
   leerDesenlace('algo raro').desenlace === 'desconocido');
 
+console.log('\n4b) EL RECHAZO QUE NO TRAE ESTADO (el que se me escapo)\n');
+
+// LA RESPUESTA REAL que recibio la nota de credito E340000000002:
+//
+//   {"trackId":null,
+//    "error":"Estructura del archivo XML invalida. ",
+//    "mensaje":"The element 'Totales' has invalid child element 'MontoExento'..."}
+//
+// HTTP 200, sin `status`, sin `estado`, sin `dgiiResponse`. `leerEstado` no
+// encuentra estado y devuelve 'submitted'; y el mensaje que llegaba a
+// `leerDesenlace` era "Error 400 de mSeller", sin ninguna marca. Resultado: un
+// RECHAZO guardado como ENVIADO, que ademas dejo su factura bloqueada en el
+// buscador de notas.
+//
+// El detalle esta en `error` y `mensaje`, dos campos que nadie miraba.
+{
+  const respuestaReal = {
+    trackId: null,
+    error: 'Estructura del archivo XML inválida. ',
+    mensaje: "The element 'Totales' has invalid child element 'MontoExento'. " +
+             "List of possible elements expected: 'ITBIS2, ITBIS3, TotalITBIS, " +
+             "TotalITBIS1, TotalITBIS2, TotalITBIS3, MontoImpuestoAdicional, " +
+             "ImpuestosAdicionales, MontoTotal'.",
+  };
+
+  const r = leerDesenlace('Error 400 de mSeller', respuestaReal);
+  ok('la respuesta real de E340000000002 es un RECHAZO', r.desenlace === 'rechazo', r.marca ?? '');
+  ok('y la marca dice que se encontro DENTRO de la respuesta',
+    /dentro de la respuesta/.test(r.marca ?? ''));
+
+  // Sin mirar dentro seguiria siendo desconocido: es lo que fallaba.
+  ok('el mensaje suelto por si solo NO tiene marcas',
+    leerDesenlace('Error 400 de mSeller').desenlace === 'desconocido');
+
+  // La otra forma en que mSeller lo dice. El acento cuenta.
+  ok('"Estructura del archivo XML invalida" tambien basta',
+    leerDesenlace(null, { error: 'Estructura del archivo XML inválida. ' }).desenlace === 'rechazo');
+
+  // Anidado dentro de una cadena JSON, como llega `dgiiResponse`.
+  ok('lo encuentra aunque venga anidado en una cadena JSON',
+    leerDesenlace(null, { dgiiResponse: ['{"mensajes":[{"valor":"Rechazado por la DGII"}]}'] })
+      .desenlace === 'rechazo');
+
+  // Y NO convierte en rechazo una respuesta normal.
+  ok('una respuesta buena sigue siendo desconocida, no rechazo',
+    leerDesenlace(null, { trackId: 'abc', securityCode: 'X1Y2Z3', qr_url: 'https://...' })
+      .desenlace === 'desconocido');
+  ok('ni una que solo dice que va en proceso',
+    leerDesenlace(null, { status: 'En Proceso' }).desenlace === 'desconocido');
+}
+
+console.log('\n4c) El cliente lo detecta antes de dar el envio por bueno\n');
+
+{
+  const cli = fuente('src/services/dgii/msellerClient.ts');
+  ok('el cliente consulta leerDesenlace sobre la respuesta',
+    /const porEstructura = leerDesenlace\(null, raw\);/.test(cli));
+  ok('y entra en la rama de rechazo tambien por esa via',
+    /if \(lectura\.estado === 'rejected' \|\| porEstructura\.desenlace === 'rechazo'\)/.test(cli));
+  ok('el motivo real llega al mensaje (error y mensaje, no solo message)',
+    /\[raw\?\.error, raw\?\.mensaje\]\.filter\(Boolean\)/.test(cli));
+  ok('y el HTTP no-ok tampoco se queda en "Error NNN"',
+    /\[raw\?\.message, raw\?\.error, raw\?\.mensaje\]\.filter\(Boolean\)/.test(cli));
+}
+
 console.log('\n5) El mensaje dice lo que se sabe y lo que no\n');
 
 {

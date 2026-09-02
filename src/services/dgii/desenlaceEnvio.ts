@@ -72,7 +72,56 @@ const MARCAS_RECHAZO: Array<[RegExp, string]> = [
   [/has invalid child element/i, 'el validador nombra un elemento invalido'],
   [/is not valid according to its datatype/i, 'el validador rechaza un tipo de dato'],
   [/the element .* is invalid/i, 'el validador declara invalido un elemento'],
+  // mSeller lo dice con sus propias palabras cuando el XSD no valida. El
+  // acento importa: el texto real es "invalida" CON tilde, y un patron sin
+  // ella no casa. Se admiten las dos formas porque el mensaje viene del
+  // proveedor y no hay garantia de como lo escriba.
+  [/estructura del archivo xml inv[aá]lid/i, 'mSeller dice que la estructura del XML no vale'],
 ];
+
+/**
+ * Todo el texto que trae una respuesta, para buscar en el las marcas.
+ *
+ * POR QUE HACE FALTA MIRAR DENTRO
+ * -------------------------------
+ * Un rechazo de estructura llega con HTTP 200, SIN campo de estado, y con el
+ * detalle en campos que nadie miraba:
+ *
+ *     {"trackId":null,
+ *      "error":"Estructura del archivo XML invalida. ",
+ *      "mensaje":"The element 'Totales' has invalid child element 'MontoExento'..."}
+ *
+ * No hay `status`, ni `estado`, ni `dgiiResponse`. `leerEstado` no encuentra
+ * nada y devuelve "enviado, sin veredicto" -- que es exactamente lo que le
+ * paso a la nota E340000000002: la DGII la rechazo y quedo guardada como
+ * `submitted`, bloqueando su factura.
+ *
+ * Se recorre en profundidad y acotado: solo cadenas, hasta 4 niveles y 200
+ * valores. No hace falta mas para encontrar una marca, y evita recorrer una
+ * respuesta enorme.
+ */
+function textoDeRespuesta(raw: any, nivel = 0, recogidos: string[] = []): string {
+  if (nivel > 4 || recogidos.length > 200 || raw == null) return recogidos.join(' | ');
+
+  if (typeof raw === 'string') {
+    recogidos.push(raw);
+    // mSeller a veces anida JSON dentro de una cadena (`dgiiResponse`).
+    if (raw.trim().startsWith('{') || raw.trim().startsWith('[')) {
+      try { textoDeRespuesta(JSON.parse(raw), nivel + 1, recogidos); } catch { /* no era JSON */ }
+    }
+    return recogidos.join(' | ');
+  }
+
+  if (Array.isArray(raw)) {
+    for (const v of raw) textoDeRespuesta(v, nivel + 1, recogidos);
+    return recogidos.join(' | ');
+  }
+
+  if (typeof raw === 'object') {
+    for (const v of Object.values(raw)) textoDeRespuesta(v, nivel + 1, recogidos);
+  }
+  return recogidos.join(' | ');
+}
 
 /**
  * Decide si una respuesta que NO fue un exito es un rechazo de la DGII o un
@@ -95,6 +144,16 @@ export function leerDesenlace(mensaje: string | null | undefined, raw?: any): Le
     const lectura = leerEstado(raw);
     if (lectura.estado === 'rejected') {
       return { desenlace: 'rechazo', texto, marca: `la respuesta trae estado "${lectura.textoCrudo}"` };
+    }
+
+    // Y si no trae estado, se buscan las marcas DENTRO. Un rechazo de
+    // estructura no viene con estado ninguno: viene con `error` y `mensaje`, y
+    // sin esto se leia como "enviado, pendiente de confirmar".
+    const dentro = textoDeRespuesta(raw);
+    for (const [patron, marca] of MARCAS_RECHAZO) {
+      if (patron.test(dentro)) {
+        return { desenlace: 'rechazo', texto: texto || dentro.slice(0, 500), marca: `${marca} (dentro de la respuesta)` };
+      }
     }
   }
 

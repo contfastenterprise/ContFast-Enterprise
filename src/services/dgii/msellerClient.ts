@@ -1,5 +1,6 @@
 import { decryptAsync } from '@/utils/encryption';
 import { leerEstado, mensajeEstado } from './estadoEnvio';
+import { leerDesenlace } from './desenlaceEnvio';
 import { leerDatosFirma } from './codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
 
@@ -233,9 +234,13 @@ export class MSellerClient {
       const raw = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        // `raw.message` casi nunca existe: mSeller pone el motivo en `error` y
+        // `mensaje`. Sin ellos, lo que se guardaba era "Error 400 de mSeller",
+        // que no dice nada y ademas no lleva ninguna marca de rechazo.
+        const detalle = [raw?.message, raw?.error, raw?.mensaje].filter(Boolean).join(' ').trim();
         return {
           success: false,
-          message: raw?.message || `Error ${response.status} de mSeller`,
+          message: detalle || `Error ${response.status} de mSeller`,
           rawResponse: raw,
         };
       }
@@ -265,10 +270,31 @@ export class MSellerClient {
       // salian con el mensaje "Aceptado por la DGII". `leerEstado` normaliza y
       // ademas mira el rechazo ANTES que la aceptacion ("no aceptado" contiene
       // "acept").
-      if (lectura.estado === 'rejected') {
+      // UN RECHAZO DE ESTRUCTURA NO TRAE ESTADO.
+      //
+      // `leerEstado` busca un campo de estado. Cuando el XSD no valida, mSeller
+      // responde HTTP 200 y SIN estado ninguno:
+      //
+      //     {"trackId":null,
+      //      "error":"Estructura del archivo XML invalida. ",
+      //      "mensaje":"The element 'Totales' has invalid child element ..."}
+      //
+      // Sin esta segunda comprobacion, `lectura.estado` sale 'submitted' y el
+      // comprobante se guardaba como ENVIADO, pendiente de un veredicto que ya
+      // habia llegado y era un rechazo. Le paso a la nota E340000000002: quedo
+      // en 'submitted' y bloqueo su factura en el buscador de notas.
+      //
+      // `leerDesenlace` busca las marcas del rechazo DENTRO de la respuesta.
+      const porEstructura = leerDesenlace(null, raw);
+
+      if (lectura.estado === 'rejected' || porEstructura.desenlace === 'rechazo') {
+        // El detalle vive en campos distintos segun como rechace. Se prefieren
+        // los mensajes del validador, y si no los hay se toma lo que venga --
+        // `mensaje` y `error` incluidos, que es donde esta el motivo real.
+        const detalle = [raw?.error, raw?.mensaje].filter(Boolean).join(' ').trim();
         const rejectionMsg = dgiiMessages && Array.isArray(dgiiMessages) && dgiiMessages.length > 0
           ? dgiiMessages.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
-          : (raw.message || 'Rechazado por la DGII');
+          : (detalle || raw?.message || 'Rechazado por la DGII');
         return {
           success: false,
           message: rejectionMsg,

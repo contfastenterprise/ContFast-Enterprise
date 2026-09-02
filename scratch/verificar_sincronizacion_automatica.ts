@@ -72,12 +72,81 @@ ok('un fallo en una empresa no para a las demas',
 
 console.log('\n4) Solo se escribe cuando HAY veredicto\n');
 
-ok("un 'submitted' que sigue igual no se reescribe",
-  /if \(lectura\.estado === 'submitted'\) \{ resumen\.sinCambio\+\+; continue; \}/.test(servicio));
+// Un "en curso" RECONOCIDO (Recibido, En Proceso) se cuenta y se sigue, sin
+// escribir nada: reescribirlo cada pasada mueve `updated_at` y borra la pista
+// de cuando cambio de verdad. Lo NO reconocido si se anota -- ver 4b.
+ok("un 'submitted' reconocido no se reescribe, solo se cuenta",
+  /if \(lectura\.estado === 'submitted'\) \{[\s\S]{0,900}?\} else \{\s*resumen\.sinCambio\+\+;\s*\}\s*continue;\s*\}/.test(servicio));
 ok('la firma que ya estaba no se borra (camposDeFirma solo trae lo que vino)',
   /\.\.\.camposDeFirma\(r\.data\)/.test(servicio));
 ok('el response_payload del envio no se pisa',
   !/responsePayload:/.test(servicio));
+
+console.log('\n4b) Un "Error" de mSeller NO se queda callado\n');
+
+// EL CASO REAL: E440000000001 de PRODUCCION figura en mSeller con estado
+// "Error" y respuesta de la DGII "read ECONNRESET". El corte fue entre mSeller
+// y la DGII, no entre el sistema y mSeller.
+//
+// `leerEstado('Error')` devuelve 'submitted' con `reconocido: false` -- porque
+// "Error" no es ni aceptado, ni rechazado, ni un "en curso" conocido. El
+// consultador lo metia en el mismo `continue` mudo que un "En Proceso", asi
+// que el comprobante se quedaba en "Enviado" PARA SIEMPRE sin que nadie
+// supiera que mSeller ya habia dado el envio por fallido.
+//
+// Un "en curso" se espera; un "Error" no se resuelve esperando.
+{
+  ok('distingue lo reconocido de lo que no lo es',
+    /if \(!lectura\.reconocido && lectura\.textoCrudo\)/.test(servicio));
+  ok('lo cuenta aparte de los que simplemente siguen en curso',
+    /resumen\.requierenAtencion\+\+/.test(servicio)
+    && /resumen\.sinCambio\+\+/.test(servicio));
+  ok('escribe en la factura LO QUE dijo mSeller, textual',
+    /mSeller reporta este comprobante como "\$\{lectura\.textoCrudo\}"/.test(servicio));
+  ok('y dice que NO se emita uno nuevo',
+    /NO emitir uno nuevo/.test(servicio));
+  ok('reenviar es cosa de una persona: el consultador no lo hace',
+    !/addJob\(/.test(servicio));
+  // Reescribir el mismo aviso cada pasada mueve `updated_at` y borra la pista
+  // de cuando ocurrio de verdad.
+  ok('no reescribe el aviso si no cambia nada',
+    /if \(factura\.mensaje !== aviso\)/.test(servicio));
+  ok('para eso trae el mensaje actual en la consulta',
+    /mensaje: invoices\.dgiiMessage/.test(servicio));
+}
+
+console.log('\n4c) El boton de reenvio coincide con la regla real\n');
+
+// El boton decia `['rejected', 'failed']`:
+//   - 'failed' NO es un estado de factura (draft|signed|submitted|accepted|
+//     rejected|void), asi que esa mitad no se cumplia nunca;
+//   - faltaba 'signed', que significa emitida en local y NUNCA enviada -- el
+//     caso que mas claramente hay que poder reenviar, y no habia boton.
+// El endpoint ya aceptaba los cuatro: el boton era mas restrictivo que la
+// regla que el propio servidor aplica.
+{
+  const pantalla = fuente('src/app/dashboard/ecf/page.tsx');
+  const endpoint = fuente('src/app/api/v1/ecf/[id]/resubmit/route.ts');
+
+  ok("el boton ya no menciona 'failed', que no existe",
+    !/\['rejected', 'failed'\]\.includes\(inv\.status\)/.test(pantalla));
+  ok("y ofrece 'signed', que nunca llego a enviarse",
+    /\['rejected', 'signed', 'draft'\]\.includes\(inv\.status\)/.test(pantalla));
+
+  // Lo que el boton ofrece tiene que estar dentro de lo que el endpoint acepta.
+  const permitidos = (endpoint.match(/!\['([^\]]+)'\]\.includes\(invoice\.status\)/) || [])[1] ?? '';
+  for (const e of ['rejected', 'signed', 'draft']) {
+    ok(`el endpoint acepta '${e}'`, permitidos.includes(e), permitidos);
+  }
+
+  // Y 'submitted' se queda fuera A PROPOSITO: ahi el documento SI salio.
+  // (El porque esta escrito junto al boton, pero `fuente()` quita los
+  //  comentarios: no se puede afirmar desde aqui. Lo que si se comprueba es la
+  //  condicion, que es lo que manda.)
+  ok("'submitted' NO se ofrece: reenviarlo duplicaria el comprobante",
+    !/'submitted'\]\.includes\(inv\.status\)/.test(pantalla)
+    && !/'rejected', 'signed', 'draft', 'submitted'/.test(pantalla));
+}
 
 console.log('\n5) LA PUERTA: la ruta no puede quedar abierta\n');
 
