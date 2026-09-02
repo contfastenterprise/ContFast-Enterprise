@@ -62,7 +62,7 @@ export default function SettingsPage() {
     phone: '',
     email: '',
     logoUrl: '',
-    dgiiEnv: 'test',
+    dgiiEnv: 'PRUEBA',
     printLayout: 'carta',
     printCopies: 2,
     autoDeliveryNotes: false,
@@ -591,17 +591,42 @@ export default function SettingsPage() {
                   <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50" />
                 </div>
 
+                {/*
+                  ANTES esto era "Ambiente Sandbox/Produccion" y guardaba
+                  'test' | 'production'. Eran DOS interruptores para una sola
+                  decision -- este ajuste y el modo del sistema -- y podian
+                  contradecirse: modo PRODUCCION con ambiente 'test' daba datos
+                  reales con presentacion de ensayo, en silencio.
+
+                  Ahora hay UNO: el modo. El ambiente de la DGII se deduce de
+                  el y se muestra debajo sin poder tocarse, porque no es una
+                  eleccion aparte sino una consecuencia.
+
+                  CERTIFICACION existe en la base (0046) pero no se ofrece
+                  todavia: el resto del sistema aun supone dos modos.
+                */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Ambiente Sandbox/Produccion</label>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Modo del sistema</label>
                   <select
                     disabled={!isSistemas}
                     value={formData.dgiiEnv}
                     onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50 disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
-                    <option value="test">Pruebas (Sandbox)</option>
-                    <option value="production">Producción</option>
+                    <option value="PRUEBA">Pruebas</option>
+                    <option value="PRODUCCION">Producción</option>
                   </select>
+                  <p className={`mt-1.5 text-[11px] leading-relaxed ${formData.dgiiEnv === 'PRODUCCION' ? 'text-amber-700 font-semibold' : 'text-slate-600'}`}>
+                    Comprobantes a la DGII:{' '}
+                    <strong>
+                      {formData.dgiiEnv === 'PRODUCCION' ? 'eCF — ambiente REAL'
+                        : formData.dgiiEnv === 'CERTIFICACION' ? 'CerteCF — certificación'
+                        : 'TesteCF — pruebas'}
+                    </strong>
+                    {formData.dgiiEnv === 'PRODUCCION'
+                      ? '. Cada comprobante emitido es una presentación fiscal firme y consume tu secuencia autorizada.'
+                      : '. Nada de lo que se emita tiene validez fiscal.'}
+                  </p>
                 </div>
 
                 <div>

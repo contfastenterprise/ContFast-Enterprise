@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { etiquetaTipo } from '@/services/dgii/tiposComprobante';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -108,20 +109,11 @@ export default function InvoiceDetailPage() {
     }).format(num);
   };
 
-  const getEcfTypeName = (type: string) => {
-    const types: Record<string, string> = {
-      '31': 'Factura de Crédito Fiscal Electrónica (e-CF)',
-      '32': 'Factura de Consumo Electrónica (e-CF)',
-      '33': 'Nota de Débito Electrónica (e-CF)',
-      '34': 'Nota de Crédito Electrónica (e-CF)',
-      '41': 'Registro de Proveedores Informales Electrónico',
-      '43': 'Registro de Único Ingreso Electrónico',
-      '44': 'Registro de Gastos Menores Electrónico',
-      '45': 'Registro de Regímenes Especiales de Tributación Electrónico',
-      '46': 'Registro de Gubernamentales Electrónico'
-    };
-    return types[type] || `Tipo e-CF ${type}`;
-  };
+  // La lista vive en src/services/dgii/tiposComprobante.ts. Esta copia tenia
+  // la cola corrida una posicion respecto a la DGII (44 y 45 intercambiados,
+  // entre otros).
+  const getEcfTypeName = (type: string) => etiquetaTipo(type);
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {

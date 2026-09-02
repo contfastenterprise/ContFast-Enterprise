@@ -71,3 +71,62 @@
 - [ ] F1-05 (`'Aceptado'` por defecto de la DGII), F1-06 ("Latin Doors SRL" fijo en 17 ficheros), F1-07 (formatos 606/607).
 - [ ] Deuda: 10 de 12 bancos leen el fuente sin quitar comentarios. Riesgo de verde falso; medido, hoy no hay ninguno.
 - [ ] Rama `?token=` retirada del PDF de facturas: nadie firmaba esos tokens y se saltaba `enforcePermission`.
+
+---
+
+# Auditoría e-CF — pendientes (2026-09-02)
+
+Orden de aplicación. Cada punto depende del anterior.
+
+## P0 — Hecho
+- [x] `0037_negar_acceso_publico` re-ejecutada. La tabla `mseller_api_keys`
+      (claves de API cifradas) se creó en la 0045 DESPUÉS de la 0037 y quedó sin
+      RLS ni política de denegación. Lo cazó `scratch/verificar_puerta_publica.ts`.
+      **Regla: toda migración que cree una tabla obliga a repasar la 0037.**
+
+## P0 — Pendiente
+- [ ] Aplicar `0046_modo_certificacion.sql` — **con psql/Supabase, NO con
+      `drizzle migrate`**: `ALTER TYPE ... ADD VALUE` no permite usar el valor
+      nuevo en la misma transacción.
+- [ ] Rellenar `scratch/fechas_secuencias.sql` con las fechas reales de la
+      autorización SACF (e-32 y e-34 están sin fecha) y ejecutarlo.
+      **Bloqueante**: sin esto el e-CF declara un `31-12-2026` inventado.
+- [ ] Aplicar `0047_dgii_env_guarda_el_modo.sql`. Deja todas las empresas en
+      PRUEBA (traduce lo que hay, no interpreta).
+- [ ] Desplegar el código. El `build` de Next es la única verificación real de
+      los cambios de TSX: en esta máquina `tsc` no resuelve los enlaces de pnpm.
+- [ ] Ejecutar `scratch/reparar_ledger_v6.sql` (49 entradas, sin huecos).
+
+## P1 — Decisión del negocio, no técnica
+- [ ] Pasar el **Modo del sistema** de Latin Doors a PRODUCCIÓN desde Ajustes.
+      Ese clic ES la salida a producción: cada comprobante pasa a ser una
+      presentación fiscal firme e irreversible. Antes: confirmar contra el
+      documento de la DGII que los rangos de PRODUCCIÓN (e-31 20→100,
+      e-32 68→4997, e-34 1→100) son la autorización real.
+- [ ] Exento vs Tasa 0%: confirmar con el contable cuál aplica a cada venta al
+      0%. La DGII los distingue (indicador 4 vs 3) y el crédito de ITBIS de los
+      insumos depende de eso.
+
+## P2 — Sin validar / sin decidir
+- [ ] La rama **tasa 0% (exportación)** coloca el tramo en `MontoGravadoI3` con
+      `ITBIS3 = 0`. NO validada contra un envío real. Emitir una en PRUEBA antes
+      de facturar una exportación de verdad.
+- [ ] `CERTIFICACION` existe en la base y en `entornoDgii`, pero el resto del
+      sistema supone dos modos: **129 declaraciones `'PRODUCCION' | 'PRUEBA'`**
+      en 45 ficheros. `scratch/verificar_modo_certificacion.ts` lo mide y actúa
+      de trinquete (puede bajar, nunca subir). No ofrecerlo en la interfaz hasta
+      que llegue a 0.
+- [ ] `0044_un_solo_ambiente_fiscal` abortará después de la 0047: compara
+      `mseller_entorno` con `dgii_env` y ya usan vocabularios distintos. Como esa
+      columna no decide nada, toca soltarla sin la comparación.
+- [ ] Cotizaciones ofrece **8% ITBIS** y facturas no: una cotización al 8% no se
+      puede convertir.
+- [ ] El comprobante impreso muestra el ITBIS en pesos, no la tasa, así que un
+      exento y una tasa 0% se ven igual en papel.
+
+## Notas de método
+- Los bancos viven en `scratch/verificar_*.ts`. 40 en total; se ejecutan dos
+  pasadas seguidas para cazar dependencias de orden entre ellos.
+- `scratch/reparar_ledger_migraciones.sql` **se genera**, no se edita:
+  `npx tsx scratch/generar_reparacion_ledger.ts`. Añadir una migración obliga a
+  añadir su marcador en MARCADORES; el generador se niega a emitir sin él.

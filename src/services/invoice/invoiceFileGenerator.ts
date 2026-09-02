@@ -102,9 +102,14 @@ export class InvoiceFileGenerator {
         company: {
           name: company.name,
           rnc: company.rnc,
-          address: company.address || 'Santiago, R.D.',
-          phone: '1-829-214-4128',
-          email: settings?.msellerEmail || 'latindoors@gmail.com',
+          // ISO-17: sin respaldos. Un dato de contacto que no es de esta
+          // empresa acaba impreso en SU comprobante fiscal, y el que habia
+          // aqui era el de un cliente concreto. Si la empresa no lo tiene
+          // configurado, el comprobante sale sin el: en blanco es correcto,
+          // el telefono de otro no.
+          address: company.address || '',
+          phone: company.phone || '',
+          email: company.email || '',
           logoUrl: settings?.logoUrl || undefined,
           settings: {
             printLayout: settings?.printLayout || 'carta',

@@ -40,17 +40,36 @@
 
 
 -- ── PASO 1 · No borrar a ciegas ──────────────────────────────────────
+--
+-- La comprobacion solo tiene sentido mientras la columna exista. Sin esta
+-- guarda, volver a pasar la migracion sobre una base donde ya se borro no
+-- avisaba de nada: fallaba con "column mseller_entorno does not exist", que
+-- parece un problema y no lo es. Una migracion que no se puede repetir sin
+-- reventar es una migracion que nadie se atreve a repetir.
+--
+-- La consulta va en EXECUTE, y no escrita directamente dentro del IF, para no
+-- depender de CUANDO resuelve PL/pgSQL los nombres de una sentencia que no
+-- llega a ejecutarse. Con EXECUTE la cadena no se analiza si no se ejecuta, y
+-- punto: no hay nada que razonar.
 DO $$
 DECLARE
   n integer;
 BEGIN
-  SELECT count(*) INTO n
-    FROM company_settings
-   WHERE mseller_entorno IS DISTINCT FROM dgii_env;
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'company_settings'
+                AND column_name = 'mseller_entorno') THEN
 
-  IF n > 0 THEN
-    RAISE EXCEPTION
-      'Hay % empresa(s) con mseller_entorno distinto de dgii_env. Revisa cual es el valor bueno en cada una ANTES de borrar la columna: SELECT company_id, dgii_env, mseller_entorno FROM company_settings WHERE mseller_entorno IS DISTINCT FROM dgii_env;', n;
+    EXECUTE 'SELECT count(*) FROM company_settings
+              WHERE mseller_entorno IS DISTINCT FROM dgii_env'
+       INTO n;
+
+    IF n > 0 THEN
+      RAISE EXCEPTION
+        'Hay % empresa(s) con mseller_entorno distinto de dgii_env. Revisa cual es el valor bueno en cada una ANTES de borrar la columna: SELECT company_id, dgii_env, mseller_entorno FROM company_settings WHERE mseller_entorno IS DISTINCT FROM dgii_env;', n;
+    END IF;
+
+  ELSE
+    RAISE NOTICE '0044: la columna mseller_entorno ya no existe. Nada que comprobar ni que borrar.';
   END IF;
 END $$;
 

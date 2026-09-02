@@ -87,6 +87,32 @@ const MARCADORES: Record<string, { sql: string; falta: string }> = {
     sql: "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoice_lines' AND column_name='tax_category')",
     falta: 'falta la columna invoice_lines.tax_category',
   },
+  // Las cuatro del otro agente. Confirmadas como aplicadas por el usuario el
+  // 2026-09-02; los marcadores se derivaron leyendo cada .sql.
+  '0042_firma_del_comprobante': {
+    sql: "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='security_code')",
+    falta: 'falta la columna invoices.security_code',
+  },
+  '0043_enlace_qr_del_comprobante': {
+    sql: "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='qr_url')",
+    falta: 'falta la columna invoices.qr_url',
+  },
+  '0044_un_solo_ambiente_fiscal': {
+    sql: "NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='company_settings' AND column_name='mseller_entorno')",
+    falta: 'la columna company_settings.mseller_entorno sigue existiendo',
+  },
+  '0045_clave_api_por_entorno': {
+    sql: "to_regclass('public.mseller_api_keys') IS NOT NULL",
+    falta: 'falta la tabla mseller_api_keys',
+  },
+  '0046_modo_certificacion': {
+    sql: "EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='environment_mode' AND e.enumlabel='CERTIFICACION')",
+    falta: 'falta el valor CERTIFICACION en el enum environment_mode',
+  },
+  '0047_dgii_env_guarda_el_modo': {
+    sql: "EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'company_settings_dgii_env_modo_ck')",
+    falta: 'falta la restriccion company_settings_dgii_env_modo_ck',
+  },
   '0041_codigo_seguridad_por_envio': {
     sql: "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='dgii_submissions' AND column_name='security_code')",
     falta: 'falta la columna dgii_submissions.security_code',

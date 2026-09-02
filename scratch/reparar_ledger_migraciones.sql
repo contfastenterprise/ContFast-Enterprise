@@ -7,7 +7,7 @@
 --      npx tsx scratch/generar_reparacion_ledger.ts
 --
 --  Generado el 2026-09-02 desde drizzle/meta/_journal.json
---  (43 entradas; la ultima, 0042_exento_o_tasa_cero).
+--  (49 entradas; la ultima, 0047_dgii_env_guarda_el_modo).
 --
 --  QUE ARREGLA
 --  -----------
@@ -73,7 +73,7 @@ BEGIN
   -- 1. GUARDA. Nada de esto se puede quedar por debajo del maximo sin
   --    estar aplicado de verdad: quedaria enterrado para siempre.
   --
-  --    La ultima del journal (0042_exento_o_tasa_cero)
+  --    La ultima del journal (0047_dgii_env_guarda_el_modo)
   --    NO se comprueba aqui: puede estar legitimamente pendiente, y va al
   --    final justamente para que `migrate` la aplique sin dejar hueco.
   -- ------------------------------------------------------------------
@@ -119,6 +119,30 @@ BEGIN
 
   IF NOT (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='dgii_submissions' AND column_name='security_code')) THEN
     faltan := array_append(faltan, '0041_codigo_seguridad_por_envio (falta la columna dgii_submissions.security_code)');
+  END IF;
+
+  IF NOT (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoice_lines' AND column_name='tax_category')) THEN
+    faltan := array_append(faltan, '0042_exento_o_tasa_cero (falta la columna invoice_lines.tax_category)');
+  END IF;
+
+  IF NOT (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='security_code')) THEN
+    faltan := array_append(faltan, '0042_firma_del_comprobante (falta la columna invoices.security_code)');
+  END IF;
+
+  IF NOT (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='qr_url')) THEN
+    faltan := array_append(faltan, '0043_enlace_qr_del_comprobante (falta la columna invoices.qr_url)');
+  END IF;
+
+  IF NOT (NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='company_settings' AND column_name='mseller_entorno')) THEN
+    faltan := array_append(faltan, '0044_un_solo_ambiente_fiscal (la columna company_settings.mseller_entorno sigue existiendo)');
+  END IF;
+
+  IF NOT (to_regclass('public.mseller_api_keys') IS NOT NULL) THEN
+    faltan := array_append(faltan, '0045_clave_api_por_entorno (falta la tabla mseller_api_keys)');
+  END IF;
+
+  IF NOT (EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='environment_mode' AND e.enumlabel='CERTIFICACION')) THEN
+    faltan := array_append(faltan, '0046_modo_certificacion (falta el valor CERTIFICACION en el enum environment_mode)');
   END IF;
 
   IF array_length(faltan, 1) > 0 THEN
@@ -271,6 +295,30 @@ BEGIN
   SELECT 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2', 1784664419850::bigint
    WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2')
      AND (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoice_lines' AND column_name='tax_category'));  --  0042_exento_o_tasa_cero
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT 'f61d933f6c1ac1b84340c395470261eff9b7e0ce12b8a18cdd64fb2c79f84549', 1784664419950::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = 'f61d933f6c1ac1b84340c395470261eff9b7e0ce12b8a18cdd64fb2c79f84549')
+     AND (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='security_code'));  --  0042_firma_del_comprobante
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT '52b4cdf081fb402a8d4a952281468ef7f4532c579b45bb7b74d92df70bd8af81', 1784664419960::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = '52b4cdf081fb402a8d4a952281468ef7f4532c579b45bb7b74d92df70bd8af81')
+     AND (EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='qr_url'));  --  0043_enlace_qr_del_comprobante
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT '385e767fe03b68338a27a1f3cc11070429078a51b7575819301c644c3ae71354', 1784664419970::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = '385e767fe03b68338a27a1f3cc11070429078a51b7575819301c644c3ae71354')
+     AND (NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='company_settings' AND column_name='mseller_entorno'));  --  0044_un_solo_ambiente_fiscal
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT '2fe85f73152cc11d1359e42d2a9375b907e71dae8b2c8c84e481d910eab42070', 1784664419980::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = '2fe85f73152cc11d1359e42d2a9375b907e71dae8b2c8c84e481d910eab42070')
+     AND (to_regclass('public.mseller_api_keys') IS NOT NULL);  --  0045_clave_api_por_entorno
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT '0e77f2adb868bc630fd4005ce159a341ce72bd5e5f3e87a24e42f9f5db1cf12d', 1784664420850::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = '0e77f2adb868bc630fd4005ce159a341ce72bd5e5f3e87a24e42f9f5db1cf12d')
+     AND (EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='environment_mode' AND e.enumlabel='CERTIFICACION'));  --  0046_modo_certificacion
+  INSERT INTO drizzle."__drizzle_migrations" ("hash", "created_at")
+  SELECT '98374ff6238bf5485a5adc03d72ba02d33f7ca9a7fdcf271c755909cb490927e', 1784664421850::bigint
+   WHERE NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" WHERE hash = '98374ff6238bf5485a5adc03d72ba02d33f7ca9a7fdcf271c755909cb490927e')
+     AND (EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'company_settings_dgii_env_modo_ck'));  --  0047_dgii_env_guarda_el_modo
 
   -- ------------------------------------------------------------------
   -- 3. Poner al dia las marcas de tiempo.
@@ -324,7 +372,13 @@ BEGIN
            ('0040_tasa_itbis_por_linea_cotizacion', 1784664416850::bigint, '4bb19bf0157e572011ed7fe6dd1f9d80a518e1472340b94987b3a79154264e4e'),
            ('0032_aislamiento_estructural', 1784664417850::bigint, 'fdc05a03f53060c3a7998ae09234dba133c91e0fbde7d050d365ec52589261cb'),
            ('0041_codigo_seguridad_por_envio', 1784664418850::bigint, 'da4785e9300d222f7689349ecd8b9e292f68693dbf47c744a38ca4842e227822'),
-           ('0042_exento_o_tasa_cero', 1784664419850::bigint, 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2')
+           ('0042_exento_o_tasa_cero', 1784664419850::bigint, 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2'),
+           ('0042_firma_del_comprobante', 1784664419950::bigint, 'f61d933f6c1ac1b84340c395470261eff9b7e0ce12b8a18cdd64fb2c79f84549'),
+           ('0043_enlace_qr_del_comprobante', 1784664419960::bigint, '52b4cdf081fb402a8d4a952281468ef7f4532c579b45bb7b74d92df70bd8af81'),
+           ('0044_un_solo_ambiente_fiscal', 1784664419970::bigint, '385e767fe03b68338a27a1f3cc11070429078a51b7575819301c644c3ae71354'),
+           ('0045_clave_api_por_entorno', 1784664419980::bigint, '2fe85f73152cc11d1359e42d2a9375b907e71dae8b2c8c84e481d910eab42070'),
+           ('0046_modo_certificacion', 1784664420850::bigint, '0e77f2adb868bc630fd4005ce159a341ce72bd5e5f3e87a24e42f9f5db1cf12d'),
+           ('0047_dgii_env_guarda_el_modo', 1784664421850::bigint, '98374ff6238bf5485a5adc03d72ba02d33f7ca9a7fdcf271c755909cb490927e')
   )
   UPDATE drizzle."__drizzle_migrations" m
      SET created_at = j.cuando
@@ -384,7 +438,13 @@ BEGIN
            ('0040_tasa_itbis_por_linea_cotizacion', 1784664416850::bigint, '4bb19bf0157e572011ed7fe6dd1f9d80a518e1472340b94987b3a79154264e4e'),
            ('0032_aislamiento_estructural', 1784664417850::bigint, 'fdc05a03f53060c3a7998ae09234dba133c91e0fbde7d050d365ec52589261cb'),
            ('0041_codigo_seguridad_por_envio', 1784664418850::bigint, 'da4785e9300d222f7689349ecd8b9e292f68693dbf47c744a38ca4842e227822'),
-           ('0042_exento_o_tasa_cero', 1784664419850::bigint, 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2')
+           ('0042_exento_o_tasa_cero', 1784664419850::bigint, 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2'),
+           ('0042_firma_del_comprobante', 1784664419950::bigint, 'f61d933f6c1ac1b84340c395470261eff9b7e0ce12b8a18cdd64fb2c79f84549'),
+           ('0043_enlace_qr_del_comprobante', 1784664419960::bigint, '52b4cdf081fb402a8d4a952281468ef7f4532c579b45bb7b74d92df70bd8af81'),
+           ('0044_un_solo_ambiente_fiscal', 1784664419970::bigint, '385e767fe03b68338a27a1f3cc11070429078a51b7575819301c644c3ae71354'),
+           ('0045_clave_api_por_entorno', 1784664419980::bigint, '2fe85f73152cc11d1359e42d2a9375b907e71dae8b2c8c84e481d910eab42070'),
+           ('0046_modo_certificacion', 1784664420850::bigint, '0e77f2adb868bc630fd4005ce159a341ce72bd5e5f3e87a24e42f9f5db1cf12d'),
+           ('0047_dgii_env_guarda_el_modo', 1784664421850::bigint, '98374ff6238bf5485a5adc03d72ba02d33f7ca9a7fdcf271c755909cb490927e')
          ) AS v(tag, cuando, h)
    WHERE v.cuando < tope
      AND NOT EXISTS (SELECT 1 FROM drizzle."__drizzle_migrations" m WHERE m.hash = v.h);
@@ -415,7 +475,13 @@ BEGIN
            ('0040_tasa_itbis_por_linea_cotizacion', '4bb19bf0157e572011ed7fe6dd1f9d80a518e1472340b94987b3a79154264e4e'),
            ('0032_aislamiento_estructural', 'fdc05a03f53060c3a7998ae09234dba133c91e0fbde7d050d365ec52589261cb'),
            ('0041_codigo_seguridad_por_envio', 'da4785e9300d222f7689349ecd8b9e292f68693dbf47c744a38ca4842e227822'),
-           ('0042_exento_o_tasa_cero', 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2')
+           ('0042_exento_o_tasa_cero', 'b315100edd38aaf613c17fa7032470763aacd269af1cb6c88147dbc1a83403a2'),
+           ('0042_firma_del_comprobante', 'f61d933f6c1ac1b84340c395470261eff9b7e0ce12b8a18cdd64fb2c79f84549'),
+           ('0043_enlace_qr_del_comprobante', '52b4cdf081fb402a8d4a952281468ef7f4532c579b45bb7b74d92df70bd8af81'),
+           ('0044_un_solo_ambiente_fiscal', '385e767fe03b68338a27a1f3cc11070429078a51b7575819301c644c3ae71354'),
+           ('0045_clave_api_por_entorno', '2fe85f73152cc11d1359e42d2a9375b907e71dae8b2c8c84e481d910eab42070'),
+           ('0046_modo_certificacion', '0e77f2adb868bc630fd4005ce159a341ce72bd5e5f3e87a24e42f9f5db1cf12d'),
+           ('0047_dgii_env_guarda_el_modo', '98374ff6238bf5485a5adc03d72ba02d33f7ca9a7fdcf271c755909cb490927e')
          ) AS t(tag, h)
    WHERE NOT EXISTS (
      SELECT 1 FROM drizzle."__drizzle_migrations" m WHERE m.hash = t.h

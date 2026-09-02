@@ -1,11 +1,13 @@
 import { db, invoices, dgiiSubmissions, ecfSequences, companySettings, companies } from '@/db';
+import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { eq, and, isNull } from 'drizzle-orm';
 import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
 import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { envioEnCurso } from '@/repositories/dgiiSubmissionRepository';
-import { decryptAsync } from '@/utils/encryption';
+import { entornoDgii } from '@/services/dgii/entorno';
+import { credencialesMseller } from '@/services/dgii/credenciales';
 import fs from 'fs';
 import path from 'path';
 
@@ -21,14 +23,12 @@ function toDgiiDate(d: Date | string): string {
 }
 
 /**
- * Determines the entorno (environment) string for mSeller based on company setting.
+ * La resolucion del entorno vivia aqui, en una copia que solo miraba el ajuste
+ * de la empresa y no el MODO de la operacion: con la empresa en produccion, un
+ * reenvio lanzado en modo PRUEBA salia a la DGII de verdad con un NCF de la
+ * secuencia de pruebas. Ahora vive en src/services/dgii/entorno.ts, en un solo
+ * sitio y con el modo por delante.
  */
-function resolveEntorno(dgiiEnv: string | null): string {
-  if (!dgiiEnv) return 'TesteCF';
-  if (dgiiEnv === 'production') return 'eCF';
-  if (dgiiEnv === 'cert') return 'CerteCF';
-  return 'TesteCF';
-}
 
 /**
  * Core business logic for submitting an invoice to the DGII.
@@ -113,19 +113,20 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     throw new Error(`Company settings not found for ${companyId}`);
   }
 
-  // 4. Check for mSeller credentials from settings
-  const msellerEmail = settings.msellerEmail;
-  const msellerPasswordEncrypted = settings.msellerPasswordEncrypted;
-  const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : null;
-  const msellerApiKeyEncrypted = settings.msellerApiKeyEncrypted;
+  // 4. El entorno y las credenciales
+  //
+  // El entorno sale del MODO de la factura, que es el que se acaba de leer unas
+  // lineas mas arriba y el mismo con el que se eligio la secuencia. Antes salia
+  // solo del ajuste de la empresa: una factura de PRUEBA se reenviaba a la DGII
+  // real si la empresa estaba en produccion.
+  //
+  // Las credenciales se piden PARA ese entorno. La clave de API es distinta en
+  // cada ambiente, y `credencialesMseller` falla con un mensaje concreto si
+  // falta la de este: el trabajo se reintenta, que es lo que hacia tambien el
+  // error anterior.
+  const entorno = entornoDgii(modo);
+  const credenciales = await credencialesMseller(companyId, entorno);
 
-  if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {
-    throw new Error(
-      'mSeller credentials not configured. Please set them in company settings.'
-    );
-  }
-
-  const entorno = resolveEntorno(settings.dgiiEnv);
   const msellerUrl = settings.msellerUrl || 'https://ecf.api.mseller.app';
   const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
 
@@ -133,9 +134,9 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   const client = new MSellerClient({
     baseUrl,
     entorno,
-    email: msellerEmail,
-    password: msellerPassword,
-    apiKeyEncrypted: msellerApiKeyEncrypted,
+    email: credenciales.email,
+    password: credenciales.password,
+    apiKeyEncrypted: credenciales.apiKeyEncrypted,
   });
 
   // 6. Load sequence for sequenceExpiry
@@ -155,15 +156,10 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     )
     .limit(1);
 
-  // Determine sequence expiry in dd-MM-yyyy format
-  let sequenceExpiry = '31-12-2026'; // fallback
-  if (seq) {
-    if (seq.sequenceExpiry) {
-      sequenceExpiry = seq.sequenceExpiry;
-    } else if (seq.expiryDate) {
-      sequenceExpiry = toDgiiDate(seq.expiryDate as any);
-    }
-  }
+  // Era `let sequenceExpiry = '31-12-2026'; // fallback`. La misma logica
+  // duplicada aqui y en la emision, y esa duplicacion es la razon de que el
+  // valor fijo durara tanto. Vive en un solo sitio y sin valor por defecto.
+  const sequenceExpiry = vencimientoSecuencia(seq, invoice.ecfType);
 
   // La tasa de ITBIS de cada linea. Este era el QUINTO camino del mismo
   // agujero que arreglaron la 0039 y la 0040: aqui habia un `taxRate: 0.18`

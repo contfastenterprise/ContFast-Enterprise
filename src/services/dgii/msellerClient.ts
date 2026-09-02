@@ -12,7 +12,9 @@ export interface ECFPayload {
         eNCF: string;
         FechaVencimientoSecuencia: string;
         IndicadorEnvioDiferido?: string;
-        IndicadorMontoGravado: string;
+        //  No va en el e-44: la DGII lo rechaza con
+        //  "The element 'IdDoc' has invalid child element 'IndicadorMontoGravado'".
+        IndicadorMontoGravado?: string;
         TipoIngresos: string;
         TipoPago: string;
         FechaLimitePago?: string;
@@ -29,14 +31,14 @@ export interface ECFPayload {
         RazonSocialComprador: string;
       };
       Totales: {
-        MontoGravadoTotal: number;
-        MontoGravadoI1: number;
+        MontoGravadoTotal?: number;
+        MontoGravadoI1?: number;
         MontoExento: number;
-        ITBIS1: number;
-        TotalITBIS: number;
-        TotalITBIS1: number;
+        ITBIS1?: number;
+        TotalITBIS?: number;
+        TotalITBIS1?: number;
         MontoTotal: number;
-        MontoNoFacturable: number;
+        MontoNoFacturable?: number;
       };
     };
     DetallesItems: {
@@ -63,13 +65,13 @@ export interface ECFPayload {
         PaginaNo: number;
         NoLineaDesde: number;
         NoLineaHasta: number;
-        SubtotalMontoGravadoPagina: number;
-        SubtotalMontoGravado1Pagina: number;
+        SubtotalMontoGravadoPagina?: number;
+        SubtotalMontoGravado1Pagina?: number;
         SubtotalExentoPagina: number;
-        SubtotalItbisPagina: number;
-        SubtotalItbis1Pagina: number;
+        SubtotalItbisPagina?: number;
+        SubtotalItbis1Pagina?: number;
         MontoSubtotalPagina: number;
-        SubtotalMontoNoFacturablePagina: number;
+        SubtotalMontoNoFacturablePagina?: number;
       }>;
     };
     FechaHoraFirma?: string;
@@ -647,6 +649,39 @@ export class MSellerClient {
       return String(i + 1);
     };
 
+    // ──────────────────────────────────────────────────────────────────
+    //  EL e-44 NO TIENE SECCION DE GRAVADO
+    //
+    //  El e-44 (Regimenes Especiales) documenta transferencias EXENTAS a
+    //  entidades acogidas a un regimen especial. Su XSD no admite ni un solo
+    //  campo de gravado, y la DGII lo rechaza nombrandolos uno por uno:
+    //
+    //    "The element 'IdDoc' has invalid child element 'IndicadorMontoGravado'.
+    //     List of possible elements expected: 'IndicadorEnvioDiferido,
+    //     IndicadorServicioTodoIncluido, TipoIngresos'."
+    //
+    //    "The element 'Totales' has invalid child element 'MontoGravadoTotal'.
+    //     List of possible elements expected: 'MontoExento,
+    //     MontoImpuestoAdicional, ImpuestosAdicionales, MontoTotal'."
+    //
+    //    "The element 'Pagina' has invalid child element
+    //     'SubtotalMontoGravadoPagina'. ..."
+    //
+    //  Rechazo real recibido el 2026-09-02 sobre E440000000001 y ...0002. Lo
+    //  que sigue esta escrito contra ESE mensaje, no contra una lectura del PDF
+    //  del formato -- que para el 44 marca esos campos como "condicional" y
+    //  llevaria a dejarlos. El validador de la DGII es la autoridad.
+    // ──────────────────────────────────────────────────────────────────
+    const esSoloExento = params.ecfType === '44';
+
+    if (esSoloExento && (tramos.length > 0 || baseTasaCero > 0)) {
+      throw new Error(
+        `El comprobante e-44 (Regimenes Especiales) es exento por definicion y no admite ` +
+        `lineas gravadas, pero tiene ${tramos.map(t => t[0] + '%').join(', ') || 'tasa 0% gravada'}. ` +
+        'Ponga todas las lineas como Exento, o use otro tipo de comprobante.'
+      );
+    }
+
     // Build idDoc in the EXACT field order required by DGII's XSD schema.
     // Reference XML (accepted by DGII) order for e-34:
     // TipoeCF → eNCF → IndicadorNotaCredito → IndicadorEnvioDiferido → IndicadorMontoGravado → TipoIngresos → TipoPago
@@ -672,8 +707,17 @@ export class MSellerClient {
         TipoIngresos: '01',
         TipoPago: params.paymentType,
       };
+    } else if (esSoloExento) {
+      // e-44: SIN IndicadorMontoGravado. Ver el bloque de arriba.
+      idDoc = {
+        TipoeCF: params.ecfType,
+        eNCF: params.ncf,
+        FechaVencimientoSecuencia: params.sequenceExpiry,
+        TipoIngresos: '05',
+        TipoPago: params.paymentType,
+      };
     } else {
-      // Standard invoices (e-31, e-32, e-45)
+      // Standard invoices (e-31, e-32, e-45, e-46)
       idDoc = {
         TipoeCF: params.ecfType,
         eNCF: params.ncf,
@@ -718,30 +762,38 @@ export class MSellerClient {
       };
     }
 
-    const totales: any = {
-      MontoGravadoTotal: montoGravadoTotal,
-    };
-    //  Un tramo por cada tasa presente. Sin lineas gravadas no se declara
-    //  ningun tramo: la factura es exenta entera.
-    tramos.forEach(([pct, base], i) => {
-      totales[`MontoGravadoI${i + 1}`] = base;
-      totales[`ITBIS${i + 1}`] = pct;
-    });
-    //  El tramo de tasa 0% va en el tercero, emparejado con el indicador 3.
-    if (baseTasaCero > 0) {
-      totales[`MontoGravadoI${tramoTasaCero}`] = baseTasaCero;
-      totales[`ITBIS${tramoTasaCero}`] = 0;
+    const totales: any = {};
+
+    if (esSoloExento) {
+      //  Exactamente los dos campos que el validador nombro como admitidos, y
+      //  ninguno mas. Ni MontoNoFacturable: no aparecia en su lista, y mandar
+      //  de mas es lo que provoco el rechazo.
+      totales.MontoExento = Number(params.total.toFixed(2));
+      totales.MontoTotal = Number(params.total.toFixed(2));
+    } else {
+      totales.MontoGravadoTotal = montoGravadoTotal;
+      //  Un tramo por cada tasa presente. Sin lineas gravadas no se declara
+      //  ningun tramo: la factura es exenta entera.
+      tramos.forEach(([pct, base], i2) => {
+        totales[`MontoGravadoI${i2 + 1}`] = base;
+        totales[`ITBIS${i2 + 1}`] = pct;
+      });
+      //  El tramo de tasa 0% va en el tercero, emparejado con el indicador 3.
+      if (baseTasaCero > 0) {
+        totales[`MontoGravadoI${tramoTasaCero}`] = baseTasaCero;
+        totales[`ITBIS${tramoTasaCero}`] = 0;
+      }
+      totales.MontoExento = montoExento;
+      totales.TotalITBIS = Number(params.totalTaxes.toFixed(2));
+      tramos.forEach(([pct, base], i2) => {
+        totales[`TotalITBIS${i2 + 1}`] = Number((base * pct / 100).toFixed(2));
+      });
+      if (baseTasaCero > 0) {
+        totales[`TotalITBIS${tramoTasaCero}`] = 0;
+      }
+      totales.MontoTotal = Number(params.total.toFixed(2));
+      totales.MontoNoFacturable = 0;
     }
-    totales.MontoExento = montoExento;
-    totales.TotalITBIS = Number(params.totalTaxes.toFixed(2));
-    tramos.forEach(([pct, base], i) => {
-      totales[`TotalITBIS${i + 1}`] = Number((base * pct / 100).toFixed(2));
-    });
-    if (baseTasaCero > 0) {
-      totales[`TotalITBIS${tramoTasaCero}`] = 0;
-    }
-    totales.MontoTotal = Number(params.total.toFixed(2));
-    totales.MontoNoFacturable = 0;
 
     encabezado.Totales = totales;
 
@@ -800,22 +852,33 @@ export class MSellerClient {
 
     // Paginacion is only added for standard invoices (31, 32, 45)
     if (!['33', '34'].includes(params.ecfType)) {
-      ecfObj.Paginacion = {
-        Pagina: [
-          {
-            PaginaNo: 1,
-            NoLineaDesde: 1,
-            NoLineaHasta: params.lines.length || 1,
-            SubtotalMontoGravadoPagina: Number(params.subtotal.toFixed(2)),
-            SubtotalMontoGravado1Pagina: Number(params.subtotal.toFixed(2)),
-            SubtotalExentoPagina: 0,
-            SubtotalItbisPagina: Number(params.totalTaxes.toFixed(2)),
-            SubtotalItbis1Pagina: Number(params.totalTaxes.toFixed(2)),
-            MontoSubtotalPagina: Number(params.total.toFixed(2)),
-            SubtotalMontoNoFacturablePagina: 0,
-          },
-        ],
+      //  Los importes salen de los MISMOS tramos que los Totales. Antes estaban
+      //  escritos aparte y a mano -- todo el subtotal como gravado y
+      //  `SubtotalExentoPagina: 0` fijo -- asi que una factura con lineas
+      //  exentas tenia la Paginacion contradiciendo a sus propios Totales. Para
+      //  el caso corriente (todo gravado) el resultado es identico al de antes.
+      const pagina: any = {
+        PaginaNo: 1,
+        NoLineaDesde: 1,
+        NoLineaHasta: params.lines.length || 1,
       };
+
+      if (esSoloExento) {
+        pagina.SubtotalExentoPagina = Number(params.total.toFixed(2));
+        pagina.MontoSubtotalPagina = Number(params.total.toFixed(2));
+      } else {
+        pagina.SubtotalMontoGravadoPagina = montoGravadoTotal;
+        pagina.SubtotalMontoGravado1Pagina = tramos.length > 0 ? tramos[0][1] : 0;
+        pagina.SubtotalExentoPagina = montoExento;
+        pagina.SubtotalItbisPagina = Number(params.totalTaxes.toFixed(2));
+        pagina.SubtotalItbis1Pagina = tramos.length > 0
+          ? Number((tramos[0][1] * tramos[0][0] / 100).toFixed(2))
+          : 0;
+        pagina.MontoSubtotalPagina = Number(params.total.toFixed(2));
+        pagina.SubtotalMontoNoFacturablePagina = 0;
+      }
+
+      ecfObj.Paginacion = { Pagina: [pagina] };
     }
 
     ecfObj.FechaHoraFirma = '';

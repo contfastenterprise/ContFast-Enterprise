@@ -84,7 +84,7 @@ export async function GET(
         // Auditoria ISO-13: el modo de la sesion manda sobre la configuracion, y
         // `process.env.MSELLER_ENTORNO` era un cuarto sitio donde se decidia el
         // entorno que solo miraba ESTA ruta de las cinco.
-        const entorno = entornoDgii(auth.modo, settings?.dgiiEnv);
+        const entorno = entornoDgii(auth.modo);
         const credenciales = await credencialesMseller(invoice.companyId, entorno);
         const msellerUrl = settings?.msellerUrl || 'https://ecf.api.mseller.app';
         const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;

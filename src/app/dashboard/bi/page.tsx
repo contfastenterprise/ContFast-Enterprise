@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { 
@@ -403,12 +404,13 @@ export default function BIDashboardPage() {
               className="rounded-xl border border-outline-variant bg-surface-bright text-on-surface px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition cursor-pointer h-[38px] shadow-sm"
             >
               <option value="all">Todos los Comprobantes</option>
-              <option value="31">Factura Crédito Fiscal (E31)</option>
-              <option value="32">Consumo (E32)</option>
-              <option value="33">Nota de Débito (E33)</option>
-              <option value="34">Nota de Crédito (E34)</option>
-              <option value="41">Gastos del Exterior (E41)</option>
-              <option value="43">Gastos Menores (E43)</option>
+              {/*
+                Este filtro decia que el 41 era "Gastos del Exterior". El 41 es
+                COMPRAS. De la lista unica, y con todos los tipos, no seis.
+              */}
+              {TIPOS_COMPROBANTE.map(t => (
+                <option key={t.codigo} value={t.codigo}>{t.corto} (E{t.codigo})</option>
+              ))}
             </select>
           </div>
         </div>

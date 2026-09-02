@@ -20,7 +20,16 @@ export const companies = pgTable('companies', {
 export const companySettings = pgTable('company_settings', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
-  dgiiEnv: varchar('dgii_env', { length: 50 }).default('test').notNull(), // test | production
+  // EL MODO DEL SISTEMA. Un solo interruptor (migracion 0047).
+  //
+  // Guardaba el ambiente de la DGII ('test' | 'production') y era una SEGUNDA
+  // decision junto al modo, con lo que podian contradecirse -- y se resolvia en
+  // silencio hacia pruebas. Ahora guarda el modo, y el ambiente se deduce con
+  // `entornoDgii()`: PRUEBA -> TesteCF, CERTIFICACION -> CerteCF,
+  // PRODUCCION -> eCF. Nunca al reves.
+  //
+  // La restriccion `company_settings_dgii_env_modo_ck` lo limita a esos tres.
+  dgiiEnv: varchar('dgii_env', { length: 50 }).default('PRUEBA').notNull(), // PRODUCCION | PRUEBA | CERTIFICACION
 
   logoUrl: text('logo_url'),
   msellerUrl: text('mseller_url').default('https://ecf.api.mseller.app/v1').notNull(),

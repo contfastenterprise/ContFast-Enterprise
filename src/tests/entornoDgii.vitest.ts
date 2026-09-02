@@ -35,30 +35,46 @@ function ficheros(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
-describe('ISO-13 · el modo manda sobre la configuración de la empresa', () => {
-  it('en PRUEBA nunca se sale a la DGII real, diga lo que diga el ajuste', () => {
-    for (const env of ['production', '1', 'cert', 'certification', 'test', null, undefined, 'lo-que-sea']) {
+describe('ISO-13 · el modo del sistema decide el ambiente, y nada más', () => {
+  // EL CONTRATO CAMBIO, Y ESTAS PRUEBAS CON EL.
+  //
+  // Antes `entornoDgii(modo, dgiiEnv)` tomaba DOS cosas: el modo de la
+  // operación y un ajuste de empresa. Dos interruptores para una decisión, que
+  // podían contradecirse -- y se resolvían en silencio hacia pruebas por un
+  // `return 'TesteCF'` final.
+  //
+  // Ahora manda el modo, uno a uno, y `company_settings.dgii_env` GUARDA ese
+  // modo en vez de un ambiente aparte (migración 0047). Un modo desconocido
+  // lanza: no hay ambiente por defecto al que caerse.
+  //
+  // Las aserciones viejas quedaron no sólo sin compilar sino al revés:
+  // `entornoDgii('PRODUCCION', 'test') === 'TesteCF'` afirmaba justo la
+  // contradicción que se ha eliminado.
+
+  it('cada modo tiene un ambiente, y sólo uno', () => {
+    expect(entornoDgii('PRUEBA')).toBe('TesteCF');
+    expect(entornoDgii('CERTIFICACION')).toBe('CerteCF');
+    expect(entornoDgii('PRODUCCION')).toBe('eCF');
+  });
+
+  it('en PRUEBA nunca se sale a la DGII real', () => {
+    // Ya no hay un segundo ajuste que pueda empujar en otra dirección: esta
+    // prueba pasó de comprobar que el modo GANABA a comprobar que es lo único
+    // que hay.
+    expect(entornoDgii('PRUEBA')).toBe('TesteCF');
+  });
+
+  it('un modo que no se reconoce LANZA, no cae a un ambiente', () => {
+    // El fallo original era un `return 'TesteCF'` al final de la cadena: una
+    // empresa en producción con un ajuste que nadie entendía emitía contra
+    // pruebas sin avisar. Fallar aquí es ruidoso y se arregla; lo otro no se
+    // descubre hasta que la DGII reclama.
+    for (const malo of [null, undefined, '', 'PRODUCTION', 'test', 'lo-que-sea']) {
       expect(
-        entornoDgii('PRUEBA', env as any),
-        `dgiiEnv=${env}: un comprobante de prácticas no puede llegar a la DGII real`
-      ).toBe('TesteCF');
+        () => entornoDgii(malo as any),
+        `modo=${JSON.stringify(malo)}: sin modo válido no hay ambiente`
+      ).toThrow();
     }
-  });
-
-  it('en PRODUCCION manda la configuración de la empresa', () => {
-    expect(entornoDgii('PRODUCCION', 'production')).toBe('eCF');
-    expect(entornoDgii('PRODUCCION', '1')).toBe('eCF');
-    expect(entornoDgii('PRODUCCION', 'cert')).toBe('CerteCF');
-    expect(entornoDgii('PRODUCCION', 'certification')).toBe('CerteCF');
-    expect(entornoDgii('PRODUCCION', 'test')).toBe('TesteCF');
-  });
-
-  it('sin configuración, o con una que no se entiende, se va a pruebas', () => {
-    // El silencio no puede leerse como permiso para emitir de verdad.
-    expect(entornoDgii('PRODUCCION', null)).toBe('TesteCF');
-    expect(entornoDgii('PRODUCCION', undefined)).toBe('TesteCF');
-    expect(entornoDgii('PRODUCCION', '')).toBe('TesteCF');
-    expect(entornoDgii('PRODUCCION', 'PRODUCTION')).toBe('TesteCF');
   });
 
   it('no queda ninguna copia suelta de la resolución', () => {

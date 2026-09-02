@@ -16,7 +16,10 @@ const settingsSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Correo inválido').optional().or(z.literal('')),
   logoUrl: z.string().optional(),
-  dgiiEnv: z.enum(['test', 'production']),
+  // Guarda EL MODO del sistema (0047), no un ambiente aparte. El ambiente de
+  // la DGII se deduce con entornoDgii(). CERTIFICACION se admite en la base
+  // pero no se ofrece todavia en la interfaz.
+  dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION', 'CERTIFICACION']),
   printLayout: z.enum(['carta', '80mm', '58mm']),
   printCopies: z.number().int().min(1).max(5).default(2).optional(),
   autoDeliveryNotes: z.boolean(),

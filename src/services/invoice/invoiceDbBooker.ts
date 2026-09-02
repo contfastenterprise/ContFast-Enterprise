@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable } from '@/db';
+import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable, products, customers } from '@/db';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -76,8 +76,31 @@ export class InvoiceDbBooker {
     if (data.ecfType !== '34') {
       for (const line of totals.itemLines) {
         // Cost validation
-        const [prod] = await db.select({ cost: sql<string>`cost` }).from(sql`products`).where(eq(sql`id`, line.productId)).limit(1);
-        if (prod) {
+        // ISO-04: la tabla se escribia como cadena -- `.from(sql\`products\`)` --
+        // y con la tabla escondida asi tambien se escondia lo que faltaba en el
+        // WHERE: la empresa. Se localizaba el producto SOLO por su id, de modo
+        // que el precio de venta se validaba contra el costo del producto de
+        // otra empresa si el id venia de fuera.
+        const [prod] = await db
+          .select({ cost: products.cost })
+          .from(products)
+          .where(and(
+            eq(products.id, line.productId),
+            eq(products.companyId, data.companyId)
+          ))
+          .limit(1);
+
+        // No encontrarlo significa que ese id no es de esta empresa: la clave
+        // ajena de `invoice_lines` apunta a `products.id` sin mirar la empresa,
+        // asi que existir, existe. Antes se seguia sin validar nada, en
+        // silencio, y la linea se facturaba igual.
+        if (!prod) {
+          throw new Error(
+            `El artículo "${line.name}" no pertenece a esta empresa. No se puede facturar.`
+          );
+        }
+
+        {
           const cost = parseFloat(prod.cost || '0.00');
           if (cost > 0 && line.unitPrice < cost) {
             throw new Error(`El precio unitario (RD$ ${line.unitPrice.toFixed(2)}) para "${line.name}" no puede ser inferior a su costo (RD$ ${cost.toFixed(2)}).`);
@@ -88,16 +111,28 @@ export class InvoiceDbBooker {
 
     // Verify Credit Limit for credit sales
     if (data.paymentType === 'credit' && data.customerId && data.ecfType !== '34') {
+      // ISO-04: mismo caso que el producto. El limite de credito se leia del
+      // cliente localizado solo por id, sin empresa.
       const [customer] = await db
         .select({
-          creditLimit: sql<string>`credit_limit`,
-          name: sql<string>`name`
+          creditLimit: customers.creditLimit,
+          name: customers.name,
         })
-        .from(sql`customers`)
-        .where(eq(sql`id`, data.customerId))
+        .from(customers)
+        .where(and(
+          eq(customers.id, data.customerId),
+          eq(customers.companyId, data.companyId)
+        ))
         .limit(1);
 
-      if (customer) {
+      // Mismo criterio que con el articulo: si no aparece, el cliente no es de
+      // esta empresa. Seguir sin comprobar el limite de credito seria conceder
+      // credito a ciegas.
+      if (!customer) {
+        throw new Error('El cliente indicado no pertenece a esta empresa.');
+      }
+
+      {
         const limit = parseFloat(customer.creditLimit || '0.00');
         if (limit > 0) {
           const [arBalanceResult] = await db
@@ -300,16 +335,26 @@ export class InvoiceDbBooker {
 
       // Verify Credit Limit for credit sales
       if (data.paymentType === 'credit' && data.customerId && data.ecfType !== '34') {
+        // ISO-04: la misma comprobacion dentro de la transaccion, con la misma
+        // ausencia. Un limite de credito leido de otra empresa deja pasar una
+        // venta a credito que deberia haberse bloqueado, o bloquea una buena.
         const [customer] = await tx
           .select({
-            creditLimit: sql<string>`credit_limit`,
-            name: sql<string>`name`
+            creditLimit: customers.creditLimit,
+            name: customers.name,
           })
-          .from(sql`customers`)
-          .where(eq(sql`id`, data.customerId))
+          .from(customers)
+          .where(and(
+            eq(customers.id, data.customerId),
+            eq(customers.companyId, data.companyId)
+          ))
           .limit(1);
 
-        if (customer) {
+        if (!customer) {
+          throw new Error('El cliente indicado no pertenece a esta empresa.');
+        }
+
+        {
           const limit = parseFloat(customer.creditLimit || '0.00');
           if (limit > 0) {
             const [arBalanceResult] = await tx
@@ -523,6 +568,10 @@ export class InvoiceDbBooker {
         date: new Date().toISOString().split('T')[0],
         description: `Facturación Automática e-CF NCF: ${ncf}`,
         lines: journalLines,
+        // Auditoria JRN-16: quien registra el asiento. Sin autor, un asiento
+        // duplicado -- por un doble clic, un reintento por tiempo de espera o
+        // alguien registrandolo dos veces -- no se puede explicar despues.
+        createdBy: data.userId,
       });
 
       // Cash Session registration

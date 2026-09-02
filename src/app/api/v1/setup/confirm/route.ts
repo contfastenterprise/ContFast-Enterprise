@@ -17,7 +17,7 @@ const confirmSchema = z.object({
     businessActivity: z.string().min(5).optional().or(z.literal('')),
   }),
   fiscal: z.object({
-    dgiiEnv: z.enum(['test', 'production']),
+    dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION', 'CERTIFICACION']),
     msellerUrl: z.string().url().optional().or(z.literal('')),
     msellerApiKey: z.string().min(1, 'El Token de mSeller es requerido'),
   }),

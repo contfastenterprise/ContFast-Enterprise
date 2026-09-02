@@ -193,12 +193,53 @@ describe('DB-23 · la firma se lee de la factura', () => {
 
   it('la plantilla tampoco la inventa', () => {
     const plantilla = leer('src/utils/templates/documentTemplates.ts');
-    expect(plantilla).toContain('const hayFirma = !!inv.signatureDate;');
-    expect(plantilla).toContain("!hayFirma ? 'Pendiente'");
     expect(
       plantilla.includes('inv.signatureDate || inv.createdAt).toLocaleString'),
       'Imprimía la fecha de creación bajo el rótulo "Fecha de Firma".'
     ).toBe(false);
+  });
+
+  // TENER LOS DATOS DE LA FIRMA NO ES ESTAR FIRMADO.
+  //
+  // Esta prueba pedía `const hayFirma = !!inv.signatureDate;`, y esa condición
+  // resultó ser peligrosa: mSeller devuelve `securityCode`, `signatureDate` Y
+  // `qr_url` AUNQUE la DGII rechace el comprobante. Comprobado en los datos de
+  // producción del cliente:
+  //
+  //     E440000000001   rejected   código JW0T3M
+  //     E440000000002   rejected   código CeCnNu
+  //
+  // Con la condición vieja, esos dos comprobantes RECHAZADOS se imprimían con
+  // la leyenda "Firma Digital Válida" y su QR apuntando a la consulta de la
+  // DGII. Un dato presente sólo significa que mSeller contestó.
+  //
+  // La leyenda sale del ESTADO FISCAL, y de nada más.
+  it('la leyenda de firma sale del estado, no de que haya datos', () => {
+    const plantilla = leer('src/utils/templates/documentTemplates.ts');
+    expect(
+      plantilla,
+      'Un comprobante rechazado trae código y fecha de firma: colgar la validez de su presencia ' +
+        'imprime un rechazo como firmado válido.'
+    ).toContain("const hayFirma = inv.estadoFiscal === 'accepted'");
+    expect(
+      plantilla,
+      'Y un rechazo tiene que distinguirse de un pendiente: no son lo mismo para quien recibe el papel.'
+    ).toContain("const rechazado = inv.estadoFiscal === 'rejected'");
+    expect(plantilla).toContain('RECHAZADO POR LA DGII');
+    expect(
+      plantilla.includes('const hayFirma = !!inv.signatureDate'),
+      'La condición vieja no puede volver.'
+    ).toBe(false);
+    expect(
+      plantilla.includes('const hayFirma = !!inv.securityCode'),
+      'Ni su variante por código, que es el mismo error.'
+    ).toBe(false);
+  });
+
+  it('el QR tampoco se imprime sin firma válida', () => {
+    const plantilla = leer('src/utils/templates/documentTemplates.ts');
+    // Las dos plantillas que lo pintan: la de carta y la de rollo.
+    expect((plantilla.match(/hayFirma && qrBase64/g) || []).length).toBe(2);
   });
 
   it('getById devuelve las dos columnas', () => {

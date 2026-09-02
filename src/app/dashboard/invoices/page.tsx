@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { TIPOS_COMPROBANTE, nombreTipo, nombreCortoTipo } from '@/services/dgii/tiposComprobante';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
@@ -1089,9 +1090,31 @@ function InvoicesList() {
         throw new Error(data.error?.message || 'Error al emitir factura.');
       }
 
-      toast.success('Comprobante e-CF emitido y firmado', {
-        description: `NCF: ${data.data.ncf}`
-      });
+      //  El aviso decia SIEMPRE "emitido y firmado", fuera cual fuera el
+      //  estado real. Si la DGII no habia dado veredicto todavia, el aviso
+      //  afirmaba una firma mientras el listado -- que si mira el estado --
+      //  ponia la etiqueta ENVIADO. Dos pantallas contradiciendose sobre el
+      //  mismo comprobante, y la que mentia era la mas visible.
+      //
+      //  Ahora el aviso dice lo que hay.
+      const estadoEmitido = data.data?.status;
+      if (estadoEmitido === 'accepted') {
+        toast.success('Comprobante e-CF emitido y firmado', {
+          description: `NCF: ${data.data.ncf} — aceptado por la DGII`
+        });
+      } else if (estadoEmitido === 'submitted') {
+        toast.success('Comprobante e-CF emitido', {
+          description: `NCF: ${data.data.ncf} — enviado a la DGII, pendiente de su confirmación. Se actualiza al sincronizar.`
+        });
+      } else if (estadoEmitido === 'signed') {
+        toast.warning('Comprobante emitido localmente', {
+          description: `NCF: ${data.data.ncf} — todavía NO se ha enviado a la DGII.`
+        });
+      } else {
+        toast.success('Comprobante e-CF emitido', {
+          description: `NCF: ${data.data.ncf}${estadoEmitido ? ` — estado: ${estadoEmitido}` : ''}`
+        });
+      }
 
       const invoiceId = data.data.id;
 
@@ -1211,16 +1234,10 @@ function InvoicesList() {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case '31': return 'Crédito Fiscal';
-      case '32': return 'Consumo';
-      case '33': return 'Nota de Débito';
-      case '34': return 'Nota de Crédito';
-      case '45': return 'Gubernamental';
-      default: return `Tipo ${type}`;
-    }
-  };
+  // De la lista unica. Antes cualquier tipo fuera del switch salia como
+  // "Tipo 44", sin decir que es.
+  const getTypeLabel = (type: string) =>
+    nombreCortoTipo(type) ?? `e-${type} (no reconocido)`;
 
   return (
 
@@ -1292,9 +1309,9 @@ function InvoicesList() {
                   >
                     {activeSequences.length === 0 ? (
                       <>
-                        <option value="31">e-31 Factura de Crédito Fiscal</option>
-                        <option value="32">e-32 Factura de Consumo</option>
-                        <option value="45">e-45 Comprobante Gubernamental</option>
+                        {TIPOS_COMPROBANTE.filter(t => t.emitible && !['33','34'].includes(t.codigo)).map(t => (
+                          <option key={t.codigo} value={t.codigo}>{t.nombre} (e-{t.codigo})</option>
+                        ))}
                       </>
                     ) : (
                       activeSequences
@@ -1305,16 +1322,17 @@ function InvoicesList() {
                           return s.ecfType !== '33' && s.ecfType !== '34';
                         })
                         .map((s: any) => {
+                          // Antes el `default` dejaba sin descripcion a todo
+                          // lo que no fueran 31/32/33/34/45: un e-44 se leia
+                          // "Comprobante Electronico (e-44)", sin decir que es.
+                          // Ahora sale el nombre de la DGII.
                           const getLabel = (type: string, prefix?: string) => {
                             const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
-                            switch (type) {
-                              case '31': return isElectronic ? 'Factura de Crédito Fiscal Electrónica (e-31)' : 'Factura de Crédito Fiscal (B01)';
-                              case '32': return isElectronic ? 'Factura de Consumo Electrónica (e-32)' : 'Factura de Consumo (B02)';
-                              case '33': return isElectronic ? 'Nota de Débito Electrónica (e-33)' : 'Nota de Débito (B03)';
-                              case '34': return isElectronic ? 'Nota de Crédito Electrónica (e-34)' : 'Nota de Crédito (B04)';
-                              case '45': return isElectronic ? 'Comprobante Gubernamental Electrónico (e-45)' : 'Comprobante Gubernamental (B15)';
-                              default: return isElectronic ? `Comprobante Electrónico (e-${type})` : `Comprobante Especial (B${type})`;
-                            }
+                            const nombre = nombreTipo(type);
+                            if (!nombre) return `${isElectronic ? 'e' : 'B'}-${type} (tipo no reconocido)`;
+                            return isElectronic
+                              ? `${nombre} (e-${type})`
+                              : `${nombre.replace(/ Electrónic[ao]$/, '')} (B${type})`;
                           };
                           return (
                             <option key={s.id} value={s.ecfType}>
@@ -1946,21 +1964,20 @@ function InvoicesList() {
                   {sequences.length === 0 ? (
                     <>
                       <option value="31">Factura Crédito Fiscal (31)</option>
-                      <option value="32">Factura Consumo (32)</option>
-                      <option value="45">Gubernamental (45)</option>
+                      {TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => (
+                        <option key={t.codigo} value={t.codigo}>{t.corto} ({t.codigo})</option>
+                      ))}
                     </>
                   ) : (
                     sequences.map((s: any) => {
+                      // Segunda copia del mismo switch. De la lista unica.
                       const getLabel = (type: string, prefix?: string) => {
                         const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
-                        switch (type) {
-                          case '31': return isElectronic ? 'Factura de Crédito Fiscal Electrónica (e-31)' : 'Factura de Crédito Fiscal (B01)';
-                          case '32': return isElectronic ? 'Factura de Consumo Electrónica (e-32)' : 'Factura de Consumo (B02)';
-                          case '33': return isElectronic ? 'Nota de Débito Electrónica (e-33)' : 'Nota de Débito (B03)';
-                          case '34': return isElectronic ? 'Nota de Crédito Electrónica (e-34)' : 'Nota de Crédito (B04)';
-                          case '45': return isElectronic ? 'Comprobante Gubernamental Electrónico (e-45)' : 'Comprobante Gubernamental (B15)';
-                          default: return isElectronic ? `Comprobante Electrónico (e-${type})` : `Comprobante Especial (B${type})`;
-                        }
+                        const nombre = nombreTipo(type);
+                        if (!nombre) return `${isElectronic ? 'e' : 'B'}-${type} (tipo no reconocido)`;
+                        return isElectronic
+                          ? `${nombre} (e-${type})`
+                          : `${nombre.replace(/ Electrónic[ao]$/, '')} (B${type})`;
                       };
                       return (
                         <option key={s.id} value={s.ecfType}>
@@ -2769,11 +2786,15 @@ function InvoicesList() {
                   <div className="flex justify-between items-center gap-4">
                     <span className="text-slate-500 text-xs uppercase tracking-wider">Comprobante:</span>
                     <span className="text-slate-900 text-right font-semibold">
-                      {ecfType === '31' ? 'Crédito Fiscal (e-31)' :
-                        ecfType === '32' ? 'Consumo (e-32)' :
-                          ecfType === '33' ? 'Nota de Débito (e-33)' :
-                            ecfType === '34' ? 'Nota de Crédito (e-34)' :
-                              ecfType === '45' ? 'Gubernamental (e-45)' : 'Consumo (e-32)'}
+                      {/*
+                        El `else` de esta cadena era 'Consumo (e-32)': al
+                        confirmar un e-44 se leia "Consumo (e-32)". Y este es
+                        el peor sitio posible para eso -- es la pantalla cuya
+                        unica funcion es que verifiques antes de emitir.
+                      */}
+                      {nombreCortoTipo(ecfType)
+                        ? `${nombreCortoTipo(ecfType)} (e-${ecfType})`
+                        : `e-${ecfType} — TIPO NO RECONOCIDO`}
                     </span>
                   </div>
                   <div className="flex justify-between items-center gap-4">

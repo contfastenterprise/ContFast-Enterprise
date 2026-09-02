@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const fiscalSchema = z.object({
-  dgiiEnv: z.enum(['test', 'production'], {
+  dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION', 'CERTIFICACION'], {
     message: "El ambiente debe ser 'test' o 'production'",
   }),
 });

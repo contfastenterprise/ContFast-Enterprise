@@ -1,4 +1,5 @@
 import { parseFraction } from '../calculos';
+import { etiquetaTipo } from '@/services/dgii/tiposComprobante';
 import { windowProfiles } from '../profilesRegistry';
 
 function deepEscape<T>(obj: T): T {
@@ -180,8 +181,26 @@ export class DocumentTemplates {
     //
     // La firma se declara por su ausencia o su presencia, y de ahi salen el
     // rotulo y la fecha en los dos formatos.
-    const hayFirma = !!inv.signatureDate;
-    const estadoFirma = !hayFirma ? 'Pendiente' : 'Firmado';
+    //  Y no basta con que haya fecha de firma ni codigo de seguridad: mSeller
+    //  devuelve AMBOS aunque la DGII rechace el comprobante. Comprobado sobre
+    //  E440000000001 y ...0002, los dos 'rejected' y los dos con su
+    //  `securityCode` (JW0T3M, CeCnNu) y su `qr_url`.
+    //
+    //  Colgar la leyenda "Firma Digital Valida" de la mera presencia de esos
+    //  datos haria que un comprobante RECHAZADO se imprimiera como firmado
+    //  valido, con su QR apuntando a la DGII. La firma vale cuando la DGII lo
+    //  ACEPTO; lo demas es pendiente o rechazado.
+    //
+    //  Sin estado (comprobantes anteriores a que se guardara) se cae del lado
+    //  prudente: no se afirma la firma.
+    const hayFirma = inv.estadoFiscal === 'accepted' && !!inv.signatureDate;
+    const rechazado = inv.estadoFiscal === 'rejected';
+    const estadoFirma = hayFirma ? 'Firmado' : (rechazado ? 'Rechazado' : 'Pendiente');
+    //  La leyenda completa, porque "${estadoFirma} de confirmacion de la DGII"
+    //  daba "Rechazado de confirmacion de la DGII", que no se dice.
+    const leyendaSinFirma = rechazado
+      ? 'RECHAZADO POR LA DGII'
+      : 'Pendiente de confirmación de la DGII';
 
     if (layout === 'carta') {
       const padDots = (label: string, length: number) => {
@@ -189,20 +208,14 @@ export class DocumentTemplates {
         return label + '.'.repeat(Math.max(0, dotsNeeded)) + ':';
       };
 
-      const getEcfTypeName = (type: string) => {
-        const types: Record<string, string> = {
-          '31': 'Factura de Crédito Fiscal Electrónica',
-          '32': 'Factura de Consumo Electrónica',
-          '33': 'Nota de Débito Electrónica',
-          '34': 'Nota de Crédito Electrónica',
-          '41': 'Registro de Proveedores Informales Electrónico',
-          '43': 'Registro de Único Ingreso Electrónico',
-          '44': 'Registro de Gastos Menores Electrónico',
-          '45': 'Registro de Regímenes Especiales de Tributación Electrónico',
-          '46': 'Registro de Gubernamentales Electrónico'
-        };
-        return types[type] || 'Factura de Consumo Electrónica';
-      };
+      // La lista vive en src/services/dgii/tiposComprobante.ts. Esta copia
+      // tenia la cola CORRIDA UNA POSICION -- el 44 decia "Gastos Menores"
+      // (es Regimenes Especiales) y el 45 decia "Regimenes Especiales" (es
+      // Gubernamental) -- y ademas devolvia "Factura de Consumo" para
+      // cualquier tipo que no conociera: cambiaba un documento fiscal por
+      // otro, en el papel, sin avisar.
+      const getEcfTypeName = (type: string) => etiquetaTipo(type);
+
 
       const formatNum = (val: number) => {
         return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -505,12 +518,12 @@ export class DocumentTemplates {
 
           <div class="invoice-footer-repeated">
             <div style="display: flex; align-items: center; gap: 15px;">
-              ${qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
+              ${hayFirma && qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
                 ${hayFirma
                   ? `Código de seguridad: ${inv.securityCode || 'No consta'}<br>
                 Fecha Firma: ${formattedSigDate}`
-                  : `${estadoFirma} de confirmación de la DGII<br>
+                  : `${leyendaSinFirma}<br>
                 Emitido: ${formattedSigDate}`}
               </div>
             </div>
@@ -785,11 +798,11 @@ export class DocumentTemplates {
             <strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
             <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate).toLocaleString('es-DO')}<br>
             Puede validar este e-CF en el portal de la DGII.`
-              : `<strong>${estadoFirma} de confirmación de la DGII</strong><br>
+              : `<strong>${leyendaSinFirma}</strong><br>
             <strong>Fecha de emisión:</strong> ${new Date(inv.createdAt).toLocaleString('es-DO')}<br>
-            Este comprobante aún no tiene la firma de la DGII.`}
+            ${rechazado ? 'La DGII rechazó este comprobante. NO tiene validez fiscal.' : 'Este comprobante aún no tiene la firma de la DGII.'}`}
           </div>
-          ${qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
+          ${hayFirma && qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
         </div>
 
         <div class="footer">
@@ -2340,10 +2353,14 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       ? `<img class="logo" src="${company.logoUrl}" alt="Logo">`
       : '';
 
-    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
-    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const email = company.email || (isLatinDoors ? 'latindoors@gmail.com' : 'info@contfast.com');
-    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+    // ISO-17: aqui el codigo RECONOCIA a una empresa concreta -- por su RNC, o
+    // porque su nombre contuviera "doors" -- para darle unos datos de contacto
+    // y al resto otros. Cualquier otra empresa con "doors" en el nombre
+    // heredaba su telefono, su correo y su direccion, impresos en un documento
+    // suyo. Un documento lleva los datos de su empresa, o ninguno.
+    const tel = company.phone || '';
+    const email = company.email || '';
+    const dir = company.address || '';
 
     const formatPies = (val: number) => val > 0 ? `${val.toFixed(2)} pies` : '0.00 pies';
     const formatPiesCU = (val: number) => val > 0 ? `${val.toFixed(2)} pies c/u` : '0.00 pies c/u';
@@ -2703,9 +2720,9 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             ${logoHtml}
             <div class="company-info">
               ${company.rnc ? `RNC.........: ${company.rnc}<br>` : ''}
-              Teléfono....: ${tel}<br>
-              Email.......: ${email}<br>
-              Dirección...: ${dir}
+              ${tel ? `Teléfono....: ${tel}<br>` : ''}
+              ${email ? `Email.......: ${email}<br>` : ''}
+              ${dir ? `Dirección...: ${dir}` : ''}
             </div>
           </div>
           <div class="doc-info">
@@ -3126,9 +3143,12 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     const { company, pendingChecks, appliedChecks, filters } = data;
     const css = this.getBaseCss('carta');
 
-    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
-    const displayPhone = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const displayAddress = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+    // ISO-17: segunda copia de la rama que reconocia a una empresa por su RNC o
+    // por llevar "doors" en el nombre. El sitio de impresion ya sabe omitir lo
+    // que no hay -- las dos lineas que los pintan van con condicion -- asi que
+    // no hacia falta ningun respaldo, solo el dato de la empresa o nada.
+    const displayPhone = company.phone || '';
+    const displayAddress = company.address || '';
 
     const logoHtml = company.logoUrl
       ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CODIGOS_EMITIBLES, TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { InvoiceService } from '@/services/invoiceService';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
-import { db, invoices, subscriptions, plans, warehouses } from '@/db';
+import { db, invoices, subscriptions, plans, warehouses, products, customers, quotes, cashSessions, retentions } from '@/db';
 import { eq, and, count, gte, lte, inArray, isNull } from 'drizzle-orm';
 
 /**
@@ -31,8 +32,12 @@ const createInvoiceSchema = z.object({
   customerId: z.string().uuid().optional(),
   warehouseId: z.string().uuid(),
   cashSessionId: z.string().uuid().optional(),
-  ecfType: z.enum(['31', '32', '33', '34', '45'], {
-    message: 'Tipo de e-CF inválido. Debe ser 31 (Fiscal), 32 (Consumo), 33 (ND), 34 (NC) o 45 (Gubernamental)',
+  // Los codigos que el flujo de ventas emite, de la lista unica. El 44
+  // (Regimenes Especiales) y el 46 (Exportaciones) no estaban y por eso una
+  // secuencia de esos tipos se podia elegir en el formulario pero la emision
+  // la rechazaba con "Tipo de e-CF invalido".
+  ecfType: z.enum(CODIGOS_EMITIBLES, {
+    message: `Tipo de e-CF inválido. Los admitidos son: ${TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => `${t.codigo} (${t.corto})`).join(', ')}.`,
   }),
   paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
   bankName: z.string().optional(),
@@ -232,6 +237,69 @@ export async function POST(req: NextRequest) {
       ...l,
       warehouseId: l.warehouseId && almacenesValidos.has(l.warehouseId) ? l.warehouseId : undefined,
     }));
+
+    // ISO-04 · ningun id de otra empresa entra en una factura
+    //
+    // La comprobacion de los almacenes, ahi arriba, cerraba UNO de los ocho ids
+    // que acepta este cuerpo. Los otros siete entraban tal cual, y la base de
+    // datos no los para: las claves ajenas de `invoice_lines`, `invoices` y
+    // `quotes` apuntan al id y no miran la empresa. Se podia facturar el
+    // producto de otra empresa, y de paso saltarse la validacion de precio
+    // contra costo -- que desde el filtro por empresa ya no lo encuentra y por
+    // tanto no valida nada.
+    //
+    // Va AQUI, antes de firmar y transmitir. Mas abajo el e-CF ya esta
+    // presentado a la DGII y un fallo no lo deshace.
+    //
+    // Un id que no existe se trata igual que uno ajeno: en las dos situaciones
+    // la respuesta correcta es la misma, y distinguirlas por el mensaje le
+    // diria a quien sondea cuales existen en otras empresas.
+    const idsAjenos = async (
+      tabla: any,
+      ids: (string | undefined)[],
+      admiteGlobales = false
+    ): Promise<string[]> => {
+      const pedidos = Array.from(new Set(ids.filter((x): x is string => !!x)));
+      if (pedidos.length === 0) return [];
+
+      const filas = await db
+        .select({ id: tabla.id, companyId: tabla.companyId })
+        .from(tabla)
+        .where(inArray(tabla.id, pedidos));
+
+      const propios = new Set(
+        filas
+          .filter((f: any) => f.companyId === auth.companyId || (admiteGlobales && f.companyId === null))
+          .map((f: any) => f.id)
+      );
+
+      return pedidos.filter((id) => !propios.has(id));
+    };
+
+    const pertenencia: [string, string[]][] = [
+      ['El artículo', await idsAjenos(products, result.data.lines.map((l) => l.productId))],
+      ['El cliente', await idsAjenos(customers, [result.data.customerId])],
+      ['La cotización', await idsAjenos(quotes, [result.data.quoteId])],
+      ['La factura que se modifica', await idsAjenos(invoices, [result.data.modifiedInvoiceId])],
+      ['La sesión de caja', await idsAjenos(cashSessions, [result.data.cashSessionId])],
+      // El catalogo de retenciones admite filas globales (company_id NULO), que
+      // sirven a todas las empresas. Es el unico caso.
+      ['La retención', await idsAjenos(retentions, (result.data.retentions || []).map((r) => r.retentionId), true)],
+    ];
+
+    const ajeno = pertenencia.find(([, ids]) => ids.length > 0);
+    if (ajeno) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: `${ajeno[0]} con id ${ajeno[1][0]} no existe en esta empresa.`,
+          },
+        },
+        { status: 400, headers: resHeaders }
+      );
+    }
 
     // Check invoice limits from subscription (only count production invoices)
     const subscriptionInfo = await db

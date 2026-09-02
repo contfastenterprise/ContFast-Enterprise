@@ -94,12 +94,22 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   // Initialize environment from settings
   useEffect(() => {
     if (initialSettings) {
-      const env = initialSettings.dgiiEnv;
-      if (env === 'production') setEntorno('PROD');
-      else if (env === 'cert') setEntorno('CERT');
-      else setEntorno('TEST');
+      // `dgiiEnv` guarda ahora EL MODO del sistema (0047), no un ambiente
+      // aparte. Antes era al reves y por eso estaba mal:
+      //
+      //     const targetEnv = env === 'production' ? 'PRODUCCION' : 'PRUEBA';
+      //
+      // el ajuste de ambiente FORZABA el modo en cada carga. Un ajuste que
+      // decia 'test' ponia a operar en PRUEBA a una empresa que facturaba de
+      // verdad, sin avisar. Ahora el modo es el dato y el ambiente de la DGII
+      // es lo que se deduce de el.
+      const targetEnv: 'PRODUCCION' | 'PRUEBA' =
+        initialSettings.dgiiEnv === 'PRODUCCION' ? 'PRODUCCION' : 'PRUEBA';
 
-      const targetEnv = env === 'production' ? 'PRODUCCION' : 'PRUEBA';
+      // La insignia sale del MODO, no de un ajuste que podia no coincidir.
+      if (targetEnv === 'PRODUCCION') setEntorno('PROD');
+      else if (initialSettings.dgiiEnv === 'CERTIFICACION') setEntorno('CERT');
+      else setEntorno('TEST');
       const getCookie = (name: string) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);

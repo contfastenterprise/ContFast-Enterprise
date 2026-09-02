@@ -1,8 +1,10 @@
 import { db, ecfSequences, invoices } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
-import { decryptAsync } from '@/utils/encryption';
+import { entornoDgii } from '@/services/dgii/entorno';
+import { credencialesMseller } from '@/services/dgii/credenciales';
 import { MSellerClient } from '@/services/dgii/msellerClient';
+import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
 import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
 
@@ -27,28 +29,34 @@ export class InvoiceSubmissionService {
     let finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected' = 'signed';
     let msellerResponsePayload: any = null;
 
-    const msellerEmail = settings?.msellerEmail;
-    const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
-    const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : null;
-    const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
+    // El entorno depende del MODO de la emision. La copia local que habia aqui
+    // era la unica de las cuatro que lo miraba, pero perdia el caso de
+    // certificacion: `cert` acababa en pruebas sin avisar.
+    const entorno = entornoDgii(data.modo);
 
-    if (msellerEmail && msellerPassword && msellerApiKeyEncrypted) {
+    // Las credenciales son de la empresa Y del ambiente. Si faltan, la factura
+    // se emite LOCALMENTE y queda pendiente de envio -- exactamente lo que
+    // ocurria antes cuando la empresa no las tenia configuradas. Lo que ya no
+    // ocurre es enviarla con las credenciales de otra empresa.
+    const credenciales = await credencialesMseller(data.companyId, entorno).catch((err: any) => {
+      Logger.warn(
+        '[InvoiceSubmissionService] Sin credenciales de mSeller para este ambiente; se emite localmente',
+        { entorno, error: err?.message }
+      );
+      return null;
+    });
+
+    if (credenciales) {
       try {
-        const resolveEntorno = (env?: string) => {
-          if (data.modo === 'PRUEBA') return 'TesteCF';
-          if (env === 'production' || env === '1') return 'eCF';
-          return 'TesteCF';
-        };
-        const entorno = resolveEntorno(settings.dgiiEnv);
-        const msellerUrl = settings.msellerUrl || 'https://ecf.api.mseller.app';
+        const msellerUrl = settings?.msellerUrl || 'https://ecf.api.mseller.app';
         const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
 
         const msellerClient = new MSellerClient({
           baseUrl,
           entorno,
-          email: msellerEmail,
-          password: msellerPassword,
-          apiKeyEncrypted: msellerApiKeyEncrypted,
+          email: credenciales.email,
+          password: credenciales.password,
+          apiKeyEncrypted: credenciales.apiKeyEncrypted,
         });
 
         // Load sequence to get sequenceExpiry
@@ -66,18 +74,10 @@ export class InvoiceSubmissionService {
           )
           .limit(1);
 
-        let sequenceExpiry = '31-12-2026';
-        if (seqRecord) {
-          if (seqRecord.sequenceExpiry) {
-            sequenceExpiry = seqRecord.sequenceExpiry;
-          } else if (seqRecord.expiryDate) {
-            const d = new Date(seqRecord.expiryDate);
-            const dd = String(d.getDate()).padStart(2, '0');
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const yyyy = d.getFullYear();
-            sequenceExpiry = `${dd}-${mm}-${yyyy}`;
-          }
-        }
+        // Era `let sequenceExpiry = '31-12-2026'`: si la secuencia no traia
+        // fecha, se declaraba esa a la DGII. Dato fiscal fabricado. Ahora se
+        // lee o se para. Ver src/services/dgii/secuencia.ts.
+        const sequenceExpiry = vencimientoSecuencia(seqRecord, data.ecfType);
 
         let originalInvoiceTotal: number | undefined;
         let originalInvoiceDate: Date | undefined;

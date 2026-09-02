@@ -302,6 +302,48 @@
       "when": 1784664419850,
       "tag": "0042_exento_o_tasa_cero",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1784664420850,
+      "tag": "0046_modo_certificacion",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1784664421850,
+      "tag": "0047_dgii_env_guarda_el_modo",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1784664419950,
+      "tag": "0042_firma_del_comprobante",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1784664419960,
+      "tag": "0043_enlace_qr_del_comprobante",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1784664419970,
+      "tag": "0044_un_solo_ambiente_fiscal",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1784664419980,
+      "tag": "0045_clave_api_por_entorno",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck,
@@ -109,8 +110,17 @@ interface PaginationMeta {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-const ECF_TYPE_LABELS: Record<string, string> = {
-  // Traditional NCFs
+/**
+ * Nombres de los comprobantes.
+ *
+ * Los ELECTRONICOS salen de la lista unica (src/services/dgii/tiposComprobante.ts).
+ * Esta copia tenia el 46 y el 47 INTERCAMBIADOS -- decia que el 46 era "Pagos al
+ * Exterior" (es Exportaciones) y el 47 "Exportacion" (es Pagos al Exterior).
+ *
+ * Los de la serie B (01-17) son la numeracion anterior, que no es e-CF y no
+ * vive en ese modulo; se quedan aqui.
+ */
+const NCF_B_LABELS: Record<string, string> = {
   '01': 'Factura de Crédito Fiscal',
   '02': 'Factura de Consumo',
   '03': 'Nota de Débito',
@@ -121,17 +131,11 @@ const ECF_TYPE_LABELS: Record<string, string> = {
   '15': 'Comprobante Gubernamental',
   '16': 'Comprobante de Exportación',
   '17': 'Comprobante para Pagos al Exterior',
-  // Electronic e-CFs
-  '31': 'Factura de Crédito Fiscal Electrónica',
-  '32': 'Factura de Consumo Electrónica',
-  '33': 'Nota de Débito Electrónica',
-  '34': 'Nota de Crédito Electrónica',
-  '41': 'Comprobante de Compras Electrónico',
-  '43': 'Comprobante para Gastos Menores Electrónico',
-  '44': 'Comprobante para Regímenes Especiales Electrónico',
-  '45': 'Comprobante Gubernamental Electrónico',
-  '46': 'Comprobante para Pagos al Exterior Electrónico',
-  '47': 'Comprobante de Exportación Electrónico',
+};
+
+const ECF_TYPE_LABELS: Record<string, string> = {
+  ...NCF_B_LABELS,
+  ...Object.fromEntries(TIPOS_COMPROBANTE.map((t) => [t.codigo, t.nombre])),
 };
 
 const ECF_TYPE_DESCRIPTIONS: Record<string, string> = {
@@ -152,9 +156,11 @@ const ECF_TYPE_DESCRIPTIONS: Record<string, string> = {
   '14': 'Para facturar a personas físicas o jurídicas acogidas a regímenes especiales de tributación.',
   '45': 'Utilizado para facturar la venta de bienes o la prestación de servicios al Estado Dominicano.',
   '15': 'Utilizado para facturar la venta de bienes o la prestación de servicios al Estado Dominicano.',
-  '46': 'Para sustentar pagos por rentas de fuente dominicana a personas físicas o jurídicas no residentes.',
+  // El 46 es EXPORTACIONES y el 47 PAGOS AL EXTERIOR. Estaban cruzados aqui
+  // y en el mapa de nombres, igual que en las otras copias de la lista.
+  '46': 'Para reportar las ventas de bienes fuera del territorio nacional.',
   '17': 'Para sustentar pagos por rentas de fuente dominicana a personas físicas o jurídicas no residentes.',
-  '47': 'Para reportar las ventas de bienes fuera del territorio nacional.',
+  '47': 'Para sustentar pagos por rentas de fuente dominicana a personas físicas o jurídicas no residentes.',
   '16': 'Para reportar las ventas de bienes fuera del territorio nacional.',
 };
 
@@ -856,14 +862,9 @@ function ComprobantesTab() {
             className="rounded-lg border border-slate-200 bg-slate-50 text-slate-800 px-3 py-1.5 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] transition appearance-none cursor-pointer"
           >
             <option value="">Todos los tipos</option>
-            <option value="31">e-31 Crédito Fiscal</option>
-            <option value="32">e-32 Consumo</option>
-            <option value="33">e-33 Nota Débito</option>
-            <option value="34">e-34 Nota Crédito</option>
-            <option value="41">e-41 Compras</option>
-            <option value="43">e-43 Gastos Menores</option>
-            <option value="44">e-44 Regímenes Especiales</option>
-            <option value="45">e-45 Gubernamental</option>
+            {TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => (
+              <option key={t.codigo} value={t.codigo}>e-{t.codigo} {t.corto}</option>
+            ))}
             <option value="46">e-46 Pagos al Exterior</option>
             <option value="47">e-47 Exportación</option>
           </select>
@@ -1524,8 +1525,8 @@ export default function ECFPage() {
         const data = await res.json();
         if (data.success) {
           const env = data.data?.dgiiEnv;
-          if (env === 'production') setEntorno('PROD');
-          else if (env === 'cert') setEntorno('CERT');
+          if (env === 'PRODUCCION') setEntorno('PROD');
+          else if (env === 'CERTIFICACION') setEntorno('CERT');
           else setEntorno('TEST');
         }
       } catch (err) {

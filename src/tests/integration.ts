@@ -101,13 +101,13 @@ async function runTests() {
     // 2. Create Company Settings
     await db.insert(companySettings).values({
       companyId: testCompanyId1,
-      dgiiEnv: 'test',
+      dgiiEnv: 'PRUEBA',
       maxCashOutApprovalAmount: '500.00', // Override default to $500 for limit test
     });
 
     await db.insert(companySettings).values({
       companyId: testCompanyId2,
-      dgiiEnv: 'test',
+      dgiiEnv: 'PRUEBA',
       maxCashOutApprovalAmount: '1000.00',
     });
 

@@ -186,6 +186,11 @@ export async function POST(
           notes: invoice.notes || '',
           codigoFactura: invoice.codigoFactura,
           securityCode,
+          //  EL ESTADO, no solo el codigo. mSeller devuelve `securityCode` AUNQUE la
+          //  DGII rechace -- comprobado: E440000000001 volvio 'rejected' con codigo
+          //  JW0T3M. Condicionar la leyenda de firma a que exista codigo haria que un
+          //  comprobante RECHAZADO se imprimiera como firmado valido.
+          estadoFiscal: invoice.status,
           // DB-23: sin respaldo a la fecha de CREACION. Son cosas distintas y la
       // DGII compara contra la suya; poner una por otra es firmar con una
       // fecha que no es. Vacia significa pendiente, y asi se imprime.
@@ -215,9 +220,14 @@ export async function POST(
           company: company ? {
             name: company.name,
             rnc: company.rnc,
-            address: company.address || 'Santiago, R.D.',
-            phone: company.phone || '1-829-214-4128',
-            email: company.email || settings?.msellerEmail || 'latindoors@gmail.com',
+            // ISO-17: sin respaldos. Un dato de contacto que no es de esta
+            // empresa acaba impreso en SU comprobante fiscal, y el que habia
+            // aqui era el de un cliente concreto. Si la empresa no lo tiene
+            // configurado, el comprobante sale sin el: en blanco es correcto,
+            // el telefono de otro no.
+            address: company.address || '',
+            phone: company.phone || '',
+            email: company.email || '',
             logoUrl: settings?.logoUrl || undefined,
             settings: { 
               printLayout: settings?.printLayout || 'carta' 

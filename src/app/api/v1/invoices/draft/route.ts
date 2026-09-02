@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CODIGOS_EMITIBLES, TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
@@ -10,7 +11,8 @@ import { siguienteCodigoFactura } from '@/services/invoice/codigoFactura';
 const saveDraftSchema = z.object({
   customerId: z.string().uuid().optional(),
   warehouseId: z.string().uuid(),
-  ecfType: z.enum(['31', '32', '33', '34', '45']),
+  // Misma lista que la emision. Ver src/services/dgii/tiposComprobante.ts.
+  ecfType: z.enum(CODIGOS_EMITIBLES),
   paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
   bankName: z.string().optional(),
   transactionNumber: z.string().optional(),

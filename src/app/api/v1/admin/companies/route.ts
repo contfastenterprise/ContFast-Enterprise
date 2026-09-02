@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       // 2. Generate Default Settings
       await tx.insert(companySettings).values({
         companyId: newComp.id,
-        dgiiEnv: 'test',
+        dgiiEnv: 'PRUEBA',
         printLayout: 'carta',
         printCopies: 2,
         msellerUrl: 'https://ecf.api.mseller.app/v1',

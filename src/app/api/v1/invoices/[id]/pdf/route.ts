@@ -208,6 +208,11 @@ export async function GET(
       notes: invoice.notes || '',
       codigoFactura: invoice.codigoFactura,
       securityCode,
+      //  EL ESTADO, no solo el codigo. mSeller devuelve `securityCode` AUNQUE la
+      //  DGII rechace -- comprobado: E440000000001 volvio 'rejected' con codigo
+      //  JW0T3M. Condicionar la leyenda de firma a que exista codigo haria que un
+      //  comprobante RECHAZADO se imprimiera como firmado valido.
+      estadoFiscal: invoice.status,
       // DB-23: sin respaldo a la fecha de CREACION. Son cosas distintas y la
       // DGII compara contra la suya; poner una por otra es firmar con una
       // fecha que no es. Vacia significa pendiente, y asi se imprime.

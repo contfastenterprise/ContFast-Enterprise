@@ -16,7 +16,7 @@ export default function SetupWizard() {
 
   // Form State
   const [company, setCompany] = useState({ name: '', rnc: '', businessActivity: '' });
-  const [fiscal, setFiscal] = useState({ dgiiEnv: 'test', msellerUrl: 'https://ecf.api.mseller.app/v1', msellerApiKey: '' });
+  const [fiscal, setFiscal] = useState({ dgiiEnv: 'PRUEBA', msellerUrl: 'https://ecf.api.mseller.app/v1', msellerApiKey: '' });
   const [printing, setPrinting] = useState({ printLayout: 'carta' });
   const [delivery, setDelivery] = useState({ autoDeliveryNotes: false });
   const [user, setUser] = useState({ name: '', email: '', password: '' });
@@ -291,9 +291,9 @@ export default function SetupWizard() {
                     <label className="block text-xs font-semibold text-[#fed488] uppercase tracking-wider">Ambiente Fiscal DGII</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div
-                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'test' })}
+                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'PRUEBA' })}
                         className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition ${
-                          fiscal.dgiiEnv === 'test'
+                          fiscal.dgiiEnv === 'PRUEBA'
                             ? 'border-[#C5A059] bg-[#001e40]/40'
                             : 'border-outline-variant/30 bg-background/40 hover:border-outline-variant/50'
                         }`}
@@ -302,9 +302,9 @@ export default function SetupWizard() {
                         <p className="text-on-surface-variant text-xs mt-2">Para validaciones técnicas y simulaciones usando la API de mSeller en Sandbox.</p>
                       </div>
                       <div
-                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'production' })}
+                        onClick={() => setFiscal({ ...fiscal, dgiiEnv: 'PRODUCCION' })}
                         className={`cursor-pointer rounded-lg border p-5 flex flex-col justify-between transition ${
-                          fiscal.dgiiEnv === 'production'
+                          fiscal.dgiiEnv === 'PRODUCCION'
                             ? 'border-[#C5A059] bg-[#001e40]/40'
                             : 'border-outline-variant/30 bg-background/40 hover:border-outline-variant/50'
                         }`}

@@ -4,18 +4,12 @@ import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, dgiiSubmissions, companySettings, invoices } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
-import { decryptAsync } from '@/utils/encryption';
+import { entornoDgii } from '@/services/dgii/entorno';
+import { credencialesMseller } from '@/services/dgii/credenciales';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma } from '@/services/dgii/estadoEnvio';
-
-function resolveEntorno(dgiiEnv: string | null): string {
-  if (!dgiiEnv) return 'TesteCF';
-  if (dgiiEnv === 'production') return 'eCF';
-  if (dgiiEnv === 'cert') return 'CerteCF';
-  return 'TesteCF';
-}
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -99,34 +93,34 @@ export async function POST(req: NextRequest) {
       .where(and(eq(companySettings.companyId, auth.companyId), isNull(companySettings.deletedAt)))
       .limit(1);
 
-    const msellerEmail = settings?.msellerEmail || process.env.MSELLER_EMAIL;
-    const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
-    const msellerPassword = msellerPasswordEncrypted ? await decryptAsync(msellerPasswordEncrypted) : process.env.MSELLER_PASSWORD;
-    const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted;
+    // El entorno lo decide el MODO de la sesion por encima del ajuste de la
+    // empresa: consultar en modo PRUEBA no puede acabar preguntandole a la DGII
+    // real. Y las credenciales se piden PARA ese entorno, porque la clave de
+    // API es distinta en cada uno.
+    //
+    // El respaldo a las variables de entorno globales que habia aqui era una
+    // fuga entre empresas: una sin credenciales propias consultaba con la
+    // cuenta de mSeller de OTRA, y no fallaba. Ahora falla y dice cual falta.
+    const entorno = entornoDgii(auth.modo);
 
-    if (!msellerEmail || !msellerPassword || !msellerApiKeyEncrypted) {
+    let credenciales;
+    try {
+      credenciales = await credencialesMseller(auth.companyId, entorno);
+    } catch (err: any) {
       return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'MISSING_CONFIG',
-            message: 'Credenciales mSeller no configuradas. Contacta al administrador.',
-          },
-        },
+        { success: false, error: { code: 'MISSING_CONFIG', message: err.message } },
         { status: 500, headers: resHeaders }
       );
     }
-
-    const entorno = resolveEntorno(settings?.dgiiEnv || null);
     const msellerUrl = settings?.msellerUrl || 'https://api.mseller.app/v1';
     const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : 'https://ecf.api.mseller.app';
 
     const client = new MSellerClient({
       baseUrl,
       entorno,
-      email: msellerEmail,
-      password: msellerPassword,
-      apiKeyEncrypted: msellerApiKeyEncrypted,
+      email: credenciales.email,
+      password: credenciales.password,
+      apiKeyEncrypted: credenciales.apiKeyEncrypted,
     });
 
     const batchResult = await client.getDocumentsStatusBatch(ncfsToQuery);

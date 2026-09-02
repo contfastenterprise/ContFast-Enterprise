@@ -67,11 +67,11 @@ function cuadra(enc: any): { bien: boolean; detalle: string } {
 }
 
 /** El encabezado no trae los items; se adjuntan para poder comprobar la invariante. */
-function conItems(lineas: Linea[]) {
+function conItems(lineas: Linea[], ecfType = '31') {
   const base = lineas.reduce((a, l) => a + l.precio, 0);
   const impuestos = Number(lineas.reduce((a, l) => a + l.precio * l.tasa, 0).toFixed(2));
   const payload = MSellerClient.buildECFPayload({
-    ncf: 'E310000000001', ecfType: '31', sequenceExpiry: '31-12-2026', paymentType: '1',
+    ncf: `E${ecfType}0000000001`, ecfType, sequenceExpiry: '31-12-2026', paymentType: '1',
     issueDate: new Date('2026-09-02T10:00:00'),
     emitterRnc: '131793916', emitterName: 'Empresa', emitterAddress: 'Santiago',
     buyerRnc: '101010101', buyerName: 'Cliente',
@@ -83,6 +83,8 @@ function conItems(lineas: Linea[]) {
   });
   const enc: any = payload.ECF.Encabezado;
   enc.__items = payload.ECF.DetallesItems.Item;
+  enc.__pagina = (payload.ECF as any).Paginacion?.Pagina?.[0];
+  enc.__idDoc = payload.ECF.Encabezado.IdDoc;
   return enc;
 }
 
@@ -225,6 +227,84 @@ function main() {
       ]);
     } catch { lanzo = true; }
     ok('tres tasas gravadas + exportacion: lanza en vez de declarar mal', lanzo);
+  }
+
+
+  console.log('\n9) e-44 Regimenes Especiales: sin NINGUN campo de gravado\n');
+
+  // Rechazo real de la DGII el 2026-09-02 sobre E440000000001:
+  //   "The element 'IdDoc' has invalid child element 'IndicadorMontoGravado'"
+  //   "The element 'Totales' has invalid child element 'MontoGravadoTotal'"
+  //   "The element 'Pagina' has invalid child element 'SubtotalMontoGravadoPagina'"
+  // El e-44 documenta transferencias EXENTAS: su XSD no tiene seccion gravada.
+  {
+    const e = conItems([{ nombre: 'Servicio a regimen especial', precio: 5000, tasa: 0 }], '44');
+
+    ok('IdDoc SIN IndicadorMontoGravado',
+      e.__idDoc.IndicadorMontoGravado === undefined, String(e.__idDoc.IndicadorMontoGravado));
+    ok('  pero conserva TipoIngresos y TipoPago',
+      !!e.__idDoc.TipoIngresos && !!e.__idDoc.TipoPago);
+
+    for (const campo of ['MontoGravadoTotal','MontoGravadoI1','MontoGravadoI2','MontoGravadoI3',
+                         'ITBIS1','ITBIS2','ITBIS3','TotalITBIS','TotalITBIS1',
+                         'TotalITBIS2','TotalITBIS3','MontoNoFacturable']) {
+      ok(`Totales SIN ${campo}`, e.Totales[campo] === undefined, String(e.Totales[campo]));
+    }
+    ok('Totales lleva MontoExento = 5000', e.Totales.MontoExento === 5000, String(e.Totales.MontoExento));
+    ok('Totales lleva MontoTotal = 5000', e.Totales.MontoTotal === 5000, String(e.Totales.MontoTotal));
+
+    for (const campo of ['SubtotalMontoGravadoPagina','SubtotalMontoGravado1Pagina',
+                         'SubtotalItbisPagina','SubtotalItbis1Pagina','SubtotalMontoNoFacturablePagina']) {
+      ok(`Pagina SIN ${campo}`, e.__pagina?.[campo] === undefined, String(e.__pagina?.[campo]));
+    }
+    ok('Pagina lleva SubtotalExentoPagina = 5000', e.__pagina?.SubtotalExentoPagina === 5000);
+    ok('y el articulo va como EXENTO (4)', e.__items[0].IndicadorFacturacion === '4');
+  }
+
+  console.log('\n10) Un e-44 con lineas gravadas se PARA, no se manda\n');
+
+  // La DGII lo rechazaria igual, pero el rechazo quema el NCF: el propio
+  // mensaje traia `secuenciaUtilizada: true`. Parar antes cuesta un aviso;
+  // dejarlo salir cuesta un numero de la secuencia autorizada.
+  for (const [etiq, lineas] of [
+    ['una linea al 18%', [{ nombre: 'X', precio: 1000, tasa: 0.18 }]],
+    ['mezcla exento + 18%', [{ nombre: 'A', precio: 100, tasa: 0 }, { nombre: 'B', precio: 100, tasa: 0.18 }]],
+    ['tasa 0% de exportacion', [{ nombre: 'C', precio: 100, tasa: 0, cat: 'tasa_cero' as const }]],
+  ] as Array<[string, Linea[]]>) {
+    let msg: string | null = null;
+    try { conItems(lineas, '44'); } catch (err: any) { msg = err.message; }
+    ok(`${etiq} -> lanza`, msg !== null, msg ? '' : 'no lanzo');
+    if (msg) ok(`  y el mensaje dice que hacer`, /Exento|otro tipo de comprobante/.test(msg));
+  }
+
+  console.log('\n11) La Paginacion cuadra con los Totales\n');
+
+  // Estaba escrita a mano: todo el subtotal como gravado y el exento fijo en 0.
+  {
+    const e = conItems([
+      { nombre: 'Gravado', precio: 1000, tasa: 0.18 },
+      { nombre: 'Exento', precio: 500, tasa: 0 },
+    ]);
+    const p = e.__pagina;
+    ok('SubtotalMontoGravadoPagina = MontoGravadoTotal',
+      p.SubtotalMontoGravadoPagina === e.Totales.MontoGravadoTotal,
+      `${p.SubtotalMontoGravadoPagina} vs ${e.Totales.MontoGravadoTotal}`);
+    ok('SubtotalExentoPagina = MontoExento (ya no es 0 fijo)',
+      p.SubtotalExentoPagina === e.Totales.MontoExento,
+      `${p.SubtotalExentoPagina} vs ${e.Totales.MontoExento}`);
+    ok('SubtotalItbisPagina = TotalITBIS',
+      p.SubtotalItbisPagina === e.Totales.TotalITBIS);
+  }
+
+  {
+    // CONTROL: para el caso corriente (todo al 18%) la Paginacion sale igual
+    // que con el codigo de antes.
+    const e = conItems([{ nombre: 'Puerta', precio: 1000, tasa: 0.18 }]);
+    const p = e.__pagina;
+    ok('CONTROL 18%: gravado = subtotal, exento = 0, itbis = total',
+      p.SubtotalMontoGravadoPagina === 1000 && p.SubtotalExentoPagina === 0 &&
+      p.SubtotalItbisPagina === 180 && p.SubtotalItbis1Pagina === 180,
+      JSON.stringify(p));
   }
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
