@@ -12,6 +12,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { SupplierOrderService } from '../src/services/supplierOrderService';
 
 const A = '11111111-1111-1111-1111-111111111111'; // atacante
@@ -39,11 +40,8 @@ async function lanza(fn: () => Promise<any>): Promise<string | null> {
 }
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM purchase_order_logs`);
-  await db.execute(sql`DELETE FROM purchase_order_items`);
-  await db.execute(sql`DELETE FROM purchase_orders`);
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`DELETE FROM suppliers`);
 
   await db.execute(sql`INSERT INTO suppliers (id,company_id,name) VALUES

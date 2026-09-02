@@ -108,6 +108,7 @@ export async function createExpense(expenseData: {
     if (expenseData.supplierId) {
       await FinancialMovementService.registerMovement(tx, {
         companyId: expenseData.companyId,
+        modo: expenseData.modo,
         entityType: 'supplier',
         supplierId: expenseData.supplierId,
         date: expenseData.issueDate,
@@ -125,6 +126,7 @@ export async function createExpense(expenseData: {
       if (!isCredit) {
         await FinancialMovementService.registerMovement(tx, {
           companyId: expenseData.companyId,
+          modo: expenseData.modo,
           entityType: 'supplier',
           supplierId: expenseData.supplierId,
           date: expenseData.issueDate,
@@ -198,10 +200,13 @@ export async function createExpense(expenseData: {
       // Create the journal entry
       await AccountRepository.createJournalEntry(tx, {
         companyId: expenseData.companyId,
+        modo: expenseData.modo,
         reference: expense.id,
         date: expenseData.issueDate,
         description: `Asiento Automático de Compra NCF: ${expenseData.ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'}`,
         lines: journalLines,
+        // Auditoria JRN-16: quien registra el asiento.
+        createdBy: expenseData.userId || null,
       });
     }
 
@@ -211,6 +216,7 @@ export async function createExpense(expenseData: {
       for (const line of expenseData.lines) {
         await addStock(
           expenseData.companyId,
+          expenseData.modo,
           line.productId,
           expenseData.warehouseId,
           line.quantity,

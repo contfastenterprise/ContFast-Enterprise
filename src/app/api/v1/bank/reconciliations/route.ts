@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
 
     const conditions = [
       eq(bankReconciliations.companyId, auth.companyId),
+      // Una conciliacion es de un entorno: cuadra el libro de banco de ese
+      // entorno contra el estado de cuenta. Mezclarlas no significa nada.
+      eq(bankReconciliations.modo, auth.modo),
       isNull(bankReconciliations.deletedAt)
     ];
 

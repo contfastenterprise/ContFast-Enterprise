@@ -15,7 +15,7 @@ export interface StorefrontCompany {
 
 /**
  * Normaliza un texto para generar un slug seguro para URLs, eliminando espacios y caracteres especiales.
- * Ejemplo: "Latin Doors R.S.L" -> "latindoorsrsl"
+ * Ejemplo: "Puertas del Caribe S.R.L" -> "puertasdelcaribesrl"
  */
 export function generateCompanySlug(name: string): string {
   return name

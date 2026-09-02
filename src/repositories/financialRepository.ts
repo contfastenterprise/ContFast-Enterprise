@@ -19,6 +19,7 @@ export class FinancialRepository {
    */
   static async getCustomerStatement(
     companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     customerId: string,
     filters?: StatementFilters
   ) {
@@ -36,6 +37,10 @@ export class FinancialRepository {
     // 2. Base query for movements
     const conditions = [
       eq(financialMovements.companyId, companyId),
+      // El estado de cuenta se imprime y se le entrega al cliente. Sin este
+      // filtro, un cobro o una factura de practicas le aparecian dentro,
+      // cambiandole el saldo que se le reclama.
+      eq(financialMovements.modo, modo),
       eq(financialMovements.customerId, customerId),
       eq(financialMovements.status, 'active')
     ];
@@ -86,6 +91,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.customerId, customerId),
           eq(financialMovements.status, 'active')
         )
@@ -109,6 +115,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(accountsReceivable.companyId, companyId),
+          eq(accountsReceivable.modo, modo),
           eq(accountsReceivable.customerId, customerId),
           sql`accounts_receivable.balance > 0`,
           sql`accounts_receivable.deleted_at IS NULL`
@@ -165,6 +172,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.customerId, customerId),
           eq(financialMovements.movementType, 'invoice'),
           eq(financialMovements.status, 'active')
@@ -179,6 +187,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.customerId, customerId),
           eq(financialMovements.movementType, 'receipt'),
           eq(financialMovements.status, 'active')
@@ -211,6 +220,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(accountsReceivable.companyId, companyId),
+          eq(accountsReceivable.modo, modo),
           eq(accountsReceivable.customerId, customerId),
           isNull(accountsReceivable.deletedAt)
         )
@@ -237,6 +247,11 @@ export class FinancialRepository {
       .where(
         and(
           eq(invoices.companyId, companyId),
+          // Auditoria ISO-10: el movimiento financiero de este mismo metodo si
+          // filtra el entorno (ver la condicion de arriba), pero este bloque se
+          // quedo sin el. El estado de cuenta se imprime y se le entrega al
+          // cliente con cantidades e importes que incluian facturas de PRUEBA.
+          eq(invoices.modo, modo),
           eq(invoices.customerId, customerId),
           isNull(invoices.deletedAt)
         )
@@ -297,6 +312,7 @@ export class FinancialRepository {
    */
   static async getSupplierStatement(
     companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     supplierId: string,
     filters?: StatementFilters
   ) {
@@ -314,6 +330,7 @@ export class FinancialRepository {
     // 2. Base query for movements
     const conditions = [
       eq(financialMovements.companyId, companyId),
+      eq(financialMovements.modo, modo),
       eq(financialMovements.supplierId, supplierId),
       eq(financialMovements.status, 'active')
     ];
@@ -362,6 +379,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.supplierId, supplierId),
           eq(financialMovements.status, 'active')
         )
@@ -381,6 +399,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(accountsPayable.companyId, companyId),
+          eq(accountsPayable.modo, modo),
           eq(accountsPayable.supplierId, supplierId),
           sql`accounts_payable.balance > 0`,
           sql`accounts_payable.deleted_at IS NULL`
@@ -437,6 +456,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.supplierId, supplierId),
           eq(financialMovements.movementType, 'invoice'),
           eq(financialMovements.status, 'active')
@@ -451,6 +471,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(financialMovements.companyId, companyId),
+          eq(financialMovements.modo, modo),
           eq(financialMovements.supplierId, supplierId),
           eq(financialMovements.movementType, 'payment'),
           eq(financialMovements.status, 'active')
@@ -470,6 +491,7 @@ export class FinancialRepository {
       .where(
         and(
           eq(accountsPayable.companyId, companyId),
+          eq(accountsPayable.modo, modo),
           eq(accountsPayable.supplierId, supplierId),
           isNull(accountsPayable.deletedAt)
         )
@@ -520,7 +542,7 @@ export class FinancialRepository {
   /**
    * Retrieves data for the financial statement dashboard.
    */
-  static async getFinancialDashboard(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
+  static async getFinancialDashboard(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const ctx = { companyId, modo };
     const today = new Date().toISOString().split('T')[0];
 

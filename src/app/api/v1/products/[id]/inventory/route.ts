@@ -28,13 +28,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
     .where(
       and(
         eq(inventoryLevels.companyId, auth.companyId),
+        // El indice unico es (producto, almacen, modo): sin el entorno salia
+        // una fila por entorno para el MISMO almacen, y la de practicas se
+        // combinaba con una existencia disponible calculada en el modo real.
+        eq(inventoryLevels.modo, auth.modo),
         eq(inventoryLevels.productId, productId)
       )
     );
 
     const detailedLevels = await Promise.all(
       levels.map(async (level) => {
-        const provStock = await getProvisionalStock(auth.companyId, productId, level.warehouseId, undefined, auth.modo);
+        const provStock = await getProvisionalStock(auth.companyId, auth.modo, productId, level.warehouseId);
         return {
           ...level,
           availableQuantity: provStock.toString(),

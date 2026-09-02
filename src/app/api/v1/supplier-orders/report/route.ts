@@ -48,8 +48,10 @@ export async function GET(req: NextRequest) {
       name: company.name,
       rnc: company.rnc,
       address: company.address || '',
-      phone: '',
-      email: settings?.msellerEmail || company.email || '',
+      // Auditoria ISO-17: el correo de mSeller es un usuario de acceso, no una
+      // direccion de contacto de la empresa.
+      phone: company.phone || '',
+      email: company.email || '',
       logoUrl: settings?.logoUrl || undefined,
     };
 

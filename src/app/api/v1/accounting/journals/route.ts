@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    const journals = await AccountingRepository.getJournalEntries(session.companyId, 100, startDate, endDate);
+    const journals = await AccountingRepository.getJournalEntries(session.companyId, session.modo, 100, startDate, endDate);
 
     return NextResponse.json({ success: true, data: journals }, { headers: resHeaders });
   } catch (error: any) {
@@ -84,6 +84,13 @@ export async function POST(req: NextRequest) {
     const newJournal = await AccountingRepository.createJournalEntry({
       ...parsed.data,
       companyId: session.companyId,
+      // Auditoria JRN-09: sin `modo`, la columna aplicaba su DEFAULT
+      // 'PRODUCCION' y los asientos manuales registrados en el entorno de
+      // PRUEBA se sellaban como reales, sin ningun aviso. Ademas la validacion
+      // de periodo abierto se hacia contra los periodos de PRODUCCION.
+      modo: session.modo,
+      // Auditoria JRN-16: quien registra el asiento.
+      createdBy: session.userId,
       reference: parsed.data.reference || undefined
     });
 

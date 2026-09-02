@@ -96,7 +96,6 @@ export async function POST(req: NextRequest) {
         printLayout: 'carta',
         printCopies: 2,
         msellerUrl: 'https://ecf.api.mseller.app/v1',
-        msellerEntorno: 'test',
         autoDeliveryNotes: false,
       });
 
@@ -133,6 +132,10 @@ export async function POST(req: NextRequest) {
       // 5. Generate Default Chart of Accounts & Bridge Mappings for the new company
       await AccountingRepository.seedDefaultChartOfAccounts(newComp.id, tx);
       await AccountingRepository.seedDefaultExpenseTypes(newComp.id, tx);
+      // Auditoria JRN-11: sin periodos contables la empresa no puede asentar
+      // nada. Antes los creaba `isPeriodOpen` de uno en uno y solo la primera
+      // vez, asi que al cambiar de mes la empresa se bloqueaba en silencio.
+      await AccountingRepository.sembrarPeriodosContables(newComp.id, tx);
 
       // 6. Seed system permissions dynamically (11 modules * 5 actions = 55 permissions)
       const modules = [

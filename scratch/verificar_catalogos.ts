@@ -19,10 +19,12 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { CustomerRepository } from '../src/repositories/customerRepository';
 import { SupplierRepository } from '../src/repositories/supplierRepository';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const USER_A = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -38,11 +40,8 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM accounts_payable`);
-  await db.execute(sql`DELETE FROM invoice_sequences`);
-  await db.execute(sql`DELETE FROM invoices`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`DELETE FROM customers WHERE id IN (${SOLO_REAL}::uuid, ${SOLO_PRUEBA}::uuid)`);
   await db.execute(sql`DELETE FROM suppliers WHERE id IN (${SUP_REAL}::uuid, ${SUP_PRUEBA}::uuid)`);
 
@@ -125,7 +124,7 @@ async function main() {
   ok('en PRUEBA sale el de practicas', aPrueba.includes('Acreedor solo en practicas'), aPrueba.join(', '));
 
   console.log('\n5) La cache de la ruta separa los entornos\n');
-  const fuente = (r: string) => readFileSync(join(__dirname, '..', r), 'utf8');
+
   const ruta = fuente('src/app/api/v1/customers/route.ts');
   ok('la clave incluye el modo',
     /cache:customers:\$\{session\.companyId\}:\$\{session\.modo\}/.test(ruta));

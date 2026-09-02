@@ -5,6 +5,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { QuoteService } from '../src/services/quoteService';
 import { AccountingRepository } from '../src/repositories/accountingRepository';
 import { CashRepository } from '../src/repositories/cashRepository';
@@ -22,13 +23,8 @@ async function modosDe(tabla:string){
 }
 
 async function main(){
-  await db.execute(sql`DELETE FROM cash_session_summary`);
-  await db.execute(sql`DELETE FROM cash_sessions`);
-  await db.execute(sql`DELETE FROM bank_transactions`);
-  await db.execute(sql`DELETE FROM quote_sequences`);
-  await db.execute(sql`DELETE FROM accounting_periods`);
-  await db.execute(sql`DELETE FROM cash_registers`);
-  await db.execute(sql`DELETE FROM bank_accounts`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo(['cash_registers', 'bank_accounts', 'accounting_periods']);
   await db.execute(sql`INSERT INTO cash_registers (id,company_id,name,code) VALUES (${CAJA}::uuid,${A}::uuid,'Caja 1','C-01')`);
   await db.execute(sql`INSERT INTO bank_accounts (id,company_id,bank_name,account_number,balance) VALUES (${BANCO}::uuid,${A}::uuid,'Popular','123',10000)`);
 
@@ -49,7 +45,7 @@ async function main(){
   // 3. Sesion de caja y su resumen
   const ses:any = await CashRepository.openSession({companyId:A, modo:'PRUEBA', cashRegisterId:CAJA, userId:USER, initialBalance:1000} as any);
   ok('la sesion de caja se abre en PRUEBA', (await modosDe('cash_sessions'))==='PRUEBA:1', await modosDe('cash_sessions'));
-  await CashRepository.closeSession(ses.id, A, {actualBalance:1000, expectedBalance:1000, difference:0} as any);
+  await CashRepository.closeSession(ses.id, A, 'PRUEBA', {actualBalance:1000, expectedBalance:1000, difference:0} as any);
   ok('el resumen hereda el modo de su sesion', (await modosDe('cash_session_summary'))==='PRUEBA:1', await modosDe('cash_session_summary'));
 
   // 4. Transaccion bancaria

@@ -47,10 +47,23 @@ export async function GET(
     const settings = await CompanyRepository.getSettings(auth.companyId);
 
     // Build ticket data
+    // El ticket NO se bloquea si falta la empresa: es un arqueo de caja y
+    // frenar un cierre por esto seria peor que imprimirlo incompleto. Pero
+    // tampoco se inventa la identidad fiscal. Antes ponia `rnc: '000000000'`,
+    // que tiene FORMA de RNC valido y por eso nadie lo mira dos veces: un
+    // identificador tributario falso impreso y sin marcar. Va `null`, y el
+    // ticket sale sin la linea del RNC.
+    if (!company) {
+      console.error(
+        `[ticket] No se encontro la empresa ${auth.companyId} al imprimir el arqueo ` +
+        `de la sesion ${id}. El ticket sale SIN identificacion fiscal.`
+      );
+    }
+
     const ticketData = {
       company: {
-        name: company?.name || 'Empresa',
-        rnc: company?.rnc || '000000000',
+        name: company?.name ?? null,
+        rnc: company?.rnc ?? null,
         settings: { printLayout: settings?.printLayout || '80mm' }
       },
       cashier: user?.name || 'Cajero',

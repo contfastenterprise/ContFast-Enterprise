@@ -3,6 +3,7 @@ import type { AgentContext } from "@contfast/ai-core/src/contracts/AgentContext"
 import { db } from "@/db";
 import { bankAccounts } from "@/db/schema/bank";
 import { eq } from "drizzle-orm";
+import { BankRepository } from '@/repositories/bankRepository';
 
 export class GetBankBalancesTool implements Tool {
   public readonly id = "get_bank_balances";
@@ -24,17 +25,11 @@ export class GetBankBalancesTool implements Tool {
 
   public async execute(args: Record<string, unknown>, context: AgentContext): Promise<unknown> {
     try {
-      const accounts = await db
-        .select({
-          bankName: bankAccounts.bankName,
-          accountNumber: bankAccounts.accountNumber,
-          currency: bankAccounts.currency,
-          balance: bankAccounts.balance
-        })
-        .from(bankAccounts)
-        .where(
-          eq(bankAccounts.companyId, context.tenantId)
-        );
+      // El saldo se pide al repositorio, que devuelve el del entorno del
+      // usuario. Leer `bankAccounts.balance` a pelo daba siempre la cifra de
+      // PRODUCCION, aunque quien preguntara estuviera en el entorno de
+      // practicas.
+      const accounts = await BankRepository.getBankAccounts(context.tenantId, context.modo);
 
       return {
         success: true,

@@ -48,6 +48,7 @@ function linea(over: Partial<Linea> = {}): Linea {
 function factura(lines: Linea[], retentions?: Retencion[]): IssueInvoiceInput {
   return {
     companyId: 'empresa-1',
+    modo: 'PRODUCCION',
     warehouseId: 'almacen-1',
     userId: 'usuario-1',
     ecfType: '31',

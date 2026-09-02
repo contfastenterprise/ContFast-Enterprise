@@ -163,7 +163,15 @@ export default function AdjustmentsPage() {
           quantity: Number(l.quantity),
           unitPrice: Number(l.unitPrice),
           discount: Number(l.discount || 0),
-          taxRate: Number(l.taxRate || 0.18),
+          // `??` y no `||`: 0 es falso en JavaScript, asi que `|| 0.18`
+          // convertia una linea EXENTA (0%) en una gravada al 18%.
+          // NULO/undefined (facturas anteriores a la migracion 0039) si cae
+          // en 18% porque de esas no consta la tasa.
+          taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
+          // El almacen de origen de la linea viaja con ella para que la
+          // devolucion de inventario vuelva a donde salio la mercancia y no
+          // al almacen general de la factura.
+          warehouseId: l.warehouseId || undefined,
         }));
         setAdjustedLines(linesMap);
         setIndicadorNotaCredito(-1); // Force explicit selection each time
@@ -244,7 +252,8 @@ export default function AdjustmentsPage() {
             quantity: l.quantity,
             unitPrice: l.unitPrice,
             discount: l.discount,
-            taxRate: l.taxRate
+            taxRate: l.taxRate,
+            warehouseId: l.warehouseId || undefined
           }))
       };
 
@@ -704,7 +713,7 @@ export default function AdjustmentsPage() {
                             <span className="font-mono font-semibold">RD$ {discount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                           </div>
                           <div className="flex justify-between text-xs text-slate-500">
-                            <span>ITBIS (18%)</span>
+                            <span>ITBIS</span>
                             <span className="font-mono font-semibold">RD$ {taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                           </div>
                           <div className="border-t border-slate-200 pt-3 flex justify-between text-sm font-bold text-[#003366]">

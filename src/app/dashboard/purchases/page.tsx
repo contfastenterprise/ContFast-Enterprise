@@ -270,9 +270,17 @@ export default function PurchasesPage() {
       .then(data => {
         if (data.success) {
           setBankAccountsList(data.data || []);
-          if (data.data && data.data.length > 0) {
-            setGcBankAccountId(data.data[0].id);
-          }
+          // Auditoria: NO se preselecciona banco.
+          //
+          // Antes se ponia `data.data[0].id`, el primero de la lista. El banco
+          // de un cheque no es un dato con valor por defecto razonable: es de
+          // donde sale el dinero. Un cheque en garantia registrado en
+          // produccion quedo con Banreservas cuando en realidad era de
+          // Scotiabank, simplemente porque venia puesto y nadie lo cambio.
+          //
+          // Y no es cosmetico: al cobrarse el cheque, el sistema baja el saldo
+          // de ESE banco y contabiliza contra su cuenta. Un banco equivocado
+          // mueve dinero que no salio de ahi.
         }
       })
       .catch(err => console.error("Error loading bank accounts", err));
@@ -652,11 +660,8 @@ export default function PurchasesPage() {
     setGlobalOtherTaxes(0);
     setHasGuaranteeCheck(false);
 
-    if (bankAccountsList.length > 0) {
-      setGcBankAccountId(bankAccountsList[0].id);
-    } else {
-      setGcBankAccountId('');
-    }
+    // Sin banco preseleccionado: hay que elegirlo. Ver la nota de arriba.
+    setGcBankAccountId('');
 
     setGcCheckNumber('');
     setGcAmount(0);
@@ -1907,6 +1912,7 @@ export default function PurchasesPage() {
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 mb-1">Banco / Cuenta de Origen</label>
                           <select
+                            required
                             value={gcBankAccountId} onChange={e => setGcBankAccountId(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
                           >

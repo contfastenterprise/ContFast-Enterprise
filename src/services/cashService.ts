@@ -38,6 +38,7 @@ export class CashService {
   static async addMovement(
     userId: string,
     companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     sessionId: string,
     type: 'refund' | 'cash_in' | 'cash_out',
     amount: number,
@@ -49,11 +50,18 @@ export class CashService {
     }
 
     return await db.transaction(async (tx) => {
-      // 1. Fetch and validate session
+      // 1. Fetch and validate session.
+      // El id de la sesion llega por la URL. Con el entorno en la busqueda, un
+      // cajero que este trabajando en PRUEBA no puede apuntar a la sesion real
+      // aunque conozca su id: para el, sencillamente no existe.
       const [session] = await tx
         .select()
         .from(cashSessions)
-        .where(and(eq(cashSessions.id, sessionId), eq(cashSessions.companyId, companyId)))
+        .where(and(
+          eq(cashSessions.id, sessionId),
+          eq(cashSessions.companyId, companyId),
+          eq(cashSessions.modo, modo)
+        ))
         .limit(1);
 
       if (!session) {
@@ -108,11 +116,22 @@ export class CashService {
    * Closes a cash session.
    * Compares the expected balance (initial + inputs - outputs) with the actual counted balance.
    */
-  static async closeSession(userId: string, companyId: string, sessionId: string, actualBalance: number, justification?: string) {
+  static async closeSession(
+    userId: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    sessionId: string,
+    actualBalance: number,
+    justification?: string
+  ) {
     const session = await db
       .select()
       .from(cashSessions)
-      .where(and(eq(cashSessions.id, sessionId), eq(cashSessions.companyId, companyId)))
+      .where(and(
+        eq(cashSessions.id, sessionId),
+        eq(cashSessions.companyId, companyId),
+        eq(cashSessions.modo, modo)
+      ))
       .limit(1);
 
     if (session.length === 0) {
@@ -135,7 +154,7 @@ export class CashService {
       throw new Error(`Existe una diferencia de $${difference.toFixed(2)} entre el saldo esperado y el saldo contado. Debe proveer una justificación.`);
     }
 
-    return await CashRepository.closeSession(sessionId, companyId, {
+    return await CashRepository.closeSession(sessionId, companyId, modo, {
       actualBalance,
       expectedBalance,
       difference,

@@ -17,7 +17,7 @@ export interface BaseDocumentData {
     email?: string;
     address?: string;
   };
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   [key: string]: any;
 }
 
@@ -167,7 +167,7 @@ export class DocumentService {
       attachmentName,
       attachmentBuffer: pdfBuffer,
       userId,
-      modo: data.modo || 'PRODUCCION'
+      modo: data.modo
     });
   }
 
@@ -176,6 +176,7 @@ export class DocumentService {
    */
   static async createShareToken(
     companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
     documentId: string,
     documentType: string,
     userId?: string,
@@ -192,7 +193,9 @@ export class DocumentService {
       token,
       expiresAt,
       createdBy: userId || null,
-      modo: 'PRODUCCION' // Or dynamically passed
+      // Antes estaba fijo en 'PRODUCCION' con un "Or dynamically passed" al
+      // lado: un enlace publico generado desde PRUEBA nacia marcado como real.
+      modo
     });
 
     return token;

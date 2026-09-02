@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { FinancialRepository } from '@/repositories/financialRepository';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
@@ -31,6 +32,10 @@ export async function POST(
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'contabilidad', 'read');
+    if (denegado) return denegado;
 
     // Role verification
     if (!checkFinancialAccess(session.role)) {
@@ -69,7 +74,7 @@ export async function POST(
     const { startDate, endDate, type, search, printScope = 'all' } = body;
 
     // Fetch detailed statement data
-    const statementData = await FinancialRepository.getCustomerStatement(session.companyId, customerId, {
+    const statementData = await FinancialRepository.getCustomerStatement(session.companyId, session.modo, customerId, {
       startDate,
       endDate,
       type,
@@ -95,8 +100,9 @@ export async function POST(
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.address || 'República Dominicana',
-        phone: '1-809-555-0199',
+        // Auditoria ISO-17: el telefono es el de la empresa, o ninguno.
+        address: company.address || '',
+        phone: company.phone || '',
         logoUrl: settings?.logoUrl || undefined
       },
       customer: {

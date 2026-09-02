@@ -19,9 +19,11 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { checkStock, addStock, deductStock, transferStock, llevaInventario } from '../src/services/inventoryService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const ALM = 'cccccccc-0000-0000-0000-000000000001'; // Principal
@@ -53,14 +55,12 @@ const movimientos = async (productId: string) => {
 };
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   // Las lineas de transferencia apuntan al producto por clave foranea. Si una
   // ejecucion anterior llego a crear alguna -- por ejemplo probando la mutacion
   // que quita la guarda de transferStock -- el DELETE de abajo falla. Se limpian
   // primero para que el banco se pueda repetir siempre.
-  await db.execute(sql`DELETE FROM inventory_transfer_lines`);
-  await db.execute(sql`DELETE FROM inventory_transfers`);
   await db.execute(sql`DELETE FROM products WHERE id = ${SERVICIO}::uuid`);
   await db.execute(sql`
     INSERT INTO products (id, company_id, sku, name, cost, tracks_inventory)
@@ -77,41 +77,50 @@ async function main() {
   console.log('\n1) El servicio se reconoce como tal\n');
   ok('el servicio NO lleva inventario', (await llevaInventario(A, SERVICIO)) === false);
   ok('la puerta SI lleva inventario', (await llevaInventario(A, PUERTA)) === true);
-  // productId llega del cuerpo de la peticion: uno de otra empresa no cuenta.
-  ok('un producto de otra empresa no lleva inventario aqui',
-    (await llevaInventario('22222222-2222-2222-2222-222222222222', PUERTA)) === false);
+  // productId llega del cuerpo de la peticion, asi que uno de otra empresa
+  // puede llegar aqui. ANTES esto devolvia `false`, igual que un servicio, y
+  // esa igualdad era el fallo: `addStock` retornaba en silencio y `checkStock`
+  // respondia que si habia existencia. Son dos cosas distintas y ahora se
+  // distinguen: no llevar inventario es un caso de negocio; no ser de esta
+  // empresa es un error y se lanza.
+  let ajeno = '';
+  try {
+    await llevaInventario('22222222-2222-2222-2222-222222222222', PUERTA);
+  } catch (e: any) { ajeno = e.message; }
+  ok('un producto de otra empresa lanza, no devuelve false',
+    /no encontrado en esta empresa/i.test(ajeno), ajeno || 'no lanzo');
 
   console.log('\n2) checkStock: el servicio nunca bloquea un despacho\n');
   ok('se pueden despachar 500 instalaciones sin existencia',
-    (await checkStock(A, SERVICIO, ALM, 500)) === true);
+    (await checkStock(A, 'PRODUCCION', SERVICIO, ALM, 500)) === true);
   ok('control: la puerta con 3 no deja sacar 500',
-    (await checkStock(A, PUERTA, ALM, 500)) === false);
+    (await checkStock(A, 'PRODUCCION', PUERTA, ALM, 500)) === false);
   ok('control: la puerta con 3 si deja sacar 3',
-    (await checkStock(A, PUERTA, ALM, 3)) === true);
+    (await checkStock(A, 'PRODUCCION', PUERTA, ALM, 3)) === true);
 
   console.log('\n3) deductStock: facturar el servicio no mueve nada\n');
   // Esto es exactamente lo que produjo el -116.
   for (let i = 0; i < 5; i++) {
-    await deductStock(A, SERVICIO, ALM, 1, USER, 'sale', undefined, `Instalacion ${i}`);
+    await deductStock(A, 'PRODUCCION', SERVICIO, ALM, 1, USER, 'sale', undefined, `Instalacion ${i}`);
   }
   ok('tras 5 ventas no existe nivel para el servicio', (await nivel(SERVICIO)) === null,
     String(await nivel(SERVICIO)));
   ok('ni un solo movimiento en el kardex', (await movimientos(SERVICIO)) === 0);
 
   console.log('\n4) Control: la puerta si se descuenta\n');
-  await deductStock(A, PUERTA, ALM, 1, USER, 'sale', undefined, 'Venta');
+  await deductStock(A, 'PRODUCCION', PUERTA, ALM, 1, USER, 'sale', undefined, 'Venta');
   ok('la puerta baja de 3 a 2', (await nivel(PUERTA)) === 2, String(await nivel(PUERTA)));
   ok('y deja su movimiento', (await movimientos(PUERTA)) === 1);
 
   console.log('\n5) addStock: comprar el servicio tampoco crea existencia\n');
-  await addStock(A, SERVICIO, ALM, 10, USER, 'purchase', undefined, 'Compra de mano de obra');
+  await addStock(A, 'PRODUCCION', SERVICIO, ALM, 10, USER, 'purchase', undefined, 'Compra de mano de obra');
   ok('sigue sin nivel', (await nivel(SERVICIO)) === null);
   ok('sigue sin movimientos', (await movimientos(SERVICIO)) === 0);
 
   console.log('\n6) transferStock: el servicio no se puede transferir\n');
   let mensaje = '';
   try {
-    await transferStock(A, ALM, ALM2, [{ productId: SERVICIO, quantity: 1 }], USER);
+    await transferStock(A, 'PRODUCCION', ALM, ALM2, [{ productId: SERVICIO, quantity: 1 }], USER);
   } catch (e) {
     mensaje = (e as Error).message;
   }
@@ -120,7 +129,7 @@ async function main() {
     /no lleva control de existencia/.test(mensaje), mensaje.slice(0, 90));
 
   console.log('\n7) Las rutas que escriben niveles sin pasar por el servicio\n');
-  const fuente = (r: string) => readFileSync(join(__dirname, '..', r), 'utf8');
+
   ok('POST /expenses salta las lineas sin inventario',
     /!sinInventario\.has\(line\.productId\)/.test(fuente('src/app/api/v1/expenses/route.ts')));
   ok('PUT /expenses/[id] tambien',

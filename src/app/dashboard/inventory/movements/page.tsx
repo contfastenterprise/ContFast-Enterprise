@@ -125,7 +125,7 @@ export default function MovementsPage() {
       const logoHtml = company.logoUrl 
         ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
         : '';
-      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Latin Doors e-CF'}</div>`;
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Empresa sin identificar'}</div>`;
 
       const getMovementTypeText = (type: string) => {
         switch(type) {
@@ -141,7 +141,7 @@ export default function MovementsPage() {
       const htmlContent = `
         <html>
           <head>
-            <title>Historial de Movimientos - ${company.companyName || 'Latin Doors e-CF'}</title>
+            <title>Historial de Movimientos - ${company.companyName || 'Empresa sin identificar'}</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 13px; }
               .header { display: flex; justify-content: space-between; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }

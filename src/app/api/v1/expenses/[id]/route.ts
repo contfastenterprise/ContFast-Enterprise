@@ -4,6 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { eq, and, or, inArray, sql, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { resolverCuentaDeBanco, resolverCuentaPorPagar } from '@/services/accounting/resolverCuentas';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
@@ -555,11 +556,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
 
       if (existingApRecord || targetApId !== id) {
         const checkApId = existingApRecord ? existingApRecord.id : targetApId;
+        // Estas dos guardas van acotadas por empresa pero NO por entorno, y
+        // es deliberado. Son comprobaciones de SEGURIDAD: impiden editar una
+        // compra que ya tiene pagos aplicados o un cheque cobrado. Filtrar por
+        // modo aqui las debilitaria -- un pago heredado con el sello
+        // equivocado dejaria de verse y la edicion pasaria. El id de la cuenta
+        // por pagar ya acota lo que hay que acotar.
         const appliedPaymentsList = await tx
           .select()
           .from(apPayments)
           .where(and(
             eq(apPayments.apId, checkApId),
+            eq(apPayments.companyId, session.companyId),
             eq(apPayments.status, 'applied')
           ));
 
@@ -572,6 +580,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           .from(checks)
           .where(and(
             eq(checks.apId, checkApId),
+            eq(checks.companyId, session.companyId),
             eq(checks.isGuarantee, true),
             eq(checks.status, 'cleared')
           ));
@@ -594,10 +603,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         for (const line of oldLines) {
           if (line.productId) {
             const qty = parseFloat(line.quantity) || 0;
+              // Auditoria INV-19: el filtro por empresa es obligatorio.
+              // productId y warehouseId llegan del cuerpo de la peticion; sin
+              // el, esta lectura podia resolver la existencia del almacen de
+              // OTRA empresa y anclar el UPDATE a esa fila. El POST y el DELETE
+              // ya lo llevaban; el PUT se quedo sin la correccion.
             const levelResult = await tx
               .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
               .from(inventoryLevels)
               .where(and(
+                eq(inventoryLevels.companyId, session.companyId),
                 eq(inventoryLevels.productId, line.productId),
                 eq(inventoryLevels.warehouseId, oldWarehouseId),
                 eq(inventoryLevels.modo, session.modo)
@@ -686,10 +701,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           // Los servicios y la mercancia por encargo no mueven existencia.
           if (line.productId && warehouseId && !sinInventario.has(line.productId)) {
             const qty = parseFloat(line.quantity) || 0;
+              // Auditoria INV-19: el filtro por empresa es obligatorio.
+              // productId y warehouseId llegan del cuerpo de la peticion; sin
+              // el, esta lectura podia resolver la existencia del almacen de
+              // OTRA empresa y anclar el UPDATE a esa fila. El POST y el DELETE
+              // ya lo llevaban; el PUT se quedo sin la correccion.
             const levelResult = await tx
               .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
               .from(inventoryLevels)
               .where(and(
+                eq(inventoryLevels.companyId, session.companyId),
                 eq(inventoryLevels.productId, line.productId),
                 eq(inventoryLevels.warehouseId, warehouseId),
                 eq(inventoryLevels.modo, session.modo)
@@ -892,8 +913,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               status: 'pending',
             });
 
-            const accAp = await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability');
-            const accBank = await getOrCreateAccount(tx, session.companyId, '1.1.02', 'Efectivo en Bancos', 'asset');
+            // Cuentas del pago diferido.
+            //
+            // Auditoria ARP-02. Aqui estaba el origen de los ocho cheques en
+            // garantia que acabaron acreditando CUENTAS POR COBRAR: el codigo
+            // pedia '1.1.02' llamandolo "Efectivo en Bancos" -- nombre heredado
+            // de un plan de tres niveles -- y `getOrCreateAccount` busca por
+            // codigo e ignora el nombre. En el catalogo real, 1.1.02 es Cuentas
+            // por Cobrar. Y '2.1.01' es la cuenta de AGRUPACION de proveedores,
+            // no su hija transaccional.
+            //
+            // El asiento no se crea aqui, sino al cobrarse el cheque, con estas
+            // dos cuentas tal como queden guardadas. Por eso importan tanto.
+            const accBank = await resolverCuentaDeBanco(
+              tx, session.companyId, guaranteeCheck.bankAccountId, 'Cheque en garantía'
+            );
+            const accAp = await resolverCuentaPorPagar(tx, session.companyId, 'Cheque en garantía');
 
             await tx.insert(apPayments).values({
               id: uuidv4(),
@@ -1045,6 +1080,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           date: new Date(issueDate),
           description: `Asiento Automático de Compra NCF: ${ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'} (Editado)`,
           lines: journalLines,
+          // Auditoria JRN-16: quien registra el asiento.
+          createdBy: session.userId,
         });
       }
 

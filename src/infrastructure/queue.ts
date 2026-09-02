@@ -19,6 +19,12 @@ export interface JobPayloads {
   'dgii-submissions': {
     companyId: string;
     invoiceId: string;
+    /**
+     * El intento concreto que este trabajo debe actualizar. Opcional a
+     * proposito: los trabajos que ya estaban en la cola cuando se desplego
+     * esto no lo llevan, y jobRunners lo deduce para esos.
+     */
+    submissionId?: string;
   };
   'reports-generation': {
     companyId: string;

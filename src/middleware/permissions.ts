@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { db, userPermissions, rolePermissions, permissions } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
@@ -140,6 +141,48 @@ export async function enforcePermission(
     err.code = 'INSUFFICIENT_PERMISSIONS';
     throw err;
   }
+}
+
+/**
+ * Comprobacion de permiso que devuelve la respuesta 403 en vez de lanzarla.
+ *
+ * `enforcePermission` lanza un error con `status = 403`, y eso solo llega al
+ * cliente como 403 si el `catch` de la ruta propaga `error.status`. Muchas
+ * rutas cierran con `{ status: 500 }` fijo, de modo que una denegacion de
+ * permisos se presentaba como error del servidor. Este helper evita depender
+ * de como este escrito el catch de cada ruta:
+ *
+ *   const denegado = await requirePermission(session, 'nomina', 'read');
+ *   if (denegado) return denegado;
+ *
+ * Auditoria ISO-03: 54 rutas verificaban la sesion pero no el permiso.
+ */
+export async function requirePermission(
+  session: { userId: string; role: string; roleId: string; companyId: string },
+  module: PermissionModule,
+  action: PermissionAction
+): Promise<NextResponse | null> {
+  const allowed = await hasPermission(
+    session.userId,
+    session.role,
+    session.roleId,
+    session.companyId,
+    module,
+    action
+  );
+
+  if (allowed) return null;
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: {
+        code: 'INSUFFICIENT_PERMISSIONS',
+        message: 'No tiene permisos para realizar esta acción.',
+      },
+    },
+    { status: 403 }
+  );
 }
 
 export function isAdminOrSistemas(roleName: string): boolean {

@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
         and(
           ilike(deliveryNotes.deliveryNumber, trimmedCode),
           eq(deliveryNotes.companyId, auth.companyId),
+          // Esta ruta APRUEBA lo que encuentra, y aprobar descuenta existencia.
+          // Sin el entorno, escanear un codigo desde PRUEBA podia aprobar un
+          // conduce real y rebajar el inventario de verdad. Y como cada entorno
+          // numera por su cuenta, el mismo numero existe en los dos.
+          eq(deliveryNotes.modo, auth.modo),
           isNull(deliveryNotes.deletedAt)
         )
       )
@@ -70,6 +75,9 @@ export async function POST(req: NextRequest) {
       .where(
         and(
           eq(invoices.companyId, auth.companyId),
+          // Igual: desde PRUEBA no se puede alcanzar una factura real para
+          // aprobarle sus conduces.
+          eq(invoices.modo, auth.modo),
           isNull(invoices.deletedAt),
           or(
             ilike(invoices.ncf, trimmedCode),
@@ -88,6 +96,7 @@ export async function POST(req: NextRequest) {
           and(
             eq(deliveryNotes.invoiceId, invoice.id),
             eq(deliveryNotes.companyId, auth.companyId),
+            eq(deliveryNotes.modo, auth.modo),
             isNull(deliveryNotes.deletedAt)
           )
         );

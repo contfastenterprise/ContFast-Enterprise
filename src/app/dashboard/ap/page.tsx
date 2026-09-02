@@ -34,6 +34,7 @@ interface Account {
   code: string;
   name: string;
   type: string;
+  isTransactional?: boolean;
 }
 
 interface BankAccount {
@@ -41,6 +42,8 @@ interface BankAccount {
   bankName: string;
   accountNumber: string;
   balance: string;
+  /** Cuenta del catalogo contra la que se asientan sus movimientos (migracion 0039). */
+  chartAccountId?: string | null;
 }
 
 interface PaymentHistory {
@@ -55,6 +58,7 @@ interface PaymentHistory {
   debitAccountCode: string;
   creditAccountName: string;
   creditAccountCode: string;
+  checkId?: string;
   checkNumber?: string;
   dueDate?: string;
 }
@@ -87,6 +91,15 @@ export default function AccountsPayablePage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [applyingGuarantees, setApplyingGuarantees] = useState(false);
+  // Auditoria ARP-25: vencer no es cobrar. Para aplicar un cheque en garantia
+  // hay que decir CUALES pago el banco y EN QUE FECHA, con el estado de cuenta
+  // delante. Antes bastaba pulsar un boton y el sistema los daba todos por
+  // cobrados por haber llegado su fecha de vencimiento.
+  const [chequesConfirmados, setChequesConfirmados] = useState<string[]>([]);
+  const [fechaCobro, setFechaCobro] = useState(() => {
+    const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+  });
 
   // Selected Payment State
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierAP | null>(null);
@@ -232,19 +245,60 @@ export default function AccountsPayablePage() {
     }
   };
 
+  /**
+   * Cuenta contable de salida del dinero segun el metodo de pago.
+   *
+   * Auditoria ARP-02. Antes se adivinaba asi:
+   *
+   *   accounts.find(a => a.type === 'asset' &&
+   *     (a.name.toLowerCase().includes('banco') || a.code.startsWith('1.1.02')))
+   *
+   * Ese `1.1.02` viene de un plan de cuentas de tres niveles donde era
+   * "Efectivo en Bancos". En el catalogo que el sistema siembra de verdad,
+   * 1.1.02 es CUENTAS POR COBRAR. Resultado verificado en produccion: ocho
+   * pagos a proveedores por 2.642.619,83 rebajando la deuda de los clientes.
+   * Nadie eligio mal; el valor venia puesto por defecto.
+   *
+   * Ahora sale del enlace explicito de la cuenta bancaria elegida. Si no se
+   * puede determinar, devuelve cadena vacia: mejor obligar a elegir que
+   * proponer una cuenta equivocada.
+   */
+  const cuentaDeSalida = (
+    method: 'cash' | 'transfer' | 'check',
+    bankAccountId?: string
+  ): string => {
+    if (method === 'cash') {
+      // La caja no tiene enlace propio todavia: se busca por codigo exacto de
+      // cuenta transaccional, nunca por subcadena del nombre ni por prefijo.
+      const caja = accounts.find(
+        a => a.type === 'asset' && a.isTransactional !== false && /^1\.1\.01\.01$/.test(a.code)
+      );
+      return caja?.id || '';
+    }
+
+    const banco = bankAccountsList.find(b => b.id === bankAccountId);
+    return banco?.chartAccountId || '';
+  };
+
   const handleOpenPayment = (supplier: SupplierAP, bill: BillAP) => {
     setSelectedSupplier(supplier);
     setSelectedBill(bill);
 
-    // Auto-detect default debit account (Liability/Accounts Payable)
+    // Cuenta de cuentas por pagar.
+    //
+    // Auditoria JRN-12: `code.startsWith('2.1.01')` casaba primero con 2.1.01,
+    // que es una cuenta de AGRUPACION. Postear contra ella duplica el saldo
+    // entre padre e hijo y deja el arbol del catalogo sin sentido. La hija
+    // transaccional (2.1.01.01 Cuentas por Pagar Proveedores) ya existe en el
+    // catalogo sembrado; solo habia que apuntar a ella.
     const defaultDebit = accounts.find(
-      a => a.type === 'liability' && (a.name.toLowerCase().includes('pagar') || a.code.startsWith('2.1.01'))
+      a => a.type === 'liability' && a.isTransactional !== false && /^2\.1\.01\./.test(a.code)
     )?.id || '';
 
-    // Auto-detect default credit account based on initial method (bank)
-    const defaultCredit = accounts.find(
-      a => a.type === 'asset' && (a.name.toLowerCase().includes('banco') || a.code.startsWith('1.1.02'))
-    )?.id || '';
+    // La cuenta de salida sale de la cuenta bancaria preseleccionada, no de
+    // adivinar por nombre o prefijo. Ver `cuentaDeSalida`.
+    const bancoPorDefecto = bankAccountsList[0]?.id || '';
+    const defaultCredit = cuentaDeSalida('transfer', bancoPorDefecto);
 
     setPaymentForm({
       date: new Date().toISOString().split('T')[0],
@@ -252,7 +306,7 @@ export default function AccountsPayablePage() {
       amount: bill.balance.toString(),
       debitAccountId: defaultDebit,
       creditAccountId: defaultCredit,
-      bankAccountId: bankAccountsList[0]?.id || '',
+      bankAccountId: bancoPorDefecto,
       checkNumber: '',
       payee: supplier.supplierName,
       isGuarantee: false,
@@ -265,22 +319,10 @@ export default function AccountsPayablePage() {
   };
 
   const handleMethodChange = (method: 'cash' | 'transfer' | 'check') => {
-    let creditId = paymentForm.creditAccountId;
-
-    if (method === 'cash') {
-      creditId = accounts.find(
-        a => a.type === 'asset' && (a.name.toLowerCase().includes('caja') || a.code.startsWith('1.1.01'))
-      )?.id || creditId;
-    } else {
-      creditId = accounts.find(
-        a => a.type === 'asset' && (a.name.toLowerCase().includes('banco') || a.code.startsWith('1.1.02'))
-      )?.id || creditId;
-    }
-
     setPaymentForm(prev => ({
       ...prev,
       paymentMethod: method,
-      creditAccountId: creditId
+      creditAccountId: cuentaDeSalida(method, prev.bankAccountId),
     }));
   };
 
@@ -352,25 +394,39 @@ export default function AccountsPayablePage() {
     }
   };
 
-  const handleApplyDueGuarantees = async () => {
+  const alternarCheque = (checkId?: string) => {
+    if (!checkId) return;
+    setChequesConfirmados(prev =>
+      prev.includes(checkId) ? prev.filter(id => id !== checkId) : [...prev, checkId]
+    );
+  };
+
+  const handleConfirmarCobros = async () => {
+    if (chequesConfirmados.length === 0) return;
     setApplyingGuarantees(true);
     try {
       const res = await fetch('/api/v1/ap/payments/apply-guarantees', {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkIds: chequesConfirmados, fechaCobro })
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('Garantías procesadas con éxito', {
-          description: data.message
-        });
+        toast.success('Cobros registrados', { description: data.message });
+        if (data.data?.noAplicados?.length) {
+          toast.error(`${data.data.noAplicados.length} cheque(s) no se pudieron aplicar`, {
+            description: data.data.noAplicados.map((n: any) => n.motivo).join(' · ')
+          });
+        }
+        setChequesConfirmados([]);
         fetchData();
         fetchPendingGuarantees();
         fetchPaymentsData();
       } else {
-        toast.error(data.error?.message || 'Error al procesar cheques en garantía');
+        toast.error(data.error?.message || 'Error al registrar el cobro de los cheques');
       }
     } catch (error) {
-      toast.error('Error de red al procesar garantías diferidas');
+      toast.error('Error de red al registrar el cobro');
     } finally {
       setApplyingGuarantees(false);
     }
@@ -581,20 +637,38 @@ export default function AccountsPayablePage() {
               {/* Guarantee Control Bar */}
               <div className="bg-white p-4 rounded-xl border border-slate-200/30 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-800">Procesamiento de Garantías diferidas</h3>
-                  <p className="text-slate-500 text-xs mt-1">Aplique los cheques en garantía cuya fecha de liberación ya haya llegado a hoy.</p>
+                  <h3 className="font-bold text-lg text-slate-800">Cobro de cheques en garantía</h3>
+                  <p className="text-slate-500 text-xs mt-1">
+                    Marque los cheques que el banco <strong>ya pagó</strong> según el estado de cuenta, e indique la fecha
+                    en que los pagó. Que un cheque haya vencido no significa que se haya presentado al banco.
+                  </p>
                 </div>
-                <button
-                  onClick={handleApplyDueGuarantees}
-                  disabled={applyingGuarantees || pendingGuarantees.length === 0}
-                  className="bg-[#003366] hover:bg-[#002244] disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs justify-center"
-                >
-                  {applyingGuarantees ? (
-                    <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
-                  ) : (
-                    <><CheckCircle2 className="h-4.5 w-4.5" /> Aplicar Cheques Vencidos</>
-                  )}
-                </button>
+                <div className="flex items-end gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Fecha de cobro
+                    </label>
+                    <input
+                      type="date"
+                      value={fechaCobro}
+                      max={nowStr}
+                      onChange={(e) => setFechaCobro(e.target.value)}
+                      className="border border-slate-300 rounded-lg px-2 h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <button
+                    onClick={handleConfirmarCobros}
+                    disabled={applyingGuarantees || chequesConfirmados.length === 0 || !fechaCobro}
+                    title={chequesConfirmados.length === 0 ? 'Seleccione los cheques que el banco pagó' : undefined}
+                    className="bg-[#003366] hover:bg-[#002244] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs justify-center"
+                  >
+                    {applyingGuarantees ? (
+                      <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
+                    ) : (
+                      <><CheckCircle2 className="h-4.5 w-4.5" /> Confirmar cobro ({chequesConfirmados.length})</>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Guarantees List */}
@@ -603,17 +677,34 @@ export default function AccountsPayablePage() {
                   <table className="w-full text-xs text-left">
                     <thead className="bg-slate-50/40 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                       <tr>
+                        <th className="px-4 py-2.5 w-8">
+                          <input
+                            type="checkbox"
+                            aria-label="Seleccionar todos"
+                            checked={
+                              pendingGuarantees.filter(p => p.checkId).length > 0 &&
+                              chequesConfirmados.length === pendingGuarantees.filter(p => p.checkId).length
+                            }
+                            onChange={(e) =>
+                              setChequesConfirmados(
+                                e.target.checked
+                                  ? (pendingGuarantees.map(p => p.checkId).filter(Boolean) as string[])
+                                  : []
+                              )
+                            }
+                          />
+                        </th>
                         <th className="px-4 py-2.5">No. Cheque</th>
                         <th className="px-4 py-2.5">Proveedor Beneficiario</th>
                         <th className="px-4 py-2.5 text-right">Monto Cheque</th>
-                        <th className="px-4 py-2.5 text-center">Fecha Cobro</th>
+                        <th className="px-4 py-2.5 text-center">Vencimiento pactado</th>
                         <th className="px-4 py-2.5 text-center">Estado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-850">
                       {pendingGuarantees.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-8 text-center text-slate-500/70">
+                          <td colSpan={6} className="p-8 text-center text-slate-500/70">
                             No hay cheques en garantía diferidos en este momento.
                           </td>
                         </tr>
@@ -622,6 +713,15 @@ export default function AccountsPayablePage() {
                           const isDue = payment.dueDate ? payment.dueDate <= nowStr : false;
                           return (
                             <tr key={payment.id} className={clsx("hover:bg-slate-850/30 transition-colors", isDue ? 'bg-amber-500/5' : '')}>
+                              <td className="px-4 py-2.5">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Confirmar cobro del cheque ${payment.checkNumber || ''}`}
+                                  checked={!!payment.checkId && chequesConfirmados.includes(payment.checkId)}
+                                  disabled={!payment.checkId}
+                                  onChange={() => alternarCheque(payment.checkId)}
+                                />
+                              </td>
                               <td className="px-4 py-2.5 font-mono font-bold text-amber-500">{payment.checkNumber || 'S/N'}</td>
                               <td className="px-4 py-2.5 text-slate-800 font-bold">{payment.supplierName}</td>
                               <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(parseFloat(payment.amount))}</td>
@@ -641,7 +741,7 @@ export default function AccountsPayablePage() {
                                     ? 'bg-amber-500/20 text-amber-400 border-amber-500/20'
                                     : 'bg-blue-500/20 text-blue-400 border-blue-500/20'
                                 )}>
-                                  {isDue ? 'Vencido (Listo)' : 'Pendiente garantía'}
+                                  {isDue ? 'Vencido — confirmar cobro' : 'En garantía'}
                                 </span>
                               </td>
                             </tr>
@@ -858,8 +958,9 @@ export default function AccountsPayablePage() {
                         className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
+                        {/* Solo transaccionales: las de agrupacion no admiten movimientos. */}
                         {accounts
-                          .filter(a => a.type === 'liability' || a.type === 'expense')
+                          .filter(a => (a.type === 'liability' || a.type === 'expense') && a.isTransactional !== false)
                           .map(a => (
                             <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                           ))}
@@ -875,7 +976,7 @@ export default function AccountsPayablePage() {
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
-                          .filter(a => a.type === 'asset')
+                          .filter(a => a.type === 'asset' && a.isTransactional !== false)
                           .map(a => (
                             <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
                           ))}
@@ -937,7 +1038,13 @@ export default function AccountsPayablePage() {
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Bancaria</label>
                         <select
                           value={paymentForm.bankAccountId}
-                          onChange={e => setPaymentForm({ ...paymentForm, bankAccountId: e.target.value })}
+                          onChange={e => setPaymentForm({
+                            ...paymentForm,
+                            bankAccountId: e.target.value,
+                            // La cuenta contable acompana al banco elegido: si
+                            // no, se pagaba desde un banco y se acreditaba otro.
+                            creditAccountId: cuentaDeSalida(paymentForm.paymentMethod as any, e.target.value),
+                          })}
                           className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                         >
                           <option value="">-- Seleccionar Banco --</option>

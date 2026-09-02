@@ -12,7 +12,7 @@ export interface SendDocumentEmailOptions {
   attachmentName: string;
   attachmentBuffer: Buffer;
   userId?: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
 }
 
 export class EmailService {

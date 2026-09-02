@@ -30,7 +30,7 @@ export interface JournalLineInput {
 
 export interface NewJournalEntry {
   companyId: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   date: string;
   reference?: string;
   description: string;
@@ -39,10 +39,19 @@ export interface NewJournalEntry {
 
 export interface CreateJournalEntryInput {
   companyId: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   reference?: string;
   date: Date | string;
   description: string;
+  /**
+   * Usuario que registra el asiento. Auditoria JRN-16.
+   *
+   * Opcional mientras se propaga por todos los caminos que asientan: hacerlo
+   * obligatorio de golpe romperia los que hoy no llevan la sesion a mano. La
+   * prueba `autorDelAsiento.vitest.ts` lleva la cuenta de los que faltan y no
+   * deja que la lista crezca.
+   */
+  createdBy?: string | null;
   lines: {
     accountId: string;
     debit: number;
@@ -167,9 +176,18 @@ export class AccountingRepository {
   // ==========================================
   // JOURNAL ENTRIES (WITH PERIOD CONTROLS)
   // ==========================================
-  static async getJournalEntries(companyId: string, limit = 100, startDate?: string, endDate?: string) {
+  static async getJournalEntries(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    limit = 100,
+    startDate?: string,
+    endDate?: string
+  ) {
     const conditions = [
       eq(journalEntries.companyId, companyId),
+      // El libro diario es contabilidad. Sin este filtro, los asientos de las
+      // facturas de practicas salian mezclados con los reales.
+      eq(journalEntries.modo, modo),
       isNull(journalEntries.deletedAt)
     ];
 
@@ -218,35 +236,21 @@ export class AccountingRepository {
   static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: any = db): Promise<boolean> {
     const formattedDate = formatLocalDate(dateStr);
     
-    // Check if there are any periods defined
-    const periodsCount = await tx.select({ count: sql<number>`count(*)` })
-      .from(accountingPeriods)
-      .where(and(eq(accountingPeriods.companyId, companyId), eq(accountingPeriods.modo, modo)));
-
-    const count = Number(periodsCount[0]?.count || 0);
-    if (count === 0) {
-      // Auto-bootstrap an open period for the current year/month
-      const d = new Date(formattedDate);
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1;
-      const periodName = `${month.toString().padStart(2, '0')}/${year}`;
-      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-      
-      const lastDay = new Date(year, month, 0).getDate();
-      const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
-      
-      await tx.insert(accountingPeriods).values({
-        id: uuidv4(),
-        companyId,
-        modo,
-        name: periodName,
-        startDate,
-        endDate,
-        status: 'open'
-      });
-      return true;
-    }
-
+    // Auditoria JRN-11: aqui habia un "auto-bootstrap". Si la empresa no tenia
+    // NINGUN periodo, esta funcion --que solo debe COMPROBAR-- creaba uno
+    // abierto para el mes de la fecha y devolvia true.
+    //
+    // Dos problemas. El primero es de principio: un control que crea el dato que
+    // esta validando no valida nada. El segundo es que solo saltaba con cero
+    // periodos, de modo que una empresa con periodos de un anio y ninguno del
+    // siguiente se quedaba bloqueada sin explicacion. Le paso a la empresa
+    // 38a1a51e: tenia julio y no tenia agosto, y desde el 1 de agosto de 2026 no
+    // pudo asentar nada.
+    //
+    // Ahora los periodos se siembran al crear la empresa
+    // (`sembrarPeriodosContables`) y se abren desde Contabilidad > Periodos. Si
+    // no hay periodo, esto devuelve false y quien llama falla con un mensaje que
+    // dice que hay que abrirlo.
     const [period] = await tx.select()
       .from(accountingPeriods)
       .where(and(
@@ -287,13 +291,52 @@ export class AccountingRepository {
       throw new Error('Un asiento contable debe tener al menos dos líneas.');
     }
 
+    // Validacion por LINEA. Las de arriba miran totales, y hay asientos que
+    // cuadran en total y no significan nada.
+    //
+    // Auditoria JRN-15: una linea tiene que llevar importe en el debe o en el
+    // haber, nunca en los dos ni en ninguno, y nunca negativo. Dos lineas
+    // {debe: 500, haber: 500} suman igual y no dicen nada; dos negativas que se
+    // compensan tambien pasaban, porque `totalDebits !== 0` no las detecta.
+    for (const line of data.lines) {
+      const debe = Number(line.debit) || 0;
+      const haber = Number(line.credit) || 0;
+      if (debe < 0 || haber < 0) {
+        throw new Error('Una línea de asiento no puede tener importes negativos.');
+      }
+      if (debe > 0 && haber > 0) {
+        throw new Error('Una línea de asiento no puede tener débito y crédito a la vez.');
+      }
+      if (debe === 0 && haber === 0) {
+        throw new Error('Una línea de asiento no puede tener débito y crédito en cero.');
+      }
+    }
+
+    // Auditoria: un asiento cuyas lineas caen todas en la MISMA cuenta cuadra
+    // perfectamente y no tiene efecto contable alguno.
+    //
+    // No es teorico: un ajuste bancario de 1.015.727,93 quedo con el debe y el
+    // haber contra 1.1.01. El saldo del modulo de bancos subio y el mayor no se
+    // movio. Ninguna de las validaciones anteriores lo detecta, porque cada
+    // linea es valida por separado y los totales cuadran.
+    const cuentasDistintas = new Set(data.lines.map((line: any) => line.accountId));
+    if (cuentasDistintas.size < 2) {
+      throw new Error(
+        'Todas las líneas del asiento usan la misma cuenta contable: el asiento no tendría ningún efecto. ' +
+        'Revise las cuentas seleccionadas.'
+      );
+    }
+
     const formattedDate = formatLocalDate(data.date);
 
     const executeInsertion = async (transactionContext: any) => {
       // 2. Validate open period
-      const isOpen = await this.isPeriodOpen(data.companyId, formattedDate, data.modo || 'PRODUCCION', transactionContext);
+      const isOpen = await this.isPeriodOpen(data.companyId, formattedDate, data.modo, transactionContext);
       if (!isOpen) {
-        throw new Error(`El periodo contable para la fecha ${formattedDate} está cerrado o no existe.`);
+        throw new Error(
+          `No hay un período contable abierto para la fecha ${formattedDate}: está cerrado o no se ha abierto todavía. ` +
+          `Ábralo en Contabilidad > Períodos antes de registrar la operación.`
+        );
       }
 
       // 3. Insert Journal Entry Header
@@ -303,11 +346,12 @@ export class AccountingRepository {
         .values({
           id: entryId,
           companyId: data.companyId,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
           reference: data.reference || null,
           date: formattedDate,
           description: data.description,
           status: 'posted',
+          createdBy: (data as any).createdBy || null,
         })
         .returning();
 
@@ -316,7 +360,7 @@ export class AccountingRepository {
         data.lines.map((line) => ({
           id: uuidv4(),
           companyId: data.companyId,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
           journalEntryId: entryId,
           accountId: line.accountId,
           debit: line.debit.toString(),
@@ -345,7 +389,7 @@ export class AccountingRepository {
     invoiceId: string;
     amount: number;
     dueDate: Date | string;
-    modo?: 'PRODUCCION' | 'PRUEBA';
+    modo: 'PRODUCCION' | 'PRUEBA';
   }) {
     const [ar] = await tx
       .insert(accountsReceivable)
@@ -357,7 +401,7 @@ export class AccountingRepository {
         balance: data.amount.toString(),
         dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
       })
       .returning();
     return ar;
@@ -368,7 +412,7 @@ export class AccountingRepository {
     supplierId: string;
     amount: number;
     dueDate: Date | string;
-    modo?: 'PRODUCCION' | 'PRUEBA';
+    modo: 'PRODUCCION' | 'PRUEBA';
   }) {
     const [ap] = await tx
       .insert(accountsPayable)
@@ -379,7 +423,7 @@ export class AccountingRepository {
         balance: data.amount.toString(),
         dueDate: formatLocalDate(data.dueDate),
         status: 'pending',
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
       })
       .returning();
   }
@@ -480,6 +524,88 @@ export class AccountingRepository {
   // ==========================================
   // SEEDER IMPLEMENTATION
   // ==========================================
+  /**
+   * Siembra los periodos contables que le faltan a una empresa, del mes indicado
+   * hasta diciembre de ese anio, en los DOS entornos.
+   *
+   * --- POR QUE (auditoria JRN-11) ---------------------------------------
+   *
+   * Una empresa nacia sin ningun periodo. El unico sitio que los creaba era
+   * `isPeriodOpen`, que creaba UNO --el del mes de la primera operacion-- y solo
+   * cuando la empresa tenia cero. A partir de ahi nadie creaba ninguno mas, de
+   * modo que al cambiar de mes la empresa se quedaba sin poder asentar y sin
+   * ningun aviso previo.
+   *
+   * Le paso a la empresa 38a1a51e: tenia el periodo de julio de 2026 y ninguno de
+   * agosto. Desde el 1 de agosto no pudo registrar ni una factura ni una compra,
+   * y el error que veia el usuario no decia que faltara abrir el periodo.
+   *
+   * --- CRITERIO ---------------------------------------------------------
+   *
+   * Se siembra desde el mes en curso, no desde enero: una empresa dada de alta en
+   * agosto no tiene por que poder asentar en enero. Todos nacen abiertos; cerrar
+   * los que toque es trabajo de quien lleva la contabilidad.
+   *
+   * Es idempotente: mira lo que ya existe y solo inserta lo que falta, de manera
+   * que se puede volver a llamar sin duplicar nada.
+   *
+   * Devuelve cuantos periodos creo.
+   */
+  public static async sembrarPeriodosContables(
+    companyId: string,
+    externalTx?: any,
+    desde: Date = new Date()
+  ): Promise<number> {
+    const execute = async (tx: any) => {
+      const anio = desde.getFullYear();
+      const primerMes = desde.getMonth() + 1;
+
+      const existentes = await tx
+        .select({ startDate: accountingPeriods.startDate, modo: accountingPeriods.modo })
+        .from(accountingPeriods)
+        .where(eq(accountingPeriods.companyId, companyId));
+
+      const yaEstan = new Set(existentes.map((p: any) => `${p.modo}|${p.startDate}`));
+
+      const faltantes: { entorno: 'PRODUCCION' | 'PRUEBA'; mes: number }[] = [];
+      for (const entorno of ['PRODUCCION', 'PRUEBA'] as const) {
+        for (let mes = primerMes; mes <= 12; mes++) {
+          const startDate = `${anio}-${String(mes).padStart(2, '0')}-01`;
+          if (yaEstan.has(`${entorno}|${startDate}`)) continue;
+          faltantes.push({ entorno, mes });
+        }
+      }
+
+      if (faltantes.length === 0) return 0;
+
+      // El `modo` va escrito DENTRO del propio `.values(...)`. Armar el array
+      // antes y pasarlo por variable seria mas corto, pero entonces la guarda de
+      // `aislamientoModo.vitest.ts` no puede verlo -- solo mira la sentencia del
+      // insert -- y la marcaria como una insercion sin entorno. Y hace bien en
+      // desconfiar: la columna lleva DEFAULT 'PRODUCCION', asi que olvidar el
+      // modo no falla, guarda la fila en el entorno equivocado sin avisar.
+      await tx.insert(accountingPeriods).values(
+        faltantes.map(({ entorno, mes }) => {
+          const mm = String(mes).padStart(2, '0');
+          const ultimoDia = new Date(anio, mes, 0).getDate();
+          return {
+            id: uuidv4(),
+            companyId,
+            modo: entorno,
+            name: `${mm}/${anio}`,
+            startDate: `${anio}-${mm}-01`,
+            endDate: `${anio}-${mm}-${String(ultimoDia).padStart(2, '0')}`,
+            status: 'open',
+          };
+        })
+      );
+
+      return faltantes.length;
+    };
+
+    return externalTx ? await execute(externalTx) : await db.transaction(execute);
+  }
+
   public static async seedDefaultChartOfAccounts(companyId: string, externalTx?: any) {
     const execute = async (tx: any) => {
       // Standard Dominican Chart of Accounts
@@ -611,7 +737,13 @@ export class AccountingRepository {
   // ==========================================
   // REPORTS: LEDGER, TRIAL BALANCE, FINANCIALS
   // ==========================================
-  static async getLedger(companyId: string, accountId: string, startDate: string, endDate: string) {
+  static async getLedger(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    accountId: string,
+    startDate: string,
+    endDate: string
+  ) {
     const formattedStart = formatLocalDate(startDate);
     const formattedEnd = formatLocalDate(endDate);
 
@@ -633,6 +765,11 @@ export class AccountingRepository {
     .where(and(
       eq(journalEntryLines.companyId, companyId),
       eq(journalEntryLines.accountId, accountId),
+      // Se filtra por el modo del ASIENTO, no por el de la linea: el asiento
+      // es el que pertenece a un entorno y sus lineas lo heredan. Filtrar
+      // tambien la linea escondería una linea heredada con el sello
+      // equivocado en vez de mostrarla descuadrada, que es peor.
+      eq(journalEntries.modo, modo),
       sql`${journalEntries.date} < ${formattedStart}`,
       isNull(journalEntries.deletedAt)
     ));
@@ -655,6 +792,7 @@ export class AccountingRepository {
     .where(and(
       eq(journalEntryLines.companyId, companyId),
       eq(journalEntryLines.accountId, accountId),
+      eq(journalEntries.modo, modo),
       sql`${journalEntries.date} >= ${formattedStart}`,
       sql`${journalEntries.date} <= ${formattedEnd}`,
       isNull(journalEntries.deletedAt)
@@ -687,7 +825,12 @@ export class AccountingRepository {
     };
   }
 
-  static async getTrialBalance(companyId: string, startDate: string, endDate: string) {
+  static async getTrialBalance(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    startDate: string,
+    endDate: string
+  ) {
     const formattedStart = formatLocalDate(startDate);
     const formattedEnd = formatLocalDate(endDate);
 
@@ -704,6 +847,7 @@ export class AccountingRepository {
     .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
     .where(and(
       eq(journalEntryLines.companyId, companyId),
+      eq(journalEntries.modo, modo),
       sql`${journalEntries.date} < ${formattedStart}`,
       isNull(journalEntries.deletedAt)
     ))
@@ -719,6 +863,7 @@ export class AccountingRepository {
     .innerJoin(journalEntries, eq(journalEntryLines.journalEntryId, journalEntries.id))
     .where(and(
       eq(journalEntryLines.companyId, companyId),
+      eq(journalEntries.modo, modo),
       sql`${journalEntries.date} >= ${formattedStart}`,
       sql`${journalEntries.date} <= ${formattedEnd}`,
       isNull(journalEntries.deletedAt)
@@ -758,8 +903,15 @@ export class AccountingRepository {
     });
   }
 
-  static async getFinancials(companyId: string, startDate: string, endDate: string) {
-    const trialBalance = await this.getTrialBalance(companyId, startDate, endDate);
+  static async getFinancials(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    startDate: string,
+    endDate: string
+  ) {
+    // El balance general y el estado de resultados salen enteros de la
+    // balanza, asi que con acotarla alli quedan acotados los dos.
+    const trialBalance = await this.getTrialBalance(companyId, modo, startDate, endDate);
 
     // Filter and build Balance Sheet (Assets, Liabilities, Equity)
     const balanceSheet = trialBalance.filter(row => ['asset', 'liability', 'equity'].includes(row.type));

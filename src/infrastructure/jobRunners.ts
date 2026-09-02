@@ -1,8 +1,10 @@
 import { db, invoices, dgiiSubmissions, ecfSequences, companySettings, companies } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
+import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
 import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
+import { envioEnCurso } from '@/repositories/dgiiSubmissionRepository';
 import { decryptAsync } from '@/utils/encryption';
 import fs from 'fs';
 import path from 'path';
@@ -36,7 +38,7 @@ function resolveEntorno(dgiiEnv: string | null): string {
 // en un solo entorno, asi que todos sus envios comparten el suyo. Anadirlo
 // obligaria a meter el modo en el payload de la cola, con los trabajos que ya
 // estan encolados apuntando al formato viejo.
-export async function processDgiiSubmissionJob(data: { companyId: string; invoiceId: string; attemptsMade?: number }): Promise<any> {
+export async function processDgiiSubmissionJob(data: { companyId: string; invoiceId: string; submissionId?: string; attemptsMade?: number }): Promise<any> {
   const { companyId, invoiceId } = data;
   const attemptsMade = data.attemptsMade ?? 0;
   Logger.info(`[JobRunner] Processing DGII submission for invoice ${invoiceId} (attempt ${attemptsMade + 1})...`);
@@ -58,6 +60,31 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     throw new Error(`Invoice ${invoiceId} not found for company ${companyId}`);
   }
   const modo = ref.modo as 'PRODUCCION' | 'PRUEBA';
+
+  // 1b. QUE intento actualiza este trabajo.
+  //
+  // Antes no se preguntaba: los tres UPDATE de mas abajo iban por
+  // `invoice_id + company_id` y tocaban TODAS las filas de la factura a la
+  // vez. Como se inserta una fila por intento, un reenvio que fallaba ponia
+  // 'failed' y machacaba `response_payload` tambien en la fila que estaba
+  // 'accepted' -- es decir, borraba la constancia de una aceptacion de la
+  // DGII, que es de donde salen el codigo de seguridad y el QR del
+  // comprobante.
+  //
+  // Ahora el trabajo trae su `submissionId`. Los que ya estaban encolados no
+  // lo llevan, y para esos se deduce el intento vivo mas reciente, que nunca
+  // es uno ya aceptado.
+  const submissionId = data.submissionId ?? (await envioEnCurso(invoiceId, companyId));
+  if (!submissionId) {
+    throw new Error(
+      `No hay un envio pendiente que actualizar para la factura ${invoiceId}. ` +
+      'Puede que ya se haya procesado.'
+    );
+  }
+  const esteEnvio = and(
+    eq(dgiiSubmissions.id, submissionId),
+    eq(dgiiSubmissions.companyId, companyId)
+  );
 
   const invoice = await InvoiceRepository.getById(invoiceId, companyId, modo);
   if (!invoice) {
@@ -138,6 +165,34 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     }
   }
 
+  // La tasa de ITBIS de cada linea. Este era el QUINTO camino del mismo
+  // agujero que arreglaron la 0039 y la 0040: aqui habia un `taxRate: 0.18`
+  // escrito a pelo, y este es el envio EN DIFERIDO -- el que sale cuando la
+  // emision no pudo hablar con mSeller. O sea que una factura al 16% o exenta
+  // que se emitiera sin conexion acababa llegando a la DGII al 18%.
+  //
+  // Si la linea no tiene tasa guardada (factura anterior a la 0039) se deduce
+  // del resumen, y SOLO cuando el resumen no deja lugar a dudas: una unica
+  // tasa de ITBIS. Si no se puede deducir, el trabajo falla. Es deliberado:
+  // un e-CF con el ITBIS equivocado ya presentado a la DGII no se deshace, y
+  // un trabajo fallido si se reintenta.
+  const tasasDelResumen = Array.from(new Set(
+    (invoice.taxes || [])
+      .filter((t: any) => (t.taxType || '').toUpperCase().includes('ITBIS'))
+      .map((t: any) => Number(t.rate))
+      .filter((r: number) => Number.isFinite(r))
+  ));
+  const tasaDeLinea = (line: any): number => {
+    if (line.taxRate != null) return Number(line.taxRate);
+    if (tasasDelResumen.length === 1) return tasasDelResumen[0] / 100;
+    throw new Error(
+      `La factura ${invoice.ncf} no tiene guardada la tasa de ITBIS de sus lineas ` +
+      `y su resumen tiene ${tasasDelResumen.length} tasas distintas, asi que no se ` +
+      'puede deducir. No se envia a la DGII con una tasa supuesta: corrija la factura ' +
+      'y vuelva a enviarla.'
+    );
+  };
+
   // 7. Build ECF payload
   const subtotal = parseFloat(invoice.subtotal.toString());
   const totalTaxes = parseFloat(invoice.totalTaxes.toString());
@@ -162,11 +217,16 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
     indicadorNotaCredito: (invoice as any).indicadorNotaCredito ?? undefined,
     lines: (invoice.lines || []).map((line: any, idx: number) => ({
       index: idx + 1,
-      name: line.productId, // fallback; ideally fetch product name
+      // Era `name: line.productId`, o sea el uuid del producto viajando como
+      // NOMBRE del articulo dentro del e-CF que se le manda a la DGII. El
+      // nombre real ya venia en la consulta (`productName`), sin pedir nada
+      // mas.
+      name: line.productName || line.productId,
       quantity: parseFloat(line.quantity.toString()),
       unitPrice: parseFloat(line.unitPrice.toString()),
       discount: parseFloat(line.discount.toString()),
-      taxRate: 0.18,
+      taxRate: tasaDeLinea(line),
+      taxCategory: line.taxCategory ?? null,
     })),
   });
 
@@ -174,23 +234,24 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   await db
     .update(dgiiSubmissions)
     .set({ status: 'processing', updatedAt: new Date() })
-    .where(and(eq(dgiiSubmissions.invoiceId, invoiceId), eq(dgiiSubmissions.companyId, companyId)));
+    .where(esteEnvio);
 
   // 9. Send document to mSeller
   const result = await client.sendDocument(ecfPayload);
 
   if (result.success) {
-    Logger.info(`[JobRunner] ✓ DGII submission accepted for invoice ${invoiceId}, trackId: ${result.trackId}`);
+    // "accepted" era prematuro: aqui todavia no se sabe. Lo que se sabe es que
+    // mSeller respondio.
+    Logger.info(`[JobRunner] ✓ DGII submission answered for invoice ${invoiceId}, trackId: ${result.trackId}`);
 
-    const resEstado = (result.rawResponse?.status || result.rawResponse?.estado || 'Aceptado').toLowerCase();
-    let newStatus = 'accepted';
-    if (resEstado.includes('acept') || resEstado === 'accepted') {
-      newStatus = 'accepted';
-    } else if (resEstado.includes('rechaz') || resEstado === 'rejected') {
-      newStatus = 'rejected';
-    } else if (resEstado.includes('envi') || resEstado === 'submitted') {
-      newStatus = 'submitted';
-    }
+    // La lectura del estado vive en un solo sitio: `leerEstado`. Antes se
+    // interpretaba aqui, y ademas con DOS suposiciones encadenadas -- el
+    // `|| 'Aceptado'` cuando no venia estado, y `let newStatus = 'accepted'`
+    // como valor inicial, que dejaba aceptado tambien lo no reconocido.
+    // `result.success` solo dice que la llamada salio bien, no que la DGII
+    // haya aceptado nada.
+    const lectura = leerEstado(result.rawResponse);
+    const newStatus = lectura.estado;
 
     // Update invoice status to accepted/submitted/rejected
     await db
@@ -198,7 +259,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       .set({
         status: newStatus as any,
         msellerTrackId: result.trackId || null,
-        dgiiMessage: result.message || 'Aceptado por la DGII',
+        dgiiMessage: mensajeEstado(lectura, result.message),
         updatedAt: new Date(),
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));
@@ -209,11 +270,15 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       .set({
         status: newStatus as any,
         trackId: result.trackId,
-        responseMessage: result.message || 'Aceptado',
+        responseMessage: mensajeEstado(lectura, result.message),
         responsePayload: JSON.stringify(result.rawResponse),
+        // Se guarda el codigo en su columna (0041) SOLO si vino. `undefined`
+        // deja el valor anterior intacto: un reintento que no traiga codigo no
+        // puede borrar el que ya constaba.
+        securityCode: result.securityCode || undefined,
         updatedAt: new Date(),
       })
-      .where(and(eq(dgiiSubmissions.invoiceId, invoiceId), eq(dgiiSubmissions.companyId, companyId)));
+      .where(esteEnvio);
 
     return { success: true, trackId: result.trackId };
   } else {
@@ -228,7 +293,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
         responsePayload: JSON.stringify(result.rawResponse),
         updatedAt: new Date(),
       })
-      .where(and(eq(dgiiSubmissions.invoiceId, invoiceId), eq(dgiiSubmissions.companyId, companyId)));
+      .where(esteEnvio);
 
     // Update invoice status to rejected/failed
     await db
@@ -346,6 +411,8 @@ export async function sendEmailJob(data: {
         errorMessage: errorMessage || null,
         providerMessageId: providerMessageId || null,
         sentAt: status === 'sent' ? new Date() : null,
+        // Legitimo: El payload de los trabajos ya encolados no lo lleva, y
+        // anadirlo como obligatorio romperia los que esten en cola ahora mismo.
         modo: data.modo || 'PRODUCCION'
       });
     } else {

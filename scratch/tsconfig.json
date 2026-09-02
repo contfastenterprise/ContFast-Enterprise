@@ -1,0 +1,27 @@
+{
+  // Los bancos de pruebas estan EXCLUIDOS del tsconfig del proyecto (ver
+  // "exclude" en ../tsconfig.json), y eso tiene un precio que se pago hoy: al
+  // hacer obligatorio el `modo` de CashRepository.closeSession, la llamada de
+  // verificar_grupo_a.ts se quedo desfasada y `tsc` no dijo nada. El banco se
+  // rompio en silencio y solo se descubrio al ejecutarlo.
+  //
+  // Con esto se comprueban aparte, sin meterlos en la compilacion del
+  // proyecto ni cambiar su configuracion:
+  //
+  //     npx tsc --noEmit -p scratch 2>&1 | grep '^scratch/'
+  //
+  // El filtro no es pereza: sin una compilacion previa de Next no existe
+  // .next/types, y `src/services/dgii/rncLookup.ts` usa la opcion `next` de
+  // fetch, que vive en esos tipos generados. Ese error es del proyecto y ya lo
+  // cubre su propio `tsc`; lo que aqui interesa son los bancos.
+  //
+  // Hereda TODO del tsconfig del proyecto a proposito: si aqui se redefinen
+  // `target` o `types`, aparecen errores que no existen en la compilacion de
+  // verdad y el chequeo deja de servir para nada.
+  //
+  // Ojo: varios bancos usan `as any` en sus llamadas, asi que el compilador no
+  // lo atrapa todo. Es una red, no una garantia.
+  "extends": "../tsconfig.json",
+  "include": ["**/*.ts", "../next-env.d.ts"],
+  "exclude": []
+}

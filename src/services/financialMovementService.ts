@@ -10,7 +10,7 @@ export type DbTx = Parameters<Parameters<NodePgDatabase<typeof schema>['transact
 
 export interface RegisterMovementInput {
   companyId: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   entityType: 'customer' | 'supplier';
   customerId?: string | null;
   supplierId?: string | null;
@@ -54,7 +54,7 @@ export class FinancialMovementService {
       .values({
         id: uuidv4(),
         companyId: input.companyId,
-        modo: input.modo || 'PRODUCCION',
+        modo: input.modo,
         entityType: input.entityType,
         customerId: input.customerId || null,
         supplierId: input.supplierId || null,
@@ -79,7 +79,7 @@ export class FinancialMovementService {
       ? input.customerId! 
       : input.supplierId!;
 
-    await this.rebuildBalances(dbClient, input.companyId, input.entityType, entityId, input.modo || 'PRODUCCION');
+    await this.rebuildBalances(dbClient, input.companyId, input.entityType, entityId, input.modo);
 
     return movement;
   }

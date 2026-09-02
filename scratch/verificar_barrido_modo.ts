@@ -21,9 +21,11 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { InvoiceRepository } from '../src/repositories/invoiceRepository';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const USER_A = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -33,13 +35,11 @@ const ok = (t: string, c: boolean, d = '') => {
   console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`);
   if (!c) fallos++;
 };
-const fuente = (r: string) => readFileSync(join(__dirname, '..', r), 'utf8');
+
 
 async function main() {
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM invoice_sequences`);
-  await db.execute(sql`DELETE FROM invoices`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
 
   const fac = (await db.execute(sql`
     INSERT INTO invoices (company_id, modo, user_id, ncf, ecf_type, total, codigo_factura, status)
@@ -91,7 +91,10 @@ async function main() {
     ['ap/print', 'src/app/api/v1/ap/print/route.ts', /eq\(accountsPayable\.modo, session\.modo\)/],
     ['cash/sessions/[id]/summary', 'src/app/api/v1/cash/sessions/[id]/summary/route.ts', /eq\(cashSessions\.modo, auth\.modo\)/],
     ['statements/suppliers/[id]/print', 'src/app/api/v1/financial/statements/suppliers/[id]/print/route.ts', /eq\(expenses\.modo, session\.modo\)/],
-    ['invoices/[id]/xml', 'src/app/api/v1/invoices/[id]/xml/route.ts', /eq\(dgiiSubmissions\.modo, auth\.modo\)/],
+    // El filtro de entorno de esta ruta ya no esta escrito aqui: se movio
+    // dentro de envioVigente, que ademas acota por empresa y ordena. La
+    // garantia sigue existiendo, en un solo sitio en vez de cinco.
+    ['invoices/[id]/xml', 'src/app/api/v1/invoices/[id]/xml/route.ts', /envioVigente\(id, auth\.companyId, auth\.modo\)/],
     ['invoices/report', 'src/app/api/v1/invoices/report/route.ts', /eq\(invoices\.modo, session\.modo\)/],
   ];
   for (const [nombre, ruta, re] of rutas) ok(nombre, re.test(fuente(ruta)));

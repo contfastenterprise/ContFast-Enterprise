@@ -37,6 +37,9 @@ export class InvoiceCalculator {
         subtotal: lineSubtotal,
         total: lineTaxableAmount, // Note: lineTotal without tax for now, as tax is global
         taxRate: line.taxRate,
+        //  La categoria viaja con la linea hasta el e-CF: sin ella, el envio
+        //  no puede distinguir un exento de una exportacion.
+        taxCategory: (line as any).taxCategory ?? null,
         warehouseId: line.warehouseId,
       });
     });

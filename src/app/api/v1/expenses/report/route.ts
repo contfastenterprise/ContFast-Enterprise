@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, expenses, suppliers, warehouses, companies, companySettings, expenseTypes } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { eq, and, sql, between } from 'drizzle-orm';
@@ -11,6 +12,10 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return new NextResponse('No autorizado', { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'proveedores', 'read');
+    if (denegado) return denegado;
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate');
@@ -125,7 +130,9 @@ export async function GET(req: NextRequest) {
         rnc: company.rnc,
         address: company.address || '',
         phone: company.phone || '',
-        email: settings?.msellerEmail || '',
+        // Auditoria ISO-17: el correo de mSeller es un usuario de acceso, no una
+        // direccion de contacto de la empresa.
+        email: company.email || '',
         logoUrl: settings?.logoUrl || undefined,
       },
       items,

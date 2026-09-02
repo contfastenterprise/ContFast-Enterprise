@@ -21,12 +21,12 @@ export class InvoiceService {
       throw new Error('Compañía no encontrada.');
     }
 
-    await InvoiceValidator.validatePreEmission(data.companyId, data.ecfType, company.rnc, data.modo || 'PRODUCCION');
+    await InvoiceValidator.validatePreEmission(data.companyId, data.ecfType, company.rnc, data.modo);
 
     // ── 1. Determine the active cash session ──────────────────────────────────
     const activeCashSessionId = await InvoiceDbBooker.determineActiveCashSession(
       data.companyId,
-      data.modo || 'PRODUCCION',
+      data.modo,
       data.userId,
       data.paymentType,
       data.cashSessionId
@@ -38,13 +38,19 @@ export class InvoiceService {
     // ── 3. Pre-flight validations ─────────────────────────────────────────────
     await InvoiceDbBooker.preFlightValidations(data, totals);
 
-    // ── 4. Predict next NCF without incrementing database sequence yet ────────
-    const { ncf } = await InvoiceDbBooker.predictNextNcf(data.companyId, data.ecfType, data.modo);
+    // ── 4. Reservar el NCF ANTES de enviarlo a la DGII ────────────────────────
+    //
+    // Auditoria DB-04: este paso era `predictNextNcf`, que leia la secuencia sin
+    // bloqueo; la reserva real ocurria al final, ya enviado el comprobante. Dos
+    // emisiones simultaneas mandaban el mismo NCF a la DGII y una de las dos
+    // ventas se perdia. El orden correcto es reservar primero: un hueco en la
+    // secuencia se explica, un NCF duplicado ante la DGII no.
+    const { ncf } = await InvoiceDbBooker.reservarNcf(data.companyId, data.ecfType, data.modo);
 
     // Load company settings
     const settings = await CompanyRepository.getSettings(data.companyId);
 
-    // ── 4. Submit to DGII / MSeller ───────────────────────────────────────────
+    // ── 5. Submit to DGII / MSeller ───────────────────────────────────────────
     let submission: DgiiSubmissionResult;
     try {
       submission = await InvoiceSubmissionService.submitToDgii(
@@ -57,13 +63,25 @@ export class InvoiceService {
       );
     } catch (err: any) {
       if (err instanceof EcfRejectedError) {
-        // Save the invoice in the DB as rejected so the sequence is recorded
+        // Rechazo estructural: la factura se guarda como `rejected` con el NCF
+        // ya reservado, de modo que el numero queda justificado y no hay hueco.
         await InvoiceDbBooker.saveRejectedInvoice(
           data,
           ncf,
           activeCashSessionId,
           totals,
           err.message
+        );
+      } else {
+        // Fallo de comunicacion u otro error: el NCF quedo consumido sin
+        // factura. Se deja constancia para poder explicar el hueco.
+        await InvoiceDbBooker.registrarNcfSinUsar(
+          data.companyId,
+          data.modo,
+          data.userId,
+          ncf,
+          data.ecfType,
+          `Fallo al enviar a la DGII: ${err?.message || 'error desconocido'}`
         );
       }
       throw err;
@@ -80,20 +98,37 @@ export class InvoiceService {
     const signedXmlPath = '';
     const pdfPath = `invoices/${data.companyId}/${ncf}.pdf`;
 
-    // ── 5. Perform main transactional operations (Fase 3) ──────────────────────
-    const dbResult = await InvoiceDbBooker.executeDbTransaction(
-      data,
-      ncf,
-      activeCashSessionId,
-      totals,
-      submission,
-      xmlPath,
-      signedXmlPath,
-      pdfPath,
-      msellerXmlPath
-    );
+    // ── 6. Perform main transactional operations (Fase 3) ──────────────────────
+    //
+    // Si esto falla, el comprobante YA esta en la DGII y el NCF ya esta
+    // reservado: hay que poder localizar el caso, porque exige conciliacion
+    // manual. Se registra y se relanza el error original.
+    let dbResult;
+    try {
+      dbResult = await InvoiceDbBooker.executeDbTransaction(
+        data,
+        ncf,
+        activeCashSessionId,
+        totals,
+        submission,
+        xmlPath,
+        signedXmlPath,
+        pdfPath,
+        msellerXmlPath
+      );
+    } catch (err: any) {
+      await InvoiceDbBooker.registrarNcfSinUsar(
+        data.companyId,
+        data.modo,
+        data.userId,
+        ncf,
+        data.ecfType,
+        `Enviado a la DGII pero no se pudo registrar la factura: ${err?.message || 'error desconocido'}`
+      );
+      throw err;
+    }
 
-    // ── 6. File generation outside the transaction block to avoid lockups ──────
+    // ── 7. File generation outside the transaction block to avoid lockups ──────
     await InvoiceFileGenerator.generateFilesAndSendEmail(
       data,
       ncf,
@@ -109,7 +144,7 @@ export class InvoiceService {
       msellerXmlPath
     );
 
-    // ── 7. Post-emission tasks (conduces, quotes) ──────────────────────────────
+    // ── 8. Post-emission tasks (conduces, quotes) ──────────────────────────────
     await InvoiceFileGenerator.processPostEmission(
       data,
       dbResult.invoice.id,

@@ -15,6 +15,9 @@ const updateQuoteSchema = z.object({
       unitPrice: z.number().nonnegative('El precio unitario no puede ser negativo'),
       discount: z.number().nonnegative('El descuento no puede ser negativo').default(0),
       taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
+      //  Solo con taxRate 0: 'exento' (indicador 4) o 'tasa_cero' (indicador 3,
+      //  exportacion). Sin valor, exento. Ver 0042.
+      taxCategory: z.enum(['exento', 'tasa_cero']).nullish(),
     })
   ).min(1, 'La cotización debe tener al menos una línea de producto').optional(),
 });
@@ -34,7 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
 
-    const quote = await QuoteService.getQuote(id);
+    const quote = await QuoteService.getQuote(id, auth.companyId, auth.modo);
     if (!quote || quote.companyId !== auth.companyId) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Cotización no encontrada.' } },
@@ -70,7 +73,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
-    const quote = await QuoteService.getQuote(id);
+    const quote = await QuoteService.getQuote(id, auth.companyId, auth.modo);
     if (!quote || quote.companyId !== auth.companyId) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Cotización no encontrada.' } },
@@ -92,7 +95,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       }
     }
 
-    await QuoteService.updateQuote(id, {
+    await QuoteService.updateQuote(id, auth.companyId, auth.modo, {
       ...data,
       warehouseId: data.warehouseId || undefined,
       customerId: data.customerId || undefined,

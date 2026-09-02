@@ -6,6 +6,7 @@ import { eq, sql, and, between, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { resolverCuentaDeBanco, resolverCuentaPorPagar } from '@/services/accounting/resolverCuentas';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
 async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
@@ -301,8 +302,22 @@ export async function POST(req: NextRequest) {
             status: 'pending',
           });
 
-          const accAp = await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability');
-          const accBank = await getOrCreateAccount(tx, session.companyId, '1.1.02', 'Efectivo en Bancos', 'asset');
+          // Cuentas del pago diferido.
+          //
+          // Auditoria ARP-02. Aqui estaba el origen de los ocho cheques en
+          // garantia que acabaron acreditando CUENTAS POR COBRAR: el codigo
+          // pedia '1.1.02' llamandolo "Efectivo en Bancos" -- nombre heredado
+          // de un plan de tres niveles -- y `getOrCreateAccount` busca por
+          // codigo e ignora el nombre. En el catalogo real, 1.1.02 es Cuentas
+          // por Cobrar. Y '2.1.01' es la cuenta de AGRUPACION de proveedores,
+          // no su hija transaccional.
+          //
+          // El asiento no se crea aqui, sino al cobrarse el cheque, con estas
+          // dos cuentas tal como queden guardadas. Por eso importan tanto.
+          const accBank = await resolverCuentaDeBanco(
+            tx, session.companyId, guaranteeCheck.bankAccountId, 'Cheque en garantía'
+          );
+          const accAp = await resolverCuentaPorPagar(tx, session.companyId, 'Cheque en garantía');
 
           await tx.insert(apPayments).values({
             id: uuidv4(),
@@ -385,6 +400,8 @@ export async function POST(req: NextRequest) {
           date: new Date(issueDate),
           description: `Asiento Automático de Compra NCF: ${ncf || 'N/A'} - ${isCredit ? 'A Crédito' : 'Al Contado'}`,
           lines: journalLines,
+          // Auditoria JRN-16: quien registra el asiento.
+          createdBy: session.userId,
         });
       }
 

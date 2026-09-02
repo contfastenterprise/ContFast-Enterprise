@@ -5,6 +5,7 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { db, dgiiSubmissions, invoices, withTenantMode } from '@/db';
 import { eq } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
 
 export async function GET(
   req: NextRequest,
@@ -44,27 +45,17 @@ export async function GET(
       );
     }
 
-    let securityCode = '';
-    const [submission] = await db
-      .select({ responsePayload: dgiiSubmissions.responsePayload })
-      .from(dgiiSubmissions)
-      .where(eq(dgiiSubmissions.invoiceId, id))
-      .limit(1);
+    // Una factura puede tener varios envios: uno por cada intento. Antes esto
+    // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
+    // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
+    // en un solo sitio: envioVigente.
+    const submission = await envioVigente(id, auth.companyId, auth.modo);
 
-    if (submission && submission.responsePayload) {
-      try {
-        const payload = JSON.parse(submission.responsePayload);
-        securityCode = payload.securityCode || payload.codigoSeguridad || '';
-      } catch (err) {
-        console.error('Error parsing responsePayload for security code:', err);
-      }
-    }
-
-    if (!securityCode) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-const crypto = require('crypto');
-      securityCode = crypto.createHash('sha256').update(invoice.id + invoice.ncf).digest('hex').substring(0, 16).toUpperCase();
-    }
+    // Y la lectura del codigo vive en datosFirmaDeEnvio. Aqui habia un
+    // `if (!securityCode) securityCode = sha256(id + ncf)...`: se inventaba el
+    // codigo de seguridad de un comprobante fiscal cuando no constaba. Ahora
+    // cadena vacia significa que no consta, y quien imprime lo dice.
+    const { codigo: securityCode } = datosFirmaDeEnvio(submission);
 
     return NextResponse.json(
       { success: true, data: { ...invoice, securityCode } },

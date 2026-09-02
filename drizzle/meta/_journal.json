@@ -206,17 +206,101 @@
       "breakpoints": true
     },
     {
-      "idx": 30,
+      "idx": 29,
       "version": "7",
       "when": 1784664404850,
       "tag": "0030_reconciliacion",
       "breakpoints": true
     },
     {
-      "idx": 31,
+      "idx": 30,
       "version": "7",
       "when": 1784664405850,
       "tag": "0031_inventario_no_negativo",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1784664407850,
+      "tag": "0025_immutable_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1784664409850,
+      "tag": "0033_producto_sin_inventario",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1784664410850,
+      "tag": "0034_secuencia_codigo_factura",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1784664411850,
+      "tag": "0035_envio_dgii_por_intento",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1784664412850,
+      "tag": "0036_saldo_banco_por_entorno",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1784664413850,
+      "tag": "0037_negar_acceso_publico",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1784664414850,
+      "tag": "0038_vistas_publicas_por_empresa",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1784664415850,
+      "tag": "0039_tasa_itbis_por_linea",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1784664416850,
+      "tag": "0040_tasa_itbis_por_linea_cotizacion",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1784664417850,
+      "tag": "0032_aislamiento_estructural",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1784664418850,
+      "tag": "0041_codigo_seguridad_por_envio",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1784664419850,
+      "tag": "0042_exento_o_tasa_cero",
       "breakpoints": true
     }
   ]

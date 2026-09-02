@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redis } from './redis';
 import { db, dgiiSubmissions } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { envioEnCurso } from '@/repositories/dgiiSubmissionRepository';
 import { processDgiiSubmissionJob, sendEmailJob } from './jobRunners';
 
 const CONCURRENCY = parseInt(process.env.QUEUE_CONCURRENCY || '5', 10);
@@ -29,19 +30,27 @@ if (redis && !isBuildPhase) {
     console.log(`[Worker] Job ${job.id} (dgii-submissions) completed successfully.`);
   });
 
-// Nota de aislamiento: estas actualizaciones de dgii_submissions no filtran
-// por `modo` y no hace falta. Se localizan por invoiceId, y una factura vive
-// en un solo entorno, asi que todos sus envios comparten el suyo. Anadirlo
-// obligaria a meter el modo en el payload de la cola, con los trabajos que ya
-// estan encolados apuntando al formato viejo.
+// Nota de aislamiento: esta actualizacion de dgii_submissions no filtra por
+// `modo` y no hace falta. Se localiza por el id del propio intento, y ese id
+// ya determina factura, empresa y entorno.
+//
+// Lo que SI hacia falta: antes iba por `invoice_id + company_id`, sin decir
+// que fila, y marcaba como 'failed' TODOS los intentos de la factura --
+// incluido uno anterior que estuviera aceptado.
   dgiiWorker.on('failed', (job, err) => {
     console.error(`[Worker] Job ${job?.id} (dgii-submissions) failed (attempt ${job?.attemptsMade}): ${err.message}`);
     // On final failure (all retries exhausted), mark submission as failed
     if (job && job.attemptsMade >= (job.opts?.attempts ?? 3)) {
-      const { companyId, invoiceId } = job.data;
-      db.update(dgiiSubmissions)
-        .set({ status: 'failed', responseMessage: err.message, updatedAt: new Date() })
-        .where(and(eq(dgiiSubmissions.invoiceId, invoiceId), eq(dgiiSubmissions.companyId, companyId)))
+      const { companyId, invoiceId, submissionId } = job.data;
+      // Los trabajos ya encolados no traen submissionId; para esos se deduce
+      // el intento vivo, que nunca es uno ya aceptado.
+      Promise.resolve(submissionId ?? envioEnCurso(invoiceId, companyId))
+        .then((id) => {
+          if (!id) return;
+          return db.update(dgiiSubmissions)
+            .set({ status: 'failed', responseMessage: err.message, updatedAt: new Date() })
+            .where(and(eq(dgiiSubmissions.id, id), eq(dgiiSubmissions.companyId, companyId)));
+        })
         .catch((e: any) => console.error('[Worker] Failed to update dgii_submissions on exhausted retries:', e));
     }
   });

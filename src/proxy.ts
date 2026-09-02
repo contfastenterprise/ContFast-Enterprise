@@ -241,6 +241,8 @@ export async function proxy(req: NextRequest) {
 
         // Clone request headers to inject security context parameters
         const requestHeaders = new Headers(req.headers);
+        // Legitimo: La cookie puede no venir. Es el punto de entrada, no un
+        // valor por defecto colado en la logica de negocio.
         const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
         const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
         requestHeaders.set('x-environment', environment);
@@ -307,7 +309,9 @@ export async function proxy(req: NextRequest) {
             
             // Set request headers for downstream controllers
             const requestHeaders = new Headers(req.headers);
-            const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
+            // Legitimo: La cookie puede no venir. Es el punto de entrada, no un
+        // valor por defecto colado en la logica de negocio.
+        const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
             const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
             requestHeaders.set('x-environment', environment);
 

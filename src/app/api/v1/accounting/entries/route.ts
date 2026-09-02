@@ -49,6 +49,9 @@ export async function GET(req: NextRequest) {
 
     const conditions = [
       eq(journalEntries.companyId, auth.companyId),
+      // El listado de asientos mezclaba los dos entornos, y las lineas que se
+      // cargan despues cuelgan de estos ids, asi que arrastraban la mezcla.
+      eq(journalEntries.modo, auth.modo),
       isNull(journalEntries.deletedAt)
     ];
 
@@ -200,10 +203,13 @@ export async function POST(req: NextRequest) {
     const entry = await db.transaction(async (tx) => {
       const insertedEntry = await AccountRepository.createJournalEntry(tx, {
         companyId: auth.companyId,
+        modo: auth.modo,
         date,
         description,
         reference,
         lines,
+        // Auditoria JRN-16: quien registra el asiento.
+        createdBy: auth.userId,
       });
 
       // Register audit log

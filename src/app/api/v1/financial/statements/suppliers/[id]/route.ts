@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { FinancialRepository } from '@/repositories/financialRepository';
 import { FinancialMovementService } from '@/services/financialMovementService';
@@ -28,6 +29,10 @@ export async function GET(
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'contabilidad', 'read');
+    if (denegado) return denegado;
+
     // Role verification
     if (!checkFinancialAccess(session.role)) {
       return NextResponse.json({ 
@@ -54,7 +59,7 @@ export async function GET(
     const type = searchParams.get('type') || undefined; // 'all' | 'credit' | 'cash'
     const search = searchParams.get('search') || undefined;
 
-    const data = await FinancialRepository.getSupplierStatement(session.companyId, supplierId, {
+    const data = await FinancialRepository.getSupplierStatement(session.companyId, session.modo, supplierId, {
       startDate,
       endDate,
       type,

@@ -14,10 +14,12 @@
  * mitades: que el ataque no pasa, y que la operacion legitima sigue pasando.
  */
 import { db } from '../src/db';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 import { inventoryLevels, products, warehouses } from '../src/db/schema';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111'; // atacante
 const B = '22222222-2222-2222-2222-222222222222'; // victima
@@ -72,8 +74,8 @@ const leerNivel = (companyId: string, productId: string, warehouseId: string) =>
     ));
 
 async function main() {
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`
     INSERT INTO inventory_levels (company_id, modo, product_id, warehouse_id, quantity) VALUES
       (${A}::uuid, 'PRODUCCION', ${PROD_A}::uuid, ${ALM_A}::uuid,  20.0000),
@@ -131,25 +133,25 @@ async function main() {
   // de verdad: si alguien quita el filtro, esto falla.
   console.log('\n6) El filtro sigue en el codigo, no solo en esta prueba\n');
 
-  const fuente = (ruta: string) => readFileSync(join(__dirname, '..', ruta), 'utf8');
+
 
   const post = fuente('src/app/api/v1/expenses/route.ts');
   ok('POST /expenses filtra la empresa al leer el nivel',
-    /levelResult = await tx\.select[^;]*inventoryLevels\.companyId/s.test(post));
+    /levelResult = await tx\.select[^;]*inventoryLevels\.companyId/.test(post));
   ok('POST /expenses valida el almacen antes de la transaccion',
     /warehouses\.companyId, session\.companyId/.test(post));
   ok('POST /expenses valida los productos del body',
-    /inArray\(products\.id, idsProducto\)[^;]*products\.companyId/s.test(post));
+    /inArray\(products\.id, idsProducto\)[^;]*products\.companyId/.test(post));
 
   const put = fuente('src/app/api/v1/expenses/[id]/route.ts');
   ok('PUT /expenses/[id] filtra la empresa al leer el nivel',
-    /levelResult = await tx[^;]*inventoryLevels\.companyId/s.test(put));
+    /levelResult = await tx[^;]*inventoryLevels\.companyId/.test(put));
   ok('PUT /expenses/[id] valida el almacen antes de la transaccion',
     /warehouses\.companyId, session\.companyId/.test(put));
 
   const pdf = fuente('src/services/invoice/invoiceFileGenerator.ts');
   ok('el generador del PDF filtra los productos por empresa',
-    /inArray\(products\.id, productIds as string\[\]\),\s*eq\(products\.companyId, data\.companyId\)/s.test(pdf));
+    /inArray\(products\.id, productIds as string\[\]\),\s*eq\(products\.companyId, data\.companyId\)/.test(pdf));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

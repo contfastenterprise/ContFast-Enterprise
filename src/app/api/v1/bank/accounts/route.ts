@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { BankRepository } from '@/repositories/bankRepository';
 import { z } from 'zod';
@@ -10,7 +11,11 @@ const createAccountSchema = z.object({
   currency: z.string().min(3),
   type: z.string().min(2),
   color: z.string().optional(),
-  initialBalance: z.number()
+  initialBalance: z.number(),
+  // Auditoria JRN-04: obligatoria para las cuentas nuevas. Sin ella el codigo
+  // adivinaba la cuenta contable por el nombre y acababa contabilizando todos
+  // los bancos contra la misma cuenta -- normalmente la de agrupacion.
+  chartAccountId: z.string().uuid('Debe seleccionar la cuenta contable del banco')
 });
 
 export async function GET(req: NextRequest) {
@@ -29,7 +34,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    const accounts = await BankRepository.getBankAccounts(session.companyId);
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'banco', 'read');
+    if (denegado) return denegado;
+
+    const accounts = await BankRepository.getBankAccounts(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data: accounts });
   } catch (error: any) {
@@ -56,6 +65,10 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'banco', 'write');
+    if (denegado) return denegado;
 
     const body = await req.json();
     const parsed = createAccountSchema.safeParse(body);

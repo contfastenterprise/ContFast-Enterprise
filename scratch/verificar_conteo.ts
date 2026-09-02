@@ -24,6 +24,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { execFileSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 
@@ -82,10 +83,8 @@ async function movimientos(): Promise<{ sku: string; quantity: string; balance_a
 }
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
-  await db.execute(sql`DELETE FROM inventory_transfer_lines`);
-  await db.execute(sql`DELETE FROM inventory_transfers`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`DELETE FROM products WHERE id IN (${MR09}::uuid, ${ZP02}::uuid, ${NG05}::uuid, ${PC01_B}::uuid, ${SRV01}::uuid)`);
 
   await db.execute(sql`
@@ -149,14 +148,14 @@ async function main() {
   ok('avisa del SKU que no existe', /no existen? en el catalogo/.test(seco.salida));
   ok('y lo escribe como venia en el CSV, no en minusculas', /\bXX-99 \(linea 7\)/.test(seco.salida));
   ok('lo mismo con el SKU repetido', /\bPC-01: lineas/.test(seco.salida));
-  ok('avisa de los niveles que el CSV no menciona', /2 productos tienen nivel .* NO\s*\n?\s*aparecen/s.test(seco.salida)
+  ok('avisa de los niveles que el CSV no menciona', /2 productos tienen nivel [\s\S]* NO\s*\n?\s*aparecen/.test(seco.salida)
     || /aparecen en el CSV/.test(seco.salida));
   ok('senala el que sigue en negativo', /SIGUE EN NEGATIVO/.test(seco.salida));
   ok('cuenta SV-01 como ya cuadrado', /Ya cuadrados\s*:\s*1/.test(seco.salida));
   ok('MR-09 se marca como nivel nuevo', /MR-09.*\(nivel nuevo\)/.test(seco.salida));
   ok('no imprime ningun asiento contable', !/DEBE|HABER/.test(seco.salida));
   ok('explica por que no hay asiento', /POR QUE NO HAY ASIENTO/.test(seco.salida));
-  ok('aparta el servicio del CSV', /no llevan control de \s*\n?\s*existencia/s.test(seco.salida)
+  ok('aparta el servicio del CSV', /no llevan control de \s*\n?\s*existencia/.test(seco.salida)
     || /no llevan control de/.test(seco.salida));
   ok('y lo nombra', /SRV-99\] Instalacion/.test(seco.salida));
 

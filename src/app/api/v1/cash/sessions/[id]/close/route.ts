@@ -42,6 +42,7 @@ export async function POST(
     const closeResult = await CashService.closeSession(
       auth.userId,
       auth.companyId,
+      auth.modo,
       id,
       result.data.actualBalance,
       result.data.justification

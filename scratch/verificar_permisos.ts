@@ -30,6 +30,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { hasPermission } from '../src/middleware/permissions';
 import { RbacService } from '../src/services/auth/rbacService';
 
@@ -55,8 +56,10 @@ async function permisoId(modulo: string, accion: string): Promise<string> {
 }
 
 async function main() {
-  await db.execute(sql`DELETE FROM role_permissions`);
-  await db.execute(sql`DELETE FROM user_permissions`);
+  // Limpieza de arranque, con orden derivado del esquema (ver _limpieza.ts).
+  // `role_permissions` y `user_permissions` no son transaccionales -- no tienen
+  // columna `modo` -- asi que hay que nombrarlas a mano.
+  await limpiarTodo(['role_permissions', 'user_permissions']);
   await db.execute(sql`
     INSERT INTO roles (id, name, is_fixed) VALUES (${ROL_CAJERO}::uuid, 'cajero', false)
     ON CONFLICT (id) DO UPDATE SET name = 'cajero'

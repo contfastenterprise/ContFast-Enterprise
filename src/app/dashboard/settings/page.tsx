@@ -31,8 +31,16 @@ export default function SettingsPage() {
   const [initialCompanyInfo, setInitialCompanyInfo] = useState({ name: '', rnc: '' });
   const [userRole, setUserRole] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string; avatarUrl?: string | null; avatarPath?: string | null } | null>(null);
-  const [hasMsellerApiKey, setHasMsellerApiKey] = useState(false);
+  // Auditoria ISO-16: mSeller emite credenciales DISTINTAS para cada ambiente, y
+  // antes solo cabia un juego. Al pasar a produccion habia que sustituir las de
+  // pruebas, y a partir de ahi el modo PRUEBA se quedaba sin credenciales
+  // validas. Ahora se guardan por ambiente y se elige a cual pertenecen las que
+  // se estan escribiendo.
+  const [entornosMseller, setEntornosMseller] = useState<string[]>([]);
+  const [credencialesEntorno, setCredencialesEntorno] = useState('TesteCF');
   const [hasMsellerPassword, setHasMsellerPassword] = useState(false);
+  /** El ambiente elegido ya tiene su clave de API guardada. */
+  const claveYaConfigurada = entornosMseller.includes(credencialesEntorno);
   const [showMsellerPassword, setShowMsellerPassword] = useState(false);
   const [subscription, setSubscription] = useState<{
     id: string;
@@ -61,7 +69,6 @@ export default function SettingsPage() {
     maxCreditNoteApprovalAmount: 0,
     maxCashOutApprovalAmount: 0,
     msellerUrl: 'https://ecf.api.mseller.app/v1',
-    msellerEntorno: 'test',
     msellerEmail: '',
     msellerApiKey: '',
     msellerPassword: '',
@@ -208,7 +215,6 @@ export default function SettingsPage() {
           maxCreditNoteApprovalAmount: Number(data.data.settings.maxCreditNoteApprovalAmount),
           maxCashOutApprovalAmount: Number(data.data.settings.maxCashOutApprovalAmount),
           msellerUrl: data.data.settings.msellerUrl || 'https://ecf.api.mseller.app/v1',
-          msellerEntorno: data.data.settings.dgiiEnv || 'test',
           msellerEmail: data.data.settings.msellerEmail || '',
           msellerApiKey: '',
           msellerPassword: '',
@@ -216,8 +222,8 @@ export default function SettingsPage() {
           barcodePrefix: data.data.settings.barcodePrefix || 'COD',
           barcodeLength: data.data.settings.barcodeLength ?? 9
         });
-        setHasMsellerApiKey(data.data.settings.hasMsellerApiKey);
-        setHasMsellerPassword(data.data.settings.hasMsellerPassword);
+        setEntornosMseller(data.data.settings.entornosMseller || []);
+        setHasMsellerPassword(!!data.data.settings.hasMsellerPassword);
         setSubscription(data.data.subscription || null);
         setAvailablePlans(data.data.availablePlans || []);
         // Fetch accounts and mappings
@@ -264,11 +270,21 @@ export default function SettingsPage() {
       const res = await fetch('/api/v1/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        // Auditoria ISO-16: el ambiente viaja con las credenciales. Sin el, el
+        // servidor no sabe a cual pertenecen y no las guarda.
+        body: JSON.stringify({ ...formData, msellerCredencialesEntorno: credencialesEntorno })
       });
       const data = await res.json();
       if (data.success) {
         toast.success('Configuración guardada exitosamente');
+        // Auditoria ISO-16: los campos de credenciales no se quedan escritos
+        // despues de guardar, por el mismo motivo que al cambiar de ambiente.
+        if (formData.msellerApiKey) {
+          setEntornosMseller(prev => prev.includes(credencialesEntorno) ? prev : [...prev, credencialesEntorno]);
+        }
+        if (formData.msellerPassword) setHasMsellerPassword(true);
+        // Los secretos no se quedan escritos en el formulario despues de guardar.
+        setFormData(f => ({ ...f, msellerApiKey: '', msellerPassword: '' }));
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('company-settings-updated'));
         }
@@ -580,7 +596,7 @@ export default function SettingsPage() {
                   <select
                     disabled={!isSistemas}
                     value={formData.dgiiEnv}
-                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value, msellerEntorno: e.target.value })}
+                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50 disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
                     <option value="test">Pruebas (Sandbox)</option>
@@ -674,79 +690,120 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Ambiente mSeller</label>
-                    <select
-                      disabled={true}
-                      value={formData.msellerEntorno}
-                      onChange={e => setFormData({ ...formData, msellerEntorno: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <option value="test">Pruebas</option>
-                      <option value="production">Producción</option>
-                    </select>
-                  </div>
+                {/* Auditoria ISO-13 e ISO-16: dos columnas porque son dos cosas
+                    distintas.
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
-                    <input
-                      type="text"
-                      disabled={!isSistemas}
-                      value={formData.msellerUrl}
-                      onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="https://api.mseller.app/v1"
-                    />
-                  </div>
+                    IZQUIERDA -- la cuenta de la empresa: servidor, usuario y
+                    contrasena. Son los mismos para los tres ambientes.
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
-                    <input
-                      type="email"
-                      disabled={!isSistemas}
-                      value={formData.msellerEmail}
-                      onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="usuario@empresa.com"
-                    />
-                  </div>
+                    DERECHA -- lo unico que cambia entre ambientes: la clave de
+                    API. mSeller emite una distinta para pruebas, certificacion y
+                    produccion.
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
-                    <div className="relative">
+                    Antes habia aqui un segundo selector "Ambiente mSeller",
+                    siempre deshabilitado, espejo de otro ajuste y escribiendo en
+                    una columna que ninguna resolucion consultaba. */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+
+                  {/* ── Cuenta de la empresa ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
                       <input
-                        type={showMsellerPassword ? "text" : "password"}
+                        type="text"
                         disabled={!isSistemas}
-                        value={formData.msellerPassword}
-                        onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })}
-                        className="w-full h-8 pl-3 pr-10 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 placeholder-slate-400 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                        placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"}
+                        value={formData.msellerUrl}
+                        onChange={e => setFormData({ ...formData, msellerUrl: e.target.value })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder="https://api.mseller.app/v1"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowMsellerPassword(!showMsellerPassword)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
-                      >
-                        {showMsellerPassword ? (
-                          <EyeOff className="h-5 w-5" />
-                        ) : (
-                          <Eye className="h-5 w-5" />
-                        )}
-                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
+                      <input
+                        type="email"
+                        disabled={!isSistemas}
+                        value={formData.msellerEmail}
+                        onChange={e => setFormData({ ...formData, msellerEmail: e.target.value })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder="usuario@empresa.com"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
+                      <div className="relative">
+                        <input
+                          type={showMsellerPassword ? "text" : "password"}
+                          disabled={!isSistemas}
+                          value={formData.msellerPassword}
+                          onChange={e => setFormData({ ...formData, msellerPassword: e.target.value })}
+                          className="w-full h-8 pl-3 pr-10 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 placeholder-slate-400 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                          placeholder={hasMsellerPassword ? "•••••••• (Configurada)" : "Ingresa contraseña"}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMsellerPassword(!showMsellerPassword)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
+                        >
+                          {showMsellerPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                        El usuario y la contraseña son los mismos para todos los ambientes.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
-                    <input
-                      type="password"
-                      disabled={!isSistemas}
-                      value={formData.msellerApiKey}
-                      onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 placeholder-slate-400 text-slate-900 bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder={hasMsellerApiKey ? "•••••••• (Configurada)" : "Ingresa el token de API"}
-                    />
+                  {/* ── Lo que cambia por ambiente ── */}
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">
+                        Ambiente de esta clave
+                      </label>
+                      <select
+                        disabled={!isSistemas}
+                        value={credencialesEntorno}
+                        onChange={e => {
+                          // Al cambiar de ambiente se vacia el campo. Si se quedara
+                          // escrito, guardar otra vez copiaria la clave de un
+                          // ambiente al otro sin que nadie se diera cuenta.
+                          setCredencialesEntorno(e.target.value);
+                          setFormData(f => ({ ...f, msellerApiKey: '' }));
+                        }}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        <option value="TesteCF">Pruebas (TesteCF)</option>
+                        <option value="CerteCF">Certificación (CerteCF)</option>
+                        <option value="eCF">Producción (eCF)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
+                      <input
+                        type="password"
+                        disabled={!isSistemas}
+                        value={formData.msellerApiKey}
+                        onChange={e => setFormData({ ...formData, msellerApiKey: e.target.value })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 placeholder-slate-400 text-slate-900 bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                        placeholder={claveYaConfigurada ? "•••••••• (Configurada)" : "Ingresa el token de API"}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      mSeller entrega una clave de API <strong>distinta para cada ambiente</strong>. Guarda la de
+                      cada uno por separado.
+                      {' '}
+                      {entornosMseller.length === 0
+                        ? 'Todavía no hay clave guardada para ningún ambiente.'
+                        : `Con clave: ${entornosMseller.join(', ')}.`}
+                    </p>
                   </div>
                 </div>
               </div>

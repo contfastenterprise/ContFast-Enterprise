@@ -69,7 +69,11 @@ export class CashRepository {
    */
   static async openSession(data: OpenSessionInput) {
     return await db.transaction(async (tx) => {
-      // Double check active session
+      // Double check active session.
+      // El entorno forma parte de la busqueda a proposito: PRODUCCION y PRUEBA
+      // son cajas independientes. Sin el filtro, tener la caja real abierta
+      // impedia abrir una de practicas -- y al reves, cerrar la de practicas
+      // dejaba creer que la real tambien estaba cerrada.
       const [existing] = await tx
         .select()
         .from(cashSessions)
@@ -77,13 +81,18 @@ export class CashRepository {
           and(
             eq(cashSessions.userId, data.userId),
             eq(cashSessions.companyId, data.companyId),
+            eq(cashSessions.modo, data.modo),
             eq(cashSessions.status, 'open')
           )
         )
         .limit(1);
 
       if (existing) {
-        throw new Error('Ya tiene una sesión de caja activa en esta empresa.');
+        throw new Error(
+          data.modo === 'PRUEBA'
+            ? 'Ya tiene una sesión de caja de PRUEBAS activa en esta empresa.'
+            : 'Ya tiene una sesión de caja activa en esta empresa.'
+        );
       }
 
       const [session] = await tx
@@ -106,7 +115,14 @@ export class CashRepository {
   /**
    * Closes a session, writing the summary table.
    */
-  static async closeSession(sessionId: string, companyId: string, data: CloseSessionInput) {
+  static async closeSession(
+    sessionId: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    data: CloseSessionInput
+  ) {
+    // `modo` acota la sesion que se cierra (abajo, en el UPDATE). No se propaga
+    // a la suma de movimientos: ver el comentario del paso 2.
     return await db.transaction(async (tx) => {
       // 1. Update session status
       const [session] = await tx
@@ -119,18 +135,32 @@ export class CashRepository {
           justification: data.justification,
           updatedAt: new Date(),
         })
-        .where(and(eq(cashSessions.id, sessionId), eq(cashSessions.companyId, companyId)))
+        .where(and(
+          eq(cashSessions.id, sessionId),
+          eq(cashSessions.companyId, companyId),
+          eq(cashSessions.modo, modo)
+        ))
         .returning();
 
       if (!session) {
         throw new Error('No se encontró la sesión de caja a cerrar.');
       }
 
-      // 2. Fetch cash movements summary
+      // 2. Fetch cash movements summary.
+      // Aqui NO se filtra por modo, y es deliberado. La sesion ya se localizo
+      // arriba por id + empresa + entorno: su id es clave primaria, asi que
+      // estos movimientos son suyos y de nadie mas. Anadir el filtro tendria
+      // un efecto malo: un movimiento heredado con el sello equivocado -- los
+      // que dejo el viejo `modo || 'PRODUCCION'` dentro de sesiones de
+      // practicas -- desapareceria del arqueo mientras sigue contando en el
+      // saldo esperado, y el cuadre se volveria imposible de explicar.
       const movements = await tx
         .select()
         .from(cashMovements)
-        .where(eq(cashMovements.cashSessionId, sessionId));
+        .where(and(
+          eq(cashMovements.cashSessionId, sessionId),
+          eq(cashMovements.companyId, companyId)
+        ));
 
       let totalCashIn = 0;
       let totalCashOut = 0;
@@ -177,25 +207,8 @@ export class CashRepository {
     amount: number;
     description?: string;
     reference?: string;
-    modo?: 'PRODUCCION' | 'PRUEBA';
   }) {
-    // 1. Insert Cash Movement
-    const [movement] = await tx
-      .insert(cashMovements)
-      .values({
-        companyId: data.companyId,
-        cashSessionId: data.cashSessionId,
-        invoiceId: data.invoiceId,
-        type: data.type,
-        amount: data.amount.toString(),
-        description: data.description,
-        reference: data.reference,
-        modo: data.modo || 'PRODUCCION',
-      })
-      .returning();
-
-    // 2. Update Cash Session Expected Balance
-    // In Drizzle, we can do direct update:
+    // 1. Localizar la sesion ANTES de insertar nada.
     // cashSessionId puede venir del cuerpo de la peticion (al facturar con
     // paymentType distinto de 'cash' no se sustituye por la sesion propia), asi
     // que sin filtrar por empresa se alteraba el saldo esperado de la caja de
@@ -206,13 +219,36 @@ export class CashRepository {
     );
 
     const session = await tx
-      .select({ expectedBalance: cashSessions.expectedBalance })
+      .select({ expectedBalance: cashSessions.expectedBalance, modo: cashSessions.modo })
       .from(cashSessions)
       .where(alcanceSesion)
       .limit(1);
 
     if (!session[0]) throw new Error('Sesión de caja no encontrada para esta empresa.');
 
+    // 2. El entorno del movimiento NO es un parametro: se toma de la sesion a
+    // la que se apunta. Antes era `data.modo || 'PRODUCCION'`, y quien no lo
+    // pasaba -- arRepository al cobrar en efectivo -- sellaba como real un
+    // cobro de practicas. Un movimiento no puede estar en un entorno distinto
+    // al de su propia caja, y asi ya no hay forma de que ocurra.
+    const modo = session[0].modo as 'PRODUCCION' | 'PRUEBA';
+
+    // 3. Insert Cash Movement
+    const [movement] = await tx
+      .insert(cashMovements)
+      .values({
+        companyId: data.companyId,
+        cashSessionId: data.cashSessionId,
+        invoiceId: data.invoiceId,
+        type: data.type,
+        amount: data.amount.toString(),
+        description: data.description,
+        reference: data.reference,
+        modo,
+      })
+      .returning();
+
+    // 4. Update Cash Session Expected Balance
     const currentExpected = parseFloat(session[0]?.expectedBalance || '0');
     const amt = data.amount;
     let newExpected = currentExpected;
@@ -250,6 +286,11 @@ export class CashRepository {
   /**
    * Fetches movements for a specific session.
    */
+  /**
+   * Por la misma razon que el arqueo: el entorno lo fija quien localiza la
+   * sesion (la ruta, con auth.modo), no esta consulta. La sesion es la unidad
+   * de alcance; su id ya la determina por completo.
+   */
   static async getMovements(sessionId: string, companyId: string) {
     return await db
       .select()
@@ -261,7 +302,7 @@ export class CashRepository {
   /**
    * Lists all sessions for a company (for history/reporting), ordered by most recent first.
    */
-  static async listSessions(companyId: string) {
+  static async listSessions(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const sessions = await db
       .select({
         id: cashSessions.id,
@@ -279,7 +320,9 @@ export class CashRepository {
       })
       .from(cashSessions)
       .leftJoin(cashRegisters, eq(cashSessions.cashRegisterId, cashRegisters.id))
-      .where(eq(cashSessions.companyId, companyId))
+      // El historial de cierres de caja es el que se revisa cuando falta
+      // dinero. Mezclar las sesiones de practicas con las reales lo inutiliza.
+      .where(and(eq(cashSessions.companyId, companyId), eq(cashSessions.modo, modo)))
       .orderBy(desc(cashSessions.createdAt))
       .limit(100);
 

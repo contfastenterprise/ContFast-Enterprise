@@ -34,9 +34,10 @@ export async function POST(request: NextRequest) {
     const companyInfo = {
       name: company.name,
       rnc: company.rnc,
-      address: company.address || 'Santiago, R.D.',
-      phone: company.phone || '1-829-214-4128',
-      email: company.email || settings?.msellerEmail || 'latindoors@gmail.com',
+      // Auditoria ISO-17: los datos de contacto son los de la empresa, o ninguno.
+      address: company.address || '',
+      phone: company.phone || '',
+      email: company.email || '',
       logoUrl: settings?.logoUrl || undefined,
     };
 

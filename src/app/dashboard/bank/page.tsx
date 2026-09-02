@@ -16,6 +16,8 @@ interface BankAccount {
   balance: string;
   status: string;
   color?: string;
+  /** Cuenta del catalogo contra la que se asientan sus movimientos (migracion 0039). */
+  chartAccountId?: string | null;
 }
 
 interface BankTransaction {
@@ -33,6 +35,8 @@ interface ChartAccount {
   code: string;
   name: string;
   type: string;
+  isTransactional?: boolean;
+  status?: string;
 }
 
 const fmt = (val: string | number, currency = 'DOP') => {
@@ -72,7 +76,10 @@ export default function BankAccountsPage() {
     currency: 'DOP',
     type: 'corriente',
     color: '#003366',
-    initialBalance: ''
+    initialBalance: '',
+    // Auditoria JRN-04: cada cuenta bancaria declara su cuenta contable. Antes
+    // el backend la adivinaba buscando "banco" en los nombres del catalogo.
+    chartAccountId: ''
   });
 
   const [txForm, setTxForm] = useState({
@@ -159,7 +166,7 @@ export default function BankAccountsPage() {
         toast.success('Cuenta creada exitosamente');
         setShowNewAccountModal(false);
         fetchAccounts();
-        setAccountForm({ bankName: '', accountNumber: '', currency: 'DOP', type: 'corriente', color: '#003366', initialBalance: '' });
+        setAccountForm({ bankName: '', accountNumber: '', currency: 'DOP', type: 'corriente', color: '#003366', initialBalance: '', chartAccountId: '' });
       } else {
         toast.error(data.error?.message || 'Error al crear cuenta');
       }
@@ -224,7 +231,7 @@ export default function BankAccountsPage() {
       const logoHtml = company.logoUrl 
         ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
         : '';
-      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Empresa'}</div>`;
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Empresa sin identificar'}</div>`;
 
       // Filter local items based on search if applied
       const itemsToPrint = transactions.filter(tx => {
@@ -236,7 +243,7 @@ export default function BankAccountsPage() {
       const htmlContent = `
         <html>
           <head>
-            <title>Reporte de Transacciones Bancarias - ${company.companyName || 'Empresa'}</title>
+            <title>Reporte de Transacciones Bancarias - ${company.companyName || 'Empresa sin identificar'}</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 13px; }
               .header { display: flex; justify-content: space-between; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
@@ -625,6 +632,25 @@ export default function BankAccountsPage() {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cuenta Contable del Banco</label>
+                    <select
+                      required
+                      value={accountForm.chartAccountId}
+                      onChange={e => setAccountForm({ ...accountForm, chartAccountId: e.target.value })}
+                      className="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 text-sm text-[#003366] outline-none focus:border-[#c5a059] transition"
+                    >
+                      <option value="">Seleccione la cuenta del catálogo</option>
+                      {chartOfAccounts
+                        .filter(c => c.isTransactional !== false && c.status !== 'inactive')
+                        .map(c => (
+                          <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                        ))}
+                    </select>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
+                    </p>
+                  </div>
+                  <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Balance Inicial</label>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
@@ -692,9 +718,18 @@ export default function BankAccountsPage() {
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Contable (Contrapartida)</label>
                   <select required value={txForm.contraAccountId} onChange={e => setTxForm({ ...txForm, contraAccountId: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
                     <option value="">Seleccione cuenta (Ej. Ingresos / Gastos)</option>
-                    {chartOfAccounts.map(c => (
-                      <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                    ))}
+                    {/*
+                      Auditoria JRN-12: este selector listaba TODAS las cuentas,
+                      incluidas las de agrupacion y las de los propios bancos.
+                      De ahi salio un ajuste con el debe y el haber contra
+                      1.1.01: cuadraba y no significaba nada.
+                    */}
+                    {chartOfAccounts
+                      .filter(c => c.isTransactional !== false && c.status !== 'inactive')
+                      .filter(c => c.id !== selectedAccount?.chartAccountId)
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                      ))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

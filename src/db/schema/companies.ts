@@ -25,7 +25,6 @@ export const companySettings = pgTable('company_settings', {
   logoUrl: text('logo_url'),
   msellerUrl: text('mseller_url').default('https://ecf.api.mseller.app/v1').notNull(),
   msellerApiKeyEncrypted: text('mseller_api_key_encrypted'),
-  msellerEntorno: varchar('mseller_entorno', { length: 50 }).default('test').notNull(),
   msellerEmail: varchar('mseller_email', { length: 255 }),
   msellerPasswordEncrypted: text('mseller_password_encrypted'),
   printLayout: varchar('print_layout', { length: 50 }).default('carta').notNull(), // carta | 80mm | 58mm
@@ -41,6 +40,42 @@ export const companySettings = pgTable('company_settings', {
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('company_settings_company_idx').on(table.companyId),
+}));
+
+/**
+ * La clave de API de mSeller, UNA POR ENTORNO.
+ *
+ * --- POR QUE (hallazgo ISO-16) --------------------------------------------
+ *
+ * De las tres credenciales de mSeller, solo la CLAVE DE API cambia entre
+ * ambientes. El correo y la contrasena son los mismos y se quedan donde estaban,
+ * en `company_settings`: duplicarlos por ambiente los expondria a
+ * desincronizarse, y un cambio de contrasena aplicado en dos ambientes de tres
+ * deja el tercero roto sin que nadie se entere. Un dato, un sitio.
+ *
+ * Antes habia una sola clave por empresa. El dia que una pasaba a produccion
+ * tenia que sustituir la de pruebas, y a partir de ahi el modo PRUEBA se quedaba
+ * sin clave valida: `entornoDgii` lo mandaba a TesteCF, que es lo correcto, pero
+ * con la clave de produccion. Toda la separacion por modo se quedaba sin efecto
+ * justo el dia del arranque real.
+ *
+ * Tabla y no tres columnas: asi entra `CerteCF` sin tocar el esquema, y cada
+ * clave lleva su fecha de cambio, que para algo que hay que rotar viene bien.
+ */
+export const msellerApiKeys = pgTable('mseller_api_keys', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  /** TesteCF | CerteCF | eCF -- los mismos valores que devuelve `entornoDgii`. */
+  entorno: varchar('entorno', { length: 20 }).notNull(),
+  apiKeyEncrypted: text('api_key_encrypted').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  // Una clave por empresa y entorno, y no mas: dos filas para el mismo entorno
+  // dejarian la eleccion al orden en que Postgres devuelva las filas.
+  companyEntornoIdx: uniqueIndex('mseller_api_keys_company_entorno_idx')
+    .on(table.companyId, table.entorno),
+  companyIdx: index('mseller_api_keys_company_idx').on(table.companyId),
 }));
 
 export const plans = pgTable('plans', {

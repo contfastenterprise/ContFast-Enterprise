@@ -274,6 +274,7 @@ export default function NewQuote() {
             unitPrice: Number(l.unitPrice),
             discount: Number(l.discount),
             taxRate: Number(l.taxRate),
+            taxCategory: Number(l.taxRate) === 0 ? (l.taxCategory ?? 'exento') : null,
             priceTier: l.priceTier,
           }))
         })
@@ -490,16 +491,31 @@ export default function NewQuote() {
                     {/* Tax Rate (ITBIS) */}
                     <div className="space-y-1.5 md:space-y-0">
                       <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS</label>
+                      {/*
+                        Mismo desdoble que en el formulario de facturas: la DGII
+                        distingue "exento" (indicador 4) de "tasa 0%"
+                        (indicador 3, exportaciones). Se elige aqui para que la
+                        cotizacion ya lo lleve y no se pierda al facturarla.
+                      */}
                       <select
-                        value={line.taxRate}
-                        onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value) || 0)}
+                        value={
+                          Number(line.taxRate) === 0
+                            ? `0|${line.taxCategory === 'tasa_cero' ? 'tasa_cero' : 'exento'}`
+                            : String(line.taxRate)
+                        }
+                        onChange={(e) => {
+                          const [tasa, categoria] = e.target.value.split('|');
+                          handleLineChange(idx, 'taxRate', parseFloat(tasa) || 0);
+                          handleLineChange(idx, 'taxCategory', categoria || null);
+                        }}
                         disabled={!hasProduct}
                         className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                       >
-                        <option value={0.18}>18% ITBIS</option>
-                        <option value={0.16}>16% ITBIS</option>
-                        <option value={0.08}>8% ITBIS</option>
-                        <option value={0}>Exento (0%)</option>
+                        <option value="0.18">18% ITBIS</option>
+                        <option value="0.16">16% ITBIS</option>
+                        <option value="0.08">8% ITBIS</option>
+                        <option value="0|exento">Exento (0%)</option>
+                        <option value="0|tasa_cero">Tasa 0% — exportación</option>
                       </select>
                     </div>
 

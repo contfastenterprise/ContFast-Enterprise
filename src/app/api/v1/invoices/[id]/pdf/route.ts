@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
@@ -7,58 +6,61 @@ import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, productCategories } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 
-const JWT_SECRET = process.env.JWT_SECRET as string;
-
-if (!JWT_SECRET) {
-  throw new Error('La variable de entorno JWT_SECRET es obligatoria y debe estar definida.');
-}
-
+/**
+ * SE RETIRO LA AUTENTICACION POR `?token=`
+ * ----------------------------------------
+ * Esta ruta aceptaba, ademas de la sesion, un JWT en la barra de direcciones:
+ * `/api/v1/invoices/<id>/pdf?token=...`. Se retira, y conviene dejar escrito
+ * por que, porque a primera vista parecia una funcion util:
+ *
+ *  1. Nadie firmaba esos tokens. No hay un solo `jwt.sign` con `invoiceId` en
+ *     el repositorio -- ni ahora ni en la historia del fichero, que solo tiene
+ *     el commit de la auditoria. Era andamiaje que nunca se conecto.
+ *  2. Los cuatro sitios que abren el PDF (dos en la pantalla de facturas, uno
+ *     en el detalle y otro en ajustes) usan `window.open` con la cookie de
+ *     sesion. Ninguno construye un `?token=`.
+ *  3. Se SALTABA `enforcePermission`. La rama de sesion exige permiso de
+ *     lectura sobre facturacion; la del token no comprobaba nada mas alla de
+ *     la firma. Un token valido daba el PDF a quien no tiene ese permiso.
+ *  4. Un credencial en la barra de direcciones queda en los registros del
+ *     servidor, en el historial del navegador y en la cabecera Referer.
+ *
+ * Si en algun momento hace falta entregar una factura a alguien sin sesion, el
+ * sistema YA tiene el mecanismo correcto y es mejor que este: `documentShares`
+ * (DocumentService.createShareToken), con testigo aleatorio de 32 bytes
+ * guardado en la base, caducidad y posibilidad de revocarlo.
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<any> }
 ) {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get('token');
 
     let companyId: string | null = null;
     let modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION';
     const resHeaders = new Headers();
 
-    // 1. Authenticate either via JWT token parameter or session cookies
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        if (decoded.invoiceId !== id) {
-          return new NextResponse('Token de descarga inválido.', { status: 400 });
-        }
-        companyId = decoded.companyId;
-        modo = decoded.modo || 'PRODUCCION';
-      } catch (err: any) {
-        return new NextResponse(`Token de descarga expirado o inválido: ${err.message}`, { status: 401 });
-      }
-    } else {
-      // Normal authenticated request using session cookies (direct browser navigation)
-      const auth = await verifyAuth(req, resHeaders);
-      if (!auth) {
-        return NextResponse.json(
-          { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } },
-          { status: 401 }
-        );
-      }
-      // Enforce read permission
-      try {
-        await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
-        companyId = auth.companyId;
-        modo = auth.modo;
-      } catch (err: any) {
-        return NextResponse.json(
-          { success: false, error: { code: 'FORBIDDEN', message: err.message } },
-          { status: 403, headers: resHeaders }
-        );
-      }
+    // Autenticacion por cookie de sesion, con permiso de lectura. Unica via.
+    const auth = await verifyAuth(req, resHeaders);
+    if (!auth) {
+      return NextResponse.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } },
+        { status: 401 }
+      );
+    }
+    try {
+      await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
+      companyId = auth.companyId;
+      modo = auth.modo;
+    } catch (err: any) {
+      return NextResponse.json(
+        { success: false, error: { code: 'FORBIDDEN', message: err.message } },
+        { status: 403, headers: resHeaders }
+      );
     }
 
     if (!companyId) {
@@ -92,7 +94,14 @@ export async function GET(
       .from(ecfSequences)
       .where(
         and(
+          // `ecf_sequences` tiene indice unico (company_id, ecf_type, modo):
+          // hay DOS filas candidatas, una por entorno, y con `.limit(1)` sin
+          // orden salia la que quisiera el planificador. De esta fila sale
+          // la fecha de vencimiento del NCF que se IMPRIME en el
+          // comprobante fiscal: un documento real podia salir con la
+          // caducidad de la secuencia de pruebas.
           eq(ecfSequences.companyId, invoice.companyId),
+          eq(ecfSequences.modo, modo),
           eq(ecfSequences.ecfType, invoice.ecfType)
         )
       )
@@ -122,6 +131,9 @@ export async function GET(
         unitPrice: invoiceLines.unitPrice,
         discount: invoiceLines.discount,
         total: invoiceLines.total,
+        // La tasa de CADA linea (migracion 0039). Sin esto la plantilla tenia
+        // que adivinarla del resumen agregado y aplicar una sola a todas.
+        taxRate: invoiceLines.taxRate,
         productName: products.name,
         productSku: products.sku,
         unitOfMeasure: products.unitOfMeasure,
@@ -139,45 +151,42 @@ export async function GET(
       .where(eq(invoiceTaxes.invoiceId, id));
 
     // Fetch dgii submission to retrieve security code and QR code from mseller
-    const [submission] = await db
-      .select()
-      .from(dgiiSubmissions)
-      .where(eq(dgiiSubmissions.invoiceId, id))
-      .limit(1);
+    // Una factura puede tener varios envios: uno por cada intento. Antes esto
+    // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
+    // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
+    // en un solo sitio: envioVigente.
+    const submission = await envioVigente(id, companyId, modo);
 
-    let securityCode = '';
+    // La lectura del codigo de seguridad, el QR y la fecha de firma vive en
+    // datosFirmaDeEnvio. Aqui habia treinta lineas repetidas en cuatro rutas
+    // que acababan en:
+    //
+    //     if (!securityCode) securityCode = sha256(id + ncf).slice(0,16)
+    //
+    // o sea, inventarse el codigo de seguridad de un comprobante fiscal. Y
+    // peor: el QR se construia con ESE codigo inventado apuntando a la
+    // consulta de la DGII, donde no puede validar nunca.
+    const firma = datosFirmaDeEnvio(submission);
+    const securityCode = firma.codigo;
+    const signedDate = firma.fechaFirma;
     let qrBase64 = '';
-    let signedDate = '';
-
-    if (submission && submission.responsePayload) {
-      try {
-        const payload = JSON.parse(submission.responsePayload);
-        securityCode = payload.securityCode || payload.codigoSeguridad || '';
-        const rawQr = payload.qr_url || payload.qrCode || '';
-        if (rawQr) {
-          if (rawQr.startsWith('http')) {
-            qrBase64 = await PdfGenerator.generateQrBase64(rawQr);
-          } else {
-            qrBase64 = rawQr;
-          }
-        }
-        signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
-      } catch (err) {
-        console.error('Error parsing submission responsePayload:', err);
-      }
-    }
-
-    // Fallbacks if not processed by worker yet (or if worker response didn't contain them)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-const crypto = require('crypto');
-    if (!securityCode) {
-      securityCode = crypto.createHash('sha256').update(invoice.id + invoice.ncf).digest('hex').substring(0, 16).toUpperCase();
-    }
-
-    if (!qrBase64) {
-      const dateFormatted = new Date(invoice.createdAt).toLocaleDateString('es-DO').replace(/\//g, '-');
-      const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${invoice.buyerRnc || ''}&eNCF=${invoice.ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(invoice.total).toFixed(2)}&codigoSeguridad=${securityCode}`;
-      qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+    if (firma.qr) {
+      qrBase64 = firma.qr.startsWith('http')
+        ? await PdfGenerator.generateQrBase64(firma.qr)
+        : firma.qr;
+    } else if (securityCode) {
+      // Sin QR de mSeller pero CON codigo real, la consulta se puede construir
+      // y sirve. Sin codigo no se genera ningun QR: un QR que lleva a la DGII a
+      // preguntar por un codigo inexistente es peor que no tenerlo.
+      const urlConsulta = urlConsultaDgii({
+        rncEmisor: company.rnc,
+        rncComprador: invoice.buyerRnc,
+        ncf: invoice.ncf,
+        fecha: invoice.createdAt,
+        total: Number(invoice.total),
+        codigoSeguridad: securityCode,
+      });
+      if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
     }
 
     const invoiceRecord = {
@@ -199,6 +208,10 @@ const crypto = require('crypto');
       ncfExpiryDate: ncfExpiry,
       lines: lines.map(l => ({
         quantity: Number(l.quantity),
+        // `null` se conserva como `null`: significa "no consta" (factura vieja
+        // con varias tasas). La plantilla decide que hacer, y no lo confunde
+        // con una tasa de 0.
+        taxRate: l.taxRate != null ? Number(l.taxRate) : null,
         productName: l.productName || 'Producto/Servicio',
         productSku: l.productSku || 'N/A',
         unitOfMeasure: l.unitOfMeasure || 'Unidad',

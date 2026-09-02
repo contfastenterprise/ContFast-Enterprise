@@ -1,4 +1,5 @@
 import { db, products, productCategories } from '@/db';
+import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
@@ -126,9 +127,20 @@ export class InvoiceFileGenerator {
           qrBase64 = submission.qrCode;
         }
       } else {
-        const dateFormatted = new Date().toLocaleDateString('es-DO').replace(/\//g, '-');
-        const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${data.buyerRnc || ''}&eNCF=${ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(totals.total).toFixed(2)}&codigoSeguridad=${securityHash}`;
-        qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+        // Sin QR de mSeller se construye la consulta de la DGII, pero SOLO si
+        // hay codigo de seguridad. Antes se construia siempre, y cuando el
+        // codigo no constaba salia un QR con `codigoSeguridad=` vacio: un QR
+        // impreso en un comprobante fiscal que lleva a una consulta que no
+        // puede responder. Sin codigo, mejor sin QR.
+        const urlConsulta = urlConsultaDgii({
+          rncEmisor: company.rnc,
+          rncComprador: data.buyerRnc,
+          ncf,
+          fecha: new Date(),
+          total: Number(totals.total),
+          codigoSeguridad: securityHash,
+        });
+        if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
       }
 
       const layout = (settings?.printLayout as 'carta' | '80mm' | '58mm') || 'carta';
@@ -142,7 +154,18 @@ export class InvoiceFileGenerator {
       if (data.customerId) {
         try {
           const customer = await CustomerRepository.findById(data.customerId, data.companyId);
-          if (customer && customer.email) {
+          // Sin nombre de empresa NO se manda el correo. Iba firmado
+          // "Atentamente, ${companyName}", y ese nombre caia en 'ContFast'
+          // -- el nombre del PRODUCTO -- cuando faltaba. Un correo a un
+          // cliente firmado por una empresa que no es la suya es peor que no
+          // mandarlo: la factura ya esta emitida y el PDF generado, esto solo
+          // era el aviso. Se registra y se sigue.
+          if (customer && customer.email && !company?.name) {
+            Logger.error(
+              `[InvoiceFileGenerator] No hay nombre de empresa: NO se envia el aviso del NCF ${ncf} ` +
+              `a ${customer.email}. La factura y el PDF si se generaron.`
+            );
+          } else if (customer && customer.email) {
             let docName = 'Factura';
             let typeStr = data.paymentType === 'credit' ? ' a crédito' : '';
             if (data.ecfType === '33') {
@@ -154,7 +177,7 @@ export class InvoiceFileGenerator {
             }
 
             const subject = `${docName}${typeStr} - NCF: ${ncf}`;
-            const companyName = company.name || 'ContFast';
+            const companyName = company.name;
 
             await addJob('emails-sending', 'send-email', {
               to: customer.email,
@@ -188,7 +211,7 @@ export class InvoiceFileGenerator {
       try {
         const draftNote = await DeliveryRepository.create({
           companyId: data.companyId,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
           invoiceId: invoiceId,
           userId: data.userId,
           deliveryDate: new Date(),
@@ -201,7 +224,7 @@ export class InvoiceFileGenerator {
           })),
         });
 
-        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId, data.modo || 'PRODUCCION');
+        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId, data.modo);
       } catch (autoErr) {
         Logger.error('[InvoiceFileGenerator] Error creating automatic delivery note', autoErr);
       }
@@ -210,7 +233,7 @@ export class InvoiceFileGenerator {
     if (data.quoteId) {
       try {
         const { QuoteService } = await import('@/services/quoteService');
-        await QuoteService.markAsInvoiced(data.quoteId, data.companyId, data.modo || 'PRODUCCION');
+        await QuoteService.markAsInvoiced(data.quoteId, data.companyId, data.modo);
       } catch (err) {
         Logger.error('[InvoiceFileGenerator] Error marking quote as invoiced', err);
       }

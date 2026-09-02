@@ -23,10 +23,12 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { ReportRepository } from '../src/repositories/reportRepository';
 import { getExpenses, generate606Txt } from '../src/services/expenseService';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const USER_A = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -40,15 +42,10 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM journal_entry_lines`);
-  await db.execute(sql`DELETE FROM journal_entries`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   // Las lineas cuelgan de la factura por clave foranea: van primero. Otro banco
   // puede haber dejado lineas sembradas, y este tiene que poder correr igual.
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM accounts_payable`);
-  await db.execute(sql`DELETE FROM expenses`);
-  await db.execute(sql`DELETE FROM invoices`);
 
   await db.execute(sql`
     INSERT INTO customers (id, company_id, name, rnc_cedula) VALUES (${CLIENTE}::uuid, ${A}::uuid, 'Cliente Uno', '101010101')
@@ -58,11 +55,18 @@ async function sembrar() {
     ON CONFLICT (id) DO NOTHING`);
 
   // Una factura real y una de practicas, el mismo dia.
+  //
+  // La fecha va EXPLICITA, y no es un detalle: sin ella `created_at` tomaba
+  // `now()`, y el apartado 4 consulta la ventana fija '2026-08-01'..'2026-08-31'.
+  // El banco pasaba en agosto y empezo a fallar solo el 1 de septiembre, sin
+  // que nadie tocara nada -- el gasto si llevaba fecha explicita y por eso
+  // seguia apareciendo, lo que hacia parecer que el fallo era de las ventas.
+  // Un banco que depende del calendario no comprueba lo que dice comprobar.
   const facturas = (await db.execute(sql`
-    INSERT INTO invoices (company_id, modo, user_id, customer_id, ncf, ecf_type, subtotal, total_taxes, total, codigo_factura, status)
+    INSERT INTO invoices (company_id, modo, user_id, customer_id, ncf, ecf_type, subtotal, total_taxes, total, codigo_factura, status, created_at)
     VALUES
-      (${A}::uuid, 'PRODUCCION', ${USER_A}::uuid, ${CLIENTE}::uuid, 'E310000000001', '31', 10000, 1800, 11800, 'FAC-REAL', 'issued'),
-      (${A}::uuid, 'PRUEBA',     ${USER_A}::uuid, ${CLIENTE}::uuid, 'E310000000999', '31',   500,   90,   590, 'FAC-PRUEBA', 'issued')
+      (${A}::uuid, 'PRODUCCION', ${USER_A}::uuid, ${CLIENTE}::uuid, 'E310000000001', '31', 10000, 1800, 11800, 'FAC-REAL', 'issued', '2026-08-10 10:00:00'),
+      (${A}::uuid, 'PRUEBA',     ${USER_A}::uuid, ${CLIENTE}::uuid, 'E310000000999', '31',   500,   90,   590, 'FAC-PRUEBA', 'issued', '2026-08-10 10:00:00')
     RETURNING id, modo
   `)) as unknown as { id: string; modo: string }[];
   const facReal = facturas.find((f) => f.modo === 'PRODUCCION')!.id;
@@ -157,7 +161,7 @@ async function main() {
   ok('control: si aparecen los reales', j.includes('E310000000001') && j.includes('B0100000001'));
 
   console.log('\n5) El filtro sigue en las rutas que no se pueden invocar aqui\n');
-  const fuente = (r: string) => readFileSync(join(__dirname, '..', r), 'utf8');
+
   ok('607 TXT filtra el entorno',
     /eq\(invoices\.modo, auth\.modo\)/.test(fuente('src/app/api/v1/reports/607/txt/route.ts')));
   ok('el libro de ventas filtra el entorno',

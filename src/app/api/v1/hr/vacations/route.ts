@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 import { z } from 'zod';
@@ -31,6 +32,10 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'read');
+    if (denegado) return denegado;
 
     const saldos = await HRRepository.findVacations(session.companyId, session.modo);
     const hoy = new Date();
@@ -64,6 +69,10 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'write');
+    if (denegado) return denegado;
 
     const body = await req.json();
     const parsed = movimientoSchema.safeParse(body);

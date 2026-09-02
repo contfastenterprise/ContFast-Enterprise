@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, invoices, customers, companies, companySettings } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { eq, and, sql, gte, lte, or, ilike, notInArray } from 'drizzle-orm';
@@ -11,6 +12,10 @@ export async function GET(req: NextRequest) {
     if (!session) {
       return new NextResponse('No autorizado', { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'facturacion', 'read');
+    if (denegado) return denegado;
 
     const { searchParams } = new URL(req.url);
     const startDate = searchParams.get('startDate') || undefined;
@@ -105,8 +110,9 @@ export async function GET(req: NextRequest) {
         name: company.name,
         rnc: company.rnc,
         address: company.address || '',
-        phone: company.phone || '1-829-214-4128',
-        email: company.email || settings?.msellerEmail || 'latindoors@gmail.com',
+        // Auditoria ISO-17: los datos de contacto son los de la empresa, o ninguno.
+        phone: company.phone || '',
+        email: company.email || '',
         logoUrl: settings?.logoUrl || undefined,
       },
       items,

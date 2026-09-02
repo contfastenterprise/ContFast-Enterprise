@@ -191,12 +191,12 @@ export default function AccountingPage() {
       const logoHtml = company.logoUrl 
         ? `<img src="${company.logoUrl}" style="max-height: 55px; width: auto; object-fit: contain; margin-left: -3ch;" alt="Logo">` 
         : '';
-      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'ContFast'}</div>`;
+      const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Empresa sin identificar'}</div>`;
 
       const htmlContent = `
         <html>
           <head>
-            <title>Catálogo de Cuentas - ${company.companyName || 'ContFast'}</title>
+            <title>Catálogo de Cuentas - ${company.companyName || 'Empresa sin identificar'}</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #333; margin: 30px; line-height: 1.4; font-size: 12px; }
               .header { display: flex; justify-content: flex-start; align-items: center; gap: 20px; border-bottom: 2px solid #003366; padding-bottom: 15px; margin-bottom: 20px; }
@@ -417,6 +417,23 @@ export default function AccountingPage() {
   const totalDebits = journalLines.reduce((s, l) => s + l.debit, 0);
   const totalCredits = journalLines.reduce((s, l) => s + l.credit, 0);
   const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01 && totalDebits > 0;
+
+  // Por que el boton esta desactivado. Antes solo se avisaba con el distintivo
+  // "Descuadrado", y ese distintivo se mostraba con la condicion
+  // `!isBalanced && totalDebits > 0`: si el usuario escribia SOLO creditos,
+  // `totalDebits` valia 0, no salia ningun aviso, y el boton quedaba
+  // desactivado sin decir por que. Callejon sin salida.
+  const diferencia = totalDebits - totalCredits;
+  const lineasSinCuenta = journalLines.filter(l => !l.accountId && (l.debit > 0 || l.credit > 0)).length;
+  const motivoBloqueo =
+    totalDebits === 0 && totalCredits === 0 ? 'Introduzca al menos un débito y un crédito.'
+    : totalDebits === 0 ? 'Falta el débito: un asiento necesita ambos lados.'
+    : totalCredits === 0 ? 'Falta el crédito: un asiento necesita ambos lados.'
+    // Aqui NO se repite el importe: ya sale en el bloque "Diferencia" del pie.
+    // Duplicarlo obligaba al distintivo a partirse en dos lineas.
+    : !isBalanced ? 'Descuadrado'
+    : lineasSinCuenta > 0 ? `${lineasSinCuenta} línea(s) con importe y sin cuenta`
+    : null;
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
@@ -1390,19 +1407,61 @@ export default function AccountingPage() {
               </div>
 
               <div className="overflow-y-auto p-4 bg-white flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                {/*
+                  ORDEN. Antes era una rejilla de TRES columnas con Fecha,
+                  Referencia y un hueco vacio, y debajo el Concepto ocupando las
+                  tres. El hueco no era decorativo: rompia la lectura justo en
+                  la primera fila del formulario.
+
+                  Ahora: los dos datos cortos de la cabecera del asiento
+                  (cuando y con que respaldo) comparten una fila de dos
+                  columnas, y el Concepto -- que es texto largo y ademas
+                  OBLIGATORIO -- va entero debajo, con sitio para escribir.
+
+                  Los obligatorios se marcan. Antes `date` y `description` eran
+                  `required` y `reference` no, pero los tres se veian igual.
+                */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                   <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha</label>
-                  <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Fecha <span className="text-[#c5a059]">*</span>
+                    </label>
+                    <input type="date" required value={journalForm.date} onChange={e => setJournalForm({ ...journalForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" />
                   </div>
-                  <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia</label>
-                  <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition font-mono text-slate-800" placeholder="Ej. CHK-1024" />
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Referencia <span className="font-normal normal-case tracking-normal text-slate-400">(opcional)</span>
+                    </label>
+                    <input type="text" value={journalForm.reference} onChange={e => setJournalForm({ ...journalForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition font-mono text-slate-800" placeholder="Ej. CHK-1024" />
                   </div>
                   <div className="md:col-span-3">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Concepto / Descripción</label>
-                  <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" placeholder="Registro de..." />
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                      Concepto / Descripción <span className="text-[#c5a059]">*</span>
+                    </label>
+                    <input type="text" required value={journalForm.description} onChange={e => setJournalForm({ ...journalForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800" placeholder="Registro de..." />
                   </div>
+                </div>
+
+                {/*
+                  El boton de anadir linea sube aqui, a una cabecera de seccion.
+                  Estaba al PIE de la tabla sobre una franja `bg-[#001733]/50`:
+                  azul marino al 50% metido dentro de una tarjeta blanca, entre
+                  una tabla blanca y un pie gris claro. Ese tono es, en el resto
+                  del sistema, el fondo de las CABECERAS de modal a opacidad
+                  completa -- no hay ni un solo sitio mas donde se use como
+                  franja translucida dentro de una tarjeta.
+
+                  La referencia es el modal de compras, que pone su boton de
+                  anadir linea en la cabecera de la seccion con
+                  `bg-primary/10 text-[#c5a059]`. Se sigue esa convencion.
+                */}
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Movimientos del asiento
+                  </h4>
+                  <button type="button" onClick={handleAddJournalLine} className="bg-[#003366]/10 text-[#003366] hover:bg-[#003366]/20 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+                    <Plus className="w-3 h-3" /> Agregar Línea
+                  </button>
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -1452,37 +1511,73 @@ export default function AccountingPage() {
                       ))}
                     </tbody>
                   </table>
-                  <div className="p-3 border-t border-[#003366] bg-[#001733]/50">
-                    <button type="button" onClick={handleAddJournalLine} className="text-xs font-bold text-[#c5a059] hover:text-[#d4b069] flex items-center gap-1">
-                      <Plus className="w-3 h-3" /> Agregar Línea
-                    </button>
-                  </div>
                 </div>
               </div>
 
-              {/* Footer Totals */}
-              <div className="bg-slate-50 border-t border-slate-200 p-6 shrink-0 grid grid-cols-1 md:grid-cols-2 items-center gap-4">
-                <div className="flex gap-6">
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Débitos</p>
-                    <p className="font-mono text-xl font-bold text-emerald-600">{fmt(totalDebits)}</p>
+              {/*
+                PIE. Dos cambios de fondo, no de adorno:
+
+                1. Los dos totales salian SIEMPRE en verde (`text-emerald-600`),
+                   tambien con el asiento descuadrado. El verde es el color de
+                   "esto esta bien" en todo el sistema, asi que afirmaba lo
+                   contrario de lo que pasaba. Ahora el color sigue al estado.
+
+                2. Aparece la DIFERENCIA. Al contable descuadrado lo primero que
+                   le hace falta es "¿por cuanto?", y habia que restarlo a mano.
+              */}
+              {/*
+                `flex flex-wrap` y no `grid md:grid-cols-2`. Con la rejilla de
+                dos columnas, al anadir "Diferencia" los tres importes se
+                apretaban en media anchura y se partian: "TOTAL CRÉDITOS" en dos
+                lineas y "RD$ 5,000.00" tambien. Se vio al renderizarlo.
+                Con flex-wrap, si no caben, bajan enteros en vez de romperse.
+                `whitespace-nowrap` protege cada cifra.
+              */}
+              <div className="bg-slate-50 border-t border-slate-200 p-6 shrink-0 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+                <div className="flex flex-wrap gap-x-8 gap-y-3">
+                  <div className="whitespace-nowrap">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Débitos</p>
+                    <p className={`font-mono text-xl font-bold ${isBalanced ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(totalDebits)}</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Créditos</p>
-                    <p className="font-mono text-xl font-bold text-emerald-600">{fmt(totalCredits)}</p>
+                  <div className="whitespace-nowrap">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Créditos</p>
+                    <p className={`font-mono text-xl font-bold ${isBalanced ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(totalCredits)}</p>
                   </div>
+                  {!isBalanced && (totalDebits > 0 || totalCredits > 0) && (
+                    <div className="whitespace-nowrap">
+                      <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Diferencia</p>
+                      <p className="font-mono text-xl font-bold text-rose-600">{fmt(Math.abs(diferencia))}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3 justify-end">
-                  {!isBalanced && totalDebits > 0 && (
-                    <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-500/20">
-                      <AlertTriangle className="w-3 h-3" /> Descuadrado
+                {/*
+                  `ml-auto`: al envolver, una linea con un solo elemento se
+                  alinea al principio aunque el contenedor sea `justify-between`,
+                  y los botones se quedaban abajo a la izquierda. Con esto
+                  siguen a la derecha quepan o no en la misma linea.
+                */}
+                <div className="flex items-center gap-3 justify-end ml-auto">
+                  {/*
+                    El aviso ya no depende de `totalDebits > 0`. Con esa
+                    condicion, escribir solo creditos dejaba el boton
+                    desactivado y la pantalla muda. `motivoBloqueo` dice
+                    siempre que falta.
+                  */}
+                  {motivoBloqueo && (
+                    <div className="flex items-center gap-2 text-rose-600 bg-rose-500/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-500/20">
+                      <AlertTriangle className="w-3 h-3 shrink-0" /> {motivoBloqueo}
+                    </div>
+                  )}
+                  {isBalanced && (
+                    <div className="flex items-center gap-2 text-emerald-700 bg-emerald-500/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-emerald-500/20">
+                      <ShieldCheck className="w-3 h-3 shrink-0" /> Cuadrado
                     </div>
                   )}
                   <button type="button" onClick={() => setShowJournalModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     Cancelar
                   </button>
-                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <button type="button" onClick={handleCreateJournal} disabled={!isBalanced || submitting} title={motivoBloqueo ?? undefined} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
                     {submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />} Contabilizar
                   </button>
                 </div>

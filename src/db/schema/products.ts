@@ -118,13 +118,28 @@ export const vPublicProducts = pgView('v_public_products', {
   price: decimal('price', { precision: 15, scale: 2 }),
   status: varchar('status', { length: 50 }),
   deletedAt: timestamp('deleted_at'),
+// La union ata las TRES tablas a la misma empresa. Ver migracion 0038: sin
+// `pli.company_id = p.company_id`, un renglon de tarifa de otra empresa ponia
+// precio a este producto y salia con el sello de esta. Y `DISTINCT ON` porque
+// un producto puede estar en varias tarifas publicas: un renglon por producto,
+// el de la tarifa mas reciente, con desempate para que no lo decida el
+// planificador.
+//
+// Si se cambia aqui, hay que cambiarlo tambien en la migracion 0038 -- y al
+// reves. `scratch/verificar_vistas_publicas.ts` compara las dos y falla si se
+// separan.
 }).as(sql`
-  SELECT p.id, p.company_id, p.category_id, p.sku, p.name, p.description, pli.price, p.status, p.deleted_at
+  SELECT DISTINCT ON (p.id)
+         p.id, p.company_id, p.category_id, p.sku, p.name, p.description, pli.price, p.status, p.deleted_at
   FROM products p
-  JOIN price_list_items pli ON p.id = pli.product_id
-  JOIN price_lists pl ON pli.price_list_id = pl.id
+  JOIN price_list_items pli ON pli.product_id = p.id
+   AND pli.company_id = p.company_id
+   AND pli.deleted_at IS NULL
+  JOIN price_lists pl ON pl.id = pli.price_list_id
+   AND pl.company_id = p.company_id
+   AND pl.is_public = true AND pl.status = 'active' AND pl.deleted_at IS NULL
   WHERE p.status = 'active' AND p.deleted_at IS NULL
-    AND pl.is_public = true AND pl.status = 'active' AND pl.deleted_at IS NULL
+  ORDER BY p.id, pl.created_at DESC, pli.id
 `);
 
 export const productBarcodes = pgTable('product_barcodes', {

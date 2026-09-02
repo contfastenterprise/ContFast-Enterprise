@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'caja', 'read');
 
-    const sessions = await CashRepository.listSessions(auth.companyId);
+    const sessions = await CashRepository.listSessions(auth.companyId, auth.modo);
 
     return NextResponse.json(
       { success: true, data: sessions },

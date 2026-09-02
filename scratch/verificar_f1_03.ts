@@ -4,13 +4,15 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { HRRepository } from '../src/repositories/hrRepository';
 
 const A = '11111111-1111-1111-1111-111111111111'; // Alfa
 const B = '22222222-2222-2222-2222-222222222222'; // Beta
 
-// El sembrado lo hace /tmp/seed_hr.sql via psql (postgres.js no acepta multiples
-// sentencias en una sola consulta preparada).
+// El sembrado lo hace este mismo fichero (ver sembrar()). Antes lo hacia un
+// /tmp/seed_hr.sql suelto que ya no existe: por eso el banco dependia de que
+// alguien hubiera corrido ese script a mano alguna vez.
 
 async function pendientes(): Promise<Record<string, string>> {
   const r: any = await db.execute(sql`
@@ -45,7 +47,46 @@ function comprobar(titulo: string, ok: boolean, detalle = '') {
   if (!ok) fallos++;
 }
 
+/**
+ * Este banco no sembraba nada: vivia de conceptos que alguien habia dejado en
+ * la base y que nadie reponia. Funcionaba de casualidad, y dejo de funcionar en
+ * cuanto la limpieza compartida empezo a vaciar las tablas transaccionales.
+ * Ahora se siembra a si mismo, como el resto.
+ */
+async function sembrar() {
+  await limpiarTodo();
+
+  const ANA = 'eeee0000-0000-0000-0000-00000000000a'; // A-01, mensual, Alfa
+  const LUIS = 'eeee0000-0000-0000-0000-00000000000b'; // A-02, mensual, Alfa
+  const SARA = 'eeee0000-0000-0000-0000-00000000000c'; // A-03, QUINCENAL, Alfa
+  const BETO = 'eeee0000-0000-0000-0000-00000000000d'; // B-01, mensual, Beta
+
+  // Ana: 2000 de horas extra, 3000 de comision, 1000 de bono, 500 de deduccion.
+  await db.execute(sql`
+    INSERT INTO overtime_records (company_id,employee_id,date_worked,hours,type,amount,status,modo) VALUES
+      (${A}::uuid, ${ANA}::uuid, '2026-06-10', 8, 'diurna', 2000, 'pending', 'PRODUCCION'),
+      (${A}::uuid, ${SARA}::uuid,'2026-06-10', 4, 'diurna',  700, 'pending', 'PRODUCCION'),
+      (${B}::uuid, ${BETO}::uuid,'2026-06-10', 5, 'diurna',  800, 'pending', 'PRODUCCION')`);
+
+  await db.execute(sql`
+    INSERT INTO employee_income (company_id,employee_id,type,description,amount,date,status,modo) VALUES
+      (${A}::uuid, ${ANA}::uuid, 'comision', 'Ventas junio', 3000, '2026-06-15', 'pending', 'PRODUCCION'),
+      (${A}::uuid, ${ANA}::uuid, 'bono',     'Bono junio',   1000, '2026-06-15', 'pending', 'PRODUCCION'),
+      (${A}::uuid, ${SARA}::uuid,'bono',     'Bono Sara',     400, '2026-06-15', 'pending', 'PRODUCCION'),
+      (${B}::uuid, ${BETO}::uuid,'comision', 'Ventas Beto',   900, '2026-06-15', 'pending', 'PRODUCCION')`);
+
+  await db.execute(sql`
+    INSERT INTO employee_deductions (company_id,employee_id,type,description,amount,date,status,modo) VALUES
+      (${A}::uuid, ${ANA}::uuid, 'otros', 'Prestamo',      500, '2026-06-15', 'pending', 'PRODUCCION'),
+      (${A}::uuid, ${SARA}::uuid,'otros', 'Prestamo Sara', 200, '2026-06-15', 'pending', 'PRODUCCION'),
+      (${B}::uuid, ${BETO}::uuid,'otros', 'Prestamo Beto', 300, '2026-06-15', 'pending', 'PRODUCCION')`);
+
+  void LUIS;
+}
+
 async function main() {
+  await sembrar();
+
   console.log('\n1) Alfa crea y aprueba su nomina mensual de junio\n');
   const nominaA = await HRRepository.createPayroll(A, 'PRODUCCION', {
     periodStart: '2026-06-01', periodEnd: '2026-06-30', paymentDate: '2026-06-30', frequency: 'mensual',

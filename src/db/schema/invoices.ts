@@ -95,6 +95,16 @@ export const quoteLines = pgTable('quote_lines', {
   discount: decimal('discount', { precision: 15, scale: 2 }).default('0.00').notNull(),
   subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull(),
   total: decimal('total', { precision: 15, scale: 2 }).notNull(),
+  // Tasa de ITBIS de la linea, como FRACCION (0.1800 = 18%). Ver migracion 0040.
+  // Sin ella, al pasar la cotizacion a factura no habia de donde sacar la tasa
+  // y el formulario ponia 0.18 a pelo. `quoteTaxes.rate` va en PORCENTAJE.
+  taxRate: decimal('tax_rate', { precision: 6, scale: 4 }),
+  // Categoria de ITBIS de la linea (0042). Solo tiene sentido con tasa 0, y la
+  // restriccion CHECK lo obliga. La DGII distingue dos ceros que no son lo
+  // mismo: 'exento' (indicador 4, no se recupera el ITBIS de insumos) y
+  // 'tasa_cero' (indicador 3, exportaciones, si se recupera). NULO significa
+  // "no se dijo" y se deduce: tasa > 0 -> gravado, tasa 0 -> exento.
+  taxCategory: varchar('tax_category', { length: 16 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -175,6 +185,24 @@ export const invoiceLines = pgTable('invoice_lines', {
   discount: decimal('discount', { precision: 15, scale: 2 }).default('0.00').notNull(),
   subtotal: decimal('subtotal', { precision: 15, scale: 2 }).notNull(),
   total: decimal('total', { precision: 15, scale: 2 }).notNull(),
+  // Tasa de ITBIS de ESTA linea, como FRACCION: 0.1800 = 18%.
+  //
+  // OJO CON LAS UNIDADES: `invoiceTaxes.rate` (mas abajo) va en PORCENTAJE
+  // (18.00). Son distintas a proposito -- ver la migracion 0039 -- y hay una
+  // comprobacion que fija las dos para que nadie las mezcle.
+  //
+  // Sin valor por defecto: un `DEFAULT 0.18` seria el mismo silencio que hizo
+  // que una factura exenta saliera al 18%. Quien inserta una linea dice la
+  // tasa. Admite NULO solo por las facturas anteriores a la 0039 cuya tasa no
+  // se puede deducir (varias tasas en la misma factura); NULO significa "no
+  // consta", no "18%".
+  taxRate: decimal('tax_rate', { precision: 6, scale: 4 }),
+  // Categoria de ITBIS de la linea (0042). Solo tiene sentido con tasa 0, y la
+  // restriccion CHECK lo obliga. La DGII distingue dos ceros que no son lo
+  // mismo: 'exento' (indicador 4, no se recupera el ITBIS de insumos) y
+  // 'tasa_cero' (indicador 3, exportaciones, si se recupera). NULO significa
+  // "no se dijo" y se deduce: tasa > 0 -> gravado, tasa 0 -> exento.
+  taxCategory: varchar('tax_category', { length: 16 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -263,6 +291,11 @@ export const dgiiSubmissions = pgTable('dgii_submissions', {
   responseMessage: text('response_message'),
   xmlPayload: text('xml_payload'),
   responsePayload: text('response_payload'),
+  // El codigo de seguridad de la DGII, en su propia columna (0041). Vivia solo
+  // dentro de `response_payload`, y las rutas de sincronizacion pisaban ese
+  // JSON con la respuesta de la consulta de estado, que no lo lleva. NULL
+  // significa "no consta": nunca se rellena con uno fabricado.
+  securityCode: varchar('security_code', { length: 64 }),
   retryCount: integer('retry_count').default(0).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

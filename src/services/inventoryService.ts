@@ -29,6 +29,22 @@ import { v4 as uuidv4 } from 'uuid';
  *
  * Filtra por empresa porque `productId` llega del cuerpo de la peticion.
  */
+/**
+ * OJO: aqui hay DOS respuestas negativas que no significan lo mismo, y
+ * confundirlas costo caro.
+ *
+ * La primera version devolvia `false` tanto para "este producto no lleva
+ * control de existencia" como para "este producto no existe o no es de esta
+ * empresa". Las dos acababan en el mismo sitio: `addStock` retornaba en
+ * silencio y `checkStock` respondia `true`. Es decir, pedir existencia de un
+ * producto de OTRA empresa contestaba "si, tienes de sobra", y moverlo no
+ * hacia nada sin avisar a nadie. Un banco antiguo (verificar_grupo_b) lo
+ * detecto: su aserto decia justamente que ese intento tenia que "fallar en voz
+ * alta" y habia pasado a fallar callando.
+ *
+ * Ahora se separan. No pertenecer a la empresa no es un caso de negocio: es un
+ * error, y se lanza.
+ */
 export async function llevaInventario(
   companyId: string,
   productId: string,
@@ -41,13 +57,27 @@ export async function llevaInventario(
     // o ninguna.
     .where(and(eq(products.id, productId), eq(products.companyId, companyId)));
 
-  // Si el producto no existe o no es de esta empresa, no se toca su inventario.
-  // Quien tenga que dar el error 404 es la ruta, no este servicio.
-  if (!producto) return false;
+  if (!producto) {
+    throw new Error('Producto no encontrado en esta empresa.');
+  }
   return producto.tracksInventory;
 }
 
-export async function getProvisionalStock(companyId: string, productId: string, warehouseId: string, tx: any = db, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<number> {
+/**
+ * `modo` va SEGUNDO, justo detras de `companyId`, y es obligatorio.
+ *
+ * Antes iba al final con valor por defecto 'PRODUCCION'. Quien lo omitia no
+ * recibia ningun aviso y movia el inventario REAL. Paso de verdad: `void` de
+ * conduces lo omitia mientras `approve` si lo pasaba, asi que anular un
+ * conduce de PRUEBA devolvia las unidades al almacen real -- creaba existencia
+ * de la nada en produccion.
+ *
+ * No puede ir al final siendo obligatorio (detras de `referenceId?`,
+ * `description?` y `tx`), asi que se adelanta. Es ademas la posicion que ya
+ * usa el resto del codigo: findAll(companyId, modo, ...), getJournalEntries,
+ * getBankAccounts.
+ */
+export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', productId: string, warehouseId: string, tx: any = db): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
@@ -134,12 +164,12 @@ export async function getProvisionalStock(companyId: string, productId: string, 
 
 export async function checkStock(
   companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
   productId: string,
   warehouseId: string,
   quantityNeeded: number,
   tx: any = db,
-  useProvisional = false,
-  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  useProvisional = false
 ): Promise<boolean> {
   // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
   // despacho por falta de stock.
@@ -170,7 +200,7 @@ export async function checkStock(
   //
   // La regla correcta es sobre la existencia RESULTANTE.
   const currentStock = useProvisional
-    ? await getProvisionalStock(companyId, productId, warehouseId, tx, modo)
+    ? await getProvisionalStock(companyId, modo, productId, warehouseId, tx)
     : (level ? Number(level.quantity || 0) : 0);
 
   // Las cantidades son decimal(15,4): se compara con una tolerancia minima para
@@ -182,6 +212,7 @@ export async function checkStock(
 
 export async function addStock(
   companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
   productId: string,
   warehouseId: string,
   quantity: number,
@@ -189,8 +220,7 @@ export async function addStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db,
-  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  tx: any = db
 ) {
   // Un producto sin control de existencia no mueve inventario ni deja rastro en
   // el kardex. Aqui se cortan las dos direcciones de golpe: `deductStock` es
@@ -201,6 +231,17 @@ export async function addStock(
   // El companyId es imprescindible: productId y warehouseId llegan del cuerpo
   // de la peticion y ninguna capa comprueba que sean de esta empresa, asi que
   // sin el se movian las existencias de otra.
+  //
+  // Auditoria INV-09: la existencia se leia, se calculaba en JavaScript y se
+  // escribia el resultado, sin bloqueo. Dos despachos simultaneos del mismo
+  // producto leian 50, uno restaba 20 y escribia 30, el otro restaba 15 y
+  // escribia 35: se despachaban 35 unidades y el nivel quedaba en 35 en vez de
+  // 15. Aparecian 20 unidades de la nada, y el `balanceAfter` que quedaba en el
+  // kardex era falso en los dos movimientos, sin nada que lo detectara.
+  //
+  // `SELECT ... FOR UPDATE` serializa a quienes tocan la misma fila: el segundo
+  // espera al primero y lee la existencia ya rebajada. El bloqueo tiene que
+  // ocurrir ANTES de calcular, no despues.
   let [level] = await tx.select().from(inventoryLevels).where(
     and(
       eq(inventoryLevels.companyId, companyId),
@@ -208,9 +249,13 @@ export async function addStock(
       eq(inventoryLevels.warehouseId, warehouseId),
       eq(inventoryLevels.modo, modo)
     )
-  );
+  ).for('update');
 
   if (!level) {
+    // Dos procesos pueden llegar aqui a la vez con la existencia sin crear: el
+    // FOR UPDATE no bloquea filas que todavia no existen. El indice unico
+    // (product_id, warehouse_id, modo) resuelve el empate; el que pierde relee
+    // la fila del ganador, ya bloqueada.
     const newLevel = await tx.insert(inventoryLevels).values({
       id: uuidv4(),
       companyId,
@@ -218,8 +263,20 @@ export async function addStock(
       warehouseId,
       modo,
       quantity: '0.0000',
-    }).returning();
-    level = newLevel[0];
+    }).onConflictDoNothing().returning();
+
+    if (newLevel.length > 0) {
+      level = newLevel[0];
+    } else {
+      [level] = await tx.select().from(inventoryLevels).where(
+        and(
+          eq(inventoryLevels.companyId, companyId),
+          eq(inventoryLevels.productId, productId),
+          eq(inventoryLevels.warehouseId, warehouseId),
+          eq(inventoryLevels.modo, modo)
+        )
+      ).for('update');
+    }
   }
 
   const newQuantity = Number(level.quantity) + quantity;
@@ -247,6 +304,7 @@ export async function addStock(
 
 export async function deductStock(
   companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
   productId: string,
   warehouseId: string,
   quantity: number,
@@ -254,20 +312,19 @@ export async function deductStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db,
-  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  tx: any = db
 ) {
-  await addStock(companyId, productId, warehouseId, -quantity, userId, type, referenceId, description, tx, modo);
+  await addStock(companyId, modo, productId, warehouseId, -quantity, userId, type, referenceId, description, tx);
 }
 
 export async function transferStock(
   companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
   sourceWarehouseId: string,
   destinationWarehouseId: string,
   items: { productId: string, quantity: number }[],
   userId: string,
-  reason?: string,
-  modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
+  reason?: string
 ) {
   return await db.transaction(async (tx) => {
     const transferId = uuidv4();

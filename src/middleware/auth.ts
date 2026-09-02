@@ -46,11 +46,72 @@ export async function fetchAllowedWarehouses(userId: string, roleName: string): 
   return assigned.map((a: any) => a.warehouseId);
 }
 
+// ── Aislamiento del storefront (auditoria ISO-02) ────────────────────────────
+// El registro publico de la tienda (POST /api/storefront/auth/register) crea
+// usuarios con rol `cliente` y les emite una sesion normal, igual que la del
+// ERP. Sin esta comprobacion esa sesion servia para llamar a CUALQUIER ruta
+// /api/v1/*, incluidas las 54 que solo verifican autenticacion y no permisos
+// (banco, nomina, reportes financieros, estados de cuenta). Como el endpoint es
+// publico y el slug de empresa es el nombre comercial en minusculas, un
+// desconocido podia registrarse indicando la empresa que quisiera y leer su
+// contabilidad completa.
+//
+// El rol `cliente` no lo usa nada mas en el sistema: lo crea unicamente ese
+// endpoint. La tienda solo necesita /api/storefront/* y estas rutas de sesion.
+// Todo lo demas se deniega: verifyAuth devuelve null y cada ruta responde su
+// propio 401 sin cambios.
+const STOREFRONT_ROLE = 'cliente';
+const STOREFRONT_ALLOWED_PREFIXES = ['/api/storefront/'];
+const STOREFRONT_ALLOWED_PATHS = new Set([
+  '/api/v1/auth/login',
+  '/api/v1/auth/me',
+  '/api/v1/auth/logout',
+  '/api/v1/auth/refresh',
+]);
+
+function isStorefrontPathAllowed(pathname: string): boolean {
+  if (!pathname) return false;
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (STOREFRONT_ALLOWED_PREFIXES.some((prefix) => clean.startsWith(prefix))) return true;
+  return STOREFRONT_ALLOWED_PATHS.has(clean);
+}
+
+function getRequestPathname(req: NextRequest): string {
+  try {
+    return req.nextUrl?.pathname || new URL(req.url).pathname;
+  } catch (_) {
+    return '';
+  }
+}
+
 /**
  * Verifies JWT tokens and handles Refresh Token Rotation if access token is expired.
  * Modifies the response headers if a token refresh occurs.
+ *
+ * Ademas acota el alcance de las sesiones del storefront: ver STOREFRONT_ROLE.
  */
 export async function verifyAuth(
+  req: NextRequest,
+  resHeaders: Headers = new Headers()
+): Promise<AuthPayload | null> {
+  const auth = await resolveAuthPayload(req, resHeaders);
+  if (!auth) return null;
+
+  if ((auth.role || '').toLowerCase().trim() === STOREFRONT_ROLE) {
+    if (!isStorefrontPathAllowed(getRequestPathname(req))) {
+      return null;
+    }
+  }
+
+  return auth;
+}
+
+/**
+ * Resolucion del payload de sesion (cabeceras firmadas del proxy, access token
+ * o rotacion del refresh token). No aplica reglas de alcance: eso es
+ * responsabilidad de `verifyAuth`, que es la funcion que consumen las rutas.
+ */
+async function resolveAuthPayload(
   req: NextRequest,
   resHeaders: Headers = new Headers()
 ): Promise<AuthPayload | null> {
@@ -62,6 +123,11 @@ export async function verifyAuth(
   const sessionId = req.headers.get('x-session-id') || '';
   const allowedWarehousesHeader = req.headers.get('x-allowed-warehouses');
   const permissionsHeader = req.headers.get('x-user-permissions');
+  // Este `|| 'PRODUCCION'` SI es legitimo, al contrario que los que se
+  // retiraron del resto del codigo: La cabecera puede no venir (una peticion
+  // antigua, un cliente que no la manda), y aqui es donde se decide el
+  // entorno de toda la sesion. A partir de este punto `modo` ya no es
+  // opcional en ningun sitio.
   const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
   const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
   const internalSignature = req.headers.get('x-internal-proxy-signature');

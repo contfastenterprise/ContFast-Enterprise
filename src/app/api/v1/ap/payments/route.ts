@@ -53,6 +53,8 @@ export async function POST(req: NextRequest) {
     const result = await ApService.registerPayment({
       ...parsed.data,
       companyId: session.companyId,
+      // Auditoria JRN-16: quien registra el pago y su asiento.
+      createdBy: session.userId,
       modo: session.modo,
       bankAccountId: parsed.data.bankAccountId || undefined,
       checkNumber: parsed.data.checkNumber || undefined,

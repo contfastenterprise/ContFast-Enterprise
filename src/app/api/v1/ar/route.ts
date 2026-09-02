@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
-    const receivables = await ArRepository.getPendingAR(session.companyId);
+    const receivables = await ArRepository.getPendingAR(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data: receivables });
   } catch (error: any) {

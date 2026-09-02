@@ -40,9 +40,13 @@ export async function PUT(
 
     const [existing] = await db.select()
       .from(accountingPeriods)
+      // Esto es ESCRITURA: abajo se abre o se cierra el periodo. Sin el
+      // entorno, desde PRODUCCION se podia cerrar el periodo contable de
+      // PRUEBA y al reves, bastando el id que devolvia el listado sin filtrar.
       .where(and(
         eq(accountingPeriods.id, id),
-        eq(accountingPeriods.companyId, session.companyId)
+        eq(accountingPeriods.companyId, session.companyId),
+        eq(accountingPeriods.modo, session.modo)
       ))
       .limit(1);
 

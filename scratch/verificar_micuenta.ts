@@ -21,6 +21,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import jwt from 'jsonwebtoken';
 
 const A = '11111111-1111-1111-1111-111111111111';
@@ -62,7 +63,8 @@ function falsificar(userId: string, companyId: string): string {
 }
 
 async function main() {
-  await db.execute(sql`DELETE FROM quotes`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`
     INSERT INTO quotes (company_id, modo, user_id, sequence_number, total, status)
     VALUES (${A}::uuid, 'PRODUCCION', ${USER_A}::uuid, 'COT-REAL-0001', 125000, 'approved'),

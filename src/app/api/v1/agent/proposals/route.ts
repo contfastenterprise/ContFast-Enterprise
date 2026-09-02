@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     }
 
     const companyId = user.companyId;
-    const modo = user.modo || 'PRODUCCION';
+    const modo = user.modo;
 
     const proposals = await AgentRepository.getProposals(companyId, modo);
     return NextResponse.json(proposals);

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const companyId = user.companyId;
-    const modo = user.modo || 'PRODUCCION';
+    const modo = user.modo;
 
     // 1. Get Aggregated Metrics
     const metrics = await AgentRepository.aggregateCashFlow(companyId, 30, modo);

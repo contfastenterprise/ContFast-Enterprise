@@ -77,8 +77,10 @@ export function ThermalTicketPrint({ sessionId, autoPrint = false }: ThermalTick
       `}} />
 
       <div className="header">
-        <div className="title">{ticketData.company.name}</div>
-        <div>RNC: {ticketData.company.rnc}</div>
+        {/* Sin nombre ni RNC no se inventa ninguno: se omite la linea. Un
+            RNC fabricado ('000000000') pasa por bueno; un hueco, no. */}
+        <div className="title">{ticketData.company.name || 'Empresa sin identificar'}</div>
+        {ticketData.company.rnc ? <div>RNC: {ticketData.company.rnc}</div> : null}
         <div>Cierre de Caja</div>
       </div>
       

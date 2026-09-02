@@ -456,6 +456,7 @@ export class SupplierOrderService {
         // Update inventory level ONLY at reception
         await addStock(
           companyId,
+          modo,
           item.productId,
           order.warehouseId,
           rec.quantityToReceive,
@@ -463,8 +464,7 @@ export class SupplierOrderService {
           'purchase',
           order.id,
           `Recepcion de pedido ${order.orderNumber}`,
-          tx,
-          modo
+          tx
         );
 
         someReceived = true;

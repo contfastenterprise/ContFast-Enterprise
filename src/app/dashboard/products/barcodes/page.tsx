@@ -54,7 +54,7 @@ export default function BarcodeDashboardPage() {
   const [labelCustomWidth, setLabelCustomWidth] = useState(50);
   const [labelCustomHeight, setLabelCustomHeight] = useState(30);
   const [labelQuantity, setLabelQuantity] = useState(1);
-  const [labelBrandText, setLabelBrandText] = useState('Latin Doors');
+  const [labelBrandText, setLabelBrandText] = useState('');
   const [labelVisibleFields, setLabelVisibleFields] = useState({
     brand: true,
     name: true,

@@ -31,7 +31,14 @@ export async function GET(req: NextRequest) {
     const sequences = await db
       .select()
       .from(ecfSequences)
-      .where(and(eq(ecfSequences.companyId, auth.companyId), isNull(ecfSequences.deletedAt)))
+      // Hay DOS secuencias por tipo de comprobante, una por entorno, cada una
+      // con su autorizacion SACF de la DGII. Sin el filtro salian las dos
+      // mezcladas y sin forma de distinguirlas en pantalla.
+      .where(and(
+        eq(ecfSequences.companyId, auth.companyId),
+        eq(ecfSequences.modo, auth.modo),
+        isNull(ecfSequences.deletedAt)
+      ))
       .orderBy(ecfSequences.ecfType);
 
     // Get the invoice usage count for all sequence types in a single grouped query
@@ -44,6 +51,12 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(invoices.companyId, auth.companyId),
+          // El consumo se cuenta contra la autorizacion de ESTE entorno. El
+          // mapa de abajo va indexado solo por tipo de comprobante, asi que
+          // sin este filtro las facturas de practicas inflaban el consumo que
+          // se muestra del rango autorizado de verdad -- el numero con el que
+          // se decide cuando pedir una secuencia nueva a la DGII.
+          eq(invoices.modo, auth.modo),
           isNull(invoices.deletedAt)
         )
       )

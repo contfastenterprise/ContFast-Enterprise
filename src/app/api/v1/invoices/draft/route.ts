@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
             discount: line.discount.toString(),
             subtotal: line.subtotal.toString(),
             total: line.total.toString(),
+            taxRate: line.taxRate != null ? line.taxRate.toString() : null,
           }))
         );
       }

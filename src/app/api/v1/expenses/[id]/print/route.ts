@@ -45,7 +45,12 @@ export async function GET(
       .from(expenses)
       .leftJoin(suppliers, eq(expenses.supplierId, suppliers.id))
       .leftJoin(warehouses, eq(expenses.warehouseId, warehouses.id))
-      .where(and(eq(expenses.id, id), eq(expenses.companyId, session.companyId)))
+      // El PDF de una compra de practicas se imprimia como si fuera real.
+      .where(and(
+        eq(expenses.id, id),
+        eq(expenses.companyId, session.companyId),
+        eq(expenses.modo, session.modo)
+      ))
       .limit(1);
 
     if (expenseResult.length === 0) {
@@ -97,9 +102,12 @@ export async function GET(
       company: {
         name: company.name,
         rnc: company.rnc,
+        // Auditoria ISO-17: el telefono es el de la empresa, o ninguno.
+        // Y el correo tambien: el de mSeller es un usuario de acceso, no una
+        // direccion de contacto de la empresa.
         address: company.address || '',
-        phone: '1-809-555-0199',
-        email: settings?.msellerEmail || '',
+        phone: company.phone || '',
+        email: company.email || '',
         logoUrl: settings?.logoUrl || undefined,
       },
       supplier: {

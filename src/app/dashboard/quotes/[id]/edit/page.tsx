@@ -84,14 +84,17 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 }
               } catch (e) {}
               
-              // Find the tax rate for this line or use default
+              // La tasa de la linea, tal cual se guardo (migracion 0040).
+              // Antes: `taxRate: 0.18, // Simplified: ideally we calculate it
+              // from taxes`. Editar una cotizacion al 16% la devolvia al 18%
+              // en cuanto se guardaba de nuevo.
               return {
                 productId: l.productId,
                 productName,
                 quantity: Number(l.quantity),
                 unitPrice: Number(l.unitPrice),
                 discount: Number(l.discount),
-                taxRate: 0.18, // Simplified: ideally we calculate it from taxes
+                taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
                 productCost,
               };
             }));
@@ -132,7 +135,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         productId: product.id,
         productName: product.name,
         unitPrice: Number(product.price),
-        taxRate: Number(product.taxRate || 0.18),
+        taxRate: Number(product.taxRate ?? 0.18),
         productCost: Number(product.cost || 0),
       };
       setLines(newLines);

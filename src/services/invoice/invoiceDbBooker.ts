@@ -109,7 +109,7 @@ export class InvoiceDbBooker {
               and(
                 eq(accountsReceivable.customerId, data.customerId),
                 eq(accountsReceivable.companyId, data.companyId),
-                eq(accountsReceivable.modo, data.modo || 'PRODUCCION'),
+                eq(accountsReceivable.modo, data.modo),
                 isNull(accountsReceivable.deletedAt)
               )
             );
@@ -159,7 +159,7 @@ export class InvoiceDbBooker {
     errMsg: string
   ) {
     return await db.transaction(async (tx) => {
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo || 'PRODUCCION');
+      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo);
       if (allocatedNcf !== ncf) {
         throw new Error(`Conflicto de concurrencia NCF al rechazar: se esperaba ${ncf} pero se reservó ${allocatedNcf}.`);
       }
@@ -168,12 +168,12 @@ export class InvoiceDbBooker {
       // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
       // el mismo numero. Ver src/services/invoice/codigoFactura.ts.
       const codigoFactura = await siguienteCodigoFactura(
-        tx, data.companyId, data.modo || 'PRODUCCION', data.ecfType
+        tx, data.companyId, data.modo, data.ecfType
       );
 
       await InvoiceRepository.create({
         companyId: data.companyId,
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
         warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
@@ -223,7 +223,7 @@ export class InvoiceDbBooker {
   ) {
     return await db.transaction(async (tx) => {
       // Allocate and increment NCF inside the transaction to lock and commit it
-      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo || 'PRODUCCION');
+      const allocatedNcf = await CompanyRepository.allocateNextNcf(tx, data.companyId, data.ecfType, data.modo);
       if (allocatedNcf !== ncf) {
         throw new Error(`Conflicto de concurrencia NCF: se esperaba ${ncf} pero se reservó ${allocatedNcf}. Por favor intente de nuevo.`);
       }
@@ -232,7 +232,7 @@ export class InvoiceDbBooker {
       // con COUNT(*), que no bloquea nada: dos facturas simultaneas se llevaban
       // el mismo numero. Ver src/services/invoice/codigoFactura.ts.
       const codigoFactura = await siguienteCodigoFactura(
-        tx, data.companyId, data.modo || 'PRODUCCION', data.ecfType
+        tx, data.companyId, data.modo, data.ecfType
       );
 
       // Sin validacion de existencia: ver la nota en preFlightValidations.
@@ -262,7 +262,7 @@ export class InvoiceDbBooker {
                 and(
                   eq(accountsReceivable.customerId, data.customerId),
                   eq(accountsReceivable.companyId, data.companyId),
-                  eq(accountsReceivable.modo, data.modo || 'PRODUCCION'),
+                  eq(accountsReceivable.modo, data.modo),
                   isNull(accountsReceivable.deletedAt)
                 )
               );
@@ -280,7 +280,7 @@ export class InvoiceDbBooker {
       // Create invoice in database
       const invoiceInput: CreateInvoiceInput = {
         companyId: data.companyId,
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
         warehouseId: data.warehouseId,
         customerId: data.customerId,
         userId: data.userId,
@@ -328,7 +328,7 @@ export class InvoiceDbBooker {
 
         await FinancialMovementService.registerMovement(tx, {
           companyId: data.companyId,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
           entityType: 'customer',
           customerId: data.customerId,
           date: new Date(),
@@ -351,7 +351,7 @@ export class InvoiceDbBooker {
         if (isCash && !isCreditNote) {
           await FinancialMovementService.registerMovement(tx, {
             companyId: data.companyId,
-            modo: data.modo || 'PRODUCCION',
+            modo: data.modo,
             entityType: 'customer',
             customerId: data.customerId,
             date: new Date(),
@@ -372,6 +372,7 @@ export class InvoiceDbBooker {
         for (const line of totals.itemLines) {
           await deductStock(
             data.companyId,
+            data.modo,
             line.productId,
             data.warehouseId,
             -line.quantity,
@@ -379,8 +380,7 @@ export class InvoiceDbBooker {
             'return',
             invoice.id,
             `Devolución Nota de Crédito ${ncf}`,
-            tx,
-            data.modo || 'PRODUCCION'
+            tx
           );
         }
       }
@@ -449,7 +449,7 @@ export class InvoiceDbBooker {
 
       await AccountRepository.createJournalEntry(tx, {
         companyId: data.companyId,
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
         reference: invoice.id,
         date: new Date().toISOString().split('T')[0],
         description: `Facturación Automática e-CF NCF: ${ncf}`,
@@ -471,7 +471,7 @@ export class InvoiceDbBooker {
             ? `Nota de Débito e-CF Comprobante: ${ncf}`
             : `Venta e-CF Comprobante: ${ncf}`,
           reference: ncf,
-          modo: data.modo || 'PRODUCCION',
+          // El entorno ya no se pasa: lo pone la propia sesion de caja.
         });
       }
 
@@ -489,7 +489,7 @@ export class InvoiceDbBooker {
                 // filtro por empresa, una nota de credito e-34 rebajaba el
                 // balance de la cuenta por cobrar de otra empresa.
                 eq(accountsReceivable.companyId, data.companyId),
-                eq(accountsReceivable.modo, data.modo || 'PRODUCCION')
+                eq(accountsReceivable.modo, data.modo)
               )
             )
             .limit(1);
@@ -514,7 +514,7 @@ export class InvoiceDbBooker {
             invoiceId: invoice.id,
             amount: totals.totalNet,
             dueDate,
-            modo: data.modo || 'PRODUCCION',
+            modo: data.modo,
           });
         }
       }
@@ -528,10 +528,36 @@ export class InvoiceDbBooker {
         entityId: invoice.id,
         newValues: { ncf, total: totals.total, customerId: data.customerId },
         ipAddress: 'server',
-        modo: data.modo || 'PRODUCCION',
+        modo: data.modo,
       });
 
-      // Register submission or queue asynchronous submission to DGII
+      // ─── Registro del envio ────────────────────────────────────────────
+      //
+      // ESTO TENIA UN AGUJERO, Y LO ABRI YO.
+      //
+      // Habia dos ramas, 'accepted' y 'signed'. Pero `finalStatus` admite
+      // CUATRO valores ('signed' | 'submitted' | 'accepted' | 'rejected'), asi
+      // que 'submitted' y 'rejected' no entraban en ninguna: la factura se
+      // guardaba con ese estado y NO se insertaba ninguna fila en
+      // `dgii_submissions`. Ni registro, ni codigo de seguridad, ni trabajo en
+      // cola que lo resolviera.
+      //
+      // Antes del arreglo del estado (F1-05) eso no se notaba, porque una
+      // respuesta sin estado reconocible se convertia en 'accepted' por el
+      // `|| 'Aceptado'` y caia en la primera rama. Al hacer honesta la LECTURA
+      // -- sin estado, 'submitted' -- el estado honesto se quedo sin sitio
+      // donde vivir. Arreglar una mitad y no la otra dejo la factura sin
+      // constancia de nada.
+      //
+      // Sintoma observado en produccion: una factura de PRODUCCION en estado
+      // 'accepted' con CERO envios. Se emitio como 'submitted' (sin fila), y
+      // una sincronizacion posterior le puso 'accepted' a la factura mientras
+      // su UPDATE de `dgii_submissions` no tocaba ninguna fila, en silencio.
+      // O sea: un comprobante que afirma que la DGII lo acepto sin una sola
+      // prueba de que se enviara.
+      //
+      // Ahora TODOS los estados dejan fila. La fila es el rastro de lo que
+      // paso, y no puede depender de que el resultado sea bueno.
       if (submission.finalStatus === 'accepted') {
         await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
@@ -540,23 +566,52 @@ export class InvoiceDbBooker {
           trackId: submission.msellerTrackId,
           responseMessage: submission.dgiiMessage,
           responsePayload: JSON.stringify(submission.msellerResponsePayload),
+          // El codigo de seguridad, en su propia columna (0041). Antes solo
+          // vivia dentro de `response_payload`, y las rutas de sincronizacion
+          // pisaban ese JSON con la respuesta de la consulta de estado, que no
+          // lo lleva: sincronizar una factura borraba su codigo.
+          securityCode: submission.securityHash || null,
           retryCount: 0,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
         });
       } else if (submission.finalStatus === 'signed') {
-        await tx.insert(dgiiSubmissions).values({
+        const [envio] = await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
           invoiceId: invoice.id,
           status: 'pending',
           retryCount: 0,
-          modo: data.modo || 'PRODUCCION',
-        });
+          modo: data.modo,
+        }).returning({ id: dgiiSubmissions.id });
 
         await import('@/infrastructure/queue').then(async ({ addJob }) => {
           await addJob('dgii-submissions', 'submit-ecf', {
             companyId: data.companyId,
             invoiceId: invoice.id,
+            // El trabajo actualiza SU intento, no todos los de la factura.
+            submissionId: envio.id,
           });
+        });
+      } else {
+        // 'submitted' y 'rejected'. El documento SI salio hacia la DGII -- eso
+        // es lo que los distingue de 'signed' -- asi que queda su constancia
+        // con lo que contesto, incluido el codigo de seguridad si vino.
+        //
+        // NO se encola un reenvio. El trabajo de la cola vuelve a MANDAR el
+        // documento, y aqui ya se mando: reenviarlo es arriesgarse a duplicar
+        // un e-CF que la DGII pudo haber aceptado. Un 'submitted' se resuelve
+        // consultando el estado, que es lo que hace la sincronizacion.
+        await tx.insert(dgiiSubmissions).values({
+          companyId: data.companyId,
+          invoiceId: invoice.id,
+          status: submission.finalStatus === 'rejected' ? 'rejected' : 'submitted',
+          trackId: submission.msellerTrackId,
+          responseMessage: submission.dgiiMessage,
+          responsePayload: submission.msellerResponsePayload
+            ? JSON.stringify(submission.msellerResponsePayload)
+            : null,
+          securityCode: submission.securityHash || null,
+          retryCount: 0,
+          modo: data.modo,
         });
       }
 

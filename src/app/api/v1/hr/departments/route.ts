@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { z } from 'zod';
 
@@ -15,6 +16,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'read');
+    if (denegado) return denegado;
+
     const data = await HRRepository.findDepartments(session.companyId);
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
@@ -28,6 +33,10 @@ export async function POST(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'write');
+    if (denegado) return denegado;
 
     const body = await req.json();
     const parsed = departmentSchema.safeParse(body);
@@ -55,6 +64,10 @@ export async function PUT(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'write');
+    if (denegado) return denegado;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -88,6 +101,10 @@ export async function DELETE(req: NextRequest) {
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'write');
+    if (denegado) return denegado;
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');

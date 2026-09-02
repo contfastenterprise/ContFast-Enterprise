@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const ledger = await AccountingRepository.getLedger(session.companyId, accountId, startDate, endDate);
+    const ledger = await AccountingRepository.getLedger(session.companyId, session.modo, accountId, startDate, endDate);
 
     return NextResponse.json({ success: true, data: ledger }, { headers: resHeaders });
   } catch (error: any) {

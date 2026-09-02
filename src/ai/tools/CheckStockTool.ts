@@ -39,10 +39,10 @@ export class CheckStockTool implements Tool {
 
     try {
       // Llamamos al servicio real del ERP
-      // Asumimos 'PRODUCCION' por defecto, pero podríamos extraerlo del context si estuviera ahí.
-      // La empresa sale del contexto del agente, igual que en las demas tools:
-      // sin ella la consulta veria las existencias de otra empresa.
-      const stock = await getProvisionalStock(context.tenantId, productId, warehouseId, undefined, 'PRODUCCION');
+      // El entorno sale del contexto del agente, no fijo. El comentario que
+      // habia aqui decia "asumimos PRODUCCION, podriamos extraerlo del context
+      // si estuviera ahi": ya esta ahi, y es obligatorio.
+      const stock = await getProvisionalStock(context.tenantId, context.modo, productId, warehouseId);
       
       return {
         success: true,

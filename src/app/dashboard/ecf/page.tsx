@@ -1523,7 +1523,7 @@ export default function ECFPage() {
         const res = await fetch('/api/v1/company/settings');
         const data = await res.json();
         if (data.success) {
-          const env = data.data?.msellerEntorno || data.data?.dgiiEnv;
+          const env = data.data?.dgiiEnv;
           if (env === 'production') setEntorno('PROD');
           else if (env === 'cert') setEntorno('CERT');
           else setEntorno('TEST');

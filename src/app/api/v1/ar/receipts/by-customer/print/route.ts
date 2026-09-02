@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get receipts breakdown
-    const statementItems = await ArRepository.getCustomerReceiptsBreakdown(session.companyId, customerId);
+    const statementItems = await ArRepository.getCustomerReceiptsBreakdown(session.companyId, session.modo, customerId);
 
     // Filter statement items if search query is provided
     let filteredItems = statementItems;
@@ -121,8 +121,9 @@ export async function POST(req: NextRequest) {
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.address || 'República Dominicana',
-        phone: '1-809-555-0199', // Placeholder
+        // Auditoria ISO-17: el telefono es el de la empresa, o ninguno.
+        address: company.address || '',
+        phone: company.phone || '',
         logoUrl: settings?.logoUrl || undefined
       },
       customer: {

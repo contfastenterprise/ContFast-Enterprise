@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'BAD_REQUEST', message: 'ID del cliente es requerido' } }, { status: 400 });
     }
 
-    const data = await ArRepository.getCustomerReceiptsBreakdown(session.companyId, customerId);
+    const data = await ArRepository.getCustomerReceiptsBreakdown(session.companyId, session.modo, customerId);
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {

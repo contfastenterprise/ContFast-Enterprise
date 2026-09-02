@@ -8,6 +8,7 @@
  * distingue.
  */
 import { db } from '../src/db';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { sql, and, eq, gte, lte } from 'drizzle-orm';
 import { bankTransactions } from '../src/db/schema';
 
@@ -28,8 +29,10 @@ async function estado(){
 }
 
 async function main(){
-  await db.execute(sql`DELETE FROM bank_transactions`);
-  await db.execute(sql`DELETE FROM bank_accounts`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  // bank_accounts no es transaccional (no tiene columna `modo`), asi que la
+  // limpieza derivada no la toca: hay que nombrarla.
+  await limpiarTodo(['bank_accounts']);
   await db.execute(sql`INSERT INTO bank_accounts (id,company_id,bank_name,account_number,balance) VALUES
     (${CTA}::uuid,${A}::uuid,'Popular','111',0), (${CTA_B}::uuid,${B}::uuid,'BHD','222',0)`);
   // Misma cuenta, mismo rango de fechas, los dos entornos. Y una de otra empresa.

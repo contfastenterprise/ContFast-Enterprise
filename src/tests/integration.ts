@@ -288,6 +288,7 @@ async function runTests() {
     const normalMove = await CashService.addMovement(
       cashierUserId1,
       testCompanyId1,
+      'PRODUCCION',
       sessionId,
       'cash_out',
       200,
@@ -302,6 +303,7 @@ async function runTests() {
     const approvalMove = await CashService.addMovement(
       cashierUserId1,
       testCompanyId1,
+      'PRODUCCION',
       sessionId,
       'cash_out',
       600,
@@ -315,7 +317,7 @@ async function runTests() {
     // F. Close session: With difference but NO justification (Should throw error)
     try {
       // Expected balance: 1000 (initial) - 200 (normal cash_out) - 600 (exceeded cash_out) = 200
-      await CashService.closeSession(cashierUserId1, testCompanyId1, sessionId, 250); // Difference of +$50
+      await CashService.closeSession(cashierUserId1, testCompanyId1, 'PRODUCCION', sessionId, 250); // Difference of +$50
       throw new Error('Cashier Rules Failed: Allowed closing session with difference and no justification.');
     } catch (e: any) {
       if (!e.message.includes('Debe proveer una justificación')) {
@@ -329,6 +331,7 @@ async function runTests() {
     const closedSession = await CashService.closeSession(
       cashierUserId1,
       testCompanyId1,
+      'PRODUCCION',
       sessionId,
       150, // 150 actual balance vs 200 expected balance gives -50 difference
       'Faltante de $50 por vueltas inexactas'
@@ -346,6 +349,7 @@ async function runTests() {
       await CashService.addMovement(
         cashierUserId1,
         testCompanyId1,
+        'PRODUCCION',
         sessionId,
         'cash_in',
         100,

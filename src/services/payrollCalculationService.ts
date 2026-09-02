@@ -200,10 +200,36 @@ export class PayrollCalculationService {
    * es una SUGERENCIA: la pantalla deja ajustarlo antes de guardar. No lo
    * conviertas en un calculo automatico sin consultarlo con el asesor laboral.
    */
+  /**
+   * Devuelve el dia de CALENDARIO de una fecha, sin desfase de zona horaria.
+   *
+   * `new Date('2026-01-31')` se interpreta como medianoche UTC, pero los
+   * getters (`getDate`, `getMonth`) leen en hora local: en Republica Dominicana
+   * (UTC-4) eso devuelve el 30 de enero. La fecha de alta llega de la base como
+   * cadena 'YYYY-MM-DD' (columna `date`) y la de corte suele ser un instante
+   * real, de modo que una se desplazaba un dia y la otra no. El desfase solo se
+   * notaba en los bordes de mes, y siempre a favor de mas antiguedad: a quien
+   * entraba un dia 1 se le adelantaba un mes entero de vacaciones.
+   *
+   * Devuelve null si la fecha no es valida.
+   */
+  private static aDiaDeCalendario(valor: Date | string): Date | null {
+    if (typeof valor === 'string') {
+      const partes = valor.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (partes) {
+        return new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
+      }
+    }
+
+    const fecha = valor instanceof Date ? valor : new Date(valor);
+    if (isNaN(fecha.getTime())) return null;
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  }
+
   public static calcularDiasVacacionesPorAntiguedad(hireDate: Date | string, referenceDate: Date | string = new Date()): number {
-    const alta = new Date(hireDate);
-    const corte = new Date(referenceDate);
-    if (isNaN(alta.getTime()) || isNaN(corte.getTime()) || corte < alta) return 0;
+    const alta = this.aDiaDeCalendario(hireDate);
+    const corte = this.aDiaDeCalendario(referenceDate);
+    if (!alta || !corte || corte < alta) return 0;
 
     // Meses completos entre las dos fechas, contando el dia del mes.
     //

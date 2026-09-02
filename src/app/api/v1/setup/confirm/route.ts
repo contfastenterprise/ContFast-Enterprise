@@ -130,7 +130,14 @@ export async function POST(req: NextRequest) {
         companyId: newCompany.id,
         dgiiEnv: fiscal.dgiiEnv,
         msellerUrl: fiscal.msellerUrl || undefined,
-        msellerApiKeyEncrypted: await encryptAsync(fiscal.msellerApiKey),
+        // Auditoria ISO-16: aqui se guardaba SOLO la clave de API, sin correo ni
+        // contrasena. Nunca produjo una configuracion utilizable -- los cinco
+        // caminos exigen las tres cosas -- y ahora ademas iria a unas columnas
+        // que ya no lee nadie.
+        //
+        // Las credenciales se configuran en Ajustes > mSeller, donde se piden las
+        // tres juntas y se elige a que ambiente pertenecen. Cada ambiente tiene
+        // las suyas.
         printLayout: printing.printLayout,
         autoDeliveryNotes: delivery.autoDeliveryNotes,
       });
@@ -187,6 +194,8 @@ export async function POST(req: NextRequest) {
       // 2.5a. Seed default Dominican Chart of Accounts for the new company
       await AccountingRepository.seedDefaultChartOfAccounts(newCompany.id, tx);
       await AccountingRepository.seedDefaultExpenseTypes(newCompany.id, tx);
+      // Auditoria JRN-11: ver la nota en admin/companies.
+      await AccountingRepository.sembrarPeriodosContables(newCompany.id, tx);
 
       // The initial user is assigned to the 'sistemas' role
       const roleSistemas = globalRoles.find((r) => r.name === 'sistemas')!;

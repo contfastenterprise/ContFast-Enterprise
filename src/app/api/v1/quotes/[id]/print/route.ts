@@ -7,8 +7,13 @@ import { db, companies, companySettings, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 
-async function getQuotePdfBuffer(quoteId: string, companyId: string, printedByUserName?: string) {
-  const quote = await QuoteService.getQuote(quoteId);
+async function getQuotePdfBuffer(
+  quoteId: string,
+  companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
+  printedByUserName?: string
+) {
+  const quote = await QuoteService.getQuote(quoteId, companyId, modo);
   if (!quote || quote.companyId !== companyId) {
     throw new Error('Cotización no encontrada');
   }
@@ -33,7 +38,9 @@ async function getQuotePdfBuffer(quoteId: string, companyId: string, printedByUs
     ...company,
     logoUrl: settings?.logoUrl || (company as any).logoUrl || undefined,
     phone: company.phone || '',
-    email: company.email || settings?.msellerEmail || '',
+    // Auditoria ISO-17: el correo de mSeller es un usuario de acceso, no una
+    // direccion de contacto de la empresa.
+    email: company.email || '',
     address: company.address || '',
     settings
   };
@@ -74,7 +81,7 @@ export async function GET(
     }
 
     const { id: quoteId } = await params;
-    const { pdfBuffer, filename } = await getQuotePdfBuffer(quoteId, session.companyId, printedByUserName);
+    const { pdfBuffer, filename } = await getQuotePdfBuffer(quoteId, session.companyId, session.modo, printedByUserName);
 
     const headers = new Headers(resHeaders);
     headers.set('Content-Type', 'application/pdf');
@@ -110,7 +117,7 @@ export async function POST(
     }
 
     const { id: quoteId } = await params;
-    const { pdfBuffer } = await getQuotePdfBuffer(quoteId, session.companyId, printedByUserName);
+    const { pdfBuffer } = await getQuotePdfBuffer(quoteId, session.companyId, session.modo, printedByUserName);
 
     const documentId = await DocumentService.saveTemporaryFile(pdfBuffer, 'pdf');
     const signedUrl = DocumentService.generateSignedUrl(documentId, 10);

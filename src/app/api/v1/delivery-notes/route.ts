@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
 
-    const list = await DeliveryRepository.list(auth.companyId, page, perPage);
+    const list = await DeliveryRepository.list(auth.companyId, auth.modo, page, perPage);
 
     return NextResponse.json(
       { success: true, ...list },

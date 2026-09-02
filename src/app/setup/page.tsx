@@ -26,8 +26,26 @@ export default function SetupWizard() {
     async function checkSetup() {
       try {
         const res = await fetch('/api/v1/setup/status');
+
+        // La respuesta puede no ser JSON (404 con HTML, redirect, error de un
+        // proxy intermedio). Sin esta comprobacion, res.json() lanza un
+        // SyntaxError de parseo que oculta la causa real. Ante una respuesta no
+        // valida se muestra el asistente, igual que hacia el catch de mas abajo.
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || !contentType.includes('application/json')) {
+          console.error(
+            `Setup status check failed: respuesta no valida de /api/v1/setup/status ` +
+            `(HTTP ${res.status}, content-type: ${contentType || 'ausente'})`
+          );
+          setCheckingStatus(false);
+          return;
+        }
+
         const data = await res.json();
-        if (data.success && data.data.initialized) {
+        // Solo se sale del asistente cuando la API afirma explicitamente que el
+        // sistema ya esta inicializado. Cualquier otra forma de respuesta deja
+        // continuar el setup en vez de redirigir por una lectura ambigua.
+        if (data.success && data.data?.initialized === true) {
           router.push('/auth/login');
         } else {
           setCheckingStatus(false);

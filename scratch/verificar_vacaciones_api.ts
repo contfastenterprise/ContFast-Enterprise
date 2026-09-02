@@ -1,6 +1,7 @@
 /** Verificacion de la ruta de vacaciones: reglas de negocio y aislamiento. */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { HRRepository } from '../src/repositories/hrRepository';
 import { PayrollCalculationService as P } from '../src/services/payrollCalculationService';
 const A='11111111-1111-1111-1111-111111111111';
@@ -20,7 +21,8 @@ async function get(modo:'PRODUCCION'|'PRUEBA'){
 }
 
 async function main(){
-  await db.execute(sql`DELETE FROM employee_vacations`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   // audit_logs es inmutable por trigger: se cuenta el delta en vez de vaciarla.
   const logsAntes:any = await db.execute(sql`SELECT count(*)::int AS n FROM audit_logs`);
   const nAntes = (logsAntes as any[])[0].n;

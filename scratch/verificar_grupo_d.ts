@@ -15,6 +15,7 @@
  *      impreso en el PDF.
  */
 import { db } from '../src/db';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 import { invoices, customerReceiptApplied, accountsReceivable } from '../src/db/schema';
 import { StorefrontProductService } from '../src/services/storefront/productService';
@@ -33,13 +34,8 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function main() {
-  await db.execute(sql`DELETE FROM delivery_note_lines`);
-  await db.execute(sql`DELETE FROM delivery_notes`);
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM customer_receipt_applied`);
-  await db.execute(sql`DELETE FROM customer_receipts`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM invoices`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   await db.execute(sql`UPDATE products SET status='active'`);
   await db.execute(sql`INSERT INTO invoices (id,company_id,modo,user_id,ncf,ecf_type,total,codigo_factura)
     VALUES (${FAC_B}::uuid,${B}::uuid,'PRODUCCION',${USER_B}::uuid,'E310000000055','31',9000,'FAC-B-SECRETA')`);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { BIRepository, BIFilters } from '@/repositories/biRepository';
 import { getCache, setCache } from '@/infrastructure/redis';
 import crypto from 'crypto';
@@ -14,6 +15,10 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(auth, 'administracion', 'read');
+    if (denegado) return denegado;
 
     // 2. Enforce Role Check: Only systems or admin roles
     const userRole = (auth.role || '').toLowerCase();

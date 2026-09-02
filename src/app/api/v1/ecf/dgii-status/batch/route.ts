@@ -6,6 +6,8 @@ import { db, dgiiSubmissions, companySettings, invoices } from '@/db';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decryptAsync } from '@/utils/encryption';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 
 function resolveEntorno(dgiiEnv: string | null): string {
   if (!dgiiEnv) return 'TesteCF';
@@ -57,6 +59,15 @@ export async function POST(req: NextRequest) {
       .where(
         and(
           eq(invoices.companyId, auth.companyId),
+          // Los ids llegan en el cuerpo de la peticion sin comprobar contra el
+          // entorno de la sesion. Sin este filtro, una sesion de PRUEBA podia
+          // mandar ids de facturas REALES de su empresa, traerselas y -- mas
+          // abajo -- sobrescribirles el estado y el mensaje de la DGII con el
+          // resultado de una consulta hecha contra el ambiente de pruebas.
+          // La incoherencia estaba a la vista: el UPDATE del envio SI filtraba
+          // por modo y el de la factura no, asi que la factura se tocaba en un
+          // entorno y su envio en otro.
+          eq(invoices.modo, auth.modo),
           isNull(invoices.deletedAt),
           inArray(invoices.id, invoiceIds)
         )
@@ -200,19 +211,33 @@ export async function POST(req: NextRequest) {
           })
           .where(and(eq(invoices.id, inv.id), eq(invoices.companyId, auth.companyId)));
         
-        await db
-          .update(dgiiSubmissions)
-          .set({
-            status: newStatus as any,
-            responseMessage: displayMessage,
-            responsePayload: JSON.stringify(result.data || {}),
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(dgiiSubmissions.invoiceId, inv.id),
-            eq(dgiiSubmissions.companyId, auth.companyId),
-            eq(dgiiSubmissions.modo, auth.modo)
-          ));
+        // Mismo arreglo que en la sincronizacion individual: se actualiza UN
+        // envio -- el vigente -- y no todas las filas de la factura; y la
+        // respuesta de la consulta no puede borrar el codigo de seguridad que
+        // dejo el envio. Ver el comentario largo en
+        // src/app/api/v1/ecf/[id]/dgii-status/route.ts.
+        const envio = await envioVigente(inv.id, auth.companyId, auth.modo);
+        if (envio) {
+          const codigoConsultado = leerCodigoSeguridad(result.data);
+          const yaTenia = datosFirmaDeEnvio(envio).codigo;
+
+          await db
+            .update(dgiiSubmissions)
+            .set({
+              status: newStatus as any,
+              responseMessage: displayMessage,
+              responsePayload:
+                !yaTenia || codigoConsultado
+                  ? JSON.stringify(result.data || {})
+                  : undefined,
+              securityCode: codigoConsultado || undefined,
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(dgiiSubmissions.id, envio.id),
+              eq(dgiiSubmissions.companyId, auth.companyId)
+            ));
+        }
 
         updatePerformed = true;
       }

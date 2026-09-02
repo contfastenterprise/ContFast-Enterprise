@@ -414,13 +414,29 @@ function InvoicesList() {
             if (quote.warehouseId) setWarehouseId(quote.warehouseId);
             if (quote.notes) setNotes(quote.notes);
             if (quote.lines && quote.lines.length > 0) {
+              const sinTasa = quote.lines.filter((l: any) => l.taxRate == null).length;
+              if (sinTasa > 0) {
+                toast.error(
+                  `${sinTasa} linea(s) de esta cotizacion no tienen ITBIS guardado ` +
+                  '(es anterior al cambio y tenia varias tasas). Se han puesto al 18%: revisalas antes de facturar.',
+                  { duration: 8000 }
+                );
+              }
               setLines(quote.lines.map((l: any) => ({
                 productId: l.productId,
                 productName: l.productName || 'Producto Cotizado',
                 quantity: l.quantity,
                 unitPrice: l.unitPrice,
                 discount: l.discount,
-                taxRate: 0.18,
+                // Antes: `taxRate: 0.18` fijo. La cotizacion podia estar al 16%
+                // o exenta y la factura nacia al 18% igualmente. Ahora la tasa
+                // viaja en el payload de conversion (migracion 0040).
+                //
+                // `null` significa "no consta": cotizacion anterior a la 0040
+                // con varias tasas, donde no se puede deducir. Se cae en 0.18
+                // como antes, pero avisando -- no en silencio.
+                taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
+                taxCategory: l.taxCategory ?? null,
                 unitOfMeasure: 'unidad'
               })));
             }
@@ -689,7 +705,10 @@ function InvoicesList() {
         quantity: Number(line.quantity),
         unitPrice: Number(line.unitPrice),
         discount: Number(line.discount || 0),
-        taxRate: Number(line.taxRate || 0.18),
+        // Ahora `line.taxRate` existe de verdad (migracion 0039). Antes la
+        // columna no existia, llegaba `undefined` y caia siempre en 18%.
+        taxRate: line.taxRate != null ? Number(line.taxRate) : 0.18,
+        taxCategory: (line as any).taxCategory ?? null,
         warehouseId: line.warehouseId,
       }));
       setLines(preloadedLines);
@@ -735,7 +754,8 @@ function InvoicesList() {
       quantity: Number(l.quantity),
       unitPrice: Number(l.unitPrice),
       discount: Number(l.discount || 0),
-      taxRate: Number(l.taxRate || 0.18),
+      taxRate: Number(l.taxRate ?? 0.18),
+      taxCategory: Number(l.taxRate) === 0 ? (l.taxCategory ?? 'exento') : null,
       warehouseId: l.warehouseId || warehouseId,
     })),
   });
@@ -828,7 +848,11 @@ function InvoicesList() {
         quantity: parseFloat(l.quantity) || 1,
         unitPrice: parseFloat(l.unitPrice) || 0,
         discount: parseFloat(l.discount) || 0,
-        taxRate: 0.18,
+        // Antes: `taxRate: 0.18` fijo. El borrador SI guardaba la tasa y aqui
+        // se tiraba, asi que cualquier tasa elegida volvia como 18%. Es el
+        // camino por el que se colaba tambien el 16%.
+        taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
+        taxCategory: l.taxCategory ?? null,
         unitOfMeasure: l.unitOfMeasure || 'unidad',
         barcode: l.barcode || '',
         priceTier: 'consumidor',
@@ -972,7 +996,11 @@ function InvoicesList() {
         quantity: Number(l.quantity),
         unitPrice: Number(l.unitPrice),
         discount: Number(l.discount || 0),
-        taxRate: Number(l.taxRate || 0.18),
+        // `??` y no `||`: en JavaScript 0 es falso, asi que `l.taxRate || 0.18`
+        // convertia la tasa 0 (exento) en 18% ANTES de salir del navegador. La
+        // factura se emitia gravada y con el ITBIS cobrado.
+        taxRate: Number(l.taxRate ?? 0.18),
+        taxCategory: Number(l.taxRate) === 0 ? (l.taxCategory ?? 'exento') : null,
         warehouseId: l.warehouseId || warehouseId,
       }));
 
@@ -1601,15 +1629,36 @@ function InvoicesList() {
                         {/* ITBIS (Tasa) */}
                         <div className="space-y-1.5 md:space-y-0">
                           <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
+                          {/*
+                            El 0% son DOS cosas para la DGII y antes eran una
+                            sola opcion ("0% Exento"):
+
+                              Exento (indicador 4): exento por ley. No se cobra
+                                ITBIS y NO se recupera el de los insumos.
+                              Tasa 0% (indicador 3): exportaciones. Tampoco se
+                                cobra, pero SI se conserva el credito.
+
+                            El valor del desplegable lleva las dos cosas
+                            ("0.00|tasa_cero") porque la tasa sola no distingue.
+                          */}
                           <select
-                            value={line.taxRate}
-                            onChange={(e) => handleLineChange(idx, 'taxRate', parseFloat(e.target.value))}
+                            value={
+                              Number(line.taxRate) === 0
+                                ? `0.00|${line.taxCategory === 'tasa_cero' ? 'tasa_cero' : 'exento'}`
+                                : String(line.taxRate)
+                            }
+                            onChange={(e) => {
+                              const [tasa, categoria] = e.target.value.split('|');
+                              handleLineChange(idx, 'taxRate', parseFloat(tasa));
+                              handleLineChange(idx, 'taxCategory', categoria || null);
+                            }}
                             disabled={!hasProduct}
                             className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
                           >
                             <option value="0.18">18% ITBIS</option>
                             <option value="0.16">16% ITBIS</option>
-                            <option value="0.00">0% Exento</option>
+                            <option value="0.00|exento">Exento (0%)</option>
+                            <option value="0.00|tasa_cero">Tasa 0% — exportación</option>
                           </select>
                         </div>
 

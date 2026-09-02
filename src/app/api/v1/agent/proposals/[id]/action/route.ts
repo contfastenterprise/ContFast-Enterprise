@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     }
 
     const companyId = user.companyId;
-    const modo = user.modo || 'PRODUCCION';
+    const modo = user.modo;
 
     const updated = await AgentRepository.updateProposalStatus(id, companyId, modo, status, user.userId);
     if (!updated) {

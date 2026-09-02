@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate') || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const endDate = searchParams.get('endDate') || new Date().toISOString().split('T')[0];
 
-    const trialBalance = await AccountingRepository.getTrialBalance(session.companyId, startDate, endDate);
+    const trialBalance = await AccountingRepository.getTrialBalance(session.companyId, session.modo, startDate, endDate);
 
     return NextResponse.json({ success: true, data: trialBalance }, { headers: resHeaders });
   } catch (error: any) {

@@ -18,7 +18,7 @@ export async function POST(
 
     const { type, id } = await params;
 
-    const result = await createShareTokenAction(type, id, auth.companyId);
+    const result = await createShareTokenAction(type, id, auth.companyId, auth.modo);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });

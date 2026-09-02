@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, accountsReceivable, customers, companies } from '@/db';
 import { eq, and, isNull, gt } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 
@@ -11,6 +12,10 @@ export async function GET(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(auth, 'cobros', 'read');
+    if (denegado) return denegado;
     const { companyId, modo } = auth;
 
     const url = new URL(req.url);

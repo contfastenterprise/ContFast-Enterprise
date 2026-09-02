@@ -25,7 +25,7 @@ export async function GET(
     }
 
     const { id: quoteId } = await params;
-    const quote = await QuoteService.getQuote(quoteId);
+    const quote = await QuoteService.getQuote(quoteId, session.companyId, session.modo);
 
     if (!quote || quote.companyId !== session.companyId) {
       return new NextResponse('Cotización no encontrada', { status: 404 });
@@ -47,7 +47,9 @@ export async function GET(
       ...company,
       logoUrl: settings?.logoUrl || (company as any).logoUrl || undefined,
       phone: company.phone || '',
-      email: company.email || settings?.msellerEmail || '',
+      // Auditoria ISO-17: el correo de mSeller es un usuario de acceso, no una
+      // direccion de contacto de la empresa.
+      email: company.email || '',
       address: company.address || '',
       settings
     };

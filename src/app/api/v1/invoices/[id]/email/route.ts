@@ -8,6 +8,8 @@ import { addJob } from '@/infrastructure/queue';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import fs from 'fs';
@@ -66,7 +68,16 @@ export async function POST(
     }
 
     const company = await CompanyRepository.getProfile(auth.companyId);
-    const companyName = company?.name || 'ContFast';
+    // Un correo a un CLIENTE firmado por una empresa inventada ('ContFast',
+    // que ademas es el nombre del producto) no se envia. `companies.name` es
+    // NOT NULL: si esto falta, es que la busqueda fallo.
+    if (!company) {
+      return NextResponse.json(
+        { success: false, error: { message: 'No se encontro la empresa emisora. No se envia el correo.' } },
+        { status: 404 }
+      );
+    }
+    const companyName = company.name;
 
     // Always regenerate PDF before sending to ensure it contains the correct SKUs
     let pdfPath = invoice.pdfPath;
@@ -82,7 +93,14 @@ export async function POST(
           .from(ecfSequences)
           .where(
             and(
+              // `ecf_sequences` tiene indice unico (company_id, ecf_type, modo):
+              // hay DOS filas candidatas, una por entorno, y con `.limit(1)` sin
+              // orden salia la que quisiera el planificador. De esta fila sale
+              // la fecha de vencimiento del NCF que se IMPRIME en el
+              // comprobante fiscal: un documento real podia salir con la
+              // caducidad de la secuencia de pruebas.
               eq(ecfSequences.companyId, auth.companyId),
+              eq(ecfSequences.modo, auth.modo),
               eq(ecfSequences.ecfType, invoice.ecfType)
             )
           )
@@ -111,44 +129,42 @@ export async function POST(
           .from(invoiceTaxes)
           .where(eq(invoiceTaxes.invoiceId, id));
 
-        const [submission] = await db
-          .select()
-          .from(dgiiSubmissions)
-          .where(eq(dgiiSubmissions.invoiceId, id))
-          .limit(1);
+        // Una factura puede tener varios envios: uno por cada intento. Antes esto
+        // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
+        // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
+        // en un solo sitio: envioVigente.
+        const submission = await envioVigente(id, auth.companyId, auth.modo);
 
-        let securityCode = '';
+        // La lectura del codigo de seguridad, el QR y la fecha de firma vive en
+        // datosFirmaDeEnvio. Aqui habia treinta lineas repetidas en cuatro rutas
+        // que acababan en:
+        //
+        //     if (!securityCode) securityCode = sha256(id + ncf).slice(0,16)
+        //
+        // o sea, inventarse el codigo de seguridad de un comprobante fiscal. Y
+        // peor: el QR se construia con ESE codigo inventado apuntando a la
+        // consulta de la DGII, donde no puede validar nunca.
+        const firma = datosFirmaDeEnvio(submission);
+        const securityCode = firma.codigo;
+        const signedDate = firma.fechaFirma;
         let qrBase64 = '';
-        let signedDate = '';
-
-        if (submission && submission.responsePayload) {
-          try {
-            const payload = JSON.parse(submission.responsePayload);
-            securityCode = payload.securityCode || payload.codigoSeguridad || '';
-            const rawQr = payload.qr_url || payload.qrCode || '';
-            if (rawQr) {
-              if (rawQr.startsWith('http')) {
-                qrBase64 = await PdfGenerator.generateQrBase64(rawQr);
-              } else {
-                qrBase64 = rawQr;
-              }
-            }
-            signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
-          } catch (err) {
-            Logger.error('Error parsing submission responsePayload', err);
-          }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-const crypto = require('crypto');
-        if (!securityCode) {
-          securityCode = crypto.createHash('sha256').update(invoice.id + invoice.ncf).digest('hex').substring(0, 16).toUpperCase();
-        }
-
-        if (!qrBase64) {
-          const dateFormatted = new Date(invoice.createdAt).toLocaleDateString('es-DO').replace(/\//g, '-');
-          const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company?.rnc}&rncComprador=${invoice.buyerRnc || ''}&eNCF=${invoice.ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(invoice.total).toFixed(2)}&codigoSeguridad=${securityCode}`;
-          qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+        if (firma.qr) {
+          qrBase64 = firma.qr.startsWith('http')
+            ? await PdfGenerator.generateQrBase64(firma.qr)
+            : firma.qr;
+        } else if (securityCode) {
+          // Sin QR de mSeller pero CON codigo real, la consulta se puede construir
+          // y sirve. Sin codigo no se genera ningun QR: un QR que lleva a la DGII a
+          // preguntar por un codigo inexistente es peor que no tenerlo.
+          const urlConsulta = urlConsultaDgii({
+            rncEmisor: company?.rnc,
+            rncComprador: invoice.buyerRnc,
+            ncf: invoice.ncf,
+            fecha: invoice.createdAt,
+            total: Number(invoice.total),
+            codigoSeguridad: securityCode,
+          });
+          if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
         }
 
         const invoiceRecord = {

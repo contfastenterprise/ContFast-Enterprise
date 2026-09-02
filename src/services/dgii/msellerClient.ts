@@ -1,4 +1,7 @@
 import { decryptAsync } from '@/utils/encryption';
+import { leerEstado, mensajeEstado } from './estadoEnvio';
+import { leerDatosFirma } from './codigoSeguridad';
+import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
 
 export interface ECFPayload {
   ECF: {
@@ -166,7 +169,7 @@ export class MSellerClient {
 
     const url = `${this.baseUrl}/${this.entorno}/customer/authentication`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+    const timeoutId = setTimeout(() => controller.abort(), MS_AUTENTICACION);
 
     try {
       const response = await fetch(url, {
@@ -208,7 +211,7 @@ export class MSellerClient {
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+    const timeoutId = setTimeout(() => controller.abort(), MS_ENVIO);
 
     try {
       const response = await fetch(url, {
@@ -233,7 +236,11 @@ export class MSellerClient {
         };
       }
 
-      const finalStatus = raw?.status || raw?.estado;
+      // ANTES: `raw?.status || raw?.estado`, que NO mira dentro de
+      // `dgiiResponse`, que es justo donde viene el veredicto de la DGII
+      // cuando mSeller lo reenvia anidado. `leerEstado` mira ahi primero.
+      const lectura = leerEstado(raw);
+      const finalStatus = lectura.textoCrudo;
 
       // Extract messages from dgiiResponse if it exists (mSeller structure)
       let dgiiMessages = raw?.mensajes;
@@ -248,8 +255,13 @@ export class MSellerClient {
         }
       }
 
-      // Check if DGII rejected the document (even with HTTP 200)
-      if (finalStatus === 'Rechazado') {
+      // Rechazo con HTTP 200. La comparacion era `finalStatus === 'Rechazado'`:
+      // exacta y sensible a mayusculas, asi que 'RECHAZADO', 'rechazado' o
+      // 'Rechazado por la DGII' se escapaban por la rama de exito -- y de ahi
+      // salian con el mensaje "Aceptado por la DGII". `leerEstado` normaliza y
+      // ademas mira el rechazo ANTES que la aceptacion ("no aceptado" contiene
+      // "acept").
+      if (lectura.estado === 'rejected') {
         const rejectionMsg = dgiiMessages && Array.isArray(dgiiMessages) && dgiiMessages.length > 0
           ? dgiiMessages.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
           : (raw.message || 'Rechazado por la DGII');
@@ -260,8 +272,12 @@ export class MSellerClient {
         };
       }
 
-      // If accepted or has warning messages, build success message
-      let successMsg = 'Aceptado por la DGII';
+      // El mensaje NO puede afirmar una aceptacion que no consta. Era
+      // `let successMsg = 'Aceptado por la DGII'`, y ese texto se devolvia tal
+      // cual cuando la respuesta no traia estado. Peor: quien lo recibe lo
+      // prefiere sobre cualquier otro (`mensajeEstado` respeta el mensaje del
+      // proveedor), asi que la mentira sobrevivia al arreglo de mas arriba.
+      let successMsg = mensajeEstado(lectura, null);
       if (finalStatus) {
         successMsg = finalStatus;
         const validMsgs = dgiiMessages && Array.isArray(dgiiMessages)
@@ -272,11 +288,19 @@ export class MSellerClient {
         }
       }
 
+      // ANTES: `raw?.securityCode` y `raw?.qrCode || raw?.qr_url || ...`, que
+      // solo miran el PRIMER NIVEL. Cuando mSeller reenvia el veredicto de la
+      // DGII anidado en `dgiiResponse` -- que es de donde ya habia que sacar el
+      // estado -- el codigo de seguridad viene dentro y no se leia. La factura
+      // salia sin codigo aunque mSeller lo hubiera mandado, y al imprimirla se
+      // fabricaba uno con sha256. `leerDatosFirma` mira dentro.
+      const firma = leerDatosFirma(raw);
+
       return {
         success: true,
         trackId: raw?.trackId || raw?.id || raw?.internalTrackId,
-        securityCode: raw?.securityCode,
-        qrCode: raw?.qrCode || raw?.qr_url || raw?.qr_code,
+        securityCode: firma.codigo || undefined,
+        qrCode: firma.qr || undefined,
         message: successMsg,
         rawResponse: raw,
       };
@@ -301,7 +325,7 @@ export class MSellerClient {
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf?ecf=${encodeURIComponent(ncf)}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+    const timeoutId = setTimeout(() => controller.abort(), MS_CONSULTA);
 
     try {
       const response = await fetch(url, {
@@ -344,8 +368,12 @@ export class MSellerClient {
         }
       }
 
-      const finalDGIIStatus = dgiiEstado || raw?.status || raw?.estado || 'Aceptado';
-      
+      // `|| 'Aceptado'` inventaba un estado cuando la respuesta no traia
+      // ninguno, y ese texto acababa en `dgiiStatus` y en el mensaje que se
+      // guarda con el envio. La lectura la hace `leerEstado`, en un solo sitio.
+      const lectura = leerEstado(raw);
+      const finalDGIIStatus = dgiiEstado || lectura.textoCrudo || 'Sin estado';
+
       let customMessage = finalDGIIStatus;
       const validMsgs = dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
       if (validMsgs.length > 0) {
@@ -394,7 +422,7 @@ export class MSellerClient {
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf/status/batch`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
+    const timeoutId = setTimeout(() => controller.abort(), MS_CONSULTA);
 
     try {
       const response = await fetch(url, {
@@ -477,6 +505,10 @@ export class MSellerClient {
       unitPrice: number;
       discount: number;
       taxRate: number; // 0.18, 0, etc.
+      //  Solo importa cuando taxRate es 0, porque la DGII distingue DOS ceros
+      //  (ver 0042). Sin valor, un 0 se declara EXENTO, que es como se venia
+      //  comportando y lo que corresponde a todo lo emitido hasta ahora.
+      taxCategory?: 'exento' | 'tasa_cero' | null;
     }>;
   }): ECFPayload {
     const formatDate = (d: Date) => {
@@ -486,7 +518,134 @@ export class MSellerClient {
       return `${dd}-${mm}-${yyyy}`;
     };
 
-    const itbisRate = 18;
+    // ------------------------------------------------------------------
+    //  TASAS DE ITBIS DEL COMPROBANTE
+    //
+    //  Antes esto era `const itbisRate = 18;` y se enviaba tal cual en
+    //  `ITBIS1`. Es decir: una factura al 16% se le DECLARABA a la DGII como
+    //  18%, y una exenta se declaraba como gravada con `MontoExento: 0`. No es
+    //  un problema de impresion: es lo que consta en el comprobante fiscal.
+    //
+    //  Se calcula de las lineas. Criterio deliberado: para el caso corriente
+    //  -- todas las lineas al 18% -- el resultado es IDENTICO al de antes, asi
+    //  que los envios que hoy funcionan no cambian.
+    // ------------------------------------------------------------------
+    const baseDeLinea = (l: { quantity: number; unitPrice: number; discount: number }) =>
+      Number((l.quantity * l.unitPrice - (l.discount || 0)).toFixed(2));
+
+    //  LOS DOS CEROS
+    //
+    //  Una linea a tasa 0 puede ser dos cosas distintas para la DGII, y no se
+    //  declaran en el mismo sitio:
+    //
+    //    'exento'    (indicador 4) -> suma a MontoExento
+    //    'tasa_cero' (indicador 3) -> suma a MontoGravadoI3, con ITBIS3 = 0
+    //
+    //  Sin categoria, un 0 es EXENTO. Eso deja intacto todo lo emitido hasta
+    //  hoy: hasta la 0042 el formulario solo ofrecia "0% Exento".
+    const porTasa = new Map<number, number>();   // tasa en % -> base gravada
+    let montoExento = 0;
+    let baseTasaCero = 0;
+    for (const l of params.lines) {
+      const base = baseDeLinea(l);
+      const pct = Math.round((l.taxRate ?? 0) * 10000) / 100;   // 0.18 -> 18
+      if (pct === 0) {
+        if (l.taxCategory === 'tasa_cero') {
+          baseTasaCero = Number((baseTasaCero + base).toFixed(2));
+        } else {
+          montoExento = Number((montoExento + base).toFixed(2));
+        }
+        continue;
+      }
+      porTasa.set(pct, Number(((porTasa.get(pct) ?? 0) + base).toFixed(2)));
+    }
+
+    //  De mayor a menor: asi el 18% cae en el primer tramo, que es donde lo
+    //  pone la DGII en sus ejemplos y donde lo ponia este codigo.
+    const gravados = [...porTasa.entries()].sort((x, y) => y[0] - x[0]);
+
+    //  La tasa cero ocupa SIEMPRE el tercer tramo, porque el indicador 3 y el
+    //  campo MontoGravadoI3 van emparejados en el formato de la DGII. Las tasas
+    //  gravadas de verdad se quedan con los tramos 1 y 2.
+    //
+    //  AVISO: esta rama todavia NO se ha validado con un envio real. Que el I3
+    //  se pueda declarar sin I2 hay que confirmarlo en PRUEBA antes de usarla
+    //  para una exportacion.
+    if (baseTasaCero > 0 && gravados.length > 2) {
+      throw new Error(
+        'El comprobante mezcla una linea a tasa 0% (exportacion) con ' +
+        `${gravados.length} tasas gravadas. El tramo 3 esta reservado para la tasa 0%, ` +
+        'asi que solo caben dos tasas gravadas. Hay que separarlo en varios comprobantes.'
+      );
+    }
+
+    const tramos: Array<[number, number]> = [...gravados];
+    //  Se rellenan los huecos hasta el tercer tramo para que la tasa cero caiga
+    //  en el indice 3 y no en el 2. Los huecos no se declaran.
+    const tramoTasaCero = baseTasaCero > 0 ? 3 : 0;
+
+    //  El formato de la DGII admite TRES tramos de ITBIS. Con mas, esto no se
+    //  puede expresar. Se LANZA en vez de mandar algo aproximado: un
+    //  comprobante fiscal mal declarado no lo corrige nadie despues.
+    if (tramos.length > 3) {
+      throw new Error(
+        `El comprobante tiene ${tramos.length} tasas de ITBIS distintas (${tramos.map(t => t[0] + '%').join(', ')}) ` +
+        'y el formato de la DGII solo admite tres. Hay que separarlo en varios comprobantes.'
+      );
+    }
+
+    //  La tasa cero ES gravada (al 0%), asi que entra en MontoGravadoTotal. Lo
+    //  exento no.
+    const montoGravadoTotal = Number(
+      (tramos.reduce((acc, [, base]) => acc + base, 0) + baseTasaCero).toFixed(2));
+
+    // ------------------------------------------------------------------
+    //  INDICADOR DE FACTURACION DE CADA LINEA
+    //
+    //  Estaba escrito a pelo como '1' en todos los articulos. Segun el formato
+    //  e-CF de la DGII (v1.0), ese campo vale:
+    //
+    //      1  Gravado a ITBIS Tasa 1        -> suma a MontoGravadoI1
+    //      2  Gravado a ITBIS Tasa 2        -> suma a MontoGravadoI2
+    //      3  Gravado a ITBIS Tasa 3        -> suma a MontoGravadoI3
+    //      4  Exento                        -> suma a MontoExento
+    //      0  No facturable                 -> suma a MontoNoFacturable
+    //
+    //  O sea que con el '1' fijo, una linea exenta se le declaraba a la DGII
+    //  como gravada a la tasa 1, mientras los Totales del MISMO comprobante la
+    //  metian en MontoExento. El comprobante se contradecia a si mismo: los
+    //  articulos sumaban a un tramo y los totales a otro.
+    //
+    //  El indicador es POSICIONAL: apunta al tramo declarado en los Totales
+    //  (ITBIS1/ITBIS2/ITBIS3), que es donde va el porcentaje de verdad. Por eso
+    //  se calcula del propio `tramos` y no de una tabla de tasas fija: asi los
+    //  articulos y los totales no se pueden separar nunca.
+    //
+    //  Las lineas al 0% se declaran EXENTAS (4), que es lo que dice la opcion
+    //  del formulario ("0% Exento") y lo que ya hacian los Totales al sumarlas
+    //  a MontoExento. La DGII distingue "exento" (4) de "gravado a tasa 0" (3);
+    //  si alguna vez hiciera falta el 3, hay que cambiar las DOS cosas a la vez,
+    //  aqui y en los Totales.
+    // ------------------------------------------------------------------
+    const indicadorDeLinea = (
+      taxRate: number | null | undefined,
+      taxCategory?: 'exento' | 'tasa_cero' | null,
+    ): string => {
+      const pct = Math.round((taxRate ?? 0) * 10000) / 100;
+      //  Los dos ceros. Sin categoria, exento -- que es como se comporto
+      //  siempre y lo que corresponde a todo lo ya emitido.
+      if (pct === 0) return taxCategory === 'tasa_cero' ? String(tramoTasaCero) : '4';
+      const i = tramos.findIndex(([p]) => p === pct);
+      if (i < 0) {
+        // No puede pasar: `tramos` sale de estas mismas lineas. Si pasara,
+        // lanzar es mejor que declarar la linea en un tramo que no es el suyo.
+        throw new Error(
+          `La linea con tasa ${pct}% no corresponde a ningun tramo declarado ` +
+          `(${tramos.map(t => t[0] + '%').join(', ') || 'ninguno'}).`
+        );
+      }
+      return String(i + 1);
+    };
 
     // Build idDoc in the EXACT field order required by DGII's XSD schema.
     // Reference XML (accepted by DGII) order for e-34:
@@ -559,16 +718,32 @@ export class MSellerClient {
       };
     }
 
-    encabezado.Totales = {
-      MontoGravadoTotal: Number(params.subtotal.toFixed(2)),
-      MontoGravadoI1: Number(params.subtotal.toFixed(2)),
-      MontoExento: 0,
-      ITBIS1: itbisRate,
-      TotalITBIS: Number(params.totalTaxes.toFixed(2)),
-      TotalITBIS1: Number(params.totalTaxes.toFixed(2)),
-      MontoTotal: Number(params.total.toFixed(2)),
-      MontoNoFacturable: 0,
+    const totales: any = {
+      MontoGravadoTotal: montoGravadoTotal,
     };
+    //  Un tramo por cada tasa presente. Sin lineas gravadas no se declara
+    //  ningun tramo: la factura es exenta entera.
+    tramos.forEach(([pct, base], i) => {
+      totales[`MontoGravadoI${i + 1}`] = base;
+      totales[`ITBIS${i + 1}`] = pct;
+    });
+    //  El tramo de tasa 0% va en el tercero, emparejado con el indicador 3.
+    if (baseTasaCero > 0) {
+      totales[`MontoGravadoI${tramoTasaCero}`] = baseTasaCero;
+      totales[`ITBIS${tramoTasaCero}`] = 0;
+    }
+    totales.MontoExento = montoExento;
+    totales.TotalITBIS = Number(params.totalTaxes.toFixed(2));
+    tramos.forEach(([pct, base], i) => {
+      totales[`TotalITBIS${i + 1}`] = Number((base * pct / 100).toFixed(2));
+    });
+    if (baseTasaCero > 0) {
+      totales[`TotalITBIS${tramoTasaCero}`] = 0;
+    }
+    totales.MontoTotal = Number(params.total.toFixed(2));
+    totales.MontoNoFacturable = 0;
+
+    encabezado.Totales = totales;
 
     // Construct ECF object elements in the strict sequential order required by DGII XML Schema
     const ecfObj: any = {
@@ -580,7 +755,7 @@ export class MSellerClient {
           const montoItem = Number((subtotal - discount).toFixed(2));
           const item: any = {
             NumeroLinea: String(idx + 1),
-            IndicadorFacturacion: '1',
+            IndicadorFacturacion: indicadorDeLinea(line.taxRate, line.taxCategory),
             NombreItem: line.name,
             IndicadorBienoServicio: '1',
             CantidadItem: Number(line.quantity.toFixed(2)),

@@ -65,6 +65,7 @@ function cadenasDe(nodo: any, vistos = new Set<any>()): string[] {
 const puedeSacar = (existencia: number | null, pedido: number, minimo = 0) =>
   checkStock(
     'empresa-1',
+    'PRODUCCION',
     'prod-1',
     'almacen-1',
     pedido,
@@ -122,7 +123,7 @@ describe('checkStock — aislamiento entre empresas', () => {
     // almacen a secas y podia autorizar una salida contra la existencia de otra
     // empresa. El filtro es parte del contrato de la funcion, no un detalle.
     const tx = txCon({ quantity: 10 });
-    await checkStock('empresa-1', 'prod-1', 'almacen-1', 1, tx, false);
+    await checkStock('empresa-1', 'PRODUCCION', 'prod-1', 'almacen-1', 1, tx, false);
 
     // Dos consultas: primero si el producto lleva inventario, despues el nivel.
     expect(tx.preguntas.length).toBe(2);
@@ -145,7 +146,7 @@ describe('checkStock — aislamiento entre empresas', () => {
     // de `tracks_inventory` no habia forma de decirlo y cada venta le descontaba
     // una unidad: "Servicios Instalacion" acumulo -116.
     const tx = txCon(null, false);
-    expect(await checkStock('empresa-1', 'srv-1', 'almacen-1', 500, tx, false)).toBe(true);
+    expect(await checkStock('empresa-1', 'PRODUCCION', 'srv-1', 'almacen-1', 500, tx, false)).toBe(true);
 
     // Y ni siquiera llega a mirar el nivel: no tiene sentido preguntarlo.
     expect(tx.preguntas.length).toBe(1);

@@ -60,6 +60,11 @@ export class CompanyRepository {
 
   /**
    * Fetches the active e-CF sequence for a given type, e.g. '31' (Fiscal).
+   *
+   * SOLO LECTURA INFORMATIVA. No la uses para emitir: no bloquea la fila, de
+   * modo que dos emisiones simultaneas leen el mismo numero. Ese fue el
+   * hallazgo DB-04 de la auditoria -- el NCF se leia aqui, se enviaba a la DGII
+   * y se reservaba despues. Para emitir, `allocateNextNcf`, que si bloquea.
    */
   static async getSequence(companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
     const [sequence] = await db

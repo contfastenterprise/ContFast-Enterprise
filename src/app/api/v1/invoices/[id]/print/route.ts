@@ -4,6 +4,8 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { DocumentService } from '@/services/print/documentService';
 import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories, warehouses } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { verifyAuth } from '@/middleware/auth';
 
 async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', isReprint: boolean = false) {
@@ -40,7 +42,14 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
     .from(ecfSequences)
     .where(
       and(
+        // `ecf_sequences` tiene indice unico (company_id, ecf_type, modo):
+        // hay DOS filas candidatas, una por entorno, y con `.limit(1)` sin
+        // orden salia la que quisiera el planificador. De esta fila sale
+        // la fecha de vencimiento del NCF que se IMPRIME en el
+        // comprobante fiscal: un documento real podia salir con la
+        // caducidad de la secuencia de pruebas.
         eq(ecfSequences.companyId, invoiceRecordDb.companyId),
+        eq(ecfSequences.modo, modo),
         eq(ecfSequences.ecfType, invoiceRecordDb.ecfType)
       )
     )
@@ -95,45 +104,42 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
     .where(eq(invoiceRetentions.invoiceId, invoiceId));
 
   // Fetch dgii submission to retrieve security code and QR code from mseller
-  const [submission] = await db
-    .select()
-    .from(dgiiSubmissions)
-    .where(eq(dgiiSubmissions.invoiceId, invoiceId))
-    .limit(1);
+  // Una factura puede tener varios envios: uno por cada intento. Antes esto
+  // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
+  // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
+  // en un solo sitio: envioVigente.
+  const submission = await envioVigente(invoiceId, companyId, modo);
 
-  let securityCode = '';
+  // La lectura del codigo de seguridad, el QR y la fecha de firma vive en
+  // datosFirmaDeEnvio. Aqui habia treinta lineas repetidas en cuatro rutas
+  // que acababan en:
+  //
+  //     if (!securityCode) securityCode = sha256(id + ncf).slice(0,16)
+  //
+  // o sea, inventarse el codigo de seguridad de un comprobante fiscal. Y
+  // peor: el QR se construia con ESE codigo inventado apuntando a la
+  // consulta de la DGII, donde no puede validar nunca.
+  const firma = datosFirmaDeEnvio(submission);
+  const securityCode = firma.codigo;
+  const signedDate = firma.fechaFirma;
   let qrBase64 = '';
-  let signedDate = '';
-
-  if (submission && submission.responsePayload) {
-    try {
-      const payload = JSON.parse(submission.responsePayload);
-      securityCode = payload.securityCode || payload.codigoSeguridad || '';
-      const rawQr = payload.qr_url || payload.qrCode || '';
-      if (rawQr) {
-        if (rawQr.startsWith('http')) {
-          qrBase64 = await PdfGenerator.generateQrBase64(rawQr);
-        } else {
-          qrBase64 = rawQr;
-        }
-      }
-      signedDate = payload.signedDate || payload.fechaFirma || payload.FechaFirma || '';
-    } catch (err) {
-      console.error('Error parsing submission responsePayload:', err);
-    }
-  }
-
-  // Fallbacks if not processed by worker yet (or if worker response didn't contain them)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-const crypto = require('crypto');
-  if (!securityCode) {
-    securityCode = crypto.createHash('sha256').update(invoiceRecordDb.id + invoiceRecordDb.ncf).digest('hex').substring(0, 16).toUpperCase();
-  }
-
-  if (!qrBase64) {
-    const dateFormatted = new Date(invoiceRecordDb.createdAt).toLocaleDateString('es-DO').replace(/\//g, '-');
-    const dgiiUrl = `https://ecf.dgii.gov.do/e-cf/Consulta?rncEmisor=${company.rnc}&rncComprador=${invoiceRecordDb.buyerRnc || ''}&eNCF=${invoiceRecordDb.ncf}&fechaFirma=${dateFormatted}&montoTotal=${Number(invoiceRecordDb.total).toFixed(2)}&codigoSeguridad=${securityCode}`;
-    qrBase64 = await PdfGenerator.generateQrBase64(dgiiUrl);
+  if (firma.qr) {
+    qrBase64 = firma.qr.startsWith('http')
+      ? await PdfGenerator.generateQrBase64(firma.qr)
+      : firma.qr;
+  } else if (securityCode) {
+    // Sin QR de mSeller pero CON codigo real, la consulta se puede construir
+    // y sirve. Sin codigo no se genera ningun QR: un QR que lleva a la DGII a
+    // preguntar por un codigo inexistente es peor que no tenerlo.
+    const urlConsulta = urlConsultaDgii({
+      rncEmisor: company.rnc,
+      rncComprador: invoiceRecordDb.buyerRnc,
+      ncf: invoiceRecordDb.ncf,
+      fecha: invoiceRecordDb.createdAt,
+      total: Number(invoiceRecordDb.total),
+      codigoSeguridad: securityCode,
+    });
+    if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
   }
 
   const invoiceRecord = {

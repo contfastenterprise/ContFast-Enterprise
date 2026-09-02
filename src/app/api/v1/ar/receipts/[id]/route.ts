@@ -26,7 +26,7 @@ export async function GET(
     await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'cobros', 'read');
 
     const { id } = await params;
-    const receipt = await ArRepository.getReceiptDetails(session.companyId, id);
+    const receipt = await ArRepository.getReceiptDetails(session.companyId, session.modo, id);
 
     if (!receipt) {
       return NextResponse.json(

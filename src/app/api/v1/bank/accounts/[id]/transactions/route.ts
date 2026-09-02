@@ -5,6 +5,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, bankAccounts, bankTransactions, auditLogs, chartOfAccounts } from '@/db';
 import { eq, and, isNull, count, desc } from 'drizzle-orm';
 import { AccountRepository } from '@/repositories/accountRepository';
+import { BankRepository } from '@/repositories/bankRepository';
 
 const createTransactionSchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -80,17 +81,27 @@ export async function GET(
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
     const offset = (page - 1) * perPage;
 
+    // La cuenta ya se comprobo que es de esta empresa, pero el filtro va
+    // igual: bank_transactions tiene su propio `modo`, y sin el, el libro de
+    // banco mezclaba los movimientos de practicas con los reales.
+    const alcance = and(
+      eq(bankTransactions.bankAccountId, id),
+      eq(bankTransactions.companyId, auth.companyId),
+      eq(bankTransactions.modo, auth.modo),
+      isNull(bankTransactions.deletedAt)
+    );
+
     const [totalResult] = await db
       .select({ value: count() })
       .from(bankTransactions)
-      .where(and(eq(bankTransactions.bankAccountId, id), isNull(bankTransactions.deletedAt)));
+      .where(alcance);
 
     const total = totalResult?.value || 0;
 
     const list = await db
       .select()
       .from(bankTransactions)
-      .where(and(eq(bankTransactions.bankAccountId, id), isNull(bankTransactions.deletedAt)))
+      .where(alcance)
       .orderBy(desc(bankTransactions.date), desc(bankTransactions.createdAt))
       .limit(perPage)
       .offset(offset);
@@ -170,23 +181,15 @@ export async function POST(
 
     // Process transaction and update balance
     const transaction = await db.transaction(async (tx) => {
-      const currentBalance = parseFloat(account.balance);
-      let newBalance = currentBalance;
+      const delta = (type === 'deposit' || type === 'transfer_in') ? amount : -amount;
 
-      if (type === 'deposit' || type === 'transfer_in') {
-        newBalance += amount;
-      } else {
-        newBalance -= amount;
-      }
-
-      // Update bank account balance
-      await tx
-        .update(bankAccounts)
-        .set({
-          balance: newBalance.toString(),
-          updatedAt: new Date(),
-        })
-        .where(eq(bankAccounts.id, id));
+      // El saldo se mueve SOLO en el entorno de la sesion. Antes era un
+      // `UPDATE bank_accounts SET balance = ... WHERE id = ?`, sin empresa y
+      // sin entorno, sobre el unico saldo que habia: un movimiento de
+      // practicas cambiaba la cifra real.
+      const newBalance = await BankRepository.ajustarSaldo(
+        id, auth.companyId, auth.modo, delta, tx
+      );
 
       // Insert transaction record
       const [newTx] = await tx
@@ -225,10 +228,13 @@ export async function POST(
 
       await AccountRepository.createJournalEntry(tx, {
         companyId: auth.companyId,
+        modo: auth.modo,
         reference: newTx.id,
         date,
         description: `Transacción Bancaria Automática: ${description}`,
         lines: journalLines,
+        // Auditoria JRN-16: quien registra el asiento.
+        createdBy: auth.userId,
       });
 
       // Register audit log

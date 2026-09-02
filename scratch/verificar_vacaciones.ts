@@ -1,10 +1,12 @@
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { HRRepository } from '../src/repositories/hrRepository';
 const A='11111111-1111-1111-1111-111111111111';
 let f=0; const ok=(t:string,c:boolean,d='')=>{console.log(`${c?'  OK  ':' FALLA'}  ${t}${d?` -- ${d}`:''}`); if(!c)f++;};
 async function main(){
-  await db.execute(sql`DELETE FROM employee_vacations`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   // El empleado se creo en PRODUCCION: solo tiene fila de saldo alli.
   const vp = await HRRepository.findVacations(A,'PRODUCCION');
   const vt = await HRRepository.findVacations(A,'PRUEBA');

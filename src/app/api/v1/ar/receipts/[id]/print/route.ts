@@ -32,7 +32,7 @@ export async function POST(
 
     const { id: receiptId } = await params;
     const hideBalance = req.nextUrl.searchParams.get('hideBalance') === 'true';
-    const receipt = await ArRepository.getReceiptDetails(session.companyId, receiptId);
+    const receipt = await ArRepository.getReceiptDetails(session.companyId, session.modo, receiptId);
 
     if (!receipt) {
       return NextResponse.json(
@@ -77,8 +77,9 @@ export async function POST(
       company: {
         name: company.name,
         rnc: company.rnc,
-        address: company.address || 'República Dominicana',
-        phone: '1-809-555-0199', // Placeholder
+        // Auditoria ISO-17: el telefono es el de la empresa, o ninguno.
+        address: company.address || '',
+        phone: company.phone || '',
         logoUrl: settings?.logoUrl || undefined,
         settings: { 
           printLayout: settings?.printLayout || 'carta' 

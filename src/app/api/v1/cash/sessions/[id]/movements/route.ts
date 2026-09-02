@@ -41,7 +41,7 @@ export async function GET(
     const [session] = await db
       .select({ userId: cashSessions.userId })
       .from(cashSessions)
-      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId)))
+      .where(and(eq(cashSessions.id, id), eq(cashSessions.companyId, auth.companyId), eq(cashSessions.modo, auth.modo)))
       .limit(1);
 
     if (!session) {
@@ -112,6 +112,7 @@ export async function POST(
     const movement = await CashService.addMovement(
       auth.userId,
       auth.companyId,
+      auth.modo,
       id,
       result.data.type,
       result.data.amount,

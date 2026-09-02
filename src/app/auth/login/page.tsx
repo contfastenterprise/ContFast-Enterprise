@@ -38,8 +38,26 @@ export default function LoginPage() {
       try {
         const res = await fetch('/api/v1/setup/status', { signal: controller.signal });
         clearTimeout(timeout);
+
+        // La respuesta puede no ser JSON (404 con HTML, redirect, error de un proxy
+        // intermedio). Sin esta comprobacion, res.json() lanza un SyntaxError de
+        // parseo que oculta la causa real. Ante una respuesta no valida se muestra
+        // el login, igual que ya hacia el catch de mas abajo.
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || !contentType.includes('application/json')) {
+          console.error(
+            `Failed to check setup status: respuesta no valida de /api/v1/setup/status ` +
+            `(HTTP ${res.status}, content-type: ${contentType || 'ausente'})`
+          );
+          setCheckingStatus(false);
+          return;
+        }
+
         const data = await res.json();
-        if (data.success && !data.data.initialized) {
+        // Solo se redirige al wizard cuando la API afirma explicitamente que el
+        // sistema no esta inicializado. Cualquier otra forma de respuesta deja
+        // pasar al login en vez de mandar a /setup por una lectura ambigua.
+        if (data.success && data.data?.initialized === false) {
           router.push('/setup');
         } else {
           setCheckingStatus(false);

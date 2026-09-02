@@ -1,6 +1,6 @@
 export interface IssueInvoiceInput {
   companyId: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   warehouseId: string;
   customerId?: string;
   userId: string;
@@ -24,6 +24,9 @@ export interface IssueInvoiceInput {
     unitPrice: number;
     discount: number;
     taxRate: number; // e.g. 0.18 for 18% ITBIS
+    //  Solo con taxRate 0. La DGII distingue 'exento' (indicador 4) de
+    //  'tasa_cero' (indicador 3, exportaciones). Ver 0042. Sin valor: exento.
+    taxCategory?: 'exento' | 'tasa_cero' | null;
     warehouseId?: string;
   }[];
   retentions?: {

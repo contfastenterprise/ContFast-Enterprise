@@ -34,7 +34,12 @@ export async function GET(req: NextRequest) {
 
     const periods = await db.select()
       .from(accountingPeriods)
-      .where(eq(accountingPeriods.companyId, session.companyId))
+      // Los periodos son por entorno: `isPeriodOpen` ya los busca asi al
+      // registrar un asiento. El listado no lo hacia y mostraba los dos juntos.
+      .where(and(
+        eq(accountingPeriods.companyId, session.companyId),
+        eq(accountingPeriods.modo, session.modo)
+      ))
       .orderBy(desc(accountingPeriods.startDate));
 
     return NextResponse.json({ success: true, data: periods }, { headers: resHeaders });
@@ -78,8 +83,12 @@ export async function POST(req: NextRequest) {
 
     // Check if period already exists
     const existing = await db.select().from(accountingPeriods)
+      // Sin el entorno, crear "06/2026" en PRUEBA devolvia 409 al intentar
+      // crear el mismo periodo en PRODUCCION: dos entornos peleandose por un
+      // nombre que no comparten.
       .where(and(
         eq(accountingPeriods.companyId, session.companyId),
+        eq(accountingPeriods.modo, session.modo),
         eq(accountingPeriods.name, parsed.data.name)
       ))
       .limit(1);

@@ -128,7 +128,22 @@ describe('aislamiento por entorno — INSERT', () => {
         if (EXCEPCIONES[rel]) continue;
 
         const st = sentencia(texto, m.index);
-        const fijaModo = /\bmodo\s*[,:]/.test(st) || st.includes(`${tabla}.modo`);
+        // Los comentarios fuera: si no, un comentario que mencione `modo`
+        // dentro de la sentencia haria pasar por buena una insercion que no lo
+        // fija. Quitaba solo los de linea, asi que un comentario de BLOQUE con
+        // la palabra dentro seguia colando. Van los dos.
+        //
+        // (La version completa -- que ademas respeta cadenas, plantillas y
+        // expresiones regulares -- vive en `scratch/_fuente.ts`. Aqui no se
+        // puede importar: `src/` no depende de `scratch/`. Para lo que se mira
+        // aqui, una sentencia suelta, estas dos pasadas bastan.)
+        const codigo = st.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+        // Vale `modo:` (con valor), `modo,` (abreviado, con coma) y `modo`
+        // abreviado como ultima propiedad, sin coma detras. Esa tercera forma
+        // no se contemplaba y daba un falso positivo.
+        const fijaModo = /\bmodo\s*[,:]/.test(codigo) ||
+          /\bmodo\s*\n\s*\}/.test(codigo) ||
+          codigo.includes(`${tabla}.modo`);
         if (!fijaModo) {
           const linea = texto.slice(0, m.index).split('\n').length;
           olvidos.push(`${rel}:${linea} — insert(${tabla}) sin modo`);

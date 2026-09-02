@@ -6,6 +6,8 @@ import { db, dgiiSubmissions, companySettings, companies, invoices } from '@/db'
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { decryptAsync } from '@/utils/encryption';
 import { eq, and, isNull } from 'drizzle-orm';
+import { envioVigente, datosFirmaDeEnvio } from '@/repositories/dgiiSubmissionRepository';
+import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 
 function resolveEntorno(dgiiEnv: string | null): string {
   if (!dgiiEnv) return 'TesteCF';
@@ -132,20 +134,76 @@ export async function GET(
         })
         .where(and(eq(invoices.id, invoice.id), eq(invoices.companyId, auth.companyId)));
 
-      // Update latest dgii_submission
-      await db
-        .update(dgiiSubmissions)
-        .set({
+      // ─── El envio que se actualiza ────────────────────────────────────
+      //
+      // ANTES esto era un UPDATE con
+      //     WHERE invoice_id = ? AND company_id = ? AND modo = ?
+      // sin decir QUE intento. Como se inserta una fila por intento, tocaba
+      // todas a la vez. Es el mismo patron que la 0035 corrigio en los
+      // trabajos de la cola y que aqui quedo sin corregir, y tenia DOS
+      // consecuencias:
+      //
+      //   1. `response_payload` de la fila ACEPTADA -- la constancia de lo que
+      //      contesto la DGII -- se machacaba con la respuesta de la CONSULTA
+      //      DE ESTADO, que es otro endpoint y otra forma.
+      //   2. Esa respuesta no lleva codigo de seguridad (no es su trabajo), asi
+      //      que sincronizar BORRABA el codigo de la factura. Al reimprimirla
+      //      se fabricaba uno con sha256, distinto del de mSeller. Ese es
+      //      exactamente el sintoma que se reporto.
+      //
+      // Ahora: se actualiza UN envio, el vigente, y `response_payload` solo se
+      // toca cuando no se pierde nada al hacerlo.
+      const envio = await envioVigente(id, auth.companyId, auth.modo);
+
+      if (!envio) {
+        // No habia ningun envio registrado para esta factura.
+        //
+        // Pasaba con las facturas emitidas en estado 'submitted' o 'rejected',
+        // que hasta ahora no dejaban fila (ver el comentario largo en
+        // invoiceDbBooker). El UPDATE de antes tocaba cero filas EN SILENCIO,
+        // mientras el UPDATE de `invoices` si ponia el estado nuevo: la factura
+        // acababa diciendo 'accepted' sin una sola prueba de que se enviara.
+        //
+        // La consulta que se acaba de hacer SI es una respuesta de la DGII
+        // sobre este comprobante, asi que se guarda como lo que es: la
+        // constancia que faltaba.
+        await db.insert(dgiiSubmissions).values({
+          companyId: auth.companyId,
+          invoiceId: id,
+          modo: auth.modo,
           status: newStatus as any,
           responseMessage: statusResult.message,
           responsePayload: JSON.stringify(statusResult.rawResponse),
-          updatedAt: new Date(),
-        })
-        .where(and(
-          eq(dgiiSubmissions.invoiceId, id),
-          eq(dgiiSubmissions.companyId, auth.companyId),
-          eq(dgiiSubmissions.modo, auth.modo)
-        ));
+          securityCode: leerCodigoSeguridad(statusResult.rawResponse) || null,
+          retryCount: 0,
+        });
+      } else {
+        // Si la consulta trae codigo de seguridad, se aprovecha para rellenar
+        // el de las facturas que lo perdieron. Si no trae, no se borra el que
+        // haya: `undefined` deja la columna como esta.
+        const codigoConsultado = leerCodigoSeguridad(statusResult.rawResponse);
+        const yaTenia = datosFirmaDeEnvio(envio).codigo;
+
+        await db
+          .update(dgiiSubmissions)
+          .set({
+            status: newStatus as any,
+            responseMessage: statusResult.message,
+            // La respuesta del envio manda sobre la de una consulta de estado:
+            // es la que lleva la firma. Solo se sustituye cuando la que hay no
+            // aporta codigo de seguridad, o cuando la nueva tambien lo trae.
+            responsePayload:
+              !yaTenia || codigoConsultado
+                ? JSON.stringify(statusResult.rawResponse)
+                : undefined,
+            securityCode: codigoConsultado || undefined,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(dgiiSubmissions.id, envio.id),
+            eq(dgiiSubmissions.companyId, auth.companyId)
+          ));
+      }
     }
 
     return NextResponse.json(

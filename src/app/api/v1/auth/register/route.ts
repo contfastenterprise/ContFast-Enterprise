@@ -91,6 +91,8 @@ export async function POST(req: NextRequest) {
       await seedRolePermissionsForCompany(db, companyId, allRoles);
       await AccountingRepository.seedDefaultChartOfAccounts(companyId);
       await AccountingRepository.seedDefaultExpenseTypes(companyId);
+      // Auditoria JRN-11: ver la nota en admin/companies.
+      await AccountingRepository.sembrarPeriodosContables(companyId);
     }
 
     // Get the 'administracion' role for the new user

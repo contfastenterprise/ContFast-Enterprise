@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { accountsPayable, apPayments, checks, suppliers, chartOfAccounts, bankAccounts, cashSessions } from '@/db/schema';
-import { eq, and, sql, desc, isNull, lte, gte, ilike, or } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull, lte, gte, ilike, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { CashRepository } from '@/repositories/cashRepository';
 
@@ -42,7 +42,7 @@ export class ApRepository {
   /**
    * Find all accounts payable for a company, with supplier details.
    */
-  static async findAll(companyId: string) {
+  static async findAll(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const results = await db.select({
       ap: accountsPayable,
       supplier: suppliers,
@@ -55,6 +55,7 @@ export class ApRepository {
     .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
     .where(and(
       eq(accountsPayable.companyId, companyId),
+      eq(accountsPayable.modo, modo),
       isNull(accountsPayable.deletedAt)
     ))
     .orderBy(desc(accountsPayable.dueDate));
@@ -79,7 +80,13 @@ export class ApRepository {
   /**
    * Find a specific accounts payable by ID.
    */
-  static async findById(id: string, companyId: string) {
+  /**
+   * `modo` obligatorio: `id` llega del cuerpo de la peticion (`input.apId`) y
+   * NO es un ancla valida por si solo. Sin el entorno, mandar el id de una
+   * cuenta por pagar de PRUEBA estando en PRODUCCION la resolvia, pasaba la
+   * validacion de saldo y le colgaba un pago real.
+   */
+  static async findById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const result = await db.select({
       ap: accountsPayable,
       supplier: suppliers,
@@ -90,6 +97,7 @@ export class ApRepository {
     .where(and(
       eq(accountsPayable.id, id),
       eq(accountsPayable.companyId, companyId),
+      eq(accountsPayable.modo, modo),
       isNull(accountsPayable.deletedAt)
     ))
     .limit(1);
@@ -113,7 +121,7 @@ export class ApRepository {
    */
   static async createPayment(tx: any, data: {
     companyId: string;
-    modo?: 'PRODUCCION' | 'PRUEBA';
+    modo: 'PRODUCCION' | 'PRUEBA';
     apId: string;
     amount: number;
     paymentMethod: string;
@@ -143,6 +151,92 @@ export class ApRepository {
   /**
    * Updates an accounts payable balance and status.
    */
+  /**
+   * Bloquea la fila de una cuenta por pagar y devuelve su estado actual.
+   *
+   * Auditoria ARP-06 y ARP-13. El saldo se leia con `findById`, que consulta
+   * sobre la conexion global `db` y NO sobre la transaccion, y sin bloqueo. Con
+   * eso, dos pagos simultaneos de la deuda completa leian el mismo saldo,
+   * pasaban los dos la validacion de tope y escribian los dos: se emitian dos
+   * cheques por el importe total y la cuenta quedaba en cero, con el pasivo
+   * rebajado el doble de lo que se debia.
+   *
+   * `SELECT ... FOR UPDATE` dentro de la transaccion serializa a los que
+   * compiten por la misma cuenta: el segundo espera al primero y lee el saldo
+   * ya rebajado. Es la misma tecnica que usa `allocateNextNcf`.
+   *
+   * Devuelve null si la cuenta no existe, no es de la empresa o esta borrada.
+   */
+  static async bloquearAp(
+    tx: any,
+    id: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA'
+  ) {
+    const [ap] = await tx
+      .select()
+      .from(accountsPayable)
+      .where(and(
+        eq(accountsPayable.id, id),
+        eq(accountsPayable.companyId, companyId),
+        eq(accountsPayable.modo, modo),
+        isNull(accountsPayable.deletedAt)
+      ))
+      .limit(1)
+      .for('update');
+    return ap || null;
+  }
+
+  /**
+   * Marca un cheque como cobrado, pero SOLO si sigue pendiente.
+   *
+   * Auditoria ARP-13: las dos rutas que aplican cheques en garantia (la masiva
+   * y la individual) leian los pendientes con la conexion global y no volvian a
+   * comprobar el estado dentro de la transaccion. Dos ejecuciones a la vez
+   * aplicaban el mismo cheque dos veces. El `where` sobre el estado hace que la
+   * segunda no actualice ninguna fila, y el llamador puede saltarsela.
+   *
+   * Devuelve true si este proceso fue el que lo cobro.
+   */
+  static async marcarChequeCobrado(
+    tx: any,
+    checkId: string,
+    companyId: string,
+    fechaCobro: string
+  ): Promise<boolean> {
+    const filas = await tx
+      .update(checks)
+      .set({ status: 'cleared', clearedDate: fechaCobro, updatedAt: new Date() })
+      .where(and(
+        eq(checks.id, checkId),
+        eq(checks.companyId, companyId),
+        eq(checks.status, 'pending')
+      ))
+      .returning({ id: checks.id });
+    return filas.length > 0;
+  }
+
+  /**
+   * Marca un pago como aplicado, pero SOLO si seguia pendiente de garantia.
+   * Contraparte de `marcarChequeCobrado`; ver su nota.
+   */
+  static async marcarPagoAplicado(
+    tx: any,
+    paymentId: string,
+    companyId: string
+  ): Promise<boolean> {
+    const filas = await tx
+      .update(apPayments)
+      .set({ status: 'applied', updatedAt: new Date() })
+      .where(and(
+        eq(apPayments.id, paymentId),
+        eq(apPayments.companyId, companyId),
+        eq(apPayments.status, 'pending_guarantee')
+      ))
+      .returning({ id: apPayments.id });
+    return filas.length > 0;
+  }
+
   static async updateApBalance(tx: any, id: string, companyId: string, newBalance: number) {
     const status = newBalance <= 0.01 ? 'paid' : 'pending';
     const [updated] = await tx.update(accountsPayable)
@@ -164,7 +258,7 @@ export class ApRepository {
    */
   static async createCheck(tx: any, data: {
     companyId: string;
-    modo?: 'PRODUCCION' | 'PRUEBA';
+    modo: 'PRODUCCION' | 'PRUEBA';
     bankAccountId: string;
     checkNumber: string;
     payee: string;
@@ -215,7 +309,7 @@ export class ApRepository {
     limit?: number, 
     offset?: number,
     status?: string,
-    modo?: 'PRODUCCION' | 'PRUEBA',
+    modo: 'PRODUCCION' | 'PRUEBA',
     dateField?: 'payment' | 'cleared'
   }) {
     const debitAccount = alias(chartOfAccounts, 'debit_account');
@@ -320,12 +414,23 @@ export class ApRepository {
   /**
    * Find all due guarantee checks that are pending.
    */
+  /**
+   * Cheques en garantia todavia sin cobrar.
+   *
+   * Auditoria ARP-25: cuando llega `checkIds`, manda la LISTA y no el
+   * vencimiento. Una persona con el estado de cuenta delante puede confirmar un
+   * cheque que el banco pago antes de la fecha pactada; lo que no puede volver a
+   * pasar es que un cheque se aplique solo por haber vencido.
+   *
+   * Sin lista, la consulta sigue sirviendo para LISTAR los vencidos. Listar es
+   * informativo y no aplica nada.
+   */
   static async findPendingGuaranteeChecks(
     companyId: string,
-    beforeDate: Date = new Date(),
-    modo?: 'PRODUCCION' | 'PRUEBA'
+    beforeDate: Date | undefined,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    checkIds?: string[]
   ) {
-    const formattedDate = beforeDate.toISOString().split('T')[0];
     const conditions: any[] = [
       eq(checks.companyId, companyId),
       eq(checks.isGuarantee, true),
@@ -333,8 +438,13 @@ export class ApRepository {
       isNull(checks.deletedAt),
       eq(apPayments.status, 'pending_guarantee'),
       isNull(accountsPayable.deletedAt),
-      lte(checks.dueDate, formattedDate)
     ];
+
+    if (checkIds && checkIds.length > 0) {
+      conditions.push(inArray(checks.id, checkIds));
+    } else {
+      conditions.push(lte(checks.dueDate, (beforeDate ?? new Date()).toISOString().split('T')[0]));
+    }
 
     // Aislamiento de entorno: nunca aplicar contablemente cheques de PRUEBA
     // estando en PRODUCCION (generarian asientos y movimientos bancarios reales).

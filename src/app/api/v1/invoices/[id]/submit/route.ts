@@ -61,6 +61,8 @@ export async function POST(
     await addJob('dgii-submissions', 'submit-ecf', {
       companyId: auth.companyId,
       invoiceId: invoice.id,
+      // El trabajo actualiza SU intento, no todos los de la factura.
+      submissionId: submission.id,
     });
 
     // 3. Register audit log

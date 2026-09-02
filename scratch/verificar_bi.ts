@@ -18,9 +18,11 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { BIRepository } from '../src/repositories/biRepository';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const USER_A = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -36,15 +38,8 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM accounts_payable`);
-  await db.execute(sql`DELETE FROM invoice_sequences`);
-  await db.execute(sql`DELETE FROM invoices`);
-  await db.execute(sql`DELETE FROM expense_lines`);
-  await db.execute(sql`DELETE FROM expenses`);
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
 
   await db.execute(sql`
     INSERT INTO customers (id, company_id, name) VALUES (${CLIENTE}::uuid, ${A}::uuid, 'Cliente Uno')
@@ -159,12 +154,16 @@ async function main() {
   ok('ni la suma (1019)', !nInv.has(1019));
 
   console.log('\n5) Las otras cuatro pestanas: responden y no traen nada de PRUEBA\n');
+  // Tipo explicito: son cuatro firmas con formas de retorno distintas y, sin
+  // esto, TypeScript intenta unificarlas y se queja del `this`. En ejecucion
+  // siempre fue correcto.
+  type Pestana = [string, (c: string, m: 'PRODUCCION' | 'PRUEBA', f: any) => Promise<unknown>];
   for (const [nombre, fn] of [
     ['productos', BIRepository.getProductStats],
     ['clientes', BIRepository.getCustomerStats],
     ['facturacion', BIRepository.getBillingStats],
     ['compras', BIRepository.getPurchaseStats],
-  ] as const) {
+  ] as Pestana[]) {
     const r = await fn.call(BIRepository, A, 'PRODUCCION', sinFiltros);
     ok(`${nombre}: responde`, r !== null && r !== undefined);
     // Los documentos de PRUEBA llevan marca propia en su codigo y su NCF.
@@ -179,13 +178,13 @@ async function main() {
   }
 
   console.log('\n6) La cache de la ruta separa los entornos\n');
-  const ruta = readFileSync(join(__dirname, '..', 'src/app/api/v1/bi/stats/route.ts'), 'utf8');
+  const ruta = fuente('src/app/api/v1/bi/stats/route.ts');
   ok('la clave incluye el modo', /cache:bi:\$\{auth\.companyId\}:\$\{auth\.modo\}/.test(ruta));
   ok('y las seis llamadas lo pasan',
     (ruta.match(/BIRepository\.\w+\(auth\.companyId, auth\.modo, filters\)/g) || []).length === 6);
 
   console.log('\n7) Ninguna consulta se quedo sin filtro\n');
-  const repo = readFileSync(join(__dirname, '..', 'src/repositories/biRepository.ts'), 'utf8');
+  const repo = fuente('src/repositories/biRepository.ts');
   const conEmpresa = (repo.match(/eq\((\w+)\.companyId, companyId\)/g) || []);
   const conModo = (repo.match(/eq\(\w+\.modo, modo\)/g) || []);
   const catalogo = conEmpresa.filter((x) => /customers|products/.test(x)).length;

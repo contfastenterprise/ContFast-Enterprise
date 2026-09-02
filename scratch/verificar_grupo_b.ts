@@ -10,6 +10,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { BankRepository } from '../src/repositories/bankRepository';
 import { ArRepository } from '../src/repositories/arRepository';
 import { CashRepository } from '../src/repositories/cashRepository';
@@ -47,22 +48,9 @@ async function lanza(fn: () => Promise<any>): Promise<string | null> {
 }
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM financial_movements`);
-  await db.execute(sql`DELETE FROM cash_movements`);
-  await db.execute(sql`DELETE FROM cash_session_summary`);
-  await db.execute(sql`DELETE FROM cash_sessions`);
-  await db.execute(sql`DELETE FROM cash_registers`);
-  await db.execute(sql`DELETE FROM customer_receipt_applied`);
-  await db.execute(sql`DELETE FROM customer_receipts`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM invoices`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo(['cash_registers', 'bank_accounts']);
   await db.execute(sql`DELETE FROM customers`);
-  await db.execute(sql`DELETE FROM bank_transactions`);
-  await db.execute(sql`DELETE FROM bank_accounts`);
-  await db.execute(sql`DELETE FROM quote_lines`);
-  await db.execute(sql`DELETE FROM quotes`);
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
 
   await db.execute(sql`INSERT INTO bank_accounts (id,company_id,bank_name,account_number,balance) VALUES
     (${CTA_A}::uuid,${A}::uuid,'Popular','A-1',1000),
@@ -139,13 +127,13 @@ async function main() {
   // con el indice unico (product_id, warehouse_id, modo), que NO incluye la
   // empresa. El intento pasa de corromper callando a fallar en voz alta.
   const err5 = await lanza(() =>
-    addStock(A, PROD_B, ALM_B, -30, USER_A, 'adjustment', undefined, 'intento', db, 'PRODUCCION'));
+    addStock(A, 'PRODUCCION', PROD_B, ALM_B, -30, USER_A, 'adjustment', undefined, 'intento', db));
   ok('el intento no prospera', err5 !== null, (err5 || 'no lanzo').slice(0, 60));
   const nivB: any = await uno(sql`SELECT quantity FROM inventory_levels
     WHERE company_id=${B}::uuid AND product_id=${PROD_B}::uuid AND warehouse_id=${ALM_B}::uuid`);
   ok('el nivel de B sigue en 50', Number(nivB.quantity) === 50, nivB.quantity);
 
-  await addStock(A, PROD_A, ALM_A, 10, USER_A, 'adjustment', undefined, 'propio', db, 'PRODUCCION');
+  await addStock(A, 'PRODUCCION', PROD_A, ALM_A, 10, USER_A, 'adjustment', undefined, 'propio', db);
   const nivA: any = await uno(sql`SELECT quantity FROM inventory_levels
     WHERE company_id=${A}::uuid AND product_id=${PROD_A}::uuid AND warehouse_id=${ALM_A}::uuid`);
   ok('sobre su propio inventario A si funciona', Number(nivA.quantity) === 10, nivA.quantity);

@@ -4,6 +4,7 @@ import { Logger } from '@/utils/logger';
 import { decryptAsync } from '@/utils/encryption';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
+import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
 
 export class InvoiceSubmissionService {
   /**
@@ -58,7 +59,7 @@ export class InvoiceSubmissionService {
             and(
               eq(ecfSequences.companyId, data.companyId),
               eq(ecfSequences.ecfType, data.ecfType),
-              eq(ecfSequences.modo, data.modo || 'PRODUCCION'),
+              eq(ecfSequences.modo, data.modo),
               eq(ecfSequences.status, 'active'),
               isNull(ecfSequences.deletedAt)
             )
@@ -92,7 +93,7 @@ export class InvoiceSubmissionService {
                 // de otra empresa, y esos dos datos viajan DENTRO del e-CF que
                 // se envia a la DGII a nombre propio.
                 eq(invoices.companyId, data.companyId),
-                eq(invoices.modo, data.modo || 'PRODUCCION')
+                eq(invoices.modo, data.modo)
               )
             )
             .limit(1);
@@ -127,6 +128,7 @@ export class InvoiceSubmissionService {
             unitPrice: line.unitPrice,
             discount: line.discount,
             taxRate: line.taxRate,
+            taxCategory: (line as any).taxCategory ?? null,
           })),
         });
 
@@ -138,18 +140,15 @@ export class InvoiceSubmissionService {
           securityHash = msellerRes.securityCode || '';
           qrCode = msellerRes.qrCode || null;
 
-          const resEstado = (msellerRes.rawResponse?.status || msellerRes.rawResponse?.estado || 'Aceptado').toLowerCase();
-          if (resEstado.includes('acept') || resEstado === 'accepted') {
-            finalStatus = 'accepted';
-          } else if (resEstado.includes('rechaz') || resEstado === 'rejected') {
-            finalStatus = 'rejected';
-          } else if (resEstado.includes('envi') || resEstado === 'submitted') {
-            finalStatus = 'submitted';
-          } else {
-            finalStatus = 'accepted';
-          }
-
-          dgiiMessage = msellerRes.message || 'Aceptado por DGII';
+          // La lectura vive en `leerEstado`, no aqui. Este bloque tenia DOS
+          // caminos hacia 'accepted' que no lo justificaban: el `|| 'Aceptado'`
+          // cuando la respuesta no traia estado, y el `else` final, que
+          // convertia en aceptado cualquier estado que no se reconociera.
+          // `msellerRes.success` dice que la llamada fue bien, no que la DGII
+          // haya aceptado el comprobante.
+          const lectura = leerEstado(msellerRes.rawResponse);
+          finalStatus = lectura.estado;
+          dgiiMessage = mensajeEstado(lectura, msellerRes.message);
           msellerResponsePayload = msellerRes.rawResponse;
         } else {
           const errMsg = msellerRes.message || '';

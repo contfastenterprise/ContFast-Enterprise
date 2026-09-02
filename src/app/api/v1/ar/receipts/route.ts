@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('endDate') || undefined;
     const search = searchParams.get('search') || undefined;
 
-    const receipts = await ArRepository.getReceiptsList(session.companyId, { startDate, endDate, search });
+    const receipts = await ArRepository.getReceiptsList(session.companyId, session.modo, { startDate, endDate, search });
 
     return NextResponse.json({ success: true, data: receipts });
   } catch (error: any) {

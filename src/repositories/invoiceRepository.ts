@@ -3,7 +3,7 @@ import { eq, and, or, isNull, desc, count, notInArray, gte, lte, ilike, inArray,
 
 export interface CreateInvoiceInput {
   companyId: string;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
   warehouseId: string;
   customerId?: string;
   userId: string;
@@ -44,6 +44,9 @@ export interface CreateInvoiceInput {
     subtotal: number;
     total: number;
     warehouseId?: string;
+    /** Tasa de ITBIS de la linea, como FRACCION (0.18 = 18%). Ver migracion 0039. */
+    taxRate?: number;
+    taxCategory?: 'exento' | 'tasa_cero' | null;
   }[];
   taxes: {
     taxType: string;
@@ -72,11 +75,21 @@ export class InvoiceRepository {
         .insert(invoices)
         .values({
           companyId: data.companyId,
-          modo: data.modo || 'PRODUCCION',
+          modo: data.modo,
           warehouseId: data.warehouseId,
           customerId: data.customerId,
           userId: data.userId,
           cashSessionId: data.cashSessionId,
+          // El enlace con la cotizacion de origen. Estaba declarado en el tipo,
+          // el formulario lo enviaba, el esquema Zod lo validaba y el `select`
+          // de mas abajo lo devolvia... pero el INSERT no lo escribia, asi que
+          // `invoices.quote_id` era SIEMPRE nulo.
+          //
+          // No es solo trazabilidad perdida: cualquier comprobacion del tipo
+          // "que facturas salieron de una cotizacion" da cero por construccion,
+          // y por tanto no puede demostrar que no haya problemas. Un dato que
+          // no se guarda no es un dato ausente: es una respuesta falsa.
+          quoteId: data.quoteId,
           ncf: data.ncf,
           ecfType: data.ecfType,
           status: data.status,
@@ -118,6 +131,12 @@ export class InvoiceRepository {
             discount: line.discount.toString(),
             subtotal: line.subtotal.toString(),
             total: line.total.toString(),
+            // La tasa de la linea se GUARDA. Antes no habia donde, y por eso
+            // al recuperar la factura todo el mundo se la inventaba (18%).
+            taxRate: line.taxRate != null ? line.taxRate.toString() : null,
+            //  La categoria del cero se guarda como la dijo quien facturo. No se
+            //  deduce: 'exento' y 'tasa_cero' son decisiones fiscales distintas.
+            taxCategory: line.taxCategory ?? null,
           }))
         );
       }
@@ -225,6 +244,11 @@ export class InvoiceRepository {
         discount: invoiceLines.discount,
         subtotal: invoiceLines.subtotal,
         total: invoiceLines.total,
+        // La tasa de ITBIS de la linea (0039). Faltaba en este SELECT, y por
+        // eso el reenvio en cola de `jobRunners` no tenia de donde sacarla y
+        // mandaba 0.18 a pelo a la DGII.
+        taxRate: invoiceLines.taxRate,
+        taxCategory: invoiceLines.taxCategory,
         createdAt: invoiceLines.createdAt,
         updatedAt: invoiceLines.updatedAt,
         productName: products.name,

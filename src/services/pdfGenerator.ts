@@ -314,10 +314,23 @@ export class PdfGenerator {
       yOffset += 24;
     }
 
-    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
-    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const email = company.email;
-    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+    // Auditoria ISO-17: aqui habia una rama que detectaba una empresa concreta
+    // por su RNC y le ponia SUS datos de contacto, y a las demas les ponia unos
+    // inventados:
+    //
+    //     const isLatinDoors = company.name...includes('doors') || company.rnc === '1327...';
+    //     const tel = company.phone || (isLatinDoors ? '1-829-...' : '809-555-0199');
+    //
+    // En un sistema multiempresa eso imprime el telefono, el correo y la
+    // direccion de OTRA empresa en un comprobante fiscal. Y una empresa cuyo
+    // nombre contuviera "doors" heredaba los datos ajenos sin mas.
+    //
+    // Un comprobante lleva los datos de su empresa o no lleva ninguno. Un dato de
+    // contacto inventado en un documento fiscal es peor que un hueco: el hueco se
+    // ve y se corrige.
+    const tel = company.phone || '';
+    const email = company.email || '';
+    const dir = company.address || '';
 
     const padDots = (label: string, length: number) => {
       const dotsNeeded = length - label.length;
@@ -326,15 +339,19 @@ export class PdfGenerator {
 
     doc.fillColor('#333333').font('Courier').fontSize(9.5);
     let currentY = yOffset;
-    doc.text(`${padDots('RNC', 12)} ${company.rnc || 'N/A'}`, 36, currentY);
+    doc.text(`${padDots('RNC', 12)} ${company.rnc}`, 36, currentY);
     currentY += 12;
-    doc.text(`${padDots('Teléfono', 12)} ${tel}`, 36, currentY);
-    currentY += 12;
+    if (tel) {
+      doc.text(`${padDots('Teléfono', 12)} ${tel}`, 36, currentY);
+      currentY += 12;
+    }
     if (email) {
       doc.text(`${padDots('Email', 12)} ${email}`, 36, currentY);
       currentY += 12;
     }
-    doc.text(`${padDots('Dirección', 12)} ${dir}`, 36, currentY);
+    if (dir) {
+      doc.text(`${padDots('Dirección', 12)} ${dir}`, 36, currentY);
+    }
 
     // Meta Info (Right) - Clean text aligned to the right to match the Invoice layout
     const metaWidth = 350;
@@ -390,25 +407,42 @@ export class PdfGenerator {
     doc.font('Courier').fontSize(9).fillColor('#333333');
     let yPos = textStartY;
 
-    // Check if company is Latin Doors or use defaults
-    const isLatinDoors = company.name.toLowerCase().includes('doors') || company.rnc === '132796845';
-    const tel = company.phone || (isLatinDoors ? '1-829-214-4128' : '809-555-0199');
-    const email = company.email;
-    const dir = company.address || (isLatinDoors ? 'Hato del Yaque, Santiago R.D.' : 'Santo Domingo, R.D.');
+    // Valores por defecto de presentacion
+    // Auditoria ISO-17: aqui habia una rama que detectaba una empresa concreta
+    // por su RNC y le ponia SUS datos de contacto, y a las demas les ponia unos
+    // inventados:
+    //
+    //     const isLatinDoors = company.name...includes('doors') || company.rnc === '1327...';
+    //     const tel = company.phone || (isLatinDoors ? '1-829-...' : '809-555-0199');
+    //
+    // En un sistema multiempresa eso imprime el telefono, el correo y la
+    // direccion de OTRA empresa en un comprobante fiscal. Y una empresa cuyo
+    // nombre contuviera "doors" heredaba los datos ajenos sin mas.
+    //
+    // Un comprobante lleva los datos de su empresa o no lleva ninguno. Un dato de
+    // contacto inventado en un documento fiscal es peor que un hueco: el hueco se
+    // ve y se corrige.
+    const tel = company.phone || '';
+    const email = company.email || '';
+    const dir = company.address || '';
 
     // If logo was drawn, let's keep details compact and clear
     doc.text(this.formatLabel('Compañía', company.name), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('RNC', company.rnc || 'N/A'), margin, yPos);
+    doc.text(this.formatLabel('RNC', company.rnc), margin, yPos);
     yPos += 12;
-    doc.text(this.formatLabel('Teléfono', tel), margin, yPos);
-    yPos += 12;
+    if (tel) {
+      doc.text(this.formatLabel('Teléfono', tel), margin, yPos);
+      yPos += 12;
+    }
     if (email) {
       doc.text(this.formatLabel('Email', email), margin, yPos);
       yPos += 12;
     }
-    doc.text(this.formatLabel('Dirección', dir), margin, yPos);
-    yPos += 12;
+    if (dir) {
+      doc.text(this.formatLabel('Dirección', dir), margin, yPos);
+      yPos += 12;
+    }
     doc.text(this.formatLabel('Fecha Gen', currentDate), margin, yPos);
 
     // 2. Title block on the right
@@ -873,8 +907,8 @@ export class PdfGenerator {
           if (index > 0) doc.addPage();
 
           // Title & Header Block
-          doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company?.name || 'Latin Doors SRL', { align: 'center' });
-          doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company?.rnc || 'N/A'}`, { align: 'center' });
+          doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company.name, { align: 'center' });
+          doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company.rnc}`, { align: 'center' });
           if (company?.address) {
             doc.text(company.address, { align: 'center' });
           }
@@ -1015,8 +1049,8 @@ export class PdfGenerator {
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
 
         // Title & Header Block
-        doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company?.name || 'Latin Doors SRL', { align: 'center' });
-        doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company?.rnc || 'N/A'}`, { align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#005E6A').text(company.name, { align: 'center' });
+        doc.font('Helvetica').fontSize(10).fillColor('#555555').text(`RNC: ${company.rnc}`, { align: 'center' });
         if (company?.address) {
           doc.text(company.address, { align: 'center' });
         }
@@ -1084,7 +1118,7 @@ export class PdfGenerator {
 
         currentY += 40;
         doc.font('Helvetica').fontSize(8.5).fillColor('#555555');
-        const descText = `Recibí a mi entera satisfacción de la empresa ${company.name || 'Latin Doors SRL'}, la suma descrita anteriormente por concepto de pago de mis prestaciones laborales y derechos adquiridos. Al firmar este documento, declaro que no me queda ninguna reclamación pendiente de realizar por salarios, horas extras, ni ningún otro concepto derivado del contrato de trabajo que nos unía, el cual queda formalmente terminado en la fecha señalada.`;
+        const descText = `Recibí a mi entera satisfacción de la empresa ${company.name}, la suma descrita anteriormente por concepto de pago de mis prestaciones laborales y derechos adquiridos. Al firmar este documento, declaro que no me queda ninguna reclamación pendiente de realizar por salarios, horas extras, ni ningún otro concepto derivado del contrato de trabajo que nos unía, el cual queda formalmente terminado en la fecha señalada.`;
         doc.text(descText, 40, currentY, { width: 530, align: 'justify' });
 
         currentY += 70;

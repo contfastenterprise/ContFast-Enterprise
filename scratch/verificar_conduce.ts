@@ -9,6 +9,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { DeliveryRepository } from '../src/repositories/deliveryRepository';
 
 const A = '11111111-1111-1111-1111-111111111111';
@@ -30,16 +31,8 @@ const nivel = async (modo: string) => Number((await uno(sql`
     AND warehouse_id=${ALM}::uuid AND modo=${modo}::environment_mode`))?.quantity ?? -1);
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM delivery_note_lines`);
-  await db.execute(sql`DELETE FROM delivery_notes`);
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM customer_receipt_applied`);
-  await db.execute(sql`DELETE FROM customer_receipts`);
-  await db.execute(sql`DELETE FROM financial_movements`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM invoices`);
-  await db.execute(sql`DELETE FROM inventory_movements`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
 
   // Mismo producto y almacen en los dos entornos, con existencias distintas
   // para poder ver cual de las dos se toca.

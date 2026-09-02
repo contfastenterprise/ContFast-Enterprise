@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { PdfGenerator } from '@/services/pdfGenerator';
@@ -13,6 +14,10 @@ export async function GET(
     if (!session) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
+
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'nomina', 'read');
+    if (denegado) return denegado;
 
     const { id: payrollId } = await segmentData.params;
     const { searchParams } = new URL(req.url);
@@ -32,15 +37,27 @@ export async function GET(
     }
 
     const company = await CompanyRepository.getProfile(session.companyId);
+    // Sin empresa NO se imprime. `companies.name` es NOT NULL, asi que el
+    // `company?.name || 'Latin Doors SRL'` que habia aqui no cubria "empresa
+    // sin nombre": solo saltaba cuando la BUSQUEDA fallaba, y entonces emitia
+    // un documento laboral a nombre de OTRA empresa, con RNC "N/A". Un
+    // descargo de prestaciones con el emisor equivocado no vale nada, y
+    // ademas engana a quien lo firma. Mejor no emitirlo.
+    if (!company) {
+      return NextResponse.json(
+        { success: false, error: { message: 'No se encontro la empresa emisora. No se emite el documento.' } },
+        { status: 404 }
+      );
+    }
     const settings = await CompanyRepository.getSettings(session.companyId);
 
     const companyInfo = {
-      name: company?.name || 'Latin Doors SRL',
-      rnc: company?.rnc || 'N/A',
+      name: company.name,
+      rnc: company.rnc,
       logoUrl: settings?.logoUrl || undefined,
       phone: undefined,
-      email: company?.email || undefined,
-      address: company?.address || undefined,
+      email: company.email || undefined,
+      address: company.address || undefined,
     };
 
     const pdfBuffer = await PdfGenerator.generatePayrollReceipts(companyInfo, payroll, details);

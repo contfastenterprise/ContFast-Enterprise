@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { BankRepository } from '@/repositories/bankRepository';
 import { z } from 'zod';
@@ -30,6 +31,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'banco', 'read');
+    if (denegado) return denegado;
+
     const { searchParams } = new URL(req.url);
     const accountId = searchParams.get('accountId');
     const startDate = searchParams.get('startDate');
@@ -39,7 +44,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'BAD_REQUEST', message: 'El accountId es requerido' } }, { status: 400 });
     }
 
-    let transactions = await BankRepository.getBankTransactions(session.companyId, accountId);
+    let transactions = await BankRepository.getBankTransactions(session.companyId, accountId, session.modo);
 
     // Filtrar por fechas si vienen en los parámetros (para accountId='all' o individual)
     if (startDate) {
@@ -75,6 +80,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
+    // Auditoria ISO-03: esta ruta verificaba la sesion pero no el permiso.
+    const denegado = await requirePermission(session, 'banco', 'write');
+    if (denegado) return denegado;
+
     const body = await req.json();
     const parsed = registerTxSchema.safeParse(body);
 
@@ -86,6 +95,8 @@ export async function POST(req: NextRequest) {
     }
 
     const transaction = await BankRepository.registerTransaction({
+      // Auditoria JRN-16: quien registra el movimiento y su asiento.
+      createdBy: session.userId,
       ...parsed.data,
       companyId: session.companyId,
       modo: session.modo

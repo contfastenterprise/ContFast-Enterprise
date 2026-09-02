@@ -3,9 +3,11 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { MSellerClient } from '@/services/dgii/msellerClient';
-import { decryptAsync } from '@/utils/encryption';
 import { db, companySettings, dgiiSubmissions } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
+import { entornoDgii } from '@/services/dgii/entorno';
+import { credencialesMseller, entornosConCredenciales } from '@/services/dgii/credenciales';
 
 export async function GET(
   req: NextRequest,
@@ -43,13 +45,11 @@ export async function GET(
     // 1. If not available in msellerXmlPath, try to extract it from the database submission responsePayload
     if (!signedXmlPathFromMseller) {
       try {
-        const [submission] = await db
-          .select()
-          .from(dgiiSubmissions)
-          // La factura ya se resolvio con su entorno, pero el filtro va igual:
-          // dgii_submissions tiene su propia columna `modo`.
-          .where(and(eq(dgiiSubmissions.invoiceId, id), eq(dgiiSubmissions.modo, auth.modo)))
-          .limit(1);
+        // Una factura puede tener varios envios: uno por cada intento. Antes esto
+        // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
+        // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
+        // en un solo sitio: envioVigente.
+        const submission = await envioVigente(id, auth.companyId, auth.modo);
 
         if (submission && submission.responsePayload) {
           const raw = JSON.parse(submission.responsePayload);
@@ -68,32 +68,33 @@ export async function GET(
         .where(eq(companySettings.companyId, invoice.companyId))
         .limit(1);
 
-      const msellerEmail = settings?.msellerEmail || process.env.MSELLER_EMAIL;
-      const msellerPasswordEncrypted = settings?.msellerPasswordEncrypted;
-      const msellerPassword = msellerPasswordEncrypted 
-        ? await decryptAsync(msellerPasswordEncrypted) 
-        : process.env.MSELLER_PASSWORD;
-      const msellerApiKeyEncrypted = settings?.msellerApiKeyEncrypted || process.env.MSELLER_API_KEY;
+      // Auditoria ISO-14 e ISO-16: aqui habia un respaldo a variables de
+      // entorno -- `settings?.msellerEmail || process.env.MSELLER_EMAIL` -- que en
+      // multiempresa es una fuga: una empresa sin credenciales propias habria
+      // consultado con la cuenta de OTRA. Y ademas se pasaba
+      // `msellerApiKeyEncrypted || ''`, de modo que se llamaba a mSeller con la
+      // clave vacia en vez de decir que faltaba.
+      //
+      // Esta ruta solo CONSULTA, asi que si la empresa no usa mSeller se salta el
+      // bloque y se sigue con lo que haya en disco. Lo que no se hace es
+      // consultar con credenciales prestadas.
+      const entornosConfigurados = await entornosConCredenciales(invoice.companyId);
 
-      if (msellerEmail && msellerPassword) {
-        const resolveEntorno = (env: string | null): string => {
-          if (!env) return 'TesteCF';
-          if (env === 'production' || env === '1') return 'eCF';
-          if (env === 'cert' || env === 'certification') return 'CerteCF';
-          return 'TesteCF';
-        };
-
-        const systemEnv = settings?.dgiiEnv || process.env.MSELLER_ENTORNO || 'test';
-        const entorno = resolveEntorno(systemEnv);
-        const msellerUrl = settings?.msellerUrl || process.env.MSELLER_BASE_URL || 'https://ecf.api.mseller.app';
+      if (entornosConfigurados.length > 0) {
+        // Auditoria ISO-13: el modo de la sesion manda sobre la configuracion, y
+        // `process.env.MSELLER_ENTORNO` era un cuarto sitio donde se decidia el
+        // entorno que solo miraba ESTA ruta de las cinco.
+        const entorno = entornoDgii(auth.modo, settings?.dgiiEnv);
+        const credenciales = await credencialesMseller(invoice.companyId, entorno);
+        const msellerUrl = settings?.msellerUrl || 'https://ecf.api.mseller.app';
         const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
 
         const msellerClient = new MSellerClient({
           baseUrl,
           entorno,
-          email: msellerEmail as string,
-          password: msellerPassword as string,
-          apiKeyEncrypted: (msellerApiKeyEncrypted || '') as string,
+          email: credenciales.email,
+          password: credenciales.password,
+          apiKeyEncrypted: credenciales.apiKeyEncrypted,
         });
 
         // Query mSeller online status if still no path resolved

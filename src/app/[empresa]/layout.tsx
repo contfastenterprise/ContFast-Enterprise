@@ -89,7 +89,7 @@ export default async function StorefrontLayout({
       {/* Footer */}
       <footer className="bg-[#001e40] text-slate-300 py-12 border-t border-[#00142a]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-xl text-white tracking-tight line-clamp-1">{company.name}</span>
@@ -131,15 +131,6 @@ export default async function StorefrontLayout({
                     </Link>
                   </li>
                 ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-4">Soporte</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href={`/${empresaSlug}/contacto`} className="hover:text-[#c5a059] transition-colors">Contacto</Link></li>
-                <li><Link href={`/${empresaSlug}/preguntas-frecuentes`} className="hover:text-[#c5a059] transition-colors">Preguntas Frecuentes</Link></li>
-                <li><Link href={`/${empresaSlug}/terminos`} className="hover:text-[#c5a059] transition-colors">Términos y Condiciones</Link></li>
               </ul>
             </div>
 

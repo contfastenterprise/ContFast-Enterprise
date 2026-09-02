@@ -44,7 +44,7 @@ export interface InvoiceTemplateData {
     amount: number;
     rate?: number;
   }>;
-  modo?: 'PRODUCCION' | 'PRUEBA';
+  modo: 'PRODUCCION' | 'PRUEBA';
 }
 
 interface Props {

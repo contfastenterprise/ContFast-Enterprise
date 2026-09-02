@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
   try {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
-    const quote = await QuoteService.getQuote(id);
+    const quote = await QuoteService.getQuote(id, auth.companyId, auth.modo);
     if (!quote || quote.companyId !== auth.companyId) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Cotización no encontrada.' } },
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
       );
     }
 
-    const payload = await QuoteService.prepareInvoicePayload(id);
+    const payload = await QuoteService.prepareInvoicePayload(id, auth.companyId, auth.modo);
 
     return NextResponse.json(
       { success: true, data: payload },

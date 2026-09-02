@@ -15,6 +15,7 @@ export interface CreateQuoteInput {
     unitPrice: number;
     discount: number;
     taxRate: number;
+    taxCategory?: 'exento' | 'tasa_cero' | null;
   }[];
 }
 
@@ -157,6 +158,10 @@ export class QuoteService {
             discount: String(line.discount),
             subtotal: String(line.lineSubtotal),
             total: String(line.lineTotal),
+            // La tasa se GUARDA. Sin esto, al pasar la cotizacion a factura no
+            // habia de donde sacarla y el formulario ponia 0.18. Ver 0040.
+            taxRate: line.taxRate != null ? String(line.taxRate) : null,
+            taxCategory: line.taxCategory ?? null,
           }))
         );
 
@@ -180,8 +185,19 @@ export class QuoteService {
   /**
    * Retrieves a quote by ID including lines and taxes
    */
-  static async getQuote(quoteId: string) {
-    const [quote] = await db.select().from(quotes).where(eq(quotes.id, quoteId));
+  /**
+   * `companyId` y `modo` son obligatorios y van en la busqueda, no despues.
+   *
+   * Antes se buscaba solo por id y quien llamaba comprobaba `quote.companyId`
+   * a mano -- ninguno comprobaba el entorno. Desde una sesion de PRUEBA se
+   * podia leer, imprimir, editar y CONVERTIR EN FACTURA una cotizacion real.
+   */
+  static async getQuote(quoteId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
+    const [quote] = await db.select().from(quotes).where(and(
+      eq(quotes.id, quoteId),
+      eq(quotes.companyId, companyId),
+      eq(quotes.modo, modo)
+    ));
     if (!quote) return null;
 
     const rawLines = await db
@@ -194,6 +210,10 @@ export class QuoteService {
         discount: quoteLines.discount,
         subtotal: quoteLines.subtotal,
         total: quoteLines.total,
+        // Sin esto la tasa no sale de la base y `prepareInvoicePayload` no
+        // tendria que devolver.
+        taxRate: quoteLines.taxRate,
+        taxCategory: quoteLines.taxCategory,
         productName: products.name,
         productSku: products.sku,
         unitOfMeasure: products.unitOfMeasure,
@@ -233,9 +253,18 @@ export class QuoteService {
   /**
    * Update a pending quote
    */
-  static async updateQuote(quoteId: string, data: Partial<CreateQuoteInput>) {
+  static async updateQuote(
+    quoteId: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    data: Partial<CreateQuoteInput>
+  ) {
     return await db.transaction(async (tx) => {
-      const [quote] = await tx.select().from(quotes).where(eq(quotes.id, quoteId));
+      const [quote] = await tx.select().from(quotes).where(and(
+        eq(quotes.id, quoteId),
+        eq(quotes.companyId, companyId),
+        eq(quotes.modo, modo)
+      ));
       if (!quote) throw new Error('Cotización no encontrada');
       if (quote.status !== 'pending') throw new Error('Solo se pueden modificar cotizaciones pendientes');
 
@@ -313,6 +342,8 @@ export class QuoteService {
               discount: String(line.discount),
               subtotal: String(line.lineSubtotal),
               total: String(line.lineTotal),
+              taxRate: line.taxRate != null ? String(line.taxRate) : null,
+              taxCategory: line.taxCategory ?? null,
             }))
           );
 
@@ -358,10 +389,18 @@ export class QuoteService {
   /**
    * Gets list of quotes
    */
-  static async getQuotes(companyId: string, page = 1, limit = 50, status?: string) {
+  static async getQuotes(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    page = 1,
+    limit = 50,
+    status?: string
+  ) {
     const offset = (page - 1) * limit;
-    
-    let whereClause = eq(quotes.companyId, companyId);
+
+    // El listado, el conteo y las estadisticas comparten esta condicion, asi
+    // que el entorno entra una vez y cubre las tres.
+    let whereClause: any = and(eq(quotes.companyId, companyId), eq(quotes.modo, modo));
     if (status) {
       whereClause = and(whereClause, eq(quotes.status, status)) as any;
     }
@@ -401,7 +440,14 @@ export class QuoteService {
       pendingCount: sql<number>`count(case when status = 'pending' then 1 end)`
     })
       .from(quotes)
-      .where(and(eq(quotes.companyId, companyId), sql`deleted_at is null`));
+      // Las estadisticas construyen su propia condicion, no usan whereClause:
+      // se quedaron fuera del primer arreglo y sumaban los importes de las
+      // cotizaciones de practicas al total real del panel.
+      .where(and(
+        eq(quotes.companyId, companyId),
+        eq(quotes.modo, modo),
+        sql`deleted_at is null`
+      ));
 
     return {
       items,
@@ -419,8 +465,12 @@ export class QuoteService {
    * Convert Quote to Invoice
    * This simply returns a structured payload that can be fed into InvoiceService
    */
-  static async prepareInvoicePayload(quoteId: string) {
-    const quote = await this.getQuote(quoteId);
+  static async prepareInvoicePayload(
+    quoteId: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA'
+  ) {
+    const quote = await this.getQuote(quoteId, companyId, modo);
     if (!quote) throw new Error('Cotización no encontrada');
     
     return {
@@ -430,17 +480,31 @@ export class QuoteService {
       userId: quote.userId,
       notes: quote.notes,
       quoteId: quote.id,
+      // La tasa de cada linea VIAJA en el payload.
+      //
+      // Antes no iba, y el comentario que habia aqui lo decia: "We don't store
+      // taxRate per line directly, so frontend might need to refetch it". El
+      // formulario de facturas no la refrescaba: ponia `taxRate: 0.18` a pelo.
+      // Por eso una cotizacion al 16% o exenta se convertia en factura al 18%.
+      //
+      // Para las cotizaciones anteriores a la 0040 la tasa puede no constar. En
+      // ese caso se deduce del resumen, y SOLO si no hay ambiguedad (una sola
+      // tasa). Con dos o mas se manda `null` y el formulario avisa, en vez de
+      // inventar un 18% que nadie podria distinguir de uno elegido.
       lines: quote.lines.map(line => {
-        // We need to fetch the taxRate from quoteTaxes or reconstruct it
-        // A simpler way for the frontend is to just fetch the full product data again, 
-        // but we can map the basic info. Let's return the basic lines.
+        const tasasDelResumen = [...new Set(
+          (quote.taxes ?? [])
+            .filter((t: any) => String(t.taxType).toUpperCase() === 'ITBIS')
+            .map((t: any) => Number(t.rate)))];
+        const deducida = tasasDelResumen.length === 1 ? tasasDelResumen[0] / 100 : null;
+
         return {
           productId: line.productId,
           quantity: Number(line.quantity),
           unitPrice: Number(line.unitPrice),
           discount: Number(line.discount),
-          // We don't store taxRate per line directly, so frontend might need to refetch it 
-          // or we can compute it from unitPrice, subtotal and taxes.
+          taxRate: (line as any).taxRate != null ? Number((line as any).taxRate) : deducida,
+          taxCategory: (line as any).taxCategory ?? null,
         }
       })
     };

@@ -24,7 +24,11 @@ export class DeliveryRepository {
    * Generates the next automatic sequence number for delivery notes of a company.
    * Format: CON-YYYY-000001 (e.g. CON-2026-000001)
    */
-  static async getNextDeliveryNumber(companyId: string, tx: any = db): Promise<string> {
+  static async getNextDeliveryNumber(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    tx: any = db
+  ): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `CON-${year}-`;
     const pattern = `${prefix}%`;
@@ -35,6 +39,11 @@ export class DeliveryRepository {
       .where(
         and(
           eq(deliveryNotes.companyId, companyId),
+          // El indice unico de la tabla es (company_id, delivery_number, modo):
+          // el esquema ya daba por hecho que cada entorno numera por su cuenta.
+          // El generador no lo hacia, asi que un conduce de practicas consumia
+          // un numero de la serie real y le dejaba un hueco.
+          eq(deliveryNotes.modo, modo),
           like(deliveryNotes.deliveryNumber, pattern)
         )
       )
@@ -59,7 +68,7 @@ export class DeliveryRepository {
   static async create(data: CreateDeliveryNoteInput) {
     return await db.transaction(async (tx) => {
       // 1. Generate unique delivery number
-      const deliveryNumber = await this.getNextDeliveryNumber(data.companyId, tx);
+      const deliveryNumber = await this.getNextDeliveryNumber(data.companyId, data.modo, tx);
 
       // 2. Insert Delivery Note header
       const [note] = await tx
@@ -128,7 +137,14 @@ export class DeliveryRepository {
   /**
    * Fetches delivery notes for a specific invoice.
    */
-  static async getByInvoiceId(invoiceId: string, companyId: string) {
+  static async getByInvoiceId(
+    invoiceId: string,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA'
+  ) {
+    // Hoy no la llama nadie. Se deja con el entorno OBLIGATORIO para que quien
+    // la estrene no herede el fallo: un metodo sin filtro esperando llamador
+    // es una trampa puesta a futuro.
     return await db
       .select()
       .from(deliveryNotes)
@@ -136,6 +152,7 @@ export class DeliveryRepository {
         and(
           eq(deliveryNotes.invoiceId, invoiceId),
           eq(deliveryNotes.companyId, companyId),
+          eq(deliveryNotes.modo, modo),
           isNull(deliveryNotes.deletedAt)
         )
       )
@@ -145,7 +162,12 @@ export class DeliveryRepository {
   /**
    * Lists delivery notes with pagination and tenancy isolation.
    */
-  static async list(companyId: string, page = 1, perPage = 20) {
+  static async list(
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    page = 1,
+    perPage = 20
+  ) {
     const offset = (page - 1) * perPage;
 
     const [totalResult] = await db
@@ -154,6 +176,7 @@ export class DeliveryRepository {
       .where(
         and(
           eq(deliveryNotes.companyId, companyId),
+          eq(deliveryNotes.modo, modo),
           isNull(deliveryNotes.deletedAt)
         )
       );
@@ -164,6 +187,7 @@ export class DeliveryRepository {
       .where(
         and(
           eq(deliveryNotes.companyId, companyId),
+          eq(deliveryNotes.modo, modo),
           isNull(deliveryNotes.deletedAt)
         )
       )
@@ -215,12 +239,19 @@ export class DeliveryRepository {
         .where(eq(invoiceLines.invoiceId, invoice.id));
 
       // 3. Calculate already delivered quantities for this invoice (excluding this note)
+      //
+      // Aqui NO se filtra por modo, y es deliberado. La factura ya se resolvio
+      // con su entorno y su id es clave primaria, asi que estos conduces son
+      // suyos. Anadir el filtro tendria el mismo efecto malo que en el arqueo
+      // de caja: un conduce heredado con el sello equivocado desapareceria de
+      // la suma de lo ya despachado y la factura se podria entregar dos veces.
       const otherNotes = await tx
         .select()
         .from(deliveryNotes)
         .where(
           and(
             eq(deliveryNotes.invoiceId, invoice.id),
+            eq(deliveryNotes.companyId, companyId),
             eq(deliveryNotes.status, 'approved'),
             isNull(deliveryNotes.deletedAt)
           )
@@ -257,7 +288,7 @@ export class DeliveryRepository {
         // Sin `modo` estas dos llamadas caian en el valor por defecto
         // 'PRODUCCION': aprobar un conduce en PRUEBA comprobaba y descontaba
         // las existencias REALES.
-        const hasStock = await checkStock(companyId, line.productId, invoice.warehouseId!, currentQty, tx, false, modo);
+        const hasStock = await checkStock(companyId, modo, line.productId, invoice.warehouseId!, currentQty, tx, false);
         if (!hasStock) {
           throw new Error(
             `Inventario insuficiente en el almacén para despachar el producto ${line.productId}: ` +
@@ -271,6 +302,7 @@ export class DeliveryRepository {
         const currentQty = Number(line.quantity);
         await deductStock(
           companyId,
+          modo,
           line.productId,
           invoice.warehouseId!,
           currentQty,
@@ -278,8 +310,7 @@ export class DeliveryRepository {
           'sale',
           invoice.id,
           `Despacho físico Conduce ${note.deliveryNumber}`,
-          tx,
-          modo
+          tx
         );
       }
 
@@ -360,8 +391,13 @@ export class DeliveryRepository {
       // 3. Return stock (deduct negative quantity)
       for (const line of note.lines) {
         const qty = Number(line.quantity);
+        // EL FALLO: esta llamada no pasaba `modo` y caia en el valor por
+        // defecto 'PRODUCCION', mientras que la de `approve` si lo pasaba.
+        // Anular un conduce de PRUEBA devolvia las unidades al almacen REAL:
+        // creaba existencia de la nada en produccion.
         await deductStock(
           companyId,
+          modo,
           line.productId,
           invoice.warehouseId!,
           -qty, // Negative quantity to add stock back
@@ -397,6 +433,7 @@ export class DeliveryRepository {
         .where(
           and(
             eq(deliveryNotes.invoiceId, invoice.id),
+            eq(deliveryNotes.companyId, companyId),
             eq(deliveryNotes.status, 'approved'),
             isNull(deliveryNotes.deletedAt)
           )

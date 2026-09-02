@@ -8,6 +8,24 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, invoices, subscriptions, plans } from '@/db';
 import { eq, and, count, gte, lte } from 'drizzle-orm';
 
+/**
+ * Cuanto puede durar la emision en la plataforma.
+ *
+ * Emitir no es escribir una fila: es firmar el e-CF en mSeller, transmitirlo a
+ * la DGII y esperar el veredicto. Sin este limite declarado, Vercel aplica su
+ * valor por defecto (del orden de 15 s) y corta la funcion antes de que el
+ * cliente de mSeller llegue siquiera a su propio tiempo de espera -- con lo
+ * que subir ese tiempo de espera no serviria de nada.
+ *
+ * Va emparejado con `MS_ENVIO` en src/services/dgii/tiempos.ts (45 s): si uno
+ * sube, el otro tambien. Este numero tiene que ser el mayor de los dos.
+ *
+ * Se escribe el numero literal a proposito. Next lo lee en tiempo de
+ * compilacion analizando el fichero, no ejecutandolo, asi que una constante
+ * importada no vale: no la resolveria.
+ */
+export const maxDuration = 60;
+
 // Zod validation schema for creating an invoice
 const createInvoiceSchema = z.object({
   customerId: z.string().uuid().optional(),
@@ -33,6 +51,9 @@ const createInvoiceSchema = z.object({
       unitPrice: z.number().nonnegative('El precio unitario no puede ser negativo'),
       discount: z.number().nonnegative('El descuento no puede ser negativo').default(0),
       taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
+      //  Solo con taxRate 0. Sin valor, el envio la trata como exento, que es
+      //  como se comporto siempre. Ver 0042.
+      taxCategory: z.enum(['exento', 'tasa_cero']).nullish(),
       warehouseId: z.string().uuid().optional(),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),

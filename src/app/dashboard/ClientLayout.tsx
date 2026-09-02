@@ -94,7 +94,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   // Initialize environment from settings
   useEffect(() => {
     if (initialSettings) {
-      const env = initialSettings.dgiiEnv || initialSettings.msellerEntorno;
+      const env = initialSettings.dgiiEnv;
       if (env === 'production') setEntorno('PROD');
       else if (env === 'cert') setEntorno('CERT');
       else setEntorno('TEST');

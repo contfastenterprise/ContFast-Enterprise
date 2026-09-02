@@ -12,7 +12,8 @@
     "test:integration": "tsx src/tests/integration.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:load": "artillery run tests/load-tests/artillery-config.yml"
+    "test:load": "artillery run tests/load-tests/artillery-config.yml",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@ark-ui/react": "^5.37.2",
@@ -78,6 +79,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "puppeteer": "^25.1.0",
+    "react-doctor": "^0.9.12",
     "tailwindcss": "^4",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.19.0",

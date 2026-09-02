@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     const transferId = await transferStock(
       auth.companyId,
+      auth.modo,
       sourceWarehouseId,
       destinationWarehouseId,
       items,

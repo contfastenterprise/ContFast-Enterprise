@@ -20,6 +20,7 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import postgres from 'postgres';
 import { siguienteCodigoFactura, prefijoDe } from '../src/services/invoice/codigoFactura';
 
@@ -34,11 +35,9 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function limpiar() {
-  await db.execute(sql`DELETE FROM invoice_sequences`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
   // Antes que las facturas: las lineas las referencian por clave foranea.
-  await db.execute(sql`DELETE FROM invoice_lines`);
-  await db.execute(sql`DELETE FROM accounts_receivable`);
-  await db.execute(sql`DELETE FROM invoices`);
 }
 
 async function main() {

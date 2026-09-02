@@ -26,9 +26,11 @@
  */
 import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
+import { limpiar as limpiarTodo } from './_limpieza';
 import { EcfValidator } from '../src/services/ecfValidator';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { fuente } from './_fuente';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const USER_A = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -42,8 +44,8 @@ const ok = (t: string, c: boolean, d = '') => {
 };
 
 async function sembrar() {
-  await db.execute(sql`DELETE FROM ecf_sequences WHERE company_id = ${A}::uuid`);
-  await db.execute(sql`DELETE FROM inventory_levels`);
+  // Orden de borrado derivado del esquema. Ver _limpieza.ts.
+  await limpiarTodo([]);
 
   // La secuencia REAL: rango amplio y sin vencer.
   // La de PRUEBAS: agotada Y vencida. Se crea DESPUES, de forma que la consulta
@@ -90,13 +92,15 @@ async function main() {
   ok('o sea: una emision real habria salido agotada y vencida', true);
 
   console.log('\n3) Falta de secuencia en un entorno concreto\n');
+  // Esto NO es limpieza: es el escenario. Se quita la secuencia real para
+  // comprobar que avisa aunque siga existiendo la de pruebas.
   await db.execute(sql`DELETE FROM ecf_sequences WHERE company_id = ${A}::uuid AND modo = 'PRODUCCION'`);
   const sinReal = await EcfValidator.validateSequence(A, '31', 'PRODUCCION');
   ok('sin secuencia real, avisa aunque exista la de pruebas',
     sinReal.some((e) => e.code === 'NO_ACTIVE_SEQUENCE'), sinReal.map((e) => e.code).join(', '));
 
   console.log('\n4) El limite del plan cuenta solo comprobantes reales\n');
-  const fuente = (r: string) => readFileSync(join(__dirname, '..', r), 'utf8');
+
   const val = fuente('src/services/ecfValidator.ts');
   ok('el conteo de uso fija PRODUCCION', /eq\(invoices\.modo, 'PRODUCCION'\)/.test(val));
   ok('y la secuencia usa el modo de la sesion', /eq\(ecfSequences\.modo, modo\)/.test(val));

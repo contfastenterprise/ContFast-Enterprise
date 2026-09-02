@@ -36,11 +36,25 @@ export const journalEntries = pgTable('journal_entries', {
   date: date('date').notNull(),
   description: text('description'),
   status: varchar('status', { length: 50 }).default('posted').notNull(), // draft | posted
+  /**
+   * Quien registro el asiento.
+   *
+   * Auditoria JRN-16: no existia. Cuando aparecio un asiento DUPLICADO de
+   * 545.724,30 en julio de 2026 no hubo forma de saber de donde salio -- si fue
+   * un doble clic, un reintento por timeout o una persona -- porque el asiento
+   * no guardaba ni autor ni rastro, y `audit_logs` solo tenia entradas y salidas
+   * de sesion. Un asiento sin autor no es auditable.
+   *
+   * Nullable a proposito: los asientos historicos no lo tienen y no se puede
+   * deducir. `set null` al borrar el usuario para no perder el asiento.
+   */
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('journal_entries_company_idx').on(table.companyId),
+  createdByIdx: index('journal_entries_created_by_idx').on(table.createdBy),
   dateIdx: index('journal_entries_date_idx').on(table.date),
   companyStatusDateIdx: index('journal_entries_comp_status_date_idx').on(table.companyId, table.status, table.date),
   companyModoIdx: index('journal_entries_company_modo_idx').on(table.companyId, table.modo),

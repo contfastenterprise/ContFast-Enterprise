@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const flatData = await ApRepository.findAll(auth.companyId);
+    const flatData = await ApRepository.findAll(auth.companyId, auth.modo);
 
     // Group by supplier for the dashboard view
     const grouped: Record<string, {

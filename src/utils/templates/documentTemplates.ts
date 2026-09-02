@@ -252,12 +252,38 @@ export class DocumentTemplates {
             const rawDiscount = qty * discUnit;
             const rawTaxable = rawSubtotal - rawDiscount;
 
-            const defaultTaxRate = (taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'))?.rate
-              ? Number((taxes || []).find((t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis')).rate) / 100
-              : 0.18;
+            // LA TASA DE LA LINEA, no una para todas.
+            //
+            // Antes: se buscaba la PRIMERA entrada de ITBIS del resumen y se
+            // aplicaba su tasa a TODAS las lineas, con `?.rate ? ... : 0.18`.
+            // Dos fallos en una linea de codigo:
+            //
+            //   1. `?.rate ?` es una prueba de VERDAD, y 0 es falso. Una
+            //      factura exenta (tasa 0) caia en el 0.18 del final y se
+            //      imprimia al 18%.
+            //   2. Con dos tasas en la misma factura, la segunda no existia:
+            //      todas las lineas se imprimian a la tasa de la primera.
+            //
+            // Ahora cada linea trae la suya (migracion 0039). El resumen solo
+            // se usa como respaldo para las facturas anteriores, y solo cuando
+            // no hay ambiguedad -- una sola tasa en el resumen.
+            const resumenItbis = (taxes || []).filter(
+              (t: any) => t.taxType === 'ITBIS' || t.taxType?.toLowerCase().includes('itbis'));
+            const tasasDistintas = [...new Set(resumenItbis.map((t: any) => Number(t.rate)))];
+            const tasaDeRespaldo = tasasDistintas.length === 1 ? Number(tasasDistintas[0]) / 100 : null;
+
+            const lineTaxRate = line.taxRate != null ? Number(line.taxRate) : tasaDeRespaldo;
 
             const hasGlobalTaxes = Number(inv.totalTaxes) > 0;
-            const lineItbis = hasGlobalTaxes ? rawTaxable * defaultTaxRate : 0;
+            // Si no consta la tasa Y no se puede deducir del resumen, no se
+            // inventa: se reparte el ITBIS total en proporcion a la base de
+            // cada linea. Sale un numero coherente con el total impreso, en vez
+            // de un 18% que puede no ser el que se facturo.
+            const lineItbis = lineTaxRate != null
+              ? rawTaxable * lineTaxRate
+              : (hasGlobalTaxes && Number(inv.subtotal) - Number(inv.discount) > 0
+                  ? rawTaxable * (Number(inv.totalTaxes) / (Number(inv.subtotal) - Number(inv.discount)))
+                  : 0);
             const finalLineTotal = rawTaxable + lineItbis;
 
             const rawUom = (line.unitOfMeasure || 'unidad').trim().toLowerCase();
@@ -2642,7 +2668,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div>
             ${logoHtml}
             <div class="company-info">
-              RNC.........: ${company.rnc || 'N/A'}<br>
+              ${company.rnc ? `RNC.........: ${company.rnc}<br>` : ''}
               Teléfono....: ${tel}<br>
               Email.......: ${email}<br>
               Dirección...: ${dir}
@@ -3767,7 +3793,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
 
     const logoHtml = company.logoUrl
       ? `<img src="${company.logoUrl}" style="max-height: 85px; max-width: 250px; object-fit: contain; margin-left: -5px;" alt="Logo">`
-      : `<div style="font-size: 20px; font-weight: bold; color: #002D62; margin-left: -5px;">${company.name || 'Latin Doors'}</div>`;
+      : `<div style="font-size: 20px; font-weight: bold; color: #002D62; margin-left: -5px;">${company.name}</div>`;
 
     const subTitleLogo = '';
 
@@ -4122,7 +4148,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="signature-title-detail">
               <strong>Solicitado por:</strong><br>
               ${order.userName || 'Usuario del Sistema'}<br>
-              ${company.name || 'Latin Doors SRL'}
+              ${company.name}
             </div>
           </div>
           <div class="signature-box">
@@ -5018,7 +5044,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       <body>
         <div class="header">
           <div>
-            <div class="company-name">${company.name || 'ContFast Enterprise'}</div>
+            <div class="company-name">${company.name}</div>
             <div class="company-info">Tel: ${company.phone || '809-000-0000'} · Santiago</div>
           </div>
           <div class="doc-title-container">

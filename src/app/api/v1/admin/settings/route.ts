@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings, subscriptions, plans } from '@/db';
+import { db, companies, companySettings, subscriptions, plans, msellerApiKeys } from '@/db';
+import { entornosConCredenciales } from '@/services/dgii/credenciales';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
@@ -22,7 +23,10 @@ const settingsSchema = z.object({
   maxCreditNoteApprovalAmount: z.number().min(0),
   maxCashOutApprovalAmount: z.number().min(0),
   msellerUrl: z.string().url().optional(),
-  msellerEntorno: z.enum(['test', 'production']).optional(),
+  // Auditoria ISO-16: de las tres credenciales, solo la CLAVE DE API es por
+  // ambiente. Este campo dice a cual pertenece la que viene en la peticion; sin
+  // el, la clave no se guarda. El correo y la contrasena son de la empresa.
+  msellerCredencialesEntorno: z.enum(['TesteCF', 'CerteCF', 'eCF']).optional(),
   msellerEmail: z.string().email().optional().or(z.literal('')),
   msellerApiKey: z.string().optional(),
   msellerPassword: z.string().optional(),
@@ -57,14 +61,16 @@ export async function GET(req: NextRequest) {
       maxCreditNoteApprovalAmount: companySettings.maxCreditNoteApprovalAmount,
       maxCashOutApprovalAmount: companySettings.maxCashOutApprovalAmount,
       msellerUrl: companySettings.msellerUrl,
-      msellerEntorno: companySettings.msellerEntorno,
       msellerEmail: companySettings.msellerEmail,
-      hasMsellerApiKey: companySettings.msellerApiKeyEncrypted,
       hasMsellerPassword: companySettings.msellerPasswordEncrypted,
       barcodeDefaultType: companySettings.barcodeDefaultType,
       barcodePrefix: companySettings.barcodePrefix,
       barcodeLength: companySettings.barcodeLength
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
+
+    // Auditoria ISO-16: que ambientes tienen credenciales, para que la pantalla
+    // lo pueda decir. Solo los nombres: aqui no sale ningun secreto.
+    const entornosMseller = await entornosConCredenciales(session.companyId);
 
     // Fetch active subscription for the company
     const [sub] = await db
@@ -102,8 +108,10 @@ export async function GET(req: NextRequest) {
         company, 
         settings: {
           ...settings,
-          hasMsellerApiKey: !!settings.hasMsellerApiKey,
-          hasMsellerPassword: !!settings.hasMsellerPassword
+          // La contrasena no sale de aqui: solo si la hay o no.
+          hasMsellerPassword: !!settings.hasMsellerPassword,
+          // Que ambientes tienen clave de API. Sin secretos: solo los nombres.
+          entornosMseller,
         },
         subscription: sub || null,
         availablePlans: activePlans
@@ -143,7 +151,7 @@ export async function PATCH(req: NextRequest) {
       maxCreditNoteApprovalAmount, 
       maxCashOutApprovalAmount, 
       msellerUrl, 
-      msellerEntorno, 
+      msellerCredencialesEntorno,
       msellerEmail, 
       msellerApiKey, 
       msellerPassword,
@@ -161,7 +169,7 @@ export async function PATCH(req: NextRequest) {
     const [currentSettings] = await db
       .select({
         msellerUrl: companySettings.msellerUrl,
-        msellerEntorno: companySettings.msellerEntorno,
+        dgiiEnv: companySettings.dgiiEnv,
         msellerEmail: companySettings.msellerEmail
       })
       .from(companySettings)
@@ -172,12 +180,20 @@ export async function PATCH(req: NextRequest) {
     // 1. Validar sección mSeller
     if (!isSystemUser) {
       const isUrlChanged = msellerUrl !== undefined && msellerUrl !== currentSettings?.msellerUrl;
-      const isEntornoChanged = msellerEntorno !== undefined && msellerEntorno !== currentSettings?.msellerEntorno;
-      const isEmailChanged = msellerEmail !== undefined && msellerEmail !== currentSettings?.msellerEmail;
-      const isApiKeyChanged = !!msellerApiKey;
-      const isPasswordChanged = !!msellerPassword;
+      // Auditoria ISO-15: `dgiiEnv` decide si los comprobantes salen a la DGII
+      // de pruebas o a la REAL, y no estaba en esta comprobacion. La pantalla
+      // deshabilita el selector para quien no es sistemas, pero la API lo
+      // aceptaba igual: bastaba una peticion a mano para pasar la empresa a
+      // produccion y que la siguiente factura se emitiera de verdad. Lo que
+      // protege es el servidor, no el formulario.
+      const isEntornoChanged = dgiiEnv !== undefined && dgiiEnv !== currentSettings?.dgiiEnv;
+      // Auditoria ISO-16: cualquier campo de credenciales presente es un intento
+      // de cambio. Antes se comparaba el correo contra el guardado, y ahora las
+      // credenciales viven en otra tabla y por entorno: comparar deja de tener
+      // sentido, y la presencia del campo ya basta.
+      const isCredencialChanged = !!msellerEmail || !!msellerApiKey || !!msellerPassword;
 
-      if (isUrlChanged || isEntornoChanged || isEmailChanged || isApiKeyChanged || isPasswordChanged) {
+      if (isUrlChanged || isEntornoChanged || isCredencialChanged) {
         return NextResponse.json(
           { success: false, error: { message: 'Solo el usuario con rol de sistema puede agregar o modificar la sección de mSeller.' } },
           { status: 403 }
@@ -251,10 +267,30 @@ export async function PATCH(req: NextRequest) {
       };
 
       if (msellerUrl !== undefined) settingsUpdate.msellerUrl = msellerUrl;
-      if (msellerEntorno !== undefined) settingsUpdate.msellerEntorno = msellerEntorno;
+
+      // Auditoria ISO-16: el correo y la contrasena son de la EMPRESA -- los
+      // mismos para los tres ambientes -- y se quedan donde estaban. Duplicarlos
+      // por ambiente los expondria a desincronizarse: un cambio aplicado en dos
+      // ambientes de tres deja el tercero roto sin que nadie se entere.
       if (msellerEmail !== undefined) settingsUpdate.msellerEmail = msellerEmail;
-      if (msellerApiKey) settingsUpdate.msellerApiKeyEncrypted = await encryptAsync(msellerApiKey);
       if (msellerPassword) settingsUpdate.msellerPasswordEncrypted = await encryptAsync(msellerPassword);
+
+      // La clave de API si es del AMBIENTE, y va a su propia tabla. Sin saber a
+      // cual pertenece no se guarda: escribirla "en el que sea" es justamente lo
+      // que habia que arreglar.
+      if (msellerCredencialesEntorno && msellerApiKey) {
+        const cifrada = await encryptAsync(msellerApiKey);
+        await tx.insert(msellerApiKeys)
+          .values({
+            companyId: session.companyId,
+            entorno: msellerCredencialesEntorno,
+            apiKeyEncrypted: cifrada,
+          })
+          .onConflictDoUpdate({
+            target: [msellerApiKeys.companyId, msellerApiKeys.entorno],
+            set: { apiKeyEncrypted: cifrada, updatedAt: new Date() },
+          });
+      }
 
       await tx.update(companySettings)
         .set(settingsUpdate)

@@ -28,8 +28,22 @@ export default function StorefrontLoginPage() {
         body: JSON.stringify({ email, password })
       });
       
+      // El endpoint puede responder algo que no sea JSON (404 con HTML, redirect,
+      // error de un proxy intermedio). Sin esta comprobacion, res.json() lanza un
+      // SyntaxError que cae en el catch y se reporta como "error de red", que no
+      // es lo que ocurrio y despista al diagnosticar.
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        console.error(
+          `Login: respuesta no valida de /api/v1/auth/login ` +
+          `(HTTP ${res.status}, content-type: ${contentType || 'ausente'})`
+        );
+        toast.error('El servidor no respondió correctamente. Inténtalo de nuevo.');
+        return;
+      }
+
       const data = await res.json();
-      
+
       if (res.ok && data.success) {
         toast.success('¡Bienvenido!');
         

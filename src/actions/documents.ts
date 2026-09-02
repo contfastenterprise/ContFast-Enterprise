@@ -105,7 +105,8 @@ export async function sendDocumentEmailAction(
 export async function createShareTokenAction(
   documentType: string,
   documentId: string,
-  companyId: string
+  companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA'
 ) {
   try {
     if (!companyId) {
@@ -116,8 +117,14 @@ export async function createShareTokenAction(
       throw new Error('Tipo de documento no soportado');
     }
 
+    // El entorno tambien acota: desde PRUEBA no se genera un enlace publico
+    // de 30 dias a una factura real.
     const doc = await db.query.invoices.findFirst({
-      where: and(eq(invoices.id, documentId), eq(invoices.companyId, companyId)),
+      where: and(
+        eq(invoices.id, documentId),
+        eq(invoices.companyId, companyId),
+        eq(invoices.modo, modo)
+      ),
       columns: { companyId: true }
     });
 
@@ -125,6 +132,7 @@ export async function createShareTokenAction(
 
     const token = await DocumentService.createShareToken(
       doc.companyId,
+      modo,
       documentId,
       documentType,
       undefined, // session.user.id
