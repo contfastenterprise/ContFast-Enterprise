@@ -6,6 +6,8 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, invoiceLines, invoiceTaxes } from '@/db';
 import { sql, and, eq } from 'drizzle-orm';
 import { siguienteCodigoFactura } from '@/services/invoice/codigoFactura';
+import { InvoiceCalculator } from '@/services/invoice/invoiceCalculator';
+import type { IssueInvoiceInput } from '@/services/invoice/types';
 
 // Zod validation schema for saving a draft invoice
 const saveDraftSchema = z.object({
@@ -64,48 +66,38 @@ export async function POST(req: NextRequest) {
 
     const data = result.data;
 
-    // Calculate totals
-    let subtotal = 0;
-    let totalDiscount = 0;
-    let totalTaxes = 0;
-    const taxSummaryMap: Record<string, { rate: number; amount: number }> = {};
-    const itemLines: any[] = [];
-
-    data.lines.forEach((line) => {
-      const lineSubtotal = line.quantity * line.unitPrice;
-      const lineDiscount = line.quantity * line.discount;
-      const lineTaxableAmount = lineSubtotal - lineDiscount;
-      const lineTaxAmount = lineTaxableAmount * line.taxRate;
-      const lineTotal = lineTaxableAmount + lineTaxAmount;
-
-      subtotal += lineSubtotal;
-      totalDiscount += lineDiscount;
-      totalTaxes += lineTaxAmount;
-
-      itemLines.push({
-        productId: line.productId,
-        productName: line.productName,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        discount: line.discount,
-        subtotal: lineSubtotal,
-        total: lineTotal,
-        warehouseId: line.warehouseId || data.warehouseId,
-      });
-
-      const taxKey = `ITBIS_${(line.taxRate * 100).toFixed(0)}%`;
-      if (!taxSummaryMap[taxKey]) {
-        taxSummaryMap[taxKey] = { rate: line.taxRate * 100, amount: 0 };
-      }
-      taxSummaryMap[taxKey].amount += lineTaxAmount;
-    });
-
-    const total = subtotal - totalDiscount + totalTaxes;
-    const taxesList = Object.entries(taxSummaryMap).map(([, val]) => ({
-      taxType: 'ITBIS',
-      rate: val.rate,
-      amount: val.amount,
-    }));
+    // Auditoria P1-23 (2026-09-03): este bloque reimplementaba a mano el
+    // mismo calculo que InvoiceCalculator.calculateTotalsAndRetentions (el
+    // que usa la emision real), pero sin `roundMoney` en cada paso
+    // intermedio y sin `taxCategory`. El redondeo hecho al final en vez de
+    // por linea acumulaba diferencias de centavos entre lo que el
+    // borrador mostraba y lo que la emision real calculaba despues --
+    // recurrencia del problema "Totales/MontoExento" que el usuario ya
+    // habia identificado antes. Se reutiliza el mismo calculador que usa
+    // el flujo de emision real: misma funcion, mismo redondeo linea por
+    // linea, mismo resultado.
+    const calculatorInput: IssueInvoiceInput = {
+      companyId: auth.companyId,
+      modo: auth.modo,
+      warehouseId: data.warehouseId,
+      customerId: data.customerId,
+      userId: auth.userId,
+      ecfType: data.ecfType,
+      paymentType: data.paymentType,
+      bankName: data.bankName,
+      transactionNumber: data.transactionNumber,
+      buyerRnc: data.buyerRnc,
+      buyerName: data.buyerName,
+      notes: data.notes,
+      modifiedNcf: data.modifiedNcf,
+      modifiedInvoiceId: data.modifiedInvoiceId,
+      quoteId: data.quoteId,
+      // El borrador no acepta retenciones en su Zod schema (saveDraftSchema,
+      // arriba) -- no cambia con este arreglo. `data.retentions` queda
+      // `undefined`, y el calculador ya sabe tratar eso como "sin retencion".
+      lines: data.lines,
+    };
+    const totals = InvoiceCalculator.calculateTotalsAndRetentions(calculatorInput);
 
     // Generate a short unique draft identifier that fits varchar(13)
     // Format: DFT + 10 digit timestamp mod
@@ -136,10 +128,16 @@ export async function POST(req: NextRequest) {
           paymentType: data.paymentType,
           bankName: data.bankName,
           transactionNumber: data.transactionNumber,
-          subtotal: subtotal.toString(),
-          discount: totalDiscount.toString(),
-          totalTaxes: totalTaxes.toString(),
-          total: total.toString(),
+          subtotal: totals.subtotal.toString(),
+          discount: totals.totalDiscount.toString(),
+          totalTaxes: totals.totalTaxes.toString(),
+          total: totals.total.toString(),
+          // Antes se dejaban en el 0.00 por defecto de la columna: sin
+          // retenciones (el borrador no las admite) totalNet es igual a
+          // total, no cero -- ya que estamos calculando con el mismo
+          // InvoiceCalculator de la emision real, se guardan completos.
+          totalRetained: totals.totalRetained.toString(),
+          totalNet: totals.totalNet.toString(),
           buyerRnc: data.buyerRnc,
           buyerName: data.buyerName,
           notes: data.notes,
@@ -151,26 +149,32 @@ export async function POST(req: NextRequest) {
         .returning();
 
       // Insert lines
-      if (itemLines.length > 0) {
+      if (totals.itemLines.length > 0) {
         await tx.insert(invoiceLines).values(
-          itemLines.map((line) => ({
+          totals.itemLines.map((line: any) => ({
             invoiceId: invoice.id,
             productId: line.productId,
-            warehouseId: line.warehouseId,
+            warehouseId: line.warehouseId || data.warehouseId,
             quantity: line.quantity.toString(),
             unitPrice: line.unitPrice.toString(),
             discount: line.discount.toString(),
             subtotal: line.subtotal.toString(),
+            // Igual que en InvoiceRepository.create: `total` de la LINEA es
+            // el monto gravable, SIN el impuesto (el impuesto va aparte, en
+            // invoice_taxes). Antes este borrador guardaba aqui la linea CON
+            // impuesto incluido -- inconsistente con como la emision real
+            // guarda el mismo campo.
             total: line.total.toString(),
             taxRate: line.taxRate != null ? line.taxRate.toString() : null,
+            taxCategory: line.taxCategory ?? null,
           }))
         );
       }
 
       // Insert taxes
-      if (taxesList.length > 0) {
+      if (totals.taxesList.length > 0) {
         await tx.insert(invoiceTaxes).values(
-          taxesList.map((tax) => ({
+          totals.taxesList.map((tax: any) => ({
             invoiceId: invoice.id,
             taxType: tax.taxType,
             rate: tax.rate.toString(),
