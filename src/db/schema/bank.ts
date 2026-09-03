@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, timestamp, decimal, date, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
+import { chartOfAccounts } from './accounting';
 import { environmentMode } from './system';
 
 export const bankAccounts = pgTable('bank_accounts', {
@@ -23,7 +24,11 @@ export const bankAccounts = pgTable('bank_accounts', {
   //
   // Es nullable porque las cuentas existentes no lo tienen y no se puede
   // deducir. Sin ella el movimiento NO se contabiliza: se rechaza con error.
-  chartAccountId: uuid('chart_account_id'),
+  // Auditoria P1-20 (2026-09-03), migracion 0052. Antes no tenia FK --
+  // nada impedia guardar aqui una cuenta contable inexistente. `restrict`:
+  // no se puede borrar una cuenta del catalogo mientras una cuenta bancaria
+  // la siga usando.
+  chartAccountId: uuid('chart_account_id').references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
   status: varchar('status', { length: 50 }).default('active').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
