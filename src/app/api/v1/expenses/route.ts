@@ -6,30 +6,15 @@ import { eq, sql, and, between, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { resolverCuentaDeBanco, resolverCuentaPorPagar } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
-  const [acc] = await tx
-    .select()
-    .from(chartOfAccounts)
-    .where(and(eq(chartOfAccounts.companyId, companyId), eq(chartOfAccounts.code, code)));
-
-  if (acc) return acc;
-
-  const [newAcc] = await tx
-    .insert(chartOfAccounts)
-    .values({
-      companyId,
-      code,
-      name,
-      type,
-      status: 'active',
-    })
-    .returning();
-
-  return newAcc;
-}
+// Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
+// Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
+// distinguia una cuenta de agrupacion ('2.1.01', '1.1.01') de su hija
+// transaccional. Las cuentas de este modulo se resuelven ahora con
+// `resolverCuentaPorMapeo` (services/accounting/resolverCuentas.ts), que
+// nunca crea y siempre valida.
 
 export async function POST(req: NextRequest) {
   try {
@@ -357,39 +342,48 @@ export async function POST(req: NextRequest) {
           accDebit = customAcc;
         }
 
+        // Auditoria P0-05 (2026-09-03): 'Cuentas por Pagar' resolvia a '2.1.01'
+        // -- la cuenta de AGRUPACION, no su hija transaccional '2.1.01.01'.
+        // Es la misma cuenta que acredito el conduce en garantia (ARP-02, mas
+        // abajo en este archivo). `resolverCuentaPorMapeo` nunca crea y
+        // siempre valida que la cuenta sea transaccional, activa y de esta
+        // empresa; las claves con mapeo ya existente (`supplier_payable`,
+        // `cash`, `cost_of_goods_sold`) usan el mismo mapeo que el resto del
+        // sistema, para que apuntar todas al mismo lugar sea una decision de
+        // configuracion (Ajustes > Contabilidad), no de codigo.
         if (!accDebit) {
           accDebit = hasInventory
-            ? await getOrCreateAccount(tx, session.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-            : await getOrCreateAccount(tx, session.companyId, '5.1.01', 'Costo de Ventas', 'cost');
+            ? await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_inventory', '1.1.06', 'Compra - Inventario de Mercancía')
+            : await resolverCuentaPorMapeo(tx, session.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas');
         }
 
         const accCredit = isCredit
-          ? await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')
-          : await getOrCreateAccount(tx, session.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
+          ? await resolverCuentaPorMapeo(tx, session.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
+          : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
         const journalLines = [
           { accountId: accDebit.id, debit: subtotalVal, credit: 0 },
         ];
 
         if (itbisAmount > 0) {
-          const accItbisPagado = await getOrCreateAccount(tx, session.companyId, '1.1.08', 'ITBIS Pagado en Compras', 'asset');
+          const accItbisPagado = await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_itbis_paid', '1.1.08', 'Compra - ITBIS Pagado');
           journalLines.push({ accountId: accItbisPagado.id, debit: itbisAmount, credit: 0 });
         }
 
         if (otherTaxesAmount > 0) {
-          const accOtrosImp = await getOrCreateAccount(tx, session.companyId, '5.1.02', 'Otros Impuestos y Tasas', 'expense');
+          const accOtrosImp = await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_other_taxes', '5.1.02', 'Compra - Otros Impuestos y Tasas');
           journalLines.push({ accountId: accOtrosImp.id, debit: otherTaxesAmount, credit: 0 });
         }
 
         journalLines.push({ accountId: accCredit.id, debit: 0, credit: netAmount });
 
         if (isrRet > 0) {
-          const accIsrRet = await getOrCreateAccount(tx, session.companyId, '2.1.04', 'ISR Retenido por Pagar', 'liability');
+          const accIsrRet = await resolverCuentaPorMapeo(tx, session.companyId, 'isr_withholding_payable', '2.1.04', 'Compra - ISR Retenido por Pagar');
           journalLines.push({ accountId: accIsrRet.id, debit: 0, credit: isrRet });
         }
 
         if (itbisRet > 0) {
-          const accItbisRet = await getOrCreateAccount(tx, session.companyId, '2.1.05', 'ITBIS Retenido por Pagar', 'liability');
+          const accItbisRet = await resolverCuentaPorMapeo(tx, session.companyId, 'itbis_withholding_payable', '2.1.05', 'Compra - ITBIS Retenido por Pagar');
           journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: itbisRet });
         }
 

@@ -9,7 +9,7 @@ import {
   accountingMappings,
   expenseTypes
 } from '@/db';
-import { eq, and, desc, sql, isNull } from 'drizzle-orm';
+import { eq, and, desc, sql, isNull, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface NewAccount {
@@ -337,6 +337,50 @@ export class AccountingRepository {
           `No hay un período contable abierto para la fecha ${formattedDate}: está cerrado o no se ha abierto todavía. ` +
           `Ábralo en Contabilidad > Períodos antes de registrar la operación.`
         );
+      }
+
+      // 2.1 Validar las cuentas del asiento (Auditoria P0-05, 2026-09-03).
+      //
+      // resolverCuentas.ts ya valida esto para quien lo usa -- pero este es el
+      // UNICO punto por el que pasa CUALQUIER asiento, sin importar de donde
+      // venga: las copias locales de `getOrCreateAccount` que aun quedan sin
+      // migrar, un `debitAccountId` elegido a mano en el formulario, o codigo
+      // futuro que se salte el resolvedor. Sin esto, la unica comprobacion
+      // era la FK -- que no distingue una cuenta de OTRA empresa, inactiva,
+      // borrada o de AGRUPACION (esta ultima es justo la que causo JRN-01:
+      // dos saldos duplicados, padre e hijo, por un asiento posteado contra
+      // la cuenta de agrupacion en vez de su hija transaccional).
+      const idsDeCuentas = Array.from(cuentasDistintas) as string[];
+      const cuentasEncontradas = await transactionContext
+        .select({
+          id: chartOfAccounts.id,
+          code: chartOfAccounts.code,
+          name: chartOfAccounts.name,
+          isTransactional: chartOfAccounts.isTransactional,
+          status: chartOfAccounts.status,
+          deletedAt: chartOfAccounts.deletedAt,
+        })
+        .from(chartOfAccounts)
+        .where(and(
+          inArray(chartOfAccounts.id, idsDeCuentas),
+          eq(chartOfAccounts.companyId, data.companyId)
+        ));
+
+      const cuentaPorId = new Map(cuentasEncontradas.map((c: any) => [c.id, c]));
+      for (const cuentaId of idsDeCuentas) {
+        const cuenta: any = cuentaPorId.get(cuentaId);
+        if (!cuenta) {
+          throw new Error(`El asiento incluye una cuenta contable (id ${cuentaId}) que no existe o no pertenece a esta empresa.`);
+        }
+        if (cuenta.deletedAt || cuenta.status !== 'active') {
+          throw new Error(`La cuenta ${cuenta.code} ${cuenta.name} no está activa: no admite nuevos movimientos.`);
+        }
+        if (!cuenta.isTransactional) {
+          throw new Error(
+            `La cuenta ${cuenta.code} ${cuenta.name} es una cuenta de agrupación y no admite movimientos directos. ` +
+            `Use una de sus subcuentas transaccionales.`
+          );
+        }
       }
 
       // 3. Insert Journal Entry Header

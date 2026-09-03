@@ -1,34 +1,20 @@
 // src/services/expenseService.ts
 import { eq, and, between } from 'drizzle-orm';
 import { db } from '../db';
-import { expenses, chartOfAccounts } from '../db/schema';
+import { expenses } from '../db/schema';
 import { accountsPayable } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { addStock } from './inventoryService';
 import { AccountRepository } from '../repositories/accountRepository';
+import { resolverCuentaPorMapeo } from './accounting/resolverCuentas';
 import { FinancialMovementService } from '@/services/financialMovementService';
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
-  const [acc] = await tx
-    .select()
-    .from(chartOfAccounts)
-    .where(and(eq(chartOfAccounts.companyId, companyId), eq(chartOfAccounts.code, code)));
-
-  if (acc) return acc;
-
-  const [newAcc] = await tx
-    .insert(chartOfAccounts)
-    .values({
-      companyId,
-      code,
-      name,
-      type,
-      status: 'active',
-    })
-    .returning();
-
-  return newAcc;
-}
+// Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
+// Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
+// distinguia una cuenta de agrupacion ('2.1.01', '1.1.01') de su hija
+// transaccional. Las cuentas de este modulo se resuelven ahora con
+// `resolverCuentaPorMapeo` (services/accounting/resolverCuentas.ts), que
+// nunca crea y siempre valida.
 
 /**
  * Creates a new expense record and automatically creates a corresponding
@@ -154,16 +140,22 @@ export async function createExpense(expenseData: {
 
     if (netAmount > 0) {
       // 1. Get/create accounts
+      // Auditoria P0-05 (2026-09-03): mismo arreglo que expenses/route.ts --
+      // `resolverCuentaPorMapeo` nunca crea y siempre valida que la cuenta
+      // sea transaccional, activa y de esta empresa. El override manual
+      // (`expenseData.debitAccountId`) se conserva tal cual: sigue sin
+      // validar aqui que pertenezca a la empresa, igual que antes -- eso
+      // queda fuera del alcance de este arreglo.
       const hasInventory = !!(expenseData.warehouseId && expenseData.lines && expenseData.lines.length > 0);
       const accDebit = expenseData.debitAccountId
         ? { id: expenseData.debitAccountId }
         : (hasInventory 
-          ? await getOrCreateAccount(tx, expenseData.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-          : await getOrCreateAccount(tx, expenseData.companyId, '5.1.01', 'Costo de Ventas', 'cost'));
+          ? await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_inventory', '1.1.06', 'Compra - Inventario de Mercancía')
+          : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas'));
 
       const accCredit = isCredit
-        ? await getOrCreateAccount(tx, expenseData.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')
-        : await getOrCreateAccount(tx, expenseData.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
+        ? await resolverCuentaPorMapeo(tx, expenseData.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
+        : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
       const journalLines = [
         // Debit the subtotal/cost
@@ -172,13 +164,13 @@ export async function createExpense(expenseData: {
 
       // Debit the ITBIS Pagado if any
       if (itbisAmount > 0) {
-        const accItbisPagado = await getOrCreateAccount(tx, expenseData.companyId, '1.1.08', 'ITBIS Pagado en Compras', 'asset');
+        const accItbisPagado = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_itbis_paid', '1.1.08', 'Compra - ITBIS Pagado');
         journalLines.push({ accountId: accItbisPagado.id, debit: itbisAmount, credit: 0 });
       }
 
       // Debit other taxes if any
       if (otherTaxesAmount > 0) {
-        const accOtrosImp = await getOrCreateAccount(tx, expenseData.companyId, '5.1.02', 'Otros Impuestos y Tasas', 'expense');
+        const accOtrosImp = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_other_taxes', '5.1.02', 'Compra - Otros Impuestos y Tasas');
         journalLines.push({ accountId: accOtrosImp.id, debit: otherTaxesAmount, credit: 0 });
       }
 
@@ -187,13 +179,13 @@ export async function createExpense(expenseData: {
 
       // Credit the Retained ISR if any
       if (isrRet > 0) {
-        const accIsrRet = await getOrCreateAccount(tx, expenseData.companyId, '2.1.04', 'ISR Retenido por Pagar', 'liability');
+        const accIsrRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'isr_withholding_payable', '2.1.04', 'Compra - ISR Retenido por Pagar');
         journalLines.push({ accountId: accIsrRet.id, debit: 0, credit: isrRet });
       }
 
       // Credit the Retained ITBIS if any
       if (itbisRet > 0) {
-        const accItbisRet = await getOrCreateAccount(tx, expenseData.companyId, '2.1.05', 'ITBIS Retenido por Pagar', 'liability');
+        const accItbisRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'itbis_withholding_payable', '2.1.05', 'Compra - ITBIS Retenido por Pagar');
         journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: itbisRet });
       }
 

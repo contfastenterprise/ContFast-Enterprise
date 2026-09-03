@@ -1,4 +1,4 @@
-import { db, invoices, chartOfAccounts, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable, products, customers } from '@/db';
+import { db, invoices, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable, products, customers } from '@/db';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { CompanyRepository } from '@/repositories/companyRepository';
@@ -10,6 +10,7 @@ import { siguienteCodigoFactura } from './codigoFactura';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
 import { esAdminOSistemas } from '@/utils/rolMatch';
+import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 
 export class InvoiceDbBooker {
   /**
@@ -526,10 +527,21 @@ export class InvoiceDbBooker {
       }
 
       // Book automatic accounting journal entries (Double Entry)
-      const accCxC = await this.getOrCreateAccount(tx, data.companyId, '1.1.02', 'Cuentas por Cobrar Clientes', 'asset');
-      const accCaja = await this.getOrCreateAccount(tx, data.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
-      const accVentas = await this.getOrCreateAccount(tx, data.companyId, '4.1.01', 'Ingresos por Ventas', 'revenue');
-      const accItbis = await this.getOrCreateAccount(tx, data.companyId, '2.1.03', 'ITBIS por Pagar', 'liability');
+      //
+      // Auditoria P0-05 (2026-09-03): estas cuatro cuentas se resolvian con
+      // `getOrCreateAccount`, que busca por codigo literal y CREA la cuenta si
+      // no la encuentra. '1.1.02' y '1.1.01' ya existian en el catalogo real
+      // como cuentas de AGRUPACION (Cuentas por Cobrar es la primera, no
+      // Efectivo) -- postear ahi duplica el saldo entre padre e hijo. '2.1.03'
+      // no existe en el catalogo real (el ITBIS por Pagar transaccional es
+      // '2.1.02.01'); al no encontrarla, se creaba una cuenta nueva sin
+      // `nature`, heredando 'debit' para lo que es un pasivo. `resolverCuentaPorMapeo`
+      // nunca crea: resuelve por `accounting_mappings` o por el codigo correcto,
+      // y valida que la cuenta sea transaccional, activa y de esta empresa.
+      const accCxC = await resolverCuentaPorMapeo(tx, data.companyId, 'accounts_receivable', '1.1.02.01', 'Facturación - Cuentas por Cobrar');
+      const accCaja = await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Facturación - Efectivo');
+      const accVentas = await resolverCuentaPorMapeo(tx, data.companyId, 'sales_revenue', '4.1.01', 'Facturación - Ingresos por Ventas');
+      const accItbis = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_sales', '2.1.02.01', 'Facturación - ITBIS por Pagar');
 
       const isCashOrBank = data.paymentType === 'cash' || data.paymentType === 'bank_transfer';
       const paymentAccount = isCashOrBank ? accCaja : accCxC;
@@ -550,13 +562,13 @@ export class InvoiceDbBooker {
         if (totals.totalRetained > 0) {
           for (const ret of totals.calculatedRetentions) {
             if (ret.retentionType === 'ISR') {
-              const accIsr = await this.getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
+              const accIsr = await resolverCuentaPorMapeo(tx, data.companyId, 'isr_retention_receivable', '1.1.03', 'Retención de ISR sobre venta');
               journalLines.push({ accountId: accIsr.id, debit: 0, credit: ret.retentionAmount });
             } else if (ret.retentionType === 'ITBIS') {
-              const accItbisRet = await this.getOrCreateAccount(tx, data.companyId, '1.1.04', 'Anticipo de Impuestos - Retención ITBIS', 'asset');
+              const accItbisRet = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_retention_receivable', '1.1.04', 'Retención de ITBIS sobre venta');
               journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: ret.retentionAmount });
             } else {
-              const accOtras = await this.getOrCreateAccount(tx, data.companyId, '1.1.05', 'Anticipo de Impuestos - Otras Retenciones', 'asset');
+              const accOtras = await resolverCuentaPorMapeo(tx, data.companyId, 'other_retention_receivable', '1.1.05', 'Otra retención sobre venta');
               journalLines.push({ accountId: accOtras.id, debit: 0, credit: ret.retentionAmount });
             }
           }
@@ -574,13 +586,13 @@ export class InvoiceDbBooker {
         if (totals.totalRetained > 0) {
           for (const ret of totals.calculatedRetentions) {
             if (ret.retentionType === 'ISR') {
-              const accIsr = await this.getOrCreateAccount(tx, data.companyId, '1.1.03', 'Anticipo de Impuestos - Retención ISR', 'asset');
+              const accIsr = await resolverCuentaPorMapeo(tx, data.companyId, 'isr_retention_receivable', '1.1.03', 'Retención de ISR sobre venta');
               journalLines.push({ accountId: accIsr.id, debit: ret.retentionAmount, credit: 0 });
             } else if (ret.retentionType === 'ITBIS') {
-              const accItbisRet = await this.getOrCreateAccount(tx, data.companyId, '1.1.04', 'Anticipo de Impuestos - Retención ITBIS', 'asset');
+              const accItbisRet = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_retention_receivable', '1.1.04', 'Retención de ITBIS sobre venta');
               journalLines.push({ accountId: accItbisRet.id, debit: ret.retentionAmount, credit: 0 });
             } else {
-              const accOtras = await this.getOrCreateAccount(tx, data.companyId, '1.1.05', 'Anticipo de Impuestos - Otras Retenciones', 'asset');
+              const accOtras = await resolverCuentaPorMapeo(tx, data.companyId, 'other_retention_receivable', '1.1.05', 'Otra retención sobre venta');
               journalLines.push({ accountId: accOtras.id, debit: ret.retentionAmount, credit: 0 });
             }
           }
@@ -766,34 +778,9 @@ export class InvoiceDbBooker {
     });
   }
 
-  /**
-   * Helper to fetch or create an accounting account.
-   */
-  private static async getOrCreateAccount(
-    tx: any,
-    companyId: string,
-    code: string,
-    name: string,
-    type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
-  ) {
-    const [acc] = await tx
-      .select()
-      .from(chartOfAccounts)
-      .where(and(eq(chartOfAccounts.companyId, companyId), eq(chartOfAccounts.code, code)));
-
-    if (acc) return acc;
-
-    const [newAcc] = await tx
-      .insert(chartOfAccounts)
-      .values({
-        companyId,
-        code,
-        name,
-        type,
-        status: 'active',
-      })
-      .returning();
-
-    return newAcc;
-  }
+  // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
+  // Creaba cuentas sobre la marcha sin `nature`/`level` correctos y no
+  // distinguia una cuenta de agrupacion de una transaccional. Las cuentas de
+  // este modulo se resuelven ahora con `resolverCuentaPorMapeo`
+  // (services/accounting/resolverCuentas.ts), que nunca crea y siempre valida.
 }

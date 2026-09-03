@@ -1,35 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied } from '@/db';
+import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { esSistemas } from '@/utils/rolMatch';
-import { eq, and, or, inArray, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, inArray, sql, isNull, desc } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { resolverCuentaDeBanco, resolverCuentaPorPagar } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense' | 'cost') {
-  const [acc] = await tx
-    .select()
-    .from(chartOfAccounts)
-    .where(and(eq(chartOfAccounts.companyId, companyId), eq(chartOfAccounts.code, code)));
+// Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
+// Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
+// distinguia una cuenta de agrupacion ('2.1.01', '1.1.01') de su hija
+// transaccional. Las cuentas de este modulo se resuelven ahora con
+// `resolverCuentaPorMapeo` (services/accounting/resolverCuentas.ts), que
+// nunca crea y siempre valida.
 
-  if (acc) return acc;
+/**
+ * Auditoria P0-07 (2026-09-03): revierte un asiento contable con un asiento
+ * de reversión explícito, en vez de borrarlo.
+ *
+ * El original queda intacto en el mayor -- nada desaparece, todo sigue
+ * siendo consultable y auditable, exactamente igual que espera cualquier
+ * revisor. La reversión usa las MISMAS cuentas con el debe y el haber
+ * invertidos, así que el efecto neto es cero -- la misma técnica que ya usa
+ * la Nota de Crédito (e-CF 34) en invoiceDbBooker.ts. Pasa por
+ * `createJournalEntry`, así que vuelve a pasar por `isPeriodOpen` (no puede
+ * reabrir un período ya cerrado) y por la validación de cuentas de la red de
+ * seguridad (P0-05): si alguna cuenta del asiento original ya no es válida,
+ * la reversión falla con un mensaje claro en vez de fallar en silencio.
+ */
+async function revertirAsientoContable(
+  tx: any,
+  companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
+  journalEntryId: string,
+  motivo: string,
+  userId: string
+) {
+  const [original] = await tx
+    .select({ date: journalEntries.date, description: journalEntries.description })
+    .from(journalEntries)
+    .where(eq(journalEntries.id, journalEntryId))
+    .limit(1);
 
-  const [newAcc] = await tx
-    .insert(chartOfAccounts)
-    .values({
-      companyId,
-      code,
-      name,
-      type,
-      status: 'active',
-    })
-    .returning();
+  if (!original) return;
 
-  return newAcc;
+  const lineas = await tx
+    .select({ accountId: journalEntryLines.accountId, debit: journalEntryLines.debit, credit: journalEntryLines.credit })
+    .from(journalEntryLines)
+    .where(eq(journalEntryLines.journalEntryId, journalEntryId));
+
+  if (lineas.length === 0) return;
+
+  await AccountRepository.createJournalEntry(tx, {
+    companyId,
+    modo,
+    reference: journalEntryId,
+    date: original.date,
+    description: `Reversión — ${motivo} (asiento original: ${original.description || journalEntryId})`,
+    lines: lineas.map((l: any) => ({
+      accountId: l.accountId,
+      debit: parseFloat(l.credit) || 0,
+      credit: parseFloat(l.debit) || 0,
+    })),
+    createdBy: userId,
+  });
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
@@ -96,10 +133,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       .from(expenseLines)
       .where(eq(expenseLines.expenseId, id));
 
+    // Auditoria P0-07 (2026-09-03): una compra editada más de una vez ahora
+    // puede tener varios asientos con esta misma referencia -- el original de
+    // cada edición ya no se borra, se REVIERTE (ver `revertirAsientoContable`
+    // en el PUT de más abajo). Sin ordenar por fecha de creación, este
+    // `.limit(1)` podía devolver un asiento antiguo y prellenar el formulario
+    // de edición con la cuenta contable equivocada.
     const jes = await db
       .select({ id: journalEntries.id })
       .from(journalEntries)
       .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)))
+      .orderBy(desc(journalEntries.createdAt))
       .limit(1);
 
     let debitAccountId = null;
@@ -227,7 +271,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     const deleted = await db.transaction(async (tx) => {
       // 1. Get the expense header to verify ownership and get warehouseId
       const expHeaders = await tx
-        .select({ id: expenses.id, warehouseId: expenses.warehouseId })
+        .select()
         .from(expenses)
         .where(and(
           eq(expenses.id, id),
@@ -239,7 +283,73 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         return null;
       }
 
-      const warehouseId = expHeaders[0].warehouseId;
+      const expenseRow = expHeaders[0];
+      const warehouseId = expenseRow.warehouseId;
+
+      // Auditoria P0-07 (2026-09-03): bloquear si el período contable de esta
+      // compra ya está cerrado -- igual que ya bloquea la CREACIÓN de
+      // asientos (`AccountingRepository.isPeriodOpen`). Sin esto, cualquier
+      // usuario de Sistemas podía eliminar por completo una compra -- asiento,
+      // kardex y CxP incluidos -- de un mes ya cerrado y reportado a la DGII,
+      // sin bloqueo ni rastro.
+      const periodoAbierto = await AccountRepository.isPeriodOpen(session.companyId, expenseRow.issueDate, session.modo, tx);
+      if (!periodoAbierto) {
+        const err: any = new Error(
+          `No se puede eliminar esta compra: su período contable (fecha ${expenseRow.issueDate}) ya está cerrado. ` +
+          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla, o revierta el cierre.`
+        );
+        err.status = 409;
+        throw err;
+      }
+
+      // Auditoria P0-07 (2026-09-03): registrar el estado previo COMPLETO
+      // antes de borrar nada. Sin esto, una compra eliminada -- asiento,
+      // kardex y CxP incluidos -- no dejaba ningún rastro de que existió, ni
+      // de quién la borró. Se lee todo ANTES de que el resto de esta función
+      // empiece a mutar nada.
+      const snapshotLineas = await tx.select().from(expenseLines).where(eq(expenseLines.expenseId, id));
+      const snapshotAsientos = await tx
+        .select()
+        .from(journalEntries)
+        .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
+      const idsAsientosSnapshot = snapshotAsientos.map((j: any) => j.id);
+      const snapshotLineasAsiento = idsAsientosSnapshot.length > 0
+        ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosSnapshot))
+        : [];
+      const snapshotAp = await tx
+        .select()
+        .from(accountsPayable)
+        .where(and(
+          eq(accountsPayable.companyId, session.companyId),
+          eq(accountsPayable.modo, session.modo),
+          or(eq(accountsPayable.expenseId, id), eq(accountsPayable.id, id))
+        ));
+      const snapshotMovimientos = await tx
+        .select()
+        .from(inventoryMovements)
+        .where(and(
+          eq(inventoryMovements.referenceId, id),
+          eq(inventoryMovements.companyId, session.companyId),
+          eq(inventoryMovements.modo, session.modo)
+        ));
+
+      await tx.insert(auditLogs).values({
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        action: 'delete_expense',
+        entityType: 'expenses',
+        entityId: id,
+        oldValues: {
+          expense: expenseRow,
+          lines: snapshotLineas,
+          journalEntries: snapshotAsientos,
+          journalEntryLines: snapshotLineasAsiento,
+          accountsPayable: snapshotAp,
+          inventoryMovements: snapshotMovimientos,
+        },
+        ipAddress: ip,
+      });
 
       // 2. Get the expense lines before deleting to adjust inventory levels
       const linesList = await tx
@@ -359,22 +469,25 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         await tx.delete(accountsPayable).where(eq(accountsPayable.id, ap.id));
       }
 
-      // 5. Delete accounting journal entries linked to this expense
-      const jes = await tx
-        .select({ id: journalEntries.id })
-        .from(journalEntries)
-        .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
-
-      for (const je of jes) {
-        // Delete lines first to satisfy foreign key constraints
-        await tx
-          .delete(journalEntryLines)
-          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId), eq(journalEntryLines.modo, session.modo)));
-        
-        // Delete header
-        await tx
-          .delete(journalEntries)
-          .where(and(eq(journalEntries.id, je.id), eq(journalEntries.companyId, session.companyId)));
+      // 5. Revertir (no borrar) los asientos contables de esta compra.
+      //
+      // Auditoria P0-07 (2026-09-03): antes se borraban físicamente --
+      // líneas primero, cabecera después. Nada en el schema lo impedía, pero
+      // borrar destruye el rastro contable, y contradice el propio diseño:
+      // `journal_entries.deletedAt` existe justamente para poder ocultar un
+      // asiento de los reportes sin volarlo de la base de datos. Aquí se usa
+      // la técnica todavía más correcta -- un asiento de REVERSIÓN explícito
+      // (ver `revertirAsientoContable` arriba) -- para que el original quede
+      // intacto y el efecto neto en el mayor sea cero, sin nada invisible.
+      for (const je of snapshotAsientos) {
+        await revertirAsientoContable(
+          tx,
+          session.companyId,
+          session.modo,
+          je.id,
+          `Eliminación de compra NCF: ${expenseRow.ncf || 'N/A'}`,
+          session.userId
+        );
       }
 
       // 6. Delete expense lines explicitly (safety cascade)
@@ -518,7 +631,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     const result = await db.transaction(async (tx) => {
       // 1. Get the existing expense
       const existing = await tx
-        .select({ id: expenses.id, warehouseId: expenses.warehouseId })
+        .select()
         .from(expenses)
         .where(and(
           eq(expenses.id, id),
@@ -529,6 +642,49 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       if (existing.length === 0) {
         throw new Error('Compra/Gasto no encontrado');
       }
+
+      // Auditoria P0-07 (2026-09-03): bloquear la edición si el período
+      // contable ORIGINAL de esta compra ya está cerrado -- mismo motivo que
+      // en DELETE (ver más abajo). Se comprueba contra la fecha YA GUARDADA,
+      // no la que venga en el body: lo que hay que proteger es el período
+      // donde el asiento actual ya vive, no el que el usuario esté a punto de
+      // escribir.
+      const periodoAbiertoOriginal = await AccountRepository.isPeriodOpen(session.companyId, existing[0].issueDate, session.modo, tx);
+      if (!periodoAbiertoOriginal) {
+        const err: any = new Error(
+          `No se puede editar esta compra: su período contable original (fecha ${existing[0].issueDate}) ya está cerrado. ` +
+          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla.`
+        );
+        err.status = 409;
+        throw err;
+      }
+
+      // Auditoria P0-07 (2026-09-03): registrar el estado previo del asiento
+      // ANTES de tocarlo, por el mismo motivo que en DELETE.
+      const snapshotAsientosPut = await tx
+        .select()
+        .from(journalEntries)
+        .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
+      const idsAsientosPut = snapshotAsientosPut.map((j: any) => j.id);
+      const snapshotLineasAsientoPut = idsAsientosPut.length > 0
+        ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosPut))
+        : [];
+
+      await tx.insert(auditLogs).values({
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        action: 'update_expense',
+        entityType: 'expenses',
+        entityId: id,
+        oldValues: {
+          expense: existing[0],
+          journalEntries: snapshotAsientosPut,
+          journalEntryLines: snapshotLineasAsientoPut,
+        },
+        newValues: { requestBody: body },
+        ipAddress: ip,
+      });
 
       // Check if there is an associated accountsPayable record and if it has any applied payments
       const [existingApRecord] = await tx
@@ -640,19 +796,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         .delete(inventoryMovements)
         .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId), eq(inventoryMovements.modo, session.modo)));
 
-      // 5. Delete old journal entries
-      const jes = await tx
-        .select({ id: journalEntries.id })
-        .from(journalEntries)
-        .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
-
-      for (const je of jes) {
-        await tx
-          .delete(journalEntryLines)
-          .where(and(eq(journalEntryLines.journalEntryId, je.id), eq(journalEntryLines.companyId, session.companyId), eq(journalEntryLines.modo, session.modo)));
-        await tx
-          .delete(journalEntries)
-          .where(and(eq(journalEntries.id, je.id), eq(journalEntries.companyId, session.companyId)));
+      // 5. Revertir (no borrar) los asientos contables previos de esta
+      // compra -- misma técnica que DELETE (ver `revertirAsientoContable` al
+      // inicio del archivo). El original queda intacto; la reversión deja el
+      // efecto neto en cero. Justo después, este mismo PUT crea el asiento
+      // NUEVO con los datos editados (más abajo, vía `AccountRepository.createJournalEntry`),
+      // que ya pasa otra vez por `isPeriodOpen` y por la validación de
+      // cuentas (P0-05).
+      for (const je of snapshotAsientosPut) {
+        await revertirAsientoContable(
+          tx,
+          session.companyId,
+          session.modo,
+          je.id,
+          `Edición de compra NCF: ${existing[0].ncf || 'N/A'}`,
+          session.userId
+        );
       }
 
       // 6. Delete old expense lines
@@ -1042,39 +1201,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           accDebit = customAcc;
         }
 
+        // Auditoria P0-05 (2026-09-03): mismo arreglo que POST /expenses --
+        // ver el comentario alli. `resolverCuentaPorMapeo` nunca crea y
+        // siempre valida que la cuenta sea transaccional, activa y de esta
+        // empresa.
         if (!accDebit) {
           accDebit = hasInventory
-            ? await getOrCreateAccount(tx, session.companyId, '1.1.06', 'Inventario de Mercancía', 'asset')
-            : await getOrCreateAccount(tx, session.companyId, '5.1.01', 'Costo de Ventas', 'cost');
+            ? await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_inventory', '1.1.06', 'Compra - Inventario de Mercancía')
+            : await resolverCuentaPorMapeo(tx, session.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas');
         }
 
         const accCredit = isCredit
-          ? await getOrCreateAccount(tx, session.companyId, '2.1.01', 'Cuentas por Pagar', 'liability')
-          : await getOrCreateAccount(tx, session.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
+          ? await resolverCuentaPorMapeo(tx, session.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
+          : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
         const journalLines = [
           { accountId: accDebit.id, debit: subtotalVal, credit: 0 },
         ];
 
         if (itbisAmount > 0) {
-          const accItbisPagado = await getOrCreateAccount(tx, session.companyId, '1.1.08', 'ITBIS Pagado en Compras', 'asset');
+          const accItbisPagado = await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_itbis_paid', '1.1.08', 'Compra - ITBIS Pagado');
           journalLines.push({ accountId: accItbisPagado.id, debit: itbisAmount, credit: 0 });
         }
 
         if (otherTaxesAmount > 0) {
-          const accOtrosImp = await getOrCreateAccount(tx, session.companyId, '5.1.02', 'Otros Impuestos y Tasas', 'expense');
+          const accOtrosImp = await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_other_taxes', '5.1.02', 'Compra - Otros Impuestos y Tasas');
           journalLines.push({ accountId: accOtrosImp.id, debit: otherTaxesAmount, credit: 0 });
         }
 
         journalLines.push({ accountId: accCredit.id, debit: 0, credit: netAmount });
 
         if (isrRet > 0) {
-          const accIsrRet = await getOrCreateAccount(tx, session.companyId, '2.1.04', 'ISR Retenido por Pagar', 'liability');
+          const accIsrRet = await resolverCuentaPorMapeo(tx, session.companyId, 'isr_withholding_payable', '2.1.04', 'Compra - ISR Retenido por Pagar');
           journalLines.push({ accountId: accIsrRet.id, debit: 0, credit: isrRet });
         }
 
         if (itbisRet > 0) {
-          const accItbisRet = await getOrCreateAccount(tx, session.companyId, '2.1.05', 'ITBIS Retenido por Pagar', 'liability');
+          const accItbisRet = await resolverCuentaPorMapeo(tx, session.companyId, 'itbis_withholding_payable', '2.1.05', 'Compra - ITBIS Retenido por Pagar');
           journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: itbisRet });
         }
 
