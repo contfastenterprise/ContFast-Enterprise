@@ -5,6 +5,7 @@ import { db, subscriptions, plans, companies } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { enforcePermission } from '@/middleware/permissions';
+import { esSistemas } from '@/utils/rolMatch';
 
 const createSubscriptionSchema = z.object({
   companyId: z.string().uuid('ID de compañía inválido'),
@@ -34,7 +35,13 @@ export async function GET(req: NextRequest) {
     // Only systems or administration role can see subscriptions
     await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
-    const results = await db
+    // Auditoria P0-03 (2026-09-03): enforcePermission solo comprueba que el rol
+    // del usuario tenga permiso de lectura sobre 'administracion' EN SU PROPIA
+    // empresa -- no que la peticion se limite a su propia empresa. Sin este
+    // filtro, el administrador de CUALQUIER empresa cliente veia la facturacion
+    // (plan, precio, periodo) de TODAS las demas empresas de la plataforma. Solo
+    // el staff real de ContFast (is_platform_staff) puede ver la lista completa.
+    const baseQuery = db
       .select({
         id: subscriptions.id,
         status: subscriptions.status,
@@ -53,8 +60,11 @@ export async function GET(req: NextRequest) {
       })
       .from(subscriptions)
       .innerJoin(companies, eq(subscriptions.companyId, companies.id))
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .orderBy(subscriptions.createdAt);
+      .innerJoin(plans, eq(subscriptions.planId, plans.id));
+
+    const results = session.isPlatformStaff
+      ? await baseQuery.orderBy(subscriptions.createdAt)
+      : await baseQuery.where(eq(subscriptions.companyId, session.companyId)).orderBy(subscriptions.createdAt);
 
     return NextResponse.json({ success: true, data: results }, { headers: resHeaders });
   } catch (err: any) {
@@ -80,10 +90,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } }, { status: 401 });
     }
 
-    // Only systems administrator can create/assign subscriptions manually
-    if (session.role !== 'sistemas') {
+    // Auditoria P0-03 (2026-09-03): asignar una suscripcion es una operacion
+    // cruzada (companyId llega en el body, no en la sesion) -- igual que
+    // switch-company/admin/companies, exige is_platform_staff ademas del rol.
+    if (!esSistemas(session.role) || !session.isPlatformStaff) {
       return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: 'Acceso denegado. Solo el rol sistemas puede asignar suscripciones.' } },
+        { success: false, error: { code: 'FORBIDDEN', message: 'Acceso denegado. Se requiere staff de plataforma con rol sistemas para asignar suscripciones.' } },
         { status: 403 }
       );
     }

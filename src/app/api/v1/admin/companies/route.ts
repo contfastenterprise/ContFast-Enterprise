@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { desc, eq, and, ne, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountingRepository } from '@/repositories/accountingRepository';
+import { esSistemas } from '@/utils/rolMatch';
 
 const createCompanySchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -20,8 +21,13 @@ const createCompanySchema = z.object({
 export async function GET(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.role !== 'sistemas') {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere rol de sistemas.' } }, { status: 403 });
+    // Auditoria P0-01 (2026-09-03): 'sistemas' es un rol ESTANDAR de cada
+    // empresa cliente, no un rol de plataforma -- este endpoint lista/crea
+    // empresas de TODA la plataforma, asi que ademas del rol exacto hace
+    // falta la marca `isPlatformStaff`. Ver utils/rolMatch.ts y
+    // drizzle/0048_staff_de_plataforma.sql.
+    if (!session || !esSistemas(session.role) || !session.isPlatformStaff) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere ser staff de plataforma.' } }, { status: 403 });
     }
 
     const list = await db
@@ -54,8 +60,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await verifyAuth(req);
-    if (!session || session.role !== 'sistemas') {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere rol de sistemas.' } }, { status: 403 });
+    // Auditoria P0-01 (2026-09-03): 'sistemas' es un rol ESTANDAR de cada
+    // empresa cliente, no un rol de plataforma -- este endpoint lista/crea
+    // empresas de TODA la plataforma, asi que ademas del rol exacto hace
+    // falta la marca `isPlatformStaff`. Ver utils/rolMatch.ts y
+    // drizzle/0048_staff_de_plataforma.sql.
+    if (!session || !esSistemas(session.role) || !session.isPlatformStaff) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere ser staff de plataforma.' } }, { status: 403 });
     }
 
     const body = await req.json();

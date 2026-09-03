@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, createSession, clearSession } from '@/middleware/auth';
+import { esSistemas } from '@/utils/rolMatch';
 import { db, companies, auditLogs } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -16,10 +17,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'No autenticado' } }, { status: 401 });
     }
 
-    // Solo el rol sistemas puede cambiar de empresa
-    if (session.role !== 'sistemas') {
+    // Auditoria P0-01 (2026-09-03): esto solo comprobaba `session.role`, y
+    // 'sistemas' es un rol ESTANDAR que existe en cada empresa (no un rol de
+    // plataforma) -- cualquier "ingeniero de sistemas" de cualquier empresa
+    // cliente podia emitirse sesion en CUALQUIER OTRA empresa. Ahora hace
+    // falta ADEMAS la marca `isPlatformStaff`, independiente del rol y de la
+    // empresa. Ver utils/rolMatch.ts y drizzle/0048_staff_de_plataforma.sql.
+    if (!esSistemas(session.role) || !session.isPlatformStaff) {
       return NextResponse.json(
-        { success: false, error: { message: 'No autorizado. Solo el rol sistemas puede cambiar de empresa.' } }, 
+        { success: false, error: { message: 'No autorizado. Solo el staff de plataforma puede cambiar de empresa.' } }, 
         { status: 403 }
       );
     }

@@ -34,6 +34,14 @@ export interface AuthPayload {
    * sitio y este tipo lo hereda.
    */
   modo: ModoOperativo;
+  /**
+   * Auditoria P0-01/P0-03 (2026-09-03): marca al staff de ContFast,
+   * INDEPENDIENTE del rol y de la empresa. 'sistemas' es un rol estandar de
+   * cada empresa cliente, no un rol de plataforma -- confundir los dos es lo
+   * que permitia que el 'sistemas' de cualquier empresa administrara
+   * cualquier otra. Por defecto false. Ver utils/rolMatch.ts.
+   */
+  isPlatformStaff: boolean;
 }
 
 // Helpers for hash generation
@@ -185,6 +193,11 @@ async function resolveAuthPayload(
       modoDePeticion(req.headers.get('x-environment'), 'la cabecera x-environment'),
       'la cabecera x-environment'
     );
+    // La cabecera la pone el propio proxy a partir del JWT decodificado (ver
+    // proxy.ts) -- no es un dato que el cliente pueda inyectar, porque esta
+    // rama entera exige la firma interna verificada arriba. Ausente = false,
+    // el mismo default seguro que en la base de datos.
+    const isPlatformStaff = req.headers.get('x-is-platform-staff') === 'true';
     return {
       userId,
       companyId,
@@ -194,6 +207,7 @@ async function resolveAuthPayload(
       allowedWarehouses,
       permissions,
       modo,
+      isPlatformStaff,
     };
   }
 
@@ -222,6 +236,10 @@ async function resolveAuthPayload(
         allowedWarehouses: decoded.allowedWarehouses || [],
         permissions: decoded.permissions || [],
         modo: reqModo,
+        // Firmado dentro del propio JWT (createSession) -- un token viejo,
+        // emitido antes de que existiera este campo, simplemente no lo trae,
+        // y `|| false` lo trata igual que a cualquiera sin la marca.
+        isPlatformStaff: decoded.isPlatformStaff || false,
       };
     } catch (err: any) {
       // If access token is expired, proceed to refresh token validation
@@ -279,6 +297,7 @@ async function resolveAuthPayload(
         status: users.status,
         roleId: users.roleId,
         roleName: roles.name,
+        isPlatformStaff: users.isPlatformStaff,
       })
       .from(users)
       .innerJoin(roles, eq(users.roleId, roles.id))
@@ -313,6 +332,7 @@ async function resolveAuthPayload(
         sessionId: newSessionId,
         allowedWarehouses,
         permissions: permissionsList,
+        isPlatformStaff: userWithRole.isPlatformStaff,
       },
       JWT_SECRET,
       { expiresIn: '15m' }
@@ -359,6 +379,7 @@ async function resolveAuthPayload(
       allowedWarehouses,
       permissions: permissionsList,
       modo: reqModo,
+      isPlatformStaff: userWithRole.isPlatformStaff,
     };
   } catch (error) {
     return null;
@@ -385,9 +406,19 @@ export async function createSession(
   // Fetch user permissions
   const permissionsList = await RbacService.getUserPermissions(userId, role, roleId, companyId);
 
+  // Auditoria P0-01/P0-03 (2026-09-03): la marca de staff de plataforma se
+  // firma en el propio token, igual que el rol y los permisos -- si cambia
+  // en la base de datos, hace falta volver a iniciar sesion para que se
+  // note, lo mismo que ya pasa hoy con un cambio de rol.
+  const [staffRow] = await db
+    .select({ isPlatformStaff: users.isPlatformStaff })
+    .from(users)
+    .where(eq(users.id, userId));
+  const isPlatformStaff = staffRow?.isPlatformStaff ?? false;
+
   // Generate tokens
   const accessToken = jwt.sign(
-    { userId, companyId, role, roleId, sessionId, allowedWarehouses, permissions: permissionsList },
+    { userId, companyId, role, roleId, sessionId, allowedWarehouses, permissions: permissionsList, isPlatformStaff },
     JWT_SECRET,
     { expiresIn: '15m' }
   );

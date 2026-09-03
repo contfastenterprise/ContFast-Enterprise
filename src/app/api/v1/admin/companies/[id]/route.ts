@@ -3,6 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { db, companies } from '@/db';
 import { z } from 'zod';
 import { eq, and, ne } from 'drizzle-orm';
+import { esSistemas } from '@/utils/rolMatch';
 
 const updateCompanySchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -19,8 +20,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     const { id } = resolvedParams;
 
     const session = await verifyAuth(req);
-    if (!session || session.role !== 'sistemas') {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere rol de sistemas.' } }, { status: 403 });
+    // Auditoria P0-01 (2026-09-03): 'sistemas' es un rol ESTANDAR de cada
+    // empresa cliente, no un rol de plataforma -- esto edita/desactiva
+    // CUALQUIER empresa por id de URL. Ver utils/rolMatch.ts y
+    // drizzle/0048_staff_de_plataforma.sql.
+    if (!session || !esSistemas(session.role) || !session.isPlatformStaff) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere ser staff de plataforma.' } }, { status: 403 });
     }
 
     const body = await req.json();
@@ -78,8 +83,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     const { id } = resolvedParams;
 
     const session = await verifyAuth(req);
-    if (!session || session.role !== 'sistemas') {
-      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere rol de sistemas.' } }, { status: 403 });
+    // Auditoria P0-01 (2026-09-03): 'sistemas' es un rol ESTANDAR de cada
+    // empresa cliente, no un rol de plataforma -- esto edita/desactiva
+    // CUALQUIER empresa por id de URL. Ver utils/rolMatch.ts y
+    // drizzle/0048_staff_de_plataforma.sql.
+    if (!session || !esSistemas(session.role) || !session.isPlatformStaff) {
+      return NextResponse.json({ success: false, error: { message: 'No autorizado. Se requiere ser staff de plataforma.' } }, { status: 403 });
     }
 
     // Soft delete

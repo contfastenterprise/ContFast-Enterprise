@@ -207,6 +207,10 @@ export async function proxy(req: NextRequest) {
       'x-session-id',
       'x-allowed-warehouses',
       'x-user-permissions',
+      // P0-01/P0-03 (2026-09-03): misma razon que el resto de esta lista --
+      // sin esto, un cliente podria mandar esta cabecera el mismo y hacerse
+      // pasar por staff de plataforma en cualquier ruta excluida de sesion.
+      'x-is-platform-staff',
     ]) {
       sanitized.delete(h);
     }
@@ -291,6 +295,7 @@ export async function proxy(req: NextRequest) {
         requestHeaders.set('x-session-id', decoded.sessionId);
         requestHeaders.set('x-allowed-warehouses', JSON.stringify(decoded.allowedWarehouses || []));
         requestHeaders.set('x-user-permissions', JSON.stringify(decoded.permissions || []));
+        requestHeaders.set('x-is-platform-staff', String(!!decoded.isPlatformStaff));
 
         return NextResponse.next({
           request: {
@@ -372,6 +377,7 @@ export async function proxy(req: NextRequest) {
               requestHeaders.set('x-session-id', decodedNew.sessionId);
               requestHeaders.set('x-allowed-warehouses', JSON.stringify(decodedNew.allowedWarehouses || []));
               requestHeaders.set('x-user-permissions', JSON.stringify(decodedNew.permissions || []));
+              requestHeaders.set('x-is-platform-staff', String(!!decodedNew.isPlatformStaff));
             }
 
             // Construct response with request headers overridden to propagate context downstream

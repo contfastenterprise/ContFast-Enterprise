@@ -37,6 +37,7 @@ import {
 } from '@/db';
 import { eq, and, inArray } from 'drizzle-orm';
 import { delCache } from '@/infrastructure/redis';
+import { esSistemas } from '@/utils/rolMatch';
 
 export async function POST(
   req: NextRequest,
@@ -52,9 +53,13 @@ export async function POST(
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    if (session.role !== 'sistemas') {
+    // Auditoria P0-01 (2026-09-03): 'sistemas' es un rol ESTANDAR de cada
+    // empresa cliente, no un rol de plataforma -- esto purga en bloque los
+    // datos de sandbox de la empresa que diga companyId en la URL. Ver
+    // utils/rolMatch.ts y drizzle/0048_staff_de_plataforma.sql.
+    if (!esSistemas(session.role) || !session.isPlatformStaff) {
       return NextResponse.json(
-        { success: false, error: { message: 'Acceso denegado. Solo el rol sistemas puede limpiar datos de prueba.' } },
+        { success: false, error: { message: 'Acceso denegado. Solo el staff de plataforma puede limpiar datos de prueba.' } },
         { status: 403 }
       );
     }

@@ -21,6 +21,17 @@ export const users = pgTable('users', {
   status: varchar('status', { length: 50 }).default('active').notNull(),
   avatarUrl: text('avatar_url'),
   avatarPath: text('avatar_path'),
+  // Auditoria P0-01 (2026-09-03): el rol 'sistemas' es un rol ESTANDAR que se
+  // crea en cada empresa (el "ingeniero de sistemas" de esa empresa cliente),
+  // no un rol de plataforma. admin/companies, switch-company, clear-sandbox y
+  // admin/subscriptions solo comprobaban `role === 'sistemas'`, asi que el
+  // 'sistemas' de CUALQUIER empresa podia listar, suplantar o modificar
+  // CUALQUIER otra empresa. Esta columna es la marca INDEPENDIENTE del rol y
+  // de la empresa que de verdad identifica al staff de ContFast -- ver
+  // utils/rolMatch.ts y docs/auditoria/auditoria_2026-09-03.md (P0-01/P0-03).
+  // Por defecto false: nadie la tiene hasta que se active a mano en la base
+  // de datos para las cuentas reales de ContFast.
+  isPlatformStaff: boolean('is_platform_staff').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
