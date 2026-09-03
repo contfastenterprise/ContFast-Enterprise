@@ -3,10 +3,18 @@ import { verifyAuth } from '@/middleware/auth';
 import { 
   db, 
   invoices, 
+  invoiceLines, 
+  invoiceTaxes, 
+  invoiceRetentions, 
+  creditDebitNotes, 
+  dgiiSubmissions, 
   quotes, 
+  quoteLines, 
+  quoteTaxes, 
   ecfSequences, 
   quoteSequences, 
   deliveryNotes, 
+  deliveryNoteLines, 
   journalEntries, 
   journalEntryLines, 
   accountsReceivable, 
@@ -101,6 +109,45 @@ export async function POST(
         await tx.delete(expenseLines).where(inArray(expenseLines.expenseId, expenseIds));
       }
 
+      // Auditoria P1-18 (2026-09-03): a esta funcion le faltaban por completo
+      // las tablas hijas de invoices/quotes/delivery_notes -- invoice_lines,
+      // invoice_taxes, invoice_retentions, quote_lines, quote_taxes y
+      // delivery_note_lines ni siquiera se importaban. Las FK son
+      // `ON DELETE no action`, asi que "limpiar sandbox" fallaba siempre que
+      // hubiera facturas de PRUEBA con lineas -- practicamente todas. Se
+      // resuelve igual que ya se hace arriba con receipts/supplier
+      // payments/expenses: se obtienen los ids del padre y se borran las
+      // hijas por ese id, ANTES de tocar al padre.
+      const sandboxInvoices = await tx
+        .select({ id: invoices.id })
+        .from(invoices)
+        .where(cond(invoices));
+      const invoiceIds = sandboxInvoices.map((i: any) => i.id);
+      if (invoiceIds.length > 0) {
+        await tx.delete(invoiceLines).where(inArray(invoiceLines.invoiceId, invoiceIds));
+        await tx.delete(invoiceTaxes).where(inArray(invoiceTaxes.invoiceId, invoiceIds));
+        await tx.delete(invoiceRetentions).where(inArray(invoiceRetentions.invoiceId, invoiceIds));
+      }
+
+      const sandboxQuotesForLines = await tx
+        .select({ id: quotes.id })
+        .from(quotes)
+        .where(cond(quotes));
+      const quoteIds = sandboxQuotesForLines.map((q: any) => q.id);
+      if (quoteIds.length > 0) {
+        await tx.delete(quoteLines).where(inArray(quoteLines.quoteId, quoteIds));
+        await tx.delete(quoteTaxes).where(inArray(quoteTaxes.quoteId, quoteIds));
+      }
+
+      const sandboxDeliveryNotes = await tx
+        .select({ id: deliveryNotes.id })
+        .from(deliveryNotes)
+        .where(cond(deliveryNotes));
+      const deliveryNoteIds = sandboxDeliveryNotes.map((d: any) => d.id);
+      if (deliveryNoteIds.length > 0) {
+        await tx.delete(deliveryNoteLines).where(inArray(deliveryNoteLines.deliveryNoteId, deliveryNoteIds));
+      }
+
       // 2. Receipts, supplier payments & AP payments
       await tx.delete(customerReceipts).where(cond(customerReceipts));
       await tx.delete(supplierPayments).where(cond(supplierPayments));
@@ -111,18 +158,27 @@ export async function POST(
       await tx.delete(accountsPayable).where(cond(accountsPayable));
       await tx.delete(checks).where(cond(checks));
 
-      // 4. Invoices, expenses, quotes & delivery notes
+      // 4. Tablas que referencian a invoices y SI tienen su propio
+      // companyId+modo (creditDebitNotes, dgiiSubmissions, deliveryNotes,
+      // cashMovements) -- deben borrarse ANTES que invoices. deliveryNotes
+      // en particular tiene su propia FK notNull a invoices: borrarla
+      // despues, como se hacia antes, fallaba en cuanto existia un conduce.
+      await tx.delete(creditDebitNotes).where(cond(creditDebitNotes));
+      await tx.delete(dgiiSubmissions).where(cond(dgiiSubmissions));
+      await tx.delete(cashMovements).where(cond(cashMovements));
+      await tx.delete(deliveryNotes).where(cond(deliveryNotes));
+
+      // 4b. Invoices, expenses & quotes -- ya sin ninguna hija pendiente.
       await tx.delete(invoices).where(cond(invoices));
       await tx.delete(expenses).where(cond(expenses));
       await tx.delete(quotes).where(cond(quotes));
-      await tx.delete(deliveryNotes).where(cond(deliveryNotes));
 
       // 4. Sequences
       await tx.delete(ecfSequences).where(cond(ecfSequences));
       await tx.delete(quoteSequences).where(cond(quoteSequences));
 
-      // 5. Cash sessions & movements
-      await tx.delete(cashMovements).where(cond(cashMovements));
+      // 5. Cash sessions (los movimientos ya se borraron en el paso 4, antes
+      // que las facturas que podian referenciar -- ver el comentario de ahi).
       await tx.delete(cashSessions).where(cond(cashSessions));
 
       // 6. Bank transactions

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings, subscriptions, plans, msellerApiKeys } from '@/db';
+import { db, companies, companySettings, subscriptions, plans, msellerApiKeys, auditLogs } from '@/db';
 import { entornosConCredenciales } from '@/services/dgii/credenciales';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
@@ -304,6 +304,41 @@ export async function PATCH(req: NextRequest) {
       await tx.update(companySettings)
         .set(settingsUpdate)
         .where(eq(companySettings.companyId, session.companyId));
+
+      // Auditoria P1-14 (2026-09-03): esta ruta cambia el modo DGII
+      // (PRUEBA/PRODUCCION) y las credenciales de envio a la DGII con los
+      // controles de autorizacion correctos, pero no dejaba ningun rastro en
+      // audit_logs. Ante una discrepancia fiscal no habia forma de
+      // reconstruir cuando la empresa paso a produccion ni quien cambio las
+      // credenciales. No se registran claves en texto plano: de las
+      // credenciales de mSeller solo se guarda SI cambiaron (booleano) y a
+      // que ambiente pertenecen, nunca su valor.
+      await tx.insert(auditLogs).values({
+        modo: (dgiiEnv ?? currentSettings?.dgiiEnv ?? 'PRODUCCION') as 'PRODUCCION' | 'PRUEBA',
+        companyId: session.companyId,
+        userId: session.userId,
+        action: 'company_settings_updated',
+        entityType: 'company_settings',
+        entityId: session.companyId,
+        oldValues: {
+          companyName: currentCompany?.name ?? null,
+          rnc: currentCompany?.rnc ?? null,
+          dgiiEnv: currentSettings?.dgiiEnv ?? null,
+          msellerUrl: currentSettings?.msellerUrl ?? null,
+          msellerEmail: currentSettings?.msellerEmail ?? null,
+        },
+        newValues: {
+          companyName: name ?? currentCompany?.name ?? null,
+          rnc: rnc ?? currentCompany?.rnc ?? null,
+          dgiiEnv: dgiiEnv ?? currentSettings?.dgiiEnv ?? null,
+          msellerUrl: msellerUrl ?? currentSettings?.msellerUrl ?? null,
+          msellerEmail: msellerEmail ?? currentSettings?.msellerEmail ?? null,
+          msellerApiKeyChanged: !!msellerApiKey,
+          msellerPasswordChanged: !!msellerPassword,
+          msellerCredencialesEntorno: msellerCredencialesEntorno ?? null,
+        },
+        ipAddress: req.headers.get('x-forwarded-for') || (req as any).ip || 'unknown',
+      });
     });
 
     try {
