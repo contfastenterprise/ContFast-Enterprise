@@ -12,6 +12,7 @@ import Avatar from '@/components/ui/Avatar';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { ConfirmProvider } from '@/providers/confirm-provider';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 /**
  * Componente hijo que consume useRbac() para saber cuándo
@@ -103,13 +104,27 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
       // decia 'test' ponia a operar en PRUEBA a una empresa que facturaba de
       // verdad, sin avisar. Ahora el modo es el dato y el ambiente de la DGII
       // es lo que se deduce de el.
-      const targetEnv: 'PRODUCCION' | 'PRUEBA' =
+      const targetEnv: ModoOperativo =
         initialSettings.dgiiEnv === 'PRODUCCION' ? 'PRODUCCION' : 'PRUEBA';
 
-      // La insignia sale del MODO, no de un ajuste que podia no coincidir.
-      if (targetEnv === 'PRODUCCION') setEntorno('PROD');
-      else if (initialSettings.dgiiEnv === 'CERTIFICACION') setEntorno('CERT');
-      else setEntorno('TEST');
+      // LA INSIGNIA DICE LO QUE EL SISTEMA VA A HACER, NO LO QUE PONE EL AJUSTE.
+      //
+      // Antes habia una tercera rama:
+      //
+      //     else if (initialSettings.dgiiEnv === 'CERTIFICACION') setEntorno('CERT');
+      //
+      // Pero la linea de arriba ya habia mandado ese caso a 'PRUEBA': todo lo
+      // que no es 'PRODUCCION' cae ahi. Asi que una empresa en CERTIFICACION
+      // operaba contra TesteCF -- pruebas -- con un cartel que decia CERT.
+      //
+      // Es el patron de esta auditoria en la pantalla: afirmar algo que no se
+      // esta haciendo. El codigo de seguridad fabricado, la fecha de secuencia
+      // inventada, el "Aceptado" sin respuesta de la DGII, y este cartel.
+      //
+      // CERTIFICACION ya no se puede guardar (se rechaza en ajustes y en el
+      // alta), asi que aqui solo quedan los dos modos que el sistema sabe
+      // operar, y la insignia sale del mismo valor que decide el ambiente.
+      setEntorno(targetEnv === 'PRODUCCION' ? 'PROD' : 'TEST');
       const getCookie = (name: string) => {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);

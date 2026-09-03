@@ -17,9 +17,15 @@ const settingsSchema = z.object({
   email: z.string().email('Correo inválido').optional().or(z.literal('')),
   logoUrl: z.string().optional(),
   // Guarda EL MODO del sistema (0047), no un ambiente aparte. El ambiente de
-  // la DGII se deduce con entornoDgii(). CERTIFICACION se admite en la base
-  // pero no se ofrece todavia en la interfaz.
-  dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION', 'CERTIFICACION']),
+  // la DGII se deduce con entornoDgii().
+  // CERTIFICACION se reconoce como modo y le corresponde el ambiente CerteCF,
+  // pero el sistema NO lo soporta todavia (135 declaraciones fijan PRODUCCION o
+  // PRUEBA). Se rechaza AQUI, en la entrada, y no mas adentro: guardarlo hacia
+  // que la empresa operase contra TesteCF mientras la insignia del panel decia
+  // "CERT". Mejor no poder elegirlo que elegirlo y que no signifique nada.
+  dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION'], {
+    message: 'El modo debe ser PRUEBA o PRODUCCION. CERTIFICACION todavia no esta soportado.',
+  }),
   printLayout: z.enum(['carta', '80mm', '58mm']),
   printCopies: z.number().int().min(1).max(5).default(2).optional(),
   autoDeliveryNotes: z.boolean(),

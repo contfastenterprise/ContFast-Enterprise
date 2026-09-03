@@ -5,6 +5,8 @@ import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 import { RbacService } from '@/services/auth/rbacService';
 import { isAdminOrSistemas } from './permissions';
+import { modoDePeticion, modoEnLaPuerta, modoOperativo } from '@/services/dgii/modoPeticion';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET as string;
@@ -26,7 +28,12 @@ export interface AuthPayload {
   sessionId: string;
   allowedWarehouses: string[];
   permissions: string[];
-  modo: 'PRODUCCION' | 'PRUEBA';
+  /**
+   * Los modos que el sistema sabe operar. Es `ModoOperativo`, no la union
+   * escrita a mano: el dia que CERTIFICACION este soportado se amplia en UN
+   * sitio y este tipo lo hereda.
+   */
+  modo: ModoOperativo;
 }
 
 // Helpers for hash generation
@@ -123,13 +130,6 @@ async function resolveAuthPayload(
   const sessionId = req.headers.get('x-session-id') || '';
   const allowedWarehousesHeader = req.headers.get('x-allowed-warehouses');
   const permissionsHeader = req.headers.get('x-user-permissions');
-  // Este `|| 'PRODUCCION'` SI es legitimo, al contrario que los que se
-  // retiraron del resto del codigo: La cabecera puede no venir (una peticion
-  // antigua, un cliente que no la manda), y aqui es donde se decide el
-  // entorno de toda la sesion. A partir de este punto `modo` ya no es
-  // opcional en ningun sitio.
-  const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
-  const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
   const internalSignature = req.headers.get('x-internal-proxy-signature');
   // Auditoria F0-04: antes esto caia a un literal publicado en el repositorio
   // ('cf_internal_proxy_secret') cuando INTERNAL_API_KEY no estaba definida. Como
@@ -163,6 +163,28 @@ async function resolveAuthPayload(
         permissions = permissionsHeader ? permissionsHeader.split(',') : [];
       }
     }
+    // AQUI NO SE ADIVINA EL MODO.
+    //
+    // Antes, arriba del todo y para las dos ramas, ponia:
+    //
+    //     const environmentHeader = req.headers.get('x-environment') || 'PRODUCCION';
+    //     const modo = environmentHeader === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+    //
+    // con un comentario que defendia ese `|| 'PRODUCCION'` como legitimo
+    // porque "la cabecera puede no venir". Que puede faltar es cierto; lo que
+    // no se sostiene es la conclusion. Este `modo` acaba en `entornoDgii()`,
+    // que es el segmento de la URL con la que se habla con mSeller: cualquier
+    // valor que no fuera exactamente 'PRUEBA' -- ausencia, 'CERTIFICACION',
+    // una cookie vieja, basura -- se convertia en `eCF`, la DGII REAL.
+    //
+    // Y va DENTRO de esta rama a proposito: solo se llega aqui con la firma
+    // interna del proxy, y el proxy SIEMPRE pone `x-environment`. Que falte en
+    // este punto no es un cliente antiguo, es algo mal construido. Se para.
+    // La otra rama (cookie + JWT) tiene su propia lectura, mas abajo.
+    const modo = modoOperativo(
+      modoDePeticion(req.headers.get('x-environment'), 'la cabecera x-environment'),
+      'la cabecera x-environment'
+    );
     return {
       userId,
       companyId,
@@ -182,8 +204,14 @@ async function resolveAuthPayload(
   if (accessToken) {
     try {
       const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
-      const environmentCookie = req.cookies.get('cf_environment')?.value;
-      const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+      // Por cookie: aqui SI puede faltar de verdad (navegador recien
+      // estrenado, antes de que el panel la escriba), asi que se usa la lectura
+      // de puerta -- ausente cae a PRUEBA, nunca a la DGII real. Un valor
+      // presente pero desconocido sigue lanzando.
+      const reqModo = modoOperativo(
+        modoEnLaPuerta(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment'),
+        'la cookie cf_environment'
+      );
       return {
         userId: decoded.userId,
         companyId: decoded.companyId,
@@ -320,8 +348,10 @@ async function resolveAuthPayload(
       `refreshToken=${newRefreshToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=604800`
     );
 
-    const environmentCookie = req.cookies.get('cf_environment')?.value;
-    const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+    const reqModo = modoOperativo(
+      modoEnLaPuerta(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment'),
+      'la cookie cf_environment'
+    );
     return {
       userId: userWithRole.id,
       companyId: session.companyId,

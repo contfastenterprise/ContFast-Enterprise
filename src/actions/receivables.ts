@@ -4,6 +4,8 @@ import { db, accountsReceivable, customers, invoices, companies, companySettings
 import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
+import { modoEnLaPuerta, modoOperativo } from '@/services/dgii/modoPeticion';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 async function getAuthContext() {
   const cookieStore = await cookies();
@@ -20,8 +22,12 @@ async function getAuthContext() {
     }
     const decoded = jwt.verify(token, secret) as any;
     
-    const environmentCookie = cookieStore.get('cf_environment')?.value;
-    const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+    // Accion de servidor: lee la cookie directamente, asi que puede faltar.
+    // Ausente -> PRUEBA. Desconocida -> se para.
+    const reqModo = modoOperativo(
+      modoEnLaPuerta(cookieStore.get('cf_environment')?.value, 'la cookie cf_environment'),
+      'la cookie cf_environment'
+    );
     
     return {
       userId: decoded.userId,
@@ -71,7 +77,7 @@ export async function getReceivablesDashboardData() {
     .where(
       and(
         eq(accountsReceivable.companyId, companyId),
-        eq(accountsReceivable.modo, modo as 'PRODUCCION' | 'PRUEBA'),
+        eq(accountsReceivable.modo, modo as ModoOperativo),
         isNull(accountsReceivable.deletedAt)
       )
     );

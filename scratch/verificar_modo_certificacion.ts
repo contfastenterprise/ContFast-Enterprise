@@ -54,7 +54,7 @@ const ok = (t: string, c: boolean, d = '') => {
  * una regresion: cada declaracion nueva que fije dos modos es un sitio mas que
  * leera CERTIFICACION como si fuera produccion.
  */
-const TECHO_UNIONES = 135;
+const TECHO_UNIONES = 132;
 
 const lanza = (fn: () => unknown): string | null => {
   try { fn(); return null; } catch (e: any) { return e.message; }

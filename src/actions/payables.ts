@@ -4,6 +4,8 @@ import { db, accountsPayable, suppliers, supplierPayments, companies, companySet
 import { eq, and, isNull } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
+import { modoEnLaPuerta, modoOperativo } from '@/services/dgii/modoPeticion';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 async function getAuthContext() {
   const cookieStore = await cookies();
@@ -20,8 +22,12 @@ async function getAuthContext() {
     }
     const decoded = jwt.verify(token, secret) as any;
     
-    const environmentCookie = cookieStore.get('cf_environment')?.value;
-    const reqModo = environmentCookie === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+    // Accion de servidor: lee la cookie directamente, asi que puede faltar.
+    // Ausente -> PRUEBA. Desconocida -> se para.
+    const reqModo = modoOperativo(
+      modoEnLaPuerta(cookieStore.get('cf_environment')?.value, 'la cookie cf_environment'),
+      'la cookie cf_environment'
+    );
     
     return {
       userId: decoded.userId,
@@ -73,7 +79,7 @@ export async function getPayablesDashboardData() {
     .where(
       and(
         eq(accountsPayable.companyId, companyId),
-        eq(accountsPayable.modo, modo as 'PRODUCCION' | 'PRUEBA'),
+        eq(accountsPayable.modo, modo as ModoOperativo),
         isNull(accountsPayable.deletedAt)
       )
     );
@@ -93,7 +99,7 @@ export async function getPayablesDashboardData() {
     .where(
       and(
         eq(supplierPayments.companyId, companyId),
-        eq(supplierPayments.modo, modo as 'PRODUCCION' | 'PRUEBA'),
+        eq(supplierPayments.modo, modo as ModoOperativo),
         isNull(supplierPayments.deletedAt)
       )
     );

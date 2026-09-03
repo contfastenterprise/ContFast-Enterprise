@@ -17,7 +17,14 @@ const confirmSchema = z.object({
     businessActivity: z.string().min(5).optional().or(z.literal('')),
   }),
   fiscal: z.object({
-    dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION', 'CERTIFICACION']),
+    // CERTIFICACION se reconoce como modo y le corresponde el ambiente CerteCF,
+    // pero el sistema NO lo soporta todavia (135 declaraciones fijan PRODUCCION o
+    // PRUEBA). Se rechaza AQUI, en la entrada, y no mas adentro: guardarlo hacia
+    // que la empresa operase contra TesteCF mientras la insignia del panel decia
+    // "CERT". Mejor no poder elegirlo que elegirlo y que no signifique nada.
+    dgiiEnv: z.enum(['PRUEBA', 'PRODUCCION'], {
+      message: 'El modo debe ser PRUEBA o PRODUCCION. CERTIFICACION todavia no esta soportado.',
+    }),
     msellerUrl: z.string().url().optional().or(z.literal('')),
     msellerApiKey: z.string().min(1, 'El Token de mSeller es requerido'),
   }),

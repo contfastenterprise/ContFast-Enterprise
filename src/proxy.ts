@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { modoEnLaPuerta } from '@/services/dgii/modoPeticion';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) {
@@ -241,10 +242,22 @@ export async function proxy(req: NextRequest) {
 
         // Clone request headers to inject security context parameters
         const requestHeaders = new Headers(req.headers);
-        // Legitimo: La cookie puede no venir. Es el punto de entrada, no un
-        // valor por defecto colado en la logica de negocio.
-        const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
-        const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+        // ESTA es la unica ausencia legitima de todo el sistema: la cookie
+        // `cf_environment` la escribe el panel en la primera carga, asi que un
+        // navegador recien estrenado todavia no la tiene.
+        //
+        // Lo que cambia es hacia donde cae esa ausencia. Antes era
+        // `|| 'PRODUCCION'`, es decir: no se lo que eres, te mando a la DGII
+        // real. Ahora cae a PRUEBA. Equivocarse hacia pruebas se ve como una
+        // lista vacia durante la primera carga y se corrige solo al escribirse
+        // la cookie; equivocarse hacia produccion quema un e-NCF de verdad.
+        //
+        // Un valor PRESENTE pero desconocido no es un navegador nuevo: es un
+        // dato corrupto, y ahi si se para.
+        const environment = modoEnLaPuerta(
+          req.cookies.get('cf_environment')?.value || req.headers.get('x-environment'),
+          'la cookie cf_environment'
+        );
         requestHeaders.set('x-environment', environment);
 
         // Auditoria F0-04: sin literal por defecto. Si la variable no esta definida no
@@ -309,10 +322,11 @@ export async function proxy(req: NextRequest) {
             
             // Set request headers for downstream controllers
             const requestHeaders = new Headers(req.headers);
-            // Legitimo: La cookie puede no venir. Es el punto de entrada, no un
-        // valor por defecto colado en la logica de negocio.
-        const rawEnvironment = req.cookies.get('cf_environment')?.value || req.headers.get('x-environment') || 'PRODUCCION';
-            const environment = rawEnvironment === 'PRUEBA' ? 'PRUEBA' : 'PRODUCCION';
+            // Misma puerta, rama de rotacion de sesion. Mismo criterio.
+            const environment = modoEnLaPuerta(
+              req.cookies.get('cf_environment')?.value || req.headers.get('x-environment'),
+              'la cookie cf_environment'
+            );
             requestHeaders.set('x-environment', environment);
 
             if (decodedNew) {
