@@ -174,6 +174,15 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/api/v1/setup/status') ||
     pathname.startsWith('/api/v1/setup/confirm') ||
     pathname.startsWith('/api/v1/setup/init') ||
+    // El cron NO tiene sesion de navegador -- lo dispara un servicio externo
+    // (cron-job.org, GitHub Actions), sin cookies. Si esta ruta se tratara como
+    // el resto de /api/v1/*, el middleware la cortaba aqui con un 401 propio
+    // ANTES de que la ruta llegara a mirar el CRON_SECRET -- que es su
+    // proteccion real. Se excluye de la sesion, no de la seguridad: la ruta
+    // sigue exigiendo `Authorization: Bearer <CRON_SECRET>` por su cuenta, y
+    // las cabeceras de identidad se limpian igual que en el resto de esta
+    // lista, asi que nadie puede colarse haciendose pasar por un usuario.
+    pathname.startsWith('/api/v1/cron/') ||
     pathname.startsWith('/auth/login') ||
     pathname.startsWith('/auth/register') ||
     pathname === '/favicon.ico' ||
