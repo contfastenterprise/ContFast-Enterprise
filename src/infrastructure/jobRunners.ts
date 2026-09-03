@@ -2,6 +2,7 @@ import { db, invoices, dgiiSubmissions, ecfSequences, companySettings, companies
 import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { eq, and, isNull } from 'drizzle-orm';
 import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
+import { leerDesenlace, mensajeDesconocido } from '@/services/dgii/desenlaceEnvio';
 import { Logger } from '@/utils/logger';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
@@ -283,30 +284,75 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
 
     return { success: true, trackId: result.trackId };
   } else {
-    Logger.error(`[JobRunner] ✗ DGII submission failed for invoice ${invoiceId}: ${result.message}`);
+    // Auditoria P0-06 (2026-09-03): este `else` trataba TODO fallo de
+    // `client.sendDocument` -- timeout, corte de red, HTTP no-2xx sin marca
+    // de rechazo -- como un rechazo definitivo de la DGII. El camino sincrono
+    // (`invoiceSubmissionService.submitToDgii`) ya distinguia esto con
+    // `leerDesenlace`, pero este worker (el que procesa "Enviar"/"Reenviar" y
+    // el envio diferido) no lo usaba. Consecuencia real: un timeout marcaba
+    // la factura como `rejected`, y `POST /api/v1/ecf/[id]/resubmit` deja
+    // reenviar cualquier factura `rejected` -- un usuario que ve "rechazada"
+    // por un timeout pulsa "reenviar" y el sistema presenta el MISMO NCF por
+    // segunda vez a la DGII. Ver services/dgii/desenlaceEnvio.ts.
+    const lectura = leerDesenlace(result.message, result.rawResponse);
 
-    // Update dgii_submissions to failed
+    if (lectura.desenlace === 'rechazo') {
+      Logger.error(`[JobRunner] ✗ DGII rejected invoice ${invoiceId} (${lectura.marca}): ${result.message}`);
+
+      // Update dgii_submissions to failed
+      await db
+        .update(dgiiSubmissions)
+        .set({
+          status: 'failed',
+          responseMessage: result.message,
+          responsePayload: JSON.stringify(result.rawResponse),
+          updatedAt: new Date(),
+        })
+        .where(esteEnvio);
+
+      // Update invoice status to rejected/failed
+      await db
+        .update(invoices)
+        .set({
+          status: 'rejected',
+          dgiiMessage: result.message || 'Rechazado por la DGII',
+          updatedAt: new Date(),
+        })
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));
+
+      throw new Error(`mSeller rejected: ${result.message}`);
+    }
+
+    // Desenlace desconocido. NO se marca 'rejected'/'failed', y NO se relanza
+    // el job (no throw -> BullMQ da el job por completado, sin reintento
+    // automatico) -- reenviar un documento que la DGII pudo haber aceptado es
+    // arriesgarse a duplicar un comprobante fiscal. Queda en 'submitted', que
+    // es el mismo estado que consulta `sincronizarPendientes` para resolverlo
+    // solo en la siguiente pasada.
+    Logger.warn(`[JobRunner] Desenlace desconocido para la factura ${invoiceId}; queda pendiente de consulta`, {
+      error: result.message,
+    });
+
     await db
       .update(dgiiSubmissions)
       .set({
-        status: 'failed',
-        responseMessage: result.message,
+        status: 'submitted',
+        responseMessage: mensajeDesconocido(result.message || ''),
         responsePayload: JSON.stringify(result.rawResponse),
         updatedAt: new Date(),
       })
       .where(esteEnvio);
 
-    // Update invoice status to rejected/failed
     await db
       .update(invoices)
       .set({
-        status: 'rejected',
-        dgiiMessage: result.message || 'Rechazado por la DGII',
+        status: 'submitted',
+        dgiiMessage: mensajeDesconocido(result.message || ''),
         updatedAt: new Date(),
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));
 
-    throw new Error(`mSeller rejected: ${result.message}`);
+    return { success: false, desenlace: 'desconocido' as const };
   }
 }
 

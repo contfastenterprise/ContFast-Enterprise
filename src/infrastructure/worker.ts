@@ -16,10 +16,20 @@ if (redis && !isBuildPhase) {
   const dgiiWorker = new Worker(
     'dgii-submissions',
     async (job: Job) => {
-      const { companyId, invoiceId } = job.data;
+      // Auditoria P1-08 (2026-09-03): antes se descartaba `submissionId` aqui,
+      // asi que `processDgiiSubmissionJob` siempre caia a `envioEnCurso()`
+      // (el intento pending/processing mas reciente) en vez de actualizar el
+      // intento que ESTE job concreto representa. Con un solo intento vivo no
+      // se nota, pero con dos en vuelo para la misma factura (ej. un
+      // `resubmit` disparado mientras el job anterior sigue en backoff) el
+      // worker podia actualizar el intento equivocado. `triggerFallback` (en
+      // queue.ts, el camino cuando Redis esta caido) ya pasaba `data`
+      // completo -- este processor no.
+      const { companyId, invoiceId, submissionId } = job.data;
       return await processDgiiSubmissionJob({
         companyId,
         invoiceId,
+        submissionId,
         attemptsMade: job.attemptsMade,
       });
     },
