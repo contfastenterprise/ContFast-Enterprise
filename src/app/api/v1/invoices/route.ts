@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { withIdempotency } from '@/lib/idempotency';
 import { InvoiceService } from '@/services/invoiceService';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, invoices, subscriptions, plans, warehouses, products, customers, quotes, cashSessions, retentions } from '@/db';
@@ -339,19 +340,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Call service layer to perform all database transactions and PDF/XMLDSIG generation
-    const { invoice, msellerResponse } = await InvoiceService.issueInvoice({
-      companyId: auth.companyId,
-      modo: auth.modo,
-      userId: auth.userId,
-      ...result.data,
-      lines: lineasSaneadas,
-    });
-
-    return NextResponse.json(
-      { success: true, data: invoice, msellerResponse },
-      { status: 201, headers: resHeaders }
+    // Auditoria P1-11: un reintento de red o doble clic en esta ruta
+    // presenta el mismo comprobante dos veces a la DGII. Si el cliente
+    // manda `Idempotency-Key`, un reintento con la misma clave devuelve
+    // la respuesta ya guardada en vez de emitir de nuevo.
+    const { status, body: respBody } = await withIdempotency(
+      { companyId: auth.companyId, modo: auth.modo, route: 'POST /api/v1/invoices', idempotencyKey: req.headers.get('Idempotency-Key') },
+      async () => {
+        // Call service layer to perform all database transactions and PDF/XMLDSIG generation
+        const { invoice, msellerResponse } = await InvoiceService.issueInvoice({
+          companyId: auth.companyId,
+          modo: auth.modo,
+          userId: auth.userId,
+          ...result.data,
+          lines: lineasSaneadas,
+        });
+        return { status: 201, body: { success: true, data: invoice, msellerResponse } };
+      }
     );
+
+    return NextResponse.json(respBody, { status, headers: resHeaders });
   } catch (error: any) {
     console.error('Error in POST /api/v1/invoices:', error);
     const status = error.status || 500;

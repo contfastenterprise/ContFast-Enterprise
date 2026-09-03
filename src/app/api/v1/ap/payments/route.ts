@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { withIdempotency } from '@/lib/idempotency';
 import { ApService } from '@/services/apService';
 import { z } from 'zod';
 
@@ -50,19 +51,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await ApService.registerPayment({
-      ...parsed.data,
-      companyId: session.companyId,
-      // Auditoria JRN-16: quien registra el pago y su asiento.
-      createdBy: session.userId,
-      modo: session.modo,
-      bankAccountId: parsed.data.bankAccountId || undefined,
-      checkNumber: parsed.data.checkNumber || undefined,
-      payee: parsed.data.payee || undefined,
-      dueDate: parsed.data.dueDate || undefined,
-    });
+    // Auditoria P1-11: un reintento de red o doble clic aqui registra un
+    // segundo pago. Si el cliente manda `Idempotency-Key`, un reintento
+    // con la misma clave devuelve la respuesta ya guardada en vez de
+    // pagar de nuevo.
+    const { status, body: respBody } = await withIdempotency(
+      { companyId: session.companyId, modo: session.modo, route: 'POST /api/v1/ap/payments', idempotencyKey: req.headers.get('Idempotency-Key') },
+      async () => {
+        const result = await ApService.registerPayment({
+          ...parsed.data,
+          companyId: session.companyId,
+          // Auditoria JRN-16: quien registra el pago y su asiento.
+          createdBy: session.userId,
+          modo: session.modo,
+          bankAccountId: parsed.data.bankAccountId || undefined,
+          checkNumber: parsed.data.checkNumber || undefined,
+          payee: parsed.data.payee || undefined,
+          dueDate: parsed.data.dueDate || undefined,
+        });
+        return { status: 201, body: { success: true, data: result } };
+      }
+    );
 
-    return NextResponse.json({ success: true, data: result }, { status: 201 });
+    return NextResponse.json(respBody, { status });
   } catch (error: any) {
     console.error('Error registering payment:', error);
     return NextResponse.json(

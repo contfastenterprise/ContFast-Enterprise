@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { withIdempotency } from '@/lib/idempotency';
 import { ArRepository } from '@/repositories/arRepository';
 import { z } from 'zod';
 
@@ -90,16 +91,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const receipt = await ArRepository.registerReceipt({
-      ...parsed.data,
-      companyId: session.companyId,
-      modo: session.modo,
-      userId: session.userId,
-      reference: parsed.data.reference || undefined,
-      notes: parsed.data.notes || undefined
-    });
+    // Auditoria P1-11: un reintento de red o doble clic aqui registra un
+    // segundo cobro. Si el cliente manda `Idempotency-Key`, un reintento
+    // con la misma clave devuelve la respuesta ya guardada en vez de
+    // cobrar de nuevo.
+    const { status, body: respBody } = await withIdempotency(
+      { companyId: session.companyId, modo: session.modo, route: 'POST /api/v1/ar/receipts', idempotencyKey: req.headers.get('Idempotency-Key') },
+      async () => {
+        const receipt = await ArRepository.registerReceipt({
+          ...parsed.data,
+          companyId: session.companyId,
+          modo: session.modo,
+          userId: session.userId,
+          reference: parsed.data.reference || undefined,
+          notes: parsed.data.notes || undefined
+        });
+        return { status: 201, body: { success: true, data: receipt } };
+      }
+    );
 
-    return NextResponse.json({ success: true, data: receipt }, { status: 201 });
+    return NextResponse.json(respBody, { status });
   } catch (error: any) {
     console.error('Error registering receipt:', error);
     
