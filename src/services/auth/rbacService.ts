@@ -1,6 +1,7 @@
 import { db, userPermissions, rolePermissions, permissions, routeMappings, auditPermissions } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { DEFAULT_ROLE_PERMISSIONS, PermissionModule, PermissionAction } from '@/middleware/permissions';
+import { esSistemas, esAdministracion } from '@/utils/rolMatch';
 
 export interface RouteMapping {
   routePattern: string;
@@ -27,13 +28,17 @@ export class RbacService {
     const normalizedRole = roleName.toLowerCase();
     const allPerms = await db.select().from(permissions);
 
+    // Auditoria P0-02 (2026-09-03): antes .includes('sistema'/'admin'), que
+    // le daba este mismo permiso de "acceso total" (firmado en el JWT) a
+    // cualquier rol cuyo nombre contuviera esas letras. Ver
+    // utils/rolMatch.ts para el porque completo.
     // 1. Fixed roles logic
-    if (normalizedRole.includes('sistema')) {
+    if (esSistemas(normalizedRole)) {
       // Full access to every permission
       return allPerms.map((p) => `${p.module}:${p.action}`);
     }
 
-    if (normalizedRole.includes('admin')) {
+    if (esAdministracion(normalizedRole)) {
       // Access to everything except auditoria & administracion which are read-only
       return allPerms
         .filter((p) => {

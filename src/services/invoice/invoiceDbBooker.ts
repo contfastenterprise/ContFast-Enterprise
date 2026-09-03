@@ -9,6 +9,7 @@ import { deductStock } from '@/services/inventoryService';
 import { siguienteCodigoFactura } from './codigoFactura';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 
 export class InvoiceDbBooker {
   /**
@@ -34,7 +35,9 @@ export class InvoiceDbBooker {
         .limit(1);
 
       const roleName = userWithRole?.roleName?.toLowerCase() || '';
-      const isAdminOrSys = roleName.includes('admin') || roleName.includes('sistema');
+      // Auditoria P0-02 (2026-09-03): antes .includes('admin'/'sistema').
+      // Ver utils/rolMatch.ts para el porque completo.
+      const isAdminOrSys = esAdminOSistemas(roleName);
 
       let activeSession = null;
       if (isAdminOrSys) {

@@ -2,6 +2,7 @@ import { db, users, roles, subscriptions, plans } from '@/db';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
+import { esSistemas } from '@/utils/rolMatch';
 
 export interface CreateUserInput {
   companyId: string;
@@ -163,7 +164,10 @@ export class AdminRepository {
       
     if (!userWithRole) throw new Error('Usuario no encontrado');
 
-    const isTargetSystem = userWithRole.roleName?.toLowerCase().includes('sistema');
+    // Auditoria P0-02 (2026-09-03): antes .includes('sistema'), que
+    // trataba como "de sistemas" (protegido de suspension) a cualquier rol
+    // cuyo nombre contuviera esas letras. Ver utils/rolMatch.ts.
+    const isTargetSystem = esSistemas(userWithRole.roleName);
 
     if (isTargetSystem) {
        throw new Error('No se puede suspender o activar a un usuario con el rol de sistemas.');

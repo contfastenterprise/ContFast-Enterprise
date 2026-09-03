@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 import { requirePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { FinancialRepository } from '@/repositories/financialRepository';
@@ -13,8 +14,10 @@ import { and, sql } from 'drizzle-orm';
 import { expenses, accountsPayable } from '@/db/schema';
 
 function checkFinancialAccess(roleName: string): boolean {
+  // Auditoria P0-02 (2026-09-03): antes .includes('sistema'/'admin'). Ver
+  // utils/rolMatch.ts.
   const role = roleName.toLowerCase();
-  return role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
+  return esAdminOSistemas(role) || role === 'contabilidad';
 }
 
 export async function POST(

@@ -4,6 +4,7 @@ import { requirePermission } from '@/middleware/permissions';
 import { BIRepository, BIFilters } from '@/repositories/biRepository';
 import { getCache, setCache } from '@/infrastructure/redis';
 import crypto from 'crypto';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +23,10 @@ export async function GET(req: NextRequest) {
 
     // 2. Enforce Role Check: Only systems or admin roles
     const userRole = (auth.role || '').toLowerCase();
-    const isAuthorized = userRole === 'sistemas' || userRole.includes('sistema') || userRole.includes('admin') || userRole.includes('administraci');
+    // Auditoria P0-02 (2026-09-03): antes .includes('sistema'/'admin'),
+    // ademas ya redundante con el requirePermission de arriba. Ver
+    // utils/rolMatch.ts.
+    const isAuthorized = esAdminOSistemas(userRole);
     if (!isAuthorized) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'No tiene permisos para acceder a este módulo. Solo administradores o sistemas.' } },

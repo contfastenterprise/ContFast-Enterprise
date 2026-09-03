@@ -1,4 +1,5 @@
 import { RouteMapping, SidebarGroup, SidebarItem } from '@/types/rbac';
+import { esSistemas, esAdministracion } from '@/utils/rolMatch';
 import React from 'react';
 import {
   LayoutDashboard,
@@ -104,8 +105,14 @@ export function buildSidebar(
   userRole: string
 ): SidebarGroup[] {
   const cleanRole = userRole?.toLowerCase().trim() || '';
-  const isSistemas = cleanRole === 'sistemas' || cleanRole.includes('sistema');
-  const isAdmin = cleanRole.includes('admin') || cleanRole.includes('administraci');
+  // Auditoria P0-02 (2026-09-03): antes .includes('sistema'/'admin'), que
+  // colaba cualquier rol cuyo nombre contuviera esas letras. Ver
+  // utils/rolMatch.ts para el porque completo. Esto solo decide que aparece
+  // en el menu -- no es el control de acceso real (eso vive en proxy.ts y
+  // en cada API), pero mostrar un enlace que luego da 403 es mala UX y
+  // conviene que use la misma comparacion exacta.
+  const isSistemas = esSistemas(cleanRole);
+  const isAdmin = esAdministracion(cleanRole);
 
   // 1. Obtener todos los mapeos configurados como elementos de menú
   const menuMappings = routeMappings.filter(m => m.isMenuItem && m.routePattern);

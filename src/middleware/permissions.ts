@@ -22,6 +22,7 @@ export type PermissionAction = 'read' | 'write' | 'delete' | 'execute' | 'admin'
 
 // Default base permissions are defined in a pure, client-safe file to allow import from both client and server
 import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 export { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 
 /**
@@ -189,8 +190,15 @@ export function isAdminOrSistemas(roleName: string): boolean {
   // Auditoria F0-05: comparacion exacta contra la lista cerrada de roles fijos.
   // Antes usaba includes(), de modo que cualquier rol cuyo nombre contuviera
   // "admin" o "sistema" pasaba este control.
-  const normalizedRole = roleName.toLowerCase().trim();
-  return normalizedRole === 'sistemas' || normalizedRole === 'administracion';
+  //
+  // 2026-09-03 (P0-02): delega a utils/rolMatch.ts, que ahora es la unica
+  // fuente de esta comparacion -- el mismo patron roto que esto corrigio
+  // aqui en F0-05 seguia vivo, sin corregir, en otros 6 archivos que no
+  // podian (o no debian) importar este modulo porque arrastra el cliente de
+  // base de datos (proxy.ts corre en Edge; rbacHelpers.ts es codigo de
+  // cliente). Tener una sola funcion pura evita que se repita el mismo
+  // descuido una tercera vez.
+  return esAdminOSistemas(roleName);
 }
 
 export function enforceAdminOrSistemas(roleName: string): void {

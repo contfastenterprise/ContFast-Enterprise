@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { modoDeCookie } from '@/services/dgii/modoPeticion';
+import { esSistemas, esAdministracion } from '@/utils/rolMatch';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) {
@@ -113,8 +114,12 @@ function checkRbacPermission(pathname: string, method: string, decoded: any): bo
   const userPermissions: string[] = decoded.permissions || [];
   const userRole = (decoded.role || '').toLowerCase();
 
-  const isSistemas = userRole.includes('sistema');
-  const isAdmin = userRole.includes('admin');
+  // Auditoria P0-02 (2026-09-03): antes .includes('sistema'/'admin') --
+  // un rol nombrado "Admin de Almacen" o "Soporte de Sistemas" obtenia
+  // acceso total a este middleware sin que nadie se lo otorgara. Ver
+  // utils/rolMatch.ts para el porque completo.
+  const isSistemas = esSistemas(userRole);
+  const isAdmin = esAdministracion(userRole);
 
   // Si es sistemas, tiene acceso total a todo
   if (isSistemas) return true;

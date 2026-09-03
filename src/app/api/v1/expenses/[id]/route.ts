@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
+import { esSistemas } from '@/utils/rolMatch';
 import { eq, and, or, inArray, sql, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { resolverCuentaDeBanco, resolverCuentaPorPagar } from '@/services/accounting/resolverCuentas';
@@ -213,7 +214,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 401 });
     }
 
-    if (!session.role.toLowerCase().includes('sistema')) {
+    // Auditoria P0-02 (2026-09-03): antes .includes('sistema'), que dejaba
+    // borrar una compra -- y su asiento contable completo -- a cualquier rol
+    // cuyo nombre contuviera esas letras (ej. "Soporte de Sistemas"), sin que
+    // nadie le otorgara ese permiso explicitamente. Ver utils/rolMatch.ts.
+    if (!esSistemas(session.role)) {
       return NextResponse.json({ success: false, error: { message: 'No tiene permisos para realizar esta acción. Solo usuarios de Sistemas pueden eliminar compras.' } }, { status: 403 });
     }
 
