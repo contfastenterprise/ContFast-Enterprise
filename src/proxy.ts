@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { modoEnLaPuerta } from '@/services/dgii/modoPeticion';
+import { modoDeCookie } from '@/services/dgii/modoPeticion';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) {
@@ -252,9 +252,11 @@ export async function proxy(req: NextRequest) {
         // lista vacia durante la primera carga y se corrige solo al escribirse
         // la cookie; equivocarse hacia produccion quema un e-NCF de verdad.
         //
-        // Un valor PRESENTE pero desconocido no es un navegador nuevo: es un
-        // dato corrupto, y ahi si se para.
-        const environment = modoEnLaPuerta(
+        // Y un valor PRESENTE pero desconocido -- cookie vieja, editada a
+        // mano -- TAMPOCO se para: es la misma logica que faltar. Pararse aqui
+        // llego a tumbar la sesion entera de una empresa en produccion por una
+        // cookie que no arriesgaba nada fiscal. `modoDeCookie` no lanza nunca.
+        const environment = modoDeCookie(
           req.cookies.get('cf_environment')?.value || req.headers.get('x-environment'),
           'la cookie cf_environment'
         );
@@ -323,7 +325,7 @@ export async function proxy(req: NextRequest) {
             // Set request headers for downstream controllers
             const requestHeaders = new Headers(req.headers);
             // Misma puerta, rama de rotacion de sesion. Mismo criterio.
-            const environment = modoEnLaPuerta(
+            const environment = modoDeCookie(
               req.cookies.get('cf_environment')?.value || req.headers.get('x-environment'),
               'la cookie cf_environment'
             );

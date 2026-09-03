@@ -5,7 +5,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 import { RbacService } from '@/services/auth/rbacService';
 import { isAdminOrSistemas } from './permissions';
-import { modoDePeticion, modoEnLaPuerta, modoOperativo } from '@/services/dgii/modoPeticion';
+import { modoDePeticion, modoDeCookie, modoOperativo } from '@/services/dgii/modoPeticion';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -204,14 +204,15 @@ async function resolveAuthPayload(
   if (accessToken) {
     try {
       const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
-      // Por cookie: aqui SI puede faltar de verdad (navegador recien
-      // estrenado, antes de que el panel la escriba), asi que se usa la lectura
-      // de puerta -- ausente cae a PRUEBA, nunca a la DGII real. Un valor
-      // presente pero desconocido sigue lanzando.
-      const reqModo = modoOperativo(
-        modoEnLaPuerta(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment'),
-        'la cookie cf_environment'
-      );
+      // Cookie: puede faltar, puede quedar vieja, y NUNCA debe poder tumbar la
+      // sesion por eso -- esto va DENTRO del try de jwt.verify, y su catch de
+      // abajo solo esta pensado para un token vencido. Aqui hubo un fallo real:
+      // una version anterior usaba una lectura que lanzaba con una cookie no
+      // reconocida, ese catch lo confundia con un token invalido, y la sesion
+      // entera se cerraba por una cookie vieja de una empresa en produccion.
+      // `modoDeCookie` no lanza nunca: lo que no reconoce cae a PRUEBA. El
+      // porque completo esta en modoPeticion.ts.
+      const reqModo = modoDeCookie(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment');
       return {
         userId: decoded.userId,
         companyId: decoded.companyId,
@@ -348,10 +349,7 @@ async function resolveAuthPayload(
       `refreshToken=${newRefreshToken}; Path=/; HttpOnly${SECURE_FLAG}; SameSite=Strict; Max-Age=604800`
     );
 
-    const reqModo = modoOperativo(
-      modoEnLaPuerta(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment'),
-      'la cookie cf_environment'
-    );
+    const reqModo = modoDeCookie(req.cookies.get('cf_environment')?.value, 'la cookie cf_environment');
     return {
       userId: userWithRole.id,
       companyId: session.companyId,

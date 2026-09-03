@@ -4,7 +4,7 @@ import { db, accountsReceivable, customers, invoices, companies, companySettings
 import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import * as jwt from 'jsonwebtoken';
-import { modoEnLaPuerta, modoOperativo } from '@/services/dgii/modoPeticion';
+import { modoDeCookie } from '@/services/dgii/modoPeticion';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 async function getAuthContext() {
@@ -22,12 +22,10 @@ async function getAuthContext() {
     }
     const decoded = jwt.verify(token, secret) as any;
     
-    // Accion de servidor: lee la cookie directamente, asi que puede faltar.
-    // Ausente -> PRUEBA. Desconocida -> se para.
-    const reqModo = modoOperativo(
-      modoEnLaPuerta(cookieStore.get('cf_environment')?.value, 'la cookie cf_environment'),
-      'la cookie cf_environment'
-    );
+    // Accion de servidor: lee la cookie directamente. Puede faltar o venir
+    // vieja -- ninguno de los dos casos debe romper la operacion. Ausente o
+    // desconocida, ambas caen a PRUEBA; modoDeCookie no lanza nunca.
+    const reqModo = modoDeCookie(cookieStore.get('cf_environment')?.value, 'la cookie cf_environment');
     
     return {
       userId: decoded.userId,
