@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import { ApRepository } from '@/repositories/apRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
-import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions, chartOfAccounts } from '@/db/schema';
+import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions, chartOfAccounts, auditLogs } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { FinancialMovementService } from '@/services/financialMovementService';
@@ -151,6 +151,25 @@ export class ApService {
             creditAccountId: input.creditAccountId,
             paymentDate: input.paymentDate,
             status: 'pending_guarantee',
+            createdBy: input.createdBy,
+          });
+
+          // Auditoria P1-13 (2026-09-03): sin esto, un pago cuestionado no se
+          // podia atribuir a nadie consultando la fila (ver migracion 0049).
+          await tx.insert(auditLogs).values({
+            modo: input.modo,
+            companyId: input.companyId,
+            userId: input.createdBy || null,
+            action: 'ap_payment_created',
+            entityType: 'ap_payments',
+            entityId: payment.id,
+            newValues: {
+              apId: input.apId,
+              amount: input.amount,
+              paymentMethod: 'check',
+              status: 'pending_guarantee',
+              isGuarantee: true,
+            },
           });
 
           return {
@@ -190,6 +209,24 @@ export class ApService {
         creditAccountId: input.creditAccountId,
         paymentDate: input.paymentDate,
         status: 'applied',
+        createdBy: input.createdBy,
+      });
+
+      // Auditoria P1-13 (2026-09-03): ver migracion 0049 y la nota igual mas
+      // arriba, en el pago de garantia.
+      await tx.insert(auditLogs).values({
+        modo: input.modo,
+        companyId: input.companyId,
+        userId: input.createdBy || null,
+        action: 'ap_payment_created',
+        entityType: 'ap_payments',
+        entityId: payment.id,
+        newValues: {
+          apId: input.apId,
+          amount: input.amount,
+          paymentMethod: input.paymentMethod,
+          status: 'applied',
+        },
       });
 
       // Update accounts payable balance

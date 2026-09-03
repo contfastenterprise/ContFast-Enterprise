@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments } from '@/db';
+import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { eq, sql, and, between, inArray } from 'drizzle-orm';
@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
           );
           const accAp = await resolverCuentaPorPagar(tx, session.companyId, 'Cheque en garantía');
 
-          await tx.insert(apPayments).values({
+          const [pagoGarantia] = await tx.insert(apPayments).values({
             id: uuidv4(),
             companyId: session.companyId,
             modo: session.modo,
@@ -316,6 +316,24 @@ export async function POST(req: NextRequest) {
             creditAccountId: accBank.id,
             paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
             status: 'pending_guarantee',
+            // Auditoria P1-13 (2026-09-03), migracion 0049.
+            createdBy: session.userId,
+          }).returning();
+
+          await tx.insert(auditLogs).values({
+            modo: session.modo,
+            companyId: session.companyId,
+            userId: session.userId,
+            action: 'ap_payment_created',
+            entityType: 'ap_payments',
+            entityId: pagoGarantia.id,
+            newValues: {
+              apId: apId,
+              amount: checkAmount,
+              paymentMethod: 'check',
+              status: 'pending_guarantee',
+              isGuarantee: true,
+            },
           });
         }
       }

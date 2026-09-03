@@ -1094,7 +1094,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
             );
             const accAp = await resolverCuentaPorPagar(tx, session.companyId, 'Cheque en garantía');
 
-            await tx.insert(apPayments).values({
+            const [pagoGarantia] = await tx.insert(apPayments).values({
               id: uuidv4(),
               companyId: session.companyId,
               modo: session.modo,
@@ -1106,6 +1106,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
               creditAccountId: accBank.id,
               paymentDate: guaranteeCheck.issueDate ? new Date(guaranteeCheck.issueDate).toISOString().split('T')[0] : new Date(issueDate).toISOString().split('T')[0],
               status: 'pending_guarantee',
+              // Auditoria P1-13 (2026-09-03), migracion 0049.
+              createdBy: session.userId,
+            }).returning();
+
+            await tx.insert(auditLogs).values({
+              modo: session.modo,
+              companyId: session.companyId,
+              userId: session.userId,
+              action: 'ap_payment_created',
+              entityType: 'ap_payments',
+              entityId: pagoGarantia.id,
+              newValues: {
+                apId: activeApId,
+                amount: checkAmount,
+                paymentMethod: 'check',
+                status: 'pending_guarantee',
+                isGuarantee: true,
+              },
             });
           }
         } else {

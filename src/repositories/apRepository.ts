@@ -130,6 +130,8 @@ export class ApRepository {
     creditAccountId: string;
     paymentDate: Date | string;
     status: 'pending_guarantee' | 'applied' | 'voided';
+    /** Auditoria P1-13 (2026-09-03), migracion 0049. Quien registra el pago. */
+    createdBy?: string;
   }) {
     const [payment] = await tx.insert(apPayments)
       .values({
@@ -143,6 +145,7 @@ export class ApRepository {
         creditAccountId: data.creditAccountId,
         paymentDate: formatLocalDate(data.paymentDate),
         status: data.status,
+        createdBy: data.createdBy || null,
       })
       .returning();
     return payment;

@@ -1,4 +1,4 @@
-import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, chartOfAccounts } from '@/db';
+import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, chartOfAccounts, auditLogs } from '@/db';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
@@ -111,8 +111,30 @@ export class ArRepository {
         paymentMethod: data.paymentMethod,
         amount: data.amount.toString(),
         reference: data.reference || null,
-        notes: data.notes || null
+        notes: data.notes || null,
+        // Auditoria P1-13 (2026-09-03), migracion 0049. Antes no habia forma
+        // de saber, consultando la fila, quien registro el cobro.
+        createdBy: data.userId,
       }).returning();
+
+      // Auditoria P1-13: a diferencia de ap_payments, un cobro no genera
+      // ningun asiento contable (esta funcion no llama a
+      // AccountRepository.createJournalEntry en ningun punto), asi que aqui
+      // no habia ni siquiera el rastro indirecto que si tenian los pagos.
+      await tx.insert(auditLogs).values({
+        modo: data.modo,
+        companyId: data.companyId,
+        userId: data.userId,
+        action: 'customer_receipt_created',
+        entityType: 'customer_receipts',
+        entityId: receipt.id,
+        newValues: {
+          customerId: data.customerId,
+          amount: data.amount,
+          paymentMethod: data.paymentMethod,
+          reference: data.reference || null,
+        },
+      });
 
       // Financial movements registration (Clientes - Recibo de Cobro)
       await FinancialMovementService.registerMovement(tx, {

@@ -109,6 +109,10 @@ export const customerReceipts = pgTable('customer_receipts', {
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   reference: varchar('reference', { length: 255 }), // transfer number, check number, etc.
   notes: text('notes'),
+  // Auditoria P1-13 (2026-09-03), migracion 0049. NULL en cobros anteriores
+  // a la migracion -- no se reconstruye.
+  createdBy: uuid('created_by').references(() => users.id),
+  voidedBy: uuid('voided_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -220,6 +224,10 @@ export const apPayments = pgTable('ap_payments', {
   creditAccountId: uuid('credit_account_id').notNull().references(() => chartOfAccounts.id),
   paymentDate: date('payment_date').notNull(),
   status: varchar('status', { length: 50 }).default('applied').notNull(), // pending_guarantee | applied | voided
+  // Auditoria P1-13 (2026-09-03), migracion 0049. NULL en pagos anteriores
+  // a la migracion -- no se reconstruye.
+  createdBy: uuid('created_by').references(() => users.id),
+  voidedBy: uuid('voided_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
