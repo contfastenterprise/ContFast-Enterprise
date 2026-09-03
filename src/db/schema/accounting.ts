@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, date, index, uniqueIndex, integer } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { companies } from './companies';
 import { customers, suppliers } from './contacts';
 import { invoices } from './invoices';
@@ -344,6 +345,24 @@ export const financialMovements = pgTable('financial_movements', {
   dateIdx: index('fin_mov_date_idx').on(table.date),
   createdAtIdx: index('fin_mov_created_at_idx').on(table.createdAt),
   companyModoIdx: index('fin_mov_company_modo_idx').on(table.companyId, table.modo),
+  /**
+   * Auditoria P1-11 (2026-09-03), migracion 0050. Sin este indice, un
+   * reintento de red o doble clic que reprocesa el MISMO documento (ej.:
+   * confirmar el mismo cheque en garantia dos veces) genera un segundo
+   * movimiento balanceado que ninguna validacion de cuadre detecta,
+   * duplicando el saldo de cliente/proveedor.
+   *
+   * Parcial (solo status='active'): un movimiento anulado no debe bloquear
+   * que se vuelva a registrar el mismo documento si el negocio lo permite.
+   *
+   * No cubre el caso de un reintento que genera un documentId NUEVO en
+   * cada intento (ej. arRepository.registerReceipt, que crea una fila con
+   * id propio en cada llamada) -- eso requiere idempotency-key en la ruta
+   * POST, que queda fuera de este cambio (ver auditoria P1-11).
+   */
+  companyModoTypeDocUniqueIdx: uniqueIndex('fin_mov_company_modo_type_doc_uniq')
+    .on(table.companyId, table.modo, table.movementType, table.documentId)
+    .where(sql`status = 'active'`),
 }));
 
 export const expenseTypes = pgTable('expense_types', {
