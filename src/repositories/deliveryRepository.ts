@@ -315,7 +315,18 @@ export class DeliveryRepository {
       }
 
       // 6. Update Delivery Note Status to Approved
-      await tx
+      //
+      // Auditoria P1-09 (2026-09-03): `getById`, arriba, lee fuera de esta
+      // transaccion y sin bloqueo de fila -- dos aprobaciones a la vez (doble
+      // clic, o un reintento) podian pasar el chequeo de 'draft' las dos, y
+      // las dos deducian inventario. Igual que ya hace
+      // `ApRepository.marcarChequeCobrado`, este UPDATE ahora repite la
+      // condicion de estado: solo una de las dos transacciones concurrentes
+      // consigue actualizar la fila (Postgres serializa el UPDATE por fila),
+      // y la que pierde la carrera revierte -- deshaciendo tambien la
+      // deduccion de inventario que ya habia hecho, porque todo esto vive en
+      // la misma transaccion.
+      const aprobado = await tx
         .update(deliveryNotes)
         .set({
           status: 'approved',
@@ -323,7 +334,12 @@ export class DeliveryRepository {
           approvedAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(deliveryNotes.id, id));
+        .where(and(eq(deliveryNotes.id, id), eq(deliveryNotes.status, 'draft')))
+        .returning({ id: deliveryNotes.id });
+
+      if (aprobado.length === 0) {
+        throw new Error('Este conduce ya fue aprobado (o modificado) por otro proceso mientras se procesaba esta solicitud.');
+      }
 
       // 7. Update Invoice Delivery Status
       // Recalculate totals delivered including this approved note

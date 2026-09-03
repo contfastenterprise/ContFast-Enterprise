@@ -341,6 +341,14 @@ export async function transferStock(
       modo,
     });
 
+    // Auditoria P1-10 (2026-09-03): esta funcion reimplementaba a mano el
+    // mismo patron lectura-calculo-escritura que causo INV-09 en addStock --
+    // sin `.for('update')`, dos transferencias concurrentes del mismo
+    // producto/almacen podian leer la misma existencia, y la segunda
+    // escritura pisaba a la primera en vez de sumarse. `addStock`/
+    // `deductStock` ya llevan el candado correcto (y el alta segura de la
+    // fila de existencia si todavia no existe, con `onConflictDoNothing`);
+    // en vez de reimplementarlo aqui otra vez, se reutilizan.
     for (const item of items) {
       // Un producto sin control de existencia no se puede transferir: no esta
       // en ningun almacen. Sin esta comprobacion el error habria sido
@@ -352,7 +360,9 @@ export async function transferStock(
         );
       }
 
-      // 1. Check stock
+      // 1. Check stock -- lectura BLOQUEADA (mismo candado que addStock, mas
+      // abajo) porque hace falta decidir si hay existencia suficiente ANTES
+      // de mutar nada, con un mensaje de error claro si no la hay.
       const [sourceLevel] = await tx.select().from(inventoryLevels).where(
         and(
           eq(inventoryLevels.companyId, companyId),
@@ -360,7 +370,7 @@ export async function transferStock(
           eq(inventoryLevels.warehouseId, sourceWarehouseId),
           eq(inventoryLevels.modo, modo)
         )
-      );
+      ).for('update');
 
       if (!sourceLevel || Number(sourceLevel.quantity) < item.quantity) {
         throw new Error(`Insufficient stock for product ${item.productId} in source warehouse`);
@@ -374,66 +384,11 @@ export async function transferStock(
         quantity: item.quantity.toString(),
       });
 
-      // 3. Deduct from source
-      const newSourceQuantity = Number(sourceLevel.quantity) - item.quantity;
-      await tx.update(inventoryLevels)
-        .set({ quantity: newSourceQuantity.toString(), updatedAt: new Date() })
-        .where(eq(inventoryLevels.id, sourceLevel.id));
-
-      await tx.insert(inventoryMovements).values({
-        id: uuidv4(),
-        companyId,
-        productId: item.productId,
-        warehouseId: sourceWarehouseId,
-        userId,
-        type: 'transfer_out',
-        modo,
-        quantity: (-item.quantity).toString(),
-        balanceAfter: newSourceQuantity.toString(),
-        referenceId: transferId,
-        description: `Transfer to ${destinationWarehouseId}`,
-      });
-
-      // 4. Add to destination
-      let [destLevel] = await tx.select().from(inventoryLevels).where(
-        and(
-          eq(inventoryLevels.companyId, companyId),
-          eq(inventoryLevels.productId, item.productId), 
-          eq(inventoryLevels.warehouseId, destinationWarehouseId),
-          eq(inventoryLevels.modo, modo)
-        )
-      );
-
-      if (!destLevel) {
-        const newLevel = await tx.insert(inventoryLevels).values({
-          id: uuidv4(),
-          companyId,
-          productId: item.productId,
-          warehouseId: destinationWarehouseId,
-          modo,
-          quantity: '0.0000',
-        }).returning();
-        destLevel = newLevel[0];
-      }
-
-      const newDestQuantity = Number(destLevel.quantity) + item.quantity;
-      await tx.update(inventoryLevels)
-        .set({ quantity: newDestQuantity.toString(), updatedAt: new Date() })
-        .where(eq(inventoryLevels.id, destLevel.id));
-
-      await tx.insert(inventoryMovements).values({
-        id: uuidv4(),
-        companyId,
-        productId: item.productId,
-        warehouseId: destinationWarehouseId,
-        userId,
-        type: 'transfer_in',
-        modo,
-        quantity: item.quantity.toString(),
-        balanceAfter: newDestQuantity.toString(),
-        referenceId: transferId,
-        description: `Transfer from ${sourceWarehouseId}`,
-      });
+      // 3. Deduct from source (ya bajo el candado tomado arriba) y 4. Add to
+      // destination (candado propio, mas el alta segura si la fila de
+      // existencia del almacen destino todavia no existe).
+      await deductStock(companyId, modo, item.productId, sourceWarehouseId, item.quantity, userId, 'transfer_out', transferId, `Transfer to ${destinationWarehouseId}`, tx);
+      await addStock(companyId, modo, item.productId, destinationWarehouseId, item.quantity, userId, 'transfer_in', transferId, `Transfer from ${sourceWarehouseId}`, tx);
     }
 
     return transferId;
