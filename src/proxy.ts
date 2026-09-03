@@ -179,6 +179,15 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith('/api/v1/setup/status') ||
     pathname.startsWith('/api/v1/setup/confirm') ||
     pathname.startsWith('/api/v1/setup/init') ||
+    // Auditoria P1-22 (2026-09-03): a diferencia de las tres rutas de arriba,
+    // esta faltaba en la lista pese a que su propio comentario de cabecera
+    // dice que existe justamente para el escenario en que NO hay sesion
+    // valida posible (todos los usuarios quedaron inactivos, o la cookie de
+    // sesion nunca se establecio). Sin excluirla, el propio middleware la
+    // cortaba con un 401 antes de que la ruta llegara a mirar su proteccion
+    // real -- RECOVERY_SECRET_KEY -- dejando inalcanzable el mecanismo de
+    // emergencia justo cuando hacia falta.
+    pathname.startsWith('/api/v1/setup/recover') ||
     // El cron NO tiene sesion de navegador -- lo dispara un servicio externo
     // (cron-job.org, GitHub Actions), sin cookies. Si esta ruta se tratara como
     // el resto de /api/v1/*, el middleware la cortaba aqui con un 401 propio

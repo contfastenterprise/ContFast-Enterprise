@@ -165,9 +165,11 @@ export async function POST(req: NextRequest) {
       { headers: resHeaders }
     );
   } catch (error: any) {
+    // Auditoria P1-21 (2026-09-03): igual que setup/confirm -- ruta sin
+    // sesion, error.message crudo podia filtrar detalle interno de BD.
     console.error('[RECOVERY] Error:', error);
     return NextResponse.json(
-      { success: false, error: { message: `Error de recuperación: ${error.message}` } },
+      { success: false, error: { message: 'Error de recuperación. Intente nuevamente o contacte soporte.' } },
       { status: 500 }
     );
   }

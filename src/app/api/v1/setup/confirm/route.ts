@@ -276,9 +276,14 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
+    // Auditoria P1-21 (2026-09-03): esta ruta esta excluida de sesion en
+    // proxy.ts -- cualquiera sin autenticar puede llamarla. Devolver
+    // error.message crudo podia filtrar detalle interno de BD a un
+    // visitante anonimo. Mismo criterio que ya usa setup/status/route.ts:
+    // el detalle se queda en el log, el cliente recibe un mensaje generico.
     console.error('Setup wizard confirmation error:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SETUP_FAILED', message: `No se pudo completar la configuración: ${error.message}` } },
+      { success: false, error: { code: 'SETUP_FAILED', message: 'No se pudo completar la configuración. Intente nuevamente o contacte soporte.' } },
       { status: 500 }
     );
   }

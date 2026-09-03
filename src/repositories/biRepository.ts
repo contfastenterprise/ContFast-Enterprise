@@ -501,6 +501,10 @@ export class BIRepository {
     .innerJoin(invoices, eq(invoices.customerId, customers.id))
     .where(and(
       eq(customers.companyId, companyId),
+      // Auditoria P1-17 (2026-09-03): a diferencia del resto de este
+      // archivo, esta consulta no filtraba por modo -- mezclaba facturas de
+      // PRUEBA con las reales en el ranking de "mejores clientes".
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt),
       ...invoiceConds
@@ -549,6 +553,9 @@ export class BIRepository {
     .innerJoin(invoices, eq(invoices.customerId, customers.id))
     .where(and(
       eq(customers.companyId, companyId),
+      // Auditoria P1-17: mismo caso -- clientes "inactivos" calculados
+      // mezclando compras de PRUEBA con las reales.
+      eq(invoices.modo, modo),
       inArray(invoices.status, this.activeSalesStatuses),
       isNull(invoices.deletedAt)
     ))

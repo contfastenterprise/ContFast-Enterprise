@@ -135,10 +135,17 @@ export class AdminRepository {
         updateData.passwordHash = await bcrypt.hash(data.passwordRaw, salt);
       }
 
+      // Auditoria P1-16 (2026-09-03): el SELECT de arriba si valida
+      // companyId, pero este UPDATE final solo filtraba por userId -- sin
+      // ninguna via de explotacion demostrada hoy (el SELECT previo ya
+      // corta el paso), pero repetir companyId aqui es defensa en
+      // profundidad barata: si algun dia se quita o se rompe ese SELECT,
+      // este UPDATE por si solo sigue sin poder tocar un usuario de otra
+      // empresa.
       const [updated] = await tx
         .update(users)
         .set(updateData)
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
         .returning();
 
       return {
@@ -199,9 +206,11 @@ export class AdminRepository {
       }
     }
 
+    // Auditoria P1-16 (2026-09-03): mismo caso que updateUser -- el SELECT
+    // de arriba ya valida companyId, esto es defensa en profundidad.
     const [updated] = await db.update(users)
       .set({ status: newStatus, updatedAt: new Date() })
-      .where(eq(users.id, userId))
+      .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
       .returning();
 
     return { id: updated.id, status: updated.status };
