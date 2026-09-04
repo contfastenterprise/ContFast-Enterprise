@@ -48,7 +48,7 @@ import { v4 as uuidv4 } from 'uuid';
 export async function llevaInventario(
   companyId: string,
   productId: string,
-  tx: any = db
+  tx: typeof db = db
 ): Promise<boolean> {
   const [producto] = await tx
     .select({ tracksInventory: products.tracksInventory })
@@ -77,7 +77,7 @@ export async function llevaInventario(
  * usa el resto del codigo: findAll(companyId, modo, ...), getJournalEntries,
  * getBankAccounts.
  */
-export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', productId: string, warehouseId: string, tx: any = db): Promise<number> {
+export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', productId: string, warehouseId: string, tx: typeof db = db): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
@@ -111,7 +111,7 @@ export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' 
     return physicalStock;
   }
 
-  const invoiceIds = activeInvoices.map((inv: any) => inv.id);
+  const invoiceIds = activeInvoices.map((inv) => inv.id);
 
   // 3. Sum invoiced quantities for this product on these invoices
   const lines = await tx
@@ -125,7 +125,7 @@ export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' 
         eq(invoiceLines.productId, productId)
       )
     );
-  const totalInvoiced = lines.reduce((acc: number, line: any) => acc + Number(line.quantity), 0);
+  const totalInvoiced = lines.reduce((acc: number, line) => acc + Number(line.quantity), 0);
 
   // 4. Find all approved delivery notes associated with these invoices
   const approvedNotes = await tx
@@ -143,7 +143,7 @@ export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' 
 
   let totalDelivered = 0;
   if (approvedNotes.length > 0) {
-    const noteIds = approvedNotes.map((note: any) => note.id);
+    const noteIds = approvedNotes.map((note) => note.id);
     const delLines = await tx
       .select({
         quantity: deliveryNoteLines.quantity,
@@ -155,7 +155,7 @@ export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' 
           eq(deliveryNoteLines.productId, productId)
         )
       );
-    totalDelivered = delLines.reduce((acc: number, line: any) => acc + Number(line.quantity), 0);
+    totalDelivered = delLines.reduce((acc: number, line) => acc + Number(line.quantity), 0);
   }
 
   const reservedQty = Math.max(0, totalInvoiced - totalDelivered);
@@ -168,7 +168,7 @@ export async function checkStock(
   productId: string,
   warehouseId: string,
   quantityNeeded: number,
-  tx: any = db,
+  tx: typeof db = db,
   useProvisional = false
 ): Promise<boolean> {
   // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
@@ -220,7 +220,7 @@ export async function addStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db
+  tx: typeof db = db
 ) {
   // Un producto sin control de existencia no mueve inventario ni deja rastro en
   // el kardex. Aqui se cortan las dos direcciones de golpe: `deductStock` es
@@ -312,7 +312,7 @@ export async function deductStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: any = db
+  tx: typeof db = db
 ) {
   await addStock(companyId, modo, productId, warehouseId, -quantity, userId, type, referenceId, description, tx);
 }

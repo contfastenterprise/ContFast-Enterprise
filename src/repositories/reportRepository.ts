@@ -58,9 +58,9 @@ export class ReportRepository {
     let totalExpense = 0;
     let totalCost = 0;
 
-    const revenueAccounts: any[] = [];
-    const expenseAccounts: any[] = [];
-    const costAccounts: any[] = [];
+    const revenueAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
+    const expenseAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
+    const costAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
 
     for (const acc of accounts) {
       const b = balanceMap.get(acc.id);
@@ -137,9 +137,9 @@ export class ReportRepository {
     let totalLiability = 0;
     let totalEquity = 0;
 
-    const assetAccounts: any[] = [];
-    const liabilityAccounts: any[] = [];
-    const equityAccounts: any[] = [];
+    const assetAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
+    const liabilityAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
+    const equityAccounts: (typeof chartOfAccounts.$inferSelect & { net: number })[] = [];
 
     for (const acc of accounts) {
       const b = balanceMap.get(acc.id);

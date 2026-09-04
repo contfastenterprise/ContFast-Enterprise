@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { accountingMappings, bankAccounts, chartOfAccounts } from '@/db';
+import { accountingMappings, bankAccounts, chartOfAccounts, type DbTransaction } from '@/db';
 
 /**
  * Resolución de cuentas contables para el registro automático de asientos.
@@ -44,7 +44,7 @@ interface CuentaValidada {
 
 /** Comprueba que la cuenta sea de la empresa, esté activa y admita movimientos. */
 async function validarCuenta(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   accountId: string,
   contexto: string
@@ -93,7 +93,7 @@ async function validarCuenta(
  * cuerpo de la petición.
  */
 export async function resolverCuentaDeBanco(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   bankAccountId: string,
   contexto = 'Movimiento bancario'
@@ -147,7 +147,7 @@ export async function resolverCuentaDeBanco(
  * crea la cuenta.
  */
 export async function resolverCuentaPorMapeo(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   mappingKey: string,
   codigoPorDefecto: string,
@@ -192,7 +192,7 @@ export async function resolverCuentaPorMapeo(
  * agrupación contra la que se venía posteando.
  */
 export async function resolverCuentaPorPagar(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   contexto = 'Cuentas por pagar'
 ): Promise<CuentaValidada> {
