@@ -1,5 +1,5 @@
 import { roundMoney } from '@/utils/calculos';
-import { IssueInvoiceInput, CalculatedTotals } from './types';
+import { IssueInvoiceInput, CalculatedTotals, InvoiceItemLine, CalculatedRetentionLine } from './types';
 
 export class InvoiceCalculator {
   /**
@@ -10,7 +10,7 @@ export class InvoiceCalculator {
     let subtotal = 0;
     let totalDiscount = 0;
     let totalTaxes = 0;
-    const itemLines: any[] = [];
+    const itemLines: InvoiceItemLine[] = [];
     const taxSummaryMap: Record<string, { rate: number; amount: number }> = {};
     const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
 
@@ -63,7 +63,7 @@ export class InvoiceCalculator {
     }));
 
     let totalRetained = 0;
-    const calculatedRetentions: any[] = [];
+    const calculatedRetentions: CalculatedRetentionLine[] = [];
 
     if (data.retentions && data.retentions.length > 0) {
       data.retentions.forEach((ret) => {

@@ -50,6 +50,35 @@ export interface IssueInvoiceInput {
   }[];
 }
 
+export interface InvoiceItemLine {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  subtotal: number;
+  total: number;
+  taxRate: number;
+  taxCategory: 'exento' | 'tasa_cero' | null;
+  warehouseId?: string;
+}
+
+export interface InvoiceTaxLine {
+  taxType: string;
+  rate: number;
+  amount: number;
+}
+
+export interface CalculatedRetentionLine {
+  retentionId?: string;
+  retentionName: string;
+  retentionType: 'ITBIS' | 'ISR' | 'OTRA';
+  retentionPercentage: number;
+  retentionAmount: number;
+  agentRnc?: string;
+  retentionDate?: string;
+}
+
 export interface CalculatedTotals {
   subtotal: number;
   totalDiscount: number;
@@ -57,9 +86,9 @@ export interface CalculatedTotals {
   total: number;
   totalRetained: number;
   totalNet: number;
-  itemLines: any[];
-  taxesList: any[];
-  calculatedRetentions: any[];
+  itemLines: InvoiceItemLine[];
+  taxesList: InvoiceTaxLine[];
+  calculatedRetentions: CalculatedRetentionLine[];
 }
 
 export interface DgiiSubmissionResult {

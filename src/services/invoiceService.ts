@@ -61,7 +61,7 @@ export class InvoiceService {
         totals,
         activeCashSessionId
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof EcfRejectedError) {
         // Rechazo estructural: la factura se guarda como `rejected` con el NCF
         // ya reservado, de modo que el numero queda justificado y no hay hueco.
@@ -81,7 +81,7 @@ export class InvoiceService {
           data.userId,
           ncf,
           data.ecfType,
-          `Fallo al enviar a la DGII: ${err?.message || 'error desconocido'}`
+          `Fallo al enviar a la DGII: ${(err as Error)?.message || 'error desconocido'}`
         );
       }
       throw err;
@@ -116,14 +116,14 @@ export class InvoiceService {
         pdfPath,
         msellerXmlPath
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       await InvoiceDbBooker.registrarNcfSinUsar(
         data.companyId,
         data.modo,
         data.userId,
         ncf,
         data.ecfType,
-        `Enviado a la DGII pero no se pudo registrar la factura: ${err?.message || 'error desconocido'}`
+        `Enviado a la DGII pero no se pudo registrar la factura: ${(err as Error)?.message || 'error desconocido'}`
       );
       throw err;
     }

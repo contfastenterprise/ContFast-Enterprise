@@ -10,7 +10,7 @@ import { DeliveryRepository } from '@/repositories/deliveryRepository';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
+import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, InvoiceItemLine } from './types';
 import type { CompanyRepository } from '@/repositories/companyRepository';
 
 export class InvoiceFileGenerator {
@@ -210,7 +210,7 @@ export class InvoiceFileGenerator {
     data: IssueInvoiceInput,
     invoiceId: string,
     settings: Awaited<ReturnType<typeof CompanyRepository.getSettings>>,
-    itemLines: any[]
+    itemLines: InvoiceItemLine[]
   ) {
     // Automatically issue delivery note if autoDeliveryNotes is enabled
     if (settings?.autoDeliveryNotes && ['31', '32', '45'].includes(data.ecfType)) {
@@ -224,7 +224,7 @@ export class InvoiceFileGenerator {
           driverName: 'Despacho Automático',
           dispatcherName: 'Sistema',
           notes: 'Conduce generado automáticamente al emitir la factura.',
-          lines: itemLines.map((line: any) => ({
+          lines: itemLines.map((line) => ({
             productId: line.productId,
             quantity: Number(line.quantity),
           })),

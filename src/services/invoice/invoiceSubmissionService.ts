@@ -130,7 +130,7 @@ export class InvoiceSubmissionService {
             unitPrice: line.unitPrice,
             discount: line.discount,
             taxRate: line.taxRate,
-            taxCategory: (line as any).taxCategory ?? null,
+            taxCategory: line.taxCategory ?? null,
           })),
         });
 
