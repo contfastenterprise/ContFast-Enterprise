@@ -15,6 +15,7 @@ import {
   payrollConfigs,
   auditLogs,
 } from '@/db';
+import type { DbTransaction } from '@/db';
 import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 
@@ -143,7 +144,7 @@ export class HRRepository {
     };
   }
 
-  static async createEmployee(companyId: string, modo: Modo, data: any) {
+  static async createEmployee(companyId: string, modo: Modo, data: Omit<typeof employees.$inferInsert, 'id' | 'companyId' | 'salary' | 'createdAt' | 'updatedAt' | 'deletedAt'> & { salary: number }) {
     return db.transaction(async (tx) => {
       // 1. Create employee record
       const [newEmp] = await tx
@@ -169,7 +170,7 @@ export class HRRepository {
     });
   }
 
-  static async updateEmployee(id: string, companyId: string, data: any) {
+  static async updateEmployee(id: string, companyId: string, data: Partial<Omit<typeof employees.$inferInsert, 'id' | 'companyId' | 'salary' | 'createdAt' | 'updatedAt' | 'deletedAt'>> & { salary?: number }) {
     const [updated] = await db
       .update(employees)
       .set({
@@ -202,7 +203,7 @@ export class HRRepository {
     return config;
   }
 
-  static async updatePayrollConfig(companyId: string, data: any) {
+  static async updatePayrollConfig(companyId: string, data: Partial<Omit<typeof payrollConfigs.$inferInsert, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>>) {
     const existing = await this.getPayrollConfig(companyId);
     if (existing) {
       const [updated] = await db
@@ -322,7 +323,7 @@ export class HRRepository {
     });
   }
 
-  private static async recalculatePayrollTx(tx: any, payrollId: string, companyId: string, modo: Modo) {
+  private static async recalculatePayrollTx(tx: DbTransaction, payrollId: string, companyId: string, modo: Modo) {
     // Auditoria F1-03: el companyId llegaba como parametro pero no se usaba en
     // ninguna de estas consultas. `payrollId` viene del querystring, asi que un
     // usuario de la empresa A podia recalcular la nomina de la empresa B: se le
@@ -364,7 +365,7 @@ export class HRRepository {
       .from(payrollConfigs)
       .where(eq(payrollConfigs.companyId, companyId))
       .limit(1)
-      .then((rows: any[]) => rows[0]);
+      .then((rows) => rows[0]);
 
     if (!config) {
       throw new Error('Configuración de nómina incompleta. Por favor, guarde la Configuración de RRHH antes de generar una nómina.');
@@ -393,7 +394,7 @@ export class HRRepository {
     //    nomina de 80 personas lanzaba 240 consultas dentro de la transaccion.
     //    Ahora son tres, agrupadas por empleado. Ademas se filtra por companyId:
     //    las tres consultas originales solo miraban employeeId.
-    const employeeIds: string[] = activeEmployees.map((e: any) => e.id);
+    const employeeIds: string[] = activeEmployees.map((e) => e.id);
 
     const overtimePorEmpleado = new Map<string, number>();
     const comisionPorEmpleado = new Map<string, number>();
@@ -482,7 +483,7 @@ export class HRRepository {
         bonusAmount: bonusSum,
         commissionAmount: commissionSum,
         otherDeductions: deductionTotal,
-        isrBrackets: brackets.map((b: any) => ({
+        isrBrackets: brackets.map((b) => ({
           fromAmount: Number(b.fromAmount),
           toAmount: b.toAmount ? Number(b.toAmount) : null,
           fixedAmount: Number(b.fixedAmount),
@@ -566,7 +567,7 @@ export class HRRepository {
         .select()
         .from(payrollDetails)
         .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
-      const employeeIds: string[] = details.map((d: any) => d.employeeId);
+      const employeeIds: string[] = details.map((d) => d.employeeId);
 
       if (employeeIds.length > 0) {
         // Mark overtime records as processed
@@ -656,7 +657,7 @@ export class HRRepository {
 
   // ─── ADDITIONAL ENTRIES (OVERTIME, INCOME, DEDUCTIONS) ────────────────────
 
-  static async createOvertimeRecord(companyId: string, modo: Modo, data: any) {
+  static async createOvertimeRecord(companyId: string, modo: Modo, data: Omit<typeof overtimeRecords.$inferInsert, 'id' | 'companyId' | 'modo' | 'hours' | 'amount' | 'status' | 'createdAt'> & { hours: number }) {
     const config = await this.getPayrollConfig(companyId);
     const employee = await this.findEmployeeById(data.employeeId, companyId);
     if (!employee) throw new Error('Empleado no encontrado');
@@ -682,7 +683,7 @@ export class HRRepository {
     return inserted;
   }
 
-  static async createIncomeRecord(companyId: string, modo: Modo, data: any) {
+  static async createIncomeRecord(companyId: string, modo: Modo, data: Omit<typeof employeeIncome.$inferInsert, 'id' | 'companyId' | 'modo' | 'amount' | 'status' | 'createdAt'> & { amount: number }) {
     const [inserted] = await db
       .insert(employeeIncome)
       .values({
@@ -696,7 +697,7 @@ export class HRRepository {
     return inserted;
   }
 
-  static async createDeductionRecord(companyId: string, modo: Modo, data: any) {
+  static async createDeductionRecord(companyId: string, modo: Modo, data: Omit<typeof employeeDeductions.$inferInsert, 'id' | 'companyId' | 'modo' | 'amount' | 'status' | 'createdAt'> & { amount: number }) {
     const [inserted] = await db
       .insert(employeeDeductions)
       .values({
@@ -823,7 +824,7 @@ export class HRRepository {
       .orderBy(desc(employeeLeaves.createdAt));
   }
 
-  static async createLeave(companyId: string, modo: Modo, data: any) {
+  static async createLeave(companyId: string, modo: Modo, data: Omit<typeof employeeLeaves.$inferInsert, 'id' | 'companyId' | 'modo' | 'status' | 'createdAt'>) {
     const [inserted] = await db
       .insert(employeeLeaves)
       .values({
@@ -923,7 +924,7 @@ export class HRRepository {
     return deleted;
   }
 
-  static async createSettlement(companyId: string, modo: Modo, data: any) {
+  static async createSettlement(companyId: string, modo: Modo, data: Omit<typeof employeeSettlements.$inferInsert, 'id' | 'companyId' | 'modo' | 'preaviso' | 'cesantia' | 'vacaciones' | 'navidad' | 'otros' | 'total' | 'status' | 'createdAt'> & { preaviso: number; cesantia: number; vacaciones: number; navidad: number; otros?: number; total: number; status?: string }) {
     const [inserted] = await db
       .insert(employeeSettlements)
       .values({
@@ -1014,7 +1015,7 @@ export class HRRepository {
 
   // ─── AUDIT TRAILS LOGGING ─────────────────────────────────────────────────
 
-  static async logAudit(companyId: string, modo: Modo, userId: string, action: string, entityType: string, entityId: string, oldValues?: any, newValues?: any) {
+  static async logAudit(companyId: string, modo: Modo, userId: string, action: string, entityType: string, entityId: string, oldValues?: unknown, newValues?: unknown) {
     await db.insert(auditLogs).values({
       companyId,
       modo,
