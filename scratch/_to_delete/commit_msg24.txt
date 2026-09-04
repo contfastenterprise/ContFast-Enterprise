@@ -1,0 +1,42 @@
+fix(P1-24): tipa 29 ': any' en 10 archivos (lote 7/N)
+
+Servicios: dgii/estadoEnvio, dgii/codigoSeguridad, dgii/desenlaceEnvio,
+dgii/credenciales, dgii/sincronizarPendientes, dgii/rncLookup,
+pdfGenerator, googleContactsService, print/pdfGenerator, apService.
+
+A diferencia de lotes anteriores, el nucleo (estadoEnvio.ts,
+codigoSeguridad.ts, desenlaceEnvio.ts -- 14 de las 29) tipa con
+`unknown` en vez de un tipo conocido de una sola vez: son funciones
+que recorren recursivamente una respuesta de mSeller/DGII de forma
+deliberadamente flexible (buscan claves a distintas profundidades
+porque mSeller cambia la forma segun el endpoint -- hasta reciben
+strings sueltos o null en los tests). `unknown` se angosta a
+`Record<string, unknown>` justo despues del `typeof === 'object'` que
+el codigo ya comprobaba en tiempo de ejecucion: no se inventa una
+forma, se declara lo que el codigo siempre supo -- que no conoce la
+forma de antemano.
+
+El resto sigue convenciones ya establecidas: `tx: any = db` -> `tx:
+typeof db = db` (credenciales.ts); `catch (x: any)` -> `catch (x:
+unknown)` con cast puntual a Error donde se leia `.message`
+(preservando el `?.` cuando el original lo tenia); anotaciones `any`
+redundantes en callbacks sobre resultados que ya venian tipados de una
+consulta drizzle, quitadas sin reemplazo; interfaces locales nuevas
+(WindowBreakdownItem, GlassCuttingPiece, GlassCuttingSheet) para los
+datos de corte de vidrio en pdfGenerator.ts.
+
+Bonus fuera del conteo: en sincronizarPendientes.ts se quita un cast
+`modo as any` -> `modo as Modo`, espejo del `modo as ModoSistema` que
+el mismo fichero ya usa unas lineas antes para el mismo `modo: string`
+suelto de un `.split('|')`.
+
+Verificado con scratch/verificar_p1_24_lote7.ts (39 comprobaciones),
+autovalidado con una replica en Python contra los archivos reales y
+con una contraprueba (10 reversiones representativas, una por
+archivo, en copia temporal -> exactamente esas 19 comprobaciones en
+rojo, ninguna otra). Los 10 archivos pasan el chequeo de balance de
+llaves/parentesis. Confirmado por el usuario: pnpm tsx
+scratch/verificar_p1_24_lote7.ts (39/39 OK) y pnpm build (compila).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AbXk5gs7hwWTAsAg9LisVB

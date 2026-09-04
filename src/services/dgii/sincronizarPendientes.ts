@@ -37,7 +37,7 @@ import { credencialesMseller } from '@/services/dgii/credenciales';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
-import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
+import { envioVigente, type Modo } from '@/repositories/dgiiSubmissionRepository';
 import { Logger } from '@/utils/logger';
 
 /** mSeller acepta como mucho 100 e-NCF por consulta. */
@@ -254,7 +254,7 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
           })
           .where(and(eq(invoices.id, factura.id), eq(invoices.companyId, companyId)));
 
-        const envio = await envioVigente(factura.id, companyId, modo as any);
+        const envio = await envioVigente(factura.id, companyId, modo as Modo);
         if (envio) {
           const codigo = leerCodigoSeguridad(r.data);
           await db.update(dgiiSubmissions)
@@ -272,9 +272,9 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
         if (lectura.estado === 'accepted') resumen.aceptados++;
         else if (lectura.estado === 'rejected') resumen.rechazados++;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Una empresa mal configurada no puede parar a las demas.
-      resumen.error = err?.message || 'Error desconocido';
+      resumen.error = (err as Error)?.message || 'Error desconocido';
       Logger.warn('[sincronizarPendientes] fallo en una empresa', {
         companyId, modo, error: resumen.error,
       });

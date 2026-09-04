@@ -46,8 +46,8 @@ async function getAccessToken(): Promise<string | null> {
 
     const data = await response.json() as { access_token: string };
     return data.access_token;
-  } catch (error: any) {
-    console.error('[GoogleContacts] Error refreshing access token:', error.message);
+  } catch (error: unknown) {
+    console.error('[GoogleContacts] Error refreshing access token:', (error as Error).message);
     return null;
   }
 }
@@ -85,8 +85,8 @@ async function findContactByEmail(accessToken: string, email: string): Promise<{
       }
     }
     return null;
-  } catch (error: any) {
-    console.error('[GoogleContacts] Search error:', error.message);
+  } catch (error: unknown) {
+    console.error('[GoogleContacts] Search error:', (error as Error).message);
     return null;
   }
 }
@@ -167,7 +167,7 @@ export async function syncCustomerToGoogleContacts(customer: {
         console.log(`[GoogleContacts] Successfully created contact: ${name}`);
       }
     }
-  } catch (err: any) {
-    console.error('[GoogleContacts] Synchronization process encountered a fatal error:', err.message);
+  } catch (err: unknown) {
+    console.error('[GoogleContacts] Synchronization process encountered a fatal error:', (err as Error).message);
   }
 }

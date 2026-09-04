@@ -147,9 +147,9 @@ export class PdfGenerator {
 
         const arrayBuffer = await response.arrayBuffer();
         return Buffer.from(arrayBuffer);
-      } catch (err: any) {
+      } catch (err: unknown) {
         clearTimeout(timeoutId);
-        throw new Error(`[PdfGenerator] External PDF service failed: ${err.message}`);
+        throw new Error(`[PdfGenerator] External PDF service failed: ${(err as Error).message}`);
       }
     }
 
@@ -213,8 +213,8 @@ export class PdfGenerator {
 
         const arrayBuffer = await response.arrayBuffer();
         return Buffer.from(arrayBuffer);
-      } catch (err: any) {
-        console.warn(`[PdfGenerator] External PDF service failed. Falling back to local Puppeteer. Error: ${err.message}`);
+      } catch (err: unknown) {
+        console.warn(`[PdfGenerator] External PDF service failed. Falling back to local Puppeteer. Error: ${(err as Error).message}`);
       }
     }
 

@@ -51,7 +51,7 @@ const NOMBRE: Record<string, string> = {
 export async function credencialesMseller(
   companyId: string,
   entorno: EntornoDgii,
-  tx: any = db
+  tx: typeof db = db
 ): Promise<CredencialesMseller> {
   const [ajustes] = await tx
     .select({
@@ -97,10 +97,10 @@ export async function credencialesMseller(
 }
 
 /** Qué ambientes tienen clave de API, para pintarlo en Ajustes. Sin secretos. */
-export async function entornosConCredenciales(companyId: string, tx: any = db): Promise<string[]> {
+export async function entornosConCredenciales(companyId: string, tx: typeof db = db): Promise<string[]> {
   const filas = await tx
     .select({ entorno: msellerApiKeys.entorno })
     .from(msellerApiKeys)
     .where(eq(msellerApiKeys.companyId, companyId));
-  return filas.map((f: any) => f.entorno);
+  return filas.map((f) => f.entorno);
 }

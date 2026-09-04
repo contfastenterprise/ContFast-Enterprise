@@ -16,6 +16,34 @@ interface CompanyInfo {
   address?: string;
 }
 
+interface WindowBreakdownItem {
+  tipo: string;
+  cantidad: number;
+  ancho: string;
+  altura: string;
+  vias: number;
+  cabezal?: string;
+  llavin?: string;
+  riel?: string;
+  lateral?: string;
+  vidrio?: string;
+}
+
+interface GlassCuttingPiece {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotated: boolean;
+  label: string;
+}
+
+interface GlassCuttingSheet {
+  id: string | number;
+  wastePercent: number;
+  placed: GlassCuttingPiece[];
+}
+
 export class PdfGenerator {
   // Utility function to fetch/read company logo buffer
   private static async getLogoBuffer(logoUrl?: string): Promise<Buffer | null> {
@@ -544,7 +572,7 @@ export class PdfGenerator {
     doc.fillColor('#000000').font('Courier').fontSize(9).text('Preparado por', 80, yLine + 8, { width: 150, align: 'center' });
   }
 
-  static generateWindowBreakdown(company: CompanyInfo, data: any[]): Promise<Buffer> {
+  static generateWindowBreakdown(company: CompanyInfo, data: WindowBreakdownItem[]): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
@@ -771,7 +799,7 @@ export class PdfGenerator {
     });
   }
 
-  static generateGlassCutting(company: CompanyInfo, sheets: any[], sheetWidth: number, sheetHeight: number): Promise<Buffer> {
+  static generateGlassCutting(company: CompanyInfo, sheets: GlassCuttingSheet[], sheetWidth: number, sheetHeight: number): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 30, size: 'A4', layout: sheetHeight > sheetWidth ? 'portrait' : 'landscape' });
@@ -834,7 +862,7 @@ export class PdfGenerator {
           }
 
           // Placed pieces
-          sheet.placed.forEach((p: any) => {
+          sheet.placed.forEach((p) => {
             const px = offsetX + (p.x * scale);
             const py = offsetY + (p.y * scale);
             const pw = (p.rotated ? p.height : p.width) * scale;

@@ -77,7 +77,7 @@ export class DGIIService {
         message: 'La API externa no devolvió datos válidos.'
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching RNC from dgiiapicloud:', error);
       return {
         success: false,

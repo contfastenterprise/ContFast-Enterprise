@@ -100,7 +100,7 @@ const MARCAS_RECHAZO: Array<[RegExp, string]> = [
  * valores. No hace falta mas para encontrar una marca, y evita recorrer una
  * respuesta enorme.
  */
-function textoDeRespuesta(raw: any, nivel = 0, recogidos: string[] = []): string {
+function textoDeRespuesta(raw: unknown, nivel = 0, recogidos: string[] = []): string {
   if (nivel > 4 || recogidos.length > 200 || raw == null) return recogidos.join(' | ');
 
   if (typeof raw === 'string') {
@@ -118,7 +118,7 @@ function textoDeRespuesta(raw: any, nivel = 0, recogidos: string[] = []): string
   }
 
   if (typeof raw === 'object') {
-    for (const v of Object.values(raw)) textoDeRespuesta(v, nivel + 1, recogidos);
+    for (const v of Object.values(raw as Record<string, unknown>)) textoDeRespuesta(v, nivel + 1, recogidos);
   }
   return recogidos.join(' | ');
 }
@@ -131,7 +131,7 @@ function textoDeRespuesta(raw: any, nivel = 0, recogidos: string[] = []): string
  * hay respuesta, solo el error -- y entonces no hay marcas, que es justo lo que
  * debe pasar.
  */
-export function leerDesenlace(mensaje: string | null | undefined, raw?: any): LecturaDesenlace {
+export function leerDesenlace(mensaje: string | null | undefined, raw?: unknown): LecturaDesenlace {
   const texto = (mensaje ?? '').trim();
 
   for (const [patron, marca] of MARCAS_RECHAZO) {

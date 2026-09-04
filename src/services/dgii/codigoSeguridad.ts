@@ -65,13 +65,14 @@ export interface DatosFirma {
 }
 
 /** Los objetos donde puede estar el dato: la respuesta y lo que trae anidado. */
-function candidatos(raw: any): any[] {
+function candidatos(raw: unknown): unknown[] {
   if (!raw || typeof raw !== 'object') return [];
-  const lista: any[] = [raw];
+  const r = raw as Record<string, unknown>;
+  const lista: unknown[] = [raw];
 
   // mSeller reenvia el veredicto de la DGII en `dgiiResponse`, que puede venir
   // como array de cadenas JSON, array de objetos, o un unico objeto/cadena.
-  const anidado = raw.dgiiResponse ?? raw.dgiiResponses ?? raw.respuestaDGII;
+  const anidado = r.dgiiResponse ?? r.dgiiResponses ?? r.respuestaDGII;
   const partes = Array.isArray(anidado) ? anidado : anidado != null ? [anidado] : [];
   for (const parte of partes) {
     try {
@@ -84,7 +85,7 @@ function candidatos(raw: any): any[] {
 
   // Algunas respuestas envuelven el cuerpo util.
   for (const envoltorio of ['data', 'result', 'documento', 'ecf']) {
-    const dentro = raw[envoltorio];
+    const dentro = r[envoltorio];
     if (dentro && typeof dentro === 'object') lista.push(dentro);
   }
 
@@ -95,10 +96,12 @@ function candidatos(raw: any): any[] {
  * Busca una clave entre los candidatos. Se exige `String` no vacio despues de
  * recortar: un `''`, un `null` o un `0` significan "no consta", no un valor.
  */
-function buscar(objetos: any[], claves: string[]): string {
+function buscar(objetos: unknown[], claves: string[]): string {
   for (const obj of objetos) {
+    if (!obj || typeof obj !== 'object') continue;
+    const o = obj as Record<string, unknown>;
     for (const clave of claves) {
-      const v = obj?.[clave];
+      const v = o[clave];
       if (v == null) continue;
       const s = String(v).trim();
       if (s !== '') return s;
@@ -111,7 +114,7 @@ function buscar(objetos: any[], claves: string[]): string {
  * Lee codigo de seguridad, QR y fecha de firma de una respuesta de mSeller.
  * Nunca inventa: lo que no consta vuelve vacio.
  */
-export function leerDatosFirma(raw: any): DatosFirma {
+export function leerDatosFirma(raw: unknown): DatosFirma {
   const objetos = candidatos(raw);
   return {
     codigo: buscar(objetos, CLAVES_CODIGO),
@@ -121,7 +124,7 @@ export function leerDatosFirma(raw: any): DatosFirma {
 }
 
 /** Atajo para quien solo quiere el codigo. */
-export function leerCodigoSeguridad(raw: any): string {
+export function leerCodigoSeguridad(raw: unknown): string {
   return leerDatosFirma(raw).codigo;
 }
 

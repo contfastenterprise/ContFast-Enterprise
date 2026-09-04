@@ -54,8 +54,9 @@ export interface LecturaEstado {
  * `dgiiResponse` es el que dio la DGII de verdad; `status` y `estado` en la
  * raiz los pone mSeller y pueden hablar de su propia gestion, no de la DGII.
  */
-export function textoEstado(raw: any): string | null {
+export function textoEstado(raw: unknown): string | null {
   if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
 
   // Lo que dijo la DGII, si viene anidado.
   //
@@ -71,9 +72,9 @@ export function textoEstado(raw: any): string | null {
   // El codigo que habia antes en las rutas de sincronizacion recorria TODAS y
   // se quedaba con la ultima. Al unificar la lectura aqui se perdio ese
   // detalle: la unificacion era correcta, la implementacion no.
-  if (Array.isArray(raw.dgiiResponse)) {
+  if (Array.isArray(r.dgiiResponse)) {
     let ultimo: string | null = null;
-    for (const item of raw.dgiiResponse) {
+    for (const item of r.dgiiResponse) {
       try {
         const p = typeof item === 'string' ? JSON.parse(item) : item;
         if (p?.estado != null && String(p.estado).trim() !== '') ultimo = String(p.estado);
@@ -84,7 +85,7 @@ export function textoEstado(raw: any): string | null {
     if (ultimo !== null) return ultimo;
   }
 
-  for (const campo of [raw.dgiiStatus, raw.estadoDGII, raw.status, raw.estado]) {
+  for (const campo of [r.dgiiStatus, r.estadoDGII, r.status, r.estado]) {
     if (campo != null && String(campo).trim() !== '') return String(campo);
   }
   return null;
@@ -93,7 +94,7 @@ export function textoEstado(raw: any): string | null {
 /**
  * Traduce la respuesta a un estado. Nunca devuelve `accepted` por defecto.
  */
-export function leerEstado(raw: any): LecturaEstado {
+export function leerEstado(raw: unknown): LecturaEstado {
   const textoCrudo = textoEstado(raw);
 
   // Sin estado no hay aceptacion. Se queda a la espera.
@@ -184,17 +185,17 @@ const MAX_CODIGO = 64;
 const MAX_FECHA = 40;
 const MAX_QR = 2048;
 
-export function extraerFirma(raw: any): Firma {
+export function extraerFirma(raw: unknown): Firma {
   const hallado: Firma = { codigoSeguridad: null, fechaFirma: null, enlaceQr: null };
-  const vistos = new Set<any>();
+  const vistos = new Set<unknown>();
 
-  const texto = (v: any): string | null => {
+  const texto = (v: unknown): string | null => {
     if (typeof v !== 'string') return null;
     const t = v.trim();
     return t === '' ? null : t;
   };
 
-  const visitar = (nodo: any, profundidad: number): void => {
+  const visitar = (nodo: unknown, profundidad: number): void => {
     if (nodo == null || profundidad > 6) return;
     if (hallado.codigoSeguridad && hallado.fechaFirma && hallado.enlaceQr) return;
 
@@ -211,7 +212,8 @@ export function extraerFirma(raw: any): Firma {
       return;
     }
 
-    if (typeof nodo !== 'object' || vistos.has(nodo)) return;
+    if (typeof nodo !== 'object') return;
+    if (vistos.has(nodo)) return;
     vistos.add(nodo);
 
     if (Array.isArray(nodo)) {
@@ -219,7 +221,7 @@ export function extraerFirma(raw: any): Firma {
       return;
     }
 
-    for (const [clave, valor] of Object.entries(nodo)) {
+    for (const [clave, valor] of Object.entries(nodo as Record<string, unknown>)) {
       const k = clave.toLowerCase().replace(/[_\s-]/g, '');
       if (!hallado.codigoSeguridad && CLAVES_CODIGO.has(k)) {
         hallado.codigoSeguridad = texto(valor);
@@ -248,7 +250,7 @@ export function extraerFirma(raw: any): Firma {
  * de modo que un `UPDATE` con esto NUNCA pisa un valor bueno con uno vacio: es
  * la regla que hacia falta para que sincronizar dejara de borrar la firma.
  */
-export function camposDeFirma(raw: any): {
+export function camposDeFirma(raw: unknown): {
   securityCode?: string;
   signatureDate?: string;
   qrUrl?: string;

@@ -95,7 +95,7 @@ export class ApService {
         ));
 
       for (const id of [input.debitAccountId, input.creditAccountId]) {
-        const cuenta = cuentas.find((c: any) => c.id === id);
+        const cuenta = cuentas.find((c) => c.id === id);
         if (!cuenta) {
           throw new Error('Una de las cuentas contables indicadas no existe o no pertenece a la empresa.');
         }
@@ -382,7 +382,7 @@ export class ApService {
       // silencio y quien confirmaba el cobro no se enteraba.
       const noAplicados: { checkId: string; cheque?: string; motivo: string }[] = [];
 
-      const encontrados = new Set(pendingChecks.map((i: any) => i.check.id));
+      const encontrados = new Set(pendingChecks.map((i) => i.check.id));
       for (const id of checkIds) {
         if (!encontrados.has(id)) {
           noAplicados.push({
