@@ -1,4 +1,4 @@
-import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, chartOfAccounts, auditLogs } from '@/db';
+import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, chartOfAccounts, auditLogs, type DbTransaction } from '@/db';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
@@ -460,7 +460,7 @@ export class ArRepository {
     }));
   }
 
-  private static async getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+  private static async getOrCreateAccount(tx: DbTransaction, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
     const [acc] = await tx
       .select()
       .from(chartOfAccounts)

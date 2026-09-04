@@ -137,7 +137,7 @@ export async function enforcePermission(
 ): Promise<void> {
   const allowed = await hasPermission(userId, roleName, roleId, companyId, module, action);
   if (!allowed) {
-    const err: any = new Error('No tiene permisos para realizar esta acción.');
+    const err: Error & { status?: number; code?: string } = new Error('No tiene permisos para realizar esta acción.');
     err.status = 403;
     err.code = 'INSUFFICIENT_PERMISSIONS';
     throw err;
@@ -203,7 +203,7 @@ export function isAdminOrSistemas(roleName: string): boolean {
 
 export function enforceAdminOrSistemas(roleName: string): void {
   if (!isAdminOrSistemas(roleName)) {
-    const err: any = new Error('No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden realizar esta acción.');
+    const err: Error & { status?: number; code?: string } = new Error('No tiene permisos para realizar esta acción. Solo usuarios de administración o sistemas pueden realizar esta acción.');
     err.status = 403;
     err.code = 'INSUFFICIENT_PERMISSIONS';
     throw err;
@@ -214,7 +214,7 @@ export function enforceAdminOrSistemas(roleName: string): void {
  * Seeds the default role permissions for a newly created company in the database.
  */
 export async function seedRolePermissionsForCompany(
-  tx: any,
+  tx: typeof db,
   companyId: string,
   insertedRoles: { id: string; name: string }[]
 ): Promise<void> {

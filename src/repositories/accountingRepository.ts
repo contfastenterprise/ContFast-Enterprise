@@ -11,6 +11,7 @@ import {
 } from '@/db';
 import { eq, and, desc, sql, isNull, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import type { DbTransaction } from '@/db';
 
 export interface NewAccount {
   companyId: string;
@@ -233,7 +234,7 @@ export class AccountingRepository {
     });
   }
 
-  static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: any = db): Promise<boolean> {
+  static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: typeof db = db): Promise<boolean> {
     const formattedDate = formatLocalDate(dateStr);
     
     // Auditoria JRN-11: aqui habia un "auto-bootstrap". Si la empresa no tenia
@@ -264,14 +265,14 @@ export class AccountingRepository {
     return !!period;
   }
 
-  static async createJournalEntry(txOrData: any, dataInput?: CreateJournalEntryInput | NewJournalEntry) {
-    let tx: any = db;
+  static async createJournalEntry(txOrData: DbTransaction | CreateJournalEntryInput | NewJournalEntry, dataInput?: CreateJournalEntryInput | NewJournalEntry) {
+    let tx: typeof db = db;
     let data: CreateJournalEntryInput | NewJournalEntry;
 
     if (dataInput === undefined) {
-      data = txOrData;
+      data = txOrData as CreateJournalEntryInput | NewJournalEntry;
     } else {
-      tx = txOrData;
+      tx = txOrData as DbTransaction;
       data = dataInput;
     }
 
@@ -319,7 +320,7 @@ export class AccountingRepository {
     // haber contra 1.1.01. El saldo del modulo de bancos subio y el mayor no se
     // movio. Ninguna de las validaciones anteriores lo detecta, porque cada
     // linea es valida por separado y los totales cuadran.
-    const cuentasDistintas = new Set(data.lines.map((line: any) => line.accountId));
+    const cuentasDistintas = new Set(data.lines.map((line) => line.accountId));
     if (cuentasDistintas.size < 2) {
       throw new Error(
         'Todas las líneas del asiento usan la misma cuenta contable: el asiento no tendría ningún efecto. ' +
@@ -329,7 +330,7 @@ export class AccountingRepository {
 
     const formattedDate = formatLocalDate(data.date);
 
-    const executeInsertion = async (transactionContext: any) => {
+    const executeInsertion = async (transactionContext: DbTransaction) => {
       // 2. Validate open period
       const isOpen = await this.isPeriodOpen(data.companyId, formattedDate, data.modo, transactionContext);
       if (!isOpen) {
@@ -366,9 +367,9 @@ export class AccountingRepository {
           eq(chartOfAccounts.companyId, data.companyId)
         ));
 
-      const cuentaPorId = new Map(cuentasEncontradas.map((c: any) => [c.id, c]));
+      const cuentaPorId = new Map(cuentasEncontradas.map((c) => [c.id, c]));
       for (const cuentaId of idsDeCuentas) {
-        const cuenta: any = cuentaPorId.get(cuentaId);
+        const cuenta = cuentaPorId.get(cuentaId);
         if (!cuenta) {
           throw new Error(`El asiento incluye una cuenta contable (id ${cuentaId}) que no existe o no pertenece a esta empresa.`);
         }
@@ -420,14 +421,14 @@ export class AccountingRepository {
         return await executeInsertion(newTx);
       });
     } else {
-      return await executeInsertion(tx);
+      return await executeInsertion(tx as DbTransaction);
     }
   }
 
   // ==========================================
   // AUXILIAR BALANCES (RLS Tenancy Helpers)
   // ==========================================
-  static async createAccountsReceivable(tx: any, data: {
+  static async createAccountsReceivable(tx: DbTransaction, data: {
     companyId: string;
     customerId: string;
     invoiceId: string;
@@ -451,7 +452,7 @@ export class AccountingRepository {
     return ar;
   }
 
-  static async createAccountsPayable(tx: any, data: {
+  static async createAccountsPayable(tx: DbTransaction, data: {
     companyId: string;
     supplierId: string;
     amount: number;
@@ -504,12 +505,12 @@ export class AccountingRepository {
 
     // Auto-seed mappings if any are missing (for legacy companies)
     if (mappings.length < defaultMappings.length && chart.length > 0) {
-      const existingKeys = new Set(mappings.map((m: any) => m.mappingKey));
+      const existingKeys = new Set(mappings.map((m) => m.mappingKey));
       const toInsert = [];
 
       for (const mapping of defaultMappings) {
         if (!existingKeys.has(mapping.key)) {
-          const account = chart.find((a: any) => a.code === mapping.code);
+          const account = chart.find((a) => a.code === mapping.code);
           if (account) {
             toInsert.push({
               id: uuidv4(),
@@ -597,10 +598,10 @@ export class AccountingRepository {
    */
   public static async sembrarPeriodosContables(
     companyId: string,
-    externalTx?: any,
+    externalTx?: DbTransaction,
     desde: Date = new Date()
   ): Promise<number> {
-    const execute = async (tx: any) => {
+    const execute = async (tx: DbTransaction) => {
       const anio = desde.getFullYear();
       const primerMes = desde.getMonth() + 1;
 
@@ -609,7 +610,7 @@ export class AccountingRepository {
         .from(accountingPeriods)
         .where(eq(accountingPeriods.companyId, companyId));
 
-      const yaEstan = new Set(existentes.map((p: any) => `${p.modo}|${p.startDate}`));
+      const yaEstan = new Set(existentes.map((p) => `${p.modo}|${p.startDate}`));
 
       const faltantes: { entorno: 'PRODUCCION' | 'PRUEBA'; mes: number }[] = [];
       for (const entorno of ['PRODUCCION', 'PRUEBA'] as const) {
@@ -650,8 +651,8 @@ export class AccountingRepository {
     return externalTx ? await execute(externalTx) : await db.transaction(execute);
   }
 
-  public static async seedDefaultChartOfAccounts(companyId: string, externalTx?: any) {
-    const execute = async (tx: any) => {
+  public static async seedDefaultChartOfAccounts(companyId: string, externalTx?: DbTransaction) {
+    const execute = async (tx: DbTransaction) => {
       // Standard Dominican Chart of Accounts
       const accountsList = [
         { code: '1', name: 'Activos', type: 'asset', nature: 'debit', isTransactional: false },
@@ -998,8 +999,8 @@ export class AccountingRepository {
     };
   }
 
-  public static async seedDefaultExpenseTypes(companyId: string, externalTx?: any) {
-    const execute = async (tx: any) => {
+  public static async seedDefaultExpenseTypes(companyId: string, externalTx?: DbTransaction) {
+    const execute = async (tx: DbTransaction) => {
       const defaultTypes = [
         { code: '01', name: 'Gastos de Personal' },
         { code: '02', name: 'Trabajos, Suministros y Servicios' },

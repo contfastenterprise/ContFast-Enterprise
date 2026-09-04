@@ -1,6 +1,6 @@
-import { db } from '@/db';
+import { db, type DbTransaction } from '@/db';
 import { accountsPayable, apPayments, checks, suppliers, chartOfAccounts, bankAccounts, cashSessions } from '@/db/schema';
-import { eq, and, sql, desc, isNull, lte, gte, ilike, or, inArray } from 'drizzle-orm';
+import { eq, and, sql, desc, isNull, lte, gte, ilike, or, inArray, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { CashRepository } from '@/repositories/cashRepository';
 
@@ -119,7 +119,7 @@ export class ApRepository {
   /**
    * Registers a payment record in the database.
    */
-  static async createPayment(tx: any, data: {
+  static async createPayment(tx: DbTransaction, data: {
     companyId: string;
     modo: 'PRODUCCION' | 'PRUEBA';
     apId: string;
@@ -171,7 +171,7 @@ export class ApRepository {
    * Devuelve null si la cuenta no existe, no es de la empresa o esta borrada.
    */
   static async bloquearAp(
-    tx: any,
+    tx: DbTransaction,
     id: string,
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA'
@@ -202,7 +202,7 @@ export class ApRepository {
    * Devuelve true si este proceso fue el que lo cobro.
    */
   static async marcarChequeCobrado(
-    tx: any,
+    tx: DbTransaction,
     checkId: string,
     companyId: string,
     fechaCobro: string
@@ -224,7 +224,7 @@ export class ApRepository {
    * Contraparte de `marcarChequeCobrado`; ver su nota.
    */
   static async marcarPagoAplicado(
-    tx: any,
+    tx: DbTransaction,
     paymentId: string,
     companyId: string
   ): Promise<boolean> {
@@ -240,7 +240,7 @@ export class ApRepository {
     return filas.length > 0;
   }
 
-  static async updateApBalance(tx: any, id: string, companyId: string, newBalance: number) {
+  static async updateApBalance(tx: DbTransaction, id: string, companyId: string, newBalance: number) {
     const status = newBalance <= 0.01 ? 'paid' : 'pending';
     const [updated] = await tx.update(accountsPayable)
       .set({
@@ -259,7 +259,7 @@ export class ApRepository {
   /**
    * Registers a check in the database.
    */
-  static async createCheck(tx: any, data: {
+  static async createCheck(tx: DbTransaction, data: {
     companyId: string;
     modo: 'PRODUCCION' | 'PRUEBA';
     bankAccountId: string;
@@ -318,7 +318,7 @@ export class ApRepository {
     const debitAccount = alias(chartOfAccounts, 'debit_account');
     const creditAccount = alias(chartOfAccounts, 'credit_account');
 
-    let conditions: any[] = [
+    let conditions: SQL[] = [
       eq(apPayments.companyId, companyId)
     ];
     if (filters?.modo) {
@@ -434,7 +434,7 @@ export class ApRepository {
     modo: 'PRODUCCION' | 'PRUEBA',
     checkIds?: string[]
   ) {
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       eq(checks.companyId, companyId),
       eq(checks.isGuarantee, true),
       eq(checks.status, 'pending'),
