@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { suppliers } from './contacts';
 import { users } from './auth';
@@ -37,6 +37,18 @@ export const purchaseOrders = pgTable('purchase_orders', {
   companySeqIdx: uniqueIndex('purchase_orders_company_num_modo_idx').on(table.companyId, table.orderNumber, table.modo),
   statusIdx: index('purchase_orders_status_idx').on(table.status),
   supplierIdx: index('purchase_orders_supplier_idx').on(table.supplierId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('purchase_orders_id_company_uq').on(table.id, table.companyId),
+  supplierCompanyFk: foreignKey({
+    columns: [table.supplierId, table.companyId],
+    foreignColumns: [suppliers.id, suppliers.companyId],
+    name: 'purchase_orders_supplier_id_company_fk',
+  }),
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'purchase_orders_warehouse_id_company_fk',
+  }),
 }));
 
 export const purchaseOrderItems = pgTable('purchase_order_items', {

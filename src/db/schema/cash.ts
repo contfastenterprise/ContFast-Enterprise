@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 import { invoices } from './invoices';
@@ -16,6 +16,8 @@ export const cashRegisters = pgTable('cash_registers', {
 }, (table) => ({
   companyCodeIdx: uniqueIndex('cash_registers_company_code_idx').on(table.companyId, table.code),
   statusIdx: index('cash_registers_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('cash_registers_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const cashSessions = pgTable('cash_sessions', {
@@ -40,6 +42,13 @@ export const cashSessions = pgTable('cash_sessions', {
   companyIdx: index('cash_sessions_company_idx').on(table.companyId),
   cashierActiveIdx: index('cash_sessions_cashier_active_idx').on(table.userId, table.status),
   companyModoIdx: index('cash_sessions_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('cash_sessions_id_company_uq').on(table.id, table.companyId),
+  cashRegisterCompanyFk: foreignKey({
+    columns: [table.cashRegisterId, table.companyId],
+    foreignColumns: [cashRegisters.id, cashRegisters.companyId],
+    name: 'cash_sessions_cash_register_id_company_fk',
+  }),
 }));
 
 export const cashMovements = pgTable('cash_movements', {
@@ -58,6 +67,17 @@ export const cashMovements = pgTable('cash_movements', {
   companyIdx: index('cash_movements_company_idx').on(table.companyId),
   sessionIdx: index('cash_movements_session_idx').on(table.cashSessionId),
   companyModoIdx: index('cash_movements_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  cashSessionCompanyFk: foreignKey({
+    columns: [table.cashSessionId, table.companyId],
+    foreignColumns: [cashSessions.id, cashSessions.companyId],
+    name: 'cash_movements_cash_session_id_company_fk',
+  }),
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'cash_movements_invoice_id_company_fk',
+  }),
 }));
 
 export const cashSessionSummary = pgTable('cash_session_summary', {
@@ -78,4 +98,10 @@ export const cashSessionSummary = pgTable('cash_session_summary', {
   companyIdx: index('cash_session_summary_company_idx').on(table.companyId),
   sessionIdx: uniqueIndex('cash_session_summary_sess_idx').on(table.cashSessionId),
   companyModoIdx: index('cash_session_summary_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  cashSessionCompanyFk: foreignKey({
+    columns: [table.cashSessionId, table.companyId],
+    foreignColumns: [cashSessions.id, cashSessions.companyId],
+    name: 'cash_session_summary_cash_session_id_company_fk',
+  }),
 }));

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex, pgView, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, index, uniqueIndex, pgView, integer, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { companies } from './companies';
 import { users } from './auth';
@@ -15,6 +15,8 @@ export const productCategories = pgTable('product_categories', {
 }, (table) => ({
   companyIdx: index('prod_categories_company_idx').on(table.companyId),
   statusIdx: index('prod_categories_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('product_categories_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const products = pgTable('products', {
@@ -52,6 +54,13 @@ export const products = pgTable('products', {
   skuIdx: index('products_sku_idx').on(table.companyId, table.sku),
   statusIdx: index('products_status_idx').on(table.status),
   barcodeIdx: index('products_barcode_idx').on(table.companyId, table.barcode),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('products_id_company_uq').on(table.id, table.companyId),
+  categoryCompanyFk: foreignKey({
+    columns: [table.categoryId, table.companyId],
+    foreignColumns: [productCategories.id, productCategories.companyId],
+    name: 'products_category_id_company_fk',
+  }),
 }));
 
 export const priceLists = pgTable('price_lists', {
@@ -67,6 +76,8 @@ export const priceLists = pgTable('price_lists', {
   companyIdx: index('price_lists_company_idx').on(table.companyId),
   isPublicIdx: index('price_lists_is_public_idx').on(table.isPublic),
   statusIdx: index('price_lists_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('price_lists_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const priceListItems = pgTable('price_list_items', {
@@ -81,6 +92,17 @@ export const priceListItems = pgTable('price_list_items', {
 }, (table) => ({
   listProductIdx: uniqueIndex('price_list_items_list_prod_idx').on(table.priceListId, table.productId),
   companyIdx: index('price_list_items_company_idx').on(table.companyId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  priceListCompanyFk: foreignKey({
+    columns: [table.priceListId, table.companyId],
+    foreignColumns: [priceLists.id, priceLists.companyId],
+    name: 'price_list_items_price_list_id_company_fk',
+  }),
+  productCompanyFk: foreignKey({
+    columns: [table.productId, table.companyId],
+    foreignColumns: [products.id, products.companyId],
+    name: 'price_list_items_product_id_company_fk',
+  }),
 }));
 
 export const vPublicPriceLists = pgView('v_public_price_lists', {
@@ -155,6 +177,12 @@ export const productBarcodes = pgTable('product_barcodes', {
   companyIdx: index('prod_barcodes_company_idx').on(table.companyId),
   productIdx: index('prod_barcodes_product_idx').on(table.productId),
   barcodeIdx: uniqueIndex('prod_barcodes_barcode_idx').on(table.companyId, table.barcode),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  productCompanyFk: foreignKey({
+    columns: [table.productId, table.companyId],
+    foreignColumns: [products.id, products.companyId],
+    name: 'product_barcodes_product_id_company_fk',
+  }),
 }));
 
 export const barcodePrintLogs = pgTable('barcode_print_logs', {
@@ -167,5 +195,11 @@ export const barcodePrintLogs = pgTable('barcode_print_logs', {
 }, (table) => ({
   companyIdx: index('barcode_print_logs_company_idx').on(table.companyId),
   productIdx: index('barcode_print_logs_product_idx').on(table.productId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  productCompanyFk: foreignKey({
+    columns: [table.productId, table.companyId],
+    foreignColumns: [products.id, products.companyId],
+    name: 'barcode_print_logs_product_id_company_fk',
+  }),
 }));
 

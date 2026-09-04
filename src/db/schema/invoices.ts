@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex, boolean, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { warehouses } from './inventory';
 import { customers } from './contacts';
@@ -84,6 +84,18 @@ export const quotes = pgTable('quotes', {
 }, (table) => ({
   companySeqIdx: uniqueIndex('quotes_company_seq_modo_idx').on(table.companyId, table.sequenceNumber, table.modo),
   statusIdx: index('quotes_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('quotes_id_company_uq').on(table.id, table.companyId),
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'quotes_warehouse_id_company_fk',
+  }),
+  customerCompanyFk: foreignKey({
+    columns: [table.customerId, table.companyId],
+    foreignColumns: [customers.id, customers.companyId],
+    name: 'quotes_customer_id_company_fk',
+  }),
 }));
 
 export const quoteLines = pgTable('quote_lines', {
@@ -193,6 +205,28 @@ export const invoices = pgTable('invoices', {
   codigoFacturaIdx: uniqueIndex('invoices_company_codigo_factura_modo_idx')
     .on(table.companyId, table.codigoFactura, table.modo),
   companyStatusCreatedIdx: index('invoices_comp_status_created_modo_idx').on(table.companyId, table.status, table.createdAt, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('invoices_id_company_uq').on(table.id, table.companyId),
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'invoices_warehouse_id_company_fk',
+  }),
+  customerCompanyFk: foreignKey({
+    columns: [table.customerId, table.companyId],
+    foreignColumns: [customers.id, customers.companyId],
+    name: 'invoices_customer_id_company_fk',
+  }),
+  cashSessionCompanyFk: foreignKey({
+    columns: [table.cashSessionId, table.companyId],
+    foreignColumns: [cashSessions.id, cashSessions.companyId],
+    name: 'invoices_cash_session_id_company_fk',
+  }),
+  quoteCompanyFk: foreignKey({
+    columns: [table.quoteId, table.companyId],
+    foreignColumns: [quotes.id, quotes.companyId],
+    name: 'invoices_quote_id_company_fk',
+  }),
 }));
 
 export const invoiceLines = pgTable('invoice_lines', {
@@ -260,6 +294,12 @@ export const creditDebitNotes = pgTable('credit_debit_notes', {
   companyIdx: index('credit_debit_notes_company_idx').on(table.companyId),
   invoiceIdx: index('credit_debit_notes_invoice_idx').on(table.invoiceId),
   companyModoIdx: index('credit_debit_notes_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'credit_debit_notes_invoice_id_company_fk',
+  }),
 }));
 
 export const deliveryNotes = pgTable('delivery_notes', {
@@ -287,6 +327,12 @@ export const deliveryNotes = pgTable('delivery_notes', {
   companyIdx: index('delivery_notes_company_idx').on(table.companyId),
   invoiceIdx: index('delivery_notes_invoice_idx').on(table.invoiceId),
   deliveryNumIdx: uniqueIndex('delivery_notes_num_modo_idx').on(table.companyId, table.deliveryNumber, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'delivery_notes_invoice_id_company_fk',
+  }),
 }));
 
 export const deliveryNoteLines = pgTable('delivery_note_lines', {
@@ -324,6 +370,12 @@ export const dgiiSubmissions = pgTable('dgii_submissions', {
   invoiceIdx: index('dgii_submissions_invoice_idx').on(table.invoiceId),
   statusIdx: index('dgii_submissions_status_idx').on(table.status),
   companyModoIdx: index('dgii_submissions_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'dgii_submissions_invoice_id_company_fk',
+  }),
 }));
 
 export const retentions = pgTable('retentions', {

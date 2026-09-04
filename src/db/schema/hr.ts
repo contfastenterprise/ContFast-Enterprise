@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 import { environmentMode } from './system';
@@ -13,6 +13,8 @@ export const departments = pgTable('departments', {
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('departments_company_idx').on(table.companyId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('departments_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const positions = pgTable('positions', {
@@ -25,6 +27,8 @@ export const positions = pgTable('positions', {
   deletedAt: timestamp('deleted_at'),
 }, (table) => ({
   companyIdx: index('positions_company_idx').on(table.companyId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('positions_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const employees = pgTable('employees', {
@@ -57,6 +61,18 @@ export const employees = pgTable('employees', {
   companyIdx: index('employees_company_idx').on(table.companyId),
   codeIdx: index('employees_code_idx').on(table.employeeCode),
   cedulaIdx: index('employees_cedula_idx').on(table.cedula),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('employees_id_company_uq').on(table.id, table.companyId),
+  departmentCompanyFk: foreignKey({
+    columns: [table.departmentId, table.companyId],
+    foreignColumns: [departments.id, departments.companyId],
+    name: 'employees_department_id_company_fk',
+  }),
+  positionCompanyFk: foreignKey({
+    columns: [table.positionId, table.companyId],
+    foreignColumns: [positions.id, positions.companyId],
+    name: 'employees_position_id_company_fk',
+  }),
 }));
 
 export const payrolls = pgTable('payrolls', {
@@ -75,6 +91,8 @@ export const payrolls = pgTable('payrolls', {
 }, (table) => ({
   companyIdx: index('payrolls_company_idx').on(table.companyId),
   companyModoIdx: index('payrolls_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('payrolls_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const payrollDetails = pgTable('payroll_details', {
@@ -105,6 +123,17 @@ export const payrollDetails = pgTable('payroll_details', {
   payrollIdx: index('payroll_details_payroll_idx').on(table.payrollId),
   employeeIdx: index('payroll_details_employee_idx').on(table.employeeId),
   companyModoIdx: index('payroll_details_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  payrollCompanyFk: foreignKey({
+    columns: [table.payrollId, table.companyId],
+    foreignColumns: [payrolls.id, payrolls.companyId],
+    name: 'payroll_details_payroll_id_company_fk',
+  }),
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'payroll_details_employee_id_company_fk',
+  }),
 }));
 
 export const overtimeRecords = pgTable('overtime_records', {
@@ -122,6 +151,12 @@ export const overtimeRecords = pgTable('overtime_records', {
   companyIdx: index('overtime_records_company_idx').on(table.companyId),
   employeeIdx: index('overtime_records_employee_idx').on(table.employeeId),
   companyModoIdx: index('overtime_records_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'overtime_records_employee_id_company_fk',
+  }),
 }));
 
 export const employeeIncome = pgTable('employee_income', {
@@ -139,6 +174,12 @@ export const employeeIncome = pgTable('employee_income', {
   companyIdx: index('employee_income_company_idx').on(table.companyId),
   employeeIdx: index('employee_income_employee_idx').on(table.employeeId),
   companyModoIdx: index('employee_income_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'employee_income_employee_id_company_fk',
+  }),
 }));
 
 export const employeeDeductions = pgTable('employee_deductions', {
@@ -156,6 +197,12 @@ export const employeeDeductions = pgTable('employee_deductions', {
   companyIdx: index('employee_deductions_company_idx').on(table.companyId),
   employeeIdx: index('employee_deductions_employee_idx').on(table.employeeId),
   companyModoIdx: index('employee_deductions_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'employee_deductions_employee_id_company_fk',
+  }),
 }));
 
 export const employeeVacations = pgTable('employee_vacations', {
@@ -171,6 +218,12 @@ export const employeeVacations = pgTable('employee_vacations', {
 }, (table) => ({
   companyIdx: index('employee_vacations_company_idx').on(table.companyId),
   employeeIdx: uniqueIndex('employee_vacations_employee_modo_idx').on(table.employeeId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'employee_vacations_employee_id_company_fk',
+  }),
 }));
 
 export const employeeLeaves = pgTable('employee_leaves', {
@@ -188,6 +241,12 @@ export const employeeLeaves = pgTable('employee_leaves', {
   companyIdx: index('employee_leaves_company_idx').on(table.companyId),
   employeeIdx: index('employee_leaves_employee_idx').on(table.employeeId),
   companyModoIdx: index('employee_leaves_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'employee_leaves_employee_id_company_fk',
+  }),
 }));
 
 export const employeeSettlements = pgTable('employee_settlements', {
@@ -208,6 +267,12 @@ export const employeeSettlements = pgTable('employee_settlements', {
   companyIdx: index('employee_settlements_company_idx').on(table.companyId),
   employeeIdx: index('employee_settlements_employee_idx').on(table.employeeId),
   companyModoIdx: index('employee_settlements_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  employeeCompanyFk: foreignKey({
+    columns: [table.employeeId, table.companyId],
+    foreignColumns: [employees.id, employees.companyId],
+    name: 'employee_settlements_employee_id_company_fk',
+  }),
 }));
 
 export const isrBrackets = pgTable('isr_brackets', {

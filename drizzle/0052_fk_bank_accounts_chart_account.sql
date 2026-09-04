@@ -1,3 +1,19 @@
+-- ============================================================================
+-- NOTA (P1-19, 2026-09-04): esta migracion nunca se aplico contra la base
+-- real, y es REDUNDANTE. La migracion 0039 (2026-09-01, dos dias antes de
+-- la auditoria que genero este hallazgo P1-20) ya habia agregado una FK
+-- para chart_account_id -- compuesta (chart_account_id, company_id), mejor
+-- que la simple que se agrega aqui abajo -- y ESA es la que existe en
+-- produccion: `bank_accounts_chart_account_company_fk`.
+--
+-- Se deja este archivo tal cual, sin aplicar, solo como registro historico
+-- de que P1-20 se investigo y de por que no hacia falta ninguna accion:
+-- 0039 ya lo habia resuelto antes de que la auditoria lo senalara. NO
+-- ejecutar esta migracion -- crearia una segunda FK simple, redundante con
+-- la compuesta de 0039. schema.ts declara unicamente la de 0039
+-- (`chartAccountCompanyFk` en src/db/schema/bank.ts).
+-- ============================================================================
+
 -- 0052 — FK ausente en bank_accounts.chart_account_id (P1-20).
 --
 -- EL PROBLEMA (auditoria 2026-09-03, hallazgo P1-20)

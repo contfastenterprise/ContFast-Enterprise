@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, date, index, uniqueIndex, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, decimal, date, index, uniqueIndex, integer, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { companies } from './companies';
 import { customers, suppliers } from './contacts';
@@ -27,6 +27,9 @@ export const chartOfAccounts = pgTable('chart_of_accounts', {
 }, (table) => ({
   companyCodeIdx: uniqueIndex('chart_accounts_company_code_idx').on(table.companyId, table.code),
   statusIdx: index('chart_accounts_status_idx').on(table.status),
+  // P1-19 / migracion 0032: permite que otras tablas referencien (id,
+  // company_id) con una FK compuesta -- ver drizzle/0032_aislamiento_estructural.sql.
+  idCompanyUq: unique('chart_of_accounts_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const journalEntries = pgTable('journal_entries', {
@@ -59,6 +62,8 @@ export const journalEntries = pgTable('journal_entries', {
   dateIdx: index('journal_entries_date_idx').on(table.date),
   companyStatusDateIdx: index('journal_entries_comp_status_date_idx').on(table.companyId, table.status, table.date),
   companyModoIdx: index('journal_entries_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('journal_entries_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const journalEntryLines = pgTable('journal_entry_lines', {
@@ -78,6 +83,18 @@ export const journalEntryLines = pgTable('journal_entry_lines', {
   companyAccountIdx: index('journal_entry_lines_comp_acc_idx').on(table.companyId, table.accountId),
   accCreatedIdx: index('journal_entry_lines_acc_created_idx').on(table.accountId, table.createdAt),
   companyModoIdx: index('journal_entry_lines_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural -- impide que un asiento
+  // de una empresa reference un renglon/cuenta de otra.
+  journalEntryCompanyFk: foreignKey({
+    columns: [table.journalEntryId, table.companyId],
+    foreignColumns: [journalEntries.id, journalEntries.companyId],
+    name: 'journal_entry_lines_journal_entry_id_company_fk',
+  }),
+  accountCompanyFk: foreignKey({
+    columns: [table.accountId, table.companyId],
+    foreignColumns: [chartOfAccounts.id, chartOfAccounts.companyId],
+    name: 'journal_entry_lines_account_id_company_fk',
+  }),
 }));
 
 export const accountsReceivable = pgTable('accounts_receivable', {
@@ -98,6 +115,17 @@ export const accountsReceivable = pgTable('accounts_receivable', {
   customerIdx: index('ar_customer_idx').on(table.customerId),
   invoiceIdx: index('ar_invoice_idx').on(table.invoiceId),
   companyModoIdx: index('ar_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  customerCompanyFk: foreignKey({
+    columns: [table.customerId, table.companyId],
+    foreignColumns: [customers.id, customers.companyId],
+    name: 'accounts_receivable_customer_id_company_fk',
+  }),
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'accounts_receivable_invoice_id_company_fk',
+  }),
 }));
 
 export const customerReceipts = pgTable('customer_receipts', {
@@ -122,6 +150,12 @@ export const customerReceipts = pgTable('customer_receipts', {
   customerIdx: index('cust_receipts_customer_idx').on(table.customerId),
   dateIdx: index('cust_receipts_date_idx').on(table.date),
   companyModoIdx: index('cust_receipts_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  customerCompanyFk: foreignKey({
+    columns: [table.customerId, table.companyId],
+    foreignColumns: [customers.id, customers.companyId],
+    name: 'customer_receipts_customer_id_company_fk',
+  }),
 }));
 
 export const customerReceiptApplied = pgTable('customer_receipt_applied', {
@@ -153,6 +187,18 @@ export const accountsPayable = pgTable('accounts_payable', {
   companyIdx: index('ap_company_idx').on(table.companyId),
   supplierIdx: index('ap_supplier_idx').on(table.supplierId),
   companyModoIdx: index('ap_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('accounts_payable_id_company_uq').on(table.id, table.companyId),
+  supplierCompanyFk: foreignKey({
+    columns: [table.supplierId, table.companyId],
+    foreignColumns: [suppliers.id, suppliers.companyId],
+    name: 'accounts_payable_supplier_id_company_fk',
+  }),
+  purchaseOrderCompanyFk: foreignKey({
+    columns: [table.purchaseOrderId, table.companyId],
+    foreignColumns: [purchaseOrders.id, purchaseOrders.companyId],
+    name: 'accounts_payable_purchase_order_id_company_fk',
+  }),
 }));
 
 export const supplierPayments = pgTable('supplier_payments', {
@@ -173,6 +219,12 @@ export const supplierPayments = pgTable('supplier_payments', {
   supplierIdx: index('supp_pay_supplier_idx').on(table.supplierId),
   dateIdx: index('supp_pay_date_idx').on(table.date),
   companyModoIdx: index('supp_pay_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  supplierCompanyFk: foreignKey({
+    columns: [table.supplierId, table.companyId],
+    foreignColumns: [suppliers.id, suppliers.companyId],
+    name: 'supplier_payments_supplier_id_company_fk',
+  }),
 }));
 
 export const supplierPaymentApplied = pgTable('supplier_payment_applied', {
@@ -211,6 +263,18 @@ export const checks = pgTable('checks', {
   clearedDateIdx: index('checks_cleared_date_idx').on(table.clearedDate),
   statusIdx: index('checks_status_idx').on(table.status),
   apIdx: index('checks_ap_idx').on(table.apId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('checks_id_company_uq').on(table.id, table.companyId),
+  bankAccountCompanyFk: foreignKey({
+    columns: [table.bankAccountId, table.companyId],
+    foreignColumns: [bankAccounts.id, bankAccounts.companyId],
+    name: 'checks_bank_account_id_company_fk',
+  }),
+  apCompanyFk: foreignKey({
+    columns: [table.apId, table.companyId],
+    foreignColumns: [accountsPayable.id, accountsPayable.companyId],
+    name: 'checks_ap_id_company_fk',
+  }),
 }));
 
 export const apPayments = pgTable('ap_payments', {
@@ -236,6 +300,27 @@ export const apPayments = pgTable('ap_payments', {
   apIdx: index('ap_payments_ap_idx').on(table.apId),
   statusIdx: index('ap_payments_status_idx').on(table.status),
   companyModoIdx: index('ap_payments_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  apCompanyFk: foreignKey({
+    columns: [table.apId, table.companyId],
+    foreignColumns: [accountsPayable.id, accountsPayable.companyId],
+    name: 'ap_payments_ap_id_company_fk',
+  }),
+  checkCompanyFk: foreignKey({
+    columns: [table.checkId, table.companyId],
+    foreignColumns: [checks.id, checks.companyId],
+    name: 'ap_payments_check_id_company_fk',
+  }),
+  debitAccountCompanyFk: foreignKey({
+    columns: [table.debitAccountId, table.companyId],
+    foreignColumns: [chartOfAccounts.id, chartOfAccounts.companyId],
+    name: 'ap_payments_debit_account_id_company_fk',
+  }),
+  creditAccountCompanyFk: foreignKey({
+    columns: [table.creditAccountId, table.companyId],
+    foreignColumns: [chartOfAccounts.id, chartOfAccounts.companyId],
+    name: 'ap_payments_credit_account_id_company_fk',
+  }),
 }));
 
 export const expenses = pgTable('expenses', {
@@ -269,6 +354,17 @@ export const expenses = pgTable('expenses', {
   issueDateIdx: index('expense_issue_date_idx').on(table.issueDate),
   companyIssueDateIdx: index('expense_comp_issue_date_idx').on(table.companyId, table.issueDate),
   companyModoIdx: index('expense_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'expenses_warehouse_id_company_fk',
+  }),
+  supplierCompanyFk: foreignKey({
+    columns: [table.supplierId, table.companyId],
+    foreignColumns: [suppliers.id, suppliers.companyId],
+    name: 'expenses_supplier_id_company_fk',
+  }),
 }));
 
 export const expenseLines = pgTable('expense_lines', {
@@ -363,6 +459,17 @@ export const financialMovements = pgTable('financial_movements', {
   companyModoTypeDocUniqueIdx: uniqueIndex('fin_mov_company_modo_type_doc_uniq')
     .on(table.companyId, table.modo, table.movementType, table.documentId)
     .where(sql`status = 'active'`),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  customerCompanyFk: foreignKey({
+    columns: [table.customerId, table.companyId],
+    foreignColumns: [customers.id, customers.companyId],
+    name: 'financial_movements_customer_id_company_fk',
+  }),
+  supplierCompanyFk: foreignKey({
+    columns: [table.supplierId, table.companyId],
+    foreignColumns: [suppliers.id, suppliers.companyId],
+    name: 'financial_movements_supplier_id_company_fk',
+  }),
 }));
 
 export const expenseTypes = pgTable('expense_types', {

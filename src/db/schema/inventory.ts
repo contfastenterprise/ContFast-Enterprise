@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 import { products } from './products';
@@ -17,6 +17,8 @@ export const warehouses = pgTable('warehouses', {
 }, (table) => ({
   companyIdx: index('warehouses_company_idx').on(table.companyId),
   codeIdx: uniqueIndex('warehouses_company_code_idx').on(table.companyId, table.code),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('warehouses_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const userWarehouses = pgTable('user_warehouses', {
@@ -28,6 +30,12 @@ export const userWarehouses = pgTable('user_warehouses', {
 }, (table) => ({
   userWarehouseIdx: uniqueIndex('user_warehouses_user_wh_idx').on(table.userId, table.warehouseId),
   companyIdx: index('user_warehouses_company_idx').on(table.companyId),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'user_warehouses_warehouse_id_company_fk',
+  }),
 }));
 
 export const inventoryLevels = pgTable('inventory_levels', {
@@ -44,6 +52,17 @@ export const inventoryLevels = pgTable('inventory_levels', {
   prodWhIdx: uniqueIndex('inventory_levels_prod_wh_modo_idx').on(table.productId, table.warehouseId, table.modo),
   companyIdx: index('inventory_levels_company_idx').on(table.companyId),
   companyModoIdx: index('inventory_levels_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  productCompanyFk: foreignKey({
+    columns: [table.productId, table.companyId],
+    foreignColumns: [products.id, products.companyId],
+    name: 'inventory_levels_product_id_company_fk',
+  }),
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'inventory_levels_warehouse_id_company_fk',
+  }),
 }));
 
 export const inventoryMovements = pgTable('inventory_movements', {
@@ -64,6 +83,17 @@ export const inventoryMovements = pgTable('inventory_movements', {
   prodWhIdx: index('inv_movements_prod_wh_idx').on(table.productId, table.warehouseId),
   createdIdx: index('inv_movements_created_idx').on(table.createdAt),
   companyModoIdx: index('inv_movements_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  productCompanyFk: foreignKey({
+    columns: [table.productId, table.companyId],
+    foreignColumns: [products.id, products.companyId],
+    name: 'inventory_movements_product_id_company_fk',
+  }),
+  warehouseCompanyFk: foreignKey({
+    columns: [table.warehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'inventory_movements_warehouse_id_company_fk',
+  }),
 }));
 
 export const inventoryTransfers = pgTable('inventory_transfers', {
@@ -80,6 +110,17 @@ export const inventoryTransfers = pgTable('inventory_transfers', {
 }, (table) => ({
   companyIdx: index('inv_transfers_company_idx').on(table.companyId),
   companyModoIdx: index('inv_transfers_company_modo_idx').on(table.companyId, table.modo),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  sourceWarehouseCompanyFk: foreignKey({
+    columns: [table.sourceWarehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'inventory_transfers_source_warehouse_id_company_fk',
+  }),
+  destinationWarehouseCompanyFk: foreignKey({
+    columns: [table.destinationWarehouseId, table.companyId],
+    foreignColumns: [warehouses.id, warehouses.companyId],
+    name: 'inventory_transfers_destination_warehouse_id_company_fk',
+  }),
 }));
 
 export const inventoryTransferLines = pgTable('inventory_transfer_lines', {

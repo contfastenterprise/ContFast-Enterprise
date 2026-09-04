@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, index, uniqueIndex, decimal } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, index, uniqueIndex, decimal, unique } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 
 export const customers = pgTable('customers', {
@@ -18,6 +18,8 @@ export const customers = pgTable('customers', {
 }, (table) => ({
   companyCustomerIdx: uniqueIndex('customers_company_rnc_idx').on(table.companyId, table.rncCedula),
   statusIdx: index('customers_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('customers_id_company_uq').on(table.id, table.companyId),
 }));
 
 export const suppliers = pgTable('suppliers', {
@@ -35,4 +37,6 @@ export const suppliers = pgTable('suppliers', {
 }, (table) => ({
   companySupplierIdx: uniqueIndex('suppliers_company_rnc_idx').on(table.companyId, table.rnc),
   statusIdx: index('suppliers_status_idx').on(table.status),
+  // P1-19 / migracion 0032: aislamiento estructural.
+  idCompanyUq: unique('suppliers_id_company_uq').on(table.id, table.companyId),
 }));
