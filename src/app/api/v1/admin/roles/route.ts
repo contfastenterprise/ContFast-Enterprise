@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 
     const roles = await AdminRepository.getRoles();
     return NextResponse.json({ success: true, data: roles });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, data: newRole });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 

@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(companies.createdAt));
 
     return NextResponse.json({ success: true, data: list });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching companies:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: newCompany });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating company:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }

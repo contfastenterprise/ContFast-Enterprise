@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     }
 
     return NextResponse.json({ success: true, data: updatedCompany });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating company:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }
@@ -103,7 +103,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     }
 
     return NextResponse.json({ success: true, data: deletedCompany });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting company:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }

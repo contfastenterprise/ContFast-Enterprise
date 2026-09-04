@@ -30,10 +30,10 @@ export async function GET(req: NextRequest) {
     const trialBalance = await AccountingRepository.getTrialBalance(session.companyId, session.modo, startDate, endDate);
 
     return NextResponse.json({ success: true, data: trialBalance }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching trial balance:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

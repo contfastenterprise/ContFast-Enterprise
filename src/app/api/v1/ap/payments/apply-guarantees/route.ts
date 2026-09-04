@@ -3,6 +3,16 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { ApService } from '@/services/apService';
 
+// Forma comun de lo que devuelven ApService.applySingleGuaranteeCheck (un
+// cheque) y ApService.confirmarCobroDeChequesEnGarantia (varios): la primera
+// no incluye noAplicados (no aplica cuando solo hay un cheque puntual).
+interface ResultadoAplicacionGarantia {
+  appliedCount: number;
+  totalAppliedAmount: number;
+  descuadres: { cheque: string; importeCheque: number; saldoDisponible: number }[];
+  noAplicados?: { checkId: string; cheque?: string; motivo: string }[];
+}
+
 /**
  * POST /api/v1/ap/payments/apply-guarantees
  *
@@ -58,7 +68,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result: any = checkId
+    const result: ResultadoAplicacionGarantia = checkId
       ? await ApService.applySingleGuaranteeCheck(
           auth.companyId,
           checkId,
@@ -89,12 +99,13 @@ export async function POST(req: NextRequest) {
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/ap/payments/apply-guarantees:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

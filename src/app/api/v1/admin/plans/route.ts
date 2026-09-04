@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
 
     const allPlans = await db.select().from(plans).orderBy(plans.price);
     return NextResponse.json({ success: true, data: allPlans }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error listing plans:', err);
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -90,8 +90,8 @@ export async function POST(req: NextRequest) {
     }).returning();
 
     return NextResponse.json({ success: true, data: newPlan }, { status: 201, headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error creating plan:', err);
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
   }
 }

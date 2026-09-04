@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: quote });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error al crear cotización:', error);
-    return NextResponse.json({ success: false, error: { message: error.message || 'Error interno del servidor' } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message || 'Error interno del servidor' } }, { status: 500 });
   }
 }

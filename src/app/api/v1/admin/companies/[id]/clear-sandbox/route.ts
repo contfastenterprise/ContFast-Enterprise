@@ -44,6 +44,7 @@ import {
   supplierPaymentApplied
 } from '@/db';
 import { eq, and, inArray } from 'drizzle-orm';
+import type { PgColumn } from 'drizzle-orm/pg-core';
 import { delCache } from '@/infrastructure/redis';
 import { esSistemas } from '@/utils/rolMatch';
 
@@ -77,7 +78,7 @@ export async function POST(
     // 2. Run Database Purge inside a Transaction
     await db.transaction(async (tx) => {
       const mode = 'PRUEBA';
-      const cond = (table: any) => and(eq(table.companyId, companyId), eq(table.modo, mode));
+      const cond = (table: { companyId: PgColumn; modo: PgColumn }) => and(eq(table.companyId, companyId), eq(table.modo, mode));
 
       // Order of deletion to avoid foreign key violations:
       
@@ -86,7 +87,7 @@ export async function POST(
         .select({ id: customerReceipts.id })
         .from(customerReceipts)
         .where(cond(customerReceipts));
-      const receiptIds = sandboxReceipts.map((r: any) => r.id);
+      const receiptIds = sandboxReceipts.map((r) => r.id);
       if (receiptIds.length > 0) {
         await tx.delete(customerReceiptApplied).where(inArray(customerReceiptApplied.receiptId, receiptIds));
       }
@@ -95,7 +96,7 @@ export async function POST(
         .select({ id: supplierPayments.id })
         .from(supplierPayments)
         .where(cond(supplierPayments));
-      const supplierPaymentIds = sandboxSupplierPayments.map((sp: any) => sp.id);
+      const supplierPaymentIds = sandboxSupplierPayments.map((sp) => sp.id);
       if (supplierPaymentIds.length > 0) {
         await tx.delete(supplierPaymentApplied).where(inArray(supplierPaymentApplied.paymentId, supplierPaymentIds));
       }
@@ -104,7 +105,7 @@ export async function POST(
         .select({ id: expenses.id })
         .from(expenses)
         .where(cond(expenses));
-      const expenseIds = sandboxExpenses.map((e: any) => e.id);
+      const expenseIds = sandboxExpenses.map((e) => e.id);
       if (expenseIds.length > 0) {
         await tx.delete(expenseLines).where(inArray(expenseLines.expenseId, expenseIds));
       }
@@ -122,7 +123,7 @@ export async function POST(
         .select({ id: invoices.id })
         .from(invoices)
         .where(cond(invoices));
-      const invoiceIds = sandboxInvoices.map((i: any) => i.id);
+      const invoiceIds = sandboxInvoices.map((i) => i.id);
       if (invoiceIds.length > 0) {
         await tx.delete(invoiceLines).where(inArray(invoiceLines.invoiceId, invoiceIds));
         await tx.delete(invoiceTaxes).where(inArray(invoiceTaxes.invoiceId, invoiceIds));
@@ -133,7 +134,7 @@ export async function POST(
         .select({ id: quotes.id })
         .from(quotes)
         .where(cond(quotes));
-      const quoteIds = sandboxQuotesForLines.map((q: any) => q.id);
+      const quoteIds = sandboxQuotesForLines.map((q) => q.id);
       if (quoteIds.length > 0) {
         await tx.delete(quoteLines).where(inArray(quoteLines.quoteId, quoteIds));
         await tx.delete(quoteTaxes).where(inArray(quoteTaxes.quoteId, quoteIds));
@@ -143,7 +144,7 @@ export async function POST(
         .select({ id: deliveryNotes.id })
         .from(deliveryNotes)
         .where(cond(deliveryNotes));
-      const deliveryNoteIds = sandboxDeliveryNotes.map((d: any) => d.id);
+      const deliveryNoteIds = sandboxDeliveryNotes.map((d) => d.id);
       if (deliveryNoteIds.length > 0) {
         await tx.delete(deliveryNoteLines).where(inArray(deliveryNoteLines.deliveryNoteId, deliveryNoteIds));
       }
@@ -227,10 +228,10 @@ export async function POST(
       message: 'Todos los datos de prueba de la empresa han sido eliminados de forma exitosa.' 
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Clear Sandbox] Error purging sandbox data:', err);
     return NextResponse.json(
-      { success: false, error: { message: err.message || 'Error del servidor al limpiar datos.' } }, 
+      { success: false, error: { message: (err as Error).message || 'Error del servidor al limpiar datos.' } },
       { status: 500 }
     );
   }

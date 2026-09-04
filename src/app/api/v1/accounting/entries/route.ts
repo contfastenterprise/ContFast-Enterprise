@@ -129,12 +129,13 @@ export async function GET(req: NextRequest) {
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/accounting/entries:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -231,12 +232,13 @@ export async function POST(req: NextRequest) {
       { success: true, message: 'Asiento contable registrado exitosamente.', data: entry },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/accounting/entries:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

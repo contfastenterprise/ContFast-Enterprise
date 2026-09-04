@@ -42,11 +42,12 @@ export async function GET(req: NextRequest) {
     const journals = await AccountingRepository.getJournalEntries(session.companyId, session.modo, 100, startDate, endDate);
 
     return NextResponse.json({ success: true, data: journals }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching journals:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status }
     );
   }
@@ -95,11 +96,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: newJournal }, { status: 201, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating journal entry:', error);
-    const status = error.status || 400;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 400;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'BAD_REQUEST', message: error.message } },
+      { success: false, error: { code: e.code || 'BAD_REQUEST', message: e.message } },
       { status }
     );
   }

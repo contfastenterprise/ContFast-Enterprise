@@ -67,9 +67,9 @@ export async function GET(req: NextRequest) {
       : await baseQuery.where(eq(subscriptions.companyId, session.companyId)).orderBy(subscriptions.createdAt);
 
     return NextResponse.json({ success: true, data: results }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error listing subscriptions:', err);
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -142,8 +142,8 @@ export async function POST(req: NextRequest) {
     }).returning();
 
     return NextResponse.json({ success: true, data: newSub }, { status: 201, headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error creating subscription:', err);
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
   }
 }

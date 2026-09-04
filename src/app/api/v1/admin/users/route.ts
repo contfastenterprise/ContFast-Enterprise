@@ -25,14 +25,14 @@ async function assertRoleAsignable(roleId: string, actorRole: string) {
     .limit(1);
 
   if (!target) {
-    const err: any = new Error('El rol indicado no existe.');
+    const err: Error & { status?: number; code?: string } = new Error('El rol indicado no existe.');
     err.status = 400;
     throw err;
   }
 
   const esSistemas = actorRole.toLowerCase().trim() === 'sistemas';
   if (target.name.toLowerCase().trim() === 'sistemas' && !esSistemas) {
-    const err: any = new Error('Solo un usuario de sistemas puede asignar el rol sistemas.');
+    const err: Error & { status?: number; code?: string } = new Error('Solo un usuario de sistemas puede asignar el rol sistemas.');
     err.status = 403;
     throw err;
   }
@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
       users = users.filter(u => u.roleName?.toLowerCase() !== 'sistemas' && u.roleName?.toLowerCase() !== 'sistema');
     }
     return NextResponse.json({ success: true, data: users });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -88,8 +88,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: newUser }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: err.status || 400 });
+  } catch (err: unknown) {
+    const e = err as Error & { status?: number; code?: string };
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status: e.status || 400 });
   }
 }
 
@@ -113,7 +114,7 @@ export async function PATCH(req: NextRequest) {
 
     const result = await AdminRepository.toggleUserStatus(body.userId, session.companyId, session.role);
     return NextResponse.json({ success: true, data: result });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });
   }
 }

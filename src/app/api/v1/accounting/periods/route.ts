@@ -43,10 +43,10 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(accountingPeriods.startDate));
 
     return NextResponse.json({ success: true, data: periods }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching periods:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }
@@ -111,10 +111,10 @@ export async function POST(req: NextRequest) {
     }).returning();
 
     return NextResponse.json({ success: true, data: period }, { status: 201, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating period:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

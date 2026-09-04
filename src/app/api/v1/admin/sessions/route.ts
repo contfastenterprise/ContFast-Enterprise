@@ -35,9 +35,9 @@ export async function GET(req: NextRequest) {
       .limit(100);
 
     return NextResponse.json({ success: true, data: activeSessions });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching sessions:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest) {
       );
 
     return NextResponse.json({ success: true, message: 'Sesión finalizada exitosamente.' });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }

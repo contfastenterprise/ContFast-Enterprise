@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       limit: 1000
     });
 
-    const isGuaranteeCheck = (p: any) => p.isGuarantee === true;
+    const isGuaranteeCheck = (p: Awaited<ReturnType<typeof ApRepository.getPayments>>['items'][number]) => p.isGuarantee === true;
     const pendingChecks = pendingItems.filter(isGuaranteeCheck);
     const appliedChecks = appliedItems.filter(isGuaranteeCheck);
 
@@ -88,9 +88,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating guarantee checks report PDF:', error);
-    return new NextResponse(`Error al generar reporte: ${error.message}`, {
+    return new NextResponse(`Error al generar reporte: ${(error as Error).message}`, {
       status: 500
     });
   }

@@ -34,7 +34,7 @@ export async function PUT(
     const updatedUser = await AdminRepository.updateUser(params.id, session.companyId, parsed.data);
 
     return NextResponse.json({ success: true, data: updatedUser });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });
   }
 }

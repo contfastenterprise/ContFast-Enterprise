@@ -75,12 +75,13 @@ export async function GET(
       { success: true, data: { user: targetUser, permissions: list } },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/admin/users/[id]/permissions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -206,12 +207,13 @@ export async function PATCH(
       { success: true, message: 'Permisos personalizados del usuario actualizados exitosamente.' },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PATCH /api/v1/admin/users/[id]/permissions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

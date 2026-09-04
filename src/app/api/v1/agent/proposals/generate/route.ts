@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const proposal = await AgentRepository.createProposal(companyId, modo, 'flujo_efectivo', aiResult);
 
     return NextResponse.json(proposal, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating proposal:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
   }
 }

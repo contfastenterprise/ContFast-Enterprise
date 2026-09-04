@@ -126,8 +126,8 @@ export async function GET(req: NextRequest) {
         availablePlans: activePlans
       } 
     });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -247,7 +247,7 @@ export async function PATCH(req: NextRequest) {
 
     await db.transaction(async (tx) => {
       // Update Company
-      const companyUpdate: any = {};
+      const companyUpdate: Partial<typeof companies.$inferInsert> = {};
       if (name !== undefined) companyUpdate.name = name;
       if (rnc !== undefined) companyUpdate.rnc = rnc;
       if (businessActivity !== undefined) companyUpdate.businessActivity = businessActivity;
@@ -261,7 +261,7 @@ export async function PATCH(req: NextRequest) {
           .where(eq(companies.id, session.companyId));
       }
 
-      const settingsUpdate: any = {
+      const settingsUpdate: Partial<typeof companySettings.$inferInsert> = {
         logoUrl,
         dgiiEnv,
         printLayout,
@@ -348,7 +348,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: 'Configuración actualizada' });
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 400 });
+  } catch (err: unknown) {
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });
   }
 }

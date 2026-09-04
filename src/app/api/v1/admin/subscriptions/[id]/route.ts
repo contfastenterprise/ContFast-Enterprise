@@ -58,7 +58,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = {
+    const updateData: Partial<typeof subscriptions.$inferInsert> = {
       updatedAt: new Date(),
     };
 
@@ -83,8 +83,8 @@ export async function PUT(
       .returning();
 
     return NextResponse.json({ success: true, data: updatedSub }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error updating subscription:', err);
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
   }
 }

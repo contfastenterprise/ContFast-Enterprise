@@ -30,10 +30,10 @@ export async function GET(req: NextRequest) {
     const financials = await AccountingRepository.getFinancials(session.companyId, session.modo, startDate, endDate);
 
     return NextResponse.json({ success: true, data: financials }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching financials:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

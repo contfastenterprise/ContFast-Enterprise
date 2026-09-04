@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     }
 
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating proposal:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

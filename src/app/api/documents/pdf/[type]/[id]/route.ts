@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices } from '@/db/schema/invoices';
+import { invoices, invoiceLines, invoiceTaxes } from '@/db/schema/invoices';
 import { companies } from '@/db/schema/companies';
 import { customers } from '@/db/schema/contacts';
 import { eq, and } from 'drizzle-orm';
@@ -72,7 +72,7 @@ export async function GET(
         total: Number(invoiceData.total),
         notes: invoiceData.notes || undefined,
       },
-      lines: invoiceData.lines?.map((l: any) => ({
+      lines: invoiceData.lines?.map((l: typeof invoiceLines.$inferSelect) => ({
         id: l.id,
         description: 'Producto/Servicio', // Needs join with products if we want name
         quantity: Number(l.quantity),
@@ -81,7 +81,7 @@ export async function GET(
         subtotal: Number(l.subtotal),
         total: Number(l.total),
       })) || [],
-      taxes: invoiceData.taxes?.map((t: any) => ({
+      taxes: invoiceData.taxes?.map((t: typeof invoiceTaxes.$inferSelect) => ({
         name: t.taxType,
         amount: Number(t.amount),
         rate: Number(t.rate),
@@ -104,8 +104,8 @@ export async function GET(
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API/PDF]', error);
-    return new NextResponse(`Error generating PDF: ${error.message}`, { status: 500 });
+    return new NextResponse(`Error generating PDF: ${(error as Error).message}`, { status: 500 });
   }
 }

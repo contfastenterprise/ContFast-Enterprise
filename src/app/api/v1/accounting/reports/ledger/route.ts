@@ -38,10 +38,10 @@ export async function GET(req: NextRequest) {
     const ledger = await AccountingRepository.getLedger(session.companyId, session.modo, accountId, startDate, endDate);
 
     return NextResponse.json({ success: true, data: ledger }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching ledger:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

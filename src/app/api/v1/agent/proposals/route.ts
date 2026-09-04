@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     const proposals = await AgentRepository.getProposals(companyId, modo);
     return NextResponse.json(proposals);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching proposals:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
