@@ -8,6 +8,7 @@ import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
 import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
 import { leerDesenlace, mensajeDesconocido } from '@/services/dgii/desenlaceEnvio';
+import type { CompanyRepository } from '@/repositories/companyRepository';
 
 export class InvoiceSubmissionService {
   /**
@@ -18,8 +19,8 @@ export class InvoiceSubmissionService {
   static async submitToDgii(
     data: IssueInvoiceInput,
     ncf: string,
-    company: any,
-    settings: any,
+    company: NonNullable<Awaited<ReturnType<typeof CompanyRepository.getProfile>>>,
+    settings: Awaited<ReturnType<typeof CompanyRepository.getSettings>>,
     totals: CalculatedTotals,
     activeCashSessionId: string | undefined
   ): Promise<DgiiSubmissionResult> {
@@ -39,10 +40,10 @@ export class InvoiceSubmissionService {
     // se emite LOCALMENTE y queda pendiente de envio -- exactamente lo que
     // ocurria antes cuando la empresa no las tenia configuradas. Lo que ya no
     // ocurre es enviarla con las credenciales de otra empresa.
-    const credenciales = await credencialesMseller(data.companyId, entorno).catch((err: any) => {
+    const credenciales = await credencialesMseller(data.companyId, entorno).catch((err: unknown) => {
       Logger.warn(
         '[InvoiceSubmissionService] Sin credenciales de mSeller para este ambiente; se emite localmente',
-        { entorno, error: err?.message }
+        { entorno, error: (err as Error)?.message }
       );
       return null;
     });
@@ -179,7 +180,7 @@ export class InvoiceSubmissionService {
           dgiiMessage = mensajeDesconocido(errMsg);
           msellerResponsePayload = msellerRes.rawResponse ?? null;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err instanceof MSellerCommunicationError || err instanceof EcfRejectedError) {
           throw err;
         }
@@ -189,10 +190,10 @@ export class InvoiceSubmissionService {
         // afirma ni un rechazo ni un fallo de emision. Queda pendiente de
         // consulta, y NO se reenvia.
         Logger.warn('[InvoiceSubmissionService] excepcion de red; desenlace desconocido', {
-          ncf, error: err.message,
+          ncf, error: (err as Error)?.message,
         });
         finalStatus = 'submitted';
-        dgiiMessage = mensajeDesconocido(err.message);
+        dgiiMessage = mensajeDesconocido((err as Error)?.message ?? '');
       }
     }
 

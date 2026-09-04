@@ -7,12 +7,12 @@ export class CompanyRepository {
   /**
    * Fetches settings for a company (with Redis caching).
    */
-  static async getSettings(companyId: string) {
+  static async getSettings(companyId: string): Promise<typeof companySettings.$inferSelect | undefined> {
     const cacheKey = `company_settings:${companyId}`;
     try {
       const cached = await getCache(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        return JSON.parse(cached) as typeof companySettings.$inferSelect;
       }
     } catch (e) {
       console.error('Failed to get settings cache:', e);

@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { parseFraction } from '@/utils/calculos';
 import { windowProfiles } from '@/utils/profilesRegistry';
+import type { ReportRepository } from '@/repositories/reportRepository';
+import type { HRRepository } from '@/repositories/hrRepository';
+import type { chartOfAccounts } from '@/db';
 
 interface CompanyInfo {
   name: string;
@@ -55,7 +58,7 @@ export class PdfGenerator {
     company: CompanyInfo,
     startDate: string,
     endDate: string,
-    data: any
+    data: Awaited<ReturnType<typeof ReportRepository.getIncomeStatement>>
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -125,7 +128,7 @@ export class PdfGenerator {
   static generateBalanceSheet(
     company: CompanyInfo,
     asOfDate: string,
-    data: any
+    data: Awaited<ReturnType<typeof ReportRepository.getBalanceSheet>>
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -183,7 +186,7 @@ export class PdfGenerator {
     company: CompanyInfo,
     customerInfo: { name: string, rnc: string, phone: string },
     asOfDate: string,
-    data: any
+    data: Awaited<ReturnType<typeof ReportRepository.getARStatement>>
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -481,7 +484,7 @@ export class PdfGenerator {
     return y + 25;
   }
 
-  private static drawSection(doc: typeof PDFDocument, title: string, accounts: any[], total: number, startY: number): number {
+  private static drawSection(doc: typeof PDFDocument, title: string, accounts: (typeof chartOfAccounts.$inferSelect & { net: number })[], total: number, startY: number): number {
     let y = startY;
 
     if (y > 720) {
@@ -891,7 +894,7 @@ export class PdfGenerator {
   static generatePayrollReceipts(
     company: CompanyInfo,
     payroll: { periodStart: string; periodEnd: string; paymentDate: string },
-    details: any[]
+    details: Awaited<ReturnType<typeof HRRepository.findPayrollDetails>>
   ): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -1033,8 +1036,8 @@ export class PdfGenerator {
 
   static generateSettlementReceipt(
     company: CompanyInfo,
-    employee: any,
-    calculation: any,
+    employee: { employeeCode: string; firstName: string; lastName: string; cedula: string; hireDate: Date | string },
+    calculation: { yearsOfService: number; monthsOfService: number; dailyRate: number; preavisoDays: number; cesantiaDays: number; vacacionesDays: number; preaviso: number; cesantia: number; vacaciones: number; navidad: number },
     settlementDate: string,
     otrosAmount: number
   ): Promise<Buffer> {

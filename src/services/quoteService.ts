@@ -1,5 +1,5 @@
 import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers, products, users } from '@/db';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateQuoteInput {
@@ -110,7 +110,7 @@ export class QuoteService {
         };
       });
 
-      const taxInserts: any[] = [];
+      const taxInserts: Pick<typeof quoteTaxes.$inferInsert, 'taxType' | 'rate' | 'amount'>[] = [];
       Object.entries(taxableByRate).forEach(([rateStr, val]) => {
         const taxAmount = val.taxableAmount * val.rate;
         totalTaxes += taxAmount;
@@ -314,7 +314,7 @@ export class QuoteService {
           };
         });
 
-        const taxInserts: any[] = [];
+        const taxInserts: Pick<typeof quoteTaxes.$inferInsert, 'taxType' | 'rate' | 'amount'>[] = [];
         Object.entries(taxableByRate).forEach(([rateStr, val]) => {
           const taxAmount = val.taxableAmount * val.rate;
           totalTaxes += taxAmount;
@@ -400,9 +400,9 @@ export class QuoteService {
 
     // El listado, el conteo y las estadisticas comparten esta condicion, asi
     // que el entorno entra una vez y cubre las tres.
-    let whereClause: any = and(eq(quotes.companyId, companyId), eq(quotes.modo, modo));
+    let whereClause: SQL | undefined = and(eq(quotes.companyId, companyId), eq(quotes.modo, modo));
     if (status) {
-      whereClause = and(whereClause, eq(quotes.status, status)) as any;
+      whereClause = and(whereClause, eq(quotes.status, status));
     }
 
     const items = await db.select({
@@ -494,8 +494,8 @@ export class QuoteService {
       lines: quote.lines.map(line => {
         const tasasDelResumen = [...new Set(
           (quote.taxes ?? [])
-            .filter((t: any) => String(t.taxType).toUpperCase() === 'ITBIS')
-            .map((t: any) => Number(t.rate)))];
+            .filter((t) => String(t.taxType).toUpperCase() === 'ITBIS')
+            .map((t) => Number(t.rate)))];
         const deducida = tasasDelResumen.length === 1 ? tasasDelResumen[0] / 100 : null;
 
         return {

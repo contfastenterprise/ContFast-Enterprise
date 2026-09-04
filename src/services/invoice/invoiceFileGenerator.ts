@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
+import type { CompanyRepository } from '@/repositories/companyRepository';
 
 export class InvoiceFileGenerator {
   /**
@@ -19,8 +20,8 @@ export class InvoiceFileGenerator {
   static async generateFilesAndSendEmail(
     data: IssueInvoiceInput,
     ncf: string,
-    company: any,
-    settings: any,
+    company: NonNullable<Awaited<ReturnType<typeof CompanyRepository.getProfile>>>,
+    settings: Awaited<ReturnType<typeof CompanyRepository.getSettings>>,
     totals: CalculatedTotals,
     submission: DgiiSubmissionResult,
     codigoFactura: string,
@@ -43,7 +44,7 @@ export class InvoiceFileGenerator {
 
       // Fetch real product SKUs and units of measure
       const productIds = totals.itemLines.map((l) => l.productId).filter(Boolean);
-      let dbProducts: any[] = [];
+      let dbProducts: { id: string; sku: string | null; unitOfMeasure: string | null; categoryName: string | null }[] = [];
       if (productIds.length > 0) {
         dbProducts = await db
           .select({
@@ -197,7 +198,7 @@ export class InvoiceFileGenerator {
           Logger.error('[InvoiceFileGenerator] Error queuing email for invoice', emailErr);
         }
       }
-    } catch (pdfErr: any) {
+    } catch (pdfErr: unknown) {
       Logger.error('[InvoiceFileGenerator] Error generating PDF or XML outside transaction', pdfErr);
     }
   }
@@ -208,7 +209,7 @@ export class InvoiceFileGenerator {
   static async processPostEmission(
     data: IssueInvoiceInput,
     invoiceId: string,
-    settings: any,
+    settings: Awaited<ReturnType<typeof CompanyRepository.getSettings>>,
     itemLines: any[]
   ) {
     // Automatically issue delivery note if autoDeliveryNotes is enabled
