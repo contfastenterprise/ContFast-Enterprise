@@ -50,7 +50,7 @@ export async function envioVigente(
   invoiceId: string,
   companyId: string,
   modo: Modo,
-  tx: any = db
+  tx: typeof db = db
 ) {
   const [envio] = await tx
     .select()
@@ -86,7 +86,7 @@ export async function envioVigente(
 export async function envioEnCurso(
   invoiceId: string,
   companyId: string,
-  tx: any = db
+  tx: typeof db = db
 ): Promise<string | null> {
   const [envio] = await tx
     .select({ id: dgiiSubmissions.id })

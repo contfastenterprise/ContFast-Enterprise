@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { suppliers } from '@/db/schema';
-import { eq, and, or, ilike, desc, sql, isNull, exists } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, sql, isNull, exists, type SQL } from 'drizzle-orm';
 import { accountsPayable } from '@/db/schema';
 
 type Modo = 'PRODUCCION' | 'PRUEBA';
@@ -11,7 +11,7 @@ type Modo = 'PRODUCCION' | 'PRUEBA';
  */
 export class SupplierRepository {
   static async findAll(companyId: string, modo: Modo, search?: string, limit: number = 50, offset: number = 0, hasDebt?: boolean) {
-    let conditions: any[] = [
+    let conditions: SQL[] = [
       eq(suppliers.companyId, companyId),
       isNull(suppliers.deletedAt)
     ];

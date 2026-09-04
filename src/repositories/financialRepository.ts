@@ -4,7 +4,7 @@ import {
   customerReceipts, customerReceiptApplied, apPayments, customers, suppliers, 
   invoiceLines, products, productCategories 
 } from '@/db/schema';
-import { eq, and, desc, asc, sql, lte, gte, ilike, or, notInArray } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, lte, gte, ilike, or, notInArray, type SQLWrapper } from 'drizzle-orm';
 
 export interface StatementFilters {
   startDate?: string;
@@ -674,6 +674,6 @@ export class FinancialRepository {
   }
 }
 
-function isNull(col: any) {
+function isNull(col: SQLWrapper) {
   return sql`${col} IS NULL`;
 }

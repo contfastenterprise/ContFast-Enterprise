@@ -1,5 +1,6 @@
 import { db, invoices, expenses, agentProposals, withTenantMode } from '@/db';
 import { eq, and, desc, sql, gte, isNull, inArray } from 'drizzle-orm';
+import type { CashFlowProposal } from '@/services/geminiService';
 
 export class AgentRepository {
   static async aggregateCashFlow(companyId: string, days: number = 30, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
@@ -45,7 +46,7 @@ export class AgentRepository {
     };
   }
 
-  static async createProposal(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', area: string, aiResult: any) {
+  static async createProposal(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', area: string, aiResult: CashFlowProposal) {
     const [inserted] = await db.insert(agentProposals).values({
       companyId,
       modo,

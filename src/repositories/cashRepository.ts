@@ -1,4 +1,4 @@
-import { db, cashRegisters, cashSessions, cashMovements, cashSessionSummary } from '@/db';
+import { db, cashRegisters, cashSessions, cashMovements, cashSessionSummary, type DbTransaction } from '@/db';
 import { eq, and, isNull, desc, count } from 'drizzle-orm';
 
 export interface OpenSessionInput {
@@ -199,7 +199,7 @@ export class CashRepository {
   /**
    * Adds a movement to the active session.
    */
-  static async addMovement(tx: any, data: {
+  static async addMovement(tx: DbTransaction, data: {
     companyId: string;
     cashSessionId: string;
     invoiceId?: string;

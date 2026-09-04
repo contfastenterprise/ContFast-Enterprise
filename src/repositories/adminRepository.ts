@@ -121,7 +121,7 @@ export class AdminRepository {
       const otherUserUsingEmail = existingEmail.find(u => u.id !== userId);
       if (otherUserUsingEmail) throw new Error('El correo electrónico ya está en uso');
 
-      const updateData: any = {
+      const updateData: Partial<typeof users.$inferInsert> = {
         name: data.name,
         email: data.email.toLowerCase(),
         roleId: data.roleId,

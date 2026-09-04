@@ -1,6 +1,15 @@
 import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 
+interface DashboardAlert {
+  id: string;
+  type: 'invoice_rejected' | 'check_due';
+  title: string;
+  description: string;
+  actionText: string;
+  actionLink: string;
+}
+
 export class DashboardRepository {
   
   static async getStats(companyId: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION') {
@@ -39,7 +48,7 @@ export class DashboardRepository {
     let monthlySales = 0;
     let alertCount = 0;
     let totalInvoices = allInvoices.length;
-    let alertsDetails: any[] = [];
+    let alertsDetails: DashboardAlert[] = [];
 
     for (const inv of allInvoices) {
       const invDate = new Date(inv.createdAt);

@@ -1,0 +1,30 @@
+fix(P1-24): tipa 17 ': any' en 14 archivos (lote 6/N)
+
+Repositorios/servicios: supplierRepository, productRepository,
+financialRepository, deliveryRepository, dashboardRepository,
+customerRepository, companyRepository, cashRepository, geminiService,
+agentRepository, adminRepository, invoiceRepository,
+dgiiSubmissionRepository, bankRepository.
+
+Convenciones reutilizadas de lotes anteriores: `tx: any = db` -> `tx:
+typeof db = db`; `tx: any` sin default -> `tx: DbTransaction`; arrays
+de condiciones para and(...) -> `SQL[]`; objetos de update armados a
+mano -> `Partial<typeof tabla.$inferInsert>`. Se agregan interfaces
+locales donde hacia falta nombrar una forma de datos (DashboardAlert,
+CashFlowMetrics, CashFlowProposal), y customerRepository.ts se
+reescribe con un const + ternario en vez de let any[] + reasignacion
+condicional, con lo que TypeScript infiere el tipo exacto sin any.
+
+Bonus fuera del conteo: se quita un cast `as any` redundante en
+bankRepository.ts (bankAccounts.balance ya es string por ser decimal).
+
+Verificado con scratch/verificar_p1_24_lote6.ts (42 comprobaciones),
+autovalidado con una replica en Python contra los archivos reales y
+con una contraprueba (7 reversiones representativas en copia temporal
+-> exactamente esas 15 comprobaciones en rojo, ninguna otra). Los 14
+archivos pasan el chequeo de balance de llaves/parentesis. Confirmado
+por el usuario: pnpm tsx scratch/verificar_p1_24_lote6.ts (42/42 OK) y
+pnpm build (compila).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AbXk5gs7hwWTAsAg9LisVB

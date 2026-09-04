@@ -257,10 +257,8 @@ export class CustomerRepository {
     // 4. Obtener pagos recientes (movimientos de caja asociados a sus facturas)
     // Primero obtener IDs de facturas del cliente
     const customerInvoiceIds = recentInvoices.map(i => i.id);
-    let recentPayments: any[] = [];
-    
-    if (customerInvoiceIds.length > 0) {
-      recentPayments = await db
+    const recentPayments = customerInvoiceIds.length > 0
+      ? await db
         .select({
           id: cashMovements.id,
           reference: cashMovements.reference,
@@ -279,8 +277,8 @@ export class CustomerRepository {
           eq(cashMovements.type, 'sale')
         ))
         .orderBy(desc(cashMovements.createdAt))
-        .limit(10);
-    }
+        .limit(10)
+      : [];
 
     return {
       customer,

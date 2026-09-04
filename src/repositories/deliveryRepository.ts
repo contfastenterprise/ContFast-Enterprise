@@ -27,7 +27,7 @@ export class DeliveryRepository {
   static async getNextDeliveryNumber(
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
-    tx: any = db
+    tx: typeof db = db
   ): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `CON-${year}-`;

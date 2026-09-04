@@ -66,7 +66,7 @@ export class BankRepository {
     bankAccountId: string,
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
-    tx: any = db
+    tx: typeof db = db
   ): Promise<number> {
     const [fila] = await tx.select({ balance: bankAccountBalances.balance })
       .from(bankAccountBalances)
@@ -80,7 +80,7 @@ export class BankRepository {
     const [cuenta] = await tx.select({ balance: bankAccounts.balance })
       .from(bankAccounts)
       .where(and(eq(bankAccounts.id, bankAccountId), eq(bankAccounts.companyId, companyId)));
-    return cuenta ? parseFloat(cuenta.balance as any) : 0;
+    return cuenta ? parseFloat(cuenta.balance) : 0;
   }
 
   /**
@@ -96,7 +96,7 @@ export class BankRepository {
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
     delta: number,
-    tx: any = db
+    tx: typeof db = db
   ): Promise<number> {
     // Asegurar la fila del entorno, partiendo del saldo del catalogo si es la
     // primera vez que se toca esta cuenta en este entorno.

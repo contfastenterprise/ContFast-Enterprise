@@ -359,7 +359,7 @@ export class ProductRepository {
   }
 
   static async update(id: string, companyId: string, data: UpdateProductInput) {
-    const updateValues: any = {
+    const updateValues: Partial<typeof products.$inferInsert> = {
       updatedAt: new Date(),
     };
 

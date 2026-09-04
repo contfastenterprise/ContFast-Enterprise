@@ -1,4 +1,4 @@
-import { db, companies, companySettings, ecfSequences } from '@/db';
+import { db, companies, companySettings, ecfSequences, type DbTransaction } from '@/db';
 import { eq, and, isNull, sql, desc } from 'drizzle-orm';
 import { getCache, setCache } from '@/infrastructure/redis';
 import { exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
@@ -103,7 +103,7 @@ export class CompanyRepository {
   /**
    * Programmatic transaction-safe sequence allocator.
    */
-  static async allocateNextNcf(tx: any, companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<string> {
+  static async allocateNextNcf(tx: DbTransaction, companyId: string, ecfType: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'): Promise<string> {
     const [seq] = await tx
       .select()
       .from(ecfSequences)

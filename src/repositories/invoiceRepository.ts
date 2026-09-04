@@ -1,4 +1,4 @@
-import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions, RepositoryContext, withTenantMode } from '@/db';
+import { db, invoices, invoiceLines, invoiceTaxes, products, customers, invoiceRetentions, RepositoryContext, withTenantMode, type DbTransaction } from '@/db';
 import { eq, and, or, isNull, desc, count, notInArray, gte, lte, ilike, inArray, sql } from 'drizzle-orm';
 
 export interface CreateInvoiceInput {
@@ -84,8 +84,8 @@ export class InvoiceRepository {
   /**
    * Creates an invoice with its lines, taxes and retentions in a transaction.
    */
-  static async create(data: CreateInvoiceInput, externalTx?: any) {
-    const runInTx = async (tx: any) => {
+  static async create(data: CreateInvoiceInput, externalTx?: DbTransaction) {
+    const runInTx = async (tx: DbTransaction) => {
       // 1. Insert Invoice
       const [invoice] = await tx
         .insert(invoices)
