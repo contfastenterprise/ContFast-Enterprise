@@ -9,6 +9,7 @@ import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo }
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { addStock } from '@/services/inventoryService';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -47,6 +48,22 @@ async function revertirAsientoContable(
 
   if (!original) return;
 
+  // Bug encontrado al construir el reverso del kardex (mismo problema, misma
+  // causa): una compra editada una segunda vez volvia a revertir el asiento de
+  // la PRIMERA edicion ademas del de la segunda, porque nada marcaba un
+  // asiento como "ya revertido" -- el reverso de un asiento usa `reference =
+  // journalEntryId` (el id del asiento ORIGINAL), asi que "ya existe algun
+  // asiento con reference = este id" es exactamente "este asiento ya fue
+  // revertido antes". Sin este chequeo, revertir dos veces el mismo asiento
+  // deja un descuadre falso en el mayor -- el efecto de la primera edicion
+  // queda revertido dos veces en vez de una.
+  const [yaRevertido] = await tx
+    .select({ id: journalEntries.id })
+    .from(journalEntries)
+    .where(eq(journalEntries.reference, journalEntryId))
+    .limit(1);
+  if (yaRevertido) return;
+
   const lineas = await tx
     .select({ accountId: journalEntryLines.accountId, debit: journalEntryLines.debit, credit: journalEntryLines.credit })
     .from(journalEntryLines)
@@ -67,6 +84,73 @@ async function revertirAsientoContable(
     })),
     createdBy: userId,
   });
+}
+
+/**
+ * Auditoria P0-07 (2026-09-03), cierre del kardex: revierte los movimientos de
+ * inventario de una compra con un movimiento inverso, en vez de borrarlos.
+ *
+ * Antes, DELETE/PUT hacian `tx.delete(inventoryMovements)` fisico: el rastro
+ * de que esa compra alguna vez movio existencia desaparecia sin dejar nada,
+ * aunque el resto del punto (asiento, CxP) ya quedara auditado. Misma tecnica
+ * que `revertirAsientoContable`: se reutiliza `addStock` (el mismo primitivo
+ * que ya usan las compras nuevas y que ya trae el candado `FOR UPDATE` de
+ * P1-10) con la cantidad en negativo, dejando el movimiento original intacto
+ * y un movimiento nuevo que cancela su efecto en la existencia.
+ *
+ * Misma proteccion de "no revertir dos veces" que se agrego arriba: el
+ * movimiento de reverso se inserta con `referenceId = id del movimiento
+ * ORIGINAL` (no el id de la compra), asi que "ya existe algun movimiento con
+ * referenceId = este id" es "este movimiento ya fue revertido antes". Sin
+ * esto, editar la misma compra una segunda vez volveria a revertir tambien
+ * los movimientos de la primera edicion.
+ */
+async function revertirMovimientosInventario(
+  tx: any,
+  companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
+  expenseId: string,
+  userId: string,
+  motivo: string
+) {
+  const originales = await tx
+    .select({
+      id: inventoryMovements.id,
+      productId: inventoryMovements.productId,
+      warehouseId: inventoryMovements.warehouseId,
+      quantity: inventoryMovements.quantity,
+    })
+    .from(inventoryMovements)
+    .where(and(
+      eq(inventoryMovements.referenceId, expenseId),
+      eq(inventoryMovements.companyId, companyId),
+      eq(inventoryMovements.modo, modo)
+    ));
+
+  if (originales.length === 0) return;
+
+  const idsOriginales = originales.map((m: any) => m.id);
+  const yaRevertidos = await tx
+    .select({ referenceId: inventoryMovements.referenceId })
+    .from(inventoryMovements)
+    .where(inArray(inventoryMovements.referenceId, idsOriginales));
+  const idsYaRevertidos = new Set(yaRevertidos.map((r: any) => r.referenceId));
+
+  for (const mov of originales) {
+    if (idsYaRevertidos.has(mov.id)) continue;
+    await addStock(
+      companyId,
+      modo,
+      mov.productId,
+      mov.warehouseId,
+      -Number(mov.quantity),
+      userId,
+      'adjustment',
+      mov.id,
+      motivo,
+      tx
+    );
+  }
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<any> }) {
@@ -269,7 +353,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     const { id } = await params;
 
     const deleted = await db.transaction(async (tx) => {
-      // 1. Get the expense header to verify ownership and get warehouseId
+      // 1. Get the expense header to verify ownership
       const expHeaders = await tx
         .select()
         .from(expenses)
@@ -284,7 +368,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       }
 
       const expenseRow = expHeaders[0];
-      const warehouseId = expenseRow.warehouseId;
 
       // Auditoria P0-07 (2026-09-03): bloquear si el período contable de esta
       // compra ya está cerrado -- igual que ya bloquea la CREACIÓN de
@@ -352,48 +435,19 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       });
 
       // 2. Get the expense lines before deleting to adjust inventory levels
-      const linesList = await tx
-        .select({ productId: expenseLines.productId, quantity: expenseLines.quantity })
-        .from(expenseLines)
-        .where(eq(expenseLines.expenseId, id));
-
-      // 3. Revert inventory levels if warehouse is defined
-      if (warehouseId) {
-        for (const line of linesList) {
-          if (line.productId) {
-            const qty = parseFloat(line.quantity) || 0;
-            // Fetch current inventory level
-            // El filtro por empresa es obligatorio: productId y warehouseId
-            // llegan del cuerpo de la peticion. Sin el, esta lectura localizaba
-            // el nivel de OTRA empresa y el UPDATE de abajo, que se ancla en
-            // levelResult[0].id, le reescribia la existencia. Era escritura
-            // cruzada, no solo lectura.
-            const levelResult = await tx
-              .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
-              .from(inventoryLevels)
-              .where(and(
-                eq(inventoryLevels.companyId, session.companyId),
-                eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId),
-                eq(inventoryLevels.modo, session.modo)
-              ));
-            
-            if (levelResult.length > 0) {
-              const currentBalance = parseFloat(levelResult[0].balance);
-              const balanceAfter = Math.max(0, currentBalance - qty);
-              await tx
-                .update(inventoryLevels)
-                .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
-                .where(eq(inventoryLevels.id, levelResult[0].id));
-            }
-          }
-        }
-      }
-
-      // 4. Delete inventory movements associated with this purchase
-      await tx
-        .delete(inventoryMovements)
-        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId), eq(inventoryMovements.modo, session.modo)));
+      // 2-4. Revertir (no borrar) los movimientos de inventario de esta
+      // compra -- ver `revertirMovimientosInventario` arriba. Usa `addStock`
+      // (mismo candado FOR UPDATE que P1-10) para insertar el movimiento
+      // inverso; el original queda intacto en el kardex, igual que
+      // `revertirAsientoContable` ya hace con el asiento contable.
+      await revertirMovimientosInventario(
+        tx,
+        session.companyId,
+        session.modo,
+        id,
+        session.userId,
+        `Eliminación de compra NCF: ${expenseRow.ncf || 'N/A'}`
+      );
 
       // 4-bis. Limpiar la cadena de Cuentas por Pagar del gasto:
       //        accounts_payable -> checks (garantía) -> ap_payments.
@@ -751,50 +805,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         }
       }
 
-      const oldWarehouseId = existing[0].warehouseId;
-
-      // 2. Get the old expense lines
-      const oldLines = await tx
-        .select({ productId: expenseLines.productId, quantity: expenseLines.quantity })
-        .from(expenseLines)
-        .where(eq(expenseLines.expenseId, id));
-
-      // 3. Revert old inventory levels if old warehouse is defined
-      if (oldWarehouseId) {
-        for (const line of oldLines) {
-          if (line.productId) {
-            const qty = parseFloat(line.quantity) || 0;
-              // Auditoria INV-19: el filtro por empresa es obligatorio.
-              // productId y warehouseId llegan del cuerpo de la peticion; sin
-              // el, esta lectura podia resolver la existencia del almacen de
-              // OTRA empresa y anclar el UPDATE a esa fila. El POST y el DELETE
-              // ya lo llevaban; el PUT se quedo sin la correccion.
-            const levelResult = await tx
-              .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
-              .from(inventoryLevels)
-              .where(and(
-                eq(inventoryLevels.companyId, session.companyId),
-                eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, oldWarehouseId),
-                eq(inventoryLevels.modo, session.modo)
-              ));
-            
-            if (levelResult.length > 0) {
-              const currentBalance = parseFloat(levelResult[0].balance);
-              const balanceAfter = Math.max(0, currentBalance - qty);
-              await tx
-                .update(inventoryLevels)
-                .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
-                .where(eq(inventoryLevels.id, levelResult[0].id));
-            }
-          }
-        }
-      }
-
-      // 4. Delete old inventory movements
-      await tx
-        .delete(inventoryMovements)
-        .where(and(eq(inventoryMovements.referenceId, id), eq(inventoryMovements.companyId, session.companyId), eq(inventoryMovements.modo, session.modo)));
+      // 2-4. Revertir (no borrar) los movimientos de inventario previos de
+      // esta compra -- misma tecnica que DELETE (ver
+      // `revertirMovimientosInventario` arriba).
+      await revertirMovimientosInventario(
+        tx,
+        session.companyId,
+        session.modo,
+        id,
+        session.userId,
+        `Edición de compra NCF: ${existing[0].ncf || 'N/A'}`
+      );
 
       // 5. Revertir (no borrar) los asientos contables previos de esta
       // compra -- misma técnica que DELETE (ver `revertirAsientoContable` al
