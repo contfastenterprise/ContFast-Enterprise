@@ -45,6 +45,12 @@ export const inventoryLevels = pgTable('inventory_levels', {
   productId: uuid('product_id').notNull().references(() => products.id),
   warehouseId: uuid('warehouse_id').notNull().references(() => warehouses.id),
   quantity: decimal('quantity', { precision: 15, scale: 4 }).default('0.0000').notNull(),
+  // Auditoria P1-12 (2026-09-05): costo promedio ponderado vigente de este
+  // producto en este almacen/modo. Lo mantiene `addStock` (inventoryService.ts)
+  // cada vez que entra mercancia con costo conocido; una salida lo consulta
+  // pero nunca lo cambia. Es la base del asiento de Costo de Venta que antes
+  // no se contabilizaba (P1-12).
+  averageCost: decimal('average_cost', { precision: 15, scale: 4 }).default('0.0000').notNull(),
   minStock: decimal('min_stock', { precision: 15, scale: 4 }).default('0.0000').notNull(),
   maxStock: decimal('max_stock', { precision: 15, scale: 4 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -75,6 +81,11 @@ export const inventoryMovements = pgTable('inventory_movements', {
   type: varchar('type', { length: 50 }).notNull(), // sale | purchase | return | adjustment | transfer_in | transfer_out
   quantity: decimal('quantity', { precision: 15, scale: 4 }).notNull(), // Positive or negative
   balanceAfter: decimal('balance_after', { precision: 15, scale: 4 }).notNull(),
+  // Auditoria P1-12 (2026-09-05): costo promedio ponderado vigente DESPUES de
+  // este movimiento (no necesariamente el costo de ESTA entrada especifica:
+  // en una salida es el promedio que ya existia, sin cambiar). Nulo en
+  // movimientos previos a este cambio.
+  unitCost: decimal('unit_cost', { precision: 15, scale: 4 }),
   referenceId: uuid('reference_id'), // invoice_id, expense_id, transfer_id, etc.
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

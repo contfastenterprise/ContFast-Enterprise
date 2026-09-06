@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
+import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { esSistemas } from '@/utils/rolMatch';
@@ -138,6 +138,14 @@ async function revertirMovimientosInventario(
 
   for (const mov of originales) {
     if (idsYaRevertidos.has(mov.id)) continue;
+    // Auditoria P1-12 (2026-09-05): sin costo, a proposito. Recalcular el
+    // promedio ponderado hacia atras solo es exacto si nada se movio desde
+    // la compra original -- y para cuando alguien edita o elimina una
+    // compra, es normal que ya se hayan vendido unidades con ese promedio
+    // de por medio. "Deshacer" el promedio en ese punto seria inventarlo, no
+    // corregirlo. Se revierte la CANTIDAD (el kardex vuelve a cuadrar); el
+    // promedio se queda como esta, igual que ya hace cualquier sistema de
+    // costo promedio ante una correccion tardia.
     await addStock(
       companyId,
       modo,
@@ -148,6 +156,7 @@ async function revertirMovimientosInventario(
       'adjustment',
       mov.id,
       motivo,
+      undefined,
       tx
     );
   }
@@ -884,56 +893,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           });
 
           // Los servicios y la mercancia por encargo no mueven existencia.
+          //
+          // Auditoria P1-12 (2026-09-05): mismo hallazgo que en el POST de
+          // creacion (ver expenses/route.ts) -- este bloque reimplementaba a
+          // mano el patron lectura-calculo-escritura de INV-09, sin
+          // `.for('update')`, y nunca alimentaba el costo promedio ponderado
+          // porque no pasaba por `addStock`. Se reutiliza `addStock` con
+          // `line.unitCost`, igual que en la creacion.
           if (line.productId && warehouseId && !sinInventario.has(line.productId)) {
             const qty = parseFloat(line.quantity) || 0;
-              // Auditoria INV-19: el filtro por empresa es obligatorio.
-              // productId y warehouseId llegan del cuerpo de la peticion; sin
-              // el, esta lectura podia resolver la existencia del almacen de
-              // OTRA empresa y anclar el UPDATE a esa fila. El POST y el DELETE
-              // ya lo llevaban; el PUT se quedo sin la correccion.
-            const levelResult = await tx
-              .select({ id: inventoryLevels.id, balance: inventoryLevels.quantity })
-              .from(inventoryLevels)
-              .where(and(
-                eq(inventoryLevels.companyId, session.companyId),
-                eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId),
-                eq(inventoryLevels.modo, session.modo)
-              ));
-            
-            let balanceAfter = qty;
-            if (levelResult.length > 0) {
-              const currentBalance = parseFloat(levelResult[0].balance);
-              balanceAfter = currentBalance + qty;
-              await tx
-                .update(inventoryLevels)
-                .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
-                .where(eq(inventoryLevels.id, levelResult[0].id));
-            } else {
-              await tx.insert(inventoryLevels).values({
-                id: uuidv4(),
-                companyId: session.companyId,
-                modo: session.modo,
-                productId: line.productId,
-                warehouseId: warehouseId,
-                quantity: qty.toString(),
-              });
-            }
-
-            // Record Movement
-            await tx.insert(inventoryMovements).values({
-              id: uuidv4(),
-              companyId: session.companyId,
-              modo: session.modo,
-              productId: line.productId,
-              warehouseId: warehouseId,
-              userId: session.userId,
-              type: 'purchase',
-              quantity: qty.toString(),
-              balanceAfter: balanceAfter.toString(),
-              referenceId: id,
-              description: `Edición de Compra a suplidor / Gasto`
-            });
+            await addStock(
+              session.companyId,
+              session.modo,
+              line.productId,
+              warehouseId,
+              qty,
+              session.userId,
+              'purchase',
+              id,
+              `Edición de Compra a suplidor / Gasto`,
+              parseFloat(line.unitCost) || undefined,
+              tx
+            );
           }
         }
       }

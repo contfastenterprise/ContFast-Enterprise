@@ -425,6 +425,82 @@ export class AccountingRepository {
     }
   }
 
+  /**
+   * Revierte un asiento contable con un asiento de reversion explicito, en
+   * vez de borrarlo.
+   *
+   * Auditoria P0-07 (2026-09-03): tecnica introducida en
+   * src/app/api/v1/expenses/[id]/route.ts para las compras editadas o
+   * eliminadas. Auditoria P1-12 (2026-09-05): se extrae aqui, a
+   * AccountingRepository (alias AccountRepository), porque el mismo
+   * problema -- revertir el asiento de costo de venta de un conduce anulado,
+   * o de una nota de credito -- vuelve a aparecer en deliveryRepository.ts e
+   * invoiceDbBooker.ts. Una tercera copia pegada a mano es exactamente el
+   * riesgo que ya se materializo una vez (ver el bug de doble-reversion mas
+   * abajo): un sitio unico, una sola vez para corregir.
+   *
+   * El original queda intacto en el mayor -- nada desaparece, todo sigue
+   * siendo consultable y auditable. La reversion usa las MISMAS cuentas con
+   * el debe y el haber invertidos, asi que el efecto neto es cero. Pasa por
+   * `createJournalEntry`, asi que vuelve a pasar por `isPeriodOpen` y por la
+   * validacion de cuentas de la red de seguridad (P0-05): si alguna cuenta
+   * del asiento original ya no es valida, la reversion falla con un mensaje
+   * claro en vez de fallar en silencio.
+   *
+   * Guarda de "ya revertido": el reverso de un asiento se inserta con
+   * `reference = journalEntryId` (el id del asiento ORIGINAL). "Ya existe
+   * algun asiento con reference = este id" es exactamente "este asiento ya
+   * fue revertido antes". Sin esto, revertir dos veces el mismo asiento
+   * (por ejemplo editar la misma compra una segunda vez) dejaba un
+   * descuadre falso en el mayor -- el efecto de la primera edicion quedaba
+   * revertido dos veces en vez de una. Bug real, encontrado al construir el
+   * reverso del kardex; cerrado aqui para las tres rutas de una vez.
+   */
+  static async revertirAsientoContable(
+    tx: DbTransaction,
+    companyId: string,
+    modo: 'PRODUCCION' | 'PRUEBA',
+    journalEntryId: string,
+    motivo: string,
+    userId: string
+  ) {
+    const [original] = await tx
+      .select({ date: journalEntries.date, description: journalEntries.description })
+      .from(journalEntries)
+      .where(eq(journalEntries.id, journalEntryId))
+      .limit(1);
+
+    if (!original) return;
+
+    const [yaRevertido] = await tx
+      .select({ id: journalEntries.id })
+      .from(journalEntries)
+      .where(eq(journalEntries.reference, journalEntryId))
+      .limit(1);
+    if (yaRevertido) return;
+
+    const lineas = await tx
+      .select({ accountId: journalEntryLines.accountId, debit: journalEntryLines.debit, credit: journalEntryLines.credit })
+      .from(journalEntryLines)
+      .where(eq(journalEntryLines.journalEntryId, journalEntryId));
+
+    if (lineas.length === 0) return;
+
+    await this.createJournalEntry(tx, {
+      companyId,
+      modo,
+      reference: journalEntryId,
+      date: original.date,
+      description: `Reversión — ${motivo} (asiento original: ${original.description || journalEntryId})`,
+      lines: lineas.map((l) => ({
+        accountId: l.accountId,
+        debit: parseFloat(l.credit) || 0,
+        credit: parseFloat(l.debit) || 0,
+      })),
+      createdBy: userId,
+    });
+  }
+
   // ==========================================
   // AUXILIAR BALANCES (RLS Tenancy Helpers)
   // ==========================================

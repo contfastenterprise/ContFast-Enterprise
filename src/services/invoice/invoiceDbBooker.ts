@@ -499,6 +499,7 @@ export class InvoiceDbBooker {
       }
 
       // Deduct or add inventory (Deducción diferida a Conduce de Entrega. Solo Nota de Crédito e-34 agrega stock aquí)
+      let costoDevueltoTotal = 0;
       if (data.ecfType === '34') {
         for (const line of totals.itemLines) {
           // La mercancia vuelve al almacen DE DONDE SALIO, no al general del
@@ -511,7 +512,12 @@ export class InvoiceDbBooker {
           // antiguas, o un almacen que ya no existe -- se cae al general, que es
           // exactamente lo que se hacia hasta ahora.
           const almacenDeLinea = line.warehouseId || data.warehouseId;
-          await deductStock(
+          // Auditoria P1-12 (2026-09-05): sin costo -- una devolucion no
+          // funde valor nuevo en el promedio, lo consulta. `deductStock`
+          // devuelve el promedio ponderado VIGENTE en ese almacen (sin
+          // cambiarlo), que es el costo con el que se revierte el Costo de
+          // Venta de abajo.
+          const { averageCost } = await deductStock(
             data.companyId,
             data.modo,
             line.productId,
@@ -523,7 +529,37 @@ export class InvoiceDbBooker {
             `Devolución Nota de Crédito ${ncf}`,
             tx
           );
+          costoDevueltoTotal += line.quantity * averageCost;
         }
+      }
+
+      // Asiento de reverso de Costo de Venta (Auditoria P1-12, 2026-09-05).
+      //
+      // Una Nota de Credito e-34 no apunta a un conduce concreto -- puede
+      // devolver cantidades de varias entregas a la vez -- asi que en vez de
+      // buscar y revertir el asiento de costo de un despacho especifico
+      // (tecnica que si usa `void()` en deliveryRepository.ts, donde SI hay
+      // un conduce concreto), se asienta un reverso independiente por el
+      // costo de lo devuelto, al promedio ponderado vigente. Mismo criterio
+      // que ya usa esta funcion para el reverso de INGRESO de la nota de
+      // credito, un poco mas abajo: un asiento nuevo con el efecto contrario,
+      // no una busqueda-y-reversion del original.
+      if (costoDevueltoTotal > 0.004) {
+        const accCostoDevolucion = await resolverCuentaPorMapeo(tx, data.companyId, 'cost_of_goods_sold', '5.1.01', 'Nota de Crédito - Reverso Costo de Venta');
+        const accInventarioDevolucion = await resolverCuentaPorMapeo(tx, data.companyId, 'inventory', '1.1.03.01', 'Nota de Crédito - Inventario de Mercancía');
+        const montoDevuelto = Math.round(costoDevueltoTotal * 100) / 100;
+        await AccountRepository.createJournalEntry(tx, {
+          companyId: data.companyId,
+          modo: data.modo,
+          reference: invoice.id,
+          date: new Date().toISOString().split('T')[0],
+          description: `Reverso de Costo de Venta - Nota de Crédito NCF: ${ncf}`,
+          lines: [
+            { accountId: accInventarioDevolucion.id, debit: montoDevuelto, credit: 0 },
+            { accountId: accCostoDevolucion.id, debit: 0, credit: montoDevuelto },
+          ],
+          createdBy: data.userId,
+        });
       }
 
       // Book automatic accounting journal entries (Double Entry)

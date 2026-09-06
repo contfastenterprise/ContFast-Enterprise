@@ -206,6 +206,10 @@ export async function createExpense(expenseData: {
     if (expenseData.warehouseId && expenseData.lines && expenseData.userId) {
       // For expenseType '09' (Compras y Gastos que formarán parte del costo de venta) or similar
       for (const line of expenseData.lines) {
+        // Auditoria P1-12 (2026-09-05): `line.unitPrice` funde su valor en el
+        // costo promedio ponderado del producto/almacen. Si no viene (0 o
+        // sin definir), la cantidad se mueve igual pero el promedio no
+        // cambia -- mismo criterio que la recepcion de pedidos sin costo.
         await addStock(
           expenseData.companyId,
           expenseData.modo,
@@ -216,6 +220,7 @@ export async function createExpense(expenseData: {
           'purchase',
           expense.id,
           `Compra según NCF ${expenseData.ncf}`,
+          line.unitPrice || undefined,
           tx
         );
       }

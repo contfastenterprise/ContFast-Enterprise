@@ -1,6 +1,8 @@
-import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines } from '@/db';
+import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries } from '@/db';
 import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
 import { checkStock, deductStock } from '@/services/inventoryService';
+import { AccountRepository } from '@/repositories/accountRepository';
+import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 
 export interface CreateDeliveryNoteInput {
   companyId: string;
@@ -298,9 +300,10 @@ export class DeliveryRepository {
       }
 
       // 5. Deduct stock and write movements
+      let costoDeVentaTotal = 0;
       for (const line of note.lines) {
         const currentQty = Number(line.quantity);
-        await deductStock(
+        const { averageCost } = await deductStock(
           companyId,
           modo,
           line.productId,
@@ -312,6 +315,45 @@ export class DeliveryRepository {
           `Despacho físico Conduce ${note.deliveryNumber}`,
           tx
         );
+        costoDeVentaTotal += currentQty * averageCost;
+      }
+
+      // 5b. Asiento de Costo de Venta (Auditoria P1-12, 2026-09-05).
+      //
+      // Hasta ahora despachar descontaba el kardex pero nunca contabilizaba
+      // el costo de esa mercancia -- el asiento de la factura
+      // (invoiceDbBooker.ts) solo registra el INGRESO (Ventas/CxC/ITBIS),
+      // nunca el costo. El resultado se veia bien en ingresos y mal en
+      // margen: la utilidad bruta salia inflada por el valor entero de lo
+      // vendido, sin restarle nada.
+      //
+      // El costo es el promedio ponderado vigente al momento del despacho
+      // (`averageCost`, devuelto por `deductStock` -- P1-12 en
+      // inventoryService.ts), no el de la factura ni el de una compra en
+      // particular. `reference = id` (el conduce, no la factura): asi
+      // `void()`, mas abajo, revierte SOLO este asiento de costo sin tocar
+      // el asiento de ingreso de la factura, que es un documento aparte.
+      //
+      // Si el promedio vigente es cero (producto que nunca entro con costo
+      // conocido -- ver P1-12 en inventoryService.ts) no hay nada que
+      // contabilizar: `createJournalEntry` rechaza un asiento en cero, y
+      // asentar un costo inventado seria peor que no asentar nada.
+      if (costoDeVentaTotal > 0.004) {
+        const accCosto = await resolverCuentaPorMapeo(tx, companyId, 'cost_of_goods_sold', '5.1.01', 'Despacho - Costo de Venta');
+        const accInventario = await resolverCuentaPorMapeo(tx, companyId, 'inventory', '1.1.03.01', 'Despacho - Inventario de Mercancía');
+        const monto = Math.round(costoDeVentaTotal * 100) / 100;
+        await AccountRepository.createJournalEntry(tx, {
+          companyId,
+          modo,
+          reference: id,
+          date: new Date().toISOString().split('T')[0],
+          description: `Costo de Venta - Conduce ${note.deliveryNumber}`,
+          lines: [
+            { accountId: accCosto.id, debit: monto, credit: 0 },
+            { accountId: accInventario.id, debit: 0, credit: monto },
+          ],
+          createdBy: userId,
+        });
       }
 
       // 6. Update Delivery Note Status to Approved
@@ -422,6 +464,33 @@ export class DeliveryRepository {
           invoice.id,
           `Devolución por Conduce Anulado ${note.deliveryNumber}`,
           tx
+        );
+      }
+
+      // 3b. Revertir el asiento de Costo de Venta de este conduce, si lo hubo
+      // (Auditoria P1-12, 2026-09-05). Se busca por `reference = id`: es
+      // exactamente como quedo marcado al aprobarse, en el paso 5b de
+      // `approve`. Mismo criterio que la reversion de asientos de compra
+      // (P0-07): el original queda intacto, se inserta un reverso con el
+      // debe y el haber invertidos, y `revertirAsientoContable` ya trae su
+      // propia guarda de "no revertir dos veces".
+      const [asientoCosto] = await tx
+        .select({ id: journalEntries.id })
+        .from(journalEntries)
+        .where(and(
+          eq(journalEntries.reference, id),
+          eq(journalEntries.companyId, companyId),
+          eq(journalEntries.modo, modo)
+        ))
+        .limit(1);
+      if (asientoCosto) {
+        await AccountRepository.revertirAsientoContable(
+          tx,
+          companyId,
+          modo,
+          asientoCosto.id,
+          `Conduce anulado ${note.deliveryNumber}`,
+          userId
         );
       }
 

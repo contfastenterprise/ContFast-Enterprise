@@ -220,12 +220,24 @@ export async function addStock(
   type: string,
   referenceId?: string,
   description?: string,
+  /**
+   * Auditoria P1-12 (2026-09-05): costo unitario de ESTA entrada, cuando se
+   * conoce (compra con costo real, o traslado que arrastra el costo
+   * promedio del almacen de origen). Con el, esta entrada funde su valor en
+   * el costo promedio ponderado del producto/almacen (`inventoryLevels.averageCost`).
+   * Sin el (undefined) -- ajustes, reversiones, recepciones de pedido sin
+   * costo capturado -- la cantidad se mueve pero el promedio no cambia.
+   *
+   * Nunca se pasa en una SALIDA (quantity negativa): salir no tiene costo
+   * propio, consume el promedio que ya existe. `deductStock` nunca lo pasa.
+   */
+  unitCost?: number,
   tx: typeof db = db
-) {
+): Promise<{ averageCost: number }> {
   // Un producto sin control de existencia no mueve inventario ni deja rastro en
   // el kardex. Aqui se cortan las dos direcciones de golpe: `deductStock` es
   // esta misma funcion con la cantidad en negativo.
-  if (!(await llevaInventario(companyId, productId, tx))) return;
+  if (!(await llevaInventario(companyId, productId, tx))) return { averageCost: 0 };
 
   // Ensure level exists
   // El companyId es imprescindible: productId y warehouseId llegan del cuerpo
@@ -281,9 +293,36 @@ export async function addStock(
 
   const newQuantity = Number(level.quantity) + quantity;
 
+  // Costo promedio ponderado (Auditoria P1-12, 2026-09-05).
+  //
+  // Solo una ENTRADA con costo conocido funde valor nuevo en el promedio. La
+  // cantidad previa que participa en la mezcla nunca es negativa: una
+  // existencia en rojo (una venta que dejo el nivel bajo cero) no es valor ya
+  // pagado, y contarla como tal abarataria el promedio de forma ficticia.
+  //
+  // Una SALIDA (quantity <= 0, o sin unitCost) no cambia el promedio, solo lo
+  // consume. Por eso el valor que se devuelve y el que se graba en el
+  // movimiento es siempre "el promedio vigente DESPUES de este movimiento",
+  // que en una salida es exactamente el mismo que habia antes.
+  const costoPromedioAnterior = Number(level.averageCost ?? 0);
+  let costoPromedioNuevo = costoPromedioAnterior;
+  if (quantity > 0 && unitCost !== undefined && unitCost !== null && !Number.isNaN(unitCost)) {
+    const cantidadPreviaParaMezcla = Math.max(Number(level.quantity), 0);
+    const valorPrevio = cantidadPreviaParaMezcla * costoPromedioAnterior;
+    const valorEntrante = quantity * unitCost;
+    const cantidadTotalParaMezcla = cantidadPreviaParaMezcla + quantity;
+    costoPromedioNuevo = cantidadTotalParaMezcla > 0
+      ? (valorPrevio + valorEntrante) / cantidadTotalParaMezcla
+      : unitCost;
+  }
+
   // Update level
   await tx.update(inventoryLevels)
-    .set({ quantity: newQuantity.toString(), updatedAt: new Date() })
+    .set({
+      quantity: newQuantity.toString(),
+      averageCost: costoPromedioNuevo.toFixed(4),
+      updatedAt: new Date(),
+    })
     .where(eq(inventoryLevels.id, level.id));
 
   // Record movement
@@ -297,9 +336,12 @@ export async function addStock(
     modo,
     quantity: quantity.toString(),
     balanceAfter: newQuantity.toString(),
+    unitCost: costoPromedioNuevo.toFixed(4),
     referenceId,
     description,
   });
+
+  return { averageCost: costoPromedioNuevo };
 }
 
 export async function deductStock(
@@ -313,8 +355,12 @@ export async function deductStock(
   referenceId?: string,
   description?: string,
   tx: typeof db = db
-) {
-  await addStock(companyId, modo, productId, warehouseId, -quantity, userId, type, referenceId, description, tx);
+): Promise<{ averageCost: number }> {
+  // Nunca se pasa costo: una salida consume el promedio ya vigente, no lo
+  // recalcula. El valor que devuelve `addStock` (Auditoria P1-12) es ese
+  // promedio vigente, listo para que quien despacha lo use como costo de
+  // venta.
+  return await addStock(companyId, modo, productId, warehouseId, -quantity, userId, type, referenceId, description, undefined, tx);
 }
 
 export async function transferStock(
@@ -388,7 +434,13 @@ export async function transferStock(
       // destination (candado propio, mas el alta segura si la fila de
       // existencia del almacen destino todavia no existe).
       await deductStock(companyId, modo, item.productId, sourceWarehouseId, item.quantity, userId, 'transfer_out', transferId, `Transfer to ${destinationWarehouseId}`, tx);
-      await addStock(companyId, modo, item.productId, destinationWarehouseId, item.quantity, userId, 'transfer_in', transferId, `Transfer from ${sourceWarehouseId}`, tx);
+      // Auditoria P1-12: el traslado arrastra el costo promedio del almacen de
+      // ORIGEN (ya leido arriba, bajo el mismo candado que valido la
+      // existencia) hacia el destino. Sin esto, un almacen que solo recibe por
+      // traslado -- nunca por compra directa -- se quedaria con costo promedio
+      // en cero para siempre, y toda venta desde el se contabilizaria con
+      // costo de venta cero.
+      await addStock(companyId, modo, item.productId, destinationWarehouseId, item.quantity, userId, 'transfer_in', transferId, `Transfer from ${sourceWarehouseId}`, Number(sourceLevel.averageCost), tx);
     }
 
     return transferId;

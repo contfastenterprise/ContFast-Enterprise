@@ -454,6 +454,12 @@ export class SupplierOrderService {
           ));
 
         // Update inventory level ONLY at reception
+        // Auditoria P1-12 (2026-09-05): sin costo. `purchase_order_items` no
+        // captura el precio del suplidor -- esa informacion solo existe hoy en
+        // `expense_lines.unit_cost`, cuando la compra se registra como gasto
+        // con NCF. Recibir un pedido sin ese paso mueve la cantidad pero no
+        // toca el costo promedio del producto/almacen, exactamente igual que
+        // antes de este cambio.
         await addStock(
           companyId,
           modo,
@@ -464,6 +470,7 @@ export class SupplierOrderService {
           'purchase',
           order.id,
           `Recepcion de pedido ${order.orderNumber}`,
+          undefined,
           tx
         );
 

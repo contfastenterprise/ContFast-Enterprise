@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, inventoryLevels, inventoryMovements, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments, auditLogs } from '@/db';
+import { db, expenses, expenseLines, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { eq, sql, and, between, inArray } from 'drizzle-orm';
@@ -8,6 +8,7 @@ import { AccountRepository } from '@/repositories/accountRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { addStock } from '@/services/inventoryService';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -177,64 +178,33 @@ export async function POST(req: NextRequest) {
           // `sinInventario` son los servicios y la mercancia por encargo. Una
           // linea de gasto suya no crea ni mueve existencia: comprar mano de
           // obra no llena un almacen.
+          //
+          // Auditoria P1-12 (2026-09-05): esto reimplementaba a mano el mismo
+          // patron lectura-calculo-escritura que causo INV-09 en addStock --
+          // sin `.for('update')`, dos compras concurrentes del mismo
+          // producto/almacen podian leer la misma existencia y una escritura
+          // pisar a la otra en vez de sumarse. Ademas, al no pasar por
+          // `addStock` esta entrada nunca alimentaba el costo promedio
+          // ponderado (P1-12), asi que el costo de venta jamas se pudo
+          // contabilizar: no habia de donde sacarlo. Se reutiliza `addStock`
+          // (mismo criterio que ya aplico P1-10 en `transferStock`), pasando
+          // `line.unitCost` -- el costo real de esta compra -- para que funda
+          // en el promedio.
           if (line.productId && warehouseId && !sinInventario.has(line.productId)) {
             const qty = parseFloat(line.quantity);
-
-            // Fetch current level
-            //
-            // El filtro por empresa es obligatorio: productId y warehouseId
-            // llegan del cuerpo de la peticion. Sin el, esta lectura devolvia la
-            // existencia del almacen de OTRA empresa, ese balance ajeno se usaba
-            // para calcular balanceAfter y quedaba grabado en el kardex propio.
-            // (La propiedad de ambos se comprueba mas arriba, antes de abrir la
-            // transaccion, pero el filtro se queda igualmente: es la consulta la
-            // que tiene que ser correcta por si sola.)
-            const levelResult = await tx.select({ balance: inventoryLevels.quantity })
-              .from(inventoryLevels)
-              .where(and(
-                eq(inventoryLevels.companyId, session.companyId),
-                eq(inventoryLevels.productId, line.productId),
-                eq(inventoryLevels.warehouseId, warehouseId),
-                eq(inventoryLevels.modo, session.modo)
-              ));
-            
-            let balanceAfter = qty;
-            if (levelResult.length > 0) {
-              const currentBalance = parseFloat(levelResult[0].balance);
-              balanceAfter = currentBalance + qty;
-              await tx.update(inventoryLevels)
-                .set({ quantity: balanceAfter.toString(), updatedAt: new Date() })
-                .where(and(
-                  eq(inventoryLevels.companyId, session.companyId),
-                  eq(inventoryLevels.productId, line.productId),
-                  eq(inventoryLevels.warehouseId, warehouseId),
-                  eq(inventoryLevels.modo, session.modo)
-                ));
-            } else {
-              await tx.insert(inventoryLevels).values({
-                id: uuidv4(),
-                companyId: session.companyId,
-                modo: session.modo,
-                productId: line.productId,
-                warehouseId: warehouseId,
-                quantity: qty.toString(),
-              });
-            }
-
-            // Record Movement
-            await tx.insert(inventoryMovements).values({
-              id: uuidv4(),
-              companyId: session.companyId,
-              modo: session.modo,
-              productId: line.productId,
-              warehouseId: warehouseId,
-              userId: session.userId,
-              type: 'purchase',
-              quantity: qty.toString(),
-              balanceAfter: balanceAfter.toString(),
-              referenceId: newExpenseId,
-              description: `Compra a suplidor / Gasto`
-            });
+            await addStock(
+              session.companyId,
+              session.modo,
+              line.productId,
+              warehouseId,
+              qty,
+              session.userId,
+              'purchase',
+              newExpenseId,
+              `Compra a suplidor / Gasto`,
+              parseFloat(line.unitCost) || undefined,
+              tx
+            );
           }
         }
       }
