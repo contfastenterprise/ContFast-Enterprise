@@ -98,10 +98,10 @@ export async function GET(req: NextRequest) {
       success: true,
       data: { segundos, totales, porEmpresa: resultados },
     });
-  } catch (error: any) {
-    Logger.error('[cron/sincronizar-ecf] fallo la pasada', { error: error?.message });
+  } catch (error: unknown) {
+    Logger.error('[cron/sincronizar-ecf] fallo la pasada', { error: (error as Error)?.message });
     return NextResponse.json(
-      { success: false, error: { code: 'ERROR', message: error?.message || 'Error desconocido.' } },
+      { success: false, error: { code: 'ERROR', message: (error as Error)?.message || 'Error desconocido.' } },
       { status: 500 }
     );
   }

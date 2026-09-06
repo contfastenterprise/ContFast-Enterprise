@@ -41,10 +41,10 @@ export async function GET(req: NextRequest) {
     const accounts = await BankRepository.getBankAccounts(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data: accounts });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching bank accounts:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }
@@ -86,10 +86,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: newAccount }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating bank account:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'BAD_REQUEST', message: error.message } },
+      { success: false, error: { code: 'BAD_REQUEST', message: (error as Error).message } },
       { status: 400 }
     );
   }

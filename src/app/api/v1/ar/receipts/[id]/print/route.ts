@@ -124,10 +124,10 @@ export async function POST(
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating receipt print:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

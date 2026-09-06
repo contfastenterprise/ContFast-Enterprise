@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
       success: true,
       data: mappings,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Route Mappings API Error]:', err);
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: err.message } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: (err as Error).message } },
       { status: 500 }
     );
   }

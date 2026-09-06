@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
         user: newUser,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration API error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: 'Ha ocurrido un error interno en el servidor.' } },

@@ -27,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     }
 
     return NextResponse.json({ success: true, data: updated[0] });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating category:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }
@@ -61,9 +61,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting category:', error);
-    if (error.code === '23503') { // Foreign key violation
+    if ((error as { code?: string }).code === '23503') { // Foreign key violation
       return NextResponse.json({ success: false, error: { message: 'No se puede eliminar la categoría porque hay productos asignados a ella.' } }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });

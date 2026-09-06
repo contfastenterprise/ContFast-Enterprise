@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       .where(and(...filters));
 
     return NextResponse.json({ success: true, data: categories });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching categories:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }).returning();
 
     return NextResponse.json({ success: true, data: newCategory[0] }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating category:', error);
     return NextResponse.json({ success: false, error: { message: 'Error interno del servidor' } }, { status: 500 });
   }

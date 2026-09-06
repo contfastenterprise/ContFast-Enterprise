@@ -25,10 +25,10 @@ export async function GET(req: NextRequest) {
     const receivables = await ArRepository.getPendingAR(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data: receivables });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching AR:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

@@ -9,6 +9,12 @@ import { DocumentService } from '@/services/print/documentService';
 import { db, companies, companySettings, customers } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
+// Forma de cada fila que devuelve ArRepository.getCustomerReceiptsBreakdown.
+// `groupedByInvoice` (mas abajo) se queda Record<string, any[]> a proposito
+// -- no es parte de este lote -- pero el acumulador final si puede tiparse
+// bien: el `any[]` de origen entra sin problema en un array ya tipado.
+type ReciboDetalle = Awaited<ReturnType<typeof ArRepository.getCustomerReceiptsBreakdown>>[number];
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -89,7 +95,7 @@ export async function POST(req: NextRequest) {
       groupedByInvoice[invId].push(item);
     });
 
-    const processedItems: any[] = [];
+    const processedItems: (ReciboDetalle & { progressiveBalance: number })[] = [];
     Object.values(groupedByInvoice).forEach(group => {
       const sorted = [...group].sort((a, b) => {
         const dateA = new Date(a.receiptDate).getTime();
@@ -160,10 +166,10 @@ export async function POST(req: NextRequest) {
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating statement PDF:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

@@ -30,12 +30,13 @@ export async function GET(req: NextRequest) {
       { success: true, data: sessions },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/cash/sessions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -84,12 +85,13 @@ export async function POST(req: NextRequest) {
       { success: true, data: session },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/cash/sessions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

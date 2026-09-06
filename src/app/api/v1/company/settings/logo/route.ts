@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
       data: { logoUrl: publicUrl },
       message: 'Logo corporativo actualizado exitosamente'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Logo Upload Error:', error);
     return NextResponse.json(
-      { success: false, error: { message: error.message || 'Error interno del servidor' } },
+      { success: false, error: { message: (error as Error).message || 'Error interno del servidor' } },
       { status: 500 }
     );
   }

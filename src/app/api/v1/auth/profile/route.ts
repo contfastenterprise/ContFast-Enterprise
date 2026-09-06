@@ -98,10 +98,10 @@ export async function PATCH(req: NextRequest) {
       },
       message: 'Perfil actualizado exitosamente',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Profile update error:', error);
     return NextResponse.json(
-      { success: false, error: { message: error.message || 'Error interno del servidor' } },
+      { success: false, error: { message: (error as Error).message || 'Error interno del servidor' } },
       { status: 500 }
     );
   }
@@ -130,9 +130,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: user });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { success: false, error: { message: error.message || 'Error interno' } },
+      { success: false, error: { message: (error as Error).message || 'Error interno' } },
       { status: 500 }
     );
   }

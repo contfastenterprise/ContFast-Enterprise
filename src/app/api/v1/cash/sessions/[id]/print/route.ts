@@ -226,10 +226,10 @@ export async function GET(
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating cash closure report PDF:', error);
     return NextResponse.json(
-      { error: { message: error.message || 'Ocurrió un error al generar el reporte.' } },
+      { error: { message: (error as Error).message || 'Ocurrió un error al generar el reporte.' } },
       { status: 500 }
     );
   }

@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching current user:', error);
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: 'Error interno del servidor.' } },

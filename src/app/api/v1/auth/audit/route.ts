@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[Audit API Error]:', err);
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: err.message } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: (err as Error).message } },
       { status: 500 }
     );
   }

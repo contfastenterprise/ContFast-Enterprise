@@ -77,8 +77,8 @@ export async function GET(
 
     // Note: the component expects direct JSON, not wrapped in { success, data }
     return NextResponse.json(ticketData, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET ticket:', error);
-    return NextResponse.json({ error: error.message }, { status: 500, headers: resHeaders });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500, headers: resHeaders });
   }
 }

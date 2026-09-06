@@ -36,10 +36,10 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data: receipt });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching receipt details:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

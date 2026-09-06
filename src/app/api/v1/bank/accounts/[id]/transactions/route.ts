@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { db, bankAccounts, bankTransactions, auditLogs, chartOfAccounts } from '@/db';
+import { db, type DbTransaction, bankAccounts, bankTransactions, auditLogs, chartOfAccounts } from '@/db';
 import { eq, and, isNull, count, desc } from 'drizzle-orm';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { BankRepository } from '@/repositories/bankRepository';
@@ -17,7 +17,7 @@ const createTransactionSchema = z.object({
   description: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
 });
 
-async function getOrCreateAccount(tx: any, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
+async function getOrCreateAccount(tx: DbTransaction, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
   const [acc] = await tx
     .select()
     .from(chartOfAccounts)
@@ -119,12 +119,13 @@ export async function GET(
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/bank/accounts/[id]/transactions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -256,12 +257,13 @@ export async function POST(
       { success: true, message: 'Movimiento bancario registrado exitosamente.', data: transaction },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/bank/accounts/[id]/transactions:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 5. Execute Repository Aggregation Queries based on tab
-    let result: any = null;
+    let result: unknown = null;
 
     switch (tab) {
       case 'general':
@@ -107,10 +107,10 @@ export async function GET(req: NextRequest) {
       cached: false,
       data: result
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[BI API Endpoint Error]:', err);
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: err.message } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: (err as Error).message } },
       { status: 500 }
     );
   }

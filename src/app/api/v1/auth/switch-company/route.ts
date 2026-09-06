@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       { success: true, message: 'Cambio de empresa exitoso', data: { company: targetCompany } },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error switching company:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Error interno del servidor' } },

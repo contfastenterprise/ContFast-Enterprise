@@ -45,10 +45,10 @@ export async function GET(req: NextRequest) {
     const receipts = await ArRepository.getReceiptsList(session.companyId, session.modo, { startDate, endDate, search });
 
     return NextResponse.json({ success: true, data: receipts });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching receipts:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }
@@ -111,18 +111,18 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(respBody, { status });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error registering receipt:', error);
     
-    if (error.message.includes('sesión de caja abierta')) {
+    if ((error as Error).message.includes('sesión de caja abierta')) {
       return NextResponse.json(
-        { success: false, error: { code: 'CASH_SESSION_CLOSED', message: error.message } },
+        { success: false, error: { code: 'CASH_SESSION_CLOSED', message: (error as Error).message } },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'BAD_REQUEST', message: error.message } },
+      { success: false, error: { code: 'BAD_REQUEST', message: (error as Error).message } },
       { status: 400 }
     );
   }

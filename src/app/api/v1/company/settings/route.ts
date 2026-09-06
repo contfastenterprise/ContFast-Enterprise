@@ -52,9 +52,9 @@ export async function GET(req: NextRequest) {
         address: company?.address || null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { success: false, error: { message: error.message || 'Error interno' } },
+      { success: false, error: { message: (error as Error).message || 'Error interno' } },
       { status: 500 }
     );
   }

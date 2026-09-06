@@ -31,12 +31,13 @@ export async function GET(req: NextRequest) {
       { success: true, data: registers },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/cash/registers:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -83,13 +84,14 @@ export async function POST(req: NextRequest) {
       { success: true, data: register, message: 'Terminal creada exitosamente.' },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/cash/registers:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     
     // Check for unique constraint violation on code
-    if (error.code === '23505' || error.message?.includes('unique constraint')) {
+    if (e.code === '23505' || e.message?.includes('unique constraint')) {
       return NextResponse.json(
         { success: false, error: { code: 'CONFLICT', message: 'Ya existe una terminal con ese código en esta empresa.' } },
         { status: 409, headers: resHeaders }
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

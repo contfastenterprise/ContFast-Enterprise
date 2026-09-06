@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       { success: true, message: 'Sesión cerrada exitosamente.' },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Logout error:', error);
     return NextResponse.json(
       { success: false, error: { code: 'SERVER_ERROR', message: 'Error interno al cerrar sesión.' } },
