@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { db, accountingPeriods } from '@/db';
+import { db, accountingPeriods, auditLogs } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { enforcePermission } from '@/middleware/permissions';
 
@@ -57,15 +57,34 @@ export async function PUT(
       );
     }
 
-    const [updated] = await db.update(accountingPeriods)
-      .set({
-        status,
-        closedAt: status === 'closed' ? new Date() : null,
-        closedBy: status === 'closed' ? session.userId : null,
-        updatedAt: new Date()
-      })
-      .where(eq(accountingPeriods.id, id))
-      .returning();
+    // Auditoria P2-32 (2026-09-07): reabrir un periodo pisaba closedAt/
+    // closedBy sin dejar rastro de quien lo habia cerrado ni cuando -- se
+    // registra el estado previo COMPLETO en audit_logs antes de
+    // sobrescribirlo, en la misma transaccion que el cambio de estado.
+    const updated = await db.transaction(async (tx) => {
+      const [row] = await tx.update(accountingPeriods)
+        .set({
+          status,
+          closedAt: status === 'closed' ? new Date() : null,
+          closedBy: status === 'closed' ? session.userId : null,
+          updatedAt: new Date()
+        })
+        .where(eq(accountingPeriods.id, id))
+        .returning();
+
+      await tx.insert(auditLogs).values({
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        action: status === 'closed' ? 'close_accounting_period' : 'reopen_accounting_period',
+        entityType: 'accounting_periods',
+        entityId: id,
+        oldValues: { status: existing.status, closedAt: existing.closedAt, closedBy: existing.closedBy },
+        newValues: { status: row.status, closedAt: row.closedAt, closedBy: row.closedBy },
+      });
+
+      return row;
+    });
 
     return NextResponse.json({ success: true, data: updated }, { headers: resHeaders });
   } catch (error: unknown) {
