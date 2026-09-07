@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { UserProfile, RouteMapping } from '@/types/rbac';
 import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 import { DEFAULT_ROUTE_MAPPINGS } from '@/constants/defaultMappings';
+import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 
 export interface RbacContextType {
   user: UserProfile | null;
@@ -103,10 +104,10 @@ export function RbacProvider({
     const permissionKey = `${module.toLowerCase()}:${action.toLowerCase()}`;
 
     // 1. Fixed roles: sistemas tiene acceso total
-    if (userRole.includes('sistema') || userRole === 'sistemas') return true;
+    if (esSistemas(userRole)) return true;
 
     // 2. Administración tiene acceso a todo excepto auditoria/administracion que es solo lectura
-    if (userRole.includes('admin') || userRole === 'administracion' || userRole.includes('administraci')) {
+    if (esAdministracion(userRole)) {
       if (module === 'auditoria') {
         return action === 'read';
       }
@@ -150,7 +151,7 @@ export function RbacProvider({
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase();
 
-    if (userRole.includes('sistema')) return true;
+    if (esSistemas(userRole)) return true;
 
     // Base dashboard path is accessible to all authenticated users
     if (path === '/dashboard' || path === '/dashboard/') return true;

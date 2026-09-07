@@ -5,6 +5,7 @@ import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, 
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
+import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -77,8 +78,8 @@ export default function SettingsPage() {
     barcodeLength: 9
   });
 
-  const isSistemas = userRole === 'sistemas' || userRole?.toLowerCase().includes('sistema');
-  const isAdministracion = userRole === 'administracion' || userRole?.toLowerCase().includes('admin');
+  const isSistemas = esSistemas(userRole);
+  const isAdministracion = esAdministracion(userRole);
   const isNameDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.name));
   const isRncDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.rnc));
 

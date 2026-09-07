@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Gl
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { useRbac } from '@/components/providers/rbacContext';
 
 interface Retention {
   id: string;
@@ -32,24 +33,17 @@ export default function RetentionsPage() {
   const [editing, setEditing] = useState<Retention | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Retention | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [authLoaded, setAuthLoaded] = useState(false);
+  const { loading: rbacLoading, hasPermission } = useRbac();
 
-  // Fetch current user for role guard
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/v1/auth/me');
-        const data = await res.json();
-        if (data.success && data.data?.user) setCurrentUser(data.data.user);
-      } catch { /* noop */ } finally {
-        setAuthLoaded(true);
-      }
-    })();
-  }, []);
-
-  const userRole = (currentUser?.role || currentUser?.roleName || '').toLowerCase();
-  const hasAccess = userRole.includes('sistema') || userRole.includes('admin') || userRole.includes('conta') || userRole.includes('auditor');
+  // Auditoria P0-02 (2026-09-03), extendida al frontend (2026-09-07): antes
+  // .includes('sistema'|'admin'|'conta'|'auditor'), que concedia acceso a
+  // cualquier rol cuyo NOMBRE contuviera esas letras -- un rol creado de buena
+  // fe como "Contacto de clientes" entraba por 'conta'. Ahora se pregunta por
+  // el PERMISO real en vez de por el nombre del rol: hasPermission ya concede
+  // acceso total a sistemas y administracion, cubre contabilidad, y respeta
+  // cualquier rol al que se le haya otorgado contabilidad:read en la base de
+  // datos (que antes quedaba fuera si su nombre no contenia esas letras).
+  const hasAccess = hasPermission('contabilidad', 'read');
 
   const fetchRetentions = async () => {
     try {
@@ -67,7 +61,7 @@ export default function RetentionsPage() {
   useEffect(() => { if (hasAccess) fetchRetentions(); }, [hasAccess]);
 
   // Role guard — show access denied
-  if (!authLoaded) {
+  if (rbacLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-8 h-8 border-3 border-[#003366] border-t-transparent rounded-full animate-spin" />
@@ -82,7 +76,7 @@ export default function RetentionsPage() {
         </div>
         <h2 className="text-xl font-bold text-[#003366] mb-2">Acceso Restringido</h2>
         <p className="text-slate-500 text-sm max-w-md">
-          Solo los roles de <strong>Administración</strong>, <strong>Sistemas</strong> y <strong>Contabilidad</strong> pueden gestionar las retenciones fiscales.
+          Necesitas permiso de lectura sobre <strong>Contabilidad</strong> para gestionar las retenciones fiscales.
         </p>
         <a href="/dashboard" className="mt-6 text-sm font-semibold text-[#003366] hover:underline">← Volver al inicio</a>
       </div>

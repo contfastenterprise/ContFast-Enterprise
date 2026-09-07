@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
+import { esAdminOSistemas, esSistemas } from '@/utils/rolMatch';
 
 interface User {
   id: string;
@@ -443,7 +444,7 @@ export default function AdminPage() {
           >
             <div className="flex items-center gap-2"><KeyRound className="w-4 h-4" /> Roles del Sistema</div>
           </button>
-          {(currentUserRole === 'sistemas' || currentUserRole === 'administracion' || currentUserRole?.toLowerCase().includes('admin')) && (
+          {esAdminOSistemas(currentUserRole) && (
             <button
               onClick={() => setActiveTab('plans')}
               className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'plans' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
@@ -513,7 +514,7 @@ export default function AdminPage() {
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
-                              {user.roleName?.toLowerCase().includes('sistema') ? (
+                              {esSistemas(user.roleName) ? (
                                 <span className="text-xs text-slate-400 italic font-semibold px-2">No suspendible</span>
                               ) : (
                                 <button

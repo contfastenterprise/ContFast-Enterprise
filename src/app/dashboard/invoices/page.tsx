@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
@@ -1624,7 +1625,7 @@ function InvoicesList() {
                           <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
                           {(() => {
                             const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
-                            const canEditDiscount = userRole.includes('sistema') || userRole.includes('admin');
+                            const canEditDiscount = esAdminOSistemas(userRole);
 
                             return (
                               <input

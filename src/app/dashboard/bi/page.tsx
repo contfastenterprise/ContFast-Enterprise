@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 import { 
   Loader2, RefreshCw, BarChart2, Calendar, 
   Filter, Layers, User, Briefcase, Tag, AlertTriangle, ShieldCheck, FileText
@@ -100,7 +101,7 @@ export default function BIDashboardPage() {
   useEffect(() => {
     if (!rbacLoading && user) {
       const role = (user.role || '').toLowerCase();
-      const isAuth = role === 'sistemas' || role.includes('sistema') || role.includes('admin') || role.includes('administraci');
+      const isAuth = esAdminOSistemas(role);
       if (!isAuth) {
         toast.error('Acceso denegado. No tiene permisos para ver Inteligencia de Negocios.');
         router.replace('/dashboard');

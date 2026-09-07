@@ -10,6 +10,7 @@ import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import Avatar from '@/components/ui/Avatar';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { ConfirmProvider } from '@/providers/confirm-provider';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
@@ -189,7 +190,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   useEffect(() => {
     if (user && pathname === '/dashboard') {
       const normalized = (user.role || '').toLowerCase();
-      const isAdminOrSys = normalized.includes('admin') || normalized.includes('sistema');
+      const isAdminOrSys = esAdminOSistemas(normalized);
       if (!isAdminOrSys) {
         const roleRedirectMap: Record<string, string> = {
           factura: '/dashboard/invoices',

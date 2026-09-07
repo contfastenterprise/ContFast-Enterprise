@@ -3,6 +3,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
+import { esAdminOSistemas } from '@/utils/rolMatch';
 import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -67,7 +68,7 @@ export default function AccountingPage() {
   useEffect(() => {
     if (!rbacLoading && user) {
       const role = (user.role || '').toLowerCase();
-      const isAuth = role === 'sistemas' || role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
+      const isAuth = esAdminOSistemas(role) || role === 'contabilidad';
       if (!isAuth) {
         toast.error('Acceso denegado. No tiene permisos para acceder a Contabilidad.');
         router.replace('/dashboard/purchases');
@@ -114,7 +115,7 @@ export default function AccountingPage() {
   useEffect(() => {
     if (rbacLoading || !user) return;
     const role = (user.role || '').toLowerCase();
-    const isAuth = role === 'sistemas' || role.includes('sistema') || role.includes('admin') || role.includes('administraci') || role === 'contabilidad';
+    const isAuth = esAdminOSistemas(role) || role === 'contabilidad';
     if (!isAuth) return;
 
     fetchData();
