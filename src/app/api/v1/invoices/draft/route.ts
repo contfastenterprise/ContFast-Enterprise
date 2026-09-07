@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       // Insert lines
       if (totals.itemLines.length > 0) {
         await tx.insert(invoiceLines).values(
-          totals.itemLines.map((line: any) => ({
+          totals.itemLines.map((line) => ({
             invoiceId: invoice.id,
             productId: line.productId,
             warehouseId: line.warehouseId || data.warehouseId,
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
       // Insert taxes
       if (totals.taxesList.length > 0) {
         await tx.insert(invoiceTaxes).values(
-          totals.taxesList.map((tax: any) => ({
+          totals.taxesList.map((tax) => ({
             invoiceId: invoice.id,
             taxType: tax.taxType,
             rate: tax.rate.toString(),
@@ -190,12 +190,13 @@ export async function POST(req: NextRequest) {
       { success: true, data: draftInvoice },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/invoices/draft:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

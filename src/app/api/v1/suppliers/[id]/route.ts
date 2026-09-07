@@ -40,11 +40,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
     }
 
     return NextResponse.json({ success: true, data: supplier }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching supplier:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status }
     );
   }
@@ -86,12 +87,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     }
 
     return NextResponse.json({ success: true, data: updated }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating supplier:', error);
-    const isDuplicate = error.message.includes('en uso');
-    const status = error.status || (isDuplicate ? 409 : 500);
+    const e = error as Error & { status?: number; code?: string };
+    const isDuplicate = e.message.includes('en uso');
+    const status = e.status || (isDuplicate ? 409 : 500);
     return NextResponse.json(
-      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (error.code || 'SERVER_ERROR'), message: error.message } },
+      { success: false, error: { code: isDuplicate ? 'CONFLICT' : (e.code || 'SERVER_ERROR'), message: e.message } },
       { status }
     );
   }
@@ -123,11 +125,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     }
 
     return NextResponse.json({ success: true, message: 'Proveedor eliminado correctamente' }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting supplier:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status }
     );
   }

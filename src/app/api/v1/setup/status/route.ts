@@ -15,7 +15,7 @@ export async function GET() {
         initialized: totalCompanies > 0
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Este endpoint esta excluido de la autenticacion en proxy.ts: lo consulta
     // cualquiera sin sesion. Devolver error.message expondria el detalle del
     // fallo de Postgres (host, base de datos, a veces la cadena de conexion),

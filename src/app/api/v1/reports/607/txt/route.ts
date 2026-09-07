@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
     headers.set('Content-Disposition', `attachment; filename="607_${companyId}_${period}.txt"`);
 
     return new NextResponse(txtContent, { headers, status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

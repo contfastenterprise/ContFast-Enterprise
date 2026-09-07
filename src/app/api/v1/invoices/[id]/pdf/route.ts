@@ -56,9 +56,9 @@ export async function GET(
       await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
       companyId = auth.companyId;
       modo = auth.modo;
-    } catch (err: any) {
+    } catch (err: unknown) {
       return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: err.message } },
+        { success: false, error: { code: 'FORBIDDEN', message: (err as Error).message } },
         { status: 403, headers: resHeaders }
       );
     }
@@ -241,7 +241,7 @@ export async function GET(
         rate: Number(t.rate),
         amount: Number(t.amount)
       })),
-      retentions: (invoice.retentions || []).map((r: any) => ({
+      retentions: (invoice.retentions || []).map((r) => ({
         retentionId: r.retentionId || undefined,
         retentionName: r.retentionName,
         retentionType: r.retentionType,
@@ -285,8 +285,8 @@ export async function GET(
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PDF download direct stream:', error);
-    return new NextResponse(`Error interno al generar PDF: ${error.message}`, { status: 500 });
+    return new NextResponse(`Error interno al generar PDF: ${(error as Error).message}`, { status: 500 });
   }
 }

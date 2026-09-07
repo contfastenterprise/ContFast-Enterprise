@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
 
     return new NextResponse(pdfBuffer as any, { status: 200, headers });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Supplier Balances report:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -45,9 +45,10 @@ export async function POST(
       status: 'processing'
     }, { headers: resHeaders });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error enqueuing report:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ error: e.message || 'Internal server error' }, { status });
   }
 }

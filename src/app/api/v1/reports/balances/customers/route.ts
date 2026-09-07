@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(Object.values(grouped));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching customer balances:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

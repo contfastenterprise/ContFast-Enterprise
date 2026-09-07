@@ -91,10 +91,10 @@ export async function GET(
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error printing quote GET:', error);
-    return new NextResponse(`Error al generar impresión de cotización: ${error.message}`, {
-      status: error.message === 'Cotización no encontrada' ? 404 : 500
+    return new NextResponse(`Error al generar impresión de cotización: ${(error as Error).message}`, {
+      status: (error as Error).message === 'Cotización no encontrada' ? 404 : 500
     });
   }
 }
@@ -127,8 +127,8 @@ export async function POST(
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     }, { headers: resHeaders });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error printing quote POST:', error);
-    return NextResponse.json({ error: `Internal server error: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Internal server error: ${(error as Error).message}` }, { status: 500 });
   }
 }

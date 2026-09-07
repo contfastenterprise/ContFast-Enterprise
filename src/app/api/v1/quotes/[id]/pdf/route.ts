@@ -75,9 +75,9 @@ export async function GET(
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating quote PDF GET:', error);
-    return new NextResponse(`Error al generar PDF de cotización: ${error.message}`, {
+    return new NextResponse(`Error al generar PDF de cotización: ${(error as Error).message}`, {
       status: 500
     });
   }

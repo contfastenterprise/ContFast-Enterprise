@@ -58,11 +58,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     const [updated] = await db.update(retentions).set(updatePayload).where(eq(retentions.id, id)).returning();
 
     return NextResponse.json({ success: true, data: updated }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR', message: error.issues[0].message } }, { status: 400, headers: resHeaders });
     }
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } }, { status: error.status || 500, headers: resHeaders });
+    const e = error as Error & { status?: number; code?: string };
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } }, { status: e.status || 500, headers: resHeaders });
   }
 }
 
@@ -120,7 +121,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
 
     await db.delete(retentions).where(eq(retentions.id, id));
     return NextResponse.json({ success: true }, { headers: resHeaders });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } }, { status: error.status || 500, headers: resHeaders });
+  } catch (error: unknown) {
+    const e = error as Error & { status?: number; code?: string };
+    return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } }, { status: e.status || 500, headers: resHeaders });
   }
 }

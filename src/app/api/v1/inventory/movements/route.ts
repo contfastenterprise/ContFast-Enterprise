@@ -115,9 +115,10 @@ export async function GET(req: NextRequest) {
       }
     }, { headers: resHeaders });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching inventory movements:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status });
   }
 }

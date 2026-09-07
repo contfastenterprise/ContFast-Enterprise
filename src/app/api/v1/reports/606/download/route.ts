@@ -33,9 +33,10 @@ export async function GET(req: NextRequest) {
     headers.set('Content-Type', 'text/plain');
     headers.set('Content-Disposition', `attachment; filename="606_${companyId}_${period}.txt"`);
     return new NextResponse(txtContent, { status: 200, headers });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating 606 download:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ error: error.message || 'Error interno' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status });
   }
 }

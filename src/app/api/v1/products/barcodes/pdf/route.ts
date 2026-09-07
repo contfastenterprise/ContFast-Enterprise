@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build items lists matching quantities
-    const flatList: any[] = [];
+    const flatList = [];
     productsToPrint.forEach(p => {
       for (let i = 0; i < quantity; i++) {
         flatList.push(p);
@@ -274,8 +274,8 @@ export async function GET(req: NextRequest) {
         'Content-Disposition': `inline; filename="${filename}"`,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error generating label PDF:', err);
-    return NextResponse.json({ success: false, error: { message: err.message || 'Error interno del servidor' } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message || 'Error interno del servidor' } }, { status: 500 });
   }
 }

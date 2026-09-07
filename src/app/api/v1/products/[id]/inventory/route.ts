@@ -47,10 +47,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
     );
 
     return NextResponse.json({ success: true, data: detailedLevels }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching inventory levels:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ success: false, error: error.message || 'Failed to fetch inventory levels' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ success: false, error: e.message || 'Failed to fetch inventory levels' }, { status });
   }
 }
 
@@ -139,8 +140,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
     }
 
     return NextResponse.json({ success: true, message: 'Stock limits updated successfully' }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating stock limits:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Failed to update stock limits' }, { status: 500 });
+    return NextResponse.json({ success: false, error: (error as Error).message || 'Failed to update stock limits' }, { status: 500 });
   }
 }

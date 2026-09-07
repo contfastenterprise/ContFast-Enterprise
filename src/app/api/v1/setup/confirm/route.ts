@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
     }, { headers: resHeaders });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Auditoria P1-21 (2026-09-03): esta ruta esta excluida de sesion en
     // proxy.ts -- cualquiera sin autenticar puede llamarla. Devolver
     // error.message crudo podia filtrar detalle interno de BD a un

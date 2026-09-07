@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(accountsReceivable.dueDate));
 
     return NextResponse.json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching receivables report:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

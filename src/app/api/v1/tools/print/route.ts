@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     }, { headers: resHeaders });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating tool print PDF:', error);
-    return NextResponse.json({ error: `Internal server error: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Internal server error: ${(error as Error).message}` }, { status: 500 });
   }
 }

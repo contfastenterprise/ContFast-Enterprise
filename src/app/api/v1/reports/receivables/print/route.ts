@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error printing receivables report:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

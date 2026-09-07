@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
 
     const logs = await ProductRepository.getBarcodePrintLogs(auth.companyId, page, perPage);
     return NextResponse.json({ success: true, data: logs }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/products/barcodes/print-log:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
     const log = await ProductRepository.logBarcodePrint(productId, auth.companyId, auth.userId, quantity);
 
     return NextResponse.json({ success: true, data: log }, { status: 201, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/products/barcodes/print-log:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 400 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 400 });
   }
 }

@@ -280,10 +280,10 @@ export async function GET(
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error printing invoice GET:', error);
-    return new NextResponse(`Error al generar vista de impresión: ${error.message}`, {
-      status: error.message === 'Invoice not found' ? 404 : 500
+    return new NextResponse(`Error al generar vista de impresión: ${(error as Error).message}`, {
+      status: (error as Error).message === 'Invoice not found' ? 404 : 500
     });
   }
 }
@@ -313,8 +313,8 @@ export async function POST(
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     }, { headers: resHeaders });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error printing invoice POST:', error);
-    return NextResponse.json({ error: `Internal server error: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Internal server error: ${(error as Error).message}` }, { status: 500 });
   }
 }

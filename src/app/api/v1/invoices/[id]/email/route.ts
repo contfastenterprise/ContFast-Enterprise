@@ -214,7 +214,7 @@ export async function POST(
             rate: Number(t.rate),
             amount: Number(t.amount)
           })),
-          retentions: (invoice.retentions || []).map((r: any) => ({
+          retentions: (invoice.retentions || []).map((r) => ({
             retentionId: r.retentionId || undefined,
             retentionName: r.retentionName,
             retentionType: r.retentionType,
@@ -261,7 +261,7 @@ export async function POST(
         }
         fs.writeFileSync(resolvedPath, pdfBuffer);
         Logger.info(`[Email Route] Regenerated PDF successfully at ${resolvedPath}`);
-      } catch (err: any) {
+      } catch (err: unknown) {
         Logger.error('[Email Route] Failed to regenerate PDF on the fly', err);
       }
     }
@@ -291,12 +291,13 @@ export async function POST(
       { success: true, message: `Correo reenviado exitosamente a ${customer.email}.` },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     Logger.error('Error in POST /api/v1/invoices/[id]/email', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

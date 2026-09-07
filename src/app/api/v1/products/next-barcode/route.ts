@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
 
     const nextBarcode = await ProductRepository.getNextBarcode(auth.companyId);
     return NextResponse.json({ success: true, barcode: nextBarcode }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/products/next-barcode:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

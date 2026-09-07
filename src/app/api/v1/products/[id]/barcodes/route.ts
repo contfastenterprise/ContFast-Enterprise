@@ -27,9 +27,9 @@ export async function GET(
 
     const barcodes = await ProductRepository.getBarcodesByProductId(params.id, auth.companyId);
     return NextResponse.json({ success: true, data: barcodes }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/products/[id]/barcodes:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -62,9 +62,9 @@ export async function POST(
     await clearCachePattern(`cache:products:${auth.companyId}:*`);
 
     return NextResponse.json({ success: true, data: newBarcode }, { status: 201, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/products/[id]/barcodes:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 400 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 400 });
   }
 }
 
@@ -99,8 +99,8 @@ export async function DELETE(
     await clearCachePattern(`cache:products:${auth.companyId}:*`);
 
     return NextResponse.json({ success: true, data: deleted }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in DELETE /api/v1/products/[id]/barcodes:', error);
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

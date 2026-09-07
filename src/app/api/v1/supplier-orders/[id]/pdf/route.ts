@@ -21,7 +21,7 @@ export async function GET(
 
     try {
       await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'proveedores', 'read');
-    } catch (err: any) {
+    } catch (err: unknown) {
       return new NextResponse('Sin permisos', { status: 403 });
     }
 
@@ -72,8 +72,8 @@ export async function GET(
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Supplier Order PDF:', error);
-    return new NextResponse(`Error interno al generar PDF: ${error.message}`, { status: 500 });
+    return new NextResponse(`Error interno al generar PDF: ${(error as Error).message}`, { status: 500 });
   }
 }

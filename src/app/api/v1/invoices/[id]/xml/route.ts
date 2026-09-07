@@ -27,9 +27,9 @@ export async function GET(
 
     try {
       await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'read');
-    } catch (err: any) {
+    } catch (err: unknown) {
       return NextResponse.json(
-        { success: false, error: { code: 'FORBIDDEN', message: err.message } },
+        { success: false, error: { code: 'FORBIDDEN', message: (err as Error).message } },
         { status: 403, headers: resHeaders }
       );
     }
@@ -155,8 +155,8 @@ export async function GET(
     headers.set('Content-Disposition', `inline; filename="${invoice.ncf || 'factura'}.xml"`);
 
     return new NextResponse(xmlContent, { headers });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in XML download stream:', error);
-    return new NextResponse(`Error interno al descargar XML: ${error.message}`, { status: 500 });
+    return new NextResponse(`Error interno al descargar XML: ${(error as Error).message}`, { status: 500 });
   }
 }

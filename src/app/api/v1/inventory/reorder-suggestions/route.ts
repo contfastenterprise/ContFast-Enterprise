@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: suggestions }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching reorder suggestions:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Failed to fetch suggestions' }, { status: 500 });
+    return NextResponse.json({ success: false, error: (error as Error).message || 'Failed to fetch suggestions' }, { status: 500 });
   }
 }

@@ -147,12 +147,13 @@ export async function GET(req: NextRequest) {
       { success: true, data: result.data, meta: result.meta, stats },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/invoices:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -255,8 +256,16 @@ export async function POST(req: NextRequest) {
     // Un id que no existe se trata igual que uno ajeno: en las dos situaciones
     // la respuesta correcta es la misma, y distinguirlas por el mensaje le
     // diria a quien sondea cuales existen en otras empresas.
+    type TablaConPertenencia =
+      | typeof products
+      | typeof customers
+      | typeof quotes
+      | typeof invoices
+      | typeof cashSessions
+      | typeof retentions;
+
     const idsAjenos = async (
-      tabla: any,
+      tabla: TablaConPertenencia,
       ids: (string | undefined)[],
       admiteGlobales = false
     ): Promise<string[]> => {
@@ -270,8 +279,8 @@ export async function POST(req: NextRequest) {
 
       const propios = new Set(
         filas
-          .filter((f: any) => f.companyId === auth.companyId || (admiteGlobales && f.companyId === null))
-          .map((f: any) => f.id)
+          .filter((f) => f.companyId === auth.companyId || (admiteGlobales && f.companyId === null))
+          .map((f) => f.id)
       );
 
       return pedidos.filter((id) => !propios.has(id));
@@ -360,12 +369,13 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(respBody, { status, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/invoices:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

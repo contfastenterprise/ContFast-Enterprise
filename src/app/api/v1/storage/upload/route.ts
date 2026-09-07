@@ -81,9 +81,9 @@ export async function POST(req: NextRequest) {
         filePath: filePath,
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: { message: err.message || 'Error interno del servidor.' } },
+      { success: false, error: { message: (err as Error).message || 'Error interno del servidor.' } },
       { status: 500 }
     );
   }

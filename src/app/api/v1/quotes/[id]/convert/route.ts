@@ -40,10 +40,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<any> 
       { headers: resHeaders }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/quotes/[id]/convert:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500, headers: resHeaders }
     );
   }

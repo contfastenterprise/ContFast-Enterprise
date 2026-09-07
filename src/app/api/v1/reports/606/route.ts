@@ -37,10 +37,11 @@ export async function GET(req: NextRequest) {
       { amount: 0, itbis: 0, itbisRetained: 0 }
     );
     return NextResponse.json({ expenses, totals }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching 606 report:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ error: error.message || 'Error interno' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ error: e.message || 'Error interno' }, { status });
   }
 }
 
@@ -63,9 +64,10 @@ export async function POST(req: NextRequest) {
 
     const expense = await createExpense(body);
     return NextResponse.json({ expense }, { status: 201, headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating expense', error);
-    const status = error.status || 500;
-    return NextResponse.json({ error: error.message || 'Failed to create expense' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ error: e.message || 'Failed to create expense' }, { status });
   }
 }

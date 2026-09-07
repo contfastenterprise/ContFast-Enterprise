@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
       }
 
       const product = await ProductRepository.getByBarcode(barcode, auth.companyId);
-      let dataWithInventory: any[] = [];
+      let dataWithInventory = [];
       if (product) {
         const levels = await db
           .select({
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
     const result = await ProductRepository.list(auth.companyId, page, perPage, search, categoryId, hasBarcode);
     
     // Batch fetch inventory levels for all products in list
-    const productIds = result.data.map((p: any) => p.id);
+    const productIds = result.data.map((p) => p.id);
     const inventoryMap: Record<string, any[]> = {};
     if (productIds.length > 0) {
       const levels = await db
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const dataWithInventory = result.data.map((p: any) => ({
+    const dataWithInventory = result.data.map((p) => ({
       ...p,
       inventory: inventoryMap[p.id] || [],
     }));
@@ -171,12 +171,13 @@ export async function GET(req: NextRequest) {
     await setCache(cacheKeyList, JSON.stringify(responseDataList), 3600);
 
     return NextResponse.json(responseDataList, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/products:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }
@@ -256,12 +257,13 @@ export async function POST(req: NextRequest) {
       { success: true, data: product },
       { status: 201, headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/products:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

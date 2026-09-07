@@ -115,7 +115,7 @@ Nota: Si no encuentras algún campo, devuélvelo vacío o en 0 para montos.`;
           data: mappedData,
           rawText: textResponse
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         Logger.error('[OCR-Server] Error en procesamiento de Gemini, cayendo en Tesseract local...', err);
         // Fall through to Tesseract local execution
       }
@@ -158,11 +158,11 @@ Nota: Si no encuentras algún campo, devuélvelo vacío o en 0 para montos.`;
       data: parsedData,
       rawText: stdout
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     Logger.error('Error in Server-side OCR', error);
     return NextResponse.json({ 
       success: false, 
-      error: { message: error.message || 'Fallo interno al procesar el OCR' } 
+      error: { message: (error as Error).message || 'Fallo interno al procesar el OCR' } 
     }, { status: 500 });
   } finally {
     // Ensure the temp file is deleted

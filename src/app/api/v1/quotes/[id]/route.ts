@@ -49,10 +49,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
       { success: true, data: quote },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/quotes/[id]:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500, headers: resHeaders }
     );
   }
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       { headers: resHeaders }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PUT /api/v1/quotes/[id]:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -115,7 +115,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       );
     }
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500, headers: resHeaders }
     );
   }

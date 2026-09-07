@@ -4,7 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { requirePermission } from '@/middleware/permissions';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
-import { eq, and, sql, gte, lte, or, ilike, notInArray } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, or, ilike, notInArray, type SQL } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     const excludeTypesParam = searchParams.get('excludeTypes');
     const excludeTypes = excludeTypesParam ? excludeTypesParam.split(',') : undefined;
 
-    const baseConditions: any[] = [
+    const baseConditions: SQL[] = [
       eq(invoices.companyId, session.companyId),
       eq(invoices.modo, session.modo),
       sql`${invoices.deletedAt} IS NULL`,
@@ -134,9 +134,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating invoices report PDF:', error);
-    return new NextResponse(`Error al generar reporte de facturación: ${error.message}`, {
+    return new NextResponse(`Error al generar reporte de facturación: ${(error as Error).message}`, {
       status: 500
     });
   }

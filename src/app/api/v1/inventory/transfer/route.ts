@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, data: { transferId } }, { headers: resHeaders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error transferring stock:', error);
-    const status = error.status || 500;
-    return NextResponse.json({ error: error.message || 'Failed to transfer stock' }, { status });
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ error: e.message || 'Failed to transfer stock' }, { status });
   }
 }
