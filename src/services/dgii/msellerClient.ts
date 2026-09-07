@@ -4,6 +4,12 @@ import { leerDesenlace } from './desenlaceEnvio';
 import { leerDatosFirma } from './codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
 
+/** Mensaje de validacion/rechazo que la DGII/mSeller devuelve dentro de `mensajes`. */
+interface MensajeDgii {
+  codigo?: number;
+  valor?: string;
+}
+
 export interface ECFPayload {
   ECF: {
     Encabezado: {
@@ -87,7 +93,7 @@ export interface MSellerSendResponse {
   securityCode?: string;
   qrCode?: string;
   message?: string;
-  rawResponse?: any;
+  rawResponse?: unknown;
 }
 
 export interface MSellerStatusResponse {
@@ -96,7 +102,7 @@ export interface MSellerStatusResponse {
   status?: string;
   dgiiStatus?: string;
   message?: string;
-  rawResponse?: any;
+  rawResponse?: unknown;
 }
 
 interface TokenCache {
@@ -201,9 +207,9 @@ export class MSellerClient {
       // Cache for 50 minutes
       this.tokenCache = { idToken, expiresAt: Date.now() + 50 * 60 * 1000 };
       return idToken;
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      if ((err as Error).name === 'AbortError') {
         throw new Error('Timeout de autenticación con mSeller (el servidor no responde).');
       }
       throw err;
@@ -252,7 +258,7 @@ export class MSellerClient {
       const finalStatus = lectura.textoCrudo;
 
       // Extract messages from dgiiResponse if it exists (mSeller structure)
-      let dgiiMessages = raw?.mensajes;
+      let dgiiMessages: MensajeDgii[] | undefined = raw?.mensajes;
       if (!dgiiMessages && raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
         for (const respStr of raw.dgiiResponse) {
           try {
@@ -293,7 +299,7 @@ export class MSellerClient {
         // `mensaje` y `error` incluidos, que es donde esta el motivo real.
         const detalle = [raw?.error, raw?.mensaje].filter(Boolean).join(' ').trim();
         const rejectionMsg = dgiiMessages && Array.isArray(dgiiMessages) && dgiiMessages.length > 0
-          ? dgiiMessages.map((m: any) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
+          ? dgiiMessages.map((m) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
           : (detalle || raw?.message || 'Rechazado por la DGII');
         return {
           success: false,
@@ -311,10 +317,10 @@ export class MSellerClient {
       if (finalStatus) {
         successMsg = finalStatus;
         const validMsgs = dgiiMessages && Array.isArray(dgiiMessages)
-          ? dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
+          ? dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
           : [];
         if (validMsgs.length > 0) {
-          successMsg += `: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
+          successMsg += `: ${validMsgs.map((m) => m.valor).join(' | ')}`;
         }
       }
 
@@ -334,9 +340,10 @@ export class MSellerClient {
         message: successMsg,
         rawResponse: raw,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      const e = err as Error;
+      if (e.name === 'AbortError') {
         return {
           success: false,
           message: 'timeout - El servidor de integración mSeller/DGII tardó demasiado en responder.',
@@ -344,7 +351,7 @@ export class MSellerClient {
       }
       return {
         success: false,
-        message: err.message || 'FetchError - Error de comunicación con mSeller',
+        message: e.message || 'FetchError - Error de comunicación con mSeller',
       };
     }
   }
@@ -379,7 +386,7 @@ export class MSellerClient {
       }
 
       // Extract detailed messages from dgiiResponse if it exists
-      let dgiiMessages = raw?.mensajes || [];
+      let dgiiMessages: MensajeDgii[] = raw?.mensajes || [];
       let dgiiEstado = raw?.dgiiStatus || raw?.estadoDGII || null;
 
       if (raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
@@ -405,9 +412,9 @@ export class MSellerClient {
       const finalDGIIStatus = dgiiEstado || lectura.textoCrudo || 'Sin estado';
 
       let customMessage = finalDGIIStatus;
-      const validMsgs = dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
+      const validMsgs = dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
       if (validMsgs.length > 0) {
-        customMessage += `: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
+        customMessage += `: ${validMsgs.map((m) => m.valor).join(' | ')}`;
       } else if (raw?.message) {
         customMessage += `: ${raw.message}`;
       }
@@ -420,9 +427,10 @@ export class MSellerClient {
         message: customMessage,
         rawResponse: raw,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      const e = err as Error;
+      if (e.name === 'AbortError') {
         return {
           success: false,
           message: 'timeout - Excedido el tiempo límite para obtener el estatus del comprobante.',
@@ -430,7 +438,7 @@ export class MSellerClient {
       }
       return {
         success: false,
-        message: err.message || 'FetchError - Error al obtener el estatus.',
+        message: e.message || 'FetchError - Error al obtener el estatus.',
       };
     }
   }
@@ -442,9 +450,9 @@ export class MSellerClient {
       ecf: string;
       status: string;
       found: boolean;
-      data?: any;
+      data?: unknown;
     }>;
-    rawResponse?: any;
+    rawResponse?: unknown;
     message?: string;
   }> {
     const idToken = await this.authenticate();
@@ -485,9 +493,10 @@ export class MSellerClient {
         results: raw?.results || [],
         rawResponse: raw,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      const e = err as Error;
+      if (e.name === 'AbortError') {
         return {
           success: false,
           total: 0,
@@ -499,7 +508,7 @@ export class MSellerClient {
         success: false,
         total: 0,
         results: [],
-        message: err.message || 'FetchError - Error al obtener el estatus en lote.',
+        message: e.message || 'FetchError - Error al obtener el estatus en lote.',
       };
     }
   }
@@ -717,7 +726,7 @@ export class MSellerClient {
     // Build idDoc in the EXACT field order required by DGII's XSD schema.
     // Reference XML (accepted by DGII) order for e-34:
     // TipoeCF → eNCF → IndicadorNotaCredito → IndicadorEnvioDiferido → IndicadorMontoGravado → TipoIngresos → TipoPago
-    let idDoc: any;
+    let idDoc: Record<string, unknown>;
 
     // El campo va o NO VA, segun el tipo. La DGII lo marca "No Aplica" en el
     // e-32, el e-34 y el e-47; `vencimientoSecuencia` devuelve null en esos y
@@ -813,7 +822,7 @@ export class MSellerClient {
       idDoc.TotalPaginas = 1;
     }
 
-    const encabezado: any = {
+    const encabezado: Record<string, unknown> = {
       Version: '1.0',
       IdDoc: idDoc,
       Emisor: {
@@ -832,7 +841,7 @@ export class MSellerClient {
       };
     }
 
-    const totales: any = {};
+    const totales: Record<string, number> = {};
 
     if (esSoloExento) {
       //  Exactamente los dos campos que el validador nombro como admitidos, y
@@ -910,14 +919,14 @@ export class MSellerClient {
     encabezado.Totales = totales;
 
     // Construct ECF object elements in the strict sequential order required by DGII XML Schema
-    const ecfObj: any = {
+    const ecfObj: Record<string, unknown> = {
       Encabezado: encabezado,
       DetallesItems: {
         Item: params.lines.map((line, idx) => {
           const subtotal = line.quantity * line.unitPrice;
           const discount = line.discount || 0;
           const montoItem = Number((subtotal - discount).toFixed(2));
-          const item: any = {
+          const item: Record<string, unknown> = {
             NumeroLinea: String(idx + 1),
             IndicadorFacturacion: indicadorDeLinea(line.taxRate, line.taxCategory),
             NombreItem: line.name,
@@ -949,7 +958,7 @@ export class MSellerClient {
     // If it is an adjustment note, InformacionReferencia (referencing the modified e-CF) MUST be
     // a plain object (NOT an array) — confirmed by reference XML accepted by DGII.
     if (params.modifiedNcf) {
-      const refItem: any = {
+      const refItem: Record<string, unknown> = {
         NCFModificado: params.modifiedNcf,
       };
       if (params.modifiedNcfDate) {
@@ -993,7 +1002,7 @@ export class MSellerClient {
       //  `SubtotalExentoPagina: 0` fijo -- asi que una factura con lineas
       //  exentas tenia la Paginacion contradiciendo a sus propios Totales. Para
       //  el caso corriente (todo gravado) el resultado es identico al de antes.
-      const pagina: any = {
+      const pagina: Record<string, number> = {
         PaginaNo: 1,
         NoLineaDesde: 1,
         NoLineaHasta: params.lines.length || 1,
@@ -1019,7 +1028,7 @@ export class MSellerClient {
 
     ecfObj.FechaHoraFirma = '';
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       ECF: ecfObj,
     };
 

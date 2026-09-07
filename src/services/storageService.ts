@@ -35,7 +35,7 @@ export class StorageService {
         if (createError) throw createError;
         Logger.info(`[StorageService] Created bucket: ${bucketName}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       Logger.error(`[StorageService] Error ensuring bucket ${bucketName}:`, err);
     }
   }

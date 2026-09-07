@@ -18,7 +18,7 @@ export interface BaseDocumentData {
     address?: string;
   };
   modo: 'PRODUCCION' | 'PRUEBA';
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class DocumentService {

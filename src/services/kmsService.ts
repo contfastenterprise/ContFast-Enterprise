@@ -54,7 +54,7 @@ export class LocalKmsProvider implements KmsProvider {
       decrypted = Buffer.concat([decrypted, decipher.final()]);
       
       return decrypted.toString('utf8');
-    } catch (err: any) {
+    } catch (err: unknown) {
       throw new Error(
         'Las credenciales de conexión almacenadas no son válidas o la clave de encriptación del servidor ha cambiado. Por favor, vuelva a guardar su contraseña de MSeller / certificados en la configuración de la empresa.'
       );

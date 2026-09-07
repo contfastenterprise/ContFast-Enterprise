@@ -54,8 +54,8 @@ export class EmailService {
 
       providerMessageId = info.messageId || '';
       status = 'sent';
-    } catch (e: any) {
-      errorMessage = e.message || 'Excepción al intentar enviar el correo por SMTP.';
+    } catch (e: unknown) {
+      errorMessage = (e as Error).message || 'Excepción al intentar enviar el correo por SMTP.';
       status = 'failed';
       console.error('[EmailService] Exception sending email via SMTP:', e);
     }

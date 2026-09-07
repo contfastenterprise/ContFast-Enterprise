@@ -90,7 +90,7 @@ export class InvoiceService {
     // Extract signedXml path from mseller response if available
     let msellerXmlPath = '';
     if (submission.msellerResponsePayload) {
-      const raw = submission.msellerResponsePayload;
+      const raw = submission.msellerResponsePayload as { signedXml?: string; summarySignedXml?: string };
       msellerXmlPath = raw.signedXml || raw.summarySignedXml || '';
     }
 

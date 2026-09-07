@@ -15,7 +15,7 @@ export class ExcelGenerator {
    * @param data Array of objects mapping to column keys
    * @param totals Optional row of totals
    */
-  static async generateReport(title: string, columns: ExcelColumn[], data: any[], totals?: any): Promise<Buffer> {
+  static async generateReport(title: string, columns: ExcelColumn[], data: Record<string, unknown>[], totals?: Record<string, unknown>): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'ContFast Enterprise';
     workbook.created = new Date();

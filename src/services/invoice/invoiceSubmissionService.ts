@@ -29,7 +29,7 @@ export class InvoiceSubmissionService {
     let securityHash: string = '';
     let qrCode: string | null = null;
     let finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected' = 'signed';
-    let msellerResponsePayload: any = null;
+    let msellerResponsePayload: unknown = null;
 
     // El entorno depende del MODO de la emision. La copia local que habia aqui
     // era la unica de las cuatro que lo miraba, pero perdia el caso de

@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         newStatus = lectura.estado;
 
         let dgiiMessages: { valor?: string; codigo?: number }[] = [];
-        const rawDoc = result.data;
+        const rawDoc = result.data as { dgiiResponse?: unknown[] } | undefined;
         if (rawDoc?.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
           for (const respStr of rawDoc.dgiiResponse) {
             try {

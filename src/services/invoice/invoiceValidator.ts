@@ -15,7 +15,8 @@ export class InvoiceValidator {
     const preCheck = await EcfValidator.runAll(companyId, ecfType, rnc, modo);
     if (!preCheck.valid) {
       const messages = preCheck.errors.map((e) => e.message).join(' | ');
-      const err: any = new Error(`No se puede emitir el e-CF: ${messages}`);
+      const err: Error & { status?: number; code?: string; validationErrors?: typeof preCheck.errors } =
+        new Error(`No se puede emitir el e-CF: ${messages}`);
       err.status = 422;
       err.code = 'ECF_PRE_EMISSION_FAILED';
       err.validationErrors = preCheck.errors;

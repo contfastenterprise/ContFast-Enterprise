@@ -97,7 +97,7 @@ export interface DgiiSubmissionResult {
   securityHash: string;
   qrCode: string | null;
   finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected';
-  msellerResponsePayload: any;
+  msellerResponsePayload: unknown;
 }
 
 export class EcfRejectedError extends Error {

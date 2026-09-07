@@ -58,7 +58,7 @@ export async function fetchAllowedWarehouses(userId: string, roleName: string): 
     .from(userWarehouses)
     .where(eq(userWarehouses.userId, userId));
     
-  return assigned.map((a: any) => a.warehouseId);
+  return assigned.map((a) => a.warehouseId);
 }
 
 // ── Aislamiento del storefront (auditoria ISO-02) ────────────────────────────
@@ -241,9 +241,9 @@ async function resolveAuthPayload(
         // y `|| false` lo trata igual que a cualquiera sin la marca.
         isPlatformStaff: decoded.isPlatformStaff || false,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       // If access token is expired, proceed to refresh token validation
-      if (err.name !== 'TokenExpiredError') {
+      if ((err as Error).name !== 'TokenExpiredError') {
         return null;
       }
     }

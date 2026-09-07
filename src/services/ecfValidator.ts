@@ -88,14 +88,14 @@ export class EcfValidator {
       }
 
       return null; // OK
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (strict) {
         return {
           code: 'DGII_LOOKUP_FAILED',
-          message: `Error al consultar el estado del contribuyente (RNC ${rnc}): ${err.message}`,
+          message: `Error al consultar el estado del contribuyente (RNC ${rnc}): ${(err as Error).message}`,
         };
       }
-      console.warn(`[EcfValidator] DGII lookup threw for RNC ${rnc}: ${err.message}. Proceeding.`);
+      console.warn(`[EcfValidator] DGII lookup threw for RNC ${rnc}: ${(err as Error).message}. Proceeding.`);
       return null;
     }
   }

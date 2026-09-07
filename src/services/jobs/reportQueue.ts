@@ -17,7 +17,7 @@ export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports', { con
 export interface ReportJobData {
   reportType: string;
   format: 'pdf' | 'xlsx';
-  filters: any;
+  filters: Record<string, string>;
   companyId: string;
   userId: string;
 }

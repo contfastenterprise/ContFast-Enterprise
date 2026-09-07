@@ -101,7 +101,7 @@ export async function GET(
         if (!signedXmlPathFromMseller) {
           const statusRes = await msellerClient.getDocumentStatus(invoice.ncf);
           if (statusRes.success && statusRes.rawResponse) {
-            const raw = statusRes.rawResponse;
+            const raw = statusRes.rawResponse as { signedXml?: string; summarySignedXml?: string };
             signedXmlPathFromMseller = raw.signedXml || raw.summarySignedXml || '';
           }
         }
