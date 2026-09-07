@@ -4,7 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { requirePermission } from '@/middleware/permissions';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
-import { eq, and, sql, between } from 'drizzle-orm';
+import { eq, and, sql, between, type SQL } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     // El informe de compras se imprime y se entrega. Sin el filtro de entorno
     // incluia las compras de practicas con su NCF y su monto, indistinguibles
     // de las reales.
-    const filters: any[] = [
+    const filters: SQL[] = [
       eq(expenses.companyId, session.companyId),
       eq(expenses.modo, session.modo),
     ];
@@ -155,9 +155,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating purchases report PDF:', error);
-    return new NextResponse(`Error al generar reporte de compras: ${error.message}`, {
+    return new NextResponse(`Error al generar reporte de compras: ${(error as Error).message}`, {
       status: 500
     });
   }

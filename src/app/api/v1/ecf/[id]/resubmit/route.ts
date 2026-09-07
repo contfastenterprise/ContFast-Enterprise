@@ -93,11 +93,12 @@ export async function POST(
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/ecf/[id]/resubmit:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status, headers: resHeaders }
     );
   }

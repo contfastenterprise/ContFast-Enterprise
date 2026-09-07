@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
 
     const data = await HRRepository.findSettlements(session.companyId, session.modo);
     return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -135,8 +135,8 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -163,7 +163,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: 'Liquidación eliminada' });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

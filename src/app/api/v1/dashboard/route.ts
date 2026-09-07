@@ -43,8 +43,8 @@ export async function GET(req: NextRequest) {
         collectionStatusData
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching dashboard data:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }

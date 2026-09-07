@@ -118,7 +118,7 @@ export async function POST(
 
       if (printScope === 'pending') {
         const pendingNcfs = new Set(pendingExpenses.map(e => e.ncf).filter(Boolean));
-        movements = movements.filter((m: any) => pendingNcfs.has(m.documentNumber));
+        movements = movements.filter((m) => pendingNcfs.has(m.documentNumber));
       } else if (printScope === 'overdue') {
         const overdueNcfs = new Set(
           pendingExpenses
@@ -126,7 +126,7 @@ export async function POST(
             .map(e => e.ncf)
             .filter(Boolean)
         );
-        movements = movements.filter((m: any) => overdueNcfs.has(m.documentNumber));
+        movements = movements.filter((m) => overdueNcfs.has(m.documentNumber));
       }
     }
 
@@ -163,10 +163,10 @@ export async function POST(
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating supplier statement PDF:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

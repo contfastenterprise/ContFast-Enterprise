@@ -136,9 +136,10 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error in inventory adjustment:', err);
-    const status = err.status || 500;
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
+    const e = err as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status });
   }
 }

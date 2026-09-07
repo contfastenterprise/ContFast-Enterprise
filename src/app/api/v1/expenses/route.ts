@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, expenses, expenseLines, accountsPayable, users, suppliers, warehouses, products, chartOfAccounts, checks, apPayments, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { eq, sql, and, between, inArray } from 'drizzle-orm';
+import { eq, sql, and, between, inArray, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { checkRateLimit } from '@/middleware/rateLimiter';
@@ -391,10 +391,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: result }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error creating expense:', err);
-    const status = err.status || 500;
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
+    const e = err as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status });
   }
 }
 
@@ -426,7 +427,7 @@ export async function GET(req: NextRequest) {
     const warehouseId = searchParams.get('warehouseId');
     const ncf = searchParams.get('ncf');
 
-    const filters: any[] = [
+    const filters: SQL[] = [
       eq(expenses.companyId, session.companyId),
       eq(expenses.modo, session.modo)
     ];
@@ -493,10 +494,11 @@ export async function GET(req: NextRequest) {
       .orderBy(sql`${expenses.issueDate} DESC, ${expenses.createdAt} DESC`);
 
     return NextResponse.json({ success: true, data }, { headers: resHeaders });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching expenses:', err);
-    const status = err.status || 500;
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status });
+    const e = err as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status });
   }
 }
 

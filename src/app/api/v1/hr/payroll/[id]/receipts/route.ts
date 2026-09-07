@@ -87,7 +87,7 @@ export async function GET(
         'Content-Disposition': `inline; filename="${finalFilename}"`,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

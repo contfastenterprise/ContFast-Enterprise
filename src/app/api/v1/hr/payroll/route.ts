@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
         offset,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_payroll', 'payrolls', payroll.id, null, payroll);
 
     return NextResponse.json({ success: true, data: payroll }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -125,8 +125,8 @@ export async function PUT(req: NextRequest) {
     }
 
     return NextResponse.json({ success: false, error: { message: 'Acción no válida' } }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -153,7 +153,7 @@ export async function DELETE(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_payroll', 'payrolls', id, oldPayroll, null);
 
     return NextResponse.json({ success: true, message: 'Nómina eliminada/cancelada exitosamente' });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

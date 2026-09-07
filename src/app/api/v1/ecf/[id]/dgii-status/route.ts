@@ -75,9 +75,9 @@ export async function GET(
     let credenciales;
     try {
       credenciales = await credencialesMseller(auth.companyId, entorno);
-    } catch (err: any) {
+    } catch (err: unknown) {
       return NextResponse.json(
-        { success: false, error: { code: 'MISSING_CONFIG', message: err.message } },
+        { success: false, error: { code: 'MISSING_CONFIG', message: (err as Error).message } },
         { status: 500, headers: resHeaders }
       );
     }
@@ -215,11 +215,12 @@ export async function GET(
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/ecf/[id]/dgii-status:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status, headers: resHeaders }
     );
   }

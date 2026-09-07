@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
-import { eq, and, isNull, desc, count, ilike, gte, lte, sql, notInArray } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, ilike, gte, lte, sql, notInArray, type SQL } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * perPage;
 
     // Build conditions
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       eq(invoices.companyId, auth.companyId),
       eq(invoices.modo, auth.modo),
       isNull(invoices.deletedAt),
@@ -137,11 +137,12 @@ export async function GET(req: NextRequest) {
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in GET /api/v1/ecf:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status, headers: resHeaders }
     );
   }

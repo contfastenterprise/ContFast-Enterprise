@@ -32,12 +32,13 @@ export async function POST(
       { success: true, message: `Conduce ${result.deliveryNumber} aprobado y stock descontado exitosamente.`, data: result },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/delivery-notes/[id]/approve:', error);
-    const status = error.status || 500;
-    const code = error.code || 'SERVER_ERROR';
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
+    const code = e.code || 'SERVER_ERROR';
     return NextResponse.json(
-      { success: false, error: { code, message: error.message } },
+      { success: false, error: { code, message: e.message } },
       { status, headers: resHeaders }
     );
   }

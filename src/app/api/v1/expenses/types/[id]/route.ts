@@ -53,9 +53,9 @@ export async function PUT(
     await delCache(cacheKey);
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error updating expense type:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -109,8 +109,8 @@ export async function DELETE(
     await delCache(cacheKey);
 
     return NextResponse.json({ success: true, message: 'Tipo de gasto eliminado/desactivado con éxito.' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error deleting expense type:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }

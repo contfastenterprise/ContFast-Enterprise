@@ -50,9 +50,9 @@ export async function GET(req: NextRequest) {
     await setCache(cacheKey, JSON.stringify(types), 3600);
 
     return NextResponse.json({ success: true, data: types });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching expense types:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
     await delCache(cacheKey);
 
     return NextResponse.json({ success: true, data: newType });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error creating expense type:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }

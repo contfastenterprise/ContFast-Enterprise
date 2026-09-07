@@ -106,9 +106,9 @@ export async function POST(req: NextRequest) {
     let credenciales;
     try {
       credenciales = await credencialesMseller(auth.companyId, entorno);
-    } catch (err: any) {
+    } catch (err: unknown) {
       return NextResponse.json(
-        { success: false, error: { code: 'MISSING_CONFIG', message: err.message } },
+        { success: false, error: { code: 'MISSING_CONFIG', message: (err as Error).message } },
         { status: 500, headers: resHeaders }
       );
     }
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
         const lectura = leerEstado(result.data ?? { status: result.status });
         newStatus = lectura.estado;
 
-        let dgiiMessages: any[] = [];
+        let dgiiMessages: { valor?: string; codigo?: number }[] = [];
         const rawDoc = result.data;
         if (rawDoc?.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
           for (const respStr of rawDoc.dgiiResponse) {
@@ -173,9 +173,9 @@ export async function POST(req: NextRequest) {
         // Construct detailed message for batch status update
         let displayMessage = `Consulta batch - Estado: ${result.status}`;
         if (dgiiMessages.length > 0) {
-          const validMsgs = dgiiMessages.filter((m: any) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
+          const validMsgs = dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
           if (validMsgs.length > 0) {
-            displayMessage = `Consulta batch - ${result.status}: ${validMsgs.map((m: any) => m.valor).join(' | ')}`;
+            displayMessage = `Consulta batch - ${result.status}: ${validMsgs.map((m) => m.valor).join(' | ')}`;
           }
         }
 
@@ -240,11 +240,12 @@ export async function POST(req: NextRequest) {
       },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in POST /api/v1/ecf/dgii-status/batch:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status, headers: resHeaders }
     );
   }

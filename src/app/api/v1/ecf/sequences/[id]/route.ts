@@ -44,7 +44,7 @@ export async function PUT(
     const body = await req.json();
     const { status, currentSequence, maxSequence, sequenceExpiry } = body;
 
-    const updateFields: any = { updatedAt: new Date() };
+    const updateFields: Partial<typeof ecfSequences.$inferInsert> = { updatedAt: new Date() };
 
     if (status !== undefined) {
       if (!['active', 'inactive'].includes(status)) {
@@ -131,11 +131,12 @@ export async function PUT(
       { success: true, data: updated, message: 'Secuencia actualizada exitosamente.' },
       { headers: resHeaders }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in PUT /api/v1/ecf/sequences/[id]:', error);
-    const status = error.status || 500;
+    const e = error as Error & { status?: number; code?: string };
+    const status = e.status || 500;
     return NextResponse.json(
-      { success: false, error: { code: error.code || 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: e.code || 'SERVER_ERROR', message: e.message } },
       { status, headers: resHeaders }
     );
   }

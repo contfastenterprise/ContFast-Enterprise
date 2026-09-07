@@ -50,10 +50,10 @@ export async function GET(req: NextRequest) {
     const data = await FinancialRepository.getFinancialDashboard(session.companyId, session.modo);
 
     return NextResponse.json({ success: true, data });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching financial dashboard metrics:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

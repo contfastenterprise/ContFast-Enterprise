@@ -65,8 +65,8 @@ export async function GET(req: NextRequest) {
         deduction,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: false, error: { message: 'Tipo de registro no válido' } }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -156,7 +156,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ success: false, error: { message: 'Tipo de registro no válido' } }, { status: 400 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

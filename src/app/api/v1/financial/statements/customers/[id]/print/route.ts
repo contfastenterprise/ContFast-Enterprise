@@ -86,17 +86,17 @@ export async function POST(
 
     let movements = statementData.movements;
     if (printScope === 'pending') {
-      const pendingIds = new Set(statementData.pendingInvoices.map((pi: any) => pi.ncf || pi.codigoFactura).filter(Boolean));
-      movements = movements.filter((m: any) => pendingIds.has(m.documentNumber));
+      const pendingIds = new Set(statementData.pendingInvoices.map((pi) => pi.ncf || pi.codigoFactura).filter(Boolean));
+      movements = movements.filter((m) => pendingIds.has(m.documentNumber));
     } else if (printScope === 'overdue') {
       const today = new Date().toISOString().split('T')[0];
       const overdueIds = new Set(
         statementData.pendingInvoices
-          .filter((pi: any) => pi.dueDate < today)
-          .map((pi: any) => pi.ncf || pi.codigoFactura)
+          .filter((pi) => pi.dueDate < today)
+          .map((pi) => pi.ncf || pi.codigoFactura)
           .filter(Boolean)
       );
-      movements = movements.filter((m: any) => overdueIds.has(m.documentNumber));
+      movements = movements.filter((m) => overdueIds.has(m.documentNumber));
     }
 
     const reportData = {
@@ -132,10 +132,10 @@ export async function POST(
       url: signedUrl,
       expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating customer statement PDF:', error);
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

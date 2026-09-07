@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
         offset,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -108,11 +108,12 @@ export async function POST(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_employee', 'employees', emp.id, null, emp);
 
     return NextResponse.json({ success: true, data: emp }, { status: 201 });
-  } catch (error: any) {
-    const isDup = error.message.includes('unique') || error.message.includes('ya existe') || error.message.includes('key');
+  } catch (error: unknown) {
+    const e = error as Error;
+    const isDup = e.message.includes('unique') || e.message.includes('ya existe') || e.message.includes('key');
     return NextResponse.json({
       success: false,
-      error: { message: isDup ? 'El código de empleado o la cédula ya se encuentra registrado.' : error.message }
+      error: { message: isDup ? 'El código de empleado o la cédula ya se encuentra registrado.' : e.message }
     }, { status: isDup ? 409 : 500 });
   }
 }
@@ -155,8 +156,8 @@ export async function PUT(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'update_employee', 'employees', id, oldEmp, emp);
 
     return NextResponse.json({ success: true, data: emp });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -187,7 +188,7 @@ export async function DELETE(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_employee', 'employees', id, oldEmp, null);
 
     return NextResponse.json({ success: true, data: emp });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

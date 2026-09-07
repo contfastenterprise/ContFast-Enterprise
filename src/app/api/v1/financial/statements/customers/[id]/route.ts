@@ -70,18 +70,18 @@ export async function GET(
     });
 
     return NextResponse.json({ success: true, data });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching customer account statement:', error);
     
-    if (error.message === 'Cliente no encontrado') {
+    if ((error as Error).message === 'Cliente no encontrado') {
       return NextResponse.json(
-        { success: false, error: { code: 'NOT_FOUND', message: error.message } },
+        { success: false, error: { code: 'NOT_FOUND', message: (error as Error).message } },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'SERVER_ERROR', message: error.message } },
+      { success: false, error: { code: 'SERVER_ERROR', message: (error as Error).message } },
       { status: 500 }
     );
   }

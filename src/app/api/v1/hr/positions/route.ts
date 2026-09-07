@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
 
     const data = await HRRepository.findPositions(session.companyId);
     return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_position', 'positions', pos.id, null, pos);
 
     return NextResponse.json({ success: true, data: pos }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -90,8 +90,8 @@ export async function PUT(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'update_position', 'positions', id, oldPos, pos);
 
     return NextResponse.json({ success: true, data: pos });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }
 
@@ -118,7 +118,7 @@ export async function DELETE(req: NextRequest) {
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'delete_position', 'positions', id, oldPos, null);
 
     return NextResponse.json({ success: true, data: pos });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: { message: error.message } }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
   }
 }

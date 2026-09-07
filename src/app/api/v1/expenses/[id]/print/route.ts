@@ -146,9 +146,9 @@ export async function GET(
       status: 200,
       headers
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating purchase PDF GET:', error);
-    return new NextResponse(`Error al generar vista de impresión de compra: ${error.message}`, {
+    return new NextResponse(`Error al generar vista de impresión de compra: ${(error as Error).message}`, {
       status: 500
     });
   }

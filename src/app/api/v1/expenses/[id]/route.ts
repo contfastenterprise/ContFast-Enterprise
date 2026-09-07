@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
+import { db, type DbTransaction, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { esSistemas } from '@/utils/rolMatch';
@@ -33,7 +33,7 @@ import { addStock } from '@/services/inventoryService';
  * la reversión falla con un mensaje claro en vez de fallar en silencio.
  */
 async function revertirAsientoContable(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   modo: 'PRODUCCION' | 'PRUEBA',
   journalEntryId: string,
@@ -77,7 +77,7 @@ async function revertirAsientoContable(
     reference: journalEntryId,
     date: original.date,
     description: `Reversión — ${motivo} (asiento original: ${original.description || journalEntryId})`,
-    lines: lineas.map((l: any) => ({
+    lines: lineas.map((l) => ({
       accountId: l.accountId,
       debit: parseFloat(l.credit) || 0,
       credit: parseFloat(l.debit) || 0,
@@ -106,7 +106,7 @@ async function revertirAsientoContable(
  * los movimientos de la primera edicion.
  */
 async function revertirMovimientosInventario(
-  tx: any,
+  tx: DbTransaction,
   companyId: string,
   modo: 'PRODUCCION' | 'PRUEBA',
   expenseId: string,
@@ -129,12 +129,12 @@ async function revertirMovimientosInventario(
 
   if (originales.length === 0) return;
 
-  const idsOriginales = originales.map((m: any) => m.id);
+  const idsOriginales = originales.map((m) => m.id);
   const yaRevertidos = await tx
     .select({ referenceId: inventoryMovements.referenceId })
     .from(inventoryMovements)
     .where(inArray(inventoryMovements.referenceId, idsOriginales));
-  const idsYaRevertidos = new Set(yaRevertidos.map((r: any) => r.referenceId));
+  const idsYaRevertidos = new Set(yaRevertidos.map((r) => r.referenceId));
 
   for (const mov of originales) {
     if (idsYaRevertidos.has(mov.id)) continue;
@@ -329,9 +329,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
         guaranteeCheck
       }
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching expense details:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
 
@@ -386,7 +386,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       // sin bloqueo ni rastro.
       const periodoAbierto = await AccountRepository.isPeriodOpen(session.companyId, expenseRow.issueDate, session.modo, tx);
       if (!periodoAbierto) {
-        const err: any = new Error(
+        const err: Error & { status?: number; code?: string } = new Error(
           `No se puede eliminar esta compra: su período contable (fecha ${expenseRow.issueDate}) ya está cerrado. ` +
           `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla, o revierta el cierre.`
         );
@@ -404,7 +404,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         .select()
         .from(journalEntries)
         .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
-      const idsAsientosSnapshot = snapshotAsientos.map((j: any) => j.id);
+      const idsAsientosSnapshot = snapshotAsientos.map((j) => j.id);
       const snapshotLineasAsiento = idsAsientosSnapshot.length > 0
         ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosSnapshot))
         : [];
@@ -487,10 +487,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
           .from(apPayments)
           .where(eq(apPayments.apId, ap.id));
 
-        const appliedCount = apPaymentRows.filter((r: any) => r.status === 'applied').length;
+        const appliedCount = apPaymentRows.filter((r) => r.status === 'applied').length;
 
         if (appliedCount > 0) {
-          const err: any = new Error(
+          const err: Error & { status?: number; code?: string } = new Error(
             'No se puede eliminar esta compra: ya tiene pagos aplicados contablemente (afectaron banco y mayor). Revierta o anule esos pagos antes de eliminarla.'
           );
           err.status = 409;
@@ -503,7 +503,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
           .where(eq(supplierPaymentApplied.apId, ap.id));
 
         if (Number(spaCount?.n || 0) > 0) {
-          const err: any = new Error(
+          const err: Error & { status?: number; code?: string } = new Error(
             'No se puede eliminar esta compra: tiene pagos a suplidor aplicados contra su balance. Desaplique esos pagos antes de eliminarla.'
           );
           err.status = 409;
@@ -514,7 +514,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         // de banco, ni movimiento financiero. Se pueden borrar sin efecto contable.
         // Orden obligatorio por las llaves foráneas: pagos -> cheques -> CxP.
         const linkedCheckIds = apPaymentRows
-          .map((r: any) => r.checkId)
+          .map((r) => r.checkId)
           .filter((v: string | null): v is string => Boolean(v));
 
         await tx.delete(apPayments).where(and(eq(apPayments.apId, ap.id), eq(apPayments.companyId, session.companyId), eq(apPayments.modo, session.modo)));
@@ -572,10 +572,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
     }
 
     return NextResponse.json({ success: true, message: 'Compra/Gasto y sus registros contables asociados eliminados exitosamente' });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error deleting expense:', err);
     // err.status permite devolver 409 cuando el borrado se bloquea por pagos aplicados.
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: err.status || 500 });
+    const e = err as Error & { status?: number; code?: string };
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status: e.status || 500 });
   }
 }
 
@@ -714,7 +715,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       // escribir.
       const periodoAbiertoOriginal = await AccountRepository.isPeriodOpen(session.companyId, existing[0].issueDate, session.modo, tx);
       if (!periodoAbiertoOriginal) {
-        const err: any = new Error(
+        const err: Error & { status?: number; code?: string } = new Error(
           `No se puede editar esta compra: su período contable original (fecha ${existing[0].issueDate}) ya está cerrado. ` +
           `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla.`
         );
@@ -728,7 +729,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         .select()
         .from(journalEntries)
         .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
-      const idsAsientosPut = snapshotAsientosPut.map((j: any) => j.id);
+      const idsAsientosPut = snapshotAsientosPut.map((j) => j.id);
       const snapshotLineasAsientoPut = idsAsientosPut.length > 0
         ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosPut))
         : [];
@@ -1277,8 +1278,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     });
 
     return NextResponse.json({ success: true, message: 'Compra/Gasto editado y registros contables actualizados exitosamente', data: result });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error editing expense:', err);
-    return NextResponse.json({ success: false, error: { message: err.message } }, { status: 500 });
+    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
   }
 }
