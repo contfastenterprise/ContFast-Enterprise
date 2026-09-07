@@ -115,23 +115,6 @@ interface SessionCookieCache {
   expiresAt: number;
 }
 
-// Legacy interface kept for backward compatibility
-export interface MSellerInvoicePayload {
-  companyRnc: string;
-  ncfType: string;
-  buyerRnc?: string;
-  buyerName?: string;
-  currency: 'DOP' | 'USD';
-  paymentMethod: number;
-  items: {
-    quantity: number;
-    description: string;
-    unitPrice: number;
-    discount: number;
-    taxRate: number;
-  }[];
-}
-
 export class MSellerClient {
   private baseUrl: string;
   private entorno: string;
@@ -1110,24 +1093,5 @@ export class MSellerClient {
     }
 
     return await xmlRes.text();
-  }
-
-  /**
-   * Legacy static method for backward compatibility with invoiceService.ts
-   */
-  static async issueInvoice(payload: MSellerInvoicePayload) {
-    console.warn('[MSellerClient] issueInvoice is deprecated. Use instance sendDocument() with ECFPayload instead.');
-    // Return mock for legacy callers until fully migrated
-    const ncf = `E${payload.ncfType}0000000${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-    return {
-      success: true,
-      data: {
-        ncf,
-        trackId: `trk_${Date.now()}`,
-        status: 'accepted',
-        signedXmlBase64: Buffer.from('<xml>Mock Signed XML</xml>').toString('base64'),
-        dgiiMessage: 'Aceptado (MOCK - usa ECFPayload)',
-      },
-    };
   }
 }
