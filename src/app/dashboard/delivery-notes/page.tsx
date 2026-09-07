@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/table';
 
 export default function DeliveryNotesPage() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState<any[]>([]);
@@ -276,7 +278,12 @@ export default function DeliveryNotesPage() {
 
   // Approve Conduce (Exits stock)
   const handleApproveNote = async (noteId: string) => {
-    if (!confirm('¿Está seguro de que desea aprobar este conduce? Esta acción descontará el inventario físico y cambiará el estado de la factura.')) {
+    if (
+      !(await confirm({
+        title: 'Aprobar conduce',
+        description: 'Esta acción descontará el inventario físico y cambiará el estado de la factura.',
+      }))
+    ) {
       return;
     }
     try {
@@ -301,7 +308,13 @@ export default function DeliveryNotesPage() {
 
   // Void Conduce (Returns stock)
   const handleVoidNote = async (noteId: string) => {
-    if (!confirm('¿Está seguro de que desea anular este conduce? Esta acción retornará la mercancía al inventario y revertirá el estado logístico.')) {
+    if (
+      !(await confirm({
+        title: 'Anular conduce',
+        description: 'Esta acción retornará la mercancía al inventario y revertirá el estado logístico.',
+        variant: 'destructive',
+      }))
+    ) {
       return;
     }
     try {

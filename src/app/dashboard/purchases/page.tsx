@@ -2429,7 +2429,12 @@ function GuaranteeChecksView() {
   }, [startDate, endDate]);
 
   const handleApplyCheck = async (paymentId: string, checkId: string, checkNumber: string) => {
-    if (!confirm(`¿Estás seguro de que deseas aplicar contablemente el cheque #${checkNumber}? Esta operación deducirá el balance de CXP y registrará la salida del banco.`)) return;
+    if (
+      !(await confirm({
+        title: 'Aplicar cheque contablemente',
+        description: `¿Estás seguro de que deseas aplicar contablemente el cheque #${checkNumber}? Esta operación deducirá el balance de CXP y registrará la salida del banco.`,
+      }))
+    ) return;
 
     setApplyingId(checkId);
     try {

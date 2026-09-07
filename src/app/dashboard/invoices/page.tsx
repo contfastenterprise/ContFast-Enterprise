@@ -1039,9 +1039,11 @@ function InvoicesList() {
 
       if (!res.ok || !data.success) {
         if (data.error?.code === 'MSELLER_COMMUNICATION_ERROR') {
-          const proceed = window.confirm(
-            'Hubo un error de comunicación con la DGII (a través de MSeller).\n\n¿Desea continuar emitiendo la factura localmente para transmitirla de manera automática más tarde?'
-          );
+          const proceed = await confirm({
+            title: 'Error de comunicación con la DGII',
+            description:
+              'Hubo un error de comunicación con la DGII (a través de MSeller). ¿Desea continuar emitiendo la factura localmente para transmitirla de manera automática más tarde?',
+          });
           if (proceed) {
             const retryRes = await fetch('/api/v1/invoices', {
               method: 'POST',

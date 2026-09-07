@@ -6,6 +6,7 @@ import { useRbac } from '@/components/providers/rbacContext';
 import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import clsx from 'clsx';
 
 // -- Types --
@@ -57,6 +58,7 @@ const fmt = (val: number | string) => {
 };
 
 export default function AccountingPage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const { user, loading: rbacLoading } = useRbac();
   const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods'>('catalog');
@@ -394,7 +396,12 @@ export default function AccountingPage() {
   const handleTogglePeriodStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'open' ? 'closed' : 'open';
     const label = nextStatus === 'open' ? 'reabrir' : 'cerrar';
-    if (!confirm(`¿Estás seguro que deseas ${label} este período contable?`)) return;
+    if (
+      !(await confirm({
+        title: nextStatus === 'open' ? 'Reabrir período' : 'Cerrar período',
+        description: `¿Estás seguro que deseas ${label} este período contable?`,
+      }))
+    ) return;
 
     try {
       const res = await fetch(`/api/v1/accounting/periods/${id}`, {

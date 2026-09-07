@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, HelpCircle, Save, RefreshCw, Scale, AlertCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -11,6 +12,7 @@ const formatCurrency = (val: number | string) => {
 };
 
 export default function ConfigPage() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<any>({
@@ -108,7 +110,12 @@ export default function ConfigPage() {
   };
 
   const handleResetToDefault = async () => {
-    if (!confirm('¿Estás seguro de que deseas restablecer y guardar los valores de fábrica?')) return;
+    if (
+      !(await confirm({
+        title: 'Restablecer valores de fábrica',
+        description: '¿Estás seguro de que deseas restablecer y guardar los valores de fábrica?',
+      }))
+    ) return;
     try {
       setSaving(true);
       const payload = {

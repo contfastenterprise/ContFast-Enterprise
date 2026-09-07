@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 interface OrderLine {
   id?: string;
@@ -57,6 +58,7 @@ interface PurchaseOrder {
 }
 
 export default function PurchaseOrdersPage() {
+  const confirm = useConfirm();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -220,7 +222,12 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleSendOrder = async (id: string) => {
-    if (!confirm('¿Desea marcar esta orden de pedido como Enviada al suplidor?')) return;
+    if (
+      !(await confirm({
+        title: 'Marcar como enviada',
+        description: '¿Desea marcar esta orden de pedido como Enviada al suplidor?',
+      }))
+    ) return;
     try {
       const toastId = toast.loading('Actualizando estado...');
       const res = await fetch(`/api/v1/supplier-orders/${id}/send`, { method: 'POST' });
@@ -240,7 +247,12 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleDuplicate = async (id: string) => {
-    if (!confirm('¿Desea duplicar este pedido a un nuevo estado borrador?')) return;
+    if (
+      !(await confirm({
+        title: 'Duplicar pedido',
+        description: '¿Desea duplicar este pedido a un nuevo estado borrador?',
+      }))
+    ) return;
     try {
       const toastId = toast.loading('Duplicando pedido...');
       const res = await fetch(`/api/v1/supplier-orders/${id}/duplicate`, { method: 'POST' });
@@ -260,7 +272,13 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleCancelOrder = async (id: string, num: string) => {
-    if (!confirm(`¿Está seguro que desea cancelar el pedido ${num}? Esta acción no se puede deshacer.`)) return;
+    if (
+      !(await confirm({
+        title: 'Cancelar pedido',
+        description: `¿Está seguro que desea cancelar el pedido ${num}? Esta acción no se puede deshacer.`,
+        variant: 'destructive',
+      }))
+    ) return;
     try {
       const toastId = toast.loading('Cancelando pedido...');
       const res = await fetch(`/api/v1/supplier-orders/${id}/send`, { // Wait, canceling is via DELETE on resource or cancel route. Let's do DELETE

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Building2, Briefcase, Plus, Edit2, Trash2, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 
 export default function DepartmentsPage() {
+  const confirm = useConfirm();
   const [departments, setDepartments] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,13 @@ export default function DepartmentsPage() {
   };
 
   const handleDeptDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar este departamento?')) return;
+    if (
+      !(await confirm({
+        title: 'Eliminar departamento',
+        description: 'Esta acción no se puede deshacer.',
+        variant: 'destructive',
+      }))
+    ) return;
     try {
       const res = await fetch(`/api/v1/hr/departments?id=${id}`, { method: 'DELETE' });
       const data = await res.json();
@@ -127,7 +135,13 @@ export default function DepartmentsPage() {
   };
 
   const handlePosDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar este puesto?')) return;
+    if (
+      !(await confirm({
+        title: 'Eliminar puesto',
+        description: 'Esta acción no se puede deshacer.',
+        variant: 'destructive',
+      }))
+    ) return;
     try {
       const res = await fetch(`/api/v1/hr/positions?id=${id}`, { method: 'DELETE' });
       const data = await res.json();

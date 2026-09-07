@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/providers/confirm-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 
@@ -22,6 +23,7 @@ interface Product {
 }
 
 export default function BarcodeDashboardPage() {
+  const confirm = useConfirm();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
@@ -250,7 +252,12 @@ export default function BarcodeDashboardPage() {
   };
 
   const handleBulkGenerate = async () => {
-    if (!confirm('¿Desea autogenerar y asignar códigos secuenciales a TODOS los productos faltantes?')) return;
+    if (
+      !(await confirm({
+        title: 'Autogenerar códigos de barra',
+        description: '¿Desea autogenerar y asignar códigos secuenciales a TODOS los productos faltantes?',
+      }))
+    ) return;
 
     setBulkGenerating(true);
     const toastId = toast.loading('Generando códigos de barra en lote...');
