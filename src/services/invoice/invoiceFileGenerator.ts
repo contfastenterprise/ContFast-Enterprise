@@ -1,4 +1,4 @@
-import { db, products, productCategories } from '@/db';
+import { db, products, productCategories, auditLogs } from '@/db';
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
@@ -15,7 +15,57 @@ import type { CompanyRepository } from '@/repositories/companyRepository';
 
 export class InvoiceFileGenerator {
   /**
+   * Auditoria P2-30 (2026-09-03): deja constancia de un fallo POSTERIOR al
+   * commit de la factura.
+   *
+   * Todo lo que corre despues de `executeDbTransaction` -- PDF, correo,
+   * conduce automatico, marcado de la cotizacion -- va fuera de la
+   * transaccion, y hasta ahora un fallo ahi solo dejaba una linea de log SIN
+   * el NCF ni el id de la factura: el caso existia pero no habia manera de
+   * encontrarlo despues.
+   *
+   * El del conduce es el grave. Facturar NO descuenta stock: la deduccion
+   * esta diferida al conduce (ver invoiceDbBooker). Si el conduce automatico
+   * no llega a aprobarse, la factura queda emitida y el inventario sin tocar,
+   * que es exactamente el desfase silencioso del hallazgo.
+   *
+   * Mismo patron que `InvoiceDbBooker.registrarNcfSinUsar`: traza durable en
+   * audit_logs y NUNCA relanza -- ya se esta atendiendo un error, y tumbar la
+   * emision porque falle la escritura de la traza seria cambiar un problema
+   * por otro peor.
+   */
+  private static async registrarFalloPostEmision(
+    data: IssueInvoiceInput,
+    invoiceId: string | null,
+    ncf: string,
+    paso: string,
+    err: unknown
+  ) {
+    try {
+      await db.insert(auditLogs).values({
+        companyId: data.companyId,
+        userId: data.userId,
+        modo: data.modo,
+        action: 'fallo_post_emision',
+        entityType: 'invoices',
+        entityId: invoiceId ?? undefined,
+        newValues: { paso, ncf, motivo: (err as Error)?.message || String(err) },
+        ipAddress: 'server',
+      });
+    } catch (trazaErr) {
+      Logger.error(
+        `[InvoiceFileGenerator] No se pudo registrar el fallo post-emision (${paso}) del NCF ${ncf}:`,
+        trazaErr
+      );
+    }
+  }
+
+  /**
    * Helper to write files and send the invoice to the customer asynchronously.
+   *
+   * Devuelve los avisos que hay que ensenar a quien acaba de facturar: lo que
+   * falla aqui ya no puede deshacer la emision, pero tampoco puede quedarse
+   * en un log que nadie mira.
    */
   static async generateFilesAndSendEmail(
     data: IssueInvoiceInput,
@@ -30,7 +80,8 @@ export class InvoiceFileGenerator {
     signedXmlPath: string,
     pdfPath: string,
     msellerXmlPath: string
-  ) {
+  ): Promise<string[]> {
+    const avisos: string[] = [];
     try {
       const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
       const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
@@ -196,24 +247,47 @@ export class InvoiceFileGenerator {
           }
         } catch (emailErr) {
           Logger.error('[InvoiceFileGenerator] Error queuing email for invoice', emailErr);
+          await this.registrarFalloPostEmision(data, null, ncf, 'correo_cliente', emailErr);
+          avisos.push(
+            'La factura se emitió correctamente, pero no se pudo encolar el correo al cliente. ' +
+            'Puedes reenviarlo desde el listado de facturas.'
+          );
         }
       }
     } catch (pdfErr: unknown) {
       Logger.error('[InvoiceFileGenerator] Error generating PDF or XML outside transaction', pdfErr);
+      await this.registrarFalloPostEmision(data, null, ncf, 'pdf_o_xml', pdfErr);
+      avisos.push(
+        'La factura se emitió correctamente, pero no se pudo generar o subir su PDF. ' +
+        'El comprobante es válido; vuelve a imprimirlo desde el listado de facturas.'
+      );
     }
+
+    return avisos;
   }
 
   /**
    * Helper to perform follow up operations (delivery note, quote status).
+   *
+   * Crear y aprobar el conduce iban bajo un mismo `catch`, asi que los dos
+   * fallos posibles quedaban indistinguibles -- y son distintos: si falla
+   * `create` no hay conduce ninguno; si falla `approve` queda un BORRADOR que
+   * tampoco mueve stock, pero que se puede aprobar a mano sin rehacerlo. Se
+   * separan para poder decir cual paso y que hacer.
    */
   static async processPostEmission(
     data: IssueInvoiceInput,
     invoiceId: string,
+    ncf: string,
     settings: Awaited<ReturnType<typeof CompanyRepository.getSettings>>,
     itemLines: InvoiceItemLine[]
-  ) {
+  ): Promise<string[]> {
+    const avisos: string[] = [];
+
     // Automatically issue delivery note if autoDeliveryNotes is enabled
     if (settings?.autoDeliveryNotes && ['31', '32', '45'].includes(data.ecfType)) {
+      let draftNoteId: string | null = null;
+
       try {
         const draftNote = await DeliveryRepository.create({
           companyId: data.companyId,
@@ -229,10 +303,27 @@ export class InvoiceFileGenerator {
             quantity: Number(line.quantity),
           })),
         });
-
-        await DeliveryRepository.approve(draftNote.id, data.userId, data.companyId, data.modo);
+        draftNoteId = draftNote.id;
       } catch (autoErr) {
         Logger.error('[InvoiceFileGenerator] Error creating automatic delivery note', autoErr);
+        await this.registrarFalloPostEmision(data, invoiceId, ncf, 'conduce_automatico_crear', autoErr);
+        avisos.push(
+          'La factura se emitió, pero NO se pudo generar el conduce automático: el inventario ' +
+          'NO se ha descontado. Genera el conduce a mano desde Conduces.'
+        );
+      }
+
+      if (draftNoteId) {
+        try {
+          await DeliveryRepository.approve(draftNoteId, data.userId, data.companyId, data.modo);
+        } catch (aprobarErr) {
+          Logger.error('[InvoiceFileGenerator] Error approving automatic delivery note', aprobarErr);
+          await this.registrarFalloPostEmision(data, invoiceId, ncf, 'conduce_automatico_aprobar', aprobarErr);
+          avisos.push(
+            'La factura se emitió y el conduce automático quedó en BORRADOR, pero no se pudo ' +
+            'aprobar: el inventario NO se ha descontado. Apruébalo desde Conduces.'
+          );
+        }
       }
     }
 
@@ -242,7 +333,14 @@ export class InvoiceFileGenerator {
         await QuoteService.markAsInvoiced(data.quoteId, data.companyId, data.modo);
       } catch (err) {
         Logger.error('[InvoiceFileGenerator] Error marking quote as invoiced', err);
+        await this.registrarFalloPostEmision(data, invoiceId, ncf, 'cotizacion_marcar_facturada', err);
+        avisos.push(
+          'La factura se emitió, pero la cotización de origen no quedó marcada como facturada. ' +
+          'Ciérrala a mano desde Cotizaciones.'
+        );
       }
     }
+
+    return avisos;
   }
 }

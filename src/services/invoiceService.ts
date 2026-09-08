@@ -129,7 +129,13 @@ export class InvoiceService {
     }
 
     // ── 7. File generation outside the transaction block to avoid lockups ──────
-    await InvoiceFileGenerator.generateFilesAndSendEmail(
+    //
+    // Auditoria P2-30 (2026-09-03): lo que falla de aqui en adelante ocurre
+    // DESPUES del commit, asi que no puede deshacer la emision -- pero tampoco
+    // puede quedarse en un log del servidor que nadie mira. Cada paso deja su
+    // traza en audit_logs y devuelve sus avisos, que suben hasta la respuesta
+    // para que quien acaba de facturar los vea en pantalla.
+    const avisosArchivos = await InvoiceFileGenerator.generateFilesAndSendEmail(
       data,
       ncf,
       company,
@@ -145,13 +151,14 @@ export class InvoiceService {
     );
 
     // ── 8. Post-emission tasks (conduces, quotes) ──────────────────────────────
-    await InvoiceFileGenerator.processPostEmission(
+    const avisosPostEmision = await InvoiceFileGenerator.processPostEmission(
       data,
       dbResult.invoice.id,
+      ncf,
       settings,
       totals.itemLines
     );
 
-    return dbResult;
+    return { ...dbResult, avisos: [...avisosArchivos, ...avisosPostEmision] };
   }
 }

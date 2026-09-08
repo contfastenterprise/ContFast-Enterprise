@@ -1074,6 +1074,10 @@ function InvoicesList() {
               description: `Registrado fuera de línea con NCF: ${retryData.data.ncf}. Pendiente de envío.`
             });
 
+            for (const aviso of (retryData.avisos ?? []) as string[]) {
+              toast.warning('Atención tras emitir la factura', { description: aviso, duration: 12000 });
+            }
+
             if (editingDraftId) {
               try {
                 await fetch(`/api/v1/invoices/${editingDraftId}`, { method: 'DELETE' });
@@ -1117,6 +1121,14 @@ function InvoicesList() {
         toast.success('Comprobante e-CF emitido', {
           description: `NCF: ${data.data.ncf}${estadoEmitido ? ` — estado: ${estadoEmitido}` : ''}`
         });
+      }
+
+      // Auditoria P2-30 (2026-09-03): lo que falla despues del commit -- conduce
+      // automatico, PDF, correo, cotizacion -- solo se escribia en un log del
+      // servidor, asi que quien facturaba no se enteraba de nada. El caso grave
+      // es el conduce: sin el, el inventario NO se ha descontado.
+      for (const aviso of (data.avisos ?? []) as string[]) {
+        toast.warning('Atención tras emitir la factura', { description: aviso, duration: 12000 });
       }
 
       const invoiceId = data.data.id;

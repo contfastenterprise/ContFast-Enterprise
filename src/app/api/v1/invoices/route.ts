@@ -357,14 +357,19 @@ export async function POST(req: NextRequest) {
       { companyId: auth.companyId, modo: auth.modo, route: 'POST /api/v1/invoices', idempotencyKey: req.headers.get('Idempotency-Key') },
       async () => {
         // Call service layer to perform all database transactions and PDF/XMLDSIG generation
-        const { invoice, msellerResponse } = await InvoiceService.issueInvoice({
+        // Auditoria P2-30 (2026-09-03): `avisos` recoge lo que fallo DESPUES del
+        // commit (conduce automatico, PDF, correo, cotizacion). La factura es
+        // valida igualmente, por eso sigue siendo un 201, pero el cliente tiene
+        // que poder ensenarlo: el caso grave es el conduce, porque sin el el
+        // inventario no se ha descontado.
+        const { invoice, msellerResponse, avisos } = await InvoiceService.issueInvoice({
           companyId: auth.companyId,
           modo: auth.modo,
           userId: auth.userId,
           ...result.data,
           lines: lineasSaneadas,
         });
-        return { status: 201, body: { success: true, data: invoice, msellerResponse } };
+        return { status: 201, body: { success: true, data: invoice, msellerResponse, avisos } };
       }
     );
 
