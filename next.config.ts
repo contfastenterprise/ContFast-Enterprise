@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: { ignoreBuildErrors: true },
+  //  `typescript: { ignoreBuildErrors: true }` vivia aqui, y con el
+  //  `pnpm build` NO comprobaba tipos: pasaba con 40 errores dentro, 31 de
+  //  ellos introducidos por el propio trabajo de tipado de P1-24 y ninguno
+  //  visible durante doce lotes. Con el repo en 0 errores
+  //  (`pnpm exec tsc --noEmit`), la bandera sobra: el build vuelve a ser una
+  //  puerta de verdad y un tipo que miente ya no llega a produccion.
   transpilePackages: ["@contfast/ai-core"],
   serverExternalPackages: ["pdfkit", "puppeteer", "puppeteer-core", "@sparticuz/chromium"],
   outputFileTracingIncludes: {
