@@ -9,7 +9,7 @@ import {
   accountingMappings,
   expenseTypes
 } from '@/db';
-import { eq, and, desc, sql, isNull, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, isNull, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import type { DbTransaction } from '@/db';
 
@@ -177,6 +177,14 @@ export class AccountingRepository {
   // ==========================================
   // JOURNAL ENTRIES (WITH PERIOD CONTROLS)
   // ==========================================
+  /**
+   * Auditoria P2-40 (2026-09-03): devolvia SOLO las filas, ya cortadas por
+   * `limit`, asi que quien pintaba no tenia forma de saber que faltaban
+   * asientos. Con un rango de mas de 100, los demas simplemente no aparecian
+   * y nadie se enteraba: en un libro diario eso es un descuadre invisible.
+   * Ahora devuelve tambien el TOTAL que cumple las mismas condiciones, para
+   * que la pantalla pueda decirlo.
+   */
   static async getJournalEntries(
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
@@ -199,13 +207,19 @@ export class AccountingRepository {
       conditions.push(sql`${journalEntries.date} <= ${endDate}`);
     }
 
+    const [totalRow] = await db
+      .select({ value: count() })
+      .from(journalEntries)
+      .where(and(...conditions));
+    const total = totalRow?.value ?? 0;
+
     const entries = await db.select()
       .from(journalEntries)
       .where(and(...conditions))
       .orderBy(desc(journalEntries.date), desc(journalEntries.createdAt))
       .limit(limit);
 
-    if (entries.length === 0) return [];
+    if (entries.length === 0) return { entries: [], total };
 
     const entryIds = entries.map(e => e.id);
     const lines = await db.select({
@@ -221,7 +235,7 @@ export class AccountingRepository {
     .innerJoin(chartOfAccounts, eq(journalEntryLines.accountId, chartOfAccounts.id))
     .where(sql`${journalEntryLines.journalEntryId} IN ${entryIds}`);
 
-    return entries.map(entry => {
+    const mapeados = entries.map(entry => {
       const entryLines = lines.filter(l => l.journalEntryId === entry.id);
       const totalDebit = entryLines.reduce((acc, l) => acc + parseFloat(l.debit as any), 0);
       const totalCredit = entryLines.reduce((acc, l) => acc + parseFloat(l.credit as any), 0);
@@ -232,6 +246,8 @@ export class AccountingRepository {
         totalCredit
       };
     });
+
+    return { entries: mapeados, total };
   }
 
   static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: typeof db = db): Promise<boolean> {

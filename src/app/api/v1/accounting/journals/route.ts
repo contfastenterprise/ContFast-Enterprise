@@ -39,9 +39,26 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
 
-    const journals = await AccountingRepository.getJournalEntries(session.companyId, session.modo, 100, startDate, endDate);
+    // Auditoria P2-40 (2026-09-03): el limite estaba cableado a 100 y la
+    // respuesta no decia el total, asi que la pantalla pintaba 100 asientos sin
+    // manera de saber si habia mas. Ahora el limite se puede pedir -- acotado a
+    // 500, para no cambiar un corte silencioso por una lectura sin techo -- y la
+    // respuesta dice cuantos hay en el rango y si se ha truncado.
+    const limitPedido = parseInt(searchParams.get('limit') || '100', 10);
+    const limit = Number.isFinite(limitPedido) ? Math.min(Math.max(limitPedido, 1), 500) : 100;
 
-    return NextResponse.json({ success: true, data: journals }, { headers: resHeaders });
+    const { entries, total } = await AccountingRepository.getJournalEntries(
+      session.companyId,
+      session.modo,
+      limit,
+      startDate,
+      endDate
+    );
+
+    return NextResponse.json(
+      { success: true, data: entries, meta: { total, limit, truncado: total > entries.length } },
+      { headers: resHeaders }
+    );
   } catch (error: unknown) {
     console.error('Error fetching journals:', error);
     const e = error as Error & { status?: number; code?: string };

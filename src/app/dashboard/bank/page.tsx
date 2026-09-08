@@ -53,6 +53,7 @@ export default function BankAccountsPage() {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [txMeta, setTxMeta] = useState<{ total: number; truncado: boolean } | null>(null);
   const [loadingTxs, setLoadingTxs] = useState(false);
   const [chartOfAccounts, setChartOfAccounts] = useState<ChartAccount[]>([]);
 
@@ -125,10 +126,15 @@ export default function BankAccountsPage() {
       const params = new URLSearchParams({ accountId });
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      // Auditoria P2-39 (2026-09-03): esta pantalla pedia el libro entero. Se
+      // acota a 500 y se ensena un aviso si hay mas, en vez de traer miles de
+      // filas para pintarlas todas de golpe.
+      params.append('limit', '500');
       const res = await fetch(`/api/v1/bank/transactions?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
         setTransactions(data.data);
+        setTxMeta(data.meta ?? null);
       }
     } catch (err) {
       toast.error('Error al cargar transacciones');
@@ -216,11 +222,28 @@ export default function BankAccountsPage() {
     if (!selectedAccount) return;
     const toastId = toast.loading('Preparando reporte de transacciones...');
     try {
-      const [settingsRes] = await Promise.all([
-        fetch('/api/v1/company/settings')
+      // Auditoria P2-39 (2026-09-03): el reporte se armaba con `transactions`,
+      // el estado de la pantalla. Al acotar esa carga a 500 pasaria a imprimir
+      // solo esos 500 sin decirlo -- exactamente el corte silencioso que este
+      // cambio viene a cerrar. El reporte se pide aparte y SIN limite, para que
+      // salga completo aunque en pantalla se vea solo una parte.
+      const paramsReporte = new URLSearchParams({ accountId: selectedAccount.id });
+      if (startDate) paramsReporte.append('startDate', startDate);
+      if (endDate) paramsReporte.append('endDate', endDate);
+
+      const [settingsRes, txRes] = await Promise.all([
+        fetch('/api/v1/company/settings'),
+        fetch(`/api/v1/bank/transactions?${paramsReporte.toString()}`)
       ]);
       const settingsData = await settingsRes.json();
       const company = settingsData.data || {};
+
+      const txData = await txRes.json();
+      if (!txData.success) {
+        toast.error('No se pudieron cargar los movimientos para el reporte.', { id: toastId });
+        return;
+      }
+      const todosLosMovimientos: BankTransaction[] = txData.data || [];
       
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -234,7 +257,7 @@ export default function BankAccountsPage() {
       const companyTitleHtml = logoHtml ? '' : `<div style="font-size: 20px; font-weight: bold; color: #003366;">${company.companyName || 'Empresa sin identificar'}</div>`;
 
       // Filter local items based on search if applied
-      const itemsToPrint = transactions.filter(tx => {
+      const itemsToPrint = todosLosMovimientos.filter(tx => {
         if (!bankSearch.trim()) return true;
         return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
           (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
@@ -486,6 +509,15 @@ export default function BankAccountsPage() {
                   </div>
                 </div>
               </div>
+              {txMeta?.truncado && (
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-start gap-3">
+                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-900">
+                    Se muestran los <strong>{transactions.length}</strong> movimientos más recientes de{' '}
+                    <strong>{txMeta.total}</strong> que hay en este rango. Acota las fechas para ver el resto.
+                  </p>
+                </div>
+              )}
               <>
                 {/* Mobile View */}
                 <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">

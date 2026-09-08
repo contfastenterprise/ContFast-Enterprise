@@ -1,5 +1,5 @@
 import { db, bankAccounts, bankAccountBalances, bankTransactions, chartOfAccounts } from '@/db';
-import { eq, and, sql, desc, inArray } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
 
@@ -152,32 +152,56 @@ export class BankRepository {
   }
 
   // Get transactions for a specific account (or all accounts if 'all' is passed)
+  /**
+   * Auditoria P2-39 (2026-09-03): traia SIEMPRE el libro entero de la cuenta,
+   * y el filtro por fechas se aplicaba despues, en memoria, dentro de la ruta.
+   * Una cuenta con anos de movimientos se leia completa de la base de datos
+   * para acabar ensenando un mes.
+   *
+   * Ahora las fechas van en el SQL y el limite es OPCIONAL: sin limite el
+   * comportamiento es el de antes -- lo necesita la conciliacion bancaria, que
+   * trabaja sobre todos los movimientos de la cuenta -- y con limite se
+   * devuelve ademas el total, para que la pantalla pueda decir que esta viendo
+   * solo una parte en vez de callarselo.
+   */
   static async getBankTransactions(
     companyId: string,
     bankAccountId: string,
-    modo: 'PRODUCCION' | 'PRUEBA'
+    modo: 'PRODUCCION' | 'PRUEBA',
+    opciones: { startDate?: string; endDate?: string; limit?: number } = {}
   ) {
     // El libro de banco es lo que se cuadra contra el estado de cuenta que
-    // manda el banco. Sin el filtro, los movimientos de practicas salian
-    // mezclados con los reales y la conciliacion no podia cuadrar nunca.
-    if (bankAccountId === 'all') {
-      return await db.select()
-        .from(bankTransactions)
-        .where(and(
-          eq(bankTransactions.companyId, companyId),
-          eq(bankTransactions.modo, modo)
-        ))
-        .orderBy(desc(bankTransactions.date), desc(bankTransactions.createdAt));
+    // manda el banco. Sin el filtro por modo, los movimientos de practicas
+    // salian mezclados con los reales y la conciliacion no podia cuadrar nunca.
+    const conditions = [
+      eq(bankTransactions.companyId, companyId),
+      eq(bankTransactions.modo, modo),
+    ];
+
+    if (bankAccountId !== 'all') {
+      conditions.push(eq(bankTransactions.bankAccountId, bankAccountId));
+    }
+    if (opciones.startDate) {
+      conditions.push(sql`${bankTransactions.date} >= ${opciones.startDate}`);
+    }
+    if (opciones.endDate) {
+      conditions.push(sql`${bankTransactions.date} <= ${opciones.endDate}`);
     }
 
-    return await db.select()
+    const [totalRow] = await db
+      .select({ value: count() })
       .from(bankTransactions)
-      .where(and(
-        eq(bankTransactions.companyId, companyId),
-        eq(bankTransactions.modo, modo),
-        eq(bankTransactions.bankAccountId, bankAccountId)
-      ))
+      .where(and(...conditions));
+    const total = totalRow?.value ?? 0;
+
+    const consulta = db.select()
+      .from(bankTransactions)
+      .where(and(...conditions))
       .orderBy(desc(bankTransactions.date), desc(bankTransactions.createdAt));
+
+    const transactions = opciones.limit ? await consulta.limit(opciones.limit) : await consulta;
+
+    return { transactions, total };
   }
 
   // Register a new transaction (and auto journal entry)

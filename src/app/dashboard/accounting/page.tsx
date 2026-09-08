@@ -79,6 +79,7 @@ export default function AccountingPage() {
   // Data
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [journalsMeta, setJournalsMeta] = useState<{ total: number; limit: number; truncado: boolean } | null>(null);
 
   // Filters & Row Expansion
   const [startDate, setStartDate] = useState('');
@@ -145,7 +146,10 @@ export default function AccountingPage() {
 
         const res = await fetch(url);
         const data = await res.json();
-        if (data.success) setJournals(data.data);
+        if (data.success) {
+          setJournals(data.data);
+          setJournalsMeta(data.meta ?? null);
+        }
       } else if (activeTab === 'ledger') {
         if (selectedLedgerAccount) {
           const res = await fetch(`/api/v1/accounting/reports/ledger?accountId=${selectedLedgerAccount}&startDate=${formattedStart}&endDate=${formattedEnd}`);
@@ -635,6 +639,19 @@ export default function AccountingPage() {
                   </button>
                 )}
               </div>
+
+              {/* Auditoria P2-40 (2026-09-03): antes se pintaban 100 asientos y punto.
+                  Si el rango tenia mas, los que faltaban no se mencionaban en ningun
+                  sitio: asientos que desaparecen del libro diario sin avisar. */}
+              {journalsMeta?.truncado && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-900">
+                    Se muestran los <strong>{journals.length}</strong> asientos más recientes de{' '}
+                    <strong>{journalsMeta.total}</strong> que hay en este rango. Acota las fechas para ver el resto.
+                  </p>
+                </div>
+              )}
 
               {loading ? (
                 <div className="flex justify-center p-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>

@@ -44,17 +44,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: { code: 'BAD_REQUEST', message: 'El accountId es requerido' } }, { status: 400 });
     }
 
-    let transactions = await BankRepository.getBankTransactions(session.companyId, accountId, session.modo);
+    // Auditoria P2-39 (2026-09-03): el filtro por fechas se hacia AQUI, en
+    // memoria, sobre el libro entero que se acababa de traer de la base de
+    // datos. Ahora va en el SQL. `limit` es opcional: quien no lo pide -- la
+    // conciliacion bancaria, que necesita todos los movimientos de la cuenta --
+    // sigue recibiendo todo, y quien lo pide recibe ademas el total para poder
+    // avisar en pantalla de que esta viendo solo una parte.
+    const limitPedido = parseInt(searchParams.get('limit') || '', 10);
+    const limit = Number.isFinite(limitPedido) ? Math.min(Math.max(limitPedido, 1), 1000) : undefined;
 
-    // Filtrar por fechas si vienen en los parámetros (para accountId='all' o individual)
-    if (startDate) {
-      transactions = transactions.filter(t => t.date >= startDate);
-    }
-    if (endDate) {
-      transactions = transactions.filter(t => t.date <= endDate);
-    }
+    const { transactions, total } = await BankRepository.getBankTransactions(
+      session.companyId,
+      accountId,
+      session.modo,
+      { startDate: startDate || undefined, endDate: endDate || undefined, limit }
+    );
 
-    return NextResponse.json({ success: true, data: transactions });
+    return NextResponse.json({
+      success: true,
+      data: transactions,
+      meta: { total, limit: limit ?? null, truncado: total > transactions.length },
+    });
   } catch (error: unknown) {
     console.error('Error fetching bank transactions:', error);
     return NextResponse.json(
