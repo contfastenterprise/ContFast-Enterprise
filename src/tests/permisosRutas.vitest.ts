@@ -30,6 +30,12 @@ const API = join(RAIZ, 'src', 'app', 'api');
 /**
  * Formas validas de comprobar autorizacion. `requirePermission` es la que
  * introdujo la correccion de ISO-03; las demas ya existian en el codigo.
+ *
+ * `esSistemas` / `esAdminOSistemas` (utils/rolMatch.ts) entraron con P0-02:
+ * sustituyen a `session.role !== 'sistemas'` por comparacion exacta, asi que
+ * una ruta corregida deja de encajar en COMPARACION_DE_ROL. Sin ellas aqui,
+ * esta prueba marcaba como desprotegidas justo las rutas que P0-01 y P0-03
+ * habian endurecido.
  */
 const COMPROBACIONES = [
   'requirePermission',
@@ -37,6 +43,8 @@ const COMPROBACIONES = [
   'enforceAdminOrSistemas',
   'isAdminOrSistemas',
   'hasPermission',
+  'esSistemas',
+  'esAdminOSistemas',
 ];
 
 /**
@@ -67,7 +75,6 @@ const PENDIENTES = new Set([
   'v1/cash/sessions/[id]/print/route.ts',
   'v1/cash/sessions/[id]/ticket/route.ts',
   'v1/categories/route.ts',
-  'v1/company/settings/route.ts',
   'v1/customers/[id]/history/route.ts',
   'v1/dgii/rnc/[rnc]/route.ts',
   'v1/expenses/[id]/print/route.ts',

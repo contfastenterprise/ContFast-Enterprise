@@ -230,11 +230,35 @@ describe('ISO-16 · cada ambiente tiene sus propias credenciales', () => {
       .map((f) => relative(RAIZ, f).split('\\').join('/'))
       // El esquema declara las columnas viejas, que se borran en una migración
       // posterior, cuando los dos ambientes estén configurados y funcionando.
-      .filter((f) => !f.endsWith('db/schema/companies.ts'));
+      .filter((f) => !f.endsWith('db/schema/companies.ts'))
+      // `company/settings/route.ts` nombra el campo para lo contrario de lo que
+      // esta prueba persigue: lo desestructura fuera de la respuesta para NO
+      // mandarlo al navegador (corrección P1-15). No lee la credencial: la
+      // descarta. La comprobación de abajo verifica que siga siendo así.
+      .filter((f) => !f.endsWith('api/v1/company/settings/route.ts'));
 
     expect(
       culpables,
       'Las credenciales viven en mseller_credentials, con clave (empresa, ambiente).'
     ).toEqual([]);
+  });
+
+  it('la ruta de ajustes sigue sin devolver las credenciales al navegador', () => {
+    // Justifica la exención de arriba: la única mención permitida de la clave
+    // vieja es la que la saca de la respuesta. Si alguien convierte ese
+    // descarte en una lectura, esta prueba cae.
+    const c = sinComentarios(
+      readFileSync(join(SRC, 'app', 'api', 'v1', 'company', 'settings', 'route.ts'), 'utf8')
+    );
+
+    expect(
+      /const\s*\{[^}]*msellerApiKeyEncrypted[^}]*\.\.\.[A-Za-z0-9_$]+\s*\}\s*=\s*settings;/.test(c),
+      'La ruta debe seguir desestructurando msellerApiKeyEncrypted fuera de la respuesta.'
+    ).toBe(true);
+
+    expect(
+      c.split('msellerApiKeyEncrypted').length - 1,
+      'Solo puede nombrarse una vez, la del descarte.'
+    ).toBe(1);
   });
 });

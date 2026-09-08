@@ -48,14 +48,14 @@ const sinComentarios = (fuente: string) =>
  *
  * `llamadas` no incluye la propia definición. Cada entrada desaparece cuando su
  * módulo pase a usar el resolvedor.
+ *
+ * P0-05 (2026-09-03) migró al resolvedor `expenses/route.ts`,
+ * `expenses/[id]/route.ts`, `expenseService.ts` e `invoiceDbBooker.ts`: los
+ * cuatro están hoy en 0 llamadas y sus entradas se han quitado de aquí.
  */
 const PENDIENTES: Record<string, { definiciones: number; llamadas: number }> = {
   'src/app/api/v1/bank/accounts/[id]/transactions/route.ts': { definiciones: 1, llamadas: 2 },
-  'src/app/api/v1/expenses/route.ts':                        { definiciones: 1, llamadas: 8 },
-  'src/app/api/v1/expenses/[id]/route.ts':                   { definiciones: 1, llamadas: 8 },
   'src/repositories/arRepository.ts':                        { definiciones: 1, llamadas: 2 },
-  'src/services/expenseService.ts':                          { definiciones: 1, llamadas: 8 },
-  'src/services/invoice/invoiceDbBooker.ts':                 { definiciones: 1, llamadas: 10 },
 };
 
 function ficherosTs(dir: string, acc: string[] = []): string[] {
