@@ -348,12 +348,14 @@ export class ApRepository {
     }
     if (filters?.search) {
       const searchStr = `%${filters.search}%`;
-      conditions.push(
-        or(
-          ilike(suppliers.name, searchStr),
-          ilike(checks.checkNumber, searchStr)
-        )
+      // `or()` devuelve undefined si no recibe ninguna condicion definida.
+      // Aqui siempre recibe dos, pero el tipo no puede saberlo: se comprueba,
+      // en vez de callarlo con un `!`.
+      const porTexto = or(
+        ilike(suppliers.name, searchStr),
+        ilike(checks.checkNumber, searchStr)
       );
+      if (porTexto) conditions.push(porTexto);
     }
 
     const baseQuery = db.select({

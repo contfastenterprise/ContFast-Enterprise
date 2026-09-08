@@ -286,9 +286,16 @@ export class HRRepository {
         sfsEmployer: payrollDetails.sfsEmployer,
         riskEmployer: payrollDetails.riskEmployer,
         infotepEmployer: payrollDetails.infotepEmployer,
+        // El volante de pago (pdfGenerator) ya pintaba `detail.positionName`,
+        // pero la consulta no lo traia: la propiedad no existia y el campo caia
+        // siempre en su valor por defecto, 'Personal Administrativo'. El puesto
+        // esta en employees.positionId; el join es leftJoin porque un empleado
+        // puede no tener puesto asignado.
+        positionName: positions.name,
       })
       .from(payrollDetails)
       .innerJoin(employees, eq(payrollDetails.employeeId, employees.id))
+      .leftJoin(positions, eq(employees.positionId, positions.id))
       .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)))
       .orderBy(employees.firstName);
   }

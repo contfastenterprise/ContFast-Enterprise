@@ -1,7 +1,7 @@
 import { db } from '@/db';
 import { ApRepository } from '@/repositories/apRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
-import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions, chartOfAccounts, auditLogs } from '@/db/schema';
+import { apPayments, checks, accountsPayable, bankAccounts, bankTransactions, chartOfAccounts, auditLogs, suppliers } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { FinancialMovementService } from '@/services/financialMovementService';
@@ -249,8 +249,18 @@ export class ApService {
         notes: `Pago registrado. Método: ${input.paymentMethod}. Ref: ${input.checkNumber || 'N/A'}`,
       });
 
+      // `bloquearAp` solo lee de accounts_payable: no une con proveedores, asi
+      // que `ap.supplierName` era undefined SIEMPRE y la descripcion del asiento
+      // decia literalmente "Pago CXP a proveedor undefined". No era ruido de
+      // tipos: es lo que quedaba escrito en la contabilidad.
+      const [proveedor] = await tx
+        .select({ name: suppliers.name })
+        .from(suppliers)
+        .where(and(eq(suppliers.id, ap.supplierId), eq(suppliers.companyId, input.companyId)))
+        .limit(1);
+
       // Create Ledger entry (Journal Entry)
-      const description = `Pago CXP a proveedor ${ap.supplierName} - ${
+      const description = `Pago CXP a proveedor ${proveedor?.name ?? 'sin identificar'} - ${
         input.paymentMethod === 'check' 
           ? `Cheque #${input.checkNumber}` 
           : input.paymentMethod === 'transfer' 

@@ -17,12 +17,12 @@ export class SupplierRepository {
     ];
 
     if (search) {
-      conditions.push(
-        or(
-          ilike(suppliers.name, `%${search}%`),
-          ilike(suppliers.rnc, `%${search}%`)
-        )
+      // `or()` devuelve undefined si no recibe ninguna condicion definida.
+      const porTexto = or(
+        ilike(suppliers.name, `%${search}%`),
+        ilike(suppliers.rnc, `%${search}%`)
       );
+      if (porTexto) conditions.push(porTexto);
     }
 
     if (hasDebt) {

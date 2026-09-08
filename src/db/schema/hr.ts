@@ -143,7 +143,11 @@ export const overtimeRecords = pgTable('overtime_records', {
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   dateWorked: date('date_worked').notNull(),
   hours: decimal('hours', { precision: 6, scale: 2 }).notNull(),
-  type: varchar('type', { length: 50 }).notNull(), // diurna | nocturna | festiva | doble
+  // Los cuatro valores los impone el esquema Zod de la ruta que crea el
+  // registro (api/v1/hr/entries). Declararlos aqui hace que el tipo llegue
+  // hasta PayrollCalculationService.calculateOvertime, que es quien los
+  // distingue para calcular el recargo.
+  type: varchar('type', { length: 50 }).$type<'diurna' | 'nocturna' | 'festiva' | 'doble'>().notNull(),
   amount: decimal('amount', { precision: 18, scale: 2 }).notNull(),
   status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | processed | cancelled
   createdAt: timestamp('created_at').defaultNow().notNull(),

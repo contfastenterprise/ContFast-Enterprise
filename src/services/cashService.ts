@@ -95,13 +95,13 @@ export class CashService {
         
         return {
           ...movement,
-          requiresApproval: true,
+          requiresApproval: true as const,
           message: `La salida de efectivo por $${amount.toFixed(2)} supera el límite de $${maxCashOut.toFixed(2)} y ha quedado pendiente de aprobación.`,
         };
       }
 
       // 4. Register normal allowed movement
-      return await CashRepository.addMovement(tx, {
+      const movimiento = await CashRepository.addMovement(tx, {
         companyId,
         cashSessionId: sessionId,
         type,
@@ -109,6 +109,13 @@ export class CashService {
         description,
         reference,
       });
+
+      // La otra rama devuelve `requiresApproval: true`; esta no devolvia la
+      // clave, asi que el tipo de retorno era una union donde solo una mitad la
+      // tenia y NADIE podia consultarla sin error. Por eso las dos ramas de
+      // src/tests/integration.ts que comprueban el limite de salida de efectivo
+      // no compilaban: la prueba existia pero no probaba nada.
+      return { ...movimiento, requiresApproval: false as const };
     });
   }
 

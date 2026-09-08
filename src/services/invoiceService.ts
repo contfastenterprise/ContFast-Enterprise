@@ -142,7 +142,10 @@ export class InvoiceService {
       settings,
       totals,
       submission,
-      dbResult.invoice.codigoFactura,
+      // La columna es nullable (hay facturas viejas sin codigo), aunque toda
+      // factura emitida por este camino lo lleva: `siguienteCodigoFactura` se lo
+      // asigna dentro de la transaccion. Solo se usa para pintarlo en el PDF.
+      dbResult.invoice.codigoFactura ?? '',
       '',
       xmlPath,
       signedXmlPath,

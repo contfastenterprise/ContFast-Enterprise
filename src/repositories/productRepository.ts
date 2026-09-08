@@ -378,7 +378,11 @@ export class ProductRepository {
     if (data.status !== undefined) updateValues.status = data.status;
     if (data.isOnSale !== undefined) updateValues.isOnSale = data.isOnSale;
     if (data.tracksInventory !== undefined) updateValues.tracksInventory = data.tracksInventory;
-    if (data.promotionalPrice !== undefined) updateValues.promotionalPrice = data.promotionalPrice !== null ? data.promotionalPrice.toString() : null;
+    // promotional_price es NOT NULL con default '0.00'. Escribirle null al
+    // limpiar el precio promocional habria reventado contra la base de datos,
+    // no solo contra el compilador. El alta (mas arriba) ya resuelve el mismo
+    // caso dejando que aplique el default; aqui se escribe ese mismo valor.
+    if (data.promotionalPrice !== undefined) updateValues.promotionalPrice = data.promotionalPrice !== null ? data.promotionalPrice.toString() : '0.00';
 
     const [product] = await db
       .update(products)
