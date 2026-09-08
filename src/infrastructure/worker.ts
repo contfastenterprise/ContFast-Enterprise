@@ -69,35 +69,7 @@ if (redis && !isBuildPhase) {
     console.error(`[Worker] (dgii-submissions) connection/redis error: ${err.message}`);
   });
 
-  // 2. Reports Generation Worker
-  const reportWorker = new Worker(
-    'reports-generation',
-    async (job: Job) => {
-      const { companyId, reportType, format, params, userId } = job.data;
-      console.log(`[Worker] Generating ${format.toUpperCase()} report of type ${reportType} for company ${companyId}...`);
-
-      // Simulating heavy report computation (PDF/Excel generation)
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-
-      console.log(`[Worker] Report generation complete.`);
-      return { success: true, path: `/reports/${companyId}/${reportType}_${Date.now()}.${format}` };
-    },
-    { connection: redis as any, concurrency: 1, skipVersionCheck: true } // Process one heavy report at a time
-  );
-
-  reportWorker.on('completed', (job) => {
-    console.log(`[Worker] Job ${job.id} (reports-generation) completed successfully.`);
-  });
-
-  reportWorker.on('failed', (job, err) => {
-    console.error(`[Worker] Job ${job?.id} (reports-generation) failed with error:`, err.message);
-  });
-
-  reportWorker.on('error', (err) => {
-    console.error(`[Worker] (reports-generation) connection/redis error: ${err.message}`);
-  });
-
-  // 3. Email Sending Worker
+  // 2. Email Sending Worker
   const emailWorker = new Worker(
     'emails-sending',
     async (job: Job) => {

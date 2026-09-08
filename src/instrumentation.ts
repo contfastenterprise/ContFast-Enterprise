@@ -64,5 +64,24 @@ export async function register() {
     }
     console.log('[Instrumentation] Starting background BullMQ workers...');
     await import('./infrastructure/worker');
+
+    // Los PDF temporales que escribe DocumentService.saveTemporaryFile() (lo usan
+    // 8 rutas de impresion vivas: facturas, cotizaciones, recibos, estados de
+    // cuenta, AP, tools) solo se borraban al descargarlos, en
+    // documents/[uuid]/download. Todo PDF generado y NO descargado -- la URL
+    // firmada vence a los 10 minutos, el usuario cierra la pestana -- se quedaba
+    // en disco indefinidamente. El barrido periodico ya existia (cleanupWorker en
+    // services/jobs/reportQueue.ts) pero nadie llamaba a setupRecurringJobs(), asi
+    // que el cron nunca llegaba a programarse.
+    try {
+      const { setupRecurringJobs } = await import('./services/jobs/reportQueue');
+      await setupRecurringJobs();
+    } catch (err: unknown) {
+      // Nunca debe impedir el arranque de la aplicacion.
+      console.error(
+        '[Instrumentation] No se pudo programar el barrido de temporales:',
+        (err as Error).message
+      );
+    }
   }
 }

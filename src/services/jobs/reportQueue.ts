@@ -1,4 +1,4 @@
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import { redis } from '@/infrastructure/redis';
 import fs from 'fs/promises';
 import path from 'path';
@@ -11,29 +11,14 @@ const PDF_TEMP_DIR = isProduction
 
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
 
-export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports', { connection: redis as any }) : null;
-
-// Define job types
-export interface ReportJobData {
-  reportType: string;
-  format: 'pdf' | 'xlsx';
-  filters: Record<string, string>;
-  companyId: string;
-  userId: string;
-}
-
-// Background Worker
-export const reportWorker = (redis && !isBuildPhase) ? new Worker('reports', async (job: Job<ReportJobData>) => {
-  console.log(`Processing report job ${job.id} of type ${job.data.reportType}`);
-  // Here we would delegate to specific report generation logic based on job.data.reportType
-  // For demonstration, simulating a delay and returning a fake DocumentService generated URL
-  
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  const documentId = 'fake-uuid-' + job.id; // En realidad llamar a DocumentService.saveTemporaryFile
-  // Y luego retornar el ID para que el endpoint pueda generar la URL firmada
-  return { documentId };
-}, { connection: redis as any }) : null;
+// La cola 'reports' y su worker vivian aqui. El worker no generaba nada:
+// dormia 5 segundos y devolvia un documentId inventado a partir del id del
+// job, que jobs/[jobId] firmaba con HMAC y servia al cliente como
+// status 'ready'. Ninguna pantalla la usaba (los botones de imprimir van a
+// rutas propias y reales), asi que se elimina junto con las dos rutas que la
+// consumian, en vez de dejar un exito fabricado esperando a que alguien lo
+// enganche. Lo que queda en este archivo -- el barrido de PDF temporales --
+// si es codigo real, y ahora ademas se programa (ver instrumentation.ts).
 
 // Recurring Cleanup Job Setup
 export const cleanupQueue = (redis && !isBuildPhase) ? new Queue('cleanup', { connection: redis as any }) : null;

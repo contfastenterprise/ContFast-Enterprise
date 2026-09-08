@@ -8,11 +8,9 @@ const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || proc
 
 // Define Queues
 export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis as any, skipVersionCheck: true }) : null;
-export const reportQueue = (redis && !isBuildPhase) ? new Queue('reports-generation', { connection: redis as any, skipVersionCheck: true }) : null;
 export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any, skipVersionCheck: true }) : null;
 
 if (dgiiQueue) dgiiQueue.on('error', err => console.error(`[Queue] dgii-submissions error: ${err.message}`));
-if (reportQueue) reportQueue.on('error', err => console.error(`[Queue] reports-generation error: ${err.message}`));
 if (emailQueue) emailQueue.on('error', err => console.error(`[Queue] emails-sending error: ${err.message}`));
 
 export interface JobPayloads {
@@ -25,13 +23,6 @@ export interface JobPayloads {
      * esto no lo llevan, y jobRunners lo deduce para esos.
      */
     submissionId?: string;
-  };
-  'reports-generation': {
-    companyId: string;
-    reportType: 'sales' | 'purchases' | 'balance_sheet' | 'income_statement';
-    format: 'pdf' | 'excel';
-    params: Record<string, any>;
-    userId: string;
   };
   'emails-sending': {
     to: string;
@@ -63,10 +54,6 @@ async function triggerFallback<K extends keyof JobPayloads>(
         await sendEmailJob(data as any);
       } else if (queueName === 'dgii-submissions') {
         await processDgiiSubmissionJob(data as any);
-      } else if (queueName === 'reports-generation') {
-        console.log('[Queue Fallback] Simulating report generation...');
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log('[Queue Fallback] Report generation completed.');
       } else {
         console.warn(`[Queue Fallback] Unknown queue: ${queueName}`);
       }
@@ -111,12 +98,6 @@ export async function addJob<K extends keyof JobPayloads>(
       addPromise = dgiiQueue.add(name, data, {
         attempts,
         backoff: { type: 'exponential', delay: backoff },
-        ...opts
-      });
-    } else if (queueName === 'reports-generation' && reportQueue) {
-      addPromise = reportQueue.add(name, data, {
-        attempts,
-        backoff: { type: 'fixed', delay: backoff },
         ...opts
       });
     } else if (queueName === 'emails-sending' && emailQueue) {

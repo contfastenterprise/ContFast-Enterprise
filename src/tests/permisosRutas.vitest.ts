@@ -44,7 +44,7 @@ const COMPROBACIONES = [
  * conocida, no un olvido. Al corregir una, quitarla de aqui.
  *
  * Notas sobre por que algunas no se cerraron en el mismo lote:
- *  - `auth/*` y `jobs/[jobId]` operan sobre la propia sesion del solicitante.
+ *  - `auth/*` opera sobre la propia sesion del solicitante.
  *  - `dgii/rnc/[rnc]` la consumen facturacion, compras y clientes a la vez:
  *    asignarle un modulo equivocado rompe el alta de clientes.
  *  - `storage/*` lo usan muchas pantallas (logo, avatar, imagenes de producto).
@@ -72,7 +72,6 @@ const PENDIENTES = new Set([
   'v1/dgii/rnc/[rnc]/route.ts',
   'v1/expenses/[id]/print/route.ts',
   'v1/invoices/[id]/print/route.ts',
-  'v1/jobs/[jobId]/route.ts',
   'v1/ocr/route.ts',
   'v1/quotes/[id]/pdf/route.ts',
   'v1/quotes/[id]/print/route.ts',
