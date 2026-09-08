@@ -1,6 +1,6 @@
 import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries, type DbOTx } from '@/db';
 import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
-import { checkStock, deductStock } from '@/services/inventoryService';
+import { checkStockBatch, deductStock } from '@/services/inventoryService';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 
@@ -274,7 +274,25 @@ export class DeliveryRepository {
       }
 
       // 4. Validate limits and stock availability
-      for (const line of note.lines) {
+      //
+      // Auditoria P2-28 (2026-09-03): la comprobacion de existencias se hacia
+      // linea a linea dentro de este bucle, y cada `checkStock` son DOS
+      // consultas. Un conduce de 30 lineas eran 60 consultas, y encima aqui
+      // dentro, con la transaccion manteniendo bloqueadas las filas de
+      // inventario. Ahora se resuelven todas de una vez, en dos consultas.
+      //
+      // Sin `modo` estas comprobaciones caian en el valor por defecto
+      // 'PRODUCCION': aprobar un conduce en PRUEBA comprobaba y descontaba las
+      // existencias REALES.
+      const hayExistencia = await checkStockBatch(
+        companyId,
+        modo,
+        invoice.warehouseId!,
+        note.lines.map((l) => ({ productId: l.productId, quantityNeeded: Number(l.quantity) })),
+        tx
+      );
+
+      for (const [idx, line] of note.lines.entries()) {
         const invoicedLine = invLines.find((il) => il.productId === line.productId);
         const invoicedQty = invoicedLine ? Number(invoicedLine.quantity) : 0;
         const previouslyDelivered = deliveredMap[line.productId] || 0;
@@ -286,12 +304,7 @@ export class DeliveryRepository {
           );
         }
 
-        // Verify stock in warehouse
-        // Sin `modo` estas dos llamadas caian en el valor por defecto
-        // 'PRODUCCION': aprobar un conduce en PRUEBA comprobaba y descontaba
-        // las existencias REALES.
-        const hasStock = await checkStock(companyId, modo, line.productId, invoice.warehouseId!, currentQty, tx, false);
-        if (!hasStock) {
+        if (!hayExistencia[idx]) {
           throw new Error(
             `Inventario insuficiente en el almacén para despachar el producto ${line.productId}: ` +
             `se solicitan ${currentQty} unidades.`

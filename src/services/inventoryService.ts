@@ -203,11 +203,84 @@ export async function checkStock(
     ? await getProvisionalStock(companyId, modo, productId, warehouseId, tx)
     : (level ? Number(level.quantity || 0) : 0);
 
-  // Las cantidades son decimal(15,4): se compara con una tolerancia minima para
-  // que restar una cantidad exacta no falle por ruido de coma flotante
-  // (p. ej. 3 - 3 puede dar -4.44e-16).
-  const restante = currentStock - quantityNeeded;
-  return restante >= minStock - 1e-6;
+  return alcanzaLaExistencia(currentStock, minStock, quantityNeeded);
+}
+
+/**
+ * Auditoria P2-28 (2026-09-03): la regla de "alcanza la existencia", aislada
+ * para que comprobar UNA linea y comprobar un lote entero decidan exactamente
+ * igual. Vivia dentro de `checkStock` y no habia forma de reutilizarla sin
+ * copiarla -- y ya se corrigio una vez (F1-04), asi que una copia era una
+ * copia condenada a quedarse atras.
+ *
+ * Las cantidades son decimal(15,4): se compara con una tolerancia minima para
+ * que restar una cantidad exacta no falle por ruido de coma flotante
+ * (p. ej. 3 - 3 puede dar -4.44e-16).
+ */
+function alcanzaLaExistencia(existencia: number, minimo: number, cantidadPedida: number): boolean {
+  return existencia - cantidadPedida >= minimo - 1e-6;
+}
+
+/**
+ * Lo mismo que `checkStock`, pero para varias lineas de golpe: DOS consultas en
+ * total en vez de dos POR LINEA.
+ *
+ * Devuelve un array alineado con `items` por indice, NO un mapa por producto: si
+ * el mismo producto aparece en dos lineas, cada una se decide por separado
+ * contra la MISMA existencia, exactamente como hacia el bucle anterior. Las dos
+ * lineas no se suman entre si. Se conserva a proposito: cambiar eso seria
+ * cambiar el comportamiento en un arreglo de rendimiento.
+ *
+ * No cubre el camino provisional (`useProvisional`), que sigue en `checkStock`:
+ * ahi cada linea necesita su propia consulta de reservas.
+ */
+export async function checkStockBatch(
+  companyId: string,
+  modo: 'PRODUCCION' | 'PRUEBA',
+  warehouseId: string,
+  items: { productId: string; quantityNeeded: number }[],
+  tx: DbOTx = db
+): Promise<boolean[]> {
+  if (items.length === 0) return [];
+
+  const ids = [...new Set(items.map((i) => i.productId))];
+
+  const productos = await tx
+    .select({ id: products.id, tracksInventory: products.tracksInventory })
+    .from(products)
+    .where(and(eq(products.companyId, companyId), inArray(products.id, ids)));
+
+  const llevaPorProducto = new Map(productos.map((p) => [p.id, p.tracksInventory]));
+  for (const id of ids) {
+    // Mismo error, y por el mismo motivo, que `llevaInventario`: un producto de
+    // otra empresa no se comprueba, se rechaza.
+    if (!llevaPorProducto.has(id)) throw new Error('Producto no encontrado en esta empresa.');
+  }
+
+  const niveles = await tx
+    .select()
+    .from(inventoryLevels)
+    .where(
+      and(
+        eq(inventoryLevels.companyId, companyId),
+        eq(inventoryLevels.warehouseId, warehouseId),
+        eq(inventoryLevels.modo, modo),
+        inArray(inventoryLevels.productId, ids)
+      )
+    );
+
+  const nivelPorProducto = new Map(niveles.map((n) => [n.productId, n]));
+
+  return items.map(({ productId, quantityNeeded }) => {
+    // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
+    // despacho por falta de stock.
+    if (!llevaPorProducto.get(productId)) return true;
+
+    const nivel = nivelPorProducto.get(productId);
+    const existencia = nivel ? Number(nivel.quantity || 0) : 0;
+    const minimo = nivel ? Number(nivel.minStock || 0) : 0;
+    return alcanzaLaExistencia(existencia, minimo, quantityNeeded);
+  });
 }
 
 export async function addStock(

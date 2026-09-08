@@ -562,6 +562,12 @@ export class AccountingRepository {
         modo: data.modo,
       })
       .returning();
+
+    // Auditoria P2-31 (2026-09-03): pedia `.returning()` y tiraba el resultado,
+    // asi que devolvia undefined. Su hermana createAccountsReceivable, justo
+    // encima, si devuelve la fila. Hoy no la llama nadie; el dia que alguien la
+    // reutilice esperando el id de la cuenta por pagar, se lo encontrara.
+    return ap;
   }
 
   // ==========================================
