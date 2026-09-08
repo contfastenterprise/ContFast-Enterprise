@@ -157,7 +157,16 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: emp });
   } catch (error: unknown) {
-    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+    // Auditoria P2-27 (2026-09-03): el alta ya distinguia el choque de codigo o
+    // cedula y respondia 409; la modificacion soltaba el mensaje crudo de
+    // Postgres con un 500. Ahora que las dos restricciones existen de verdad,
+    // este camino tambien puede chocar: se responde igual que el alta.
+    const e = error as Error;
+    const isDup = e.message.includes('unique') || e.message.includes('ya existe') || e.message.includes('key');
+    return NextResponse.json({
+      success: false,
+      error: { message: isDup ? 'El código de empleado o la cédula ya se encuentra registrado.' : e.message }
+    }, { status: isDup ? 409 : 500 });
   }
 }
 

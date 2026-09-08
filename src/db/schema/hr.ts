@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, text, timestamp, decimal, date, integer, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { companies } from './companies';
 import { users } from './auth';
 import { environmentMode } from './system';
@@ -61,6 +62,22 @@ export const employees = pgTable('employees', {
   companyIdx: index('employees_company_idx').on(table.companyId),
   codeIdx: index('employees_code_idx').on(table.employeeCode),
   cedulaIdx: index('employees_cedula_idx').on(table.cedula),
+  // Auditoria P2-27 (2026-09-03): los dos indices de arriba NO son unicos, asi
+  // que dos empleados de la misma empresa podian compartir codigo o cedula --
+  // y nada lo comprobaba, ni la ruta ni el repositorio. En nomina eso significa
+  // dos fichas para la misma persona, o un codigo que apunta a dos.
+  //
+  // Van por empresa (multiempresa: dos empresas SI pueden tener la misma
+  // cedula, es la misma persona empleada en ambas) y son PARCIALES sobre
+  // deleted_at IS NULL, porque los empleados se borran en blando: dar de baja a
+  // alguien y volver a usar su codigo tiene que seguir siendo posible. Mismo
+  // patron que fin_mov_company_modo_type_doc_uniq en accounting.ts.
+  companyCodeUq: uniqueIndex('employees_company_code_uq')
+    .on(table.companyId, table.employeeCode)
+    .where(sql`deleted_at IS NULL`),
+  companyCedulaUq: uniqueIndex('employees_company_cedula_uq')
+    .on(table.companyId, table.cedula)
+    .where(sql`deleted_at IS NULL`),
   // P1-19 / migracion 0032: aislamiento estructural.
   idCompanyUq: unique('employees_id_company_uq').on(table.id, table.companyId),
   departmentCompanyFk: foreignKey({

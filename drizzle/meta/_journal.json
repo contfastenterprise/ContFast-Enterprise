@@ -8,6 +8,13 @@
       "when": 1788490420472,
       "tag": "0000_next_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788833237501,
+      "tag": "0001_sour_sprite",
+      "breakpoints": true
     }
   ]
 }
