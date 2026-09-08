@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { db, users, roles, companies } from '@/db';
 import { eq } from 'drizzle-orm';
 import { createSession } from '@/middleware/auth';
+import { checkRateLimit } from '@/middleware/rateLimiter';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 
 const registerSchema = z.object({
@@ -15,6 +16,20 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Auditoria P2-25 (2026-09-03): esta ruta CREA usuarios y no tenia ningun
+    // limite. Permitia dar de alta cuentas en masa y enumerar correos, porque
+    // mas abajo responde distinto segun el correo exista o no. Mismo preset que
+    // v1/auth/register: 'auth' (5/min) es el unico con respaldo en memoria si
+    // Redis esta caido, que es cuando mas falta hace.
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const permitido = await checkRateLimit(ip, 'auth');
+    if (!permitido) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Demasiadas solicitudes. Intente más tarde.' } },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {

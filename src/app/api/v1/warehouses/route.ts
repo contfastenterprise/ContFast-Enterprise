@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { db } from '@/db';
 import { warehouses, subscriptions, plans } from '@/db/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
+
+// Auditoria P2-26 (2026-09-03): esta ruta destructuraba el cuerpo sin validar y
+// solo comprobaba a mano que `name` y `code` no fueran vacios. Los limites
+// salen del esquema: `name` es varchar(255), `code` varchar(50), y `status` un
+// varchar sin restriccion en la base. `code` va en un indice UNIQUE por
+// empresa, asi que ademas se normaliza el espacio en blanco: "ALM-01" y
+// "ALM-01 " no pueden ser dos almacenes distintos.
+const crearAlmacenSchema = z.object({
+  name: z.string().trim().min(1, 'El nombre es requerido').max(255, 'El nombre no puede pasar de 255 caracteres'),
+  code: z.string().trim().min(1, 'El código es requerido').max(50, 'El código no puede pasar de 50 caracteres'),
+  address: z.string().trim().max(2000, 'La dirección es demasiado larga').optional(),
+  status: z.enum(['active', 'inactive']).optional(),
+});
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,11 +51,11 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const { name, code, address, status } = data;
-
-    if (!name || !code) {
-      return NextResponse.json({ error: 'Name and code are required' }, { status: 400 });
+    const parsed = crearAlmacenSchema.safeParse(data);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
+    const { name, code, address, status } = parsed.data;
 
     // Check warehouse limits from subscription
     const subscriptionInfo = await db
