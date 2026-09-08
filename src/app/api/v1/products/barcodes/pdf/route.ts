@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build items lists matching quantities
-    const flatList = [];
+    const flatList: typeof productsToPrint = [];
     productsToPrint.forEach(p => {
       for (let i = 0; i < quantity; i++) {
         flatList.push(p);

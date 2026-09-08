@@ -73,39 +73,36 @@ export async function GET(req: NextRequest) {
       }
 
       const product = await ProductRepository.getByBarcode(barcode, auth.companyId);
-      let dataWithInventory = [];
-      if (product) {
-        const levels = await db
-          .select({
-            productId: inventoryLevels.productId,
-            warehouseId: inventoryLevels.warehouseId,
-            warehouseName: warehouses.name,
-            quantity: inventoryLevels.quantity,
-            minStock: inventoryLevels.minStock,
-          })
-          .from(inventoryLevels)
-          .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
-          .where(
-            and(
-              eq(inventoryLevels.companyId, auth.companyId),
-              // El indice unico es (product_id, warehouse_id, modo): sin el
-              // filtro cada almacen salia DUPLICADO en la respuesta, una vez
-              // por entorno, y el POS mostraba existencias que no son de este.
-              eq(inventoryLevels.modo, auth.modo),
-              eq(inventoryLevels.productId, product.id)
-            )
-          );
-        dataWithInventory = [{
-          ...product,
-          inventory: levels.map(lvl => ({
-            warehouseId: lvl.warehouseId,
-            warehouseName: lvl.warehouseName,
-            quantity: lvl.quantity,
-            minStock: lvl.minStock,
-            availableQuantity: lvl.quantity,
-          }))
-        }];
-      }
+      const levels = !product ? [] : await db
+        .select({
+          productId: inventoryLevels.productId,
+          warehouseId: inventoryLevels.warehouseId,
+          warehouseName: warehouses.name,
+          quantity: inventoryLevels.quantity,
+          minStock: inventoryLevels.minStock,
+        })
+        .from(inventoryLevels)
+        .innerJoin(warehouses, eq(inventoryLevels.warehouseId, warehouses.id))
+        .where(
+          and(
+            eq(inventoryLevels.companyId, auth.companyId),
+            // El indice unico es (product_id, warehouse_id, modo): sin el
+            // filtro cada almacen salia DUPLICADO en la respuesta, una vez
+            // por entorno, y el POS mostraba existencias que no son de este.
+            eq(inventoryLevels.modo, auth.modo),
+            eq(inventoryLevels.productId, product.id)
+          )
+        );
+      const dataWithInventory = !product ? [] : [{
+        ...product,
+        inventory: levels.map(lvl => ({
+          warehouseId: lvl.warehouseId,
+          warehouseName: lvl.warehouseName,
+          quantity: lvl.quantity,
+          minStock: lvl.minStock,
+          availableQuantity: lvl.quantity,
+        }))
+      }];
 
       const responseData = { 
         success: true, 

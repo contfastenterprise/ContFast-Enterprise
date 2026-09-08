@@ -1,4 +1,4 @@
-import { db, dgiiSubmissions } from '@/db';
+import { db, dgiiSubmissions, type DbOTx } from '@/db';
 import { and, eq, desc, sql, inArray } from 'drizzle-orm';
 import { leerDatosFirma, type DatosFirma } from '@/services/dgii/codigoSeguridad';
 
@@ -50,7 +50,7 @@ export async function envioVigente(
   invoiceId: string,
   companyId: string,
   modo: Modo,
-  tx: typeof db = db
+  tx: DbOTx = db
 ) {
   const [envio] = await tx
     .select()
@@ -86,7 +86,7 @@ export async function envioVigente(
 export async function envioEnCurso(
   invoiceId: string,
   companyId: string,
-  tx: typeof db = db
+  tx: DbOTx = db
 ): Promise<string | null> {
   const [envio] = await tx
     .select({ id: dgiiSubmissions.id })

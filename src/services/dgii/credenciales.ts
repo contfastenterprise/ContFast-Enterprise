@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { db, msellerApiKeys, companySettings } from '@/db';
+import { db, msellerApiKeys, companySettings, type DbOTx } from '@/db';
 import { decryptAsync } from '@/utils/encryption';
 import type { EntornoDgii } from './entorno';
 
@@ -51,7 +51,7 @@ const NOMBRE: Record<string, string> = {
 export async function credencialesMseller(
   companyId: string,
   entorno: EntornoDgii,
-  tx: typeof db = db
+  tx: DbOTx = db
 ): Promise<CredencialesMseller> {
   const [ajustes] = await tx
     .select({
@@ -97,7 +97,7 @@ export async function credencialesMseller(
 }
 
 /** Qué ambientes tienen clave de API, para pintarlo en Ajustes. Sin secretos. */
-export async function entornosConCredenciales(companyId: string, tx: typeof db = db): Promise<string[]> {
+export async function entornosConCredenciales(companyId: string, tx: DbOTx = db): Promise<string[]> {
   const filas = await tx
     .select({ entorno: msellerApiKeys.entorno })
     .from(msellerApiKeys)

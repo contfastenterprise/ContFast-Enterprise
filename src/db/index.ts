@@ -30,6 +30,22 @@ export const db = drizzle(conn, { schema });
 export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
+ * La base de datos O una transaccion.
+ *
+ * Para las funciones que sirven en los dos contextos: se llaman sueltas (con
+ * `tx = db` por defecto) o dentro de una transaccion en curso.
+ *
+ * Antes decian `tx: typeof db`, que es el tipo del cliente COMPLETO
+ * (`PostgresJsDatabase & { $client: Sql }`). Una transaccion no lo es: es un
+ * `PgTransaction` y no tiene `$client`. Asi que cada llamada que les pasaba un
+ * `tx` de verdad era un error de tipos -- 24 en total, invisibles porque
+ * next.config.ts lleva `typescript: { ignoreBuildErrors: true }` y `pnpm build`
+ * nunca los comprobo. Quitando `$client` del tipo, la transaccion encaja y la
+ * base tambien.
+ */
+export type DbOTx = Omit<typeof db, '$client'>;
+
+/**
  * Executes operations in a database transaction with app.current_company_id and app.current_environment set
  * to enforce Row Level Security (RLS) tenant and environment isolation.
  */

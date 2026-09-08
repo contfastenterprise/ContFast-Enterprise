@@ -38,7 +38,14 @@ export const StorefrontQuoteService = {
     // 2. Calcular totales
     let subtotal = 0;
     let totalDiscount = 0;
-    const quoteLinesData = [];
+    const quoteLinesData: {
+      productId: string;
+      quantity: string;
+      unitPrice: string;
+      discount: string;
+      subtotal: string;
+      total: string;
+    }[] = [];
 
     for (const item of items) {
       const dbItem = productMap.get(item.productId);

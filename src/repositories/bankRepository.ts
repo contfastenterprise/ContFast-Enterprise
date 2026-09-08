@@ -1,4 +1,4 @@
-import { db, bankAccounts, bankAccountBalances, bankTransactions, chartOfAccounts } from '@/db';
+import { db, bankAccounts, bankAccountBalances, bankTransactions, chartOfAccounts, type DbOTx } from '@/db';
 import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -66,7 +66,7 @@ export class BankRepository {
     bankAccountId: string,
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
-    tx: typeof db = db
+    tx: DbOTx = db
   ): Promise<number> {
     const [fila] = await tx.select({ balance: bankAccountBalances.balance })
       .from(bankAccountBalances)
@@ -96,7 +96,7 @@ export class BankRepository {
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
     delta: number,
-    tx: typeof db = db
+    tx: DbOTx = db
   ): Promise<number> {
     // Asegurar la fila del entorno, partiendo del saldo del catalogo si es la
     // primera vez que se toca esta cuenta en este entorno.

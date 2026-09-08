@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db, userPermissions, rolePermissions, permissions } from '@/db';
+import { db, userPermissions, rolePermissions, permissions, type DbOTx } from '@/db';
 import { eq, and } from 'drizzle-orm';
 
 export type PermissionModule =
@@ -214,7 +214,7 @@ export function enforceAdminOrSistemas(roleName: string): void {
  * Seeds the default role permissions for a newly created company in the database.
  */
 export async function seedRolePermissionsForCompany(
-  tx: typeof db,
+  tx: DbOTx,
   companyId: string,
   insertedRoles: { id: string; name: string }[]
 ): Promise<void> {

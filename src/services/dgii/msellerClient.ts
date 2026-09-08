@@ -1015,7 +1015,13 @@ export class MSellerClient {
       ECF: ecfObj,
     };
 
-    return payload as ECFPayload;
+    // `ecfObj` se monta campo a campo, con ramas por tipo de e-CF, asi que su
+    // tipo estatico es Record<string, unknown> y no encaja con ECFPayload sin
+    // pasar por `unknown`. El cast es deliberado y no es gratis: quien
+    // garantiza la forma real NO es el compilador, es el validador de e-CF
+    // (services/ecfValidator.ts) antes de enviar. Tiparlo de verdad seria
+    // rehacer el generador de payloads, no ajustar una firma.
+    return payload as unknown as ECFPayload;
   }
 
   private async getPortalSessionCookie(): Promise<string> {

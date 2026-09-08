@@ -1,4 +1,4 @@
-import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries } from '@/db';
+import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries, type DbOTx } from '@/db';
 import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
 import { checkStock, deductStock } from '@/services/inventoryService';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -29,7 +29,7 @@ export class DeliveryRepository {
   static async getNextDeliveryNumber(
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
-    tx: typeof db = db
+    tx: DbOTx = db
   ): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `CON-${year}-`;

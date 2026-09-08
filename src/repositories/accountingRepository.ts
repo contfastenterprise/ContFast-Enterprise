@@ -7,8 +7,7 @@ import {
   accountsPayable,
   accountingPeriods,
   accountingMappings,
-  expenseTypes
-} from '@/db';
+  expenseTypes, type DbOTx } from '@/db';
 import { eq, and, desc, sql, isNull, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import type { DbTransaction } from '@/db';
@@ -250,7 +249,7 @@ export class AccountingRepository {
     return { entries: mapeados, total };
   }
 
-  static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: typeof db = db): Promise<boolean> {
+  static async isPeriodOpen(companyId: string, dateStr: string, modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION', tx: DbOTx = db): Promise<boolean> {
     const formattedDate = formatLocalDate(dateStr);
     
     // Auditoria JRN-11: aqui habia un "auto-bootstrap". Si la empresa no tenia
@@ -282,7 +281,7 @@ export class AccountingRepository {
   }
 
   static async createJournalEntry(txOrData: DbTransaction | CreateJournalEntryInput | NewJournalEntry, dataInput?: CreateJournalEntryInput | NewJournalEntry) {
-    let tx: typeof db = db;
+    let tx: DbOTx = db;
     let data: CreateJournalEntryInput | NewJournalEntry;
 
     if (dataInput === undefined) {

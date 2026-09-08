@@ -1,4 +1,4 @@
-import { db } from '@/db';
+import { db, type DbOTx } from '@/db';
 import { 
   inventoryLevels, 
   inventoryMovements, 
@@ -48,7 +48,7 @@ import { v4 as uuidv4 } from 'uuid';
 export async function llevaInventario(
   companyId: string,
   productId: string,
-  tx: typeof db = db
+  tx: DbOTx = db
 ): Promise<boolean> {
   const [producto] = await tx
     .select({ tracksInventory: products.tracksInventory })
@@ -77,7 +77,7 @@ export async function llevaInventario(
  * usa el resto del codigo: findAll(companyId, modo, ...), getJournalEntries,
  * getBankAccounts.
  */
-export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', productId: string, warehouseId: string, tx: typeof db = db): Promise<number> {
+export async function getProvisionalStock(companyId: string, modo: 'PRODUCCION' | 'PRUEBA', productId: string, warehouseId: string, tx: DbOTx = db): Promise<number> {
   // 1. Get physical stock
   const [level] = await tx.select().from(inventoryLevels).where(
     and(
@@ -168,7 +168,7 @@ export async function checkStock(
   productId: string,
   warehouseId: string,
   quantityNeeded: number,
-  tx: typeof db = db,
+  tx: DbOTx = db,
   useProvisional = false
 ): Promise<boolean> {
   // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
@@ -232,7 +232,7 @@ export async function addStock(
    * propio, consume el promedio que ya existe. `deductStock` nunca lo pasa.
    */
   unitCost?: number,
-  tx: typeof db = db
+  tx: DbOTx = db
 ): Promise<{ averageCost: number }> {
   // Un producto sin control de existencia no mueve inventario ni deja rastro en
   // el kardex. Aqui se cortan las dos direcciones de golpe: `deductStock` es
@@ -354,7 +354,7 @@ export async function deductStock(
   type: string,
   referenceId?: string,
   description?: string,
-  tx: typeof db = db
+  tx: DbOTx = db
 ): Promise<{ averageCost: number }> {
   // Nunca se pasa costo: una salida consume el promedio ya vigente, no lo
   // recalcula. El valor que devuelve `addStock` (Auditoria P1-12) es ese
