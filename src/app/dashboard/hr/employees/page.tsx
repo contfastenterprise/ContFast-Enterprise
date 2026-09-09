@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { SearchBar } from '@/components/ui/search-bar';
 
@@ -36,6 +37,9 @@ export default function EmployeesPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -76,10 +80,14 @@ export default function EmployeesPage() {
   async function fetchData() {
     try {
       setLoading(true);
+      setErrorCarga(null);
       const empRes = await fetch(`/api/v1/hr/employees?search=${encodeURIComponent(search)}`);
       const empData = await empRes.json();
       if (empData.success) {
         setEmployeesList(empData.data);
+      } else {
+        setEmployeesList([]);
+        setErrorCarga(motivoDeCarga(null, empData.error?.message));
       }
 
       const deptRes = await fetch('/api/v1/hr/departments');
@@ -91,6 +99,11 @@ export default function EmployeesPage() {
       if (posData.success) setPositions(posData.data);
 
     } catch (err: any) {
+      // El mensaje de vacio invita a "agregar tu primer colaborador": al fallar
+      // la carga le decia a quien lleva la nomina que empezara de cero, con sus
+      // empleados guardados en la base.
+      setEmployeesList([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error al cargar información de empleados');
     } finally {
       setLoading(false);
@@ -241,6 +254,8 @@ export default function EmployeesPage() {
         <div className="flex h-[30vh] items-center justify-center">
           <RefreshCw className="h-7 w-7 animate-spin text-[#c5a059]" />
         </div>
+      ) : errorCarga ? (
+        <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
       ) : employeesList.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-slate-200 rounded-xl bg-white p-4">
           <Users className="mx-auto h-12 w-12 text-slate-300" />

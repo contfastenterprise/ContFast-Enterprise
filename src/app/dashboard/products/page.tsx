@@ -6,6 +6,7 @@ import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Arch
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -33,6 +34,9 @@ export default function ProductsPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -143,6 +147,7 @@ export default function ProductsPage() {
 
   const fetchProducts = async (searchQuery = search, catId = selectedCategory, pageNum = 1) => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       let url = `/api/v1/products?search=${searchQuery}&page=${pageNum}&per_page=20`;
       if (catId) url += `&categoryId=${catId}`;
@@ -156,9 +161,13 @@ export default function ProductsPage() {
           setTotalItems(data.meta.total);
         }
       } else {
+        setProducts([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar productos');
       }
     } catch (error) {
+      setProducts([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error de red');
     } finally {
       setLoading(false);
@@ -916,6 +925,8 @@ export default function ProductsPage() {
                 <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
                 Cargando catálogo...
               </div>
+            ) : errorCarga ? (
+              <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts()} />
             ) : products.length === 0 ? (
               <div className="p-12 text-center text-slate-400">
                 <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
@@ -1028,6 +1039,12 @@ export default function ProductsPage() {
                     <td colSpan={8} className="p-12 text-center text-slate-400">
                       <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
                       Cargando catálogo...
+                    </td>
+                  </tr>
+                ) : errorCarga ? (
+                  <tr>
+                    <td colSpan={8}>
+                      <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts()} />
                     </td>
                   </tr>
                 ) : products.length === 0 ? (

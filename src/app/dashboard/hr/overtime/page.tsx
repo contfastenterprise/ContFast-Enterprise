@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Coins, Percent, Plus, Trash2, X, RefreshCw, User, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 
 // Format currency helper
@@ -15,12 +16,18 @@ export default function OvertimeAndEntriesPage() {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'overtime' | 'income' | 'deduction'>('overtime');
   const [employees, setEmployees] = useState<any[]>([]);
+  // `records` NO es una lista: son tres, una por pestaña. Vaciarlo con `[]`
+  // compila mal y ademas romperia `getActiveList`, que lee una de las tres.
+  const SIN_REGISTROS = { overtime: [], income: [], deduction: [] };
   const [records, setRecords] = useState<{ overtime: any[]; income: any[]; deduction: any[] }>({
     overtime: [],
     income: [],
     deduction: [],
   });
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -41,6 +48,7 @@ export default function OvertimeAndEntriesPage() {
   async function fetchData() {
     try {
       setLoading(true);
+      setErrorCarga(null);
       // Fetch employees
       const empRes = await fetch('/api/v1/hr/employees');
       const empData = await empRes.json();
@@ -53,8 +61,15 @@ export default function OvertimeAndEntriesPage() {
       const entriesData = await entriesRes.json();
       if (entriesData.success) {
         setRecords(entriesData.data);
+      } else {
+        setRecords(SIN_REGISTROS);
+        setErrorCarga(motivoDeCarga(null, entriesData.error?.message));
       }
     } catch (error) {
+      // Mismo caso que empleados: el vacio invita a "comenzar agregando un
+      // nuevo registro", asi que un fallo se leia como un periodo sin horas.
+      setRecords(SIN_REGISTROS);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar datos');
     } finally {
       setLoading(false);
@@ -286,6 +301,8 @@ export default function OvertimeAndEntriesPage() {
         <div className="flex h-64 items-center justify-center">
           <RefreshCw className="h-8 w-8 animate-spin text-[#003366] dark:text-[#799dd6]" />
         </div>
+      ) : errorCarga ? (
+        <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
       ) : activeList.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline bg-surface py-16 text-on-surface">
           <AlertCircle className="h-10 w-10 text-on-surface-variant/40" />

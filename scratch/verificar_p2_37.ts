@@ -69,6 +69,9 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/inventory/movements/page.tsx', 'movimientos', 'fetchMovements', 2],
   ['src/app/dashboard/purchases/orders/page.tsx', 'pedidos', 'fetchOrders', 1],
   ['src/app/dashboard/cash/page.tsx', 'caja', 'loadHistory', 1],
+  ['src/app/dashboard/products/page.tsx', 'productos', '() => fetchProducts()', 2],
+  ['src/app/dashboard/hr/employees/page.tsx', 'empleados', 'fetchData', 1],
+  ['src/app/dashboard/hr/overtime/page.tsx', 'horas extra', 'fetchData', 1],
 ];
 for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   const tc = sinComentarios(crudo(ruta) ?? '');
@@ -95,6 +98,18 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   const iErr = t.indexOf('errorCarga ? (');
   const iFelicita = t.indexOf('¡Al día con los proveedores!');
   ok('CxP: la felicitacion ya no puede salir cuando la carga falla', iErr >= 0 && iFelicita >= 0 && iErr < iFelicita);
+}
+
+
+// `hr/overtime` guarda TRES listas en un objeto, no una. Vaciarlo con `[]` no
+// compila -- y si compilara, romperia la pestaña activa. Se comprueba porque el
+// barrido es mecanico y este es justo el sitio donde lo mecanico se equivoca.
+{
+  const ot = crudo('src/app/dashboard/hr/overtime/page.tsx') ?? '';
+  ok(
+    'horas extra: vaciar respeta la forma del estado, no es un [] a secas',
+    ot.includes('const SIN_REGISTROS = { overtime: [], income: [], deduction: [] };') && !ot.includes('setRecords([])')
+  );
 }
 
 console.log(`\nTotal fallos: ${fallos}`);
