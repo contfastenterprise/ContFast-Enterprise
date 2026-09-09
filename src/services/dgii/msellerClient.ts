@@ -1,14 +1,8 @@
 import { decryptAsync } from '@/utils/encryption';
-import { leerEstado, mensajeEstado } from './estadoEnvio';
+import { leerEstado, mensajeEstado, motivoDgii } from './estadoEnvio';
 import { leerDesenlace } from './desenlaceEnvio';
 import { leerDatosFirma } from './codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
-
-/** Mensaje de validacion/rechazo que la DGII/mSeller devuelve dentro de `mensajes`. */
-interface MensajeDgii {
-  codigo?: number;
-  valor?: string;
-}
 
 export interface ECFPayload {
   ECF: {
@@ -240,18 +234,10 @@ export class MSellerClient {
       const lectura = leerEstado(raw);
       const finalStatus = lectura.textoCrudo;
 
-      // Extract messages from dgiiResponse if it exists (mSeller structure)
-      let dgiiMessages: MensajeDgii[] | undefined = raw?.mensajes;
-      if (!dgiiMessages && raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
-        for (const respStr of raw.dgiiResponse) {
-          try {
-            const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
-            if (parsed?.mensajes && Array.isArray(parsed.mensajes)) {
-              dgiiMessages = parsed.mensajes;
-            }
-          } catch (e) {}
-        }
-      }
+      // La lectura de los mensajes del validador vive en `motivoDgii`. Aqui
+      // habia una copia que se quedaba con el ULTIMO bloque de `mensajes` que
+      // encontrara, en vez de juntarlos: `dgiiResponse` es un historial.
+      const motivo = motivoDgii(raw);
 
       // Rechazo con HTTP 200. La comparacion era `finalStatus === 'Rechazado'`:
       // exacta y sensible a mayusculas, asi que 'RECHAZADO', 'rechazado' o
@@ -280,10 +266,10 @@ export class MSellerClient {
         // El detalle vive en campos distintos segun como rechace. Se prefieren
         // los mensajes del validador, y si no los hay se toma lo que venga --
         // `mensaje` y `error` incluidos, que es donde esta el motivo real.
-        const detalle = [raw?.error, raw?.mensaje].filter(Boolean).join(' ').trim();
-        const rejectionMsg = dgiiMessages && Array.isArray(dgiiMessages) && dgiiMessages.length > 0
-          ? dgiiMessages.map((m) => `${m.valor} (Código: ${m.codigo})`).join(' | ')
-          : (detalle || raw?.message || 'Rechazado por la DGII');
+        // `motivoDgii` ya prefiere los mensajes del validador y cae a
+        // `error`/`mensaje` -- el caso del rechazo por estructura -- cuando no
+        // los hay.
+        const rejectionMsg = motivo || raw?.message || 'Rechazado por la DGII';
         return {
           success: false,
           message: rejectionMsg,
@@ -299,11 +285,10 @@ export class MSellerClient {
       let successMsg = mensajeEstado(lectura, null);
       if (finalStatus) {
         successMsg = finalStatus;
-        const validMsgs = dgiiMessages && Array.isArray(dgiiMessages)
-          ? dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)
-          : [];
-        if (validMsgs.length > 0) {
-          successMsg += `: ${validMsgs.map((m) => m.valor).join(' | ')}`;
+        // Una aceptacion tambien puede traer observaciones del validador, y
+        // aqui vivia la QUINTA copia de este bucle. `motivo` ya esta leido.
+        if (motivo) {
+          successMsg += `: ${motivo}`;
         }
       }
 
@@ -368,21 +353,17 @@ export class MSellerClient {
         };
       }
 
-      // Extract detailed messages from dgiiResponse if it exists
-      let dgiiMessages: MensajeDgii[] = raw?.mensajes || [];
+      // Los mensajes del validador los saca `motivoDgii`. El estado anidado se
+      // sigue leyendo aqui porque es otra cosa: `dgiiEstado` es el rotulo que
+      // se enseña, no el motivo.
       let dgiiEstado = raw?.dgiiStatus || raw?.estadoDGII || null;
 
       if (raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
         for (const respStr of raw.dgiiResponse) {
           try {
             const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
-            if (parsed) {
-              if (parsed.estado) {
-                dgiiEstado = parsed.estado;
-              }
-              if (parsed.mensajes && Array.isArray(parsed.mensajes)) {
-                dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
-              }
+            if (parsed?.estado) {
+              dgiiEstado = parsed.estado;
             }
           } catch (e) {}
         }
@@ -395,9 +376,9 @@ export class MSellerClient {
       const finalDGIIStatus = dgiiEstado || lectura.textoCrudo || 'Sin estado';
 
       let customMessage = finalDGIIStatus;
-      const validMsgs = dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
-      if (validMsgs.length > 0) {
-        customMessage += `: ${validMsgs.map((m) => m.valor).join(' | ')}`;
+      const motivoConsulta = motivoDgii(raw);
+      if (motivoConsulta) {
+        customMessage += `: ${motivoConsulta}`;
       } else if (raw?.message) {
         customMessage += `: ${raw.message}`;
       }

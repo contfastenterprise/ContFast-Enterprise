@@ -21,7 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { extraerFirma, camposDeFirma } from '@/services/dgii/estadoEnvio';
+import { extraerFirma, camposDeFirma, motivoDgii } from '@/services/dgii/estadoEnvio';
 
 const RAIZ = join(__dirname, '..', '..');
 const sinComentarios = (fuente: string) =>
@@ -288,5 +288,108 @@ describe('DB-23 · la firma se lee de la factura', () => {
     expect(esquema).toContain("securityCode: varchar('security_code'");
     expect(esquema).toContain("signatureDate: varchar('signature_date'");
     expect(esquema).toContain("qrUrl: text('qr_url')");
+  });
+});
+
+describe('El motivo del rechazo se lee, no se tira', () => {
+  // `sincronizarPendientes` guardaba "Rechazado por la DGII (Rechazado)." y ya:
+  // llamaba a `mensajeEstado(lectura, null)` y nunca miraba los mensajes del
+  // validador. Un comprobante fiscal rechazado sin el motivo no se puede
+  // arreglar — y la DGII sí lo dice.
+  //
+  // El bucle que lo saca existía CINCO veces (tres en msellerClient, una en la
+  // ruta en lote) con formatos distintos, y ninguna en el camino automático.
+
+  it('lo saca de las cadenas JSON anidadas de dgiiResponse', () => {
+    // mSeller manda el veredicto de la DGII anidado, y `dgiiResponse` llega
+    // como un array de CADENAS con JSON dentro. Las copias miraban un solo
+    // nivel, y por eso cada una acertaba en unos casos y no en otros.
+    const respuesta = {
+      trackId: 'abc',
+      dgiiResponse: [
+        JSON.stringify({
+          estado: 'Rechazado',
+          mensajes: [{ codigo: 2, valor: 'El RNC del comprador no existe' }],
+        }),
+      ],
+    };
+    expect(motivoDgii(respuesta)).toBe('El RNC del comprador no existe (Código: 2)');
+  });
+
+  it('junta los mensajes en vez de quedarse con el último', () => {
+    const respuesta = {
+      dgiiResponse: [
+        JSON.stringify({ mensajes: [{ codigo: 2, valor: 'Primero' }] }),
+        JSON.stringify({ mensajes: [{ codigo: 7, valor: 'Segundo' }] }),
+      ],
+    };
+    expect(motivoDgii(respuesta)).toBe('Primero (Código: 2) | Segundo (Código: 7)');
+  });
+
+  it('no repite: dgiiResponse es un historial y el mismo mensaje vuelve', () => {
+    const respuesta = {
+      dgiiResponse: [
+        JSON.stringify({ mensajes: [{ codigo: 2, valor: 'Fecha de emisión fuera de rango' }] }),
+        JSON.stringify({ mensajes: [{ codigo: 2, valor: 'Fecha de emisión fuera de rango' }] }),
+      ],
+    };
+    expect(motivoDgii(respuesta)).toBe('Fecha de emisión fuera de rango (Código: 2)');
+  });
+
+  it('descarta el acuse de que todo fue bien, para no ensuciar una aceptación', () => {
+    // Código 0 es "sin novedad". Si esto se colara, una factura aceptada
+    // guardaría ese texto en vez de su veredicto.
+    const aceptada = { dgiiResponse: [JSON.stringify({ estado: 'Aceptado', mensajes: [{ codigo: 0, valor: '' }] })] };
+    expect(motivoDgii(aceptada)).toBeNull();
+  });
+
+  it('deja pasar la observación de una aceptación, que sí es información', () => {
+    const conObservacion = {
+      dgiiResponse: [JSON.stringify({ estado: 'Aceptado', mensajes: [{ codigo: 4, valor: 'Aceptado con observaciones' }] })],
+    };
+    expect(motivoDgii(conObservacion)).toBe('Aceptado con observaciones (Código: 4)');
+  });
+
+  it('un rechazo de estructura no trae mensajes: el motivo está suelto', () => {
+    // Cuando el XSD no valida, mSeller responde HTTP 200 y sin `mensajes`. Sin
+    // este respaldo el comprobante se quedaba también sin explicación.
+    const porEstructura = {
+      trackId: null,
+      error: 'Estructura del archivo XML invalida.',
+      mensaje: "The element 'Totales' has invalid child element",
+    };
+    expect(motivoDgii(porEstructura)).toBe(
+      "Estructura del archivo XML invalida. The element 'Totales' has invalid child element"
+    );
+  });
+
+  it('los mensajes del validador ganan al texto suelto', () => {
+    const ambos = {
+      error: 'Error generico',
+      dgiiResponse: [JSON.stringify({ mensajes: [{ codigo: 9, valor: 'NCF duplicado' }] })],
+    };
+    expect(motivoDgii(ambos)).toBe('NCF duplicado (Código: 9)');
+  });
+
+  it('devuelve null cuando no hay motivo — nunca inventa uno', () => {
+    expect(motivoDgii({ trackId: 'x', estado: 'Aceptado' })).toBeNull();
+    expect(motivoDgii({})).toBeNull();
+    expect(motivoDgii(null)).toBeNull();
+    expect(motivoDgii('texto suelto')).toBeNull();
+  });
+
+  it('no se cuelga con referencias circulares', () => {
+    const a: Record<string, unknown> = { mensajes: [{ codigo: 3, valor: 'Ciclo' }] };
+    a.yo = a;
+    expect(motivoDgii(a)).toBe('Ciclo (Código: 3)');
+  });
+
+  it('el camino automático guarda el veredicto Y el motivo', () => {
+    // Componer, no sustituir: `mensajeEstado` reemplaza el texto entero cuando
+    // se le da uno, y quedarse sin la palabra del veredicto para ganar el
+    // motivo sería cambiar un agujero por otro.
+    const sync = leer('src/services/dgii/sincronizarPendientes.ts');
+    expect(sync).toContain('const veredicto = mensajeEstado(lectura, null);');
+    expect(sync).toContain('const mensaje = motivo ? `${veredicto} ${motivo}` : veredicto;');
   });
 });

@@ -262,3 +262,108 @@ export function camposDeFirma(raw: unknown): {
   if (enlaceQr && enlaceQr.length <= MAX_QR) campos.qrUrl = enlaceQr;
   return campos;
 }
+
+/** Un mensaje del validador de la DGII, tal y como viene en `mensajes`. */
+export interface MensajeDgii {
+  codigo?: number;
+  valor?: string;
+}
+
+/**
+ * El motivo que dio la DGII, en texto. `null` si no dijo ninguno.
+ *
+ * POR QUE ESTA AQUI
+ * -----------------
+ * Este bucle existia TRES veces -- dos en msellerClient y una en la ruta de
+ * sincronizacion en lote -- con tres formatos de salida distintos. Y faltaba
+ * justo donde mas hacia falta: `sincronizarPendientes`, el camino automatico,
+ * pasaba `null` como mensaje y guardaba "Rechazado por la DGII (Rechazado)".
+ * Un comprobante rechazado sin motivo no se puede arreglar.
+ *
+ * COMO BUSCA
+ * ----------
+ * Recorriendo, igual que `extraerFirma`, y entrando en las cadenas JSON: mSeller
+ * manda el veredicto de la DGII anidado dentro de `dgiiResponse`, que llega como
+ * un array de CADENAS con JSON dentro. Las tres copias miraban un solo nivel, y
+ * por eso cada una acertaba en unos casos y no en otros.
+ *
+ * QUE DESCARTA
+ * ------------
+ * Los mensajes con `codigo` 0 y los de texto vacio: son el acuse de que todo fue
+ * bien, no un motivo. Asi una aceptacion limpia devuelve `null` y quien llama se
+ * queda con su propia redaccion.
+ *
+ * `dgiiResponse` es un historial y repite el mismo mensaje en varias entradas,
+ * asi que se quitan los duplicados: el motivo se lee una vez, no cuatro.
+ */
+export function motivoDgii(raw: unknown): string | null {
+  const encontrados: MensajeDgii[] = [];
+  const vistos = new Set<unknown>();
+  const yaPuestos = new Set<string>();
+
+  const anadir = (m: unknown): void => {
+    if (m == null || typeof m !== 'object') return;
+    const { codigo, valor } = m as MensajeDgii;
+    if (typeof valor !== 'string' || valor.trim() === '') return;
+    if (codigo === 0) return;
+    const clave = `${codigo ?? ''}|${valor.trim()}`;
+    if (yaPuestos.has(clave)) return;
+    yaPuestos.add(clave);
+    encontrados.push({ codigo, valor: valor.trim() });
+  };
+
+  const visitar = (nodo: unknown, profundidad: number): void => {
+    if (nodo == null || profundidad > 6) return;
+
+    if (typeof nodo === 'string') {
+      const t = nodo.trim();
+      if (t.startsWith('{') || t.startsWith('[')) {
+        try {
+          visitar(JSON.parse(t), profundidad + 1);
+        } catch {
+          // Texto suelto, no JSON. No es un error: hay respuestas asi.
+        }
+      }
+      return;
+    }
+
+    if (typeof nodo !== 'object') return;
+    if (vistos.has(nodo)) return;
+    vistos.add(nodo);
+
+    if (Array.isArray(nodo)) {
+      for (const x of nodo) visitar(x, profundidad + 1);
+      return;
+    }
+
+    for (const [clave, valor] of Object.entries(nodo as Record<string, unknown>)) {
+      if (clave.toLowerCase() === 'mensajes' && Array.isArray(valor)) {
+        for (const m of valor) anadir(m);
+        continue;
+      }
+      visitar(valor, profundidad + 1);
+    }
+  };
+
+  visitar(raw, 0);
+
+  if (encontrados.length > 0) {
+    return encontrados
+      .map((m) => (m.codigo == null ? m.valor : `${m.valor} (Código: ${m.codigo})`))
+      .join(' | ');
+  }
+
+  // Un rechazo de ESTRUCTURA no trae `mensajes`: el motivo esta suelto en
+  // `error` y `mensaje`. Es el caso del XSD que no valida, y sin esto el
+  // comprobante se queda tambien sin explicacion.
+  if (raw != null && typeof raw === 'object' && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    const suelto = [r.error, r.mensaje]
+      .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+      .map((v) => v.trim())
+      .join(' ');
+    if (suelto) return suelto;
+  }
+
+  return null;
+}

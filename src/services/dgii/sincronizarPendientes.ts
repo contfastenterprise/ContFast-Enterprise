@@ -35,7 +35,7 @@ import { and, eq, isNull, gte, desc } from 'drizzle-orm';
 import { entornoDgii, type ModoSistema } from '@/services/dgii/entorno';
 import { credencialesMseller } from '@/services/dgii/credenciales';
 import { MSellerClient } from '@/services/dgii/msellerClient';
-import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
+import { leerEstado, mensajeEstado, camposDeFirma, motivoDgii } from '@/services/dgii/estadoEnvio';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { envioVigente, type Modo } from '@/repositories/dgiiSubmissionRepository';
 import { Logger } from '@/utils/logger';
@@ -242,7 +242,17 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
           continue;
         }
 
-        const mensaje = mensajeEstado(lectura, null);
+        // El veredicto Y el porque. Aqui se pasaba `null` como mensaje, asi que
+        // un rechazo se guardaba como "Rechazado por la DGII (Rechazado)." y el
+        // motivo -- que la DGII SI manda, en `mensajes` -- se perdia. Un
+        // comprobante rechazado sin motivo no se puede arreglar.
+        //
+        // Se compone en vez de sustituir: `mensajeEstado` reemplaza el texto
+        // entero cuando se le da uno, y quedarse sin la palabra del veredicto
+        // para ganar el motivo no es un cambio, es otro agujero.
+        const veredicto = mensajeEstado(lectura, null);
+        const motivo = motivoDgii(r.data);
+        const mensaje = motivo ? `${veredicto} ${motivo}` : veredicto;
 
         await db.update(invoices)
           .set({

@@ -9,7 +9,7 @@ import { credencialesMseller } from '@/services/dgii/credenciales';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
-import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
+import { camposDeFirma, leerEstado, motivoDgii } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 
 export async function POST(req: NextRequest) {
@@ -156,29 +156,13 @@ export async function POST(req: NextRequest) {
         const lectura = leerEstado(result.data ?? { status: result.status });
         newStatus = lectura.estado;
 
-        let dgiiMessages: { valor?: string; codigo?: number }[] = [];
-        const rawDoc = result.data as { dgiiResponse?: unknown[] } | undefined;
-        if (rawDoc?.dgiiResponse && Array.isArray(rawDoc.dgiiResponse)) {
-          for (const respStr of rawDoc.dgiiResponse) {
-            try {
-              const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
-              if (parsed?.mensajes && Array.isArray(parsed.mensajes)) {
-                dgiiMessages = [...dgiiMessages, ...parsed.mensajes];
-              }
-            } catch {
-              // Un elemento ilegible no invalida los demas.
-            }
-          }
-        }
-
-        // Construct detailed message for batch status update
-        let displayMessage = `Consulta batch - Estado: ${result.status}`;
-        if (dgiiMessages.length > 0) {
-          const validMsgs = dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0);
-          if (validMsgs.length > 0) {
-            displayMessage = `Consulta batch - ${result.status}: ${validMsgs.map((m) => m.valor).join(' | ')}`;
-          }
-        }
+        // Aqui habia una copia propia del bucle que saca los mensajes del
+        // validador, mirando SOLO el primer nivel de `dgiiResponse`. Vive ahora
+        // en `motivoDgii`, que recorre tambien las cadenas JSON anidadas.
+        const motivo = motivoDgii(result.data);
+        const displayMessage = motivo
+          ? `Consulta batch - ${result.status}: ${motivo}`
+          : `Consulta batch - Estado: ${result.status}`;
 
         // Always update database on sync to ensure fresh status and messages
         await db
