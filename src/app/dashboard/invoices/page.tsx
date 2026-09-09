@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
 import { erroresPorCampo } from '@/schemas/errores';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -55,6 +56,10 @@ function InvoicesList() {
   const confirm = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio: "no pude leerlo" y "no hay
+  // nada" dejaron de ser la misma pantalla.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -491,6 +496,7 @@ function InvoicesList() {
   // Load Invoices
   const loadInvoices = useCallback(async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const queryParams = new URLSearchParams({
         page: page.toString(),
@@ -525,8 +531,15 @@ function InvoicesList() {
             pending: pendingCount,
           });
         }
+      } else {
+        // Un `success: false` no se miraba: la lista se quedaba como estaba y
+        // la pantalla pintaba "no se encontraron facturas".
+        setInvoices([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (error) {
+      setInvoices([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar facturas');
     } finally {
       setLoading(false);
@@ -2208,6 +2221,8 @@ function InvoicesList() {
                       </div>
                     );
                   })
+                ) : errorCarga ? (
+                  <ErrorDeCarga mensaje={errorCarga} onReintentar={loadInvoices} />
                 ) : (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
                     <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
@@ -2361,6 +2376,12 @@ function InvoicesList() {
                           </motion.tr>
                         );
                       })
+                    ) : errorCarga ? (
+                      <tr>
+                        <td colSpan={7}>
+                          <ErrorDeCarga mensaje={errorCarga} onReintentar={loadInvoices} />
+                        </td>
+                      </tr>
                     ) : (
                       <tr>
                         <td colSpan={7} className="px-6 py-16 text-center">

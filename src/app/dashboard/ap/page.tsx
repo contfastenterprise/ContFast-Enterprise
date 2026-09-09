@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
 
@@ -69,6 +70,10 @@ const fmt = (val: number) => {
 
 export default function AccountsPayablePage() {
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio: "no pude leerlo" y "no hay
+  // nada" dejaron de ser la misma pantalla.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<SupplierAP[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [bankAccountsList, setBankAccountsList] = useState<BankAccount[]>([]);
@@ -213,11 +218,22 @@ export default function AccountsPayablePage() {
 
   async function fetchData() {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const apRes = await fetch('/api/v1/ap');
       const apData = await apRes.json();
-      if (apData.success) setSuppliers(apData.data || []);
+      if (apData.success) {
+        setSuppliers(apData.data || []);
+      } else {
+        setSuppliers([]);
+        setErrorCarga(motivoDeCarga(null, apData.error?.message));
+      }
     } catch (err) {
+      // El toast se iba a los segundos y dejaba en pantalla "¡Al dia con los
+      // proveedores!": una felicitacion por no deber nada, dicha justo cuando
+      // no se ha podido comprobar si se debe algo.
+      setSuppliers([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error de red al cargar datos principales');
     } finally {
       setLoading(false);
@@ -525,6 +541,10 @@ export default function AccountsPayablePage() {
               {/* Bills Table */}
               {loading ? (
                 <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-amber-500" /></div>
+              ) : errorCarga ? (
+                <div className="bg-white rounded-xl border border-slate-200/30 shadow-lg">
+                  <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+                </div>
               ) : filteredSuppliers.length === 0 ? (
                 <div className="bg-white rounded-xl border border-slate-200/30 p-16 text-center shadow-lg">
                   <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />

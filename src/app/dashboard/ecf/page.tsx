@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import {
   ShieldCheck,
   RefreshCw,
@@ -617,6 +618,10 @@ function ComprobantesTab() {
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, per_page: 20, total: 0, total_pages: 0 });
   const [stats, setStats] = useState<ECFStats | null>(null);
   const [loadingList, setLoadingList] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio: "no pude leerlo" y "no hay
+  // nada" dejaron de ser la misma pantalla.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [filters, setFilters] = useState(() => {
     const d = new Date();
@@ -723,6 +728,7 @@ function ComprobantesTab() {
 
   const fetchInvoices = useCallback(async () => {
     setLoadingList(true);
+    setErrorCarga(null);
     try {
       const params = new URLSearchParams({ page: page.toString(), per_page: '20' });
       if (filters.status) params.set('status', filters.status);
@@ -736,9 +742,16 @@ function ComprobantesTab() {
       if (data.success) {
         setInvoiceList(data.data);
         setMeta(data.meta);
+      } else {
+        // Un `success: false` no se miraba: la lista se quedaba como estaba y
+        // la pantalla pintaba "no se encontraron comprobantes".
+        setInvoiceList([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (err) {
       console.error(err);
+      setInvoiceList([]);
+      setErrorCarga(motivoDeCarga(err));
     } finally {
       setLoadingList(false);
     }
@@ -925,6 +938,8 @@ function ComprobantesTab() {
         <div className="overflow-x-auto custom-scrollbar">
           {loadingList ? (
             <div className="p-6"><TableSkeleton /></div>
+          ) : errorCarga ? (
+            <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchInvoices} />
           ) : invoiceList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500">
               <FileText className="h-8 w-8 opacity-20" />
