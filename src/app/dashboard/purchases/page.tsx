@@ -16,7 +16,7 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
-import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
 import GuaranteeChecksView from './components/GuaranteeChecksView';
@@ -66,6 +66,24 @@ export default function PurchasesPage() {
   const [activeTab, setActiveTab] = useState<'historial' | 'nuevo' | 'cheques'>('historial');
   const [loading, setLoading] = useState(false);
   const [isMinorExpense, setIsMinorExpense] = useState(false);
+
+  // P2-34: el error de cada campo, debajo del campo. La clave es la ruta del
+  // esquema (`ncf`, `guaranteeCheck.checkNumber`). Lo rellenan el esquema al
+  // pasar el formulario, o el servidor si devuelve `fields`.
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const err = (campo: string) =>
+    errores[campo] ? (
+      <p data-campo={campo} className="text-[11px] font-semibold text-red-600 mt-1 ml-1">{errores[campo]}</p>
+    ) : null;
+  const conError = (campo: string) => (errores[campo] ? ' ring-2 ring-red-400 bg-red-50' : '');
+  const quitarError = (campo: string) =>
+    setErrores((prev) => {
+      if (!(campo in prev)) return prev;
+      const { [campo]: _fuera, ...resto } = prev;
+      return resto;
+    });
+  const irAlPrimerError = () =>
+    setTimeout(() => document.querySelector('[data-campo]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 
   // Guarantee Check Form State
   const [hasGuaranteeCheck, setHasGuaranteeCheck] = useState(false);
@@ -760,69 +778,55 @@ export default function PurchasesPage() {
   }, [grandTotal]);
 
   const saveExpense = async () => {
-    if (!isMinorExpense) {
-      if (!supplierId) return toast.error('Selecciona un suplidor');
-      if (!ncf) return toast.error('Ingresa el NCF de la factura');
-      if (!isValidNcfFormat(ncf)) {
-        return toast.error('El formato del NCF es inválido. Debe ser NCF de 11 caracteres (ej. B0100000001) o e-NCF de 13 caracteres (ej. E310100000001).');
-      }
-    } else {
-      if (ncf && ncf.trim().length > 0 && isElectronicNcf(ncf)) {
-        return toast.error('Esta compra no puede guardarse como gasto menor ya que tiene e-NCF');
-      }
-    }
-    if (!issueDate) return toast.error('Selecciona fecha de factura');
+    // P2-34: el cuerpo se arma primero y se pasa por el MISMO esquema que
+    // valida el servidor (src/schemas/compra.ts). Antes habia aqui trece
+    // `return toast.error(...)`: un aviso efimero y ningun campo marcado.
+    const payload = {
+      supplierId: isMinorExpense ? null : supplierId,
+      isMinorExpense,
+      isGeneralAmount,
+      expenseType,
+      ncf: ncf ? ncf.toUpperCase().trim() : null,
+      issueDate,
+      paymentMethod,
+      warehouseId: isGeneralAmount ? null : (warehouseId || null),
+      description,
+      amount: isGeneralAmount ? generalSubtotal : totalSubtotal,
+      itbis: isGeneralAmount ? generalItbis : totalItbis,
+      isc: globalIsc,
+      otherTaxes: globalOtherTaxes,
+      lines: isGeneralAmount ? [] : lines.map(l => ({
+        productId: l.productId || null,
+        description: l.desc,
+        quantity: l.quantity,
+        unitCost: l.unitCost,
+        subtotal: l.subtotal,
+        itbis: l.itbis,
+        total: l.total
+      })),
+      debitAccountId: isGeneralAmount ? debitAccountId : null,
+      guaranteeCheck: (paymentMethod === '04' && hasGuaranteeCheck) ? {
+        bankAccountId: gcBankAccountId,
+        checkNumber: gcCheckNumber,
+        payee: gcPayee,
+        amount: gcAmount,
+        issueDate: gcIssueDate,
+        dueDate: gcDueDate
+      } : null
+    };
 
-    if (isGeneralAmount) {
-      if (generalSubtotal <= 0) return toast.error('El subtotal de la compra debe ser mayor a 0');
-      if (!description.trim()) return toast.error('El concepto general (descripción) es obligatorio');
-      if (!debitAccountId) return toast.error('Selecciona la cuenta contable de costo/gasto');
-    } else {
-      if (lines.length === 0) return toast.error('Agrega al menos una línea');
+    const validacion = esquemaCompra.safeParse(payload);
+    if (!validacion.success) {
+      const campos = erroresPorCampo(validacion.error);
+      setErrores(campos);
+      toast.error('Revisa los campos marcados', { description: Object.values(campos)[0] });
+      irAlPrimerError();
+      return;
     }
-
-    if (paymentMethod === '04' && hasGuaranteeCheck) {
-      if (!gcBankAccountId) return toast.error('Selecciona la cuenta bancaria del cheque');
-      if (!gcCheckNumber) return toast.error('Ingresa el número de cheque');
-      if (!gcDueDate) return toast.error('Selecciona la fecha de cobro del cheque');
-      if (gcAmount <= 0) return toast.error('El monto del cheque debe ser mayor a 0');
-    }
+    setErrores({});
 
     setLoading(true);
     try {
-      const payload = {
-        supplierId: isMinorExpense ? null : supplierId,
-        isMinorExpense,
-        expenseType,
-        ncf: ncf ? ncf.toUpperCase().trim() : null,
-        issueDate,
-        paymentMethod,
-        warehouseId: isGeneralAmount ? null : (warehouseId || null),
-        description,
-        amount: isGeneralAmount ? generalSubtotal : totalSubtotal,
-        itbis: isGeneralAmount ? generalItbis : totalItbis,
-        isc: globalIsc,
-        otherTaxes: globalOtherTaxes,
-        lines: isGeneralAmount ? [] : lines.map(l => ({
-          productId: l.productId || null,
-          description: l.desc,
-          quantity: l.quantity,
-          unitCost: l.unitCost,
-          subtotal: l.subtotal,
-          itbis: l.itbis,
-          total: l.total
-        })),
-        debitAccountId: isGeneralAmount ? debitAccountId : null,
-        guaranteeCheck: (paymentMethod === '04' && hasGuaranteeCheck) ? {
-          bankAccountId: gcBankAccountId,
-          checkNumber: gcCheckNumber,
-          payee: gcPayee,
-          amount: gcAmount,
-          issueDate: gcIssueDate,
-          dueDate: gcDueDate
-        } : null
-      };
-
       const url = editingExpenseId ? `/api/v1/expenses/${editingExpenseId}` : '/api/v1/expenses';
       const method = editingExpenseId ? 'PUT' : 'POST';
 
@@ -853,6 +857,12 @@ export default function PurchasesPage() {
         setActiveTab('historial');
         handleSearch(); // Refresh list if searched before
       } else {
+        // El servidor puede tener una regla que la pantalla no; si devuelve
+        // `fields`, se pintan debajo de cada campo igual que las propias.
+        if (data.error?.fields && typeof data.error.fields === 'object') {
+          setErrores(data.error.fields as Record<string, string>);
+          irAlPrimerError();
+        }
         toast.error(editingExpenseId ? 'Error al actualizar' : 'Error guardando gasto', { description: data.error?.message });
       }
     } catch (err: any) {
@@ -1503,10 +1513,11 @@ export default function PurchasesPage() {
                             subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
                           }))}
                           value={supplierId}
-                          onChange={(id) => setSupplierId(id)}
+                          onChange={(id) => { setSupplierId(id); quitarError('supplierId'); }}
                           placeholder="Buscar suplidor..."
-                          className="w-full"
+                          className={'w-full rounded-xl' + conError('supplierId')}
                         />
+                        {err('supplierId')}
                       </div>
                       <button
                         type="button"
@@ -1524,18 +1535,20 @@ export default function PurchasesPage() {
                   <label className="block text-xs font-bold text-slate-500 mb-2">NCF (Opcional si es Gasto Menor)</label>
                   <input
                     type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
-                    value={ncf} onChange={e => setNcf(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none font-mono uppercase"
+                    value={ncf} onChange={e => { setNcf(e.target.value); quitarError('ncf'); }}
+                    className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none font-mono uppercase' + conError('ncf')}
                   />
+                  {err('ncf')}
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-500 mb-2">Fecha Emisión</label>
                   <input
                     type="date"
-                    value={issueDate} onChange={e => setIssueDate(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
+                    value={issueDate} onChange={e => { setIssueDate(e.target.value); quitarError('issueDate'); }}
+                    className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('issueDate')}
                   />
+                  {err('issueDate')}
                 </div>
 
                 <div>
@@ -1554,9 +1567,10 @@ export default function PurchasesPage() {
                 <label className="block text-xs font-bold text-slate-500 mb-2">Concepto General</label>
                 <textarea
                   rows={2} placeholder="Descripción de la compra..."
-                  value={description} onChange={e => setDescription(e.target.value)}
-                  className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
+                  value={description} onChange={e => { setDescription(e.target.value); quitarError('description'); }}
+                  className={'w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('description')}
                 />
+                {err('description')}
               </div>
             </div>
 
@@ -1593,6 +1607,7 @@ export default function PurchasesPage() {
                       onChange={e => {
                         const valStr = e.target.value;
                         setGeneralTotal(valStr);
+                        quitarError('amount');
                         const val = parseFloat(valStr) || 0;
                         if (val > 0) {
                           if (noItbis) {
@@ -1685,8 +1700,8 @@ export default function PurchasesPage() {
                   </label>
                   <select
                     value={debitAccountId}
-                    onChange={e => setDebitAccountId(e.target.value)}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
+                    onChange={e => { setDebitAccountId(e.target.value); quitarError('debitAccountId'); }}
+                    className={'w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none' + conError('debitAccountId')}
                   >
                     <option value="">-- Selecciona una cuenta contable --</option>
                     {accountsList
@@ -1697,6 +1712,7 @@ export default function PurchasesPage() {
                         </option>
                       ))}
                   </select>
+                  {err('debitAccountId')}
                   <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
                     Cuenta contable donde se registrará el gasto en el libro mayor.
                   </p>
@@ -1798,8 +1814,8 @@ export default function PurchasesPage() {
                       ))}
                       {lines.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-8 text-center text-sm font-medium text-slate-600/60">
-                            Aún no has agregado productos o servicios a esta compra.
+                          <td colSpan={6} className={'py-8 text-center text-sm font-medium ' + (errores.lines ? 'text-red-600' : 'text-slate-600/60')}>
+                            {errores.lines ? <span data-campo="lines">{errores.lines}</span> : 'Aún no has agregado productos o servicios a esta compra.'}
                           </td>
                         </tr>
                       )}
@@ -1892,14 +1908,15 @@ export default function PurchasesPage() {
                           <label className="block text-[10px] font-bold text-slate-500 mb-1">Banco / Cuenta de Origen</label>
                           <select
                             required
-                            value={gcBankAccountId} onChange={e => setGcBankAccountId(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
+                            value={gcBankAccountId} onChange={e => { setGcBankAccountId(e.target.value); quitarError('guaranteeCheck.bankAccountId'); }}
+                            className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.bankAccountId')}
                           >
                             <option value="">Selecciona una cuenta</option>
                             {bankAccountsList.map(b => (
                               <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber} ({b.currency})</option>
                             ))}
                           </select>
+                          {err('guaranteeCheck.bankAccountId')}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -1909,11 +1926,12 @@ export default function PurchasesPage() {
                             </label>
                             <input
                               type="text"
-                              value={gcCheckNumber} onChange={e => setGcCheckNumber(e.target.value)}
-                              className="w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
+                              value={gcCheckNumber} onChange={e => { setGcCheckNumber(e.target.value); quitarError('guaranteeCheck.checkNumber'); }}
+                              className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.checkNumber')}
                               placeholder="Ej: 10023"
                               required
                             />
+                            {err('guaranteeCheck.checkNumber')}
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 mb-1 text-[#c5a059]">Monto Cheque</label>
@@ -1921,15 +1939,16 @@ export default function PurchasesPage() {
                               type="number"
                               step="0.01"
                               value={gcAmount || ''}
-                              onChange={e => setGcAmount(parseFloat(e.target.value) || 0)}
+                              onChange={e => { setGcAmount(parseFloat(e.target.value) || 0); quitarError('guaranteeCheck.amount'); }}
                               onBlur={e => {
                                 const val = parseFloat(e.target.value);
                                 if (!isNaN(val)) {
                                   setGcAmount(roundMoney(val));
                                 }
                               }}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none font-bold font-mono"
+                              className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none font-bold font-mono' + conError('guaranteeCheck.amount')}
                             />
+                            {err('guaranteeCheck.amount')}
                             {Math.abs(gcAmount - grandTotal) > 0.01 && (
                               <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-[10px] text-amber-800 dark:text-amber-300 flex items-start gap-2 leading-relaxed shadow-sm">
                                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
@@ -1957,10 +1976,11 @@ export default function PurchasesPage() {
                             </label>
                             <input
                               type="date"
-                              value={gcDueDate} onChange={e => setGcDueDate(e.target.value)}
-                              className="w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
+                              value={gcDueDate} onChange={e => { setGcDueDate(e.target.value); quitarError('guaranteeCheck.dueDate'); }}
+                              className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.dueDate')}
                               required
                             />
+                            {err('guaranteeCheck.dueDate')}
                           </div>
                         </div>
 

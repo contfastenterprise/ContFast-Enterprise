@@ -8,7 +8,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
-import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock } from '@/services/inventoryService';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
@@ -626,25 +626,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       guaranteeCheck
     } = body;
 
-    // Validation
-    if (!expenseType || !issueDate || amount === undefined || paymentMethod === undefined) {
-      return NextResponse.json({ success: false, error: { message: 'Faltan campos requeridos.' } }, { status: 400 });
-    }
-
-    if (!isMinorExpense) {
-      if (!supplierId) {
-        return NextResponse.json({ success: false, error: { message: 'Suplidor es requerido para compras formales.' } }, { status: 400 });
-      }
-      if (!ncf) {
-        return NextResponse.json({ success: false, error: { message: 'El NCF es requerido para compras formales.' } }, { status: 400 });
-      }
-      if (!isValidNcfFormat(ncf)) {
-        return NextResponse.json({ success: false, error: { message: 'El formato del NCF ingresado es inválido. Debe ser un NCF estándar de 11 caracteres (ej. B0100000001) o un e-NCF de 13 caracteres (ej. E310100000001).' } }, { status: 400 });
-      }
-    } else {
-      if (ncf && ncf.trim().length > 0 && isElectronicNcf(ncf)) {
-        return NextResponse.json({ success: false, error: { message: 'Esta compra no puede guardarse como gasto menor ya que tiene e-NCF' } }, { status: 400 });
-      }
+    // La validacion vive en src/schemas/compra.ts, el MISMO esquema que pasa
+    // la pantalla antes de llamar aqui. Si falla, `fields` es un mapa campo ->
+    // mensaje, y la pantalla lo pinta debajo de cada campo. Antes habia aqui una
+    // cadena de `if` con sus propios mensajes, distinta de la de la pantalla.
+    const validacion = esquemaCompra.safeParse(body);
+    if (!validacion.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: { code: 'VALIDATION', message: 'Revisa los campos marcados.', fields: erroresPorCampo(validacion.error) },
+        },
+        { status: 400 }
+      );
     }
 
     // Productos sin control de existencia (servicios, venta por encargo).
