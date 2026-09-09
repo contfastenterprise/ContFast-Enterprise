@@ -18,6 +18,18 @@
 import { z } from 'zod';
 import { CODIGOS_EMITIBLES, TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 
+/**
+ * Los motivos de ajuste que admite cada tipo de nota.
+ *
+ * La lista estaba escrita a mano en TRES sitios: la pantalla de facturas, la de
+ * ajustes y -- desde este lote -- el esquema. Vive aqui para que sea una.
+ *
+ *   e-34 (credito): 1 anulacion, 2 correccion de texto, 3 correccion de montos.
+ *   e-33 (debito):  2 ajuste de precio, 3 ajuste de cantidad, 4 otros.
+ */
+export const motivosValidosNota = (ecfType: string): number[] =>
+  ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
+
 export const esquemaFactura = z.object({
   customerId: z.string().uuid().optional(),
   // El mensaje va en las DOS comprobaciones: la de tipo (campo ausente) y la de
@@ -98,7 +110,7 @@ export const esquemaFactura = z.object({
   // Idem: el motivo del ajuste lo exigian la pantalla de facturas y la de
   // ajustes, cada una con su copia de la lista, y el servidor ninguna.
   if (data.ecfType !== '33' && data.ecfType !== '34') return true;
-  const validos = data.ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
+  const validos = motivosValidosNota(data.ecfType);
   return typeof data.indicadorNotaCredito === 'number' && validos.includes(data.indicadorNotaCredito);
 }, {
   message: 'Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.',

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { motivosValidosNota } from '@/schemas/factura';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
 import { esModificablePorNota } from '@/services/dgii/tiposComprobante';
@@ -227,10 +228,10 @@ export default function AdjustmentsPage() {
       toast.error('Debe ingresar un motivo / observación para la auditoría contable.');
       return;
     }
-    // Validate indicadorNotaCredito is explicitly selected (must not be the placeholder state)
-    // Note: For E33 (debit notes), only 2 (price adjustment), 3 (quantity adjustment), and 4 (others) are valid.
-    const validIndicadores = noteType === '34' ? [1, 2, 3] : [2, 3, 4];
-    if (!validIndicadores.includes(indicadorNotaCredito)) {
+    // La lista de motivos validos por tipo de nota vive en src/schemas/factura.ts,
+    // que es donde la exige tambien el servidor. Aqui habia una copia a mano: la
+    // cuarta de la misma regla.
+    if (!motivosValidosNota(noteType).includes(indicadorNotaCredito)) {
       toast.error('Debe seleccionar el Motivo / Tipo de Ajuste antes de emitir la nota.');
       return;
     }

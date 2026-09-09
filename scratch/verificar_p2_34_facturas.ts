@@ -53,7 +53,8 @@ if (s) {
   );
   ok(
     'y la del motivo del ajuste, que no tenia nadie en el servidor',
-    s.includes("const validos = data.ecfType === '34' ? [1, 2, 3] : [2, 3, 4];") &&
+    s.includes('export const motivosValidosNota = (ecfType: string): number[] =>') &&
+      s.includes('const validos = motivosValidosNota(data.ecfType);') &&
       s.includes("path: ['indicadorNotaCredito'],")
   );
   ok(
@@ -123,6 +124,13 @@ ok(
 ok('los errores de linea se pintan con su numero', pc.includes("Línea {Number(k.split('.')[1]) + 1}: {m}"));
 ok('corregir el campo quita su error', pc.includes("quitarError('bankName')") && pc.includes("quitarError('transactionNumber')"));
 ok('los fields del servidor se pintan igual', pc.includes('setErrores(error.fields as Record<string, string>);'));
+
+ok(
+  'ninguna pantalla conserva su copia de los motivos validos',
+  !crudo('src/app/dashboard/adjustments/page.tsx')!.includes("[1, 2, 3] : [2, 3, 4]") &&
+    crudo('src/app/dashboard/adjustments/page.tsx')!.includes('motivosValidosNota(noteType).includes(indicadorNotaCredito)') &&
+    !pc.includes('validIndicadores')
+);
 
 const t = crudo('src/tests/esquemaFactura.vitest.ts');
 ok(
