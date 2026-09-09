@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Truck, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -32,6 +33,9 @@ export default function SuppliersPage() {
   const confirm = useConfirm();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   // Pagination state
@@ -175,13 +179,19 @@ export default function SuppliersPage() {
   async function fetchSuppliers() {
     try {
       setLoading(true);
+      setErrorCarga(null);
       const url = `/api/v1/suppliers?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setSuppliers(data.data || []);
+      } else {
+        setSuppliers([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (error) {
+      setSuppliers([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar proveedores');
     } finally {
       setLoading(false);
@@ -355,6 +365,12 @@ export default function SuppliersPage() {
                       <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
                       <span className="text-slate-500 text-sm font-medium">Cargando suplidores...</span>
                     </div>
+                  </td>
+                </tr>
+              ) : errorCarga ? (
+                <tr>
+                  <td colSpan={6}>
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchSuppliers} />
                   </td>
                 </tr>
               ) : paginatedSuppliers.length === 0 ? (

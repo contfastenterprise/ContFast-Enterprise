@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,9 @@ import {
 export default function DeliveryNotesPage() {
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState<any[]>([]);
 
@@ -57,6 +61,7 @@ export default function DeliveryNotesPage() {
   // Load Conduces List
   const loadDeliveryNotes = useCallback(async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -68,9 +73,13 @@ export default function DeliveryNotesPage() {
         setNotes(data.data || []);
         setTotalPages(data.meta?.total_pages || 1);
       } else {
+        setNotes([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar conduces');
       }
     } catch (err) {
+      setNotes([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error al cargar conduces');
     } finally {
       setLoading(false);
@@ -419,6 +428,8 @@ export default function DeliveryNotesPage() {
                     <div className="flex justify-center py-16">
                       <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
                     </div>
+                  ) : errorCarga ? (
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={loadDeliveryNotes} />
                   ) : notes.length === 0 ? (
                     <div className="flex flex-col items-center py-20 text-slate-400 gap-3">
                       <Truck className="h-12 w-12 opacity-30" />

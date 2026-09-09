@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,9 @@ export default function CustomersPage() {
   const confirm = useConfirm();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
   // Pagination state
@@ -66,13 +70,19 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
+      setErrorCarga(null);
       const url = `/api/v1/customers?limit=100${search ? `&search=${encodeURIComponent(search)}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setCustomers(data.data || []);
+      } else {
+        setCustomers([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (error) {
+      setCustomers([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar clientes');
     } finally {
       setLoading(false);
@@ -353,6 +363,8 @@ export default function CustomersPage() {
                 <span className="text-slate-500 text-sm font-medium">Cargando clientes...</span>
               </div>
             </div>
+          ) : errorCarga ? (
+            <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchCustomers} />
           ) : customers.length === 0 ? (
             <div className="py-16 text-center text-slate-500 text-sm">
               No se encontraron clientes.
@@ -436,6 +448,12 @@ export default function CustomersPage() {
                       <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
                       <span className="text-slate-500 text-sm font-medium">Cargando clientes...</span>
                     </div>
+                  </td>
+                </tr>
+              ) : errorCarga ? (
+                <tr>
+                  <td colSpan={6}>
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchCustomers} />
                   </td>
                 </tr>
               ) : customers.length === 0 ? (

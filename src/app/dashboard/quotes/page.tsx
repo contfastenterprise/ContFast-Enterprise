@@ -10,11 +10,15 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 
 export default function QuotesList() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<any[]>([]);
 
   // Filters
@@ -27,6 +31,7 @@ export default function QuotesList() {
 
   const fetchQuotes = useCallback(async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const url = new URL('/api/v1/quotes', window.location.origin);
       url.searchParams.set('page', page.toString());
@@ -47,9 +52,13 @@ export default function QuotesList() {
           pending: data.meta?.stats?.pendingCount || 0
         });
       } else {
+        setQuotes([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
         toast.error('Error cargando cotizaciones', { description: data.error?.message });
       }
     } catch (error: any) {
+      setQuotes([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error de red', { description: error.message });
     } finally {
       setLoading(false);
@@ -260,6 +269,8 @@ export default function QuotesList() {
                   </div>
                 );
               })
+            ) : errorCarga ? (
+              <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchQuotes} />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <span className="text-slate-400 text-xs">No se encontraron cotizaciones.</span>
@@ -345,6 +356,12 @@ export default function QuotesList() {
                       </tr>
                     );
                   })
+                ) : errorCarga ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchQuotes} />
+                    </td>
+                  </tr>
                 ) : (
                   <tr>
                     <td colSpan={6} className="p-12 text-center text-slate-400 text-xs">
