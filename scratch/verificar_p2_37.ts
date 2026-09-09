@@ -72,6 +72,9 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/products/page.tsx', 'productos', '() => fetchProducts()', 2],
   ['src/app/dashboard/hr/employees/page.tsx', 'empleados', 'fetchData', 1],
   ['src/app/dashboard/hr/overtime/page.tsx', 'horas extra', 'fetchData', 1],
+  ['src/app/dashboard/adjustments/page.tsx', 'notas de ajuste', 'loadAdjustments', 1],
+  ['src/app/dashboard/receivables-report/page.tsx', 'reporte de cobros', 'fetchData', 1],
+  ['src/app/dashboard/admin/companies/page.tsx', 'empresas', 'fetchData', 1],
 ];
 for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   const tc = sinComentarios(crudo(ruta) ?? '');
@@ -79,10 +82,9 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
     `${nombre}: guarda el fallo en un estado que no se limpia solo`,
     tc.includes('const [errorCarga, setErrorCarga] = useState<string | null>(null);') && tc.includes('setErrorCarga(null);')
   );
-  ok(
-    `${nombre}: el catch deja de callar`,
-    tc.includes('setErrorCarga(motivoDeCarga(err') || tc.includes('setErrorCarga(motivoDeCarga(error')
-  );
+  // El nombre del error ligado varia por fichero (`err`, `error`, `e`): lo que
+  // importa es que el catch deje rastro, no como se llame la variable.
+  ok(`${nombre}: el catch deja de callar`, /setErrorCarga\(motivoDeCarga\((?!null)/.test(tc));
   ok(`${nombre}: un success:false tampoco pasa por vacio`, tc.includes('setErrorCarga(motivoDeCarga(null,'));
   // Una pantalla con vista movil Y tabla tiene DOS sitios que pintan el vacio.
   // Cubrir uno solo deja el fallo disfrazado en la mitad de los casos.
@@ -148,6 +150,34 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
       ctc.includes('<ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />') &&
       ctc.indexOf('{errorCarga && !loading && (') >= 0 &&
       ctc.indexOf('{errorCarga && !loading && (') < ctc.indexOf("{activeTab === 'catalog' && (")
+  );
+}
+
+
+// Conciliacion bancaria no encaja en la forma generica: el reintento necesita la
+// cuenta seleccionada y hay DOS consultas -- movimientos e historial --, cada
+// una con su `success`.
+{
+  const bc = sinComentarios(crudo('src/app/dashboard/reports/bank-reconciliation/page.tsx') ?? '');
+  ok(
+    'conciliacion: las dos consultas dejan rastro, y el catch tambien',
+    bc.split('setErrorCarga(motivoDeCarga(null,').length - 1 === 2 && bc.includes('setErrorCarga(motivoDeCarga(err));')
+  );
+  ok(
+    'conciliacion: el reintento pasa el id de la cuenta, no el objeto',
+    bc.includes('onReintentar={() => selectedAccount && fetchData(selectedAccount.id)}')
+  );
+}
+
+
+// Segunda vez en el barrido que se asume la FORMA del estado al vaciarlo:
+// `hr/overtime` guarda tres listas en un objeto y aqui `data` es un array. tsc
+// caza las dos, pero se fijan para que no vuelvan por la puerta de atras.
+{
+  const rr = crudo('src/app/dashboard/receivables-report/page.tsx') ?? '';
+  ok(
+    'reporte de cobros: vaciar respeta la forma del estado (un array, no null)',
+    rr.includes('setData([]);') && !rr.includes('setData(null)')
   );
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Receipt, Landmark, Printer, AlertCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { Input } from '@/components/ui/input';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
@@ -40,6 +41,9 @@ export default function ReceivablesReportPage() {
   const router = useRouter();
   const [data, setData] = useState<ReceivablesData[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
   const [printing, setPrinting] = useState(false);
@@ -52,15 +56,24 @@ export default function ReceivablesReportPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const res = await fetch(`/api/v1/reports/receivables?customerId=${selectedCustomer || 'all'}`);
-      if (res.ok) {
-        const json = await res.json();
+      const json = await res.json().catch(() => null);
+      // Miraba SOLO `res.ok`, el codigo HTTP. Varias rutas de este proyecto
+      // responden 200 con `success: false` cuando el error es controlado, y ese
+      // cuerpo de error entraba por la rama buena y se guardaba como si fueran
+      // los datos. Se comprueban las dos cosas.
+      if (res.ok && json && json.success !== false) {
         setData(json);
       } else {
+        setData([]);
+        setErrorCarga(motivoDeCarga(null, json?.error?.message));
         toast.error('Error al cargar datos');
       }
     } catch (e) {
+      setData([]);
+      setErrorCarga(motivoDeCarga(e));
       toast.error('Error de conexión');
     } finally {
       setLoading(false);
@@ -190,6 +203,8 @@ export default function ReceivablesReportPage() {
             <div className="flex justify-center p-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003366]"></div>
             </div>
+          ) : errorCarga ? (
+            <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
           ) : groupedCustomers.length === 0 ? (
             <div className="p-12 text-center">
               <Receipt className="h-12 w-12 text-slate-300 mx-auto mb-3" />

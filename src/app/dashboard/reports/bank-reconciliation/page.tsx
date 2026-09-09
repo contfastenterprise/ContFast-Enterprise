@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Landmark, ArrowLeft, Calendar, FileText, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle, Loader2, Save, History, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 
 interface BankAccount {
@@ -47,6 +48,9 @@ const maskAccount = (acc: string) => {
 
 export default function BankReconciliationPage() {
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
@@ -95,6 +99,7 @@ export default function BankReconciliationPage() {
 
   async function fetchData(accountId: string) {
     setLoading(true);
+    setErrorCarga(null);
     try {
       // Get all bank transactions
       const txRes = await fetch(`/api/v1/bank/transactions?accountId=${accountId}`);
@@ -116,12 +121,20 @@ export default function BankReconciliationPage() {
           }
         });
         setClearedTxIds(initialCleared);
+      } else {
+        setTransactions([]);
+        setErrorCarga(motivoDeCarga(null, txData.error?.message));
       }
       
       if (reconData.success) {
         setReconciliations(reconData.data || []);
+      } else {
+        setReconciliations([]);
+        setErrorCarga(motivoDeCarga(null, reconData.error?.message));
       }
     } catch (err) {
+      setTransactions([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error al cargar transacciones y conciliaciones');
     } finally {
       setLoading(false);
@@ -432,7 +445,13 @@ export default function BankReconciliationPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {periodTransactions.length === 0 ? (
+                      {errorCarga ? (
+                        <tr>
+                          <td colSpan={5}>
+                            <ErrorDeCarga mensaje={errorCarga} onReintentar={() => selectedAccount && fetchData(selectedAccount.id)} />
+                          </td>
+                        </tr>
+                      ) : periodTransactions.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                             No se encontraron movimientos bancarios en el rango de fechas seleccionado.

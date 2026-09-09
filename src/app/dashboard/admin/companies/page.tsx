@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Shield, Plus, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -35,6 +36,9 @@ export default function AdminCompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredCompanies = companies.filter(company => 
@@ -69,6 +73,7 @@ export default function AdminCompaniesPage() {
 
   async function fetchData() {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const [compRes, plansRes] = await Promise.all([
         fetch('/api/v1/admin/companies'),
@@ -85,6 +90,8 @@ export default function AdminCompaniesPage() {
       if (compData.success) {
         setCompanies(compData.data);
       } else {
+        setCompanies([]);
+        setErrorCarga(motivoDeCarga(null, compData.error?.message));
         toast.error(compData.error?.message || 'Error al cargar empresas');
       }
 
@@ -95,6 +102,8 @@ export default function AdminCompaniesPage() {
         }
       }
     } catch (err) {
+      setCompanies([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error al cargar datos administrativos');
     } finally {
       setLoading(false);
@@ -305,7 +314,13 @@ export default function AdminCompaniesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredCompanies.length === 0 ? (
+                {errorCarga && !loading ? (
+                  <tr>
+                    <td colSpan={5}>
+                      <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+                    </td>
+                  </tr>
+                ) : filteredCompanies.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                       {loading ? 'Cargando...' : 'No se encontraron empresas.'}
