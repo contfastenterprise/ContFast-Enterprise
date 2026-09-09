@@ -10,6 +10,7 @@ import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
+import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -218,6 +219,32 @@ export async function POST(req: NextRequest) {
               eq(dgiiSubmissions.id, envio.id),
               eq(dgiiSubmissions.companyId, auth.companyId)
             ));
+        }
+
+        // El documento y el correo salen con la aceptacion, tambien por aqui.
+        //
+        // Este es el boton "Sincronizar" del listado de e-CF, o sea el camino que
+        // mas se usa. Sin esto, sincronizar dejaba la factura en aceptada y no
+        // generaba el PDF ni mandaba el correo: quedaba aceptada y muda.
+        //
+        // `enviarFacturaPorCorreo` toma la marca `customer_email_sent_at` con
+        // `IS NULL` en el propio UPDATE, asi que si otra via vio antes la misma
+        // transicion el cliente recibe un correo y no dos. Y el fallo se traga:
+        // que falle un correo no puede tumbar la sincronizacion de las demas.
+        if (inv.status !== 'accepted' && newStatus === 'accepted') {
+          try {
+            await enviarFacturaPorCorreo({
+              invoiceId: inv.id,
+              companyId: auth.companyId,
+              modo: auth.modo,
+              esReenvio: false,
+            });
+          } catch (correoErr: unknown) {
+            console.error(
+              `[dgii-status/batch] no se pudo enviar el correo de la factura aceptada ${result.ecf}:`,
+              correoErr
+            );
+          }
         }
 
         updatePerformed = true;

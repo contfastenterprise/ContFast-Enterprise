@@ -282,6 +282,24 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       })
       .where(esteEnvio);
 
+    // Si mSeller ya devuelve el veredicto en esta misma respuesta, el documento
+    // sale aqui: este worker atiende "Enviar", "Reenviar" y el envio diferido,
+    // y hasta ahora dejaba la factura aceptada sin PDF y sin correo.
+    //
+    // El import es dinamico a proposito: `queue.ts` importa este fichero y
+    // `correoFactura` importa `queue.ts`. Estatico cerraria el ciclo y el
+    // binding podria llegar sin resolver al cargarse el modulo.
+    if (invoice.status !== 'accepted' && newStatus === 'accepted') {
+      try {
+        const { enviarFacturaPorCorreo } = await import('@/services/invoice/correoFactura');
+        await enviarFacturaPorCorreo({ invoiceId, companyId, modo, esReenvio: false });
+      } catch (correoErr: unknown) {
+        Logger.warn('[JobRunner] no se pudo enviar el correo de la factura aceptada', {
+          invoiceId, error: (correoErr as Error)?.message,
+        });
+      }
+    }
+
     return { success: true, trackId: result.trackId };
   } else {
     // Auditoria P0-06 (2026-09-03): este `else` trataba TODO fallo de
