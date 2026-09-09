@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, History as HistoryIcon, ArrowDownToLine, ArrowUpFromLine, Filter, Printer, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 
 
 interface Movement {
@@ -30,6 +31,9 @@ export default function MovementsPage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [summary, setSummary] = useState<Summary>({ totalIn: 0, totalOut: 0, netChange: 0 });
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [warehouses, setWarehouses] = useState<{id: string, name: string}[]>([]);
   const [products, setProducts] = useState<{id: string, name: string}[]>([]);
 
@@ -61,6 +65,7 @@ export default function MovementsPage() {
 
   const fetchMovements = useCallback(async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const query = new URLSearchParams({
         page: page.toString(),
@@ -81,9 +86,16 @@ export default function MovementsPage() {
         setTotalItems(data.data.total);
         setSummary(data.data.summary);
       } else {
+        // El aviso se iba y quedaban en pantalla los movimientos de la consulta
+        // ANTERIOR, como si fueran el resultado de esta. Una lista llena
+        // mentirosa es peor que una vacia.
+        setMovements([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar movimientos', { description: data.error?.message });
       }
     } catch (err: any) {
+      setMovements([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error de red', { description: err.message });
     } finally {
       setLoading(false);
@@ -418,6 +430,8 @@ export default function MovementsPage() {
                   </div>
                 );
               })
+            ) : errorCarga ? (
+              <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchMovements} />
             ) : (
               <div className="p-12 text-center text-slate-400 text-sm font-medium">
                 No se encontraron movimientos para los filtros seleccionados.
@@ -477,6 +491,12 @@ export default function MovementsPage() {
                       </tr>
                     );
                   })
+                ) : errorCarga ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchMovements} />
+                    </td>
+                  </tr>
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-slate-500 text-xs font-medium">

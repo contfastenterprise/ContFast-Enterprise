@@ -66,6 +66,9 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/customers/page.tsx', 'clientes', 'fetchCustomers', 2],
   ['src/app/dashboard/suppliers/page.tsx', 'suplidores', 'fetchSuppliers', 1],
   ['src/app/dashboard/delivery-notes/page.tsx', 'conduces', 'loadDeliveryNotes', 1],
+  ['src/app/dashboard/inventory/movements/page.tsx', 'movimientos', 'fetchMovements', 2],
+  ['src/app/dashboard/purchases/orders/page.tsx', 'pedidos', 'fetchOrders', 1],
+  ['src/app/dashboard/cash/page.tsx', 'caja', 'loadHistory', 1],
 ];
 for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   const tc = sinComentarios(crudo(ruta) ?? '');

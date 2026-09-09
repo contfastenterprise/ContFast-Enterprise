@@ -10,6 +10,7 @@ import {
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 
 
@@ -89,6 +90,9 @@ export default function CashPage() {
   const [movements, setMovements] = useState<Movement[]>([]);
   const [registers, setRegisters] = useState<Register[]>([]);
   const [history, setHistory] = useState<HistorySession[]>([]);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   // Apertura form
   const [selectedRegisterId, setSelectedRegisterId] = useState('');
@@ -158,11 +162,20 @@ export default function CashPage() {
   }, []);
 
   const loadHistory = useCallback(async () => {
+    setErrorCarga(null);
     try {
       const res = await fetch('/api/v1/cash/sessions');
       const data = await res.json();
-      if (data.success) setHistory(data.data || []);
-    } catch {
+      if (data.success) {
+        setHistory(data.data || []);
+      } else {
+        setHistory([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
+      }
+    } catch (err) {
+      // El catch no ligaba el error, asi que no habia ni que registrar.
+      setHistory([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error al cargar historial.');
     }
   }, []);
@@ -1154,7 +1167,13 @@ export default function CashPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
-                    {history.length === 0 ? (
+                    {errorCarga ? (
+                      <tr>
+                        <td colSpan={7}>
+                          <ErrorDeCarga mensaje={errorCarga} onReintentar={loadHistory} />
+                        </td>
+                      </tr>
+                    ) : history.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           No hay registros de cierres de caja.

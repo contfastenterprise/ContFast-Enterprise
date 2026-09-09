@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 
 interface OrderLine {
@@ -63,6 +64,9 @@ export default function PurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   // Filters State
   const [searchNumber, setSearchNumber] = useState('');
@@ -101,13 +105,19 @@ export default function PurchaseOrdersPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      setErrorCarga(null);
       const url = `/api/v1/supplier-orders?limit=1000`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setOrders(data.data || []);
+      } else {
+        setOrders([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (error) {
+      setOrders([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar los pedidos');
     } finally {
       setLoading(false);
@@ -661,6 +671,8 @@ export default function PurchaseOrdersPage() {
               <span className="text-slate-600 text-sm font-medium">Cargando pedidos logísticos...</span>
             </div>
           </div>
+        ) : errorCarga ? (
+          <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchOrders} />
         ) : filteredOrders.length === 0 ? (
           <div className="p-16 text-center text-slate-500 text-sm">No se encontraron pedidos de mercancía.</div>
         ) : (
