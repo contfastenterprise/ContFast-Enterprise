@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import {
   FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X
 } from 'lucide-react';
@@ -97,6 +98,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: rbacLoading } = useRbac();
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. El aviso va arriba del todo
+  // porque esta pantalla no es una lista: son tarjetas y graficas, y lo que
+  // hay que decir es que NINGUNA de ellas es de fiar ahora mismo.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   useEffect(() => {
     if (!rbacLoading && user) {
@@ -134,6 +139,7 @@ export default function DashboardPage() {
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const res = await fetch(`/api/v1/dashboard?period=${chartPeriod}`);
       const data = await res.json();
@@ -157,6 +163,13 @@ export default function DashboardPage() {
         setTopCustomers(data.data.topCustomers || []);
         setCategoryData(data.data.categoryData || []);
         setCollectionStatusData(data.data.collectionStatusData || []);
+      } else {
+        // Sin `else`, un fallo dejaba las tarjetas y las graficas con los
+        // numeros de la carga anterior -- ventas del mes, facturas de hoy,
+        // metas -- sin nada que lo indicara. Y es la primera pantalla que se ve
+        // al entrar.
+        setRecentInvoices([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -257,6 +270,15 @@ export default function DashboardPage() {
           <p className="font-body-lg text-slate-500/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
       </header>
+
+      {/* El aviso va aqui, encima de todo: esta pantalla no es una lista sino
+          tarjetas y graficas, y lo que hay que decir no es "no hay datos" sino
+          que NINGUNO de los numeros de abajo es de fiar ahora mismo. */}
+      {errorCarga && !loading && (
+        <div className="bg-white/70 backdrop-blur-md border border-amber-200 shadow-sm rounded-xl">
+          <ErrorDeCarga mensaje={errorCarga} onReintentar={loadDashboardData} />
+        </div>
+      )}
 
       {/* ── Warning Banner for Due Guarantee Checks ────────────────────────── */}
       {stats.dueGuaranteeChecksCount !== undefined && stats.dueGuaranteeChecksCount > 0 && (

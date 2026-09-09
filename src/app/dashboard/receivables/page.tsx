@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 
 // -- Types --
@@ -37,6 +38,12 @@ const fmt = (val: number) => {
 
 export default function ReceivablesPage() {
   const [loading, setLoading] = useState(true);
+  // P2-37: TRES errores, no uno. Los cuatro cargadores de esta pantalla
+  // alimentan zonas independientes, cada una con su boton y su momento; un
+  // fallo al buscar recibos no puede tapar la cartera, que se cargo bien.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  const [errorRecibos, setErrorRecibos] = useState<string | null>(null);
+  const [errorEstado, setErrorEstado] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerAR[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -114,15 +121,20 @@ export default function ReceivablesPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       const res = await fetch('/api/v1/ar');
       const data = await res.json();
       if (data.success) {
         setCustomers(data.data);
       } else {
+        setCustomers([]);
+        setErrorCarga(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar cuentas por cobrar');
       }
     } catch (err) {
+      setCustomers([]);
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error de red al cargar datos');
     } finally {
       setLoading(false);
@@ -142,15 +154,20 @@ export default function ReceivablesPage() {
   const fetchCustomerStatement = async (customerId: string) => {
     if (!customerId) return;
     setStatementLoading(true);
+    setErrorEstado(null);
     try {
       const res = await fetch(`/api/v1/ar/receipts/by-customer?customerId=${customerId}`);
       const data = await res.json();
       if (data.success) {
         setStatementReceipts(data.data);
       } else {
+        setStatementReceipts([]);
+        setErrorEstado(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar estado de cuenta');
       }
     } catch (err) {
+      setStatementReceipts([]);
+      setErrorEstado(motivoDeCarga(err));
       toast.error('Error de red al cargar estado de cuenta');
     } finally {
       setStatementLoading(false);
@@ -160,6 +177,7 @@ export default function ReceivablesPage() {
   const fetchReceipts = async () => {
     setReceiptsLoading(true);
     setHasSearched(true);
+    setErrorRecibos(null);
     try {
       const queryParams = new URLSearchParams();
       if (receiptSearchTerm) queryParams.append('search', receiptSearchTerm);
@@ -171,9 +189,13 @@ export default function ReceivablesPage() {
       if (data.success) {
         setReceipts(data.data);
       } else {
+        setReceipts([]);
+        setErrorRecibos(motivoDeCarga(null, data.error?.message));
         toast.error('Error al cargar historial de recibos');
       }
     } catch (err) {
+      setReceipts([]);
+      setErrorRecibos(motivoDeCarga(err));
       toast.error('Error de red al cargar recibos');
     } finally {
       setReceiptsLoading(false);
@@ -458,6 +480,10 @@ export default function ReceivablesPage() {
             <AnimatePresence mode="wait">
               {loading ? (
                 <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : errorCarga ? (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                  <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+                </div>
               ) : filteredCustomers.length === 0 ? (
                 <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
                   <CheckCircle2 className="h-16 w-16 text-emerald-400 mx-auto mb-4" />
@@ -593,6 +619,8 @@ export default function ReceivablesPage() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               {receiptsLoading ? (
                 <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+              ) : errorRecibos ? (
+                <ErrorDeCarga mensaje={errorRecibos} onReintentar={fetchReceipts} />
               ) : filteredReceipts.length === 0 ? (
                 <div className="p-16 text-center">
                   <FileText className="h-16 w-16 text-slate-300 mx-auto mb-4" />
@@ -872,6 +900,15 @@ export default function ReceivablesPage() {
                           );
                         });
 
+                        if (errorEstado) {
+                          return (
+                            <tr>
+                              <td colSpan={8}>
+                                <ErrorDeCarga mensaje={errorEstado} />
+                              </td>
+                            </tr>
+                          );
+                        }
                         if (filteredFinal.length === 0) {
                           return (
                             <tr>

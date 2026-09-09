@@ -210,5 +210,46 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   );
 }
 
+
+// Cobros no encaja en la forma generica: CUATRO cargadores alimentan zonas
+// independientes, asi que lleva TRES errores. Un fallo al buscar recibos no
+// puede tapar la cartera, que se cargo bien.
+{
+  const rcb = crudo('src/app/dashboard/receivables/page.tsx') ?? '';
+  const rc = sinComentarios(rcb);
+  ok(
+    'cobros: tres errores, uno por zona',
+    ['errorCarga', 'errorRecibos', 'errorEstado'].every((n) =>
+      rc.includes(`const [${n}, set${n[0].toUpperCase()}${n.slice(1)}] = useState<string | null>(null);`)
+    )
+  );
+  ok(
+    'cobros: los tres dejan rastro y los tres se pintan',
+    rc.includes('setErrorCarga(motivoDeCarga(') &&
+      rc.includes('setErrorRecibos(motivoDeCarga(') &&
+      rc.includes('setErrorEstado(motivoDeCarga(') &&
+      rc.split('<ErrorDeCarga mensaje={error').length - 1 === 3
+  );
+  // El espejo del "¡Al dia con los proveedores!", con el dinero al reves.
+  const iErr = rcb.indexOf('errorCarga ? (');
+  const iTodo = rcb.indexOf('Todo al día');
+  ok('cobros: el "Todo al dia" ya no puede salir cuando la carga falla', iErr >= 0 && iTodo >= 0 && iErr < iTodo);
+}
+
+// El panel de inicio no es una lista: son tarjetas y graficas. Sin `else`, un
+// fallo las dejaba con los numeros de la carga anterior.
+{
+  const pi = sinComentarios(crudo('src/app/dashboard/page.tsx') ?? '');
+  ok(
+    'panel de inicio: el success:false deja rastro',
+    pi.includes('setErrorCarga(motivoDeCarga(null, data.error?.message));') && pi.includes('setRecentInvoices([]);')
+  );
+  ok(
+    'panel de inicio: el aviso va encima de todo, no dentro de una tarjeta',
+    pi.includes('{errorCarga && !loading && (') &&
+      pi.indexOf('{errorCarga && !loading && (') < pi.indexOf('dueGuaranteeChecksCount > 0')
+  );
+}
+
 console.log(`\nTotal fallos: ${fallos}`);
 process.exit(fallos > 0 ? 1 : 0);
