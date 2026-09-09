@@ -9,7 +9,6 @@ import { CustomerRepository } from '@/repositories/customerRepository';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, InvoiceItemLine } from './types';
 import type { CompanyRepository } from '@/repositories/companyRepository';
 
@@ -83,13 +82,27 @@ export class InvoiceFileGenerator {
   ): Promise<string[]> {
     const avisos: string[] = [];
     try {
-      const rawXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Generado asíncronamente</ECF>';
-      const signedXml = '<?xml version="1.0" encoding="utf-8"?><ECF>Firmado asíncronamente</ECF>';
-
-      let securityHash = submission.securityHash;
-      if (!securityHash) {
-        securityHash = crypto.createHash('sha256').update(signedXml).digest('hex').substring(0, 16).toUpperCase();
-      }
+      // EL CODIGO DE SEGURIDAD ES EL QUE DEVOLVIO mSELLER, O NINGUNO.
+      //
+      // Aqui se fabricaba uno cuando no venia: un sha256 de `signedXml`, que no
+      // era el XML firmado sino la cadena literal
+      // '<ECF>Firmado asincronamente</ECF>' -- una CONSTANTE. El codigo inventado
+      // era por tanto SIEMPRE EL MISMO (C71D2DC8464CDC7A) y acababa impreso en el
+      // QR de toda factura emitida antes de que la DGII resolviera, dentro de una
+      // URL de consulta de la DGII que no puede responder por un codigo que no
+      // existe. Ese PDF es ademas el que se le manda al cliente por correo.
+      //
+      // Y el guardia que hay mas abajo -- "sin codigo, mejor sin QR" -- estaba
+      // puesto justo para esto y no disparaba NUNCA, porque esta fabricacion se
+      // aseguraba de que el codigo jamas estuviera vacio.
+      //
+      // Era la ultima copia viva del patron que ya se elimino de las cuatro rutas
+      // de impresion y correo (ver el comentario de invoices/[id]/print). Sin
+      // codigo real no hay QR; al reimprimir despues de sincronizar, la ruta de
+      // impresion lee la firma de la factura y el QR aparece de verdad.
+      //
+      // `rawXml` y `signedXml` vivian aqui solo para alimentar esa invencion.
+      const securityHash = submission.securityHash || '';
 
       // Only upload PDF file to Supabase Storage. XML is handled directly from mSeller path.
 
@@ -207,8 +220,18 @@ export class InvoiceFileGenerator {
       const { bucketName: pdfBucket, filePath: pdfFile } = StorageService.parseDbPath(pdfPath);
       await StorageService.uploadFile(pdfBucket, pdfFile, pdfBuffer, 'application/pdf');
 
-      // Send invoice email if customer has a registered email
-      if (data.customerId) {
+      // EL CORREO AL CLIENTE ESPERA AL VEREDICTO DE LA DGII.
+      //
+      // La DGII no acepta en el momento del envio, asi que al emitir la factura
+      // suele quedar en 'submitted'. Mandar el PDF en ese momento significa
+      // mandarle al cliente un comprobante todavia sin codigo de seguridad y,
+      // por tanto, sin QR de consulta -- y ese correo ya no se puede recoger.
+      //
+      // Solo se manda si la DGII YA acepto (mSeller puede responder aceptado en
+      // el mismo envio). Si quedo pendiente, el correo se manda al pasar a
+      // aceptada, y mientras tanto esta el boton de reenviar de la pantalla de
+      // facturas, que arma el PDF con la firma real.
+      if (data.customerId && submission.finalStatus === 'accepted') {
         try {
           const customer = await CustomerRepository.findById(data.customerId, data.companyId);
           // Sin nombre de empresa NO se manda el correo. Iba firmado
