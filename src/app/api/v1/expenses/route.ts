@@ -394,6 +394,16 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error('Error creating expense:', err);
     const e = err as Error & { status?: number; code?: string };
+    // El indice unico de (empresa, suplidor, NCF, modo) responde con la
+    // violacion de Postgres. Es un 409 con un mensaje que se entiende, no un
+    // 500 con el texto crudo del motor.
+    const esDuplicado = e.code === '23505' || e.message?.includes('expenses_company_supplier_ncf_modo_uq');
+    if (esDuplicado) {
+      return NextResponse.json(
+        { success: false, error: { code: 'DUPLICATE_NCF', message: 'Ya existe una compra registrada con ese NCF para este suplidor.' } },
+        { status: 409 }
+      );
+    }
     const status = e.status || 500;
     return NextResponse.json({ success: false, error: { message: e.message } }, { status });
   }

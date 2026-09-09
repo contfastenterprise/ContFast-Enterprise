@@ -1280,6 +1280,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
     return NextResponse.json({ success: true, message: 'Compra/Gasto editado y registros contables actualizados exitosamente', data: result });
   } catch (err: unknown) {
     console.error('Error editing expense:', err);
-    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
+    const e = err as Error & { code?: string };
+    // Editar el NCF a uno que ya existe para el mismo suplidor cae en el mismo
+    // indice unico que el alta, y responde igual: 409, no 500.
+    const esDuplicado = e.code === '23505' || e.message?.includes('expenses_company_supplier_ncf_modo_uq');
+    if (esDuplicado) {
+      return NextResponse.json(
+        { success: false, error: { code: 'DUPLICATE_NCF', message: 'Ya existe una compra registrada con ese NCF para este suplidor.' } },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json({ success: false, error: { message: e.message } }, { status: 500 });
   }
 }

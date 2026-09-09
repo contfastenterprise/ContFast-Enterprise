@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "expenses_company_supplier_ncf_modo_uq" ON "expenses" USING btree ("company_id","supplier_id","ncf","modo") WHERE deleted_at IS NULL AND supplier_id IS NOT NULL AND ncf IS NOT NULL;

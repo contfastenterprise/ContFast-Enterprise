@@ -354,6 +354,18 @@ export const expenses = pgTable('expenses', {
   issueDateIdx: index('expense_issue_date_idx').on(table.issueDate),
   companyIssueDateIdx: index('expense_comp_issue_date_idx').on(table.companyId, table.issueDate),
   companyModoIdx: index('expense_company_modo_idx').on(table.companyId, table.modo),
+  // La misma factura de compra no se registra dos veces. Aqui no habia
+  // ningun indice unico, y cada copia duplica su ITBIS en el 606.
+  //
+  // La clave lleva al suplidor, no solo el NCF: dos suplidores distintos SI
+  // pueden emitir el mismo numero, porque la secuencia es por RNC emisor.
+  // Parcial sobre deleted_at IS NULL (anular y volver a registrar tiene que
+  // seguir siendo posible) y sobre que existan suplidor y NCF: los gastos
+  // menores informales no llevan ninguno de los dos y quedan fuera a
+  // proposito. Mismo patron que employees_company_code_uq.
+  companySupplierNcfModoUq: uniqueIndex('expenses_company_supplier_ncf_modo_uq')
+    .on(table.companyId, table.supplierId, table.ncf, table.modo)
+    .where(sql`deleted_at IS NULL AND supplier_id IS NOT NULL AND ncf IS NOT NULL`),
   // P1-19 / migracion 0032: aislamiento estructural.
   warehouseCompanyFk: foreignKey({
     columns: [table.warehouseId, table.companyId],
