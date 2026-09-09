@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CODIGOS_EMITIBLES, TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
-import { z } from 'zod';
+import { esquemaFactura } from '@/schemas/factura';
+import { erroresPorCampo } from '@/schemas/errores';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { checkRateLimit } from '@/middleware/rateLimiter';
@@ -27,71 +27,6 @@ import { eq, and, count, gte, lte, inArray, isNull } from 'drizzle-orm';
  * importada no vale: no la resolveria.
  */
 export const maxDuration = 60;
-
-// Zod validation schema for creating an invoice
-const createInvoiceSchema = z.object({
-  customerId: z.string().uuid().optional(),
-  warehouseId: z.string().uuid(),
-  cashSessionId: z.string().uuid().optional(),
-  // Los codigos que el flujo de ventas emite, de la lista unica. El 44
-  // (Regimenes Especiales) y el 46 (Exportaciones) no estaban y por eso una
-  // secuencia de esos tipos se podia elegir en el formulario pero la emision
-  // la rechazaba con "Tipo de e-CF invalido".
-  ecfType: z.enum(CODIGOS_EMITIBLES, {
-    message: `Tipo de e-CF inválido. Los admitidos son: ${TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => `${t.codigo} (${t.corto})`).join(', ')}.`,
-  }),
-  paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
-  bankName: z.string().optional(),
-  transactionNumber: z.string().optional(),
-  notes: z.string().optional(),
-  ignoreCommunicationError: z.boolean().optional(),
-  modifiedNcf: z.string().length(13, 'El NCF modificado debe tener exactamente 13 caracteres').optional(),
-  modifiedInvoiceId: z.string().uuid().optional(),
-  indicadorNotaCredito: z.number().optional(),
-  quoteId: z.string().uuid().optional(),
-  lines: z.array(
-    z.object({
-      productId: z.string().uuid(),
-      productName: z.string().min(1, 'El nombre del producto es requerido'),
-      quantity: z.number().positive('La cantidad debe ser mayor a cero'),
-      unitPrice: z.number().nonnegative('El precio unitario no puede ser negativo'),
-      discount: z.number().nonnegative('El descuento no puede ser negativo').default(0),
-      taxRate: z.number().nonnegative('La tasa de impuesto no puede ser negativa').default(0.18),
-      //  Solo con taxRate 0. Sin valor, el envio la trata como exento, que es
-      //  como se comporto siempre. Ver 0042.
-      taxCategory: z.enum(['exento', 'tasa_cero']).nullish(),
-      warehouseId: z.string().uuid().optional(),
-    })
-  ).min(1, 'La factura debe tener al menos una línea de producto'),
-  retentions: z.array(
-    z.object({
-      retentionId: z.string().uuid().optional(),
-      retentionName: z.string(),
-      retentionType: z.enum(['ITBIS', 'ISR', 'OTRA']),
-      retentionPercentage: z.number().nonnegative().max(100),
-      agentRnc: z.string().optional(),
-      retentionDate: z.string().optional(),
-    })
-  ).optional(),
-  buyerRnc: z.string().optional(),
-  buyerName: z.string().optional(),
-}).refine((data) => {
-  if (data.paymentType === 'bank_transfer') {
-    return !!data.bankName && !!data.transactionNumber;
-  }
-  return true;
-}, {
-  message: 'El banco y número de transferencia son requeridos para pagos por transferencia.',
-  path: ['bankName'],
-}).refine((data) => {
-  if ((data.ecfType === '33' || data.ecfType === '34') && !data.modifiedNcf) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'El NCF modificado es requerido para Notas de Crédito y Notas de Débito.',
-  path: ['modifiedNcf'],
-});
 
 /**
  * GET /api/v1/invoices - Paginated list of invoices
@@ -187,11 +122,15 @@ export async function POST(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'facturacion', 'write');
 
     const body = await req.json();
-    const result = createInvoiceSchema.safeParse(body);
+    const result = esquemaFactura.safeParse(body);
 
     if (!result.success) {
+      // `fields` es un mapa campo -> mensaje, y la pantalla lo pinta debajo de
+      // cada campo. Antes solo iba `issues[0].message`: el primer fallo, en
+      // texto, sin decir de que campo era.
+      const campos = erroresPorCampo(result.error);
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message, fields: campos } },
         { status: 400, headers: resHeaders }
       );
     }

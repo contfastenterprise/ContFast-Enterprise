@@ -13,6 +13,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { toast } from 'sonner';
+import { esquemaFactura } from '@/schemas/factura';
+import { erroresPorCampo } from '@/schemas/errores';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
@@ -95,6 +97,24 @@ function InvoicesList() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerPriceTier, setCustomerPriceTier] = useState('base');
   const [warehouseId, setWarehouseId] = useState('');
+
+  // P2-34: el error de cada campo, debajo del campo. La clave es la ruta del
+  // esquema (`buyerRnc`, `lines.0.unitPrice`). La rellenan el esquema al pasar
+  // el formulario, las comprobaciones contra los productos, o el servidor si
+  // devuelve `fields`.
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const err = (campo: string) =>
+    errores[campo] ? (
+      <p data-campo={campo} className="text-[11px] font-semibold text-rose-600 mt-1">{errores[campo]}</p>
+    ) : null;
+  const quitarError = (campo: string) =>
+    setErrores((prev) => {
+      if (!(campo in prev)) return prev;
+      const { [campo]: _fuera, ...resto } = prev;
+      return resto;
+    });
+  const irAlPrimerError = () =>
+    setTimeout(() => document.querySelector('[data-campo]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [dbProducts, setDbProducts] = useState<any[]>([]);
   const [notes, setNotes] = useState('');
@@ -762,30 +782,67 @@ function InvoicesList() {
     })),
   });
 
-  const validateFormBasic = () => {
+  /**
+   * Lo minimo para que la factura tenga sentido, tambien como borrador.
+   *
+   * Son las reglas que ya comprobaba `validateFormBasic`, sin cambiar ninguna:
+   * lo unico distinto es que devuelve campo -> mensaje en vez de lanzar, para
+   * que cada una se pinte donde toca. Las usan el borrador Y la emision.
+   *
+   * El precio contra el costo vive aqui, y no con el resto de comprobaciones
+   * contra productos, porque el borrador tambien lo miraba.
+   */
+  const erroresBasicos = (): Record<string, string> => {
+    const out: Record<string, string> = {};
+
     if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
-      throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
-    }
-    if (lines.some((l) => !l.productName)) {
-      throw new Error('Todos los artículos deben tener un nombre.');
+      out.buyerRnc = 'El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).';
     }
     if (!warehouseId) {
-      throw new Error('Debe seleccionar un almacén.');
+      out.warehouseId = 'Debe seleccionar un almacén.';
     }
-    // Check unit price against cost for non-Credit Notes
-    if (ecfType !== '34') {
-      for (const line of lines) {
-        if (line.productId) {
-          const prod = dbProducts.find(p => p.id === line.productId);
-          if (prod) {
-            const cost = parseFloat(prod.cost) || 0;
-            if (cost > 0 && Number(line.unitPrice) < cost) {
-              throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
-            }
-          }
+
+    lines.forEach((line, idx) => {
+      if (!line.productName) {
+        out[`lines.${idx}.productName`] = 'Todos los artículos deben tener un nombre.';
+      }
+      // Una nota de credito devuelve mercancia: no vende por debajo del costo.
+      if (ecfType !== '34' && line.productId) {
+        const prod = dbProducts.find(p => p.id === line.productId);
+        const cost = prod ? (parseFloat(prod.cost) || 0) : 0;
+        if (cost > 0 && Number(line.unitPrice) < cost) {
+          out[`lines.${idx}.unitPrice`] = `Precio por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`;
         }
       }
-    }
+    });
+
+    return out;
+  };
+
+  /**
+   * El stock minimo. Solo al emitir: un borrador no descuenta nada.
+   *
+   * No cabe en el esquema porque no es una regla del cuerpo -- se resuelve
+   * contra `dbProducts`, que solo existe en la pantalla.
+   */
+  const erroresDeStock = (): Record<string, string> => {
+    const out: Record<string, string> = {};
+    if (ecfType === '34') return out;
+
+    lines.forEach((line, idx) => {
+      const prod = dbProducts.find((p) => p.id === line.productId);
+      if (!prod) return;
+      const lineWId = line.warehouseId || warehouseId;
+      const targetInv = prod.inventory?.find((i: any) => i.warehouseId === lineWId);
+      const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
+      const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
+      if (currentMinStk > 0 && currentQty <= currentMinStk) {
+        out[`lines.${idx}.quantity`] =
+          `Stock actual (${currentQty}) menor o igual al mínimo configurado (${currentMinStk}): no se puede vender.`;
+      }
+    });
+
+    return out;
   };
 
   // Handler: Save as Draft
@@ -793,7 +850,15 @@ function InvoicesList() {
     setSaveDropdownOpen(false);
     setSavingDraft(true);
     try {
-      validateFormBasic();
+      // Un borrador se guarda a medias a proposito, asi que aqui NO se pasa el
+      // esquema completo: solo lo minimo, que es lo que se comprobaba antes.
+      const campos = erroresBasicos();
+      if (Object.keys(campos).length > 0) {
+        setErrores(campos);
+        irAlPrimerError();
+        throw new Error(Object.values(campos)[0]);
+      }
+      setErrores({});
       const res = await fetch('/api/v1/invoices/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -889,72 +954,28 @@ function InvoicesList() {
 
   const handleSubmitTrigger = async (e?: React.FormEvent, postAction: 'print' | 'none' = 'print') => {
     if (e) e.preventDefault();
-    try {
-      if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
-        throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
-      }
-      if (lines.length === 0 || lines.some((l) => !l.productId)) {
-        throw new Error('La factura debe tener al menos una línea de producto seleccionada.');
-      }
-      if (lines.some((l) => !l.productName)) {
-        throw new Error('Todos los artículos deben tener un nombre.');
-      }
-      if (lines.some((l) => Number(l.quantity) <= 0)) {
-        throw new Error('La cantidad debe ser mayor a cero.');
-      }
 
-      // Check minStock rule for non-Credit Notes (e-34)
-      if (ecfType !== '34') {
-        for (const line of lines) {
-          const prod = dbProducts.find((p) => p.id === line.productId);
-          if (prod) {
-            const lineWId = line.warehouseId || warehouseId;
-            const targetInv = prod.inventory?.find((i: any) => i.warehouseId === lineWId);
-            const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
-            const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
+    // P2-34: el cuerpo se arma primero y se pasa por el MISMO esquema que valida
+    // el servidor (src/schemas/factura.ts). Antes habia aqui una cadena de nueve
+    // `throw new Error(...)` -- que ademas repetia media docena de reglas de
+    // `validateFormBasic` -- y todas acababan en un unico toast "Error de
+    // validacion", sin marcar ningun campo.
+    const validacion = esquemaFactura.safeParse(buildInvoicePayload());
+    const campos: Record<string, string> = validacion.success ? {} : erroresPorCampo(validacion.error);
 
-            if (currentMinStk > 0 && currentQty <= currentMinStk) {
-              throw new Error(`El producto "${line.productName}" tiene un stock actual (${currentQty}) menor o igual al stock mínimo configurado (${currentMinStk}) y no se puede vender.`);
-            }
-          }
-        }
-      }
+    // Y lo que el esquema no puede ver, porque depende de los productos.
+    Object.assign(campos, erroresBasicos(), erroresDeStock());
 
-      // Check unit price against cost for non-Credit Notes
-      if (ecfType !== '34') {
-        for (const line of lines) {
-          if (line.productId) {
-            const prod = dbProducts.find(p => p.id === line.productId);
-            if (prod) {
-              const cost = parseFloat(prod.cost) || 0;
-              if (cost > 0 && Number(line.unitPrice) < cost) {
-                throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
-              }
-            }
-          }
-        }
-      }
-
-      const isNote = ecfType === '33' || ecfType === '34';
-      if (isNote) {
-        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
-        if (!validIndicadores.includes(indicadorNotaCredito)) {
-          throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
-        }
-        if (!modifiedNcf) {
-          throw new Error('El NCF modificado es requerido para Notas de Crédito y Notas de Débito.');
-        }
-      }
-
-      if (paymentType === 'bank_transfer' && (!bankName || !transactionNumber)) {
-        throw new Error('El banco y número de transferencia son requeridos para pagos por transferencia.');
-      }
-
-      setPendingPostAction(postAction);
-      setShowPrintConfirmModal(true);
-    } catch (error: any) {
-      toast.error('Error de validación', { description: error.message });
+    if (Object.keys(campos).length > 0) {
+      setErrores(campos);
+      toast.error('Revisa los campos marcados', { description: Object.values(campos)[0] });
+      irAlPrimerError();
+      return;
     }
+
+    setErrores({});
+    setPendingPostAction(postAction);
+    setShowPrintConfirmModal(true);
   };
 
   const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'none') => {
@@ -963,35 +984,24 @@ function InvoicesList() {
     setSubmitting(true);
 
     try {
-      if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
-        throw new Error('El RNC y la Razón Social del cliente son requeridos para Crédito Fiscal (e-31) o Comprobantes Gubernamentales (e-45).');
+      // Ultima guarda antes del POST. Aqui vivia la TERCERA copia de las mismas
+      // reglas -- las otras dos estaban en `validateFormBasic` y en la cadena de
+      // `handleSubmitTrigger` --, cada una con su redaccion. Ahora es la misma
+      // validacion que usa el resto, y los fallos se pintan por campo.
+      const validacionEmision = esquemaFactura.safeParse(buildInvoicePayload());
+      const camposEmision: Record<string, string> = validacionEmision.success
+        ? {}
+        : erroresPorCampo(validacionEmision.error);
+      Object.assign(camposEmision, erroresBasicos(), erroresDeStock());
+
+      if (Object.keys(camposEmision).length > 0) {
+        setErrores(camposEmision);
+        irAlPrimerError();
+        throw new Error(Object.values(camposEmision)[0]);
       }
-      if (lines.some((l) => !l.productName)) {
-        throw new Error('Todos los artículos deben tener un nombre.');
-      }
+      setErrores({});
 
       const isNote = ecfType === '33' || ecfType === '34';
-      if (isNote) {
-        const validIndicadores = ecfType === '34' ? [1, 2, 3] : [2, 3, 4];
-        if (!validIndicadores.includes(indicadorNotaCredito)) {
-          throw new Error('Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.');
-        }
-      }
-
-      // Check unit price against cost for non-Credit Notes
-      if (ecfType !== '34') {
-        for (const line of lines) {
-          if (line.productId) {
-            const prod = dbProducts.find(p => p.id === line.productId);
-            if (prod) {
-              const cost = parseFloat(prod.cost) || 0;
-              if (cost > 0 && Number(line.unitPrice) < cost) {
-                throw new Error(`El precio ingresado no es permitido para "${line.productName}" (Mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`);
-              }
-            }
-          }
-        }
-      }
       const linesToSubmit = lines.map((l: any) => ({
         productId: l.productId,
         productName: l.productName,
@@ -1243,6 +1253,12 @@ function InvoicesList() {
       // El correo al cliente lo manda el backend cuando la DGII acepta, en
       // services/invoice/correoFactura.ts. La pantalla no tiene que pedirlo.
     } catch (error: any) {
+      // El servidor puede rechazar por una regla que la pantalla no tiene; si
+      // devuelve `fields`, se pintan debajo de cada campo igual que los propios.
+      if (error?.fields && typeof error.fields === 'object') {
+        setErrores(error.fields as Record<string, string>);
+        irAlPrimerError();
+      }
       toast.error('Error de emisión', { description: error.message });
     } finally {
       setSubmitting(false);
@@ -1427,9 +1443,12 @@ function InvoicesList() {
                       <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
                       <select
                         value={bankName}
-                        onChange={(e) => setBankName(e.target.value)}
+                        onChange={(e) => { setBankName(e.target.value); quitarError('bankName'); }}
                         required
-                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
+                        className={clsx(
+                          'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none',
+                          errores.bankName ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
+                        )}
                       >
                         <option value="">Seleccione Banco...</option>
                         <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
@@ -1441,6 +1460,7 @@ function InvoicesList() {
                         <option value="Banco Santa Cruz">Banco Santa Cruz</option>
                         <option value="Otro">Otro / Internacional</option>
                       </select>
+                      {err('bankName')}
                     </div>
                     <div className="space-y-1">
                       <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Número de Transferencia / Referencia</label>
@@ -1448,10 +1468,14 @@ function InvoicesList() {
                         type="text"
                         required
                         value={transactionNumber}
-                        onChange={(e) => setTransactionNumber(e.target.value)}
+                        onChange={(e) => { setTransactionNumber(e.target.value); quitarError('transactionNumber'); }}
                         placeholder="Ej. TXN12345678"
-                        className="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors"
+                        className={clsx(
+                          'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors',
+                          errores.transactionNumber ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
+                        )}
                       />
+                      {err('transactionNumber')}
                     </div>
                   </div>
                 )}
@@ -1553,8 +1577,13 @@ function InvoicesList() {
                     type="text"
                     value={customerRnc}
                     readOnly
-                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none font-mono"
+                    className={clsx(
+                      'w-full border rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none font-mono',
+                      errores.buyerRnc ? 'bg-rose-50 border-rose-400' : 'bg-slate-100 border-slate-300'
+                    )}
                   />
+                  {err('buyerRnc')}
+                  {err('buyerName')}
                 </div>
                 <div className="space-y-2">
                   <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
@@ -1768,6 +1797,17 @@ function InvoicesList() {
                   })}
                 </div>
 
+                {err('lines')}
+                {err('warehouseId')}
+                {err('modifiedNcf')}
+                {err('indicadorNotaCredito')}
+                {Object.entries(errores)
+                  .filter(([k]) => k.startsWith('lines.'))
+                  .map(([k, m]) => (
+                    <p key={k} data-campo={k} className="text-[11px] font-semibold text-rose-600">
+                      Línea {Number(k.split('.')[1]) + 1}: {m}
+                    </p>
+                  ))}
                 <div className="flex justify-start mt-2">
                   <button
                     type="button"

@@ -17,6 +17,9 @@
  * propina, ISC...) y no es cosa de este esquema rechazarlos.
  */
 import { z } from 'zod';
+// `erroresPorCampo` vivia aqui; subio a ./errores cuando facturas empezo a
+// usarlo tambien. Se reexporta para no tocar a quien ya lo importaba de aqui.
+export { erroresPorCampo } from './errores';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
 
 const dinero = z.coerce.number();
@@ -98,20 +101,3 @@ export const esquemaCompra = z
   });
 
 export type Compra = z.infer<typeof esquemaCompra>;
-
-/**
- * Los fallos como mapa campo -> mensaje, para pintarlos debajo de cada campo.
- *
- * Un campo puede fallar por mas de una regla; se queda con la primera, que es
- * la que hay que arreglar antes. La clave es la ruta con puntos
- * (`guaranteeCheck.checkNumber`), y es la misma que usa la pantalla en
- * `data-campo`.
- */
-export function erroresPorCampo(error: z.ZodError): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const clave = issue.path.map(String).join('.') || '_';
-    if (!(clave in out)) out[clave] = issue.message;
-  }
-  return out;
-}
