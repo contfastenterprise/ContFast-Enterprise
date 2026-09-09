@@ -1137,8 +1137,14 @@ function InvoicesList() {
       // factura: si se abre antes del veredicto sale el comprobante provisional,
       // sin codigo de seguridad, sin fecha de firma y sin QR, porque esos tres
       // datos los produce la DGII al firmar y todavia no existen.
-      const abrirImpresion = () => {
-        window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+      //
+      // Devuelve si PUDO abrirse. `window.open` da null cuando el navegador lo
+      // impide, y eso pasa fuera de un gesto del usuario -- que es justo el caso
+      // del aviso que llega segundos despues de emitir. Quien llama decide que
+      // hacer con el no, en vez de quedarse sin papel y sin explicacion.
+      const abrirImpresion = (): boolean => {
+        const ventana = window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+        return !!ventana;
       };
 
       // La DGII no resuelve en el mismo momento del envio: mSeller recibe el
@@ -1162,16 +1168,22 @@ function InvoicesList() {
             if (!est.success) return;
 
             if (est.data?.status === 'accepted') {
-              // El navegador bloquea `window.open` fuera de un gesto del usuario, y
-              // aqui han pasado ya cinco segundos: abrirlo solo se traduciria en un
-              // aviso de ventana emergente bloqueada. Asi que se ofrece el boton, y
-              // el clic es el gesto. Ademas es lo honesto: la impresion ocurre
-              // cuando quien factura decide, no a espaldas suyas.
+              // Aqui esta el papel: la factura ya tiene codigo de seguridad, fecha
+              // de firma y QR. Se abre sola.
+              //
+              // Con una salvedad: han pasado cinco segundos desde el clic, asi que
+              // ya no estamos dentro del gesto del usuario y el navegador PUEDE
+              // bloquear la ventana. No siempre lo hace, asi que se intenta; y
+              // cuando la bloquea, el aviso lo dice y ofrece el boton, cuyo clic si
+              // es un gesto y no se bloquea nunca.
+              const seAbrio = postAction === 'print' ? abrirImpresion() : true;
               toast.success('La DGII aceptó el comprobante', {
-                description: `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`,
+                description: seAbrio
+                  ? `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`
+                  : `NCF: ${ncfEmitido} — aceptado. El navegador bloqueó la ventana de impresión.`,
                 duration: 20000,
-                ...(postAction === 'print'
-                  ? { action: { label: 'Imprimir', onClick: abrirImpresion } }
+                ...(postAction === 'print' && !seAbrio
+                  ? { action: { label: 'Imprimir', onClick: () => { abrirImpresion(); } } }
                   : {}),
               });
               loadInvoices();

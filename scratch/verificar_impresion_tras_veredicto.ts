@@ -42,16 +42,14 @@ const sc = sinComentarios(s);
 ok('no se abre la impresion sin veredicto', sc.includes("if (postAction === 'print' && estadoEmitido === 'accepted') {"));
 ok(
   'hay un solo sitio que abre la impresion',
-  sc.includes('const abrirImpresion = () => {') && sc.split("/print`, '_blank')").length - 1 === 1
+  sc.includes('const abrirImpresion') && sc.split("/print`, '_blank')").length - 1 === 1
 );
-ok(
-  'cuando la DGII acepta se ofrece el boton de imprimir',
-  sc.includes("action: { label: 'Imprimir', onClick: abrirImpresion }")
-);
-ok(
-  'la nota explica por que se ofrece el boton en vez de abrir la ventana',
-  s.includes('lo bloquea el navegador') || s.includes('bloquea `window.open` fuera de un gesto')
-);
+// Aqui habia dos comprobaciones mas: que el `action` del aviso apuntara
+// directamente a `abrirImpresion`, y la nota que explicaba por que se ofrecia
+// el boton EN VEZ de abrir la ventana. Las dos fijaban una decision que se
+// revirtio: ahora la ventana se intenta abrir sola y el boton es el respaldo
+// para cuando el navegador la bloquea. Eso lo comprueba, con mas detalle,
+// scratch/verificar_imprimir_solo.ts.
 ok(
   'si sigue pendiente y se pidio imprimir, se dice',
   sc.includes("toast.info('El comprobante se imprime cuando la DGII conteste', {")
