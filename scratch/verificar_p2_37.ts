@@ -112,5 +112,44 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   );
 }
 
+
+// Contabilidad no encaja en la forma de las demas: un cargador atiende SEIS
+// pestañas y ninguna tenia `else`. Un fallo dejaba cada una con los datos de la
+// consulta anterior -- otro rango, otra cuenta -- presentados como los de esta.
+// En contabilidad eso es un balance que no cuadra con el periodo que dice
+// arriba.
+{
+  const ct = crudo('src/app/dashboard/accounting/page.tsx') ?? '';
+  const ctc = sinComentarios(ct);
+  ok(
+    'contabilidad: un solo estado de error para las seis pestañas',
+    ctc.includes('const [errorCarga, setErrorCarga] = useState<string | null>(null);') && ctc.includes('setErrorCarga(null);')
+  );
+  ok(
+    'contabilidad: las seis ramas dejan rastro del success:false',
+    ctc.split('setErrorCarga(motivoDeCarga(null, data.error?.message));').length - 1 === 5 &&
+      ctc.includes('setErrorCarga(motivoDeCarga(err));')
+  );
+  ok(
+    'contabilidad: cada rama vacia LO SUYO, no deja lo anterior en pantalla',
+    ['setJournals([]);', 'setTrialBalanceData([]);', 'setFinancialsData(null);', 'setPeriods([]);'].every((x) =>
+      ctc.includes(x)
+    )
+  );
+  ok(
+    'contabilidad: el auxiliar deja de fingir que no elegiste cuenta',
+    ct.includes('Seleccione una cuenta contable') &&
+      ctc.indexOf('setErrorCarga(motivoDeCarga(null, data.error?.message));') >= 0 &&
+      ctc.indexOf('setErrorCarga(motivoDeCarga(null, data.error?.message));') < ctc.indexOf('Seleccione una cuenta contable')
+  );
+  ok(
+    'contabilidad: el aviso se pinta encima, antes de cualquier pestaña',
+    ctc.includes('{errorCarga && !loading && (') &&
+      ctc.includes('<ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />') &&
+      ctc.indexOf('{errorCarga && !loading && (') >= 0 &&
+      ctc.indexOf('{errorCarga && !loading && (') < ctc.indexOf("{activeTab === 'catalog' && (")
+  );
+}
+
 console.log(`\nTotal fallos: ${fallos}`);
 process.exit(fallos > 0 ? 1 : 0);

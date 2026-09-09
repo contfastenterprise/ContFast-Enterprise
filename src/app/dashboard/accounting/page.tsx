@@ -7,6 +7,7 @@ import { esAdminOSistemas } from '@/utils/rolMatch';
 import { BookOpen, Search, Plus, RefreshCw, FileText, FileCheck, X, AlertTriangle, ArrowRightLeft, ChevronDown, ChevronUp, Printer, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import clsx from 'clsx';
 
@@ -64,6 +65,10 @@ export default function AccountingPage() {
   const { user, loading: rbacLoading } = useRbac();
   const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods'>('catalog');
   const [loading, setLoading] = useState(true);
+  // P2-37: uno para las seis pestañas, porque el cargador es uno. Mientras
+  // este puesto, el aviso se pinta encima y ninguna pestaña presenta los datos
+  // de la consulta anterior como si fueran los de esta.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   useEffect(() => {
     if (!rbacLoading && user) {
@@ -135,6 +140,8 @@ export default function AccountingPage() {
       const formattedStart = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
       const formattedEnd = endDate || new Date().toISOString().split('T')[0];
 
+      setErrorCarga(null);
+
       if (activeTab === 'catalog') {
         // accounts already loaded
       } else if (activeTab === 'journals') {
@@ -149,29 +156,56 @@ export default function AccountingPage() {
         if (data.success) {
           setJournals(data.data);
           setJournalsMeta(data.meta ?? null);
+        } else {
+          setJournals([]);
+          setJournalsMeta(null);
+          setErrorCarga(motivoDeCarga(null, data.error?.message));
         }
       } else if (activeTab === 'ledger') {
         if (selectedLedgerAccount) {
           const res = await fetch(`/api/v1/accounting/reports/ledger?accountId=${selectedLedgerAccount}&startDate=${formattedStart}&endDate=${formattedEnd}`);
           const data = await res.json();
-          if (data.success) setLedgerData(data.data);
+          if (data.success) {
+            setLedgerData(data.data);
+          } else {
+            // Sin esto, el auxiliar caia en su rama de "Seleccione una cuenta
+            // contable": te pedia hacer lo que acababas de hacer.
+            setLedgerData(null);
+            setErrorCarga(motivoDeCarga(null, data.error?.message));
+          }
         } else {
           setLedgerData(null);
         }
       } else if (activeTab === 'trial-balance') {
         const res = await fetch(`/api/v1/accounting/reports/trial-balance?startDate=${formattedStart}&endDate=${formattedEnd}`);
         const data = await res.json();
-        if (data.success) setTrialBalanceData(data.data);
+        if (data.success) {
+          setTrialBalanceData(data.data);
+        } else {
+          setTrialBalanceData([]);
+          setErrorCarga(motivoDeCarga(null, data.error?.message));
+        }
       } else if (activeTab === 'financials') {
         const res = await fetch(`/api/v1/accounting/reports/financials?startDate=${formattedStart}&endDate=${formattedEnd}`);
         const data = await res.json();
-        if (data.success) setFinancialsData(data.data);
+        if (data.success) {
+          setFinancialsData(data.data);
+        } else {
+          setFinancialsData(null);
+          setErrorCarga(motivoDeCarga(null, data.error?.message));
+        }
       } else if (activeTab === 'periods') {
         const res = await fetch('/api/v1/accounting/periods');
         const data = await res.json();
-        if (data.success) setPeriods(data.data);
+        if (data.success) {
+          setPeriods(data.data);
+        } else {
+          setPeriods([]);
+          setErrorCarga(motivoDeCarga(null, data.error?.message));
+        }
       }
     } catch (err) {
+      setErrorCarga(motivoDeCarga(err));
       toast.error('Error cargando datos de contabilidad.');
     } finally {
       setLoading(false);
@@ -517,6 +551,15 @@ export default function AccountingPage() {
             </button>
           ))}
         </div>
+
+        {/* El aviso va aqui, encima de las seis: el cargador es uno, asi que
+            sea cual sea la pestaña que estes mirando, el fallo es el mismo y se
+            ve igual. */}
+        {errorCarga && !loading && (
+          <div className="bg-white border border-amber-200 rounded-xl shadow-sm mb-4">
+            <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+          </div>
+        )}
 
         {/* CATALOG TAB */}
         <AnimatePresence mode="wait">
