@@ -1,0 +1,102 @@
+name: Sincronizar e-CF con la DGII
+
+# POR QUE ESTE WORKFLOW EXISTE
+# ----------------------------
+# La DGII no acepta un comprobante en el mismo momento del envio: mSeller lo
+# recibe y la DGII dicta despues, casi siempre en segundos. Por eso una factura
+# recien emitida queda en 'submitted', y eso es correcto -- afirmar 'accepted'
+# sin veredicto es lo que P0-06 vino a cerrar.
+#
+# Lo que faltaba era alguien que preguntara. `sincronizarPendientes()` consulta
+# a la DGII el veredicto de todo lo que sigue en "enviado", y
+# /api/v1/cron/sincronizar-ecf es su despertador. Estaba escrito y nadie lo
+# llamaba: no hay vercel.json, y los otros dos workflows no lo tocan. Resultado:
+# habia que sincronizar a mano desde la pantalla, una por una.
+#
+# QUE HAY QUE CONFIGURAR ANTES DE QUE ESTO SIRVA
+# ----------------------------------------------
+#   1. Variable CRON_SECRET en el entorno de la app (Vercel > Settings >
+#      Environment Variables) y en el .env local. Sin ella la ruta devuelve 503
+#      a proposito y no hace nada.
+#   2. En este repo, Settings > Secrets and variables > Actions:
+#        - Secret   CRON_SECRET  -> el MISMO valor que en Vercel
+#        - Variable APP_URL      -> https://tu-dominio (sin barra final)
+#
+# Si falta cualquiera de las dos, el workflow falla en voz alta en vez de
+# aparentar que sincroniza.
+#
+# SOBRE LA PUNTUALIDAD
+# --------------------
+# GitHub no garantiza la hora exacta de un `schedule`: con carga alta puede
+# retrasarse varios minutos, y en repos sin actividad puede llegar a
+# desactivarlo. No pasa nada: sincronizar tarde solo significa que el estado se
+# actualiza mas tarde; no se pierde ni se duplica nada, porque esto solo
+# CONSULTA. La pantalla de facturacion ademas pregunta por su cuenta unos
+# segundos despues de emitir, asi que este cron es la red de seguridad, no el
+# camino principal.
+
+on:
+  schedule:
+    # Cada 5 minutos. Es el minimo que acepta GitHub.
+    - cron: '*/5 * * * *'
+  # Para poder dispararlo a mano desde la pestana Actions cuando haga falta.
+  workflow_dispatch:
+
+# Si una ejecucion se solapa con la anterior, se descarta la nueva: dos
+# sincronizaciones a la vez consultarian los mismos comprobantes por duplicado.
+concurrency:
+  group: sincronizar-ecf
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Comprobar la configuracion
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          faltan=""
+          [ -z "$CRON_SECRET" ] && faltan="$faltan CRON_SECRET(secret)"
+          [ -z "$APP_URL" ] && faltan="$faltan APP_URL(variable)"
+          if [ -n "$faltan" ]; then
+            echo "::error::Falta configurar:$faltan — ver la cabecera de este fichero."
+            exit 1
+          fi
+
+      - name: Consultar a la DGII los comprobantes pendientes
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          set -euo pipefail
+
+          # --max-time por debajo del timeout del job: si la ruta se cuelga,
+          # preferimos un fallo claro a un job colgado.
+          codigo=$(curl --silent --show-error \
+                        --max-time 120 \
+                        --retry 2 --retry-delay 5 --retry-connrefused \
+                        --output respuesta.json \
+                        --write-out '%{http_code}' \
+                        --header "Authorization: Bearer $CRON_SECRET" \
+                        "$APP_URL/api/v1/cron/sincronizar-ecf")
+
+          echo "HTTP $codigo"
+          cat respuesta.json
+          echo
+
+          if [ "$codigo" = "401" ]; then
+            echo "::error::401 — el CRON_SECRET de este repo no coincide con el de la app."
+            exit 1
+          fi
+          if [ "$codigo" = "503" ]; then
+            echo "::error::503 — la app no tiene CRON_SECRET configurado en su entorno."
+            exit 1
+          fi
+          if [ "$codigo" != "200" ]; then
+            echo "::error::La sincronizacion respondio $codigo."
+            exit 1
+          fi
