@@ -62,7 +62,7 @@ function InvoicesList() {
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
-  const [pendingPostAction, setPendingPostAction] = useState<'print' | 'email' | 'none' | undefined>(undefined);
+  const [pendingPostAction, setPendingPostAction] = useState<'print' | 'none' | undefined>(undefined);
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState('');
@@ -887,7 +887,7 @@ function InvoicesList() {
     });
   };
 
-  const handleSubmitTrigger = async (e?: React.FormEvent, postAction: 'print' | 'email' | 'none' = 'print') => {
+  const handleSubmitTrigger = async (e?: React.FormEvent, postAction: 'print' | 'none' = 'print') => {
     if (e) e.preventDefault();
     try {
       if ((ecfType === '31' || ecfType === '45') && (!customerRnc || !customerName)) {
@@ -957,7 +957,7 @@ function InvoicesList() {
     }
   };
 
-  const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'email' | 'none') => {
+  const handleIssueInvoice = async (e: React.FormEvent, postAction?: 'print' | 'none') => {
     e.preventDefault();
     setSaveDropdownOpen(false);
     setSubmitting(true);
@@ -1133,6 +1133,14 @@ function InvoicesList() {
 
       const invoiceId = data.data.id;
 
+      // Solo se imprime lo ACEPTADO. Esta ruta arma el PDF al vuelo leyendo la
+      // factura: si se abre antes del veredicto sale el comprobante provisional,
+      // sin codigo de seguridad, sin fecha de firma y sin QR, porque esos tres
+      // datos los produce la DGII al firmar y todavia no existen.
+      const abrirImpresion = () => {
+        window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
+      };
+
       // La DGII no resuelve en el mismo momento del envio: mSeller recibe el
       // documento y la DGII dicta despues, casi siempre en segundos. Por eso la
       // emision deja la factura en 'submitted', y eso es CORRECTO -- afirmar
@@ -1154,8 +1162,17 @@ function InvoicesList() {
             if (!est.success) return;
 
             if (est.data?.status === 'accepted') {
+              // El navegador bloquea `window.open` fuera de un gesto del usuario, y
+              // aqui han pasado ya cinco segundos: abrirlo solo se traduciria en un
+              // aviso de ventana emergente bloqueada. Asi que se ofrece el boton, y
+              // el clic es el gesto. Ademas es lo honesto: la impresion ocurre
+              // cuando quien factura decide, no a espaldas suyas.
               toast.success('La DGII aceptó el comprobante', {
                 description: `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`,
+                duration: 20000,
+                ...(postAction === 'print'
+                  ? { action: { label: 'Imprimir', onClick: abrirImpresion } }
+                  : {}),
               });
               loadInvoices();
             } else if (est.data?.status === 'rejected') {
@@ -1164,9 +1181,18 @@ function InvoicesList() {
                 duration: 15000,
               });
               loadInvoices();
+            } else if (postAction === 'print') {
+              // Sigue pendiente. Quien pulso "emitir e imprimir" espera un papel,
+              // asi que hay que decirle por que no sale -- callar aqui es dejarle
+              // mirando una ventana que no llega.
+              toast.info('El comprobante se imprime cuando la DGII conteste', {
+                description: `NCF: ${ncfEmitido} — todavía sin veredicto. Se imprime desde el listado en cuanto lo dé.`,
+                duration: 12000,
+              });
             }
-            // Si sigue en 'submitted' no se dice nada: el aviso de la emision ya
-            // explico que queda pendiente, y repetirlo solo seria ruido.
+            // Si sigue en 'submitted' y no se pidio imprimir no se dice nada: el
+            // aviso de la emision ya explico que queda pendiente, y repetirlo solo
+            // seria ruido.
           } catch {
             // Una consulta de cortesia que falla no puede molestar a quien ya
             // termino de facturar. La factura esta emitida y el cron insiste.
@@ -1186,52 +1212,24 @@ function InvoicesList() {
       resetForm();
       loadInvoices();
 
-      // Post-action: print or email
-      if (postAction === 'print') {
-        // 1. Open print window (Print)
-        setTimeout(() => {
-          window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');
-        }, 500);
-
-        // 2. Also send by email if customer exists
-        if (data.data.customerId) {
-          try {
-            const emailRes = await fetch(`/api/v1/invoices/${invoiceId}/email`, { method: 'POST' });
-            const emailData = await emailRes.json();
-            if (emailRes.ok && emailData.success) {
-              toast.success('Correo enviado', { description: emailData.message });
-            } else {
-              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' ||
-                emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
-                emailData.error?.message?.toLowerCase().includes('no tiene correo');
-              if (!hasNoEmail) {
-                toast.error('Error al enviar correo', { description: emailData.error?.message });
-              }
-            }
-          } catch {
-            toast.error('Error de red al enviar el correo.');
-          }
-        }
-      } else if (postAction === 'email') {
-        if (data.data.customerId) {
-          try {
-            const emailRes = await fetch(`/api/v1/invoices/${invoiceId}/email`, { method: 'POST' });
-            const emailData = await emailRes.json();
-            if (emailRes.ok && emailData.success) {
-              toast.success('Correo enviado', { description: emailData.message });
-            } else {
-              const hasNoEmail = emailData.error?.code === 'NO_EMAIL' ||
-                emailData.error?.message?.toLowerCase().includes('no tiene un correo') ||
-                emailData.error?.message?.toLowerCase().includes('no tiene correo');
-              if (!hasNoEmail) {
-                toast.error('Error al enviar correo', { description: emailData.error?.message });
-              }
-            }
-          } catch {
-            toast.error('Error de red al enviar el correo.');
-          }
-        }
+      // Se imprime cuando la DGII acepta, no antes.
+      //
+      // Aqui habia un `window.open(.../print)` a los 500 ms de emitir: salia el
+      // comprobante provisional, sin codigo de seguridad, sin fecha de firma y sin
+      // QR. Si mSeller ya trae el veredicto, se imprime ya -- estamos todavia
+      // dentro del gesto del usuario, asi que la ventana no la bloquea el
+      // navegador. Si no, lo ofrece la consulta de mas arriba cuando conteste.
+      if (postAction === 'print' && estadoEmitido === 'accepted') {
+        setTimeout(abrirImpresion, 500);
       }
+
+      // Y aqui habia un POST a la ruta de REENVIAR el correo, que entra con
+      // `esReenvio: true` y por tanto se salta las dos guardas: la de exigir
+      // factura aceptada y la marca de idempotencia. Mandaba el provisional al
+      // cliente, y luego la sincronizacion mandaba el bueno: dos correos.
+      //
+      // El correo al cliente lo manda el backend cuando la DGII acepta, en
+      // services/invoice/correoFactura.ts. La pantalla no tiene que pedirlo.
     } catch (error: any) {
       toast.error('Error de emisión', { description: error.message });
     } finally {
@@ -1921,27 +1919,18 @@ function InvoicesList() {
                               </div>
                               <div>
                                 <p className="font-semibold text-slate-800">Solo Guardar</p>
-                                <p className="text-xs text-slate-500">Emite el comprobante sin imprimir</p>
+                                <p className="text-xs text-slate-500">Emite sin imprimir. El correo al cliente sale cuando la DGII acepta.</p>
                               </div>
                             </button>
-                            {/* Option 2: Emitir y Enviar por Correo */}
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => {
-                                setSaveDropdownOpen(false);
-                                handleSubmitTrigger(undefined, 'email');
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 transition-colors text-left"
-                            >
-                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                                <Mail className="h-4 w-4 text-blue-700" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-slate-800">Emitir y Enviar por Correo</p>
-                                <p className="text-xs text-slate-500">Emite el e-CF y lo envía al correo del cliente</p>
-                              </div>
-                            </button>
+                            {/*
+                              Aqui habia un "Emitir y Enviar por Correo". El correo al
+                              cliente lo manda el backend cuando la DGII acepta, se
+                              pulse el boton que se pulse, asi que hacia exactamente lo
+                              mismo que "Solo Guardar". Dos botones iguales no son una
+                              opcion, son una duda.
+
+                              Para pedirlo a mano esta el boton de reenviar del listado.
+                            */}
                           </motion.div>
                         </>
                       )}
