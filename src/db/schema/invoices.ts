@@ -191,6 +191,18 @@ export const invoices = pgTable('invoices', {
   // construia por nuestra cuenta no era el endpoint de consulta de la DGII y el
   // QR impreso llevaba a una direccion que no existe.
   qrUrl: text('qr_url'),
+  /**
+   * Cuando se le mando al cliente el correo con la factura ya aceptada.
+   *
+   * La DGII no acepta en el momento del envio, asi que el correo se manda
+   * cuando llega el veredicto -- y hay DOS vias de sincronizacion que pueden
+   * ver la misma transicion. Esta marca se toma con `IS NULL` dentro del propio
+   * UPDATE, asi que gana una sola y el cliente recibe un correo, no dos.
+   *
+   * No la toca el boton de reenviar: reenviar a peticion de una persona no es
+   * el envio automatico.
+   */
+  customerEmailSentAt: timestamp('customer_email_sent_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

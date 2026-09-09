@@ -95,6 +95,12 @@ export interface DgiiSubmissionResult {
   msellerTrackId: string | null;
   dgiiMessage: string | null;
   securityHash: string;
+  /**
+   * La fecha de firma que devolvio mSeller, si la devolvio. `null` mientras la
+   * DGII no haya firmado: el PDF de la emision no puede inventarsela poniendo
+   * la hora del reloj, que es lo que hacia.
+   */
+  signatureDate: string | null;
   qrCode: string | null;
   finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected';
   msellerResponsePayload: unknown;

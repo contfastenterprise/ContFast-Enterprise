@@ -15,6 +15,13 @@
       "when": 1788833237501,
       "tag": "0001_sour_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788914499556,
+      "tag": "0002_huge_blue_shield",
+      "breakpoints": true
     }
   ]
 }

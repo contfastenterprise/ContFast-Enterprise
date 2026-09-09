@@ -140,7 +140,11 @@ describe('DB-23 · la firma se lee de la factura', () => {
   const LECTURAS: [string, string][] = [
     ['src/app/api/v1/invoices/[id]/route.ts', 'invoice'],
     ['src/app/api/v1/invoices/[id]/pdf/route.ts', 'invoice'],
-    ['src/app/api/v1/invoices/[id]/email/route.ts', 'invoice'],
+    // El correo ya no sale al emitir sino cuando la DGII acepta, asi que su
+    // armado del PDF se movio de la ruta al servicio. La ruta quedo como
+    // envoltorio HTTP y no resuelve ninguna firma; el codigo que la resuelve es
+    // este, y es el que hay que vigilar.
+    ['src/services/invoice/correoFactura.ts', 'invoice'],
     ['src/app/api/v1/invoices/[id]/print/route.ts', 'invoiceRecordDb'],
   ];
 
@@ -153,7 +157,7 @@ describe('DB-23 · la firma se lee de la factura', () => {
    * ahora, y `firmaDelComprobante` lo fija en su firma -- la factura es el
    * primer argumento.
    */
-  it('las cuatro rutas prefieren la columna antes que el JSON del envío', () => {
+  it('las cuatro lecturas prefieren la columna antes que el JSON del envío', () => {
     for (const [ruta, variable] of LECTURAS) {
       const fuente = leer(ruta);
       expect(fuente, `${ruta}: la firma debe resolverse con firmaDelComprobante`)
@@ -166,7 +170,7 @@ describe('DB-23 · la firma se lee de la factura', () => {
     }
   });
 
-  it('ninguna ruta fabrica el código de seguridad', () => {
+  it('ninguna lectura fabrica el código de seguridad', () => {
     const culpables = LECTURAS.map(([r]) => r).filter((r) => leer(r).includes("createHash('sha256')"));
     expect(
       culpables,
@@ -256,7 +260,7 @@ describe('DB-23 · la firma se lee de la factura', () => {
     expect(seleccion).toContain('signatureDate: invoices.signatureDate');
   });
 
-  it('ninguna ruta construye la URL de consulta de la DGII', () => {
+  it('ninguna lectura construye la URL de consulta de la DGII', () => {
     const culpables = LECTURAS.map(([r]) => r).filter((r) => leer(r).includes('ecf.dgii.gov.do'));
     expect(
       culpables,

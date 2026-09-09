@@ -1,0 +1,1 @@
+ALTER TABLE "invoices" ADD COLUMN "customer_email_sent_at" timestamp;

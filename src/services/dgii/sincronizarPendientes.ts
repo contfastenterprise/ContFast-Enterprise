@@ -39,6 +39,7 @@ import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estado
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { envioVigente, type Modo } from '@/repositories/dgiiSubmissionRepository';
 import { Logger } from '@/utils/logger';
+import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 
 /** mSeller acepta como mucho 100 e-NCF por consulta. */
 const MAXIMO_POR_LOTE = 100;
@@ -269,8 +270,33 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
             .where(and(eq(dgiiSubmissions.id, envio.id), eq(dgiiSubmissions.companyId, companyId)));
         }
 
-        if (lectura.estado === 'accepted') resumen.aceptados++;
-        else if (lectura.estado === 'rejected') resumen.rechazados++;
+        // El correo al cliente sale AQUI, no al emitir: al emitir la factura
+        // todavia no tenia codigo de seguridad ni fecha de firma, asi que su PDF
+        // habria salido sin QR. Ahora si estan.
+        //
+        // `enviarFacturaPorCorreo` toma la marca con `IS NULL` en el propio
+        // UPDATE, asi que si la consulta puntual de esa factura llego antes,
+        // aqui no se manda nada. Y el fallo se traga: que falle un correo no
+        // puede parar la sincronizacion de las demas facturas.
+        if (lectura.estado === 'accepted') {
+          resumen.aceptados++;
+          try {
+            await enviarFacturaPorCorreo({
+              invoiceId: factura.id,
+              companyId,
+              modo: modo as Modo,
+              esReenvio: false,
+            });
+          } catch (correoErr: unknown) {
+            Logger.warn('[sincronizarPendientes] no se pudo enviar el correo de la factura aceptada', {
+              invoiceId: factura.id, ncf: factura.ncf, error: (correoErr as Error)?.message,
+            });
+          }
+        } else if (lectura.estado === 'rejected') {
+          // Rechazada no imprime ni manda nada: un comprobante que la DGII no
+          // acepto no es un comprobante. El rechazo se ve en la pantalla.
+          resumen.rechazados++;
+        }
       }
     } catch (err: unknown) {
       // Una empresa mal configurada no puede parar a las demas.

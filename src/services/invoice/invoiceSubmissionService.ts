@@ -6,7 +6,7 @@ import { credencialesMseller } from '@/services/dgii/credenciales';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { vencimientoSecuencia } from '@/services/dgii/secuencia';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, EcfRejectedError, MSellerCommunicationError } from './types';
-import { leerEstado, mensajeEstado } from '@/services/dgii/estadoEnvio';
+import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
 import { leerDesenlace, mensajeDesconocido } from '@/services/dgii/desenlaceEnvio';
 import type { CompanyRepository } from '@/repositories/companyRepository';
 
@@ -197,10 +197,17 @@ export class InvoiceSubmissionService {
       }
     }
 
+    // La fecha de firma se saca de la respuesta con la MISMA lectura que usa
+    // todo lo demas (`camposDeFirma`), que solo devuelve lo que vino: si mSeller
+    // no la dijo, aqui queda null y el PDF de la emision sale sin ella, en vez
+    // de con la hora del reloj.
+    const firma = camposDeFirma(msellerResponsePayload);
+
     return {
       msellerTrackId,
       dgiiMessage,
       securityHash,
+      signatureDate: firma.signatureDate ?? null,
       qrCode,
       finalStatus,
       msellerResponsePayload,

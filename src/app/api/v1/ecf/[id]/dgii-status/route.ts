@@ -10,6 +10,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
+import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 
 export async function GET(
   req: NextRequest,
@@ -108,6 +109,7 @@ export async function GET(
     // "No Aceptado" se habria leido como ACEPTADO. No consta que la DGII use
     // esa forma, pero `leerEstado` mira el rechazo primero justo por eso.
     let newStatus = invoice.status;
+    let acabaDeAceptarse = false;
     if (statusResult.success) {
       const lectura = leerEstado(statusResult.rawResponse ?? {
         dgiiStatus: statusResult.dgiiStatus,
@@ -116,6 +118,10 @@ export async function GET(
       // Un 'submitted' que sigue siendo 'submitted' no cambia nada; los otros
       // dos son veredicto y si se escriben.
       newStatus = lectura.estado;
+      // Si es ESTA consulta la que descubre la aceptacion, es la que manda el
+      // correo al cliente. Se compara contra el estado anterior para no
+      // repetirlo en cada consulta posterior.
+      acabaDeAceptarse = invoice.status !== 'accepted' && newStatus === 'accepted';
 
       // Always update invoice status and dgiiMessage on sync
       await db
@@ -198,6 +204,28 @@ export async function GET(
             eq(dgiiSubmissions.id, envio.id),
             eq(dgiiSubmissions.companyId, auth.companyId)
           ));
+      }
+    }
+
+    // El correo al cliente sale AQUI, no al emitir: al emitir la factura no
+    // tenia codigo de seguridad ni fecha de firma, y su PDF habria salido sin
+    // QR. Va despues de guardar el estado y la firma, porque el PDF se arma
+    // leyendo la factura.
+    //
+    // `enviarFacturaPorCorreo` toma la marca `customer_email_sent_at` con
+    // `IS NULL` en el propio UPDATE: si el barrido de pendientes vio la misma
+    // transicion, el cliente recibe un correo y no dos. Y nunca relanza: que
+    // falle un correo no puede convertir en error una consulta que fue bien.
+    if (acabaDeAceptarse) {
+      try {
+        await enviarFacturaPorCorreo({
+          invoiceId: id,
+          companyId: auth.companyId,
+          modo: auth.modo,
+          esReenvio: false,
+        });
+      } catch (correoErr: unknown) {
+        console.error('[dgii-status] no se pudo enviar el correo de la factura aceptada:', correoErr);
       }
     }
 

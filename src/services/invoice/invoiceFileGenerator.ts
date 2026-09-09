@@ -81,6 +81,25 @@ export class InvoiceFileGenerator {
     msellerXmlPath: string
   ): Promise<string[]> {
     const avisos: string[] = [];
+
+    // SIN VEREDICTO NO HAY DOCUMENTO.
+    //
+    // La DGII no acepta en el momento del envio: al emitir, la factura no tiene
+    // todavia codigo de seguridad ni fecha de firma, porque los produce la DGII
+    // al firmar. Un PDF hecho ahora sale sin QR y sin esos dos campos -- un
+    // comprobante a medias que ademas se guarda como si fuera el definitivo.
+    //
+    // Asi que no se genera. El documento se produce cuando la DGII ACEPTA, desde
+    // services/invoice/correoFactura.ts, y solo entonces. Rechazada no imprime:
+    // un comprobante que la DGII no acepto no es un comprobante, y un PDF suyo
+    // solo sirve para que alguien lo confunda con uno valido.
+    //
+    // Quien necesite el papel antes de que la DGII conteste lo tiene en el boton
+    // de imprimir, que arma el PDF al vuelo leyendo la factura y no inventa nada.
+    if (submission.finalStatus !== 'accepted') {
+      return avisos;
+    }
+
     try {
       // EL CODIGO DE SEGURIDAD ES EL QUE DEVOLVIO mSELLER, O NINGUNO.
       //
@@ -145,7 +164,14 @@ export class InvoiceFileGenerator {
         notes: data.notes || '',
         codigoFactura,
         securityCode: securityHash,
-        signatureDate: new Date().toISOString(),
+        // LA FECHA DE FIRMA ES LA QUE DIJO mSELLER, O NINGUNA.
+        //
+        // Aqui decia `new Date().toISOString()`, que no es la fecha de firma:
+        // es la hora de generar el PDF. Igual que el codigo de seguridad, es un
+        // dato del comprobante que solo existe cuando la DGII firma, y hasta
+        // entonces no consta. La ruta de impresion ya lo hacia bien -- lee
+        // `firma.fechaFirma` -- y esta se quedo poniendo el reloj.
+        signatureDate: submission.signatureDate || null,
         lines: totals.itemLines.map((l) => {
           const prod = productMap.get(l.productId);
           return {
