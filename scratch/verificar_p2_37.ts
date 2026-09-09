@@ -75,6 +75,7 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/adjustments/page.tsx', 'notas de ajuste', 'loadAdjustments', 1],
   ['src/app/dashboard/receivables-report/page.tsx', 'reporte de cobros', 'fetchData', 1],
   ['src/app/dashboard/admin/companies/page.tsx', 'empresas', 'fetchData', 1],
+  ['src/app/dashboard/products/barcodes/page.tsx', 'codigos de barras', 'fetchProducts', 1],
 ];
 for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   const tc = sinComentarios(crudo(ruta) ?? '');
@@ -178,6 +179,34 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   ok(
     'reporte de cobros: vaciar respeta la forma del estado (un array, no null)',
     rr.includes('setData([]);') && !rr.includes('setData(null)')
+  );
+}
+
+
+// Transferencias miraba `whData.data` a secas, nunca `success`: un cuerpo de
+// error no trae `data`, asi que no entraba por ningun lado. Y su vacio vive
+// DENTRO del desplegable de busqueda, o sea que el fallo se leia como "ese
+// producto no existe" mientras escribias su nombre.
+{
+  const bruto = crudo('src/app/dashboard/inventory/transfer/page.tsx') ?? '';
+  const tr = sinComentarios(bruto);
+  ok(
+    'transferencias: comprueba success, no la mera presencia de data',
+    tr.includes('if (whData.success && whData.data) {') && tr.includes('if (prData.success && prData.data) {')
+  );
+  ok(
+    'transferencias: el desplegable deja de decir que el producto no existe',
+    bruto.includes('Esto no significa que el producto no exista.')
+  );
+}
+
+// Ajustes de inventario carga con promesas dentro de un useEffect y usa `active`
+// para descartar respuestas de una busqueda ya obsoleta. El error lo respeta.
+{
+  const ai = sinComentarios(crudo('src/app/dashboard/inventory/adjustments/page.tsx') ?? '');
+  ok(
+    'ajustes de inventario: el fallo respeta la busqueda en curso',
+    ai.split('if (!active) return;').length - 1 === 2 && ai.includes('setErrorCarga(motivoDeCarga(err));')
   );
 }
 

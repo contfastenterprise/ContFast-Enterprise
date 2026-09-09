@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, Search, Plus, Trash2, Building2, Package, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 interface Warehouse {
@@ -33,6 +34,9 @@ export default function TransferPage() {
   const [items, setItems] = useState<TransferItem[]>([]);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Selector state
@@ -120,6 +124,7 @@ export default function TransferPage() {
   }, [selectedProduct, products]);
 
   async function fetchInitialData() {
+    setErrorCarga(null);
     try {
       const [whRes, prRes] = await Promise.all([
         fetch('/api/v1/warehouses'),
@@ -128,9 +133,26 @@ export default function TransferPage() {
       const whData = await whRes.json();
       const prData = await prRes.json();
       
-      if (whData.data) setWarehouses(whData.data);
-      if (prData.data) setProducts(prData.data);
+      // Miraba `whData.data` a secas, nunca `success`. Un cuerpo de error no
+      // trae `data`, asi que no entraba por ningun lado: almacenes y productos
+      // se quedaban vacios y el desplegable decia "No se encontraron productos"
+      // mientras escribias el nombre de uno que si existe.
+      if (whData.success && whData.data) {
+        setWarehouses(whData.data);
+      } else {
+        setWarehouses([]);
+        setErrorCarga(motivoDeCarga(null, whData.error?.message));
+      }
+      if (prData.success && prData.data) {
+        setProducts(prData.data);
+      } else {
+        setProducts([]);
+        setErrorCarga(motivoDeCarga(null, prData.error?.message));
+      }
     } catch (error) {
+      setWarehouses([]);
+      setProducts([]);
+      setErrorCarga(motivoDeCarga(error));
       toast.error('Error al cargar datos iniciales');
     } finally {
       setLoading(false);
@@ -305,7 +327,11 @@ export default function TransferPage() {
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
                       <div className="absolute z-40 mt-1 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-52 overflow-y-auto text-xs py-1">
-                        {filteredProducts.length === 0 ? (
+                        {errorCarga ? (
+                          <div className="p-3 text-center text-[11px] font-semibold text-amber-700">
+                            No se pudo cargar el catálogo. Esto no significa que el producto no exista.
+                          </div>
+                        ) : filteredProducts.length === 0 ? (
                           <div className="p-3 text-slate-500 text-center">No se encontraron productos</div>
                         ) : (
                           filteredProducts.slice(0, 50).map(p => (

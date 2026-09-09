@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { SearchBar } from '@/components/ui/search-bar';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
@@ -31,6 +32,9 @@ export default function InventoryAdjustmentsPage() {
   const [tablePage, setTablePage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
   const [tableLoading, setTableLoading] = useState(false);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [tableInventory, setTableInventory] = useState<Record<string, number>>({});
   const [tableInputs, setTableInputs] = useState<Record<string, string>>({});
   const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
@@ -105,17 +109,28 @@ export default function InventoryAdjustmentsPage() {
   useEffect(() => {
     let active = true;
     setTableLoading(true);
+    setErrorCarga(null);
     fetch(`/api/v1/products?per_page=10&page=${tablePage}&search=${encodeURIComponent(tableSearchQuery)}`)
       .then(r => r.json())
       .then(data => {
-        if (active && data.success) {
+        if (!active) return;
+        if (data.success) {
           const items = data.data || [];
           setTableProducts(items);
           setTableTotalPages(data.meta?.total_pages || 1);
+        } else {
+          setTableProducts([]);
+          setErrorCarga(motivoDeCarga(null, data.error?.message));
         }
       })
       .catch(err => {
+        // `active` marca si esta respuesta sigue siendo la de la busqueda en
+        // curso. El error lo respeta igual: una consulta vieja que falla no
+        // puede pisar el estado de la nueva.
+        if (!active) return;
         console.error(err);
+        setTableProducts([]);
+        setErrorCarga(motivoDeCarga(err));
         toast.error('Error al cargar productos para la tabla');
       })
       .finally(() => {
@@ -391,6 +406,8 @@ export default function InventoryAdjustmentsPage() {
           <div className="flex justify-center items-center py-12">
             <RefreshCw className="h-8 w-8 text-primary animate-spin" />
           </div>
+        ) : errorCarga ? (
+          <ErrorDeCarga mensaje={errorCarga} />
         ) : tableProducts.length === 0 ? (
           <div className="text-center py-12 text-on-surface-variant/70 text-sm">
             No se encontraron productos.

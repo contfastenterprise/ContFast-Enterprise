@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
@@ -26,6 +27,9 @@ export default function BarcodeDashboardPage() {
   const confirm = useConfirm();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
+  // enseña el error en vez de su mensaje de vacio.
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'with_code' | 'without_code'>('all');
@@ -70,6 +74,7 @@ export default function BarcodeDashboardPage() {
 
   const fetchProducts = async () => {
     setLoading(true);
+    setErrorCarga(null);
     try {
       // 1. Fetch total counts to calculate statistics
       const statsRes = await fetch('/api/v1/products?limit=100000');
@@ -79,6 +84,13 @@ export default function BarcodeDashboardPage() {
         setTotalCount(allItems.length);
         setWithCodeCount(allItems.filter(p => !!p.barcode).length);
         setWithoutCodeCount(allItems.filter(p => !p.barcode).length);
+      } else {
+        // Son los contadores de arriba. Sin esto se quedaban con los numeros de
+        // la consulta anterior, encabezando una tabla que ya no los cumple.
+        setTotalCount(0);
+        setWithCodeCount(0);
+        setWithoutCodeCount(0);
+        setErrorCarga(motivoDeCarga(null, statsData.error?.message));
       }
 
       // 2. Fetch active page products
@@ -97,6 +109,8 @@ export default function BarcodeDashboardPage() {
         setCategories(catData.data || []);
       }
     } catch (e) {
+      setProducts([]);
+      setErrorCarga(motivoDeCarga(e));
       toast.error('Error al cargar catálogo o categorías');
     } finally {
       setLoading(false);
@@ -445,6 +459,12 @@ export default function BarcodeDashboardPage() {
                   <td colSpan={5} className="p-12 text-center text-slate-400">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-3 text-[#C5A059]" />
                     Cargando catálogo...
+                  </td>
+                </tr>
+              ) : errorCarga ? (
+                <tr>
+                  <td colSpan={5}>
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchProducts} />
                   </td>
                 </tr>
               ) : products.length === 0 ? (
