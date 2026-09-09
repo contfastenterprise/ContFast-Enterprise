@@ -1133,6 +1133,47 @@ function InvoicesList() {
 
       const invoiceId = data.data.id;
 
+      // La DGII no resuelve en el mismo momento del envio: mSeller recibe el
+      // documento y la DGII dicta despues, casi siempre en segundos. Por eso la
+      // emision deja la factura en 'submitted', y eso es CORRECTO -- afirmar
+      // 'accepted' sin veredicto es justo lo que P0-06 vino a cerrar.
+      //
+      // Lo que faltaba era preguntar. Se consulta UNA vez, unos segundos
+      // despues, a la misma ruta que usa el boton de sincronizar. Si la DGII ya
+      // resolvio, quien acaba de facturar lo ve sin tocar nada; si todavia no,
+      // la factura se queda en 'enviado' y la recoge el cron de sincronizacion
+      // (.github/workflows/sincronizar-ecf.yml).
+      //
+      // No bloquea nada: la factura ya esta emitida y el formulario ya se cerro.
+      if (estadoEmitido === 'submitted') {
+        const ncfEmitido = data.data.ncf;
+        setTimeout(async () => {
+          try {
+            const estRes = await fetch(`/api/v1/ecf/${invoiceId}/dgii-status`);
+            const est = await estRes.json();
+            if (!est.success) return;
+
+            if (est.data?.status === 'accepted') {
+              toast.success('La DGII aceptó el comprobante', {
+                description: `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`,
+              });
+              loadInvoices();
+            } else if (est.data?.status === 'rejected') {
+              toast.error('La DGII rechazó el comprobante', {
+                description: `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}`,
+                duration: 15000,
+              });
+              loadInvoices();
+            }
+            // Si sigue en 'submitted' no se dice nada: el aviso de la emision ya
+            // explico que queda pendiente, y repetirlo solo seria ruido.
+          } catch {
+            // Una consulta de cortesia que falla no puede molestar a quien ya
+            // termino de facturar. La factura esta emitida y el cron insiste.
+          }
+        }, 5000);
+      }
+
       if (editingDraftId) {
         try {
           await fetch(`/api/v1/invoices/${editingDraftId}`, { method: 'DELETE' });
