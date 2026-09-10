@@ -11,6 +11,7 @@ import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './typ
 import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { Logger } from '@/utils/logger';
 
 export class InvoiceDbBooker {
   /**
@@ -239,9 +240,23 @@ export class InvoiceDbBooker {
         modo,
       });
     } catch (err) {
-      console.error(
-        `[InvoiceDbBooker] No se pudo registrar el hueco de secuencia del NCF ${ncf}:`,
-        err
+      // Esto es lo ultimo que queda. Si la traza del hueco no se escribe, el
+      // NCF quemado desaparece: el log tiene que llevarse la fila ENTERA, que
+      // es lo unico que permite reconstruirla a mano. Decir "no se pudo
+      // registrar" y nada mas es no dejar rastro.
+      Logger.error(
+        `[InvoiceDbBooker] No se pudo registrar el hueco de secuencia del NCF ${ncf}. Se pierde esta fila:`,
+        {
+          companyId,
+          userId,
+          modo,
+          action: 'ncf_reservado_sin_usar',
+          entityType: 'ecf_sequences',
+          ncf,
+          ecfType,
+          motivo,
+          errorAlEscribir: (err as Error)?.message || String(err),
+        }
       );
     }
   }

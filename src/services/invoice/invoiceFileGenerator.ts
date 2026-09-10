@@ -1,7 +1,8 @@
-import { db, products, productCategories, auditLogs } from '@/db';
+import { db, products, productCategories } from '@/db';
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
+import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { addJob } from '@/infrastructure/queue';
@@ -40,23 +41,21 @@ export class InvoiceFileGenerator {
     paso: string,
     err: unknown
   ) {
-    try {
-      await db.insert(auditLogs).values({
-        companyId: data.companyId,
-        userId: data.userId,
-        modo: data.modo,
-        action: 'fallo_post_emision',
-        entityType: 'invoices',
-        entityId: invoiceId ?? undefined,
-        newValues: { paso, ncf, motivo: (err as Error)?.message || String(err) },
-        ipAddress: 'server',
-      });
-    } catch (trazaErr) {
-      Logger.error(
-        `[InvoiceFileGenerator] No se pudo registrar el fallo post-emision (${paso}) del NCF ${ncf}:`,
-        trazaErr
-      );
-    }
+    // El `paso` del que habla P2-30 viaja en el contexto y NO en el nombre de
+    // la accion, a proposito: la fila sigue saliendo con
+    // `action: 'fallo_post_emision'` y `newValues: { paso, ncf, motivo }`,
+    // exactamente como hasta ahora. Cambiar la forma del registro dejaria las
+    // filas viejas y las nuevas sin poder consultarse juntas.
+    await registrarFalloSilencioso({
+      companyId: data.companyId,
+      modo: data.modo,
+      userId: data.userId,
+      paso: 'post_emision',
+      entityType: 'invoices',
+      entityId: invoiceId,
+      contexto: { paso, ncf },
+      err,
+    });
   }
 
   /**

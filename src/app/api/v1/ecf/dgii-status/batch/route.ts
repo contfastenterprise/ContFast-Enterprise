@@ -11,6 +11,7 @@ import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado, motivoDgii } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
+import { Logger } from '@/utils/logger';
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -224,10 +225,12 @@ export async function POST(req: NextRequest) {
               esReenvio: false,
             });
           } catch (correoErr: unknown) {
-            console.error(
-              `[dgii-status/batch] no se pudo enviar el correo de la factura aceptada ${result.ecf}:`,
-              correoErr
-            );
+            // Mismo rastro que las otras dos vias. Aqui importa el doble: son
+            // muchas facturas de una pasada, y sin el id no hay forma de saber
+            // a cual de todas le fallo el correo.
+            Logger.warn('[dgii-status/batch] no se pudo enviar el correo de la factura aceptada', {
+              invoiceId: inv.id, ncf: result.ecf, error: (correoErr as Error)?.message,
+            });
           }
         }
 

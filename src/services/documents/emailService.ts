@@ -1,6 +1,8 @@
 import { db } from '@/db';
 import { systemEmailLogs } from '@/db/schema/system';
 import { getTransporter, getFromEmail } from '@/utils/mailer';
+import { Logger } from '@/utils/logger';
+import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
 
 export interface SendDocumentEmailOptions {
   companyId: string;
@@ -57,7 +59,12 @@ export class EmailService {
     } catch (e: unknown) {
       errorMessage = (e as Error).message || 'Excepción al intentar enviar el correo por SMTP.';
       status = 'failed';
-      console.error('[EmailService] Exception sending email via SMTP:', e);
+      // Con contexto: sin saber a quien ni de que documento, el log no sirve
+      // para atender el caso. (Este fallo SI se relanza mas abajo, asi que no
+      // necesita traza durable: llega arriba.)
+      Logger.error('[EmailService] fallo el envio por SMTP', {
+        companyId, documentType, documentId, toEmail, motivo: errorMessage,
+      });
     }
 
     // 2. Log in Database
@@ -77,7 +84,20 @@ export class EmailService {
         sentAt: status === 'sent' ? new Date() : null,
       });
     } catch (dbError) {
-      console.error('[EmailService] Failed to log email to DB:', dbError);
+      // `system_email_logs` es la PRUEBA de que el documento salio. Si la fila
+      // no se escribe, el correo se mando y no queda constancia de ello en
+      // ningun sitio -- y este catch no puede relanzar, porque el envio ya fue.
+      // Asi que la constancia se deja en el otro sitio que hay para eso.
+      await registrarFalloSilencioso({
+        companyId,
+        modo,
+        userId,
+        paso: 'registro_correo',
+        entityType: 'system_email_logs',
+        entityId: documentId,
+        contexto: { documentType, toEmail, subject, estadoDelEnvio: status, providerMessageId: providerMessageId || null },
+        err: dbError,
+      });
     }
 
     if (status === 'failed') {

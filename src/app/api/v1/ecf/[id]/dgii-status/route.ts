@@ -11,6 +11,7 @@ import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
+import { Logger } from '@/utils/logger';
 
 export async function GET(
   req: NextRequest,
@@ -225,7 +226,12 @@ export async function GET(
           esReenvio: false,
         });
       } catch (correoErr: unknown) {
-        console.error('[dgii-status] no se pudo enviar el correo de la factura aceptada:', correoErr);
+        // Con el id y el NCF, igual que `sincronizarPendientes`: las tres vias
+        // que mandan este correo tienen que dejar el mismo rastro. Un fallo que
+        // no dice de que factura habla no se puede atender.
+        Logger.warn('[dgii-status] no se pudo enviar el correo de la factura aceptada', {
+          invoiceId: id, ncf: invoice.ncf, error: (correoErr as Error)?.message,
+        });
       }
     }
 

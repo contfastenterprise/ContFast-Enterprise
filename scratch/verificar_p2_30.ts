@@ -1,6 +1,7 @@
-import { crudo as crudoCrudo } from './_fuente';
+import { crudo as crudoCrudo, fuente as fuenteCruda, bloque } from './_fuente';
 
 const crudo = (rutaRelativa: string): string => crudoCrudo(rutaRelativa).replace(/\r\n/g, '\n');
+const fuente = (rutaRelativa: string): string => fuenteCruda(rutaRelativa).replace(/\r\n/g, '\n');
 
 let fallos = 0;
 
@@ -25,20 +26,53 @@ const contar = (s: string, sub: string): number => s.split(sub).length - 1;
 {
   const src = crudo('src/services/invoice/invoiceFileGenerator.ts');
 
+  // P2-43 lote 1 (2026-09-10): la escritura en audit_logs ya no vive aqui. La
+  // copia privada que tenia este fichero se saco a
+  // `src/services/auditoria/rastroDeFallo.ts` para que no hubiera una tercera.
+  // Lo que este banco defiende NO ha cambiado -- que el fallo post-emision deje
+  // traza durable, con paso, NCF y motivo --, solo el sitio donde se escribe,
+  // asi que las comprobaciones apuntan alli.
   ok(
-    'fileGenerator: importa auditLogs',
-    src.includes("import { db, products, productCategories, auditLogs } from '@/db';")
+    'fileGenerator: el import ya no arrastra auditLogs',
+    !src.includes('auditLogs')
   );
-  ok('fileGenerator: existe el helper de traza durable', src.includes('private static async registrarFalloPostEmision('));
+  ok('fileGenerator: sigue existiendo el helper de traza durable', src.includes('private static async registrarFalloPostEmision('));
   ok(
-    'fileGenerator: la traza va a audit_logs con su propia accion',
-    src.includes("action: 'fallo_post_emision',") && src.includes('await db.insert(auditLogs).values({')
+    'fileGenerator: el helper delega en el rastro compartido',
+    src.includes("import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';")
+    && src.includes('await registrarFalloSilencioso({')
   );
   ok(
-    'fileGenerator: la traza guarda paso, NCF y motivo (localizable)',
-    src.includes('newValues: { paso, ncf, motivo: (err as Error)?.message || String(err) },')
+    'fileGenerator: la fila sale igual que antes (accion, paso, NCF y motivo)',
+    src.includes("paso: 'post_emision',")
+    && src.includes("entityType: 'invoices',")
+    && src.includes('contexto: { paso, ncf },')
   );
-  ok('fileGenerator: escribir la traza nunca tumba la emision', src.includes('} catch (trazaErr) {'));
+  {
+    const rastro = crudo('src/services/auditoria/rastroDeFallo.ts');
+    ok(
+      'rastro compartido: escribe en audit_logs con `fallo_` + el paso',
+      rastro.includes('await db.insert(auditLogs).values({')
+      && rastro.includes('action: `fallo_${f.paso}`,')
+      && rastro.includes('newValues: { motivo, ...f.contexto },')
+    );
+    ok(
+      'rastro compartido: NUNCA relanza, y si no puede escribir deja la fila en el log',
+      rastro.includes('} catch (trazaErr) {')
+      && rastro.includes('Se pierde esta fila:')
+    );
+  }
+  // Esto miraba el `catch (trazaErr)` que vivia AQUI. Esa guarda se fue con la
+  // escritura al rastro compartido, y alli es donde se comprueba ahora (arriba:
+  // "NUNCA relanza"). Lo que sigue siendo responsabilidad de ESTE fichero es no
+  // volver a meter nada que lance en el camino de la traza: el metodo delega y
+  // no hace otra cosa.
+  {
+    const metodo = bloque(fuente('src/services/invoice/invoiceFileGenerator.ts'),
+      'private static async registrarFalloPostEmision(');
+    ok('fileGenerator: escribir la traza sigue sin poder tumbar la emision',
+      metodo.includes('await registrarFalloSilencioso({') && !metodo.includes('throw'));
+  }
 
   ok(
     'fileGenerator: generateFilesAndSendEmail declara que devuelve avisos',
