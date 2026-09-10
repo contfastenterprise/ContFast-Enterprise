@@ -16,7 +16,7 @@
  *     lo relevante para la regresion es la comparacion, que es comun a ambos.
  */
 import { describe, it, expect } from 'vitest';
-import { checkStock } from '../services/inventoryService';
+import { checkStock, checkStockBatch } from '../services/inventoryService';
 import { products } from '../db/schema';
 
 /**
@@ -163,5 +163,150 @@ describe('checkStock — cantidades decimales', () => {
 
   it('rechaza un exceso decimal por pequeno que sea', async () => {
     expect(await puedeSacar(3.5, 3.5001)).toBe(false);
+  });
+});
+
+
+/**
+ * checkStockBatch — el mismo producto repetido en varias lineas.
+ *
+ * Un conduce puede traer el mismo producto en dos lineas. Hasta 2026-09-09 esta
+ * funcion decidia cada linea POR SEPARADO contra la misma existencia: con 10 en
+ * almacen, dos lineas de 8 pasaban las dos, y despues `approve` descontaba las
+ * dos y el nivel quedaba en -6. Lo que tiene que caber en el almacen es la SUMA.
+ */
+function txLote(
+  niveles: Record<string, { quantity: number; minStock?: number }>,
+  llevan: Record<string, boolean> = {}
+) {
+  const ids = new Set([...Object.keys(niveles), ...Object.keys(llevan)]);
+  const tx: any = {
+    select: () => ({
+      from: (tabla: any) => ({
+        where: async () => {
+          if (tabla === products) {
+            return [...ids].map((id) => ({ id, tracksInventory: llevan[id] ?? true }));
+          }
+          return Object.entries(niveles).map(([productId, n]) => ({
+            productId,
+            quantity: n.quantity,
+            minStock: n.minStock ?? 0,
+          }));
+        },
+      }),
+    }),
+  };
+  return tx;
+}
+
+const puedeSacarLote = (
+  niveles: Record<string, { quantity: number; minStock?: number }>,
+  items: { productId: string; quantityNeeded: number }[],
+  llevan: Record<string, boolean> = {}
+) => checkStockBatch('empresa-1', 'PRODUCCION', 'almacen-1', items, txLote(niveles, llevan));
+
+describe('checkStockBatch — lineas repetidas del mismo producto', () => {
+  it('SUMA las dos lineas: 8 + 8 no salen de una existencia de 10', async () => {
+    // El bug: cada linea se comparaba con los 10 y las dos pasaban. Se
+    // despachaban 16 unidades de las 10 que habia.
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 10 } }, [
+        { productId: 'prod-1', quantityNeeded: 8 },
+        { productId: 'prod-1', quantityNeeded: 8 },
+      ])
+    ).toEqual([false, false]);
+  });
+
+  it('deja pasar la suma que si cabe: 5 + 5 de una existencia de 10', async () => {
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 10 } }, [
+        { productId: 'prod-1', quantityNeeded: 5 },
+        { productId: 'prod-1', quantityNeeded: 5 },
+      ])
+    ).toEqual([true, true]);
+  });
+
+  it('rechaza por una sola unidad de mas repartida entre dos lineas', async () => {
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 10 } }, [
+        { productId: 'prod-1', quantityNeeded: 5 },
+        { productId: 'prod-1', quantityNeeded: 6 },
+      ])
+    ).toEqual([false, false]);
+  });
+
+  it('el producto que no alcanza no arrastra al que si', async () => {
+    // La decision es por producto, no por lote: que falte tornilleria no puede
+    // bloquear la linea de otro producto que esta perfectamente disponible.
+    expect(
+      await puedeSacarLote(
+        { 'prod-1': { quantity: 10 }, 'prod-2': { quantity: 100 } },
+        [
+          { productId: 'prod-1', quantityNeeded: 8 },
+          { productId: 'prod-1', quantityNeeded: 8 },
+          { productId: 'prod-2', quantityNeeded: 1 },
+        ]
+      )
+    ).toEqual([false, false, true]);
+  });
+
+  it('el stock minimo se respeta sobre la suma, no sobre cada linea', async () => {
+    // 20 en almacen con un minimo de 10: caben 10, no 12.
+    const items = [
+      { productId: 'prod-1', quantityNeeded: 6 },
+      { productId: 'prod-1', quantityNeeded: 6 },
+    ];
+    expect(await puedeSacarLote({ 'prod-1': { quantity: 20, minStock: 10 } }, items)).toEqual([
+      false,
+      false,
+    ]);
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 20, minStock: 10 } }, [
+        { productId: 'prod-1', quantityNeeded: 5 },
+        { productId: 'prod-1', quantityNeeded: 5 },
+      ])
+    ).toEqual([true, true]);
+  });
+
+  it('un servicio repetido sigue sin bloquear nunca', async () => {
+    // No tiene existencia que agotar: sumar 1500 no cambia nada.
+    expect(
+      await puedeSacarLote(
+        {},
+        [
+          { productId: 'srv-1', quantityNeeded: 500 },
+          { productId: 'srv-1', quantityNeeded: 500 },
+          { productId: 'srv-1', quantityNeeded: 500 },
+        ],
+        { 'srv-1': false }
+      )
+    ).toEqual([true, true, true]);
+  });
+
+  it('una linea suelta decide igual que checkStock', async () => {
+    // La correccion no puede cambiar el caso normal, que es la inmensa mayoria.
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 3 } }, [
+        { productId: 'prod-1', quantityNeeded: 4 },
+      ])
+    ).toEqual([false]);
+    expect(
+      await puedeSacarLote({ 'prod-1': { quantity: 3 } }, [
+        { productId: 'prod-1', quantityNeeded: 3 },
+      ])
+    ).toEqual([true]);
+  });
+
+  it('un producto sin nivel en el almacen no pasa por venir repetido', async () => {
+    expect(
+      await puedeSacarLote({}, [
+        { productId: 'prod-9', quantityNeeded: 1 },
+        { productId: 'prod-9', quantityNeeded: 1 },
+      ], { 'prod-9': true })
+    ).toEqual([false, false]);
+  });
+
+  it('sin lineas no pregunta nada', async () => {
+    expect(await puedeSacarLote({ 'prod-1': { quantity: 10 } }, [])).toEqual([]);
   });
 });

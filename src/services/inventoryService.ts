@@ -225,11 +225,18 @@ function alcanzaLaExistencia(existencia: number, minimo: number, cantidadPedida:
  * Lo mismo que `checkStock`, pero para varias lineas de golpe: DOS consultas en
  * total en vez de dos POR LINEA.
  *
- * Devuelve un array alineado con `items` por indice, NO un mapa por producto: si
- * el mismo producto aparece en dos lineas, cada una se decide por separado
- * contra la MISMA existencia, exactamente como hacia el bucle anterior. Las dos
- * lineas no se suman entre si. Se conserva a proposito: cambiar eso seria
- * cambiar el comportamiento en un arreglo de rendimiento.
+ * Devuelve un array alineado con `items` por indice, pero la DECISION es por
+ * producto: si el mismo producto aparece en dos lineas, lo que tiene que caber
+ * en el almacen es la SUMA de las dos, no cada una por su lado.
+ *
+ * Hasta 2026-09-09 cada linea se decidia por separado contra la misma
+ * existencia -- con 10 en almacen, dos lineas de 8 pasaban las dos, y luego se
+ * descontaban las dos, dejando el nivel en -6. El docblock decia que se
+ * conservaba a proposito, y era cierto: P2-28 fue un arreglo de rendimiento y no
+ * tocaba comportamiento. Ya no.
+ *
+ * Cuando un producto no alcanza, TODAS sus lineas devuelven false. No hay una
+ * linea culpable: lo que no cabe es la suma.
  *
  * No cubre el camino provisional (`useProvisional`), que sigue en `checkStock`:
  * ahi cada linea necesita su propia consulta de reservas.
@@ -271,16 +278,29 @@ export async function checkStockBatch(
 
   const nivelPorProducto = new Map(niveles.map((n) => [n.productId, n]));
 
-  return items.map(({ productId, quantityNeeded }) => {
+  // Sumar ANTES de decidir. Este es el arreglo: el mismo producto en dos lineas
+  // pide la suma de las dos al mismo almacen, no dos veces el total entero.
+  const pedidoPorProducto = new Map<string, number>();
+  for (const { productId, quantityNeeded } of items) {
+    pedidoPorProducto.set(productId, (pedidoPorProducto.get(productId) || 0) + quantityNeeded);
+  }
+
+  const alcanzaPorProducto = new Map<string, boolean>();
+  for (const [productId, totalPedido] of pedidoPorProducto) {
     // Un servicio no tiene existencia que comprobar: nunca puede bloquear un
     // despacho por falta de stock.
-    if (!llevaPorProducto.get(productId)) return true;
+    if (!llevaPorProducto.get(productId)) {
+      alcanzaPorProducto.set(productId, true);
+      continue;
+    }
 
     const nivel = nivelPorProducto.get(productId);
     const existencia = nivel ? Number(nivel.quantity || 0) : 0;
     const minimo = nivel ? Number(nivel.minStock || 0) : 0;
-    return alcanzaLaExistencia(existencia, minimo, quantityNeeded);
-  });
+    alcanzaPorProducto.set(productId, alcanzaLaExistencia(existencia, minimo, totalPedido));
+  }
+
+  return items.map(({ productId }) => alcanzaPorProducto.get(productId) ?? false);
 }
 
 export async function addStock(

@@ -292,11 +292,39 @@ export class DeliveryRepository {
         tx
       );
 
+      // Auditoria (2026-09-09): un conduce puede traer el MISMO producto en dos
+      // lineas, y las comprobaciones de abajo se hacian linea a linea contra el
+      // total entero. Facturaste 10 y el conduce lleva dos lineas de 8: cada una
+      // se comparaba con los 10 y pasaba. Se despachaban 16.
+      //
+      // Y la FACTURA tambien puede repetir producto: `invLines.find` se quedaba
+      // con la primera linea, asi que una factura con el producto en dos lineas
+      // de 5 contaba 5 facturados en vez de 10 y rechazaba entregas legitimas.
+      // Ese falla al reves que el otro, pero es el mismo error.
+      //
+      // Las dos se arreglan igual: sumar por producto antes de comparar.
+      const facturadoPorProducto = new Map<string, number>();
+      for (const il of invLines) {
+        facturadoPorProducto.set(
+          il.productId,
+          (facturadoPorProducto.get(il.productId) || 0) + Number(il.quantity)
+        );
+      }
+
+      const pedidoPorProducto = new Map<string, number>();
+      for (const l of note.lines) {
+        pedidoPorProducto.set(
+          l.productId,
+          (pedidoPorProducto.get(l.productId) || 0) + Number(l.quantity)
+        );
+      }
+
       for (const [idx, line] of note.lines.entries()) {
-        const invoicedLine = invLines.find((il) => il.productId === line.productId);
-        const invoicedQty = invoicedLine ? Number(invoicedLine.quantity) : 0;
+        const invoicedQty = facturadoPorProducto.get(line.productId) || 0;
         const previouslyDelivered = deliveredMap[line.productId] || 0;
-        const currentQty = Number(line.quantity);
+        // El TOTAL de este conduce para este producto, no el de esta linea. Asi
+        // el mensaje tampoco miente: dice lo que de verdad se esta pidiendo.
+        const currentQty = pedidoPorProducto.get(line.productId) || 0;
 
         if (previouslyDelivered + currentQty > invoicedQty) {
           throw new Error(
