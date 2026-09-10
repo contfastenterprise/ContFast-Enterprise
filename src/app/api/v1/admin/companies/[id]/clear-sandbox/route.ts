@@ -45,7 +45,7 @@ import {
 } from '@/db';
 import { eq, and, inArray } from 'drizzle-orm';
 import type { PgColumn } from 'drizzle-orm/pg-core';
-import { delCache } from '@/infrastructure/redis';
+import { CompanyRepository } from '@/repositories/companyRepository';
 import { esSistemas } from '@/utils/rolMatch';
 
 export async function POST(
@@ -216,16 +216,18 @@ export async function POST(
     });
 
     // 3. Clear company settings and dashboard caches
-    try {
-      await delCache(`company_settings:${companyId}`);
-      console.log(`[Clear Sandbox] Invalidated cache for company: ${companyId}`);
-    } catch (e) {
-      console.error('[Clear Sandbox] Failed to invalidate cache:', e);
-    }
+    const seInvalido = await CompanyRepository.invalidarCacheDeConfiguracion(companyId);
+    const avisos = seInvalido
+      ? []
+      : [
+          'Los datos de prueba se borraron, pero no se pudo tirar la copia en caché de la ' +
+            'configuración de la empresa. Puede seguir viéndose información vieja hasta 24 horas.',
+        ];
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Todos los datos de prueba de la empresa han sido eliminados de forma exitosa.' 
+      message: 'Todos los datos de prueba de la empresa han sido eliminados de forma exitosa.',
+      avisos,
     });
 
   } catch (err: unknown) {

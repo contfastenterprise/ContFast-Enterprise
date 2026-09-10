@@ -4,6 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { eq, and } from 'drizzle-orm';
 import { getCache, setCache, delCache } from '@/infrastructure/redis';
+import { Logger } from '@/utils/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +29,13 @@ export async function GET(req: NextRequest) {
         const parsed = JSON.parse(cachedData);
         return NextResponse.json({ success: true, data: parsed, fromCache: true });
       } catch (e) {
-        console.error('Failed to parse cached expense types:', e);
+        // Caer a la base esta bien. Lo que estaba mal era dejar la clave
+        // envenenada donde estaba: la MISMA excepcion se repetia en cada
+        // peticion durante el resto del TTL.
+        Logger.warn('[expenses/types] cache ilegible; se tira la clave y se lee de la base', {
+          companyId: session.companyId, motivo: (e as Error)?.message,
+        });
+        await delCache(cacheKey).catch(() => {});
       }
     }
 

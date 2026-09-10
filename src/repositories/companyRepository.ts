@@ -1,21 +1,62 @@
 import { db, companies, companySettings, ecfSequences, type DbTransaction } from '@/db';
 import { eq, and, isNull, sql, desc } from 'drizzle-orm';
-import { getCache, setCache } from '@/infrastructure/redis';
+import { getCache, setCache, delCache } from '@/infrastructure/redis';
+import { Logger } from '@/utils/logger';
+import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
 import { exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 
 export class CompanyRepository {
+  /** La clave de la copia en cache. En un sitio: la usan la lectura y el borrado. */
+  private static claveDeCache(companyId: string): string {
+    return `company_settings:${companyId}`;
+  }
+
+  /**
+   * Tira la copia cacheada de la configuracion. Devuelve si de verdad se tiro.
+   *
+   * Vive AQUI y no en cada ruta a proposito: la copia dura 24 horas y dentro
+   * van el ambiente DGII y las credenciales de mSeller, asi que quien actualice
+   * la configuracion y se olvide de borrarla deja a la empresa emitiendo con la
+   * de antes. `updateLogoUrl` se olvidaba.
+   *
+   * NUNCA lanza -- se llama despues de que el guardado ya salio bien, y tumbarlo
+   * por esto seria peor --, pero tampoco se lo calla: deja traza durable y
+   * devuelve `false` para que quien llame pueda avisar a quien esta delante.
+   */
+  static async invalidarCacheDeConfiguracion(companyId: string): Promise<boolean> {
+    try {
+      await delCache(this.claveDeCache(companyId));
+      return true;
+    } catch (e) {
+      await registrarFalloSilencioso({
+        companyId,
+        paso: 'invalidar_cache_configuracion',
+        entityType: 'company_settings',
+        entityId: companyId,
+        contexto: { clave: this.claveDeCache(companyId), duracionCacheHoras: 24 },
+        err: e,
+      });
+      return false;
+    }
+  }
+
   /**
    * Fetches settings for a company (with Redis caching).
    */
   static async getSettings(companyId: string): Promise<typeof companySettings.$inferSelect | undefined> {
-    const cacheKey = `company_settings:${companyId}`;
+    const cacheKey = this.claveDeCache(companyId);
     try {
       const cached = await getCache(cacheKey);
       if (cached) {
         return JSON.parse(cached) as typeof companySettings.$inferSelect;
       }
     } catch (e) {
-      console.error('Failed to get settings cache:', e);
+      // No relanza a proposito: si la cache no se puede leer, se cae a la base,
+      // que es la fuente de verdad. Lo unico que faltaba era decir de que
+      // empresa se hablaba.
+      Logger.warn('[CompanyRepository] no se pudo leer la cache de configuracion; se lee de la base', {
+        companyId, motivo: (e as Error)?.message,
+      });
     }
 
     const [settings] = await db
@@ -28,7 +69,10 @@ export class CompanyRepository {
       try {
         await setCache(cacheKey, JSON.stringify(settings), 86400); // Cache for 24 hours
       } catch (e) {
-        console.error('Failed to set settings cache:', e);
+        // Quedarse sin cachear no rompe nada: se vuelve a leer de la base.
+        Logger.warn('[CompanyRepository] no se pudo cachear la configuracion', {
+          companyId, motivo: (e as Error)?.message,
+        });
       }
     }
     return settings;
@@ -43,6 +87,10 @@ export class CompanyRepository {
       .set({ logoUrl, updatedAt: new Date() })
       .where(and(eq(companySettings.companyId, companyId), isNull(companySettings.deletedAt)))
       .returning();
+    // Esto NO estaba, y no habia ni catch que se lo tragara: sencillamente no se
+    // borraba la copia. El logo nuevo no salia en los comprobantes hasta que
+    // caducara, hasta 24 horas despues.
+    await this.invalidarCacheDeConfiguracion(companyId);
     return updated;
   }
 

@@ -278,6 +278,11 @@ export default function SettingsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Configuración guardada exitosamente');
+        // Guardar y surtir efecto no son lo mismo: si la copia en cache no se
+        // pudo tirar, lo que acabas de escribir no esta activo todavia.
+        for (const aviso of (data.avisos ?? []) as string[]) {
+          toast.warning(aviso, { duration: 12000 });
+        }
         // Auditoria ISO-16: los campos de credenciales no se quedan escritos
         // despues de guardar, por el mismo motivo que al cambiar de ambiente.
         if (formData.msellerApiKey) {

@@ -6,7 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
-import { delCache } from '@/infrastructure/redis';
+import { CompanyRepository } from '@/repositories/companyRepository';
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -341,13 +341,21 @@ export async function PATCH(req: NextRequest) {
       });
     });
 
-    try {
-      await delCache(`company_settings:${session.companyId}`);
-    } catch (e) {
-      console.error('Failed to invalidate settings cache:', e);
-    }
+    // La copia cacheada dura 24 horas y dentro van el ambiente DGII y las
+    // credenciales de mSeller. Si no se puede tirar, lo que acabas de guardar NO
+    // esta surtiendo efecto todavia -- y antes se devolvia `success: true` sin
+    // decir nada. El guardado si fue bien, asi que sigue siendo un exito: lo que
+    // no puede faltar es el aviso.
+    const seInvalido = await CompanyRepository.invalidarCacheDeConfiguracion(session.companyId);
+    const avisos = seInvalido
+      ? []
+      : [
+          'La configuración se guardó, pero no se pudo borrar la copia en caché. ' +
+            'Los cambios —incluidas las credenciales y el ambiente DGII— pueden tardar ' +
+            'hasta 24 horas en surtir efecto. Vuelve a guardar más tarde para reintentarlo.',
+        ];
 
-    return NextResponse.json({ success: true, message: 'Configuración actualizada' });
+    return NextResponse.json({ success: true, message: 'Configuración actualizada', avisos });
   } catch (err: unknown) {
     return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });
   }
