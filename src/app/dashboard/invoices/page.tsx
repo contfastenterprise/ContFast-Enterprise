@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo, useRef } from 'react';
 import { TIPOS_COMPROBANTE, nombreTipo, nombreCortoTipo } from '@/services/dgii/tiposComprobante';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -159,9 +159,18 @@ function InvoicesList() {
           const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
           const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
 
+          // Esto RECHAZABA el producto: `toast.error` + `return`, y la linea no
+          // llegaba a anadirse. Era la tercera copia de la regla del minimo, y la
+          // unica que impedia siquiera meter el producto en la factura.
+          //
+          // Emitir no descuenta existencia -- sale en el conduce --, asi que se
+          // avisa y se sigue. El aviso permanente bajo las lineas dice el resto,
+          // y con la cantidad que de verdad se esta pidiendo, que es lo que esta
+          // regla nunca miro.
           if (currentMinStk > 0 && currentQty <= currentMinStk) {
-            toast.error(`No se puede vender "${product.name}". El stock actual (${currentQty}) es menor o igual al stock mínimo configurado (${currentMinStk}).`, { id: toastId });
-            return;
+            toast.warning(
+              `"${product.name}" está en el mínimo o por debajo (existencia ${currentQty}, mínimo ${currentMinStk}).`
+            );
           }
 
           setDbProducts(prev => {
@@ -833,30 +842,87 @@ function InvoicesList() {
   };
 
   /**
-   * El stock minimo. Solo al emitir: un borrador no descuenta nada.
+   * La existencia, como AVISO y no como bloqueo.
    *
-   * No cabe en el esquema porque no es una regla del cuerpo -- se resuelve
-   * contra `dbProducts`, que solo existe en la pantalla.
+   * Emitir una factura no descuenta existencia en este sistema, a proposito:
+   * `invoiceDbBooker` lo dice -- "Deduccion diferida a Conduce de Entrega". La
+   * mercancia sale en el conduce y ahi es donde se valida de verdad. Facturar
+   * por encima de lo que hay es un flujo legitimo: vendes hoy lo que recibes el
+   * jueves. Bloquearlo seria romperlo.
+   *
+   * Lo que no es legitimo es callarselo. Si facturas 500 de 10, el conduce no se
+   * va a poder aprobar, y para entonces ya hay un e-CF emitido y la unica salida
+   * es una nota de credito.
+   *
+   * Lo que habia antes miraba SOLO el minimo configurado y nunca la cantidad
+   * pedida: bloqueaba vender 1 unidad de algo bajo minimo, y se callaba del todo
+   * al facturar 500 de 10 con minimo 0. Y, como en el conduce, no sumaba las
+   * lineas repetidas del mismo producto.
+   *
+   * Se agrupa por (producto, almacen de la linea) porque cada linea puede salir
+   * de un almacen distinto: lo que compite por la misma existencia son las
+   * lineas del mismo producto EN EL MISMO almacen.
+   *
+   * En vivo y no al pulsar el boton: un aviso que llega cuando ya decidiste,
+   * llega tarde.
    */
-  const erroresDeStock = (): Record<string, string> => {
-    const out: Record<string, string> = {};
-    if (ecfType === '34') return out;
+  const avisosDeStock = useMemo<{ idx: number; mensaje: string }[]>(() => {
+    // Una nota de credito DEVUELVE mercancia: no hay existencia que agotar.
+    if (ecfType === '34') return [];
+
+    const grupos = new Map<string, { idx: number; nombre: string; pedido: number; existencia: number; minimo: number }>();
 
     lines.forEach((line, idx) => {
       const prod = dbProducts.find((p) => p.id === line.productId);
       if (!prod) return;
+      // Un servicio no esta en ningun almacen: no tiene existencia que agotar.
+      if (prod.tracksInventory === false) return;
+
       const lineWId = line.warehouseId || warehouseId;
-      const targetInv = prod.inventory?.find((i: any) => i.warehouseId === lineWId);
-      const currentQty = targetInv ? (parseFloat(targetInv.quantity) || 0) : 0;
-      const currentMinStk = targetInv ? (parseFloat(targetInv.minStock) || 0) : 0;
-      if (currentMinStk > 0 && currentQty <= currentMinStk) {
-        out[`lines.${idx}.quantity`] =
-          `Stock actual (${currentQty}) menor o igual al mínimo configurado (${currentMinStk}): no se puede vender.`;
+      const clave = `${line.productId}|${lineWId}`;
+      const pedido = Number(line.quantity) || 0;
+
+      const ya = grupos.get(clave);
+      if (ya) {
+        ya.pedido += pedido;
+        return;
       }
+
+      const targetInv = prod.inventory?.find((i: any) => i.warehouseId === lineWId);
+      grupos.set(clave, {
+        idx,
+        nombre: line.productName || prod.name || 'el artículo',
+        pedido,
+        existencia: targetInv ? (parseFloat(targetInv.quantity) || 0) : 0,
+        minimo: targetInv ? (parseFloat(targetInv.minStock) || 0) : 0,
+      });
     });
 
-    return out;
-  };
+    const num = (n: number) => n.toLocaleString('es-DO', { maximumFractionDigits: 4 });
+
+    return [...grupos.values()]
+      .map(({ idx, nombre, pedido, existencia, minimo }) => {
+        // La misma regla que el servidor aplica en el conduce
+        // (`alcanzaLaExistencia`): lo que puede salir es lo que hay MENOS el
+        // minimo que hay que dejar puesto.
+        const disponible = existencia - minimo;
+        if (pedido <= disponible) return null;
+
+        const cola = 'Puedes emitir la factura, pero el conduce no se podrá aprobar hasta que entre mercancía.';
+        const detalle = minimo > 0
+          ? `existencia ${num(existencia)}, mínimo a conservar ${num(minimo)}`
+          : `existencia ${num(existencia)}`;
+
+        if (disponible <= 0) {
+          return { idx, mensaje: `No queda existencia disponible de «${nombre}» en ese almacén (${detalle}). ${cola}` };
+        }
+        return {
+          idx,
+          mensaje: `Estás facturando ${num(pedido)} de «${nombre}» y solo hay ${num(disponible)} disponibles en ese almacén (${detalle}). ${cola}`,
+        };
+      })
+      .filter((a): a is { idx: number; mensaje: string } => a !== null);
+  }, [lines, dbProducts, warehouseId, ecfType]);
 
   // Handler: Save as Draft
   const handleSaveDraft = async () => {
@@ -977,7 +1043,9 @@ function InvoicesList() {
     const campos: Record<string, string> = validacion.success ? {} : erroresPorCampo(validacion.error);
 
     // Y lo que el esquema no puede ver, porque depende de los productos.
-    Object.assign(campos, erroresBasicos(), erroresDeStock());
+    // La existencia YA NO esta aqui: es un aviso permanente bajo las lineas, no
+    // una puerta. Ver `avisosDeStock`.
+    Object.assign(campos, erroresBasicos());
 
     if (Object.keys(campos).length > 0) {
       setErrores(campos);
@@ -1005,7 +1073,7 @@ function InvoicesList() {
       const camposEmision: Record<string, string> = validacionEmision.success
         ? {}
         : erroresPorCampo(validacionEmision.error);
-      Object.assign(camposEmision, erroresBasicos(), erroresDeStock());
+      Object.assign(camposEmision, erroresBasicos());
 
       if (Object.keys(camposEmision).length > 0) {
         setErrores(camposEmision);
@@ -1821,6 +1889,19 @@ function InvoicesList() {
                       Línea {Number(k.split('.')[1]) + 1}: {m}
                     </p>
                   ))}
+
+                {/* Aviso, no error: en ambar y sin `data-campo`, para que no lo
+                    arrastre el salto al primer error ni parezca que bloquea. */}
+                {avisosDeStock.length > 0 && (
+                  <div data-aviso-stock className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                    {avisosDeStock.map((a) => (
+                      <p key={a.idx} className="text-[11px] font-semibold text-amber-800 flex items-start gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
+                        <span>Línea {a.idx + 1}: {a.mensaje}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-start mt-2">
                   <button
                     type="button"
