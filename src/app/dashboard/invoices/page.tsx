@@ -50,6 +50,78 @@ async function fetchWithRetry(url: string, options?: RequestInit, maxRetries = 3
   return fetch(url, options); // Fallback to normal fetch if all retries fail
 }
 
+/**
+ * El formulario mientras se lee la cotizacion.
+ *
+ * Tiene la FORMA del formulario que va a llegar -- la rejilla de ajustes, el
+ * bloque del cliente, las lineas, los totales -- y no un cuadro gris generico.
+ * Ese es el unico motivo por el que un esqueleto gana a un girador: si no
+ * anticipa lo que viene, es peor, porque ademas miente sobre la disposicion.
+ *
+ * Tres lineas y no una: una cotizacion casi nunca trae una sola, y ver aparecer
+ * dos filas mas de golpe es el salto que esto viene a evitar.
+ *
+ * `aria-hidden` y `aria-busy` en el envoltorio: para un lector de pantalla esto
+ * no es contenido, es la ausencia de contenido. Sin eso se leen en voz alta
+ * quince cajas vacias.
+ */
+function EsqueletoCotizacion() {
+  const barra = (clase: string) => (
+    <div className={`bg-slate-200/70 rounded animate-pulse ${clase}`} />
+  );
+
+  return (
+    <div data-esqueleto-cotizacion aria-busy="true" aria-live="polite" className="space-y-8">
+      <p className="text-sm font-medium text-on-surface-variant/70">
+        Cargando la cotización…
+      </p>
+
+      <div aria-hidden="true" className="space-y-8">
+        {/* Ajustes generales: dos columnas, cuatro campos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 p-5 rounded-xl border border-slate-200">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              {barra('h-3 w-28')}
+              {barra('h-8 w-full')}
+            </div>
+          ))}
+        </div>
+
+        {/* Cliente */}
+        <div className="space-y-2">
+          {barra('h-3 w-24')}
+          {barra('h-9 w-full')}
+        </div>
+
+        {/* Lineas */}
+        <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="bg-slate-50 px-4 py-3">{barra('h-3 w-40')}</div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-4 border-t border-slate-100">
+              {barra('h-8 flex-1')}
+              {barra('h-8 w-16')}
+              {barra('h-8 w-24')}
+              {barra('h-8 w-24')}
+            </div>
+          ))}
+        </div>
+
+        {/* Totales */}
+        <div className="flex justify-end">
+          <div className="w-full md:w-72 space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex justify-between gap-8">
+                {barra('h-3 w-20')}
+                {barra('h-3 w-24')}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InvoicesList() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,6 +215,17 @@ function InvoicesList() {
     },
   ]);
   const [quoteId, setQuoteId] = useState('');
+  // Al entrar desde una cotizacion, el formulario se abre VACIO y se rellena
+  // solo cuando responde `/convert`. Durante ese hueco se veia el formulario en
+  // blanco con una linea de producto vacia -- indistinguible de una factura
+  // nueva -- y de golpe se poblaba. Mientras dure, se ensena el esqueleto.
+  //
+  // Empieza en `true` si la URL trae `quoteId`, y no en el efecto: puesto en el
+  // efecto, el primer pintado ya habria ensenado el formulario vacio.
+  const [cargandoCotizacion, setCargandoCotizacion] = useState<boolean>(
+    () => !!searchParams.get('quoteId')
+  );
+  const [errorCotizacion, setErrorCotizacion] = useState<string | null>(null);
   const [sequences, setSequences] = useState<any[]>([]);
 
   useBarcodeScanner({
@@ -420,32 +503,54 @@ function InvoicesList() {
     }
   }, [showForm, warehouseId]);
 
-  // Load showForm from query parameter
-  useEffect(() => {
-    if (searchParams.get('new') === 'true') {
-      setShowForm(true);
-    }
-    const qid = searchParams.get('quoteId');
-    if (qid) {
-      setShowForm(true);
-      setQuoteId(qid);
-      fetch(`/api/v1/quotes/${qid}/convert`, { method: 'POST' })
+  /**
+   * Trae la cotizacion y rellena el formulario.
+   *
+   * Vive FUERA del efecto para que el boton de reintentar del aviso de error
+   * pueda volver a llamarla. Dentro del efecto no habria forma: el efecto
+   * depende de `searchParams`, que no cambia al pulsar un boton, asi que el
+   * boton no habria hecho nada -- justo cuando lo pulsas porque algo fallo.
+   */
+  const cargarCotizacion = useCallback((qid: string) => {
+      setCargandoCotizacion(true);
+      setErrorCotizacion(null);
+      return fetch(`/api/v1/quotes/${qid}/convert`, { method: 'POST' })
         .then(r => r.json())
         .then(data => {
           if (data.success && data.data) {
             const quote = data.data;
+            // El cliente se pide en una SEGUNDA consulta, y esa consulta hay que
+            // esperarla: si no, el esqueleto se quita al llegar las lineas y el
+            // RNC y la razon social aparecen un instante despues, encima de un
+            // formulario que ya parecia listo. "Hasta que carguen los datos" son
+            // los datos, no los primeros.
+            let esperaCliente: Promise<unknown> = Promise.resolve();
             if (quote.customerId) {
               setCustomerId(quote.customerId);
               // Fetch customer to fill details
-              fetch(`/api/v1/customers/${quote.customerId}`)
+              esperaCliente = fetch(`/api/v1/customers/${quote.customerId}`)
                 .then(cr => cr.json())
                 .then(cdata => {
                   if (cdata.success && cdata.data) {
                     setCustomerRnc(cdata.data.rncCedula || '');
                     setCustomerName(cdata.data.name || '');
                     setCustomerPhone(cdata.data.phone || '');
+                  } else {
+                    throw new Error(cdata?.error?.message || 'No se pudo leer el cliente.');
                   }
-                }).catch(err => console.error("Error fetching customer on convert:", err));
+                }).catch(err => {
+                  // No tumba la conversion: las lineas y los totales SI se
+                  // leyeron, y perderlos por esto seria peor. Pero tampoco pasa
+                  // callando, que es lo que hacia -- un console.error y a otra
+                  // cosa -- dejando los campos del comprador vacios sin decir
+                  // por que.
+                  console.error('Error fetching customer on convert:', err);
+                  toast.warning(
+                    'La cotización se cargó, pero no se pudieron traer los datos del cliente. ' +
+                    'Complétalos antes de emitir.',
+                    { duration: 8000 }
+                  );
+                });
             }
             if (quote.warehouseId) setWarehouseId(quote.warehouseId);
             if (quote.notes) setNotes(quote.notes);
@@ -458,9 +563,26 @@ function InvoicesList() {
                   { duration: 8000 }
                 );
               }
+              // El nombre ya viaja en el payload de conversion. Antes no, y el
+              // respaldo de aqui abajo -- 'Producto Cotizado' -- no era un caso
+              // raro: era SIEMPRE. Ese texto acababa en la linea de la factura y
+              // en el e-CF mandado a la DGII.
+              //
+              // Ahora el respaldo es la cadena vacia, a proposito: un nombre
+              // vacio lo para la validacion que ya existe ("Todos los articulos
+              // deben tener un nombre") en vez de emitir un nombre inventado que
+              // parece de verdad.
+              const sinNombre = quote.lines.filter((l: any) => !l.productName).length;
+              if (sinNombre > 0) {
+                toast.error(
+                  `${sinNombre} línea(s) llegaron sin nombre de producto. ` +
+                  'Escríbelos antes de emitir: no se puede facturar un artículo sin nombre.',
+                  { duration: 8000 }
+                );
+              }
               setLines(quote.lines.map((l: any) => ({
                 productId: l.productId,
-                productName: l.productName || 'Producto Cotizado',
+                productName: l.productName || '',
                 quantity: l.quantity,
                 unitPrice: l.unitPrice,
                 discount: l.discount,
@@ -473,13 +595,42 @@ function InvoicesList() {
                 // como antes, pero avisando -- no en silencio.
                 taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
                 taxCategory: l.taxCategory ?? null,
-                unitOfMeasure: 'unidad'
+                // Tambien venia a pelo: una caja o un galon se facturaban como
+                // "unidad". Ahora es la del producto, y 'unidad' solo cuando el
+                // producto de verdad no tiene ninguna.
+                unitOfMeasure: l.unitOfMeasure || 'unidad'
               })));
             }
+            // El esqueleto no se quita hasta que tambien este el cliente.
+            return esperaCliente;
+          } else {
+            // Antes esto no existia: un `success: false` dejaba el formulario
+            // VACIO, con su linea de producto en blanco, y sin nada que
+            // distinguiera "no se pudo leer la cotizacion" de "factura nueva".
+            // Te ponias a escribirla a mano sin saber que la conversion fallo.
+            setErrorCotizacion(motivoDeCarga(null, data?.error?.message));
           }
+        })
+        .catch((err) => {
+          setErrorCotizacion(motivoDeCarga(err));
+        })
+        .finally(() => {
+          setCargandoCotizacion(false);
         });
+  }, []);
+
+  // Load showForm from query parameter
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
+      setShowForm(true);
     }
-  }, [searchParams]);
+    const qid = searchParams.get('quoteId');
+    if (qid) {
+      setShowForm(true);
+      setQuoteId(qid);
+      cargarCotizacion(qid);
+    }
+  }, [searchParams, cargarCotizacion]);
 
   // Fetch Current User
   useEffect(() => {
@@ -1456,10 +1607,25 @@ function InvoicesList() {
             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 pb-5 gap-4">
               <div>
                 <h2 className="text-2xl font-bold text-[#003366] tracking-tight">Nueva Factura e-CF</h2>
-                <p className="text-on-surface-variant/80 text-sm mt-1">Complete los datos para emitir y firmar electrónicamente.</p>
+                <p className="text-on-surface-variant/80 text-sm mt-1">
+                  {cargandoCotizacion
+                    ? 'Trayendo los datos de la cotización…'
+                    : 'Complete los datos para emitir y firmar electrónicamente.'}
+                </p>
               </div>
             </div>
 
+            {cargandoCotizacion ? (
+              <EsqueletoCotizacion />
+            ) : errorCotizacion ? (
+              /* El formulario NO se pinta detras: si la cotizacion no se leyo,
+                 empezar a escribir encima seria escribir otra factura sin
+                 saberlo. Se ofrece reintentar y se dice por que. */
+              <ErrorDeCarga
+                mensaje={errorCotizacion}
+                onReintentar={() => cargarCotizacion(quoteId)}
+              />
+            ) : (
             <form onSubmit={(e) => handleSubmitTrigger(e)} className="space-y-8">
               {/* General Settings */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 p-5 rounded-xl border border-slate-200">
@@ -2085,6 +2251,7 @@ function InvoicesList() {
                 </div>
               </div>
             </form>
+            )}
           </motion.div>
         ) : (
           /* ==============================================================================

@@ -500,6 +500,19 @@ export class QuoteService {
 
         return {
           productId: line.productId,
+          // El NOMBRE y la UNIDAD del producto viajan con la linea.
+          //
+          // No iban, y `getQuote` ya los traia del `leftJoin` con productos:
+          // se quedaban en el servidor. El formulario de facturas, al no
+          // recibirlos, ponia `productName: 'Producto Cotizado'` y
+          // `unitOfMeasure: 'unidad'` a pelo -- y eso es lo que acababa en la
+          // linea de la factura y en el e-CF que se manda a la DGII. Cada
+          // articulo de una factura nacida de cotizacion se llamaba
+          // "Producto Cotizado", y una caja o un galon se vendian como unidad.
+          //
+          // Mismo caso que la tasa de ITBIS de aqui abajo, y por eso van juntos.
+          productName: (line as any).productName ?? null,
+          unitOfMeasure: (line as any).unitOfMeasure ?? null,
           quantity: Number(line.quantity),
           unitPrice: Number(line.unitPrice),
           discount: Number(line.discount),
