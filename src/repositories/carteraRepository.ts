@@ -47,7 +47,10 @@ export interface FilaCartera {
   rncCedula: string | null;
   telefono: string | null;
   correo: string | null;
-  /** Suma de lo que queda por cobrar/pagar. Solo cuotas con saldo. */
+  /**
+   * Suma de lo que queda por cobrar/pagar. Solo cuotas con saldo.
+   * Siempre mayor que 0.01: el que no debe nada no es una fila de esta lista.
+   */
   saldo: number;
   /** Solo clientes. `null` en suplidores: la tabla `suppliers` no tiene esa columna. */
   cupoCredito: number | null;
@@ -81,6 +84,14 @@ export interface FilaCartera {
  * Las dos consultas filtran por `companyId` Y por `modo`. Sin el modo, la
  * cartera de PRUEBA se sumaría a la real y la pantalla enseñaría un total que
  * no le debe nadie.
+ *
+ * SOLO SALE QUIEN DEBE
+ * --------------------
+ * Los agregados filtran por `balance > 0`, pero eso NO quita la fila: quita lo
+ * que suma. Un cliente con todo saldado seguia saliendo en la tabla con saldo
+ * 0, 0 dias y 0 documentos. Quien lo quita es el `HAVING`. Y no es cosmetica:
+ * la dona reparte sobre `filas.length` y el CSV exporta `filas`, asi que cada
+ * saldado de mas encogia el porcentaje de los que si deben.
  */
 export class CarteraRepository {
   static async resumen(
@@ -129,6 +140,15 @@ export class CarteraRepository {
         customers.phone,
         customers.email,
         customers.creditLimit
+      )
+      // Fuera el que no debe nada. El `CASE WHEN` de arriba solo evita que las
+      // cuotas saldadas sumen; la fila del cliente sale igual, con todo en cero.
+      //
+      // El centavo de tolerancia es el mismo con el que `partidasCliente` da una
+      // cuenta por saldada. Con `> 0` un cliente que debe exactamente RD$0.01
+      // saldria en la tabla y su estado de cuenta abriria vacio.
+      .having(
+        sql`COALESCE(SUM(CASE WHEN ${accountsReceivable.balance} > 0 THEN ${accountsReceivable.balance} ELSE 0 END), 0) > 0.01`
       );
 
     const series = await db
@@ -181,6 +201,11 @@ export class CarteraRepository {
         suppliers.rnc,
         suppliers.phone,
         suppliers.email
+      )
+      // Mismo freno que en clientes: el suplidor al que ya no se le debe nada no
+      // es cartera. Mismo centavo de tolerancia que `partidasSuplidor`.
+      .having(
+        sql`COALESCE(SUM(CASE WHEN ${accountsPayable.balance} > 0 THEN ${accountsPayable.balance} ELSE 0 END), 0) > 0.01`
       );
 
     const series = await db
