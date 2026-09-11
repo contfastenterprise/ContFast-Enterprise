@@ -1720,16 +1720,10 @@ export default function PurchasesPage() {
               </div>
             ) : (
               <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-                <div className="flex justify-between items-center mb-4">
+                <div className="mb-4">
                   <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
                     <Box className="h-4 w-4" /> Líneas de Compra / Gasto
                   </h3>
-                  <button
-                    onClick={addLine}
-                    className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
-                  >
-                    <Plus className="h-4 w-4" /> Añadir Línea
-                  </button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1821,6 +1815,21 @@ export default function PurchasesPage() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* "Añadir Línea" va DEBAJO de la tabla y a la izquierda: es el
+                    paso siguiente de lo que acabas de escribir, y el sitio donde
+                    la vista se queda es el final de la ultima fila, no la
+                    cabecera. Va FUERA del `overflow-x-auto` a proposito -- dentro
+                    se iria con el desplazamiento horizontal de la tabla y
+                    desapareceria de la vista en pantallas estrechas. */}
+                <div className="mt-4 flex justify-start">
+                  <button
+                    onClick={addLine}
+                    className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
+                  >
+                    <Plus className="h-4 w-4" /> Añadir Línea
+                  </button>
                 </div>
               </div>
             )}
