@@ -7,6 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { verifyAuth } from '@/middleware/auth';
+import { Logger } from '@/utils/logger';
 
 async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', isReprint: boolean = false) {
   // 1. Fetch invoice from DB
@@ -130,7 +131,8 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
   const firma = firmaDelComprobante(invoiceRecordDb, submission);
   const securityCode = firma.codigo;
   const signedDate = firma.fechaFirma;
-  let qrBase64 = '';
+  // Admite `null`: ver `PdfGenerator.generateQrBase64`.
+  let qrBase64: string | null = '';
   if (firma.qr) {
     qrBase64 = firma.qr.startsWith('http')
       ? await PdfGenerator.generateQrBase64(firma.qr)
@@ -148,6 +150,15 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
       codigoSeguridad: securityCode,
     });
     if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+  }
+
+  if (qrBase64 === null) {
+    // Esto se puede volver a pedir, y el fallo se ve mirando el PDF: basta con
+    // que el log diga de que comprobante hablaba.
+    qrBase64 = '';
+    Logger.warn('[invoices/print] el comprobante se imprime SIN codigo QR', {
+      invoiceId: invoiceRecordDb.id, ncf: invoiceRecordDb.ncf,
+    });
   }
 
   const invoiceRecord = {

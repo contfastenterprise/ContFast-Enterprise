@@ -59,15 +59,28 @@ const TIPOS = 'src/components/cartera/tipos.ts';
 {
   const p = f(PAGINA);
 
-  ok('hay dos pestañas y el rotulo cambia con la que estes mirando',
-    p.includes("(['clientes', 'suplidores'] as TipoCartera[]).map((t) => (")
+  // Las pestañas ya no se pintan las dos siempre: se filtran por permiso (ver
+  // verificar_cartera_lote3.ts). La comprobacion se APRIETA en vez de
+  // aflojarse -- ahora exige que exista el filtro, no solo el map.
+  ok('hay dos pestañas, filtradas por permiso, y el rotulo cambia con la que veas',
+    p.includes("(['clientes', 'suplidores'] as TipoCartera[])")
+    && p.includes(".filter((t) => (t === 'clientes' ? puedeClientes : puedeSuplidores))")
+    && p.includes(".map((t) => (")
     && p.includes("role=\"tab\"")
     && p.includes("tipo === 'clientes' ? 'Clientes' : 'Suplidores'"));
 
   // La importante: si no vacia, mientras carga suplidores sigues viendo
   // clientes bajo el rotulo equivocado.
+  // Entre el vaciado y la carga entro el freno de permisos: no se pide lo que
+  // se sabe que da 403. Lo que este banco defiende sigue siendo lo mismo --
+  // que se VACIE antes de pedir --, asi que se comprueba el ORDEN, no un
+  // bloque literal que cualquier linea nueva rompe.
   ok('al cambiar de pestaña se VACIA antes de pedir',
-    p.includes('setFilas([]);\n    setNivel(null);\n    setDetalle(null);\n    cargar(tipo);'));
+    (() => {
+      const i = p.indexOf('setFilas([]);\n    setNivel(null);\n    setDetalle(null);');
+      const j = p.indexOf('cargar(tipo);\n  }, [tipo, cargar');
+      return i !== -1 && j !== -1 && i < j;
+    })());
 
   ok('las palabras cambian con la pestaña: no se llama "por cobrar" a lo que debes',
     f(TIPOS).includes("totalTitulo: 'Cartera por Cobrar',")

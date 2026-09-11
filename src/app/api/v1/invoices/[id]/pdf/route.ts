@@ -8,6 +8,7 @@ import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, 
 import { eq, and } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
+import { Logger } from '@/utils/logger';
 
 /**
  * SE RETIRO LA AUTENTICACION POR `?token=`
@@ -177,7 +178,8 @@ export async function GET(
     const firma = firmaDelComprobante(invoice, submission);
     const securityCode = firma.codigo;
     const signedDate = firma.fechaFirma;
-    let qrBase64 = '';
+    // Admite `null`: ver `PdfGenerator.generateQrBase64`.
+    let qrBase64: string | null = '';
     if (firma.qr) {
       qrBase64 = firma.qr.startsWith('http')
         ? await PdfGenerator.generateQrBase64(firma.qr)
@@ -195,6 +197,13 @@ export async function GET(
         codigoSeguridad: securityCode,
       });
       if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+    }
+
+    if (qrBase64 === null) {
+      qrBase64 = '';
+      Logger.warn('[invoices/pdf] el comprobante se descarga SIN codigo QR', {
+        invoiceId: invoice.id, ncf: invoice.ncf,
+      });
     }
 
     const invoiceRecord = {

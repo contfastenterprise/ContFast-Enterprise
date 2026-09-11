@@ -80,12 +80,44 @@ const veces = (s: string, sub: string): number => s.split(sub).length - 1;
 {
   const src = fuente('src/repositories/carteraRepository.ts');
 
+  // CONTAR DEJO DE SERVIR. Cuando este banco se escribio, el repositorio solo
+  // tocaba accounts_receivable, accounts_payable e invoices: las tres llevan
+  // `modo`, asi que "tantos .from( como filtros" era una regla exacta. Al
+  // crecer a 13 consultas entraron tablas que NO tienen que filtrar:
+  //
+  //   customers / suppliers            -> tienen companyId, NO tienen modo.
+  //                                       Un cliente no vive en un entorno.
+  //   supplier_payment_applied         -> no tiene NI companyId NI modo (ver
+  //   customer_receipt_applied            db/schema/accounting.ts). Se acotan
+  //                                       por `inArray` sobre ids que salen de
+  //                                       una consulta YA filtrada.
+  //
+  // Contar las tres cosas y exigir que cuadren daba rojo por diseño correcto.
+  // Se cambia por una regla por TABLA, que es mas estricta y no mas floja:
+  // toda consulta sobre una tabla con `modo` tiene que filtrar por los dos.
+  const CON_MODO = ['accountsReceivable', 'accountsPayable', 'invoices'];
+  const sinFiltro: string[] = [];
+  for (const tabla of CON_MODO) {
+    const re = new RegExp('\\.from\\(' + tabla + '\\)([\\s\\S]{0,600}?);', 'g');
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) !== null) {
+      const cuerpo = m[1];
+      if (!cuerpo.includes('.companyId, companyId)') || !cuerpo.includes('.modo, modo)')) {
+        sinFiltro.push(tabla);
+      }
+    }
+  }
   const consultas = veces(src, '.from(');
   const porEmpresa = veces(src, '.companyId, companyId)');
   const porModo = veces(src, '.modo, modo)');
 
-  ok(`TODAS las consultas filtran por empresa y por modo (${consultas} consultas)`,
-    consultas > 0 && consultas === porEmpresa && consultas === porModo);
+  ok(`toda consulta sobre tabla con modo filtra por empresa Y modo (${consultas} consultas en total) ${sinFiltro.join(', ')}`,
+    sinFiltro.length === 0);
+
+  ok(`las tablas sin modo se acotan igual: por empresa o por lista de ids`,
+    consultas > 0 && porEmpresa >= 11 && porModo >= 9
+    && src.includes('inArray(customerReceiptApplied.arId, arIds)')
+    && src.includes('inArray(supplierPaymentApplied.apId, cuentas.map((c) => c.apId))'));
 
   // Si alguien vuelve a meter un `await` dentro de un bucle sobre las filas,
   // esto deja de ser dos consultas.
