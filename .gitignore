@@ -47,3 +47,19 @@ coverage/
 
 # Modelos OCR pesados (se descargan aparte)
 *.traineddata
+
+# Material de referencia y salidas de trabajo: no es codigo del proyecto.
+#
+# NO estan aqui solo por orden. `react-doctor --staged`, el gancho de
+# pre-commit, se NIEGA a escanear si encuentra un fichero de configuracion
+# (package.json, tsconfig.json, vite.config.*, ...) cuyo estado en el arbol no
+# coincide con el del indice, y para el un fichero SIN RASTREAR ya cuenta como
+# divergente. `_referencia/` es un proyecto Vite entero, con sus tres configs,
+# y eso dejaba el gancho ciego en CADA commit: salia con codigo 1 y el mensaje
+# decia "found staged regressions" cuando en realidad no habia mirado ni un
+# fichero.
+#
+# Su filtro SI salta lo ignorado (git lo marca '!!'), pero no lo que
+# simplemente no esta anadido ('??'). Por eso la cura es esta y no otra.
+/_referencia/
+/Claude outputs/
