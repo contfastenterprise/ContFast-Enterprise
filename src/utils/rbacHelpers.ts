@@ -167,13 +167,29 @@ export function buildSidebar(
     }
 
     // Restricción facturacion: no puede ver Inventario
+    //
+    // EXCEPCION: LOS CONDUCES NO SON INVENTARIO, aunque el menu los guarde en
+    // ese grupo. El conduce es el documento de ENTREGA de una factura, no un
+    // movimiento de almacen, y `DEFAULT_ROLE_PERMISSIONS` se lo concede
+    // justamente a `facturacion` (`conduce:read` y `conduce:write`).
+    //
+    // Sin esta excepcion las dos reglas se anulaban: el unico rol con el
+    // permiso era, por nombre, el unico al que se le escondia la pantalla, asi
+    // que /dashboard/delivery-notes no la veia NADIE fuera de sistemas y
+    // administracion. Un permiso concedido y una pantalla invisible no es una
+    // restriccion, es una contradiccion.
+    //
+    // Se mira el modulo Y la ruta: el modulo es lo que de verdad identifica al
+    // conduce, y la ruta cubre el caso de que la fila del menu llegue sin el.
     if (cleanRole === 'facturacion') {
+      const esConduce =
+        m.module === 'conduce' || m.routePattern.includes('/dashboard/delivery-notes');
       if (
-        m.groupName === 'Inventario' ||
-        m.routePattern.includes('/dashboard/inventory') ||
-        m.routePattern.includes('/dashboard/products') ||
-        m.routePattern.includes('/dashboard/warehouses') ||
-        m.routePattern.includes('/dashboard/delivery-notes')
+        !esConduce &&
+        (m.groupName === 'Inventario' ||
+          m.routePattern.includes('/dashboard/inventory') ||
+          m.routePattern.includes('/dashboard/products') ||
+          m.routePattern.includes('/dashboard/warehouses'))
       ) {
         continue;
       }
