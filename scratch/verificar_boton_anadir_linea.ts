@@ -34,9 +34,27 @@ const src = c(COMPRAS);
 
 // La tarjeta de lineas, acotada: el fichero pasa de 120 KB y tiene mas de una
 // tabla, asi que buscar en todo el devolveria aciertos por casualidad.
+//
+// EL ANCLA DE CIERRE ERA UN COMENTARIO, Y SE FUE.
+// Cerraba en `{/* Resumen y Config */}`. P2-35 desmonto esa columna para
+// repartirla en pasos, el comentario dejo de existir, el recorte salio vacio y
+// las cinco comprobaciones de abajo fallaron a la vez -- sin que el boton, que
+// es lo que este banco defiende, se hubiera movido un pixel.
+//
+// Ahora cierra en `const paso3`, que es una frontera de CODIGO y no un rotulo:
+// mientras el formulario tenga pasos, la tarjeta de lineas esta antes del
+// tercero. Y si algun dia tampoco existe, el banco revienta diciendolo en vez
+// de dar cinco fallos que no significan lo que parece.
 const ini = src.indexOf('Líneas de Compra / Gasto');
-const fin = src.indexOf('{/* Resumen y Config */}', ini);
-const tarjeta = ini !== -1 && fin !== -1 ? src.slice(ini, fin) : '';
+const fin = src.indexOf('const paso3', ini);
+if (ini === -1 || fin === -1) {
+  throw new Error(
+    'No se pudo acotar la tarjeta de lineas de compras ' +
+    `(inicio ${ini}, fin ${fin}). Cambio la estructura de la pantalla: ` +
+    'arregla los anclajes antes de creerte nada de lo que siga.'
+  );
+}
+const tarjeta = src.slice(ini, fin);
 
 // La cabecera: del <h3> al cierre del div que lo envuelve.
 const finH3 = tarjeta.indexOf('</h3>');
@@ -48,9 +66,9 @@ const iScroll = tarjeta.indexOf('overflow-x-auto');
 
 // ─── el boton sale de la cabecera ───────────────────────────────────────
 {
-  // No hay comprobacion de "se encuentra la tarjeta": pasaba tambien antes del
-  // cambio, asi que no comprobaba nada. Si los recortes salieran vacios, las
-  // seis de abajo fallan solas -- todas exigen indices encontrados.
+  // "Se encuentra la tarjeta" no es una comprobacion -- sale igual antes y
+  // despues de cualquier arreglo --, es la condicion para comprobar. Por eso
+  // esta arriba como excepcion y no como un `ok(...)` mas.
   ok('la cabecera ya no lleva el boton',
     cabecera !== '' && !cabecera.includes(BOTON));
 

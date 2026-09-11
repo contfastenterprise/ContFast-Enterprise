@@ -88,7 +88,28 @@ ok('existe utils/fechasLocales.ts', existsSync(UTIL));
     p.includes('<GuaranteeChecksView />') && p.includes("import GuaranteeChecksView from './components/GuaranteeChecksView';")
   );
   ok('page: ya no contiene la logica de cheques en garantia', !p.includes('status=pending_guarantee'));
-  ok('page: encoge de forma sustancial (mas de 300 lineas menos)', p.split('\n').length - 1 < 2400);
+  // AQUI HABIA UN NUMERO ABSOLUTO: `p.split('\n').length - 1 < 2400`.
+  //
+  // Era una prueba INDIRECTA de que la extraccion habia ocurrido, y dejo de
+  // significar eso en cuanto la pagina crecio por otro motivo: P2-35 le metio
+  // un asistente por pasos, el fichero paso a 2.645 lineas y este banco se puso
+  // rojo sin que nada de P2-38 se hubiera deshecho -- las cuatro
+  // comprobaciones de arriba seguian verdes. Un guardia que se dispara por algo
+  // que no vigila ensena a subirle el umbral, no a mirarlo.
+  //
+  // Lo que P2-38 defiende es que los sub-componentes VIVAN FUERA de la pagina,
+  // en su propio fichero y envueltos en `memo`. Eso se comprueba directamente y
+  // no deriva con el tamano. El tamano del fichero es P2-41, y tiene su sitio.
+  //
+  // (Las funciones en minuscula que devuelven JSX -- `paso1`, `repaso` -- NO
+  // son sub-componentes: no crean frontera de React, que es justo por lo que se
+  // escribieron asi. Lo que no puede volver es un componente de verdad.)
+  ok(
+    'page: no vuelve a declarar sub-componentes dentro de si misma',
+    !/\bfunction\s+[A-Z]/.test(p.replace('export default function PurchasesPage', ''))
+    && !/\bconst\s+[A-Z][A-Za-z0-9]*\s*=\s*\([^)]*\)\s*=>\s*\(/.test(p)
+    && !/\bconst\s+[A-Z][A-Za-z0-9]*\s*=\s*memo\(/.test(p)
+  );
 }
 
 console.log(`\nTotal fallos: ${fallos}`);

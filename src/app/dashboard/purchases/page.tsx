@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import {
-  RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Store, Banknote, Calendar,
+  RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Banknote, Calendar,
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
   DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
-  Camera, Scan, Edit, X
+  Camera, Scan, Edit, X, ChevronLeft, Check, LayoutList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
 import GuaranteeChecksView from './components/GuaranteeChecksView';
+import { PASOS, campoDelPaso } from './pasos';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -66,6 +67,13 @@ export default function PurchasesPage() {
   const [activeTab, setActiveTab] = useState<'historial' | 'nuevo' | 'cheques'>('historial');
   const [loading, setLoading] = useState(false);
   const [isMinorExpense, setIsMinorExpense] = useState(false);
+
+  // P2-35. `vistaCompleta` no se guarda en el navegador a proposito: no es una
+  // preferencia, es una consecuencia de lo que estas haciendo -- dar de alta o
+  // corregir -- y quien la fija es la accion, no un ajuste que alguien toco una
+  // vez y ya no recuerda.
+  const [paso, setPaso] = useState(1);
+  const [vistaCompleta, setVistaCompleta] = useState(false);
 
   // P2-34: el error de cada campo, debajo del campo. La clave es la ruta del
   // esquema (`ncf`, `guaranteeCheck.checkNumber`). Lo rellenan el esquema al
@@ -587,12 +595,17 @@ export default function PurchasesPage() {
       setGcDueDate('');
     }
 
+    // Editar no va por pasos: se viene a corregir un campo concreto.
+    setVistaCompleta(true);
+    setPaso(1);
     setActiveTab('nuevo');
     setSelectedExpense(null);
   };
 
   const cancelEdit = () => {
     setEditingExpenseId(null);
+    setPaso(1);
+    setVistaCompleta(false);
     setIsMinorExpense(false);
     setSupplierId('');
     setNcf('');
@@ -618,6 +631,8 @@ export default function PurchasesPage() {
 
   const resetForm = () => {
     setEditingExpenseId(null);
+    setPaso(1);
+    setVistaCompleta(false);
     setIsMinorExpense(false);
     setSupplierId('');
     setNcf('');
@@ -777,11 +792,12 @@ export default function PurchasesPage() {
     setGcAmount(roundMoney(grandTotal));
   }, [grandTotal]);
 
-  const saveExpense = async () => {
-    // P2-34: el cuerpo se arma primero y se pasa por el MISMO esquema que
-    // valida el servidor (src/schemas/compra.ts). Antes habia aqui trece
-    // `return toast.error(...)`: un aviso efimero y ningun campo marcado.
-    const payload = {
+  // El cuerpo que se manda y que se valida. Sale de `saveExpense` porque ahora
+  // lo necesitan dos: el guardado final y la comprobacion de cada paso. Si cada
+  // uno armara el suyo, un paso podria dar por bueno algo que el guardado
+  // rechaza, que es el peor asistente posible: cuatro pantallas en verde y un
+  // error al final.
+  const armarPayload = () => ({
       supplierId: isMinorExpense ? null : supplierId,
       isMinorExpense,
       isGeneralAmount,
@@ -813,7 +829,58 @@ export default function PurchasesPage() {
         issueDate: gcIssueDate,
         dueDate: gcDueDate
       } : null
-    };
+  });
+
+  /** Lo que falla en UN paso, segun el esquema de siempre. */
+  const erroresDelPaso = (n: number): Record<string, string> => {
+    const v = esquemaCompra.safeParse(armarPayload());
+    if (v.success) return {};
+    return Object.fromEntries(
+      Object.entries(erroresPorCampo(v.error)).filter(([campo]) => campoDelPaso(campo, n))
+    );
+  };
+
+  const frenaElPaso = (n: number): boolean => {
+    const fallos = erroresDelPaso(n);
+    if (Object.keys(fallos).length === 0) return false;
+    setErrores(fallos);
+    toast.error('Revisa los campos marcados', { description: Object.values(fallos)[0] });
+    irAlPrimerError();
+    return true;
+  };
+
+  const avanzar = () => {
+    if (frenaElPaso(paso)) return;
+    setErrores({});
+    setPaso(p => Math.min(PASOS.length, p + 1));
+  };
+
+  /**
+   * Saltar a un paso. Hacia atras es libre; hacia adelante hay que haber
+   * rellenado lo de en medio -- si no, el numerito de la barra seria un atajo
+   * para saltarse la validacion que el boton "Siguiente" si aplica.
+   */
+  const irAPaso = (n: number) => {
+    if (n <= paso) {
+      setErrores({});
+      setPaso(n);
+      return;
+    }
+    for (let i = paso; i < n; i++) {
+      if (frenaElPaso(i)) {
+        setPaso(i);
+        return;
+      }
+    }
+    setErrores({});
+    setPaso(n);
+  };
+
+  // P2-34: el cuerpo se pasa por el MISMO esquema que valida el servidor
+  // (src/schemas/compra.ts). Antes habia aqui trece `return toast.error(...)`:
+  // un aviso efimero y ningun campo marcado.
+  const saveExpense = async () => {
+    const payload = armarPayload();
 
     const validacion = esquemaCompra.safeParse(payload);
     if (!validacion.success) {
@@ -841,6 +908,8 @@ export default function PurchasesPage() {
         toast.success(editingExpenseId ? 'Compra / Gasto actualizado exitosamente' : 'Compra / Gasto guardado exitosamente');
         // Reset
         setEditingExpenseId(null);
+        setPaso(1);
+        setVistaCompleta(false);
         setLines([]);
         setNcf('');
         setDescription('');
@@ -892,6 +961,788 @@ export default function PurchasesPage() {
   const expensesEnd = expensesStart + itemsPerPage;
   const paginatedExpenses = filteredExpenses.slice(expensesStart, expensesEnd);
   const totalExpensesPages = Math.ceil(filteredExpenses.length / itemsPerPage);
+
+
+  // ─────────────────────── P2-35: el alta, por pasos ───────────────────────
+  //
+  // CADA `pasoN` ES UNA FUNCION QUE DEVUELVE JSX, NO UN COMPONENTE.
+  // Es a proposito. Un componente definido dentro del render es un tipo nuevo
+  // en cada pasada, asi que React desmonta el anterior y monta otro: el campo
+  // que estabas escribiendo pierde el foco a la primera tecla. Como funcion,
+  // los elementos quedan en linea y no hay frontera que remontar.
+  //
+  // LA EDICION NO VA POR PASOS. Quien edita viene a corregir UN campo que ya
+  // sabe cual es; obligarle a cruzar cuatro pantallas para llegar es peor que
+  // el scroll de antes. `handleEditFromList` abre la vista completa, y el
+  // boton de cambiar de vista esta en las dos.
+  const paso1 = () => (
+    <div className="space-y-6">
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" /> Datos del Comprobante
+          </h3>
+          <button
+            type="button"
+            onClick={() => setShowOcrModal(true)}
+            className="bg-[#005E63] text-white hover:bg-[#004d52] transition px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
+          >
+            <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div
+            className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-surface-container transition"
+            onClick={() => setIsMinorExpense(!isMinorExpense)}
+          >
+            {isMinorExpense ? <CheckSquare className="h-6 w-6 text-[#c5a059]" /> : <Square className="h-6 w-6 text-slate-400" />}
+            <div>
+              <p className="font-bold text-[#c5a059]">Es un Gasto Menor (Caja Chica)</p>
+              <p className="text-xs text-slate-600">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
+            </div>
+          </div>
+
+          {!isMinorExpense && (
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">Suplidor (Proveedor)</label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <AutocompleteSelect
+                    items={suppliers.map(s => ({
+                      id: s.id,
+                      name: s.name,
+                      subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
+                    }))}
+                    value={supplierId}
+                    onChange={(id) => { setSupplierId(id); quitarError('supplierId'); }}
+                    placeholder="Buscar suplidor..."
+                    className={'w-full rounded-xl' + conError('supplierId')}
+                  />
+                  {err('supplierId')}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddSupplierModal(true)}
+                  className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
+                  title="Agregar Nuevo Proveedor"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">NCF (Opcional si es Gasto Menor)</label>
+            <input
+              type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
+              value={ncf} onChange={e => { setNcf(e.target.value); quitarError('ncf'); }}
+              className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none font-mono uppercase' + conError('ncf')}
+            />
+            {err('ncf')}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">Fecha Emisión</label>
+            <input
+              type="date"
+              value={issueDate} onChange={e => { setIssueDate(e.target.value); quitarError('issueDate'); }}
+              className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('issueDate')}
+            />
+            {err('issueDate')}
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">Tipo de Gasto (Formato 606)</label>
+            <select
+              value={expenseType} onChange={e => setExpenseType(e.target.value)}
+              className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
+            >
+              {expenseTypesList.filter(t => t.status === 'active' || t.code === expenseType).map(t => (
+                <option key={t.id} value={t.code}>{t.code} - {t.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-500 mb-2">Concepto General</label>
+          <textarea
+            rows={2} placeholder="Descripción de la compra..."
+            value={description} onChange={e => { setDescription(e.target.value); quitarError('description'); }}
+            className={'w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('description')}
+          />
+          {err('description')}
+        </div>
+      </div>
+
+      {/* Checkbox to Exempt ITBIS */}
+      <div className="flex items-center gap-2 mt-4 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-lg max-w-md">
+        <input
+          type="checkbox"
+          id="noItbis"
+          checked={noItbis}
+          onChange={e => setNoItbis(e.target.checked)}
+          className="w-4 h-4 text-[#c5a059] bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#c5a059] cursor-pointer"
+        />
+        <label htmlFor="noItbis" className="text-xs font-extrabold text-yellow-900 cursor-pointer select-none">
+          Gasto Exento de ITBIS (No posee ITBIS)
+        </label>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+          <Tag className="h-4 w-4" /> Forma del registro
+        </h3>
+        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 select-none mb-2">
+          <div>
+            <p className="text-xs font-bold text-[#c5a059]">Compra por Monto General</p>
+            <p className="text-[10px] text-slate-600 leading-normal">Registra un valor único de gasto sin detalle de ítems.</p>
+          </div>
+          <button
+            onClick={() => {
+              setIsGeneralAmount(!isGeneralAmount);
+              if (!isGeneralAmount) {
+                setWarehouseId('');
+              }
+            }}
+            type="button"
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGeneralAmount ? 'bg-primary' : 'bg-on-surface-variant/20'}`}
+          >
+            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${isGeneralAmount ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const paso2 = () => (
+    <div className="space-y-6">
+      {isGeneralAmount ? (
+        <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 space-y-5">
+          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+            <Tag className="h-4 w-4" /> Desglose de Montos Generales
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">
+                Total de la Compra (RD$)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Ej: 1180.00"
+                value={generalTotal}
+                onChange={e => {
+                  const valStr = e.target.value;
+                  setGeneralTotal(valStr);
+                  quitarError('amount');
+                  const val = parseFloat(valStr) || 0;
+                  if (val > 0) {
+                    if (noItbis) {
+                      setGeneralSubtotal(val);
+                      setGeneralItbis(0);
+                    } else {
+                      const sub = roundMoney(val / 1.18);
+                      const itb = roundMoney(val - sub);
+                      setGeneralSubtotal(sub);
+                      setGeneralItbis(itb);
+                    }
+                  } else {
+                    setGeneralSubtotal(0);
+                    setGeneralItbis(0);
+                  }
+                }}
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
+              />
+              <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
+                Ingrese el total para autocalcular el ITBIS y Subtotal.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">
+                Monto sin ITBIS (Subtotal)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={generalSubtotal || ''}
+                onChange={e => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setGeneralSubtotal(val);
+                  if (noItbis) {
+                    setGeneralItbis(0);
+                    setGeneralTotal(val.toString());
+                  } else {
+                    const itb = roundMoney(val * 0.18);
+                    setGeneralItbis(itb);
+                    setGeneralTotal(roundMoney(val + itb).toString());
+                  }
+                }}
+                onBlur={e => {
+                  const val = parseFloat(e.target.value) || 0;
+                  const sub = roundMoney(val);
+                  setGeneralSubtotal(sub);
+                  if (noItbis) {
+                    setGeneralItbis(0);
+                    setGeneralTotal(sub.toString());
+                  } else {
+                    const itb = roundMoney(sub * 0.18);
+                    setGeneralItbis(itb);
+                    setGeneralTotal(roundMoney(sub + itb).toString());
+                  }
+                }}
+                disabled={noItbis}
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">
+                ITBIS (18%)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={generalItbis || ''}
+                onChange={e => {
+                  const val = parseFloat(e.target.value) || 0;
+                  setGeneralItbis(val);
+                  setGeneralTotal(roundMoney(generalSubtotal + val).toString());
+                }}
+                onBlur={e => {
+                  const val = parseFloat(e.target.value) || 0;
+                  const itb = roundMoney(val);
+                  setGeneralItbis(itb);
+                  setGeneralTotal(roundMoney(generalSubtotal + itb).toString());
+                }}
+                disabled={noItbis}
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">
+              Cuenta de Costo / Gasto <span className="text-red-500 font-bold">*</span>
+            </label>
+            <select
+              value={debitAccountId}
+              onChange={e => { setDebitAccountId(e.target.value); quitarError('debitAccountId'); }}
+              className={'w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none' + conError('debitAccountId')}
+            >
+              <option value="">-- Selecciona una cuenta contable --</option>
+              {accountsList
+                .filter(acc => acc.type === 'expense')
+                .map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.code} - {acc.name} (Gasto/Costo)
+                  </option>
+                ))}
+            </select>
+            {err('debitAccountId')}
+            <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
+              Cuenta contable donde se registrará el gasto en el libro mayor.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+            <div className="mb-4">
+              <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+                <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+              </h3>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-surface-container-high text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="px-4 py-2.5">Producto / Descripción</th>
+                    <th className="px-4 py-2.5 w-20">Cant.</th>
+                    <th className="px-4 py-2.5 w-32">Costo U.</th>
+                    <th className="px-4 py-2.5 w-28">ITBIS (18%)</th>
+                    <th className="px-4 py-2.5 w-32 text-right">Total Fila</th>
+                    <th className="px-4 py-2.5 w-12 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map(l => (
+                    <tr key={l.id} className="border-b border-surface-container-low align-middle">
+                      <td className="py-2 pl-0 pr-2 min-w-[240px]">
+                        <div className="w-full relative [&_input]:w-full text-xs">
+                          <ProductAutocomplete
+                            dbProducts={products}
+                            categories={categories}
+                            warehouses={warehouses}
+                            valueName={l.desc}
+                            hasProduct={!!l.productId}
+                            onSelect={(p: any) => applyProductToLine(l.id, p)}
+                            onTextChange={(val: string) => updateLine(l.id, 'desc', val)}
+                            selectedWarehouseId={warehouseId}
+                            onClear={() => clearProductFromLine(l.id)}
+                            allowOutOfStock={true}
+                            showWarehouses={false}
+                          />
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <div className="inline-flex items-center bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm w-28 mx-auto">
+                          <button
+                            type="button"
+                            onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
+                            className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            value={l.quantity} 
+                            onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 1)}
+                            className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-[#c5a059] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
+                            className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 min-w-[130px]">
+                        <input 
+                          type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
+                        />
+                      </td>
+                      <td className="py-2 px-2 min-w-[120px]">
+                        <input 
+                          type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
+                          disabled={noItbis}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data disabled:opacity-50 disabled:bg-slate-50"
+                        />
+                      </td>
+                      <td className="py-2 px-2 text-right min-w-[130px] pr-4">
+                        <span className="font-mono-data font-bold text-sm text-[#c5a059]">RD${l.total.toFixed(2)}</span>
+                      </td>
+                      <td className="py-2 px-2 text-center">
+                        <button onClick={() => removeLine(l.id)} className="p-1 text-red-500 hover:bg-red-50 rounded-lg">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {lines.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className={'py-8 text-center text-sm font-medium ' + (errores.lines ? 'text-red-600' : 'text-slate-600/60')}>
+                        {errores.lines ? <span data-campo="lines">{errores.lines}</span> : 'Aún no has agregado productos o servicios a esta compra.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* "Añadir Línea" va DEBAJO de la tabla y a la izquierda: es el
+                paso siguiente de lo que acabas de escribir, y el sitio donde
+                la vista se queda es el final de la ultima fila, no la
+                cabecera. Va FUERA del `overflow-x-auto` a proposito -- dentro
+                se iria con el desplazamiento horizontal de la tabla y
+                desapareceria de la vista en pantallas estrechas. */}
+            <div className="mt-4 flex justify-start">
+              <button
+                onClick={addLine}
+                className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
+              >
+                <Plus className="h-4 w-4" /> Añadir Línea
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 mb-2">Almacén Destino (Inventario)</label>
+              <select
+                value={isGeneralAmount ? "" : warehouseId} onChange={e => setWarehouseId(e.target.value)}
+                disabled={isGeneralAmount}
+                className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">No afecta inventario</option>
+                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+              </select>
+              <p className="text-[10px] text-slate-600 mt-1 ml-1">
+                {isGeneralAmount ? 'Inhabilitado en registro de monto general.' : 'Los productos con registro sumarán stock a este almacén.'}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const paso3 = () => (
+    <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+      <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <Banknote className="h-4 w-4" /> Como se paga
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-slate-500 mb-2">Método de Pago</label>
+          <select
+            value={paymentMethod} onChange={e => {
+              setPaymentMethod(e.target.value);
+              if (e.target.value !== '04') {
+                setHasGuaranteeCheck(false);
+              }
+            }}
+            className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
+          >
+            <option value="01">Efectivo</option>
+            <option value="02">Cheque</option>
+            <option value="03">Transferencia</option>
+            <option value="04">A Crédito (CXP)</option>
+          </select>
+        </div>
+
+        {paymentMethod === '04' && (
+          <div className="mt-4 border-t border-dashed border-slate-200/35 pt-4 space-y-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hasGuaranteeCheck}
+                onChange={e => setHasGuaranteeCheck(e.target.checked)}
+                className="rounded border-slate-200 text-[#c5a059] focus:ring-[#c5a059] h-4 w-4"
+              />
+              <span className="text-xs font-bold text-slate-500">Dejar Cheque en Garantía</span>
+            </label>
+
+            {hasGuaranteeCheck && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200"
+              >
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1">Banco / Cuenta de Origen</label>
+                  <select
+                    required
+                    value={gcBankAccountId} onChange={e => { setGcBankAccountId(e.target.value); quitarError('guaranteeCheck.bankAccountId'); }}
+                    className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.bankAccountId')}
+                  >
+                    <option value="">Selecciona una cuenta</option>
+                    {bankAccountsList.map(b => (
+                      <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber} ({b.currency})</option>
+                    ))}
+                  </select>
+                  {err('guaranteeCheck.bankAccountId')}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      Número de Cheque <span className="text-red-500 font-bold">* (Obligatorio)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={gcCheckNumber} onChange={e => { setGcCheckNumber(e.target.value); quitarError('guaranteeCheck.checkNumber'); }}
+                      className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.checkNumber')}
+                      placeholder="Ej: 10023"
+                      required
+                    />
+                    {err('guaranteeCheck.checkNumber')}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1 text-[#c5a059]">Monto Cheque</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={gcAmount || ''}
+                      onChange={e => { setGcAmount(parseFloat(e.target.value) || 0); quitarError('guaranteeCheck.amount'); }}
+                      onBlur={e => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) {
+                          setGcAmount(roundMoney(val));
+                        }
+                      }}
+                      className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none font-bold font-mono' + conError('guaranteeCheck.amount')}
+                    />
+                    {err('guaranteeCheck.amount')}
+                    {Math.abs(gcAmount - grandTotal) > 0.01 && (
+                      <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-[10px] text-amber-800 dark:text-amber-300 flex items-start gap-2 leading-relaxed shadow-sm">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block mb-0.5">Monto Modificado</span>
+                          El monto del cheque difiere del total de la compra (RD$ {roundMoney(grandTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}). Asegúrese de que esta diferencia sea intencional.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Fecha Emisión</label>
+                    <input
+                      type="date"
+                      value={gcIssueDate} onChange={e => setGcIssueDate(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                      Fecha de Cobro <span className="text-red-500 font-bold">* (Obligatorio)</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={gcDueDate} onChange={e => { setGcDueDate(e.target.value); quitarError('guaranteeCheck.dueDate'); }}
+                      className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.dueDate')}
+                      required
+                    />
+                    {err('guaranteeCheck.dueDate')}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1">Beneficiario (Autocompletado)</label>
+                  <input
+                    type="text"
+                    value={gcPayee}
+                    disabled
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 outline-none cursor-not-allowed font-medium"
+                    placeholder="Selecciona un suplidor para autocompletar"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const paso4 = () => (
+    <div className="space-y-6">
+      {!vistaCompleta && repaso()}
+      <div className="bg-[#f8fafc] border border-slate-200/80 text-slate-800 rounded-xl p-4 shadow-md shadow-slate-100/50">
+        <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2 text-slate-900">
+          <Tag className="h-4 w-4 text-[#c5a059]" /> Resumen Total
+        </h3>
+
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-600">Subtotal</span>
+            <span className="font-mono-data font-bold text-slate-900">RD$ {totalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-600">ITBIS (18%)</span>
+            <span className="font-mono-data font-bold text-slate-900">RD$ {totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-600 flex items-center gap-2">ISC <span className="text-[10px] opacity-70 text-slate-500">(Combustibles)</span></span>
+            <input
+              type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
+              className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
+            />
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-slate-600">Otros Impuestos</span>
+            <input
+              type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
+              className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
+            />
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-slate-200/80 flex justify-between items-center mb-6">
+          <span className="text-sm font-bold text-slate-800">TOTAL NETO</span>
+          <span className="font-display-lg text-2xl font-extrabold text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        </div>
+
+        <button
+          onClick={saveExpense}
+          disabled={loading}
+          className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition disabled:opacity-50"
+        >
+          {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+          <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
+        </button>
+
+        {editingExpenseId && (
+          <button
+            type="button"
+            onClick={cancelEdit}
+            className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition active:scale-98"
+          >
+            Cancelar Edición
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // El paso 4 se llama "Revisar y guardar". Sin este repaso seria solo la caja
+  // de totales con otro nombre: lo que hay que revisar antes de firmar no es el
+  // total, es CONTRA QUIEN y CON QUE COMPROBANTE se esta firmando.
+  const repaso = () => {
+    const suplidor = suppliers.find(s => s.id === supplierId);
+    const almacen = warehouses.find(w => w.id === warehouseId);
+    const tipo = expenseTypesList.find(t => t.code === expenseType);
+    const pagos: Record<string, string> = {
+      '01': 'Efectivo', '02': 'Cheque', '03': 'Transferencia', '04': 'A credito (CxP)',
+    };
+    const filas: [string, string, number][] = [
+      [isMinorExpense ? 'Gasto menor' : 'Suplidor',
+       isMinorExpense ? 'Caja chica, sin suplidor formal' : (suplidor?.name || '— sin elegir —'), 1],
+      ['NCF', ncf ? ncf.toUpperCase() : '— sin NCF —', 1],
+      ['Fecha de emision', issueDate ? formatDateDisplay(issueDate) : '—', 1],
+      ['Tipo de gasto (606)', tipo ? `${tipo.code} - ${tipo.name}` : expenseType, 1],
+      ['Que se compro',
+       isGeneralAmount
+         ? 'Monto general, sin detalle de items'
+         : `${lines.length} ${lines.length === 1 ? 'linea' : 'lineas'}`, 2],
+      ['Almacen destino', isGeneralAmount ? 'No aplica' : (almacen?.name || 'No afecta inventario'), 2],
+      ['Forma de pago', pagos[paymentMethod] || paymentMethod, 3],
+      ...(hasGuaranteeCheck && paymentMethod === '04'
+        ? ([['Cheque en garantia', gcCheckNumber ? `No. ${gcCheckNumber}` : '— sin numero —', 3]] as [string, string, number][])
+        : []),
+    ];
+    return (
+      <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
+        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+          <Eye className="h-4 w-4" /> Lo que vas a guardar
+        </h3>
+        <dl className="divide-y divide-slate-100">
+          {filas.map(([rotulo, valor, dePaso]) => (
+            <div key={rotulo} className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="text-xs font-bold text-slate-500 shrink-0">{rotulo}</dt>
+              <dd className="flex items-baseline gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-800 text-right truncate">{valor}</span>
+                <button
+                  type="button"
+                  onClick={() => irAPaso(dePaso)}
+                  className="text-[10px] font-bold text-[#c5a059] hover:underline shrink-0"
+                >
+                  editar
+                </button>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    );
+  };
+
+  const barraPasos = () => (
+    <nav aria-label="Pasos del registro" className="flex flex-wrap items-center gap-1.5">
+      {PASOS.map((p, i) => (
+        <div key={p.n} className="flex items-center gap-1.5">
+          {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" aria-hidden="true" />}
+          <button
+            type="button"
+            onClick={() => irAPaso(p.n)}
+            aria-current={p.n === paso ? 'step' : undefined}
+            className={'flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (
+              p.n === paso
+                ? 'bg-[#c5a059] text-white shadow-sm'
+                : p.n < paso
+                  ? 'text-[#c5a059] bg-[#c5a059]/10 hover:bg-[#c5a059]/20'
+                  : 'text-slate-400 hover:bg-slate-100'
+            )}
+          >
+            <span
+              className={'w-4 h-4 rounded-full grid place-items-center text-[10px] shrink-0 ' + (
+                p.n === paso ? 'bg-white/25' : p.n < paso ? 'bg-[#c5a059]/20' : 'bg-slate-200'
+              )}
+            >
+              {p.n < paso ? <Check className="w-2.5 h-2.5" /> : p.n}
+            </span>
+            <span className="hidden sm:inline">{p.titulo}</span>
+          </button>
+        </div>
+      ))}
+    </nav>
+  );
+
+  const botonVista = () => (
+    <button
+      type="button"
+      onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}
+      className="inline-flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition shrink-0"
+    >
+      <LayoutList className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">{vistaCompleta ? 'Ver por pasos' : 'Ver todo en una pagina'}</span>
+      <span className="sm:hidden">{vistaCompleta ? 'Pasos' : 'Todo'}</span>
+    </button>
+  );
+
+  const navegacionPasos = () => (
+    <div className="mt-6 flex items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
+        disabled={paso === 1}
+        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
+      >
+        <ChevronLeft className="w-4 h-4" /> Atras
+      </button>
+      {paso < PASOS.length ? (
+        <button
+          type="button"
+          onClick={avanzar}
+          className="inline-flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-bold text-white bg-[#005E63] hover:bg-[#004d51] transition active:scale-95"
+        >
+          Siguiente <ChevronRight className="w-4 h-4" />
+        </button>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+
+  const formularioCompra = () => (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        {vistaCompleta ? (
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {editingExpenseId ? 'Editando una compra ya registrada' : 'Registro completo'}
+          </p>
+        ) : (
+          barraPasos()
+        )}
+        {botonVista()}
+      </div>
+
+      {vistaCompleta ? (
+        // La vista completa conserva la disposicion de siempre: los datos a la
+        // izquierda, la configuracion y el total a la derecha.
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <section className="lg:col-span-2 space-y-6">
+            {paso1()}
+            {paso2()}
+          </section>
+          <section className="space-y-6">
+            {paso3()}
+            {paso4()}
+          </section>
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto">
+          {paso === 1 && paso1()}
+          {paso === 2 && paso2()}
+          {paso === 3 && paso3()}
+          {paso === 4 && paso4()}
+          {navegacionPasos()}
+        </div>
+      )}
+    </div>
+  );
+
+
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10 w-full max-w-none">
@@ -1471,601 +2322,7 @@ export default function PurchasesPage() {
           )}
         </div>
       ) : activeTab === 'nuevo' ? (
-        /* Create Form (Original register purchase screen) */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cabecera del Gasto */}
-          <section className="lg:col-span-2 space-y-6">
-            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Datos del Comprobante
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowOcrModal(true)}
-                  className="bg-[#005E63] text-white hover:bg-[#004d52] transition px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
-                >
-                  <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div
-                  className="col-span-1 md:col-span-2 flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-surface-container transition"
-                  onClick={() => setIsMinorExpense(!isMinorExpense)}
-                >
-                  {isMinorExpense ? <CheckSquare className="h-6 w-6 text-[#c5a059]" /> : <Square className="h-6 w-6 text-slate-400" />}
-                  <div>
-                    <p className="font-bold text-[#c5a059]">Es un Gasto Menor (Caja Chica)</p>
-                    <p className="text-xs text-slate-600">No requiere suplidor formal. Útil para compras informales o servicios rápidos.</p>
-                  </div>
-                </div>
-
-                {!isMinorExpense && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2">Suplidor (Proveedor)</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <AutocompleteSelect
-                          items={suppliers.map(s => ({
-                            id: s.id,
-                            name: s.name,
-                            subLabel: s.rnc ? `RNC: ${s.rnc}` : "Sin RNC",
-                          }))}
-                          value={supplierId}
-                          onChange={(id) => { setSupplierId(id); quitarError('supplierId'); }}
-                          placeholder="Buscar suplidor..."
-                          className={'w-full rounded-xl' + conError('supplierId')}
-                        />
-                        {err('supplierId')}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddSupplierModal(true)}
-                        className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
-                        title="Agregar Nuevo Proveedor"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">NCF (Opcional si es Gasto Menor)</label>
-                  <input
-                    type="text" placeholder={isMinorExpense ? "Ej. B13..." : "Ej. B01..."}
-                    value={ncf} onChange={e => { setNcf(e.target.value); quitarError('ncf'); }}
-                    className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none font-mono uppercase' + conError('ncf')}
-                  />
-                  {err('ncf')}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Fecha Emisión</label>
-                  <input
-                    type="date"
-                    value={issueDate} onChange={e => { setIssueDate(e.target.value); quitarError('issueDate'); }}
-                    className={'w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('issueDate')}
-                  />
-                  {err('issueDate')}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Tipo de Gasto (Formato 606)</label>
-                  <select
-                    value={expenseType} onChange={e => setExpenseType(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
-                  >
-                    {expenseTypesList.filter(t => t.status === 'active' || t.code === expenseType).map(t => (
-                      <option key={t.id} value={t.code}>{t.code} - {t.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2">Concepto General</label>
-                <textarea
-                  rows={2} placeholder="Descripción de la compra..."
-                  value={description} onChange={e => { setDescription(e.target.value); quitarError('description'); }}
-                  className={'w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('description')}
-                />
-                {err('description')}
-              </div>
-            </div>
-
-            {/* Checkbox to Exempt ITBIS */}
-            <div className="flex items-center gap-2 mt-4 bg-yellow-500/10 border border-yellow-500/20 p-3.5 rounded-lg max-w-md">
-              <input
-                type="checkbox"
-                id="noItbis"
-                checked={noItbis}
-                onChange={e => setNoItbis(e.target.checked)}
-                className="w-4 h-4 text-[#c5a059] bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#c5a059] cursor-pointer"
-              />
-              <label htmlFor="noItbis" className="text-xs font-extrabold text-yellow-900 cursor-pointer select-none">
-                Gasto Exento de ITBIS (No posee ITBIS)
-              </label>
-            </div>
-
-            {isGeneralAmount ? (
-              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 space-y-5">
-                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
-                  <Tag className="h-4 w-4" /> Desglose de Montos Generales
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2">
-                      Total de la Compra (RD$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Ej: 1180.00"
-                      value={generalTotal}
-                      onChange={e => {
-                        const valStr = e.target.value;
-                        setGeneralTotal(valStr);
-                        quitarError('amount');
-                        const val = parseFloat(valStr) || 0;
-                        if (val > 0) {
-                          if (noItbis) {
-                            setGeneralSubtotal(val);
-                            setGeneralItbis(0);
-                          } else {
-                            const sub = roundMoney(val / 1.18);
-                            const itb = roundMoney(val - sub);
-                            setGeneralSubtotal(sub);
-                            setGeneralItbis(itb);
-                          }
-                        } else {
-                          setGeneralSubtotal(0);
-                          setGeneralItbis(0);
-                        }
-                      }}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
-                    />
-                    <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
-                      Ingrese el total para autocalcular el ITBIS y Subtotal.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2">
-                      Monto sin ITBIS (Subtotal)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={generalSubtotal || ''}
-                      onChange={e => {
-                        const val = parseFloat(e.target.value) || 0;
-                        setGeneralSubtotal(val);
-                        if (noItbis) {
-                          setGeneralItbis(0);
-                          setGeneralTotal(val.toString());
-                        } else {
-                          const itb = roundMoney(val * 0.18);
-                          setGeneralItbis(itb);
-                          setGeneralTotal(roundMoney(val + itb).toString());
-                        }
-                      }}
-                      onBlur={e => {
-                        const val = parseFloat(e.target.value) || 0;
-                        const sub = roundMoney(val);
-                        setGeneralSubtotal(sub);
-                        if (noItbis) {
-                          setGeneralItbis(0);
-                          setGeneralTotal(sub.toString());
-                        } else {
-                          const itb = roundMoney(sub * 0.18);
-                          setGeneralItbis(itb);
-                          setGeneralTotal(roundMoney(sub + itb).toString());
-                        }
-                      }}
-                      disabled={noItbis}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-2">
-                      ITBIS (18%)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={generalItbis || ''}
-                      onChange={e => {
-                        const val = parseFloat(e.target.value) || 0;
-                        setGeneralItbis(val);
-                        setGeneralTotal(roundMoney(generalSubtotal + val).toString());
-                      }}
-                      onBlur={e => {
-                        const val = parseFloat(e.target.value) || 0;
-                        const itb = roundMoney(val);
-                        setGeneralItbis(itb);
-                        setGeneralTotal(roundMoney(generalSubtotal + itb).toString());
-                      }}
-                      disabled={noItbis}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-bold font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">
-                    Cuenta de Costo / Gasto <span className="text-red-500 font-bold">*</span>
-                  </label>
-                  <select
-                    value={debitAccountId}
-                    onChange={e => { setDebitAccountId(e.target.value); quitarError('debitAccountId'); }}
-                    className={'w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 font-medium focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none' + conError('debitAccountId')}
-                  >
-                    <option value="">-- Selecciona una cuenta contable --</option>
-                    {accountsList
-                      .filter(acc => acc.type === 'expense')
-                      .map(acc => (
-                        <option key={acc.id} value={acc.id}>
-                          {acc.code} - {acc.name} (Gasto/Costo)
-                        </option>
-                      ))}
-                  </select>
-                  {err('debitAccountId')}
-                  <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
-                    Cuenta contable donde se registrará el gasto en el libro mayor.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-                <div className="mb-4">
-                  <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
-                    <Box className="h-4 w-4" /> Líneas de Compra / Gasto
-                  </h3>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-surface-container-high text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th className="px-4 py-2.5">Producto / Descripción</th>
-                        <th className="px-4 py-2.5 w-20">Cant.</th>
-                        <th className="px-4 py-2.5 w-32">Costo U.</th>
-                        <th className="px-4 py-2.5 w-28">ITBIS (18%)</th>
-                        <th className="px-4 py-2.5 w-32 text-right">Total Fila</th>
-                        <th className="px-4 py-2.5 w-12 text-center"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lines.map(l => (
-                        <tr key={l.id} className="border-b border-surface-container-low align-middle">
-                          <td className="py-2 pl-0 pr-2 min-w-[240px]">
-                            <div className="w-full relative [&_input]:w-full text-xs">
-                              <ProductAutocomplete
-                                dbProducts={products}
-                                categories={categories}
-                                warehouses={warehouses}
-                                valueName={l.desc}
-                                hasProduct={!!l.productId}
-                                onSelect={(p: any) => applyProductToLine(l.id, p)}
-                                onTextChange={(val: string) => updateLine(l.id, 'desc', val)}
-                                selectedWarehouseId={warehouseId}
-                                onClear={() => clearProductFromLine(l.id)}
-                                allowOutOfStock={true}
-                                showWarehouses={false}
-                              />
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <div className="inline-flex items-center bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm w-28 mx-auto">
-                              <button
-                                type="button"
-                                onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
-                              >
-                                <Minus className="h-3.5 w-3.5" />
-                              </button>
-                              <input 
-                                type="number" 
-                                min="1" 
-                                value={l.quantity} 
-                                onChange={e => updateLine(l.id, 'quantity', parseFloat(e.target.value) || 1)}
-                                className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-[#c5a059] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
-                                className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 min-w-[130px]">
-                            <input 
-                              type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
-                            />
-                          </td>
-                          <td className="py-2 px-2 min-w-[120px]">
-                            <input 
-                              type="number" step="0.01" value={l.itbis || ''} onChange={e => updateLine(l.id, 'itbis', parseFloat(e.target.value) || 0)}
-                              disabled={noItbis}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data disabled:opacity-50 disabled:bg-slate-50"
-                            />
-                          </td>
-                          <td className="py-2 px-2 text-right min-w-[130px] pr-4">
-                            <span className="font-mono-data font-bold text-sm text-[#c5a059]">RD${l.total.toFixed(2)}</span>
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <button onClick={() => removeLine(l.id)} className="p-1 text-red-500 hover:bg-red-50 rounded-lg">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {lines.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className={'py-8 text-center text-sm font-medium ' + (errores.lines ? 'text-red-600' : 'text-slate-600/60')}>
-                            {errores.lines ? <span data-campo="lines">{errores.lines}</span> : 'Aún no has agregado productos o servicios a esta compra.'}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* "Añadir Línea" va DEBAJO de la tabla y a la izquierda: es el
-                    paso siguiente de lo que acabas de escribir, y el sitio donde
-                    la vista se queda es el final de la ultima fila, no la
-                    cabecera. Va FUERA del `overflow-x-auto` a proposito -- dentro
-                    se iria con el desplazamiento horizontal de la tabla y
-                    desapareceria de la vista en pantallas estrechas. */}
-                <div className="mt-4 flex justify-start">
-                  <button
-                    onClick={addLine}
-                    className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
-                  >
-                    <Plus className="h-4 w-4" /> Añadir Línea
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Resumen y Config */}
-          <section className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-              <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
-                <Store className="h-4 w-4" /> Configuración
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 select-none mb-2">
-                  <div>
-                    <p className="text-xs font-bold text-[#c5a059]">Compra por Monto General</p>
-                    <p className="text-[10px] text-slate-600 leading-normal">Registra un valor único de gasto sin detalle de ítems.</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsGeneralAmount(!isGeneralAmount);
-                      if (!isGeneralAmount) {
-                        setWarehouseId('');
-                      }
-                    }}
-                    type="button"
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGeneralAmount ? 'bg-primary' : 'bg-on-surface-variant/20'}`}
-                  >
-                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${isGeneralAmount ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Almacén Destino (Inventario)</label>
-                  <select
-                    value={isGeneralAmount ? "" : warehouseId} onChange={e => setWarehouseId(e.target.value)}
-                    disabled={isGeneralAmount}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="">No afecta inventario</option>
-                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
-                  <p className="text-[10px] text-slate-600 mt-1 ml-1">
-                    {isGeneralAmount ? 'Inhabilitado en registro de monto general.' : 'Los productos con registro sumarán stock a este almacén.'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-2">Método de Pago</label>
-                  <select
-                    value={paymentMethod} onChange={e => {
-                      setPaymentMethod(e.target.value);
-                      if (e.target.value !== '04') {
-                        setHasGuaranteeCheck(false);
-                      }
-                    }}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
-                  >
-                    <option value="01">Efectivo</option>
-                    <option value="02">Cheque</option>
-                    <option value="03">Transferencia</option>
-                    <option value="04">A Crédito (CXP)</option>
-                  </select>
-                </div>
-
-                {paymentMethod === '04' && (
-                  <div className="mt-4 border-t border-dashed border-slate-200/35 pt-4 space-y-4">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={hasGuaranteeCheck}
-                        onChange={e => setHasGuaranteeCheck(e.target.checked)}
-                        className="rounded border-slate-200 text-[#c5a059] focus:ring-[#c5a059] h-4 w-4"
-                      />
-                      <span className="text-xs font-bold text-slate-500">Dejar Cheque en Garantía</span>
-                    </label>
-
-                    {hasGuaranteeCheck && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200"
-                      >
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Banco / Cuenta de Origen</label>
-                          <select
-                            required
-                            value={gcBankAccountId} onChange={e => { setGcBankAccountId(e.target.value); quitarError('guaranteeCheck.bankAccountId'); }}
-                            className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.bankAccountId')}
-                          >
-                            <option value="">Selecciona una cuenta</option>
-                            {bankAccountsList.map(b => (
-                              <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber} ({b.currency})</option>
-                            ))}
-                          </select>
-                          {err('guaranteeCheck.bankAccountId')}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                              Número de Cheque <span className="text-red-500 font-bold">* (Obligatorio)</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={gcCheckNumber} onChange={e => { setGcCheckNumber(e.target.value); quitarError('guaranteeCheck.checkNumber'); }}
-                              className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.checkNumber')}
-                              placeholder="Ej: 10023"
-                              required
-                            />
-                            {err('guaranteeCheck.checkNumber')}
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1 text-[#c5a059]">Monto Cheque</label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={gcAmount || ''}
-                              onChange={e => { setGcAmount(parseFloat(e.target.value) || 0); quitarError('guaranteeCheck.amount'); }}
-                              onBlur={e => {
-                                const val = parseFloat(e.target.value);
-                                if (!isNaN(val)) {
-                                  setGcAmount(roundMoney(val));
-                                }
-                              }}
-                              className={'w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none font-bold font-mono' + conError('guaranteeCheck.amount')}
-                            />
-                            {err('guaranteeCheck.amount')}
-                            {Math.abs(gcAmount - grandTotal) > 0.01 && (
-                              <div className="mt-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-xl text-[10px] text-amber-800 dark:text-amber-300 flex items-start gap-2 leading-relaxed shadow-sm">
-                                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                                <div>
-                                  <span className="font-bold block mb-0.5">Monto Modificado</span>
-                                  El monto del cheque difiere del total de la compra (RD$ {roundMoney(grandTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}). Asegúrese de que esta diferencia sea intencional.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Fecha Emisión</label>
-                            <input
-                              type="date"
-                              value={gcIssueDate} onChange={e => setGcIssueDate(e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                              Fecha de Cobro <span className="text-red-500 font-bold">* (Obligatorio)</span>
-                            </label>
-                            <input
-                              type="date"
-                              value={gcDueDate} onChange={e => { setGcDueDate(e.target.value); quitarError('guaranteeCheck.dueDate'); }}
-                              className={'w-full bg-white border border-slate-200/35 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-[#c5a059] outline-none' + conError('guaranteeCheck.dueDate')}
-                              required
-                            />
-                            {err('guaranteeCheck.dueDate')}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 mb-1">Beneficiario (Autocompletado)</label>
-                          <input
-                            type="text"
-                            value={gcPayee}
-                            disabled
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 outline-none cursor-not-allowed font-medium"
-                            placeholder="Selecciona un suplidor para autocompletar"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-[#f8fafc] border border-slate-200/80 text-slate-800 rounded-xl p-4 shadow-md shadow-slate-100/50">
-              <h3 className="font-bold uppercase tracking-wider text-sm mb-6 flex items-center gap-2 text-slate-900">
-                <Tag className="h-4 w-4 text-[#c5a059]" /> Resumen Total
-              </h3>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">Subtotal</span>
-                  <span className="font-mono-data font-bold text-slate-900">RD$ {totalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">ITBIS (18%)</span>
-                  <span className="font-mono-data font-bold text-slate-900">RD$ {totalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600 flex items-center gap-2">ISC <span className="text-[10px] opacity-70 text-slate-500">(Combustibles)</span></span>
-                  <input
-                    type="number" step="0.01" value={globalIsc || ''} onChange={e => setGlobalIsc(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">Otros Impuestos</span>
-                  <input
-                    type="number" step="0.01" value={globalOtherTaxes || ''} onChange={e => setGlobalOtherTaxes(parseFloat(e.target.value) || 0)}
-                    className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-1 text-right text-xs font-mono-data font-bold focus:ring-1 focus:ring-[#c5a059] outline-none text-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-200/80 flex justify-between items-center mb-6">
-                <span className="text-sm font-bold text-slate-800">TOTAL NETO</span>
-                <span className="font-display-lg text-2xl font-extrabold text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-
-              <button
-                onClick={saveExpense}
-                disabled={loading}
-                className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition disabled:opacity-50"
-              >
-                {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
-              </button>
-
-              {editingExpenseId && (
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition active:scale-98"
-                >
-                  Cancelar Edición
-                </button>
-              )}
-            </div>
-          </section>
-        </div>
+        formularioCompra()
       ) : (
         <GuaranteeChecksView />
       )}
