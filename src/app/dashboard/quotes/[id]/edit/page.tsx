@@ -232,7 +232,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         className="space-y-6"
       >
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
           <div className="flex items-start gap-4">
             <button onClick={() => router.push('/dashboard/quotes')} className="p-2 mt-1 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -255,200 +255,171 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
               </div>
             </div>
           </div>
-          {isEditable && (
-            <div className="relative flex">
-              <button
-                type="button"
-                onClick={() => saveQuote(false)}
-                disabled={submitting}
-                className="flex items-center justify-center gap-2 rounded-l-xl bg-[#003366] px-6 py-3 text-sm font-bold text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98] border-r border-[#002244]"
-              >
-                {submitting ? (
-                  <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
-                ) : (
-                  <><Check className="h-4 w-4" /> Guardar Cambios</>
-                )}
-              </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                className="flex items-center justify-center rounded-r-xl bg-[#003366] px-3 py-3 text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98]"
-                title="Más opciones"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-
-              <AnimatePresence>
-                {saveDropdownOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-30"
-                      onClick={() => setSaveDropdownOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full right-0 mt-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[240px]"
-                    >
-                      <div className="px-3 py-2 border-b border-slate-100">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={() => saveQuote(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-amber-50 transition-colors text-left"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                          <Printer className="h-4 w-4 text-amber-700" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#003366] text-xs">Guardar e Imprimir</p>
-                          <p className="text-[11px] text-slate-500">Guarda cambios y abre el PDF</p>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={submitting}
-                        onClick={() => saveQuote(false)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100"
-                      >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                          <Check className="h-4 w-4 text-emerald-700" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#003366] text-xs">Solo Guardar</p>
-                          <p className="text-[11px] text-slate-500">Guarda y regresa al listado</p>
-                        </div>
-                      </button>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
         </div>
 
         {/* Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-lg">
               <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5 text-[#C5A059]" />
                 Líneas de Productos
               </h2>
               
-              <div className="space-y-4">
-                {lines.map((line, idx) => (
-                  <div key={idx} className="flex flex-wrap items-start gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <div className="flex-1 min-w-[200px]">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Producto</label>
-                      <button 
-                        disabled={!isEditable}
-                        onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
-                        className={clsx(
-                          "w-full text-left px-3 py-2.5 border rounded-lg text-xs font-semibold",
-                          isEditable ? "bg-white border-slate-300 text-[#003366] hover:border-[#C5A059] transition-colors" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
-                        )}
-                      >
-                        {line.productName || 'Seleccionar Producto...'}
-                      </button>
-                    </div>
-                    <div className="w-24">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Cant.</label>
-                      <input 
-                        type="number" min="1" step="any"
-                        disabled={!isEditable}
-                        value={line.quantity}
-                        onChange={(e) => {
-                          const n = [...lines]; n[idx].quantity = Number(e.target.value); setLines(n);
-                        }}
-                        className={clsx(
-                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
-                          isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
-                        )}
-                      />
-                    </div>
-                    <div className="w-32 relative group">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Precio (RD$)</label>
-                      {(() => {
-                        const pCost = line.productCost || 0;
-                        const isBelowCost = pCost > 0 && line.unitPrice < pCost;
-                        return (
-                          <div className="relative">
-                            <input 
-                              type="number" step="any"
+              {/* Las lineas eran una tarjeta por producto, con su etiqueta
+                  repetida en cada una. Una cotizacion es una lista comparable:
+                  lo que interesa es leer una columna de arriba abajo -- las
+                  cantidades entre si, los precios entre si -- y eso una pila de
+                  tarjetas no lo deja hacer. Va en tabla, con la cabecera UNA
+                  vez, como las lineas de compra.
+
+                  El `overflow-x-auto` es para que en pantalla estrecha la tabla
+                  se desplace en horizontal en vez de romper la pagina. El boton
+                  de agregar queda FUERA de el, si no se iria con el
+                  desplazamiento y desapareceria justo cuando mas falta hace. */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-3 py-2 min-w-[220px]">Producto</th>
+                      <th className="px-3 py-2 w-24 text-right">Cant.</th>
+                      <th className="px-3 py-2 w-32 text-right">Precio (RD$)</th>
+                      <th className="px-3 py-2 w-32 text-right">
+                        <span className="inline-flex items-center gap-1.5">
+                          Desc. (RD$)
+                          {/* El aviso de "solo admin" iba repetido en cada
+                              tarjeta. En la tabla se dice una vez. */}
+                          {!canEditDiscount && isEditable && (
+                            <span className="text-[8px] text-amber-700 bg-amber-100 px-1 py-0.5 rounded uppercase font-bold whitespace-nowrap">Solo admin</span>
+                          )}
+                        </span>
+                      </th>
+                      <th className="px-3 py-2 w-32 text-right">Total</th>
+                      <th className="px-3 py-2 w-12 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, idx) => {
+                      // El total de fila sale de la MISMA cuenta que
+                      // `calculateTotals`: (cantidad x precio - descuento) mas
+                      // su ITBIS. Calcularlo aparte con otra formula seria
+                      // pedir que la suma de las filas no cuadre con el total.
+                      const lSub = line.quantity * line.unitPrice;
+                      const lDisc = Number(line.discount) || 0;
+                      const lTotal = (lSub - lDisc) * (1 + line.taxRate);
+                      return (
+                        <tr key={idx} className="border-b border-slate-100 align-middle">
+                          <td className="px-3 py-2">
+                            <button
                               disabled={!isEditable}
-                              value={line.unitPrice}
+                              onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
+                              className={clsx(
+                                "w-full h-8 text-left px-3 py-1.5 border rounded-lg text-xs font-semibold",
+                                isEditable ? "bg-white border-slate-300 text-[#003366] hover:border-[#C5A059] transition-colors" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
+                              )}
+                            >
+                              {line.productName || 'Seleccionar Producto...'}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number" min="1" step="any"
+                              disabled={!isEditable}
+                              value={line.quantity}
                               onChange={(e) => {
-                                const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
+                                const n = [...lines]; n[idx].quantity = Number(e.target.value); setLines(n);
                               }}
                               className={clsx(
-                                "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
-                                !isEditable ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" :
-                                isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
-                                "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
+                                "w-full h-8 px-3 py-1.5 border rounded-lg text-xs font-semibold font-mono-data text-right outline-none",
+                                isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                               )}
                             />
-                            {isBelowCost && (
-                              <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
-                                El precio ingresado no es permitido (Mínimo: RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                              </div>
+                          </td>
+                          <td className="px-3 py-2 relative group">
+                            {(() => {
+                              const pCost = line.productCost || 0;
+                              const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+                              return (
+                                <div className="relative">
+                                  <input
+                                    type="number" step="any"
+                                    disabled={!isEditable}
+                                    value={line.unitPrice}
+                                    onChange={(e) => {
+                                      const n = [...lines]; n[idx].unitPrice = Number(e.target.value); setLines(n);
+                                    }}
+                                    className={clsx(
+                                      "w-full h-8 px-3 py-1.5 border rounded-lg text-xs font-semibold font-mono-data text-right outline-none",
+                                      !isEditable ? "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed" :
+                                      isBelowCost ? "bg-red-50 border-red-500 text-red-700 focus:border-red-600 focus:ring-1 focus:ring-red-500" :
+                                      "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
+                                    )}
+                                  />
+                                  {isBelowCost && (
+                                    <div className="absolute top-full left-0 mt-1 hidden group-hover:block z-10 w-48 p-2 bg-red-100 border border-red-200 text-red-800 text-[10px] rounded shadow-lg">
+                                      El precio ingresado no es permitido (Mínimo: RD$ {pCost.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number" step="any"
+                              disabled={!isEditable || !canEditDiscount}
+                              value={line.discount}
+                              onChange={(e) => {
+                                const n = [...lines]; n[idx].discount = Number(e.target.value); setLines(n);
+                              }}
+                              className={clsx(
+                                "w-full h-8 px-3 py-1.5 border rounded-lg text-xs font-semibold font-mono-data text-right outline-none",
+                                (!isEditable || !canEditDiscount)
+                                  ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
+                                  : "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
+                              )}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <span className="text-xs font-bold font-mono-data text-[#003366]">
+                              RD$ {lTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {isEditable && (
+                              <button
+                                onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                title="Eliminar Línea"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    <div className="w-28 relative group">
-                      <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                        Desc. (RD$)
-                        {!canEditDiscount && isEditable && (
-                          <span className="text-[8px] text-amber-700 bg-amber-100 px-1 py-0.5 rounded uppercase font-bold whitespace-nowrap">Solo admin</span>
-                        )}
-                      </label>
-                      <input 
-                        type="number" step="any"
-                        disabled={!isEditable || !canEditDiscount}
-                        value={line.discount}
-                        onChange={(e) => {
-                          const n = [...lines]; n[idx].discount = Number(e.target.value); setLines(n);
-                        }}
-                        className={clsx(
-                          "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none",
-                          (!isEditable || !canEditDiscount)
-                            ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" 
-                            : "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 transition"
-                        )}
-                      />
-                    </div>
-                    {isEditable && (
-                      <div className="pt-[22px]">
-                        <button 
-                          onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                          title="Eliminar Línea"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {lines.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-xs font-medium text-slate-500">
+                          Esta cotización no tiene productos todavía.
+                        </td>
+                      </tr>
                     )}
-                  </div>
-                ))}
+                  </tbody>
+                </table>
               </div>
               {isEditable && (
                 <button 
                   onClick={() => setLines([...lines, { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18 }])}
-                  className="mt-4 flex items-center gap-2 text-[#C5A059] text-xs font-bold hover:text-[#b08c4a] transition-colors bg-[#C5A059]/10 px-4 py-2 rounded-lg"
+                  className="mt-4 flex items-center gap-2 text-[#C5A059] text-xs font-bold hover:text-[#b08c4a] transition-colors bg-[#C5A059]/10 h-8 px-3 py-1.5 rounded-lg"
                 >
                   <Plus className="w-4 h-4" strokeWidth={2.5} /> Agregar Producto
                 </button>
               )}
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-lg">
               <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
                 <Printer className="w-5 h-5 text-[#C5A059]" />
                 Notas y Observaciones
@@ -459,7 +430,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 className={clsx(
-                  "w-full px-3 py-2.5 border rounded-lg text-xs font-medium outline-none transition",
+                  "w-full px-3 py-1.5 border rounded-lg text-xs font-medium outline-none transition",
                   isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                 )}
                 placeholder="Condiciones de pago, validez de la oferta, etc..."
@@ -469,7 +440,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
 
           <div className="space-y-6">
             {/* Customer & Warehouse */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-lg">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-lg">
               <h2 className="text-lg font-bold text-[#003366] mb-4 flex items-center gap-2">
                 <Building2 className="w-5 h-5 text-[#C5A059]" />
                 Detalles Generales
@@ -482,7 +453,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       disabled={!isEditable}
                       onClick={() => { setCustomerSearchOpen(true); searchCustomers(''); }}
                       className={clsx(
-                        "flex-1 text-left px-3 py-2.5 border rounded-lg text-xs font-semibold transition-colors",
+                        "flex-1 h-8 text-left px-3 py-1.5 border rounded-lg text-xs font-semibold transition-colors",
                         isEditable ? "bg-white border-slate-300 text-[#003366] hover:border-[#C5A059]" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                       )}
                     >
@@ -502,7 +473,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                     value={warehouseId}
                     onChange={(e) => setWarehouseId(e.target.value)}
                     className={clsx(
-                      "w-full px-3 py-2.5 border rounded-lg text-xs font-semibold outline-none appearance-none transition-colors",
+                      "w-full h-8 px-3 py-1.5 border rounded-lg text-xs font-semibold outline-none appearance-none transition-colors",
                       isEditable ? "bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20" : "bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed"
                     )}
                   >
@@ -515,7 +486,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
             </div>
 
             {/* Totals Summary */}
-            <div className="bg-[#003366] rounded-xl p-6 shadow-xl relative overflow-hidden border border-[#002244]">
+            <div className="bg-[#003366] rounded-xl p-4 shadow-xl relative overflow-hidden border border-[#002244]">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#C5A059]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
               
               <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
@@ -524,24 +495,124 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
               <div className="space-y-3 text-xs">
                 <div className="flex justify-between text-slate-300 font-medium">
                   <span>Subtotal</span>
-                  <span>RD$ {totals.subtotal.toFixed(2)}</span>
+                  <span className="font-mono-data">RD$ {totals.subtotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-amber-300/80 font-medium">
                   <span>Descuento Aplicado</span>
-                  <span>- RD$ {totals.discount.toFixed(2)}</span>
+                  <span className="font-mono-data">- RD$ {totals.discount.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-slate-300 font-medium">
                   <span>Impuestos (ITBIS)</span>
-                  <span>RD$ {totals.tax.toFixed(2)}</span>
+                  <span className="font-mono-data">RD$ {totals.tax.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="pt-4 mt-4 border-t border-white/10 flex justify-between items-end">
                   <span className="font-bold text-slate-200 uppercase tracking-wider text-[10px]">Total a Pagar</span>
-                  <span className="font-bold text-2xl text-[#C5A059]">RD$ {totals.total.toFixed(2)}</span>
+                  <span className="font-bold font-mono-data text-2xl text-[#C5A059]">RD$ {totals.total.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Guardar, al pie.
+            El boton vivia arriba a la derecha, en la cabecera. Se guarda al
+            TERMINAR de editar, y terminar de editar es estar abajo: dejarlo
+            arriba obligaba a subir a por el cada vez. Va alineado a la derecha
+            como en el alta de cotizacion, para que las dos pantallas de la
+            misma cotizacion se manejen igual. */}
+        {isEditable && (
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-slate-200 pt-4">
+            {/* Cancelar: se va al listado y ya esta. No hay nada que deshacer
+                porque no hay nada escrito -- la cotizacion solo se toca en la
+                base cuando se pulsa Guardar (`saveQuote`), asi que salir por
+                aqui la deja exactamente como estaba.
+
+                Va deshabilitado mientras se guarda: irse a mitad de un guardado
+                deja al usuario sin saber si se guardo o no. */}
+            <button
+              type="button"
+              onClick={() => router.push('/dashboard/quotes')}
+              disabled={submitting}
+              className="flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 h-8 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar
+            </button>
+
+            <div className="relative flex">
+              <button
+                type="button"
+                onClick={() => saveQuote(false)}
+                disabled={submitting}
+                className="flex items-center justify-center gap-2 rounded-l-lg bg-[#003366] h-8 px-3 py-1.5 text-xs font-bold text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98] border-r border-[#002244]"
+              >
+                {submitting ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
+                ) : (
+                  <><Check className="h-4 w-4" /> Guardar Cambios</>
+                )}
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
+                className="flex items-center justify-center rounded-r-lg bg-[#003366] h-8 px-2.5 py-1.5 text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98]"
+                title="Más opciones"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+
+              <AnimatePresence>
+                {saveDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setSaveDropdownOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-full right-0 mb-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[240px]"
+                    >
+                      <div className="px-3 py-2 border-b border-slate-100">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => saveQuote(true)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-amber-50 transition-colors text-left"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                          <Printer className="h-4 w-4 text-amber-700" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#003366] text-xs">Guardar e Imprimir</p>
+                          <p className="text-[11px] text-slate-500">Guarda cambios y abre el PDF</p>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => saveQuote(false)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-100"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-emerald-700" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#003366] text-xs">Solo Guardar</p>
+                          <p className="text-[11px] text-slate-500">Guarda y regresa al listado</p>
+                        </div>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Product Search Modal */}
@@ -558,7 +629,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   type="text" 
                   placeholder="Buscar por nombre o código..." 
                   onChange={(e) => searchProducts(e.target.value)}
-                  className="flex-1 bg-transparent text-[#003366] text-sm font-semibold outline-none placeholder:text-slate-400 placeholder:font-normal"
+                  className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
                 <button onClick={() => setProductSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>
@@ -574,7 +645,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">SKU: {p.sku}</div>
                     </div>
                     <div className="text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-md text-xs border border-emerald-100">
-                      RD$ {Number(p.price).toFixed(2)}
+                      RD$ {Number(p.price).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </button>
                 ))}
@@ -604,7 +675,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   type="text" 
                   placeholder="Buscar por nombre o RNC..." 
                   onChange={(e) => searchCustomers(e.target.value)}
-                  className="flex-1 bg-transparent text-[#003366] text-sm font-semibold outline-none placeholder:text-slate-400 placeholder:font-normal"
+                  className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
                 <button onClick={() => setCustomerSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>

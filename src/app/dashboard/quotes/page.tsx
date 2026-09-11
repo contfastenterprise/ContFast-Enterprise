@@ -120,13 +120,13 @@ export default function QuotesList() {
         <div className="flex items-center gap-3 self-end md:self-auto">
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
-              className="px-4 py-2 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
+              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
               onClick={() => router.push('/dashboard/quotes/new')}
-              className="px-4 py-2 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
+              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
@@ -141,7 +141,7 @@ export default function QuotesList() {
         className="space-y-6"
       >
         {/* Stats Row */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
           <div className="flex flex-col gap-2">
             <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
               <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></div>
@@ -149,23 +149,23 @@ export default function QuotesList() {
             </div>
           </div>
 
-          <div className="flex gap-4 w-full md:w-auto">
+          <div className="flex gap-3 w-full md:w-auto">
             <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Cotizado</span>
-              <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">
+              <span className="block font-mono-data text-xl md:text-2xl font-bold text-[#003366]">
                 RD$ {Number(stats.totalMonth).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
             <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pendientes</span>
-              <span className="block font-mono text-xl md:text-2xl font-bold text-[#C5A059]">{stats.pending}</span>
+              <span className="block font-mono-data text-xl md:text-2xl font-bold text-[#C5A059]">{stats.pending}</span>
             </div>
           </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 md:p-5 flex flex-col md:flex-row flex-wrap items-end gap-4 shadow-lg">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row flex-wrap items-end gap-3 shadow-lg">
           <div className="flex-1 min-w-[200px] w-full">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Rango de Fechas</label>
             <div className="relative">
@@ -249,19 +249,19 @@ export default function QuotesList() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2 pt-3 border-t border-slate-100">
-                      <span className="font-mono font-bold text-[#003366] text-sm">
+                      <span className="font-mono-data font-bold text-[#003366] text-sm">
                         RD$ {Number(quote.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                       </span>
                       <div className="flex gap-1.5">
                         {quote.status === 'pending' && (
-                          <button onClick={() => convertToInvoice(quote.id)} className="p-2 bg-slate-100 rounded text-emerald-600 hover:bg-emerald-50">
+                          <button onClick={() => convertToInvoice(quote.id)} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-emerald-600 hover:bg-emerald-50">
                             <Check className="h-4 w-4" />
                           </button>
                         )}
-                        <button onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#C5A059] hover:bg-[#C5A059]/10">
+                        <button onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-[#C5A059] hover:bg-[#C5A059]/10">
                           <Printer className="h-4 w-4" />
                         </button>
-                        <button onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)} className="p-2 bg-slate-100 rounded text-[#003366] hover:bg-[#003366]/5">
+                        <button onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-[#003366] hover:bg-[#003366]/5">
                           <Eye className="h-4 w-4" />
                         </button>
                       </div>
@@ -318,7 +318,7 @@ export default function QuotesList() {
                         <td className="px-4 py-2.5 align-middle">
                           <div className="font-bold text-[#003366] text-xs">{quote.customerName || 'Cliente General'}</div>
                         </td>
-                        <td className="px-4 py-2.5 align-middle text-right font-mono font-bold text-[#003366] text-xs">
+                        <td className="px-4 py-2.5 align-middle text-right font-mono-data font-bold text-[#003366] text-xs">
                           RD$ {Number(quote.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-4 py-2.5 align-middle text-center">
