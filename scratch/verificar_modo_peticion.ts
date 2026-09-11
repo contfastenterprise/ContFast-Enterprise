@@ -164,6 +164,7 @@ console.log('\n6) Ningun sitio decide el modo por descarte\n');
 const SITIOS = [
   'src/middleware/auth.ts',
   'src/proxy.ts',
+  'src/actions/_sesion.ts',   // donde vive ahora el contexto de las acciones
   'src/actions/payables.ts',
   'src/actions/receivables.ts',
   'src/app/dashboard/ClientLayout.tsx',
@@ -202,10 +203,23 @@ console.log('\n7) Cada sitio usa la lectura que le toca\n');
     (proxy.match(/modoDeCookie\(/g) || []).length === 2,
     String((proxy.match(/modoDeCookie\(/g) || []).length));
 
+  // `payables.ts` y `receivables.ts` tenian una copia LITERAL del contexto de
+  // sesion cada una, 30 lineas identicas. Se unifico en `src/actions/_sesion.ts`
+  // (ver commit "Documentos y carteras: sesion no es permiso"), asi que la
+  // llamada a `modoDeCookie` vive ahora en un solo sitio.
+  //
+  // La comprobacion se APRIETA: ademas de que el ayudante la use, se exige que
+  // las acciones NO vuelvan a tener su propia copia. Volver a copiarla es
+  // exactamente lo que habia que impedir.
+  {
+    const ses = fuente('src/actions/_sesion.ts');
+    ok('_sesion.ts: usa modoDeCookie, no la que lanzaba',
+      /modoDeCookie\(\s*cookieStore\.get\('cf_environment'\)\?\.value/.test(ses));
+  }
   for (const f of ['src/actions/payables.ts', 'src/actions/receivables.ts']) {
     const src = fuente(f);
-    ok(`${f.split('/').pop()}: usa modoDeCookie, no la que lanzaba`,
-      /modoDeCookie\(cookieStore\.get\('cf_environment'\)\?\.value/.test(src));
+    ok(`${f.split('/').pop()}: toma el modo del ayudante, sin copia propia`,
+      src.includes("from './_sesion'") && !src.includes('modoDeCookie('));
   }
 }
 

@@ -19,6 +19,25 @@
  * cerrar el lote de nomina, banco, financiero y reportes: **solo puede
  * encogerse**. Si se corrige una ruta hay que sacarla de la lista, y la propia
  * prueba lo exige.
+ *
+ * ── AMPLIACION: LAS ACCIONES DE SERVIDOR ──────────────────────────────────
+ *
+ * Esta guarda recorria `src/app/api/**` y se detenia ahi. Y `src/app/api` no
+ * es la unica puerta: una funcion exportada desde un fichero con `'use server'`
+ * es un punto HTTP publico, igual que una ruta, solo que sin fichero de ruta
+ * que recorrer. Por ese hueco pasaron dos cosas a la vez:
+ *
+ *   - `actions/receivables.ts` y `actions/payables.ts` comprobaban la sesion
+ *     pero no el permiso. La unica puerta que dejaba fuera a los demas era el
+ *     menu lateral, y un menu no es control de acceso.
+ *
+ *   - `actions/documents.ts` no comprobaba NADA, y recibia el `companyId` como
+ *     PARAMETRO. Preguntarle a quien llama de que empresa es no acota nada:
+ *     quien invoca elige la respuesta.
+ *
+ * Las tres pruebas de abajo cierran ese hueco por forma, no por lista: una
+ * accion nueva sin permiso, o que vuelva a recibir la empresa por parametro,
+ * las rompe.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'fs';
@@ -60,9 +79,9 @@ const COMPROBACIONES = [
  *    cerrarlos junto a el.
  */
 const PENDIENTES = new Set([
-  'documents/email/[type]/[id]/route.ts',
+  // `documents/email` y `documents/share` salieron de aqui: ya comprueban
+  // `facturacion:read` y `facturacion:write`. La lista solo puede encoger.
   'documents/pdf/[type]/[id]/route.ts',
-  'documents/share/[type]/[id]/route.ts',
   'storefront/quotes/route.ts',
   'v1/admin/permissions/route.ts',
   'v1/admin/sessions/route.ts',
@@ -145,6 +164,11 @@ describe('ISO-03 · comprobacion de permisos en las rutas de la API', () => {
 
   it('las rutas sensibles del lote corregido comprueban permiso', () => {
     const cerradas = [
+      // Salieron de PENDIENTES al cerrarse las acciones de documentos. Aqui
+      // quedan fijadas: si alguien les quita la comprobacion, esto se cae en vez
+      // de que vuelvan calladas a la lista de deuda.
+      'documents/email/[type]/[id]/route.ts',
+      'documents/share/[type]/[id]/route.ts',
       'v1/hr/employees/route.ts',
       'v1/hr/payroll/route.ts',
       'v1/hr/settlements/route.ts',
@@ -166,5 +190,115 @@ describe('ISO-03 · comprobacion de permisos en las rutas de la API', () => {
       expect(contenido, `No se encontro la ruta ${id}`).toBeDefined();
       expect(compruebaPermiso(contenido || ''), `${id} perdio su comprobacion de permisos`).toBe(true);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Las acciones de servidor: la otra puerta
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ACCIONES_DIR = join(RAIZ, 'src', 'actions');
+
+/**
+ * Ficheros de `src/actions`. Los que empiezan por `_` son ayudantes, no
+ * acciones -- y esa distincion importa: un fichero marcado `'use server'`
+ * expone TODO lo que exporta.
+ */
+const ACCIONES = readdirSync(ACCIONES_DIR)
+  .filter((f) => f.endsWith('.ts'))
+  .map((f) => ({
+    nombre: f,
+    esAyudante: f.startsWith('_'),
+    contenido: readFileSync(join(ACCIONES_DIR, f), 'utf8'),
+  }));
+
+/**
+ * La directiva `'use server'` como SENTENCIA, sola en su linea. Buscarla con
+ * `includes` era un falso positivo esperando: el propio `_sesion.ts` explica en
+ * un comentario que no la lleva, y esa frase la contiene.
+ */
+const MARCADA_COMO_ACCION = /^\s*['"]use server['"]\s*;?\s*$/m;
+
+/** Trocea un fichero en sus funciones exportadas, por el `export async function`. */
+function funcionesExportadas(contenido: string): { nombre: string; cuerpo: string }[] {
+  const trozos = contenido.split(/(?=^export async function )/m).slice(1);
+  return trozos.map((t) => ({
+    nombre: (t.match(/^export async function (\w+)/) || [, '(anonima)'])[1] as string,
+    cuerpo: t,
+  }));
+}
+
+describe('ISO-03 (ampliacion) · las acciones de servidor tambien son puertas', () => {
+  it('el directorio de acciones se recorre y tiene la forma que se espera', () => {
+    // Comprobar solo que hay ficheros pasaba tambien ANTES de este lote, asi
+    // que no comprobaba nada. Apretada: ademas de haber acciones, tiene que
+    // estar el ayudante donde vive el contexto de sesion. Si alguien lo borra
+    // y vuelve a copiar el contexto en cada accion, esto se cae aqui.
+    expect(ACCIONES.some((a) => !a.esAyudante)).toBe(true);
+    expect(
+      ACCIONES.some((a) => a.nombre === '_sesion.ts'),
+      'Falta src/actions/_sesion.ts.'
+    ).toBe(true);
+  });
+
+  it('toda accion de servidor exportada comprueba permiso', () => {
+    const sinPermiso: string[] = [];
+
+    for (const a of ACCIONES) {
+      if (a.esAyudante) continue;
+      if (!MARCADA_COMO_ACCION.test(a.contenido)) continue;
+      for (const fn of funcionesExportadas(a.contenido)) {
+        if (!compruebaPermiso(fn.cuerpo)) sinPermiso.push(`${a.nombre}:${fn.nombre}`);
+      }
+    }
+
+    expect(
+      sinPermiso,
+      'Estas acciones de servidor son puntos HTTP publicos sin comprobacion de ' +
+        'permiso. Anade enforcePermission con el modulo que corresponda.'
+    ).toEqual([]);
+  });
+
+  it('ninguna accion recibe la empresa o el entorno por parametro', () => {
+    // El anti-patron de F0-03: preguntarle a quien llama de que empresa es. Se
+    // admite el parametro si esta marcado como ignorado con `_` delante, que es
+    // como se conservan los que quedan por compatibilidad con los llamadores.
+    const culpables: string[] = [];
+
+    for (const a of ACCIONES) {
+      if (a.esAyudante) continue;
+      for (const fn of funcionesExportadas(a.contenido)) {
+        const firma = fn.cuerpo.slice(0, fn.cuerpo.indexOf(') {') + 1);
+        if (/(?<![\w_])(companyId|modo)\s*[?]?\s*:/.test(firma)) {
+          culpables.push(`${a.nombre}:${fn.nombre}`);
+        }
+      }
+    }
+
+    expect(
+      culpables,
+      'Estas acciones reciben companyId o modo como parametro. Una accion de ' +
+        'servidor es publica: quien la invoca elige el valor. Sacalos de la sesion.'
+    ).toEqual([]);
+  });
+
+  it('el contexto de sesion vive en un solo sitio, y ese sitio no es una accion', () => {
+    // Estaba copiado palabra por palabra en receivables.ts y payables.ts. Tres
+    // copias de lo mismo son tres sitios donde el proximo arreglo se aplica dos
+    // veces y se olvida una.
+    const conCopia = ACCIONES
+      .filter((a) => !a.esAyudante && /async function getAuthContext/.test(a.contenido))
+      .map((a) => a.nombre);
+    expect(conCopia, 'Copias locales del contexto de sesion: usar src/actions/_sesion.ts.').toEqual([]);
+
+    const sesion = ACCIONES.find((a) => a.nombre === '_sesion.ts');
+    expect(sesion, 'Falta src/actions/_sesion.ts, que es donde vive el contexto.').toBeDefined();
+
+    // Y el ayudante NO puede estar marcado como accion: lo expondria entero.
+    expect(
+      MARCADA_COMO_ACCION.test(sesion?.contenido || ''),
+      '_sesion.ts no debe llevar la directiva de accion: es un ayudante, y un ' +
+        'fichero marcado como accion expone todo lo que exporta.'
+    ).toBe(false);
   });
 });

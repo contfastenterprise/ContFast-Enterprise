@@ -5,22 +5,40 @@ import { invoices } from '@/db/schema/invoices';
 import { eq, and } from 'drizzle-orm';
 import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
-// import { requireAuth } from '@/utils/auth';
+import { exigirSesion } from './_sesion';
+import { enforcePermission } from '@/middleware/permissions';
 
 // Auditoria F0-03: estas rutas no verificaban sesion ni empresa, y quedaban fuera
 // del matcher del proxy. Cualquiera con el UUID de una factura podia descargar su
 // PDF, reenviarla por correo a un destinatario arbitrario o generar un enlace
 // publico de 30 dias, sin autenticarse y sin importar de que empresa fuera.
+//
+// AQUEL ARREGLO NO CERRO LA PUERTA, LE PUSO UN CARTEL.
+// Lo que se anadio fue un PARAMETRO `companyId`, es decir: se le pregunta a
+// quien llama de que empresa es. Una accion de servidor es un punto HTTP
+// publico, asi que eso no acota nada -- quien la invoca elige la respuesta. Y
+// seguia sin haber NINGUNA comprobacion de sesion: los `// session.user.id`
+// comentados mas abajo son de la misma epoca y dicen lo mismo.
+//
+// Ahora la empresa y el entorno salen de la SESION, y ademas se exige permiso.
+// Los parametros que traian esos datos se conservan en su posicion para no
+// romper a quien llame, pero se IGNORAN: llevan `_` delante y no se usan. Se
+// pueden quitar en cuanto se confirme que no queda ningun llamador.
 export async function sendDocumentEmailAction(
   documentType: string,
   documentId: string,
   toEmail: string,
-  companyId: string
+  /** @deprecated Ya no se usa: la empresa sale de la sesion. */
+  _companyIdDelCliente?: string
 ) {
   try {
-    if (!companyId) {
-      throw new Error('Falta el contexto de empresa.');
-    }
+    // Enviar por correo es leer el documento y sacarlo de la empresa. Pide
+    // `facturacion:read`, que es el modulo al que pertenece la factura.
+    const sesion = await exigirSesion();
+    await enforcePermission(
+      sesion.userId, sesion.role, sesion.roleId, sesion.companyId, 'facturacion', 'read'
+    );
+    const companyId = sesion.companyId;
 
     if (documentType !== 'invoice') {
       throw new Error('Tipo de documento no soportado');
@@ -105,13 +123,26 @@ export async function sendDocumentEmailAction(
 export async function createShareTokenAction(
   documentType: string,
   documentId: string,
-  companyId: string,
-  modo: 'PRODUCCION' | 'PRUEBA'
+  /** @deprecated Ya no se usa: la empresa sale de la sesion. */
+  _companyIdDelCliente?: string,
+  /** @deprecated Ya no se usa: el entorno sale de la cookie de sesion. */
+  _modoDelCliente?: 'PRODUCCION' | 'PRUEBA'
 ) {
   try {
-    if (!companyId) {
-      throw new Error('Falta el contexto de empresa.');
-    }
+    // Aqui se pide `write` y no `read`, a sabiendas de que es mas estricto que
+    // enviar por correo: esto no ensena un documento a alguien, ACUÑA UN
+    // ENLACE PUBLICO de 30 dias a un comprobante fiscal, que despues vive solo
+    // y no se puede desinvitar. Quien pueda crear facturas puede exponerlas;
+    // quien solo pueda mirarlas, no. Si prefieres que baste con `read`, se
+    // cambia aqui y en el banco de comprobaciones, que lo tiene fijado.
+    const sesion = await exigirSesion();
+    await enforcePermission(
+      sesion.userId, sesion.role, sesion.roleId, sesion.companyId, 'facturacion', 'write'
+    );
+    const companyId = sesion.companyId;
+    // El entorno tambien sale de la sesion: si lo eligiera quien llama, el
+    // acotamiento de PRUEBA/PRODUCCION que hay debajo seria decorativo.
+    const modo = sesion.modo;
 
     if (documentType !== 'invoice') {
       throw new Error('Tipo de documento no soportado');

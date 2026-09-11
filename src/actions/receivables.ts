@@ -2,45 +2,31 @@
 
 import { db, accountsReceivable, customers, invoices, companies, companySettings } from '@/db';
 import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
-import { cookies } from 'next/headers';
-import * as jwt from 'jsonwebtoken';
-import { modoDeCookie } from '@/services/dgii/modoPeticion';
+import { exigirSesion } from './_sesion';
+import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
-async function getAuthContext() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('accessToken')?.value;
-  if (!token) return null;
-
-  try {
-    // Auditoria F0-04: sin valor por defecto. El resto del sistema ya aborta al
-    // arrancar si falta JWT_SECRET (src/middleware/auth.ts), asi que aceptar un
-    // secreto publico aqui solo abria la puerta a tokens forjados.
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('La variable de entorno JWT_SECRET es obligatoria.');
-    }
-    const decoded = jwt.verify(token, secret) as any;
-    
-    // Accion de servidor: lee la cookie directamente. Puede faltar o venir
-    // vieja -- ninguno de los dos casos debe romper la operacion. Ausente o
-    // desconocida, ambas caen a PRUEBA; modoDeCookie no lanza nunca.
-    const reqModo = modoDeCookie(cookieStore.get('cf_environment')?.value, 'la cookie cf_environment');
-    
-    return {
-      userId: decoded.userId,
-      companyId: decoded.companyId,
-      modo: reqModo,
-      role: decoded.role,
-    };
-  } catch (error) {
-    return null;
-  }
-}
-
 export async function getReceivablesDashboardData() {
-  const auth = await getAuthContext();
-  if (!auth) throw new Error('Unauthorized');
+  const auth = await exigirSesion();
+
+  // AUTORIZACION, NO SOLO AUTENTICACION.
+  //
+  // Hasta aqui esto solo comprobaba que HUBIERA sesion. La unica puerta que
+  // dejaba fuera a los demas era el menu lateral -- y un menu no es control de
+  // acceso: no lo aplica nadie, solo esconde el enlace. Cualquier sesion de la
+  // empresa que escribiera /dashboard/financial/accounts-receivable en la barra de
+  // direcciones recibia la cartera entera.
+  //
+  // Es el mismo patron de ISO-03 (rutas que verifican sesion y no permiso) con
+  // un agravante: la guarda que existe para impedirlo, permisosRutas.vitest.ts,
+  // recorria src/app/api/**/route.ts y se detenia ahi, asi que las acciones de
+  // servidor quedaban fuera de su alcance. Eso tambien se amplia en este lote.
+  //
+  // Lanza en vez de devolver `success: false` a proposito: es lo que ya hacia
+  // la comprobacion de sesion, y ademas la pagina de pagar no mira `success`
+  // -- un `false` silencioso le pintaria un panel vacio, que es la clase de
+  // "no puedes" disfrazado de averia que no queremos.
+  await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'cobros', 'read');
   
   const { companyId, modo } = auth;
 

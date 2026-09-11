@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDocumentEmailAction } from '@/actions/documents';
 import { verifyAuth } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/permissions';
 
 export async function POST(
   req: NextRequest,
@@ -15,6 +16,16 @@ export async function POST(
     if (!auth) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+
+    // ISO-03: aquello cerro la SESION, no el PERMISO, y esta ruta se quedo en la
+    // lista PENDIENTES de permisosRutas.vitest.ts. Mientras tanto, cualquier
+    // sesion de la empresa -- el cajero, el de recursos humanos -- podia mandar cualquier factura de la empresa a cualquier direccion de correo.
+    //
+    // `requirePermission` y no `enforcePermission`: el catch de abajo cierra con
+    // 500 fijo, asi que un `enforcePermission` que lanza habria presentado una
+    // denegacion de permisos como averia del servidor.
+    const denegado = await requirePermission(auth, 'facturacion', 'read');
+    if (denegado) return denegado;
 
     const { type, id } = await params;
     const body = await req.json();
