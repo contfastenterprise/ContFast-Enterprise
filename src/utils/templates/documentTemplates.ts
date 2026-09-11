@@ -5210,6 +5210,143 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       </html>
     `;
   }
+
+  /**
+   * ESTADO DE CUENTA POR NCF (partidas abiertas).
+   *
+   * No es un libro de movimientos: cada linea es UNA FACTURA que sigue
+   * debiendo, y lo que le paso -- abonos, notas de credito, notas de debito --
+   * va en columnas de esa misma linea. Un recibo no tiene renglon propio:
+   * aparece rebajando la factura a la que se aplico.
+   *
+   * Las notas se agrupan bajo el NCF de la factura que corrigen, asi que cada
+   * linea cuadra sola:
+   *
+   *     saldo = (facturado + notas de debito) - abonos - notas de credito
+   *
+   * Esa igualdad se imprime al pie a proposito: quien recibe el papel tiene que
+   * poder comprobarlo sin fiarse de nadie.
+   */
+  static renderEstadoPorNcf(data: any): string {
+    const { company, entidad, esCliente, partidas, aviso } = data;
+    const css = this.getBaseCss('carta');
+
+    const n = (v: number) =>
+      Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const fecha = (v: string) => {
+      if (!v) return '-';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('es-DO');
+    };
+
+    const total = (campo: string) =>
+      (partidas || []).reduce((a: number, p: any) => a + Number(p[campo] || 0), 0);
+
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="margin-left: -20px;" alt="Logo">`
+      : '';
+    const tituloEmpresa = logoHtml ? '' : `<div class="title">${company.name}</div>`;
+
+    const filas = (partidas || []).map((p: any) => `
+      <tr>
+        <td class="font-mono">${p.ncf}${p.huerfana ? ' <span style="color:#b45309;font-weight:700;">(N/D suelta)</span>' : ''}</td>
+        <td>${fecha(p.fecha)}</td>
+        <td>${fecha(p.vence)}</td>
+        <td class="text-right font-mono">${n(p.montoFacturado)}</td>
+        <td class="text-right font-mono" style="${Number(p.notasDebito) > 0 ? 'color:#003366;' : 'color:#bbb;'}">${Number(p.notasDebito) > 0 ? n(p.notasDebito) : '-'}</td>
+        <td class="text-right font-mono" style="${Number(p.notasCredito) > 0 ? 'color:#dc3545;' : 'color:#bbb;'}">${Number(p.notasCredito) > 0 ? n(p.notasCredito) : '-'}</td>
+        <td class="text-right font-mono" style="${Number(p.abonos) > 0 ? 'color:#1e7e34;' : 'color:#bbb;'}">${Number(p.abonos) > 0 ? n(p.abonos) : '-'}</td>
+        <td class="text-right font-mono" style="font-weight:bold;">${n(p.saldo)}</td>
+        <td class="text-center" style="${Number(p.diasAtraso) > 0 ? 'color:#dc3545;font-weight:600;' : 'color:#1e7e34;'}">${Number(p.diasAtraso) > 0 ? p.diasAtraso : 'Al día'}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Estado de Cuenta - ${entidad.name}</title>
+        <style>
+          ${css}
+          .font-mono { font-family: monospace; }
+          tfoot td { font-weight: bold; border-top: 2px solid #003366; }
+          .nota-pie { font-size: 7.5pt; color: #555; margin-top: 10px; line-height: 1.4; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info" style="font-size: 8pt; color: #555; line-height: 1.4;">
+            ${logoHtml}
+            ${tituloEmpresa}
+            <div>RNC: ${company.rnc}</div>
+            ${company.address ? `<div>${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info" style="text-align: right;">
+            <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">
+              ESTADO DE CUENTA (${esCliente ? 'CLIENTE' : 'SUPLIDOR'})
+            </div>
+            <div><strong>${esCliente ? 'Cliente' : 'Suplidor'}:</strong> ${entidad.name}</div>
+            ${entidad.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${entidad.rncCedula}</div>` : ''}
+            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div style="margin-top: 5px; font-weight: bold; color: #003366; font-size: 12pt;">
+              Saldo Pendiente: $${n(total('saldo'))}
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 20px; color: #003366; border-bottom: 2px solid #003366; padding-bottom: 5px; font-size: 10pt; text-transform: uppercase; letter-spacing: 0.5px;">
+          Documentos Pendientes por NCF
+        </h4>
+
+        <table>
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th>NCF</th>
+              <th>Emisión</th>
+              <th>Vence</th>
+              <th class="text-right">Facturado</th>
+              <th class="text-right">N. Débito</th>
+              <th class="text-right">N. Crédito</th>
+              <th class="text-right">Abonos</th>
+              <th class="text-right">Saldo</th>
+              <th class="text-center">Días</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(partidas || []).length === 0
+              ? '<tr><td colspan="9" class="text-center" style="padding: 20px; color: #555;">Sin documentos pendientes: esta cuenta está saldada.</td></tr>'
+              : filas}
+          </tbody>
+          ${(partidas || []).length === 0 ? '' : `
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-right">TOTALES</td>
+              <td class="text-right font-mono">${n(total('montoFacturado'))}</td>
+              <td class="text-right font-mono">${n(total('notasDebito'))}</td>
+              <td class="text-right font-mono">${n(total('notasCredito'))}</td>
+              <td class="text-right font-mono">${n(total('abonos'))}</td>
+              <td class="text-right font-mono">${n(total('saldo'))}</td>
+              <td></td>
+            </tr>
+          </tfoot>`}
+        </table>
+
+        <div class="nota-pie">
+          <div><strong>Cómo leer cada línea:</strong> Saldo = (Facturado + Notas de Débito) − Abonos − Notas de Crédito.</div>
+          <div>Solo se listan los documentos con saldo pendiente. Las notas de crédito y de débito aparecen en la línea de la factura que corrigen, no por separado.</div>
+          ${aviso ? `<div style="margin-top: 4px;">${aviso}</div>` : ''}
+        </div>
+
+        <div class="footer" style="margin-top: 40px;">
+          Estado de Cuenta - Generado por ContFast Enterprise
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }
 
 

@@ -41,6 +41,7 @@
     "docs",
     "scratch",
     "tmp",
-    "storage"
+    "storage",
+    "_referencia"
   ]
 }
