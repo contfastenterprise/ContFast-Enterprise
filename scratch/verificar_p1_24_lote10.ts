@@ -168,8 +168,11 @@ for (const [ruta, n] of [
     src.includes('const idsAsientosPut = snapshotAsientosPut.map((j) => j.id);'));
   ok('expenses/[id]/route: GET + PUT catch (err: unknown) + .message (2)',
     (src.match(/\} catch \(err: unknown\) \{\n    console\.error\('Error (fetching expense details|editing expense):', err\);\n    return NextResponse\.json\(\{ success: false, error: \{ message: \(err as Error\)\.message \} \}, \{ status: 500 \}\);/g) || []).length === 2);
-  ok('expenses/[id]/route: 4 errores tipados Error & {status?, code?} con err.status = 409 (periodo cerrado x2, pagos aplicados, pagos suplidor)',
-    (src.match(/const err: Error & \{ status\?: number; code\?: string \} = new Error\(/g) || []).length === 4);
+  // Cinco desde el freno de existencia consumida: revertir la entrada de una
+  // compra cuya mercancia ya se vendio deja el almacen en negativo, y eso
+  // significa que esas unidades ya salieron valoradas con su costo.
+  ok('expenses/[id]/route: 5 errores tipados Error & {status?, code?} con err.status = 409 (periodo cerrado x2, pagos aplicados, pagos suplidor, existencia consumida)',
+    (src.match(/const err: Error & \{ status\?: number; code\?: string \} = new Error\(/g) || []).length === 5);
   ok('expenses/[id]/route: appliedCount filter + linkedCheckIds map sin any',
     src.includes("const appliedCount = apPaymentRows.filter((r) => r.status === 'applied').length;") &&
     src.includes('.map((r) => r.checkId)'));

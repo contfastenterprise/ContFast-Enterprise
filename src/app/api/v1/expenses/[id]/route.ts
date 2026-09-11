@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, type DbTransaction, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
+import { db, type DbTransaction, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { esSistemas } from '@/utils/rolMatch';
@@ -9,7 +9,7 @@ import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo }
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
-import { addStock } from '@/services/inventoryService';
+import { addStock, llevaInventario } from '@/services/inventoryService';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -135,6 +135,78 @@ async function revertirMovimientosInventario(
     .from(inventoryMovements)
     .where(inArray(inventoryMovements.referenceId, idsOriginales));
   const idsYaRevertidos = new Set(yaRevertidos.map((r) => r.referenceId));
+
+  // ─────────────────────────────────────────────────────────────────────────
+  //  NO SE REVIERTE EXISTENCIA QUE YA SALIO
+  //
+  //  `addStock` no tiene freno de negativo: hace `level.quantity + quantity` y
+  //  escribe el resultado, sea el que sea. Sus propios comentarios lo dicen al
+  //  hablar del costo promedio ("una existencia en rojo... una venta que dejo
+  //  el nivel bajo cero"). Asi que revertir la entrada de una compra cuya
+  //  mercancia YA SE VENDIO dejaba el almacen en negativo, en silencio.
+  //
+  //  Y el negativo no es lo peor: es la SEÑAL. Significa que esas unidades ya
+  //  salieron en facturas que se valoraron con el costo promedio que metio
+  //  esta compra. Ese costo ya esta dentro del COGS de ventas emitidas, y
+  //  editar la compra hacia atras no lo recalcula -- ni debe, como explica el
+  //  comentario de P1-12 unas lineas mas abajo. Corregir la compra deja el
+  //  asiento de la compra bien y el de esas ventas mal, sin nada que avise.
+  //
+  //  Se comprueba ANTES de mover nada, y con la fila bloqueada: `addStock`
+  //  bloquea por su cuenta, pero si se leyera aqui sin bloquear, entre la
+  //  comprobacion y el movimiento cabria una venta.
+  const aRevertir = new Map<string, { productId: string; warehouseId: string; cantidad: number }>();
+  for (const mov of originales) {
+    if (idsYaRevertidos.has(mov.id)) continue;
+    const clave = `${mov.productId}|${mov.warehouseId}`;
+    const acc = aRevertir.get(clave);
+    const cantidad = Number(mov.quantity) || 0;
+    if (acc) acc.cantidad += cantidad;
+    else aRevertir.set(clave, { productId: mov.productId, warehouseId: mov.warehouseId, cantidad });
+  }
+
+  for (const r of aRevertir.values()) {
+    // Un producto sin control de existencia no tiene nivel que dejar en rojo.
+    if (!(await llevaInventario(companyId, r.productId, tx))) continue;
+
+    const [nivel] = await tx
+      .select({ quantity: inventoryLevels.quantity })
+      .from(inventoryLevels)
+      .where(and(
+        eq(inventoryLevels.companyId, companyId),
+        eq(inventoryLevels.productId, r.productId),
+        eq(inventoryLevels.warehouseId, r.warehouseId),
+        eq(inventoryLevels.modo, modo)
+      ))
+      .for('update');
+
+    const actual = Number(nivel?.quantity ?? 0);
+    const quedaria = actual - r.cantidad;
+    if (quedaria < 0) {
+      const [prod] = await tx
+        .select({ name: products.name })
+        .from(products)
+        .where(and(eq(products.id, r.productId), eq(products.companyId, companyId)))
+        .limit(1);
+      const [alm] = await tx
+        .select({ name: warehouses.name })
+        .from(warehouses)
+        .where(and(eq(warehouses.id, r.warehouseId), eq(warehouses.companyId, companyId)))
+        .limit(1);
+
+      const err: Error & { status?: number; code?: string } = new Error(
+        `No se puede ${motivo.toLowerCase().startsWith('eliminaci') ? 'eliminar' : 'editar'} esta compra: ` +
+        `deshacer su entrada de inventario dejaría "${prod?.name || r.productId}" en ${quedaria} ` +
+        `unidades en el almacén "${alm?.name || r.warehouseId}" (hay ${actual}, entraron ${r.cantidad}). ` +
+        `Eso significa que esas unidades ya salieron en facturas o despachos, y esas salidas se ` +
+        `valoraron con el costo que trajo esta compra. Anule primero los documentos que las ` +
+        `consumieron, o registre la diferencia como un ajuste de inventario.`
+      );
+      err.status = 409;
+      err.code = 'STOCK_YA_CONSUMIDO';
+      throw err;
+    }
+  }
 
   for (const mov of originales) {
     if (idsYaRevertidos.has(mov.id)) continue;
@@ -388,7 +460,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       if (!periodoAbierto) {
         const err: Error & { status?: number; code?: string } = new Error(
           `No se puede eliminar esta compra: su período contable (fecha ${expenseRow.issueDate}) ya está cerrado. ` +
-          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla, o revierta el cierre.`
+          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla, o revierta el cierre. ` +
+          `Y si ese período ya se reportó a la DGII en el Formato 606, reabrirlo no basta: cambiar aquí el NCF o el monto deja lo declarado y lo registrado diciendo cosas distintas. Eso se corrige con una rectificativa del 606, o con la nota de crédito/débito del suplidor si lo que cambió fue el documento.`
         );
         err.status = 409;
         throw err;
@@ -711,7 +784,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       if (!periodoAbiertoOriginal) {
         const err: Error & { status?: number; code?: string } = new Error(
           `No se puede editar esta compra: su período contable original (fecha ${existing[0].issueDate}) ya está cerrado. ` +
-          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla.`
+          `Ábralo en Contabilidad > Períodos si de verdad necesita corregirla. ` +
+          `Y si ese período ya se reportó a la DGII en el Formato 606, reabrirlo no basta: cambiar aquí el NCF o el monto deja lo declarado y lo registrado diciendo cosas distintas. Eso se corrige con una rectificativa del 606, o con la nota de crédito/débito del suplidor si lo que cambió fue el documento.`
         );
         err.status = 409;
         throw err;
