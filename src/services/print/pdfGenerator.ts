@@ -1,4 +1,5 @@
 import type { Browser } from 'puppeteer';
+import { Logger } from '@/utils/logger';
 import QRCode from 'qrcode';
 
 export class PdfGenerator {
@@ -56,14 +57,25 @@ export class PdfGenerator {
   }
 
   /**
-   * Generates a base64 encoded QR code from a URL.
+   * El QR en base64, o `null` si NO se pudo generar.
+   *
+   * Auditoria P2-43 (2026-09-03): devolvia cadena vacia, y la cadena vacia ya
+   * significaba otra cosa en los cuatro sitios que la usan -- "aqui no hay QR
+   * que poner", que es un caso legitimo. Asi que "no habia nada que codificar"
+   * y "no se pudo codificar" eran el mismo valor, y el e-CF salia impreso y
+   * enviado sin su codigo QR de consulta, que es contenido obligatorio de la
+   * representacion impresa, sin que nada lo dijera.
+   *
+   * `null` no se confunde con nada. Quien llama decide que hacer.
    */
-  static async generateQrBase64(url: string): Promise<string> {
+  static async generateQrBase64(url: string): Promise<string | null> {
     try {
       return await QRCode.toDataURL(url, { margin: 1, width: 150 });
     } catch (err) {
-      console.error('Error generating QR code:', err);
-      return '';
+      Logger.error('[PdfGenerator] no se pudo generar el codigo QR', {
+        url, motivo: (err as Error)?.message,
+      });
+      return null;
     }
   }
 

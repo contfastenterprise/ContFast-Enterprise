@@ -6,6 +6,7 @@ import { EmailService } from './emailService';
 import crypto from 'crypto';
 import * as React from 'react';
 import { StorageService } from '@/services/storageService';
+import { Logger } from '@/utils/logger';
 
 export interface BaseDocumentData {
   company: {
@@ -129,8 +130,13 @@ export class DocumentService {
       // Using string content here as buffer since StorageService supports Buffer
       await StorageService.uploadFile('documents', storagePath, pdfBuffer, 'application/pdf');
     } catch (uploadError) {
-      console.error('[DocumentService] Failed to save PDF to storage:', uploadError);
-      // We continue even if storage fails, so the user gets the PDF
+      // Se sigue a proposito: quien pidio el PDF lo recibe igual. Pero OJO con
+      // el `path` que se devuelve abajo -- es donde ESTARIA, no la prueba de que
+      // este. Si esta subida fallo, ahi no hay nada.
+      Logger.warn('[DocumentService] el PDF no se pudo guardar en almacenamiento; se devuelve generado', {
+        companyId: data.company.id, tipo: type, id, storagePath,
+        motivo: (uploadError as Error)?.message,
+      });
     }
 
     return { buffer: pdfBuffer, path: storagePath };

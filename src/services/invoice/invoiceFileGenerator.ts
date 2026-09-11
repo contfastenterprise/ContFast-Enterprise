@@ -214,7 +214,12 @@ export class InvoiceFileGenerator {
       };
 
       // Generate QR Code base64
-      let qrBase64 = '';
+      //
+      // El acumulador admite `null` a proposito: las ramas de abajo estan
+      // pensadas y comentadas y NO se tocan; lo unico que cambia es que un
+      // fallo de generacion llega hasta aqui distinguible de un "no habia QR
+      // que poner", y se atiende una sola vez, justo despues.
+      let qrBase64: string | null = '';
       if (submission.qrCode) {
         if (submission.qrCode.startsWith('http')) {
           qrBase64 = await PdfGenerator.generateQrBase64(submission.qrCode);
@@ -236,6 +241,19 @@ export class InvoiceFileGenerator {
           codigoSeguridad: securityHash,
         });
         if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+      }
+
+      if (qrBase64 === null) {
+        // El comprobante es valido y se emitio: esto NO puede tumbar nada. Pero
+        // la representacion impresa sale incompleta, y quien la va a entregar
+        // tiene que enterarse ahora, no cuando se la devuelvan.
+        qrBase64 = '';
+        await this.registrarFalloPostEmision(data, null, ncf, 'codigo_qr', new Error('QRCode.toDataURL fallo'));
+        avisos.push(
+          'El comprobante se generó SIN el código QR de consulta. Es válido y ya está ' +
+          'enviado a la DGII, pero la representación impresa queda incompleta: vuelve a ' +
+          'imprimirlo más tarde para obtenerlo con su QR.'
+        );
       }
 
       const layout = (settings?.printLayout as 'carta' | '80mm' | '58mm') || 'carta';

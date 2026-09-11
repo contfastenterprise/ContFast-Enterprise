@@ -40,6 +40,7 @@ import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmission
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
+import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
 
 export type Modo = 'PRODUCCION' | 'PRUEBA';
 
@@ -164,7 +165,9 @@ const ncfExpiry = sequence?.sequenceExpiry
       const firma = firmaDelComprobante(invoice, submission);
       const securityCode = firma.codigo;
       const signedDate = firma.fechaFirma;
-      let qrBase64 = '';
+      // Admite `null` para poder distinguir "no se pudo generar" de "no habia
+      // QR que poner". Ver `PdfGenerator.generateQrBase64`.
+      let qrBase64: string | null = '';
       if (firma.qr) {
         qrBase64 = firma.qr.startsWith('http')
           ? await PdfGenerator.generateQrBase64(firma.qr)
@@ -182,6 +185,24 @@ const ncfExpiry = sequence?.sequenceExpiry
           codigoSeguridad: securityCode,
         });
         if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+      }
+
+      if (qrBase64 === null) {
+        // Aqui el documento se le manda AL CLIENTE. Si sale sin QR, ya no hay
+        // forma de retirarlo: tiene que quedar constancia de cual fue.
+        qrBase64 = '';
+        Logger.warn('[correoFactura] el comprobante sale SIN codigo QR', {
+          invoiceId, ncf: invoice.ncf,
+        });
+        await registrarFalloSilencioso({
+          companyId,
+          modo,
+          paso: 'codigo_qr',
+          entityType: 'invoices',
+          entityId: invoiceId,
+          contexto: { ncf: invoice.ncf, donde: 'correo al cliente' },
+          err: new Error('QRCode.toDataURL fallo'),
+        });
       }
 
       const invoiceRecord = {

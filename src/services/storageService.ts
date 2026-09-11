@@ -36,7 +36,13 @@ export class StorageService {
         Logger.info(`[StorageService] Created bucket: ${bucketName}`);
       }
     } catch (err: unknown) {
-      Logger.error(`[StorageService] Error ensuring bucket ${bucketName}:`, err);
+      // AVISO y no error, y no relanza: la clave anonima de Supabase no siempre
+      // puede listar buckets aunque el bucket exista y la subida funcione. Si de
+      // verdad no se puede escribir, el error de verdad sale en `uploadFile`, con
+      // su fichero y su ruta. Aqui, registrarlo como averia era ruido.
+      Logger.warn(`[StorageService] no se pudo asegurar el bucket ${bucketName}; se intenta subir igual`, {
+        motivo: (err as Error)?.message,
+      });
     }
   }
 
