@@ -28,7 +28,12 @@
  * -- ese dia todavia se puede pagar -- y no construye ningun `Date` a partir
  * de la fecha (ver `utils/fechasLocales.ts`).
  */
-import { diaDe, diasDeAtraso, diasDeAntiguedad, hoyDia } from '@/utils/fechasLocales';
+import { diaDe, diasDeAntiguedad, hoyDia } from '@/utils/fechasLocales';
+import { analizarVencimiento, TOLERANCIA } from './vencimiento';
+
+// Se reexporta para no romper a quien ya la importaba de aqui. La define
+// `vencimiento.ts`, que es quien decide cuando una cuenta esta saldada.
+export { TOLERANCIA };
 
 export type TipoCuenta = 'cobrar' | 'pagar';
 
@@ -50,9 +55,6 @@ export interface FilaCuenta {
   atraso: number;
   estado: EstadoCuenta;
 }
-
-/** El centavo de tolerancia del resto del sistema: por debajo, la cuenta esta saldada. */
-export const TOLERANCIA = 0.01;
 
 export const PALABRAS: Record<TipoCuenta, {
   entidad: string; entidadPlural: string; titulo: string; fichero: string; prefijo: string; buscar: string;
@@ -83,8 +85,9 @@ export function normalizarFila(bruta: any, tipo: TipoCuenta, hoy: string = hoyDi
   const P = PALABRAS[tipo];
   const id = String(bruta?.id ?? '');
   const saldo = aNumero(bruta?.balance);
-  const vencimiento = diaDe(bruta?.dueDate);
-  const atraso = diasDeAtraso(bruta?.dueDate, hoy);
+  // Una sola llamada decide el dia, el atraso y si esta saldada. Antes esas
+  // tres cosas se sacaban por separado y el estado se recomponia aqui a mano.
+  const v = analizarVencimiento(bruta?.dueDate, { hoy, saldo });
 
   return {
     id,
@@ -94,13 +97,13 @@ export function normalizarFila(bruta: any, tipo: TipoCuenta, hoy: string = hoyDi
       || (id ? `${P.prefijo}-${id.split('-')[0].toUpperCase()}` : '—'),
     entidad: (tipo === 'cobrar' ? bruta?.customerName : bruta?.supplierName) || '—',
     emision: diaDe(bruta?.createdAt),
-    vencimiento,
+    vencimiento: v.dia,
     montoOriginal: aNumero(bruta?.amount),
     saldo,
     antiguedad: diasDeAntiguedad(bruta?.createdAt, hoy),
-    atraso,
+    atraso: v.atraso,
     // Saldada primero: una cuenta pagada no esta vencida aunque su fecha pasara.
-    estado: saldo <= TOLERANCIA ? 'pagado' : (atraso > 0 ? 'vencida' : 'al-dia'),
+    estado: v.saldada ? 'pagado' : (v.vencida ? 'vencida' : 'al-dia'),
   };
 }
 

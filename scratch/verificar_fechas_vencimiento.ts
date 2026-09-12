@@ -157,10 +157,21 @@ for (const ruta of FICHEROS) {
 }
 
 // La asimetria entre gemelas: su gemela de cobrar nunca sumo saldos negativos.
+//
+// Esto se comprobaba buscando el patron `if (balance <= 0) return;` seguido de
+// la suma. El lote siguiente borro ese `forEach` entero -- el total sale ahora
+// del reparto en tramos --, asi que el ancla desaparecio aunque la garantia se
+// hizo MAS fuerte: lo saldado cae en su propio tramo y no suma a ninguno, de
+// modo que ya no depende del orden de dos lineas.
+//
+// Se reapunta a la forma nueva. Y se exige ademas que no quede NINGUNA suma a
+// mano sobre ese total, que es lo que permitia el fallo original.
 {
   const ap = leer('src/actions/payables.ts');
-  ok('payables: el total por pagar ya no suma los saldos a favor',
-    /if \(item\.balance <= 0\) return;\s*totalPorPagar \+= item\.balance;/.test(ap));
+  ok('payables: el total por pagar sale de los tramos, no de una suma a mano',
+    ap.length > 0
+    && ap.includes('totalPorPagar = totalVencido + totalPorVencer')
+    && !/totalPorPagar\s*\+=/.test(ap));
 }
 
 // El cuerpo que viaja al navegador lleva el dia, no un ISO que haya que volver

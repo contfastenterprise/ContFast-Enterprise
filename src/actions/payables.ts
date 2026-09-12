@@ -5,7 +5,8 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
-import { diaDe, diasEntreDias, hoyDia } from '@/utils/fechasLocales';
+import { diaDe, hoyDia } from '@/utils/fechasLocales';
+import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
 
 export async function getPayablesDashboardData() {
   const auth = await exigirSesion();
@@ -106,22 +107,17 @@ export async function getPayablesDashboardData() {
 
   const hoy = hoyDia();
 
-  // Calcular métricas AP
-  raw.forEach(item => {
-    // El `return` iba DESPUES de esta suma, asi que un saldo negativo -- que es
-    // dinero que el suplidor nos debe a nosotros -- restaba del total por
-    // pagar. Su gemela de cobrar nunca lo hizo. Medido en produccion: cero
-    // filas con saldo negativo, asi que hoy el numero no se mueve.
-    if (item.balance <= 0) return;
-    totalPorPagar += item.balance;
-
-    const vence = diaDe(item.dueDate);
-    if (vence && diasEntreDias(vence, hoy) > 0) {
-      totalVencido += item.balance;
-    } else {
-      totalPorVencer += item.balance;
-    }
-  });
+  // Calcular métricas AP. Los tramos y el "esta vencido" los decide
+  // `services/cartera/vencimiento`, no este fichero.
+  //
+  // Nota historica: aqui `totalPorPagar += item.balance` iba ANTES del
+  // `if (balance <= 0) return`, asi que un saldo a favor restaba del total por
+  // pagar; su gemela de cobrar nunca lo hizo. Al repartir en tramos eso deja de
+  // poder pasar: lo saldado cae en su propio tramo y no suma a ninguno.
+  const tramos = repartirEnTramos(raw, x => x.balance, x => x.dueDate, hoy);
+  totalVencido = sumaVencida(tramos);
+  totalPorVencer = tramos['por-vencer'];
+  totalPorPagar = totalVencido + totalPorVencer;
 
   // Calcular Pagos del Mes
   paymentsList.forEach(payment => {
@@ -131,18 +127,13 @@ export async function getPayablesDashboardData() {
     }
   });
 
-  // Aging Buckets (Antigüedad)
-  const buckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
-  raw.forEach(item => {
-    if (item.balance <= 0) return;
-    const vence = diaDe(item.dueDate);
-    const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
-    
-    if (diffDays > 90) buckets['90+'] += item.balance;
-    else if (diffDays > 60) buckets['61-90'] += item.balance;
-    else if (diffDays > 30) buckets['31-60'] += item.balance;
-    else if (diffDays > 0) buckets['0-30'] += item.balance;
-  });
+  // Aging Buckets (Antigüedad) — el mismo reparto de arriba, sin recalcularlo.
+  const buckets = {
+    '0-30': tramos['1-30'],
+    '31-60': tramos['31-60'],
+    '61-90': tramos['61-90'],
+    '90+': tramos['90+'],
+  };
 
   const agingData = [
     { name: '0-30 Días', value: buckets['0-30'] },

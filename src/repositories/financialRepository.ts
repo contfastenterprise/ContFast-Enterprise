@@ -5,6 +5,8 @@ import {
   invoiceLines, products, productCategories 
 } from '@/db/schema';
 import { eq, and, desc, asc, sql, lte, gte, ilike, or, notInArray, type SQLWrapper } from 'drizzle-orm';
+import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
+import { hoyDia } from '@/utils/fechasLocales';
 
 export interface StatementFilters {
   startDate?: string;
@@ -24,6 +26,7 @@ export class FinancialRepository {
     filters?: StatementFilters
   ) {
     const today = new Date().toISOString().split('T')[0];
+    const hoy = hoyDia();
 
     // 1. Fetch Customer Info
     const [customer] = await db
@@ -127,16 +130,13 @@ export class FinancialRepository {
     let totalPending = 0;
     let totalOverdue = 0;
 
-    pendingInvoices.forEach(inv => {
-      const balanceVal = parseFloat(inv.balance);
-      totalPending += balanceVal;
-
-      const due = new Date(inv.dueDate);
-      const curr = new Date(today);
-      if (due < curr) {
-        totalOverdue += balanceVal;
-      }
-    });
+    // `today` sale de `toISOString()`, que a partir de las 20:00 hora RD ya
+    // devuelve el dia siguiente: entre esa hora y medianoche todo salia vencido
+    // un dia antes. Ahora el dia y la comparacion los pone
+    // `services/cartera/vencimiento`, que trabaja sobre texto y no sobre `Date`.
+    const tramos = repartirEnTramos(pendingInvoices, x => parseFloat(x.balance), x => x.dueDate, hoy);
+    totalOverdue = sumaVencida(tramos);
+    totalPending = totalOverdue + tramos['por-vencer'];
 
     // 5. Antigüedad de saldos (Aging)
     let agingNotExpired = 0;
@@ -145,25 +145,15 @@ export class FinancialRepository {
     let aging61to90 = 0;
     let agingOver90 = 0;
 
-    pendingInvoices.forEach(inv => {
-      const balanceVal = parseFloat(inv.balance);
-      const due = new Date(inv.dueDate);
-      const curr = new Date(today);
-      const diffTime = curr.getTime() - due.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 0) {
-        agingNotExpired += balanceVal;
-      } else if (diffDays <= 30) {
-        aging1to30 += balanceVal;
-      } else if (diffDays <= 60) {
-        aging31to60 += balanceVal;
-      } else if (diffDays <= 90) {
-        aging61to90 += balanceVal;
-      } else {
-        agingOver90 += balanceVal;
-      }
-    });
+    // El mismo reparto de arriba, sin recalcularlo. Y sin `Math.ceil`: era el
+    // unico sitio del sistema que redondeaba hacia arriba, asi que mientras la
+    // resta tuviera parte fraccionaria daba un tramo distinto que los otros
+    // cinco calculos de lo mismo.
+    agingNotExpired = tramos['por-vencer'];
+    aging1to30 = tramos['1-30'];
+    aging31to60 = tramos['31-60'];
+    aging61to90 = tramos['61-90'];
+    agingOver90 = tramos['90+'];
 
     // 6. Last Purchase and Last Payment dates
     const [lastPurchase] = await db
@@ -317,6 +307,7 @@ export class FinancialRepository {
     filters?: StatementFilters
   ) {
     const today = new Date().toISOString().split('T')[0];
+    const hoy = hoyDia();
 
     // 1. Fetch Supplier Info
     const [supplier] = await db
@@ -411,16 +402,13 @@ export class FinancialRepository {
     let totalPending = 0;
     let totalOverdue = 0;
 
-    pendingBills.forEach(bill => {
-      const balanceVal = parseFloat(bill.balance);
-      totalPending += balanceVal;
-
-      const due = new Date(bill.dueDate);
-      const curr = new Date(today);
-      if (due < curr) {
-        totalOverdue += balanceVal;
-      }
-    });
+    // `today` sale de `toISOString()`, que a partir de las 20:00 hora RD ya
+    // devuelve el dia siguiente: entre esa hora y medianoche todo salia vencido
+    // un dia antes. Ahora el dia y la comparacion los pone
+    // `services/cartera/vencimiento`, que trabaja sobre texto y no sobre `Date`.
+    const tramos = repartirEnTramos(pendingBills, x => parseFloat(x.balance), x => x.dueDate, hoy);
+    totalOverdue = sumaVencida(tramos);
+    totalPending = totalOverdue + tramos['por-vencer'];
 
     // 5. Antigüedad (Aging)
     let agingNotExpired = 0;
@@ -429,25 +417,15 @@ export class FinancialRepository {
     let aging61to90 = 0;
     let agingOver90 = 0;
 
-    pendingBills.forEach(bill => {
-      const balanceVal = parseFloat(bill.balance);
-      const due = new Date(bill.dueDate);
-      const curr = new Date(today);
-      const diffTime = curr.getTime() - due.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 0) {
-        agingNotExpired += balanceVal;
-      } else if (diffDays <= 30) {
-        aging1to30 += balanceVal;
-      } else if (diffDays <= 60) {
-        aging31to60 += balanceVal;
-      } else if (diffDays <= 90) {
-        aging61to90 += balanceVal;
-      } else {
-        agingOver90 += balanceVal;
-      }
-    });
+    // El mismo reparto de arriba, sin recalcularlo. Y sin `Math.ceil`: era el
+    // unico sitio del sistema que redondeaba hacia arriba, asi que mientras la
+    // resta tuviera parte fraccionaria daba un tramo distinto que los otros
+    // cinco calculos de lo mismo.
+    agingNotExpired = tramos['por-vencer'];
+    aging1to30 = tramos['1-30'];
+    aging31to60 = tramos['31-60'];
+    aging61to90 = tramos['61-90'];
+    agingOver90 = tramos['90+'];
 
     // 6. Last Purchase and Payment
     const [lastPurchase] = await db
@@ -545,6 +523,7 @@ export class FinancialRepository {
   static async getFinancialDashboard(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const ctx = { companyId, modo };
     const today = new Date().toISOString().split('T')[0];
+    const hoy = hoyDia();
 
     // 1. Clientes con mayor deuda (Top debtors)
     const topDebtors = await db.execute(sql`

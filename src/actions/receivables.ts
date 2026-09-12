@@ -5,7 +5,8 @@ import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
-import { diaDe, diasEntreDias, hoyDia } from '@/utils/fechasLocales';
+import { hoyDia } from '@/utils/fechasLocales';
+import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
 
 export async function getReceivablesDashboardData() {
   const auth = await exigirSesion();
@@ -68,17 +69,6 @@ export async function getReceivablesDashboardData() {
     );
 
     // Compute KPIs
-    let totalPending = 0;
-    let totalOverdue = 0;
-    let totalToMature = 0;
-    
-    // Aging buckets
-    const aging = {
-      '0_30': 0,
-      '31_60': 0,
-      '61_90': 0,
-      '90_plus': 0
-    };
 
     // El dia de hoy como texto. Ni un `Date` mas en todo el calculo: las
     // fechas de vencimiento llegan como 'AAAA-MM-DD' y convertirlas a `Date`
@@ -87,27 +77,21 @@ export async function getReceivablesDashboardData() {
 
     const pendingInvoicesCount = allAr.filter(x => Number(x.balance) > 0).length;
 
-    allAr.forEach(ar => {
-      const bal = Number(ar.balance);
-      if (bal <= 0) return;
+    // Los tramos los reparte `services/cartera/vencimiento`, que es quien
+    // decide donde estan las fronteras. Antes esta cuenta estaba escrita aqui,
+    // y otras cinco veces mas por el sistema, con tres esquemas distintos.
+    const tramos = repartirEnTramos(allAr, x => Number(x.balance), x => x.dueDate, hoy);
 
-      totalPending += bal;
+    const totalOverdue = sumaVencida(tramos);
+    const totalToMature = tramos['por-vencer'];
+    const totalPending = totalOverdue + totalToMature;
 
-      // Positivo = dias de atraso. Cero el mismo dia del vencimiento, que
-      // todavia NO esta vencido: ese dia se puede pagar.
-      const vence = diaDe(ar.dueDate);
-      const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
-
-      if (diffDays > 0) {
-        totalOverdue += bal;
-        if (diffDays <= 30) aging['0_30'] += bal;
-        else if (diffDays <= 60) aging['31_60'] += bal;
-        else if (diffDays <= 90) aging['61_90'] += bal;
-        else aging['90_plus'] += bal;
-      } else {
-        totalToMature += bal;
-      }
-    });
+    const aging = {
+      '0_30': tramos['1-30'],
+      '31_60': tramos['31-60'],
+      '61_90': tramos['61-90'],
+      '90_plus': tramos['90+'],
+    };
 
     const customersMap: Record<string, { name: string, debt: number }> = {};
     allAr.forEach(ar => {
