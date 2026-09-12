@@ -2344,6 +2344,17 @@ function InvoicesList() {
     );
   };
 
+  /**
+   * La barra de pasos.
+   *
+   * El `aria-label` de cada boton no es decorativo: el titulo va en
+   * `hidden sm:inline`, asi que por debajo del corte `sm` el boton se queda solo
+   * con el numero -- y el icono de visto ya esta marcado como decorativo. Sin
+   * el, un lector de pantalla en un movil oye "1", "2", "3" y nada mas.
+   *
+   * Y dice el estado ademas del titulo, porque en la version ancha eso se ve
+   * (el color, el visto) y con un `aria-label` a secas se perderia.
+   */
   const barraPasos = () => (
     <nav aria-label="Pasos de la emision" className="flex flex-wrap items-center gap-1.5">
       {PASOS.map((p, i) => (
@@ -2353,6 +2364,9 @@ function InvoicesList() {
             type="button"
             onClick={() => irAPaso(p.n)}
             aria-current={p.n === paso ? 'step' : undefined}
+            aria-label={`Paso ${p.n} de ${PASOS.length}: ${p.titulo}${
+              p.n < paso ? ' (completado)' : p.n === paso ? ' (actual)' : ''
+            }`}
             className={'flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (
               p.n === paso
                 ? 'bg-[#C5A059] text-white shadow-sm'
