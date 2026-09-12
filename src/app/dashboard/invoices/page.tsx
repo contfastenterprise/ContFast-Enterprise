@@ -9,7 +9,8 @@ import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
-  Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter
+  Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter,
+  LayoutList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
 import { erroresPorCampo } from '@/schemas/errores';
+import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
@@ -181,6 +183,9 @@ function InvoicesList() {
   // el formulario, las comprobaciones contra los productos, o el servidor si
   // devuelve `fields`.
   const [errores, setErrores] = useState<Record<string, string>>({});
+  // P2-35: en que paso va el asistente, y si se esta viendo todo de una vez.
+  const [paso, setPaso] = useState(1);
+  const [vistaCompleta, setVistaCompleta] = useState(false);
   const err = (campo: string) =>
     errores[campo] ? (
       <p data-campo={campo} className="text-[11px] font-semibold text-rose-600 mt-1">{errores[campo]}</p>
@@ -602,6 +607,12 @@ function InvoicesList() {
                 unitOfMeasure: l.unitOfMeasure || 'unidad'
               })));
             }
+            // Una factura convertida llega con cliente, lineas, almacen y notas
+            // ya puestos: el trabajo que queda es mirarla y emitir. Hacer pulsar
+            // "Siguiente" tres veces sobre datos que no escribio el usuario es
+            // ruido. Si algo de los pasos 1-3 no cuadra, el repaso lo marca y
+            // lleva al paso que toca con su "editar".
+            setPaso(PASOS.length);
             // El esqueleto no se quita hasta que tambien este el cliente.
             return esperaCliente;
           } else {
@@ -928,6 +939,8 @@ function InvoicesList() {
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'base', imageUrl: '' }]);
     setQuoteId('');
     setEditingDraftId(null);
+    setPaso(1);
+    setVistaCompleta(false);
   };
 
   const buildInvoicePayload = () => ({
@@ -1158,6 +1171,11 @@ function InvoicesList() {
       setLines(mappedLines);
 
       setEditingDraftId(draftId);
+      // La edicion NO va por pasos: quien reabre un borrador viene a corregir UN
+      // campo que ya sabe cual es, y cruzar cuatro pantallas para llegar es peor
+      // que el scroll de antes. El boton de cambiar de vista sigue ahi por si
+      // prefiere recorrerlo.
+      setVistaCompleta(true);
       setShowForm(true);
       toast.success('Borrador cargado correctamente');
     } catch (error: any) {
@@ -1553,6 +1571,864 @@ function InvoicesList() {
   const getTypeLabel = (type: string) =>
     nombreCortoTipo(type) ?? `e-${type} (no reconocido)`;
 
+
+  // ===========================================================================
+  // P2-35: LA EMISION VA POR PASOS
+  //
+  // CADA `pasoN` ES UNA FUNCION QUE DEVUELVE JSX, NO UN COMPONENTE.
+  // Es a proposito, y ya costo una vez en compras: un componente definido dentro
+  // del render es un tipo nuevo en cada pasada, asi que React desmonta el
+  // anterior y monta otro, y el campo que estabas escribiendo pierde el foco a
+  // la primera tecla. Como funcion, los elementos quedan en linea y no hay
+  // frontera que remontar.
+  //
+  // EL CONTENIDO DE CADA PASO ES EL DE ANTES, MOVIDO
+  // Ni un campo reescrito: las seis secciones que ya estaban marcadas por
+  // comentarios se mudan enteras. Lo unico que cambia de sitio son tres
+  // mensajes de error que se pintaban donde no tocaba (ver abajo).
+  //
+  // LA EDICION DE UN BORRADOR NO VA POR PASOS. Quien reabre un borrador viene a
+  // corregir UN campo que ya sabe cual es; cruzar cuatro pantallas para llegar
+  // es peor que el scroll de antes. Misma regla que en compras.
+  // ===========================================================================
+
+  /** Lo que falla en UN paso, segun el esquema de siempre. */
+  const erroresDelPaso = (n: number): Record<string, string> => {
+    const v = esquemaFactura.safeParse(buildInvoicePayload());
+    const campos: Record<string, string> = v.success ? {} : erroresPorCampo(v.error);
+    // Lo que el esquema no puede ver porque depende de los productos. Tiene que
+    // entrar tambien aqui: si no, un precio por debajo del costo dejaria pasar
+    // los cuatro pasos en verde y saltaria al emitir.
+    Object.assign(campos, erroresBasicos());
+    return Object.fromEntries(
+      Object.entries(campos).filter(([campo]) => campoDelPaso(campo, n))
+    );
+  };
+
+  const frenaElPaso = (n: number): boolean => {
+    const fallos = erroresDelPaso(n);
+    if (Object.keys(fallos).length === 0) return false;
+    setErrores(fallos);
+    toast.error('Revisa los campos marcados', { description: Object.values(fallos)[0] });
+    irAlPrimerError();
+    return true;
+  };
+
+  const avanzar = () => {
+    if (frenaElPaso(paso)) return;
+    setErrores({});
+    setPaso(p => Math.min(PASOS.length, p + 1));
+  };
+
+  /**
+   * Saltar a un paso. Hacia atras es libre; hacia adelante hay que haber
+   * rellenado lo de en medio -- si no, el numerito de la barra seria un atajo
+   * para saltarse la validacion que el boton "Siguiente" si aplica.
+   */
+  const irAPaso = (n: number) => {
+    if (n <= paso) {
+      setErrores({});
+      setPaso(n);
+      return;
+    }
+    for (let i = paso; i < n; i++) {
+      if (frenaElPaso(i)) {
+        setPaso(i);
+        return;
+      }
+    }
+    setErrores({});
+    setPaso(n);
+  };
+
+  /** Paso 1 -- El comprobante. (Antes: "General Settings".) */
+  const paso1 = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 p-5 rounded-xl border border-slate-200">
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Tipo de e-CF</label>
+          <select
+            value={ecfType}
+            onChange={(e) => setEcfType(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
+          >
+            {activeSequences.length === 0 ? (
+              <>
+                {TIPOS_COMPROBANTE.filter(t => t.emitible && !['33','34'].includes(t.codigo)).map(t => (
+                  <option key={t.codigo} value={t.codigo}>{t.nombre} (e-{t.codigo})</option>
+                ))}
+              </>
+            ) : (
+              activeSequences
+                .filter((s: any) => {
+                  if (ecfType === '33' || ecfType === '34') {
+                    return s.ecfType === ecfType || (s.ecfType !== '33' && s.ecfType !== '34');
+                  }
+                  return s.ecfType !== '33' && s.ecfType !== '34';
+                })
+                .map((s: any) => {
+                  // Antes el `default` dejaba sin descripcion a todo
+                  // lo que no fueran 31/32/33/34/45: un e-44 se leia
+                  // "Comprobante Electronico (e-44)", sin decir que es.
+                  // Ahora sale el nombre de la DGII.
+                  const getLabel = (type: string, prefix?: string) => {
+                    const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
+                    const nombre = nombreTipo(type);
+                    if (!nombre) return `${isElectronic ? 'e' : 'B'}-${type} (tipo no reconocido)`;
+                    return isElectronic
+                      ? `${nombre} (e-${type})`
+                      : `${nombre.replace(/ Electrónic[ao]$/, '')} (B${type})`;
+                  };
+                  return (
+                    <option key={s.id} value={s.ecfType}>
+                      {getLabel(s.ecfType, s.prefix)}
+                    </option>
+                  );
+                })
+            )}
+          </select>
+          {err('ecfType')}
+          {err('modifiedNcf')}
+          {(ecfType === '33' || ecfType === '34') && !modifiedNcf && (
+            <p className="text-[11px] text-slate-500 mt-1">
+              Una nota se empieza desde la factura que corrige: búscala en el listado y
+              pulsa «Nota de Crédito» o «Nota de Débito».
+            </p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Método de Pago</label>
+          <select
+            value={paymentType}
+            onChange={(e) => setPaymentType(e.target.value as any)}
+            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
+          >
+            <option value="cash">Efectivo / Caja</option>
+            <option value="credit">Crédito </option>
+            <option value="bank_transfer">Transferencia Bancaria</option>
+          </select>
+          {err('paymentType')}
+        </div>
+        {paymentType === 'bank_transfer' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-3 bg-[#003366]/5 p-3 rounded-xl border border-[#003366]/10 mt-2">
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
+              <select
+                value={bankName}
+                onChange={(e) => { setBankName(e.target.value); quitarError('bankName'); }}
+                className={clsx(
+                  'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none',
+                  errores.bankName ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
+                )}
+              >
+                <option value="">Seleccione Banco...</option>
+                <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
+                <option value="Banco de Reservas">Banco de Reservas (Banreservas)</option>
+                <option value="Banco BHD">Banco BHD</option>
+                <option value="Asociación Popular de Ahorros y Préstamos">Asociación Popular (APAP)</option>
+                <option value="Banco Scotiabank">Banco Scotiabank</option>
+                <option value="Banco Promerica">Banco Promerica</option>
+                <option value="Banco Santa Cruz">Banco Santa Cruz</option>
+                <option value="Otro">Otro / Internacional</option>
+              </select>
+              {err('bankName')}
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Número de Transferencia / Referencia</label>
+              <input
+                type="text"
+                value={transactionNumber}
+                onChange={(e) => { setTransactionNumber(e.target.value); quitarError('transactionNumber'); }}
+                placeholder="Ej. TXN12345678"
+                className={clsx(
+                  'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors',
+                  errores.transactionNumber ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
+                )}
+              />
+              {err('transactionNumber')}
+            </div>
+          </div>
+        )}
+        {modifiedNcf && (
+          <div className="col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
+                <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
+                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              >
+                Remover Referencia
+              </button>
+            </div>
+
+            {(ecfType === '33' || ecfType === '34') && (
+              <div className="max-w-xs pt-2 border-t border-amber-200">
+                <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  Motivo / Tipo de Ajuste
+                  <span className="text-rose-500 font-bold">*</span>
+                </label>
+                {ecfType === '34' ? (
+                  <select
+                    value={indicadorNotaCredito}
+                    onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                    className={clsx(
+                      'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
+                      indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                    )}
+                  >
+                    <option value={0} disabled>— Seleccione el motivo —</option>
+                    <option value={1}>1 - Anulación completa</option>
+                    <option value={2}>2 - Corrección de texto</option>
+                    <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
+                  </select>
+                ) : (
+                  <select
+                    value={indicadorNotaCredito}
+                    onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
+                    className={clsx(
+                      'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
+                      indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
+                    )}
+                  >
+                    <option value={0} disabled>— Seleccione el motivo —</option>
+                    <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
+                    <option value={3}>3 - Ajuste de cantidad</option>
+                    <option value={4}>4 - Otros</option>
+                  </select>
+                )}
+                {err('indicadorNotaCredito')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+  );
+
+  /** Paso 2 -- El cliente. (Antes: "Customer Details".) */
+  const paso2 = () => (
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+        <div className="col-span-1 md:col-span-4 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-[#C5A059]" />
+            <div>
+              <h4 className="text-[#003366] font-semibold text-base">Datos del Cliente</h4>
+              <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2 col-span-1 md:col-span-2">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social</label>
+          <CustomerAutocomplete
+            dbCustomers={dbCustomers}
+            customerId={customerId}
+            customerName={customerName}
+            onSelect={(c) => applyCustomer(c)}
+            onTextChange={(val) => setCustomerName(val)}
+            onCreateNew={() => setCreateCustomerModalOpen(true)}
+            onClear={() => {
+              setCustomerId('');
+              setCustomerName('');
+              setCustomerRnc('');
+              setCustomerPhone('');
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
+          <input
+            type="text"
+            value={customerRnc}
+            readOnly
+            className={clsx(
+              'w-full border rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none font-mono',
+              errores.buyerRnc ? 'bg-rose-50 border-rose-400' : 'bg-slate-100 border-slate-300'
+            )}
+          />
+          {err('buyerRnc')}
+          {err('buyerName')}
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
+          <input
+            type="text"
+            value={customerPhone}
+            readOnly
+            className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none"
+          />
+        </div>
+      </div>
+  );
+
+  /** Paso 3 -- Los articulos. (Antes: "Item Lines".) */
+  const paso3 = () => (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
+        </div>
+
+        {/* Table Header for desktop */}
+        <div className="hidden md:grid md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
+          <div>Producto / Servicio</div>
+          <div>Medida</div>
+          <div>Cant.</div>
+          <div>Precio Unit.</div>
+          <div>Desc. Unit.</div>
+          <div>ITBIS</div>
+          <div className="text-right">Total</div>
+          <div className="text-center">Acción</div>
+        </div>
+
+        <div className="space-y-3">
+          {lines.map((line, idx) => {
+            const lineSubtotal = line.quantity * line.unitPrice;
+            const lineDiscount = line.quantity * (line.discount || 0);
+            const lineTaxable = lineSubtotal - lineDiscount;
+            const lineTax = lineTaxable * line.taxRate;
+            const lineTotal = lineTaxable + lineTax;
+            const hasProduct = !!line.productId;
+
+            // Fetch dynamic price tiers from dbProducts if available
+            const matchedProduct = dbProducts.find(p => p.id === line.productId);
+            const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : null;
+            const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : null;
+            const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : null;
+            const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : null;
+
+            return (
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
+                {/* Product Selection / Autocomplete */}
+                <div className="space-y-1.5 md:space-y-0">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
+                  <ProductAutocomplete
+                    dbProducts={dbProducts}
+                    categories={categories}
+                    warehouses={warehouses}
+                    valueName={line.productName}
+                    hasProduct={hasProduct}
+                    onSelect={(p) => applyProductToLine(idx, p)}
+                    onTextChange={(val) => handleLineChange(idx, 'productName', val)}
+                    selectedProductId={line.productId}
+                    selectedWarehouseId={line.warehouseId}
+                    onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
+                    onClear={() => clearProductFromLine(idx)}
+                  />
+                </div>
+
+                {/* Unit of measure */}
+                <div className="space-y-1.5 md:space-y-0">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Medida</label>
+                  <select
+                    value={line.unitOfMeasure || 'unidad'}
+                    onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
+                    disabled={!hasProduct}
+                    className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                  >
+                    <option value="unidad">Unidad</option>
+                    <option value="pie">Pie</option>
+                    <option value="pieza">Pieza</option>
+                    <option value="centimetro">Centímetro</option>
+                    <option value="plancha">Plancha</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+
+                {/* Cant. */}
+                <div className="space-y-1.5 md:space-y-0">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
+                  <input
+                    type="number"
+                    value={line.quantity}
+                    onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                    disabled={!hasProduct}
+                    className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                    min={0.0001} step="any"
+                  />
+                </div>
+
+                {/* Precio Unit. (Unified) */}
+                <div className="space-y-1.5 md:space-y-0 relative">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
+                  {(() => {
+                    const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
+                    const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+
+                    const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : 0;
+                    const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : 0;
+                    const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : 0;
+                    const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : 0;
+
+                    const tiers = [
+                      { name: 'base', label: 'Base', price: priceBase },
+                      { name: 'consumidor', label: 'Consumidor', price: priceConsumidor },
+                      { name: 'mayorista', label: 'Mayorista', price: priceMayorista },
+                      { name: 'proveedor', label: 'Proveedor', price: priceProveedor },
+                    ];
+
+                    return (
+                      <EditablePriceSelect
+                        value={line.unitPrice}
+                        onChange={(val) => handleLineChange(idx, 'unitPrice', val)}
+                        disabled={!hasProduct}
+                        isBelowCost={isBelowCost}
+                        pCost={pCost}
+                        tiers={tiers}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Desc. Unit. */}
+                <div className="space-y-1.5 md:space-y-0">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
+                  {(() => {
+                    const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
+                    const canEditDiscount = esAdminOSistemas(userRole);
+
+                    return (
+                      <input
+                        type="number"
+                        value={line.discount || 0}
+                        onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
+                        disabled={!hasProduct || !canEditDiscount}
+                        className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct
+                          ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
+                          : !canEditDiscount
+                            ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
+                            : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
+                          }`}
+                        min={0}
+                        step="any"
+                        title={!canEditDiscount ? 'Solo administradores pueden aplicar descuentos' : ''}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* ITBIS (Tasa) */}
+                <div className="space-y-1.5 md:space-y-0">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
+                  {/*
+                    El 0% son DOS cosas para la DGII y antes eran una
+                    sola opcion ("0% Exento"):
+
+                      Exento (indicador 4): exento por ley. No se cobra
+                        ITBIS y NO se recupera el de los insumos.
+                      Tasa 0% (indicador 3): exportaciones. Tampoco se
+                        cobra, pero SI se conserva el credito.
+
+                    El valor del desplegable lleva las dos cosas
+                    ("0.00|tasa_cero") porque la tasa sola no distingue.
+                  */}
+                  <select
+                    value={
+                      Number(line.taxRate) === 0
+                        ? `0.00|${line.taxCategory === 'tasa_cero' ? 'tasa_cero' : 'exento'}`
+                        : String(line.taxRate)
+                    }
+                    onChange={(e) => {
+                      const [tasa, categoria] = e.target.value.split('|');
+                      handleLineChange(idx, 'taxRate', parseFloat(tasa));
+                      handleLineChange(idx, 'taxCategory', categoria || null);
+                    }}
+                    disabled={!hasProduct}
+                    className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
+                  >
+                    <option value="0.18">18% ITBIS</option>
+                    <option value="0.16">16% ITBIS</option>
+                    <option value="0.00|exento">Exento (0%)</option>
+                    <option value="0.00|tasa_cero">Tasa 0% — exportación</option>
+                  </select>
+                </div>
+
+                {/* Total Fila */}
+                <div className="space-y-1.5 md:space-y-0 text-right">
+                  <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-left">Total Fila</label>
+                  <input
+                    type="text"
+                    value={lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    disabled
+                    className="w-full rounded-lg bg-slate-100 border border-slate-200 py-1.5 px-2 text-[#003366] text-xs font-semibold md:text-right"
+                  />
+                </div>
+
+                {/* Delete Button */}
+                <div className="flex justify-end md:justify-center items-center">
+                  <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {err('lines')}
+        {err('warehouseId')}
+        {Object.entries(errores)
+          .filter(([k]) => k.startsWith('lines.'))
+          .map(([k, m]) => (
+            <p key={k} data-campo={k} className="text-[11px] font-semibold text-rose-600">
+              Línea {Number(k.split('.')[1]) + 1}: {m}
+            </p>
+          ))}
+
+        {/* Aviso, no error: en ambar y sin `data-campo`, para que no lo
+            arrastre el salto al primer error ni parezca que bloquea. */}
+        {avisosDeStock.length > 0 && (
+          <div data-aviso-stock className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            {avisosDeStock.map((a) => (
+              <p key={a.idx} className="text-[11px] font-semibold text-amber-800 flex items-start gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
+                <span>Línea {a.idx + 1}: {a.mensaje}</span>
+              </p>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-start mt-2">
+          <button
+            type="button"
+            onClick={handleAddLine}
+            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar Fila
+          </button>
+        </div>
+      </div>
+  );
+
+  /** Paso 4 -- Revisar y emitir: repaso, notas, retenciones y totales. */
+  const paso4 = () => (
+    <div className="space-y-8">
+      {!vistaCompleta && repaso()}
+        <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200 space-y-2">
+          <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Notas de la Factura</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Ej: Términos de pago, garantía, o cualquier otra observación que aparecerá en la factura impresa..."
+            rows={3}
+            className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition resize-y placeholder:text-slate-400"
+          />
+        </div>
+        <RetentionSelector
+          subtotal={subtotal}
+          discount={discount}
+          itbis={taxes}
+          defaultRnc={customerRnc}
+          onChange={(applied, enabled) => {
+            setRetentions(applied);
+            setRetentionsEnabled(enabled);
+          }}
+        />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-t border-slate-200 pt-8">
+          <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 w-full md:max-w-sm space-y-2 text-sm text-slate-700">
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span className="font-semibold text-[#003366]">RD$ {subtotal.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Descuento:</span>
+              <span className="font-semibold text-[#003366]">RD$ {discount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-on-surface-variant/80">
+              <span>Impuestos (ITBIS):</span>
+              <span className="font-semibold text-[#003366]">RD$ {taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between border-t border-slate-200 pt-3 mt-3 text-lg font-bold">
+              <span className="text-[#003366]">Total Bruto:</span>
+              <span className="text-[#003366]">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+            {retentionsEnabled && totalRetained > 0 && (
+              <>
+                <div className="flex justify-between text-orange-600 text-sm">
+                  <span>Total Retenido:</span>
+                  <span className="font-semibold">- RD$ {totalRetained.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between border-t border-orange-200 pt-3 mt-1 text-lg font-bold">
+                  <span className="text-emerald-700">Total Neto a Cobrar:</span>
+                  <span className="text-emerald-500">RD$ {totalNet.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </>
+            )}
+            {(!retentionsEnabled || totalRetained === 0) && (
+              <div className="flex justify-between border-t border-slate-200 pt-1 mt-1 text-lg font-bold">
+                <span className="text-[#003366]">Total General:</span>
+                <span className="text-emerald-400">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-4 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                router.replace('/dashboard/invoices');
+                resetForm();
+              }}
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              Cancelar
+            </button>
+
+            {/* Save Draft button */}
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={savingDraft || submitting}
+              title="Guardar como Borrador (sin emitir NCF)"
+              className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              {savingDraft ? (
+                <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
+              ) : (
+                <><Save className="h-4 w-4" /> Guardar Borrador</>
+              )}
+            </button>
+
+            {/* Split Emit Button */}
+            <div className="relative flex items-center h-9 shadow-md rounded-lg">
+              {/* Main action: Emitir e Imprimir */}
+              <button
+                type="submit"
+                disabled={submitting || savingDraft}
+                onClick={(e) => { setSaveDropdownOpen(false); }}
+                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-full rounded-l-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              >
+                {submitting ? (
+                  <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
+                ) : (
+                  <><Printer className="h-3.5 w-3.5" /> Emitir e Imprimir</>
+                )}
+              </button>
+              {/* Dropdown toggle */}
+              <button
+                type="button"
+                disabled={submitting || savingDraft}
+                onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
+                className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed outline-none"
+                title="Más opciones"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+
+              {/* Dropdown menu */}
+              <AnimatePresence>
+                {saveDropdownOpen && (
+                  <>
+                    {/* Backdrop to close */}
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setSaveDropdownOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-full right-0 mb-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[230px]"
+                    >
+                      <div className="px-3 py-2 border-b border-slate-100">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
+                      </div>
+                      {/* Option 1: Solo Guardar */}
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => {
+                          setSaveDropdownOpen(false);
+                          handleSubmitTrigger(undefined, 'none');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+                      >
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                          <Save className="h-4 w-4 text-slate-700" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800">Solo Guardar</p>
+                          <p className="text-xs text-slate-500">Emite sin imprimir. El correo al cliente sale cuando la DGII acepta.</p>
+                        </div>
+                      </button>
+                      {/*
+                        Aqui habia un "Emitir y Enviar por Correo". El correo al
+                        cliente lo manda el backend cuando la DGII acepta, se
+                        pulse el boton que se pulse, asi que hacia exactamente lo
+                        mismo que "Solo Guardar". Dos botones iguales no son una
+                        opcion, son una duda.
+
+                        Para pedirlo a mano esta el boton de reenviar del listado.
+                      */}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+    </div>
+  );
+
+  /**
+   * El paso 4 se llama "Revisar y emitir". Sin este repaso seria solo la caja de
+   * totales con otro nombre: lo que hay que revisar antes de FIRMAR no es el
+   * total, es con que comprobante y contra quien se esta firmando -- y eso vive
+   * en los pasos 1 y 2, que a estas alturas ya no se ven.
+   */
+  const repaso = () => {
+    const almacen = warehouses.find(w => w.id === warehouseId);
+    const pagos: Record<string, string> = {
+      cash: 'Efectivo', credit: 'A credito (CxC)', bank_transfer: 'Transferencia',
+    };
+    const esNota = ecfType === '33' || ecfType === '34';
+    const motivos: Record<number, string> = {
+      1: 'Anulacion completa', 2: ecfType === '34' ? 'Correccion de texto' : 'Ajuste de precio',
+      3: ecfType === '34' ? 'Correccion de montos' : 'Ajuste de cantidad', 4: 'Otros',
+    };
+    const filas: [string, string, number][] = [
+      ['Tipo de comprobante', getTypeLabel(ecfType), 1],
+      ['Forma de pago', pagos[paymentType] || paymentType, 1],
+      ...(paymentType === 'bank_transfer'
+        ? ([['Banco', bankName || '— sin elegir —', 1]] as [string, string, number][])
+        : []),
+      ...(esNota
+        ? ([
+            ['Documento que corrige', modifiedNcf || '— sin NCF —', 1],
+            ['Motivo del ajuste', motivos[indicadorNotaCredito] || '— sin elegir —', 1],
+          ] as [string, string, number][])
+        : []),
+      ['Cliente', customerName || '— consumidor final —', 2],
+      ['RNC / Cedula', customerRnc || '— sin RNC —', 2],
+      ['Articulos', `${lines.length} ${lines.length === 1 ? 'linea' : 'lineas'}`, 3],
+      ['Almacen por defecto', almacen?.name || '— sin almacen —', 3],
+    ];
+    return (
+      <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200">
+        <h3 className="font-bold text-[#C5A059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+          <Eye className="h-4 w-4" /> Lo que vas a emitir
+        </h3>
+        <dl className="divide-y divide-slate-100">
+          {filas.map(([rotulo, valor, dePaso]) => (
+            <div key={rotulo} className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="text-xs font-bold text-slate-500 shrink-0">{rotulo}</dt>
+              <dd className="flex items-baseline gap-2 min-w-0">
+                <span className="text-xs font-semibold text-[#003366] text-right truncate">{valor}</span>
+                <button
+                  type="button"
+                  onClick={() => irAPaso(dePaso)}
+                  className="text-[10px] font-bold text-[#C5A059] hover:underline shrink-0"
+                >
+                  editar
+                </button>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {/* El aviso de existencia se repite aqui a proposito: en el paso 3 avisa
+            mientras eliges, pero el momento en que de verdad importa es este,
+            justo antes de firmar, cuando las lineas ya no se ven. */}
+        {avisosDeStock.length > 0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            {avisosDeStock.map((a) => (
+              <p key={a.idx} className="text-[11px] font-semibold text-amber-800 flex items-start gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
+                <span>Linea {a.idx + 1}: {a.mensaje}</span>
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const barraPasos = () => (
+    <nav aria-label="Pasos de la emision" className="flex flex-wrap items-center gap-1.5">
+      {PASOS.map((p, i) => (
+        <div key={p.n} className="flex items-center gap-1.5">
+          {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" aria-hidden="true" />}
+          <button
+            type="button"
+            onClick={() => irAPaso(p.n)}
+            aria-current={p.n === paso ? 'step' : undefined}
+            className={'flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (
+              p.n === paso
+                ? 'bg-[#C5A059] text-white shadow-sm'
+                : p.n < paso
+                  ? 'text-[#C5A059] bg-[#C5A059]/10 hover:bg-[#C5A059]/20'
+                  : 'text-slate-400 hover:bg-slate-100'
+            )}
+          >
+            <span
+              className={'w-4 h-4 rounded-full grid place-items-center text-[10px] shrink-0 ' + (
+                p.n === paso ? 'bg-white/25' : p.n < paso ? 'bg-[#C5A059]/20' : 'bg-slate-200'
+              )}
+            >
+              {p.n < paso ? <Check className="w-2.5 h-2.5" /> : p.n}
+            </span>
+            <span className="hidden sm:inline">{p.titulo}</span>
+          </button>
+        </div>
+      ))}
+    </nav>
+  );
+
+  const botonVista = () => (
+    <button
+      type="button"
+      onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}
+      className="inline-flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition shrink-0"
+    >
+      <LayoutList className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">{vistaCompleta ? 'Ver por pasos' : 'Ver todo en una pagina'}</span>
+      <span className="sm:hidden">{vistaCompleta ? 'Pasos' : 'Todo'}</span>
+    </button>
+  );
+
+  const navegacionPasos = () => (
+    <div className="mt-6 flex items-center justify-between gap-3">
+      <button
+        type="button"
+        onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
+        disabled={paso === 1}
+        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
+      >
+        <ChevronLeft className="w-4 h-4" /> Atras
+      </button>
+      {paso < PASOS.length ? (
+        <div className="flex items-center gap-3">
+          {/* Un borrador es, por definicion, una factura a medias: es lo que se
+              pulsa cuando te interrumpen. Si solo viviera en el paso 4 habria
+              que atravesar la validacion de los tres anteriores para aparcarla,
+              que es justo lo contrario de para lo que sirve. No valida el paso:
+              guarda lo que haya, y `handleSaveDraft` ya aplica por su cuenta el
+              minimo de `erroresBasicos`. */}
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={savingDraft || submitting}
+            title="Guardar como Borrador (sin emitir NCF)"
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition disabled:opacity-50"
+          >
+            {savingDraft ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Guardar Borrador
+          </button>
+          <button
+            type="button"
+            onClick={avanzar}
+            className="inline-flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-bold text-white bg-[#003366] hover:bg-[#002244] transition active:scale-95"
+          >
+            Siguiente <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <span />
+      )}
+    </div>
+  );
+
   return (
 
     <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
@@ -1627,630 +2503,33 @@ function InvoicesList() {
               />
             ) : (
             <form onSubmit={(e) => handleSubmitTrigger(e)} className="space-y-8">
-              {/* General Settings */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/40 p-5 rounded-xl border border-slate-200">
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Tipo de e-CF</label>
-                  <select
-                    value={ecfType}
-                    onChange={(e) => setEcfType(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
-                  >
-                    {activeSequences.length === 0 ? (
-                      <>
-                        {TIPOS_COMPROBANTE.filter(t => t.emitible && !['33','34'].includes(t.codigo)).map(t => (
-                          <option key={t.codigo} value={t.codigo}>{t.nombre} (e-{t.codigo})</option>
-                        ))}
-                      </>
-                    ) : (
-                      activeSequences
-                        .filter((s: any) => {
-                          if (ecfType === '33' || ecfType === '34') {
-                            return s.ecfType === ecfType || (s.ecfType !== '33' && s.ecfType !== '34');
-                          }
-                          return s.ecfType !== '33' && s.ecfType !== '34';
-                        })
-                        .map((s: any) => {
-                          // Antes el `default` dejaba sin descripcion a todo
-                          // lo que no fueran 31/32/33/34/45: un e-44 se leia
-                          // "Comprobante Electronico (e-44)", sin decir que es.
-                          // Ahora sale el nombre de la DGII.
-                          const getLabel = (type: string, prefix?: string) => {
-                            const isElectronic = prefix ? prefix.toUpperCase().startsWith('E') : true;
-                            const nombre = nombreTipo(type);
-                            if (!nombre) return `${isElectronic ? 'e' : 'B'}-${type} (tipo no reconocido)`;
-                            return isElectronic
-                              ? `${nombre} (e-${type})`
-                              : `${nombre.replace(/ Electrónic[ao]$/, '')} (B${type})`;
-                          };
-                          return (
-                            <option key={s.id} value={s.ecfType}>
-                              {getLabel(s.ecfType, s.prefix)}
-                            </option>
-                          );
-                        })
-                    )}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Método de Pago</label>
-                  <select
-                    value={paymentType}
-                    onChange={(e) => setPaymentType(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none"
-                  >
-                    <option value="cash">Efectivo / Caja</option>
-                    <option value="credit">Crédito </option>
-                    <option value="bank_transfer">Transferencia Bancaria</option>
-                  </select>
-                </div>
-                {paymentType === 'bank_transfer' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-3 bg-[#003366]/5 p-3 rounded-xl border border-[#003366]/10 mt-2">
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Banco</label>
-                      <select
-                        value={bankName}
-                        onChange={(e) => { setBankName(e.target.value); quitarError('bankName'); }}
-                        required
-                        className={clsx(
-                          'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors appearance-none',
-                          errores.bankName ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
-                        )}
-                      >
-                        <option value="">Seleccione Banco...</option>
-                        <option value="Banco Popular Dominicano">Banco Popular Dominicano</option>
-                        <option value="Banco de Reservas">Banco de Reservas (Banreservas)</option>
-                        <option value="Banco BHD">Banco BHD</option>
-                        <option value="Asociación Popular de Ahorros y Préstamos">Asociación Popular (APAP)</option>
-                        <option value="Banco Scotiabank">Banco Scotiabank</option>
-                        <option value="Banco Promerica">Banco Promerica</option>
-                        <option value="Banco Santa Cruz">Banco Santa Cruz</option>
-                        <option value="Otro">Otro / Internacional</option>
-                      </select>
-                      {err('bankName')}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="block text-xs font-semibold text-[#003366] uppercase tracking-wider">Número de Transferencia / Referencia</label>
-                      <input
-                        type="text"
-                        required
-                        value={transactionNumber}
-                        onChange={(e) => { setTransactionNumber(e.target.value); quitarError('transactionNumber'); }}
-                        placeholder="Ej. TXN12345678"
-                        className={clsx(
-                          'w-full bg-white border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors',
-                          errores.transactionNumber ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
-                        )}
-                      />
-                      {err('transactionNumber')}
-                    </div>
-                  </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {vistaCompleta ? (
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {editingDraftId ? 'Editando un borrador guardado' : 'Emision completa'}
+                  </p>
+                ) : (
+                  barraPasos()
                 )}
-                {modifiedNcf && (
-                  <div className="col-span-1 md:col-span-3 bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 mt-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
-                        <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
-                        className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        Remover Referencia
-                      </button>
-                    </div>
-
-                    {(ecfType === '33' || ecfType === '34') && (
-                      <div className="max-w-xs pt-2 border-t border-amber-200">
-                        <label className="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          Motivo / Tipo de Ajuste
-                          <span className="text-rose-500 font-bold">*</span>
-                        </label>
-                        {ecfType === '34' ? (
-                          <select
-                            value={indicadorNotaCredito}
-                            onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                            required
-                            className={clsx(
-                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
-                              indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
-                            )}
-                          >
-                            <option value={0} disabled>— Seleccione el motivo —</option>
-                            <option value={1}>1 - Anulación completa</option>
-                            <option value={2}>2 - Corrección de texto</option>
-                            <option value={3}>3 - Corrección de montos / Ajuste parcial</option>
-                          </select>
-                        ) : (
-                          <select
-                            value={indicadorNotaCredito}
-                            onChange={(e) => setIndicadorNotaCredito(Number(e.target.value))}
-                            required
-                            className={clsx(
-                              'w-full rounded-lg bg-white border py-1.5 px-2.5 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-xs transition',
-                              indicadorNotaCredito === 0 ? 'border-rose-400 bg-rose-50/40' : 'border-amber-300'
-                            )}
-                          >
-                            <option value={0} disabled>— Seleccione el motivo —</option>
-                            <option value={2}>2 - Ajuste de precio (Intereses, Cargos, etc.)</option>
-                            <option value={3}>3 - Ajuste de cantidad</option>
-                            <option value={4}>4 - Otros</option>
-                          </select>
-                        )}
-                        {indicadorNotaCredito === 0 && (
-                          <p className="mt-1 text-[10px] text-rose-500 font-semibold flex items-center gap-1">
-                            <span>⚠</span> Campo obligatorio
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {botonVista()}
               </div>
 
-              {/* Customer Details */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-                <div className="col-span-1 md:col-span-4 flex items-center justify-between border-b border-slate-200/55 pb-3 gap-3">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-[#C5A059]" />
-                    <div>
-                      <h4 className="text-[#003366] font-semibold text-base">Datos del Cliente</h4>
-                      <p className="text-xs text-on-surface-variant/80">Requerido para crédito fiscal (e-31)</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 col-span-1 md:col-span-2">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Razón Social</label>
-                  <CustomerAutocomplete
-                    dbCustomers={dbCustomers}
-                    customerId={customerId}
-                    customerName={customerName}
-                    onSelect={(c) => applyCustomer(c)}
-                    onTextChange={(val) => setCustomerName(val)}
-                    onCreateNew={() => setCreateCustomerModalOpen(true)}
-                    onClear={() => {
-                      setCustomerId('');
-                      setCustomerName('');
-                      setCustomerRnc('');
-                      setCustomerPhone('');
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">RNC o Cédula</label>
-                  <input
-                    type="text"
-                    value={customerRnc}
-                    readOnly
-                    className={clsx(
-                      'w-full border rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none font-mono',
-                      errores.buyerRnc ? 'bg-rose-50 border-rose-400' : 'bg-slate-100 border-slate-300'
-                    )}
-                  />
-                  {err('buyerRnc')}
-                  {err('buyerName')}
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Teléfono</label>
-                  <input
-                    type="text"
-                    value={customerPhone}
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-[#003366]/70 cursor-not-allowed outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Item Lines */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[#003366] font-semibold text-base">Artículos / Servicios</h4>
-                </div>
-
-                {/* Table Header for desktop */}
-                <div className="hidden md:grid md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 px-4 py-2 bg-slate-100/80 text-[#003366] text-[10px] font-bold uppercase tracking-wider rounded-lg border border-slate-200">
-                  <div>Producto / Servicio</div>
-                  <div>Medida</div>
-                  <div>Cant.</div>
-                  <div>Precio Unit.</div>
-                  <div>Desc. Unit.</div>
-                  <div>ITBIS</div>
-                  <div className="text-right">Total</div>
-                  <div className="text-center">Acción</div>
-                </div>
-
-                <div className="space-y-3">
-                  {lines.map((line, idx) => {
-                    const lineSubtotal = line.quantity * line.unitPrice;
-                    const lineDiscount = line.quantity * (line.discount || 0);
-                    const lineTaxable = lineSubtotal - lineDiscount;
-                    const lineTax = lineTaxable * line.taxRate;
-                    const lineTotal = lineTaxable + lineTax;
-                    const hasProduct = !!line.productId;
-
-                    // Fetch dynamic price tiers from dbProducts if available
-                    const matchedProduct = dbProducts.find(p => p.id === line.productId);
-                    const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : null;
-                    const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : null;
-                    const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : null;
-                    const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : null;
-
-                    return (
-                      <div key={idx} className="grid grid-cols-1 md:grid-cols-[3fr_1.2fr_0.8fr_1.5fr_1fr_1.3fr_1.8fr_0.5fr] gap-4 items-center bg-slate-50/60 p-4 md:py-2 md:px-4 rounded-xl border border-slate-200">
-                        {/* Product Selection / Autocomplete */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Producto o Servicio</label>
-                          <ProductAutocomplete
-                            dbProducts={dbProducts}
-                            categories={categories}
-                            warehouses={warehouses}
-                            valueName={line.productName}
-                            hasProduct={hasProduct}
-                            onSelect={(p) => applyProductToLine(idx, p)}
-                            onTextChange={(val) => handleLineChange(idx, 'productName', val)}
-                            selectedProductId={line.productId}
-                            selectedWarehouseId={line.warehouseId}
-                            onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
-                            onClear={() => clearProductFromLine(idx)}
-                          />
-                        </div>
-
-                        {/* Unit of measure */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Medida</label>
-                          <select
-                            value={line.unitOfMeasure || 'unidad'}
-                            onChange={(e) => handleLineChange(idx, 'unitOfMeasure', e.target.value)}
-                            disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          >
-                            <option value="unidad">Unidad</option>
-                            <option value="pie">Pie</option>
-                            <option value="pieza">Pieza</option>
-                            <option value="centimetro">Centímetro</option>
-                            <option value="plancha">Plancha</option>
-                            <option value="otro">Otro</option>
-                          </select>
-                        </div>
-
-                        {/* Cant. */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Cant.</label>
-                          <input
-                            type="number"
-                            value={line.quantity}
-                            onChange={(e) => handleLineChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                            disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                            min={0.0001} step="any" required
-                          />
-                        </div>
-
-                        {/* Precio Unit. (Unified) */}
-                        <div className="space-y-1.5 md:space-y-0 relative">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
-                          {(() => {
-                            const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
-                            const isBelowCost = pCost > 0 && line.unitPrice < pCost;
-                            
-                            const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : 0;
-                            const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : 0;
-                            const priceMayorista = matchedProduct ? (parseFloat(matchedProduct.priceMayorista || matchedProduct.price) || 0) : 0;
-                            const priceProveedor = matchedProduct ? (parseFloat(matchedProduct.priceProveedor || matchedProduct.price) || 0) : 0;
-
-                            const tiers = [
-                              { name: 'base', label: 'Base', price: priceBase },
-                              { name: 'consumidor', label: 'Consumidor', price: priceConsumidor },
-                              { name: 'mayorista', label: 'Mayorista', price: priceMayorista },
-                              { name: 'proveedor', label: 'Proveedor', price: priceProveedor },
-                            ];
-
-                            return (
-                              <EditablePriceSelect
-                                value={line.unitPrice}
-                                onChange={(val) => handleLineChange(idx, 'unitPrice', val)}
-                                disabled={!hasProduct}
-                                isBelowCost={isBelowCost}
-                                pCost={pCost}
-                                tiers={tiers}
-                              />
-                            );
-                          })()}
-                        </div>
-
-                        {/* Desc. Unit. */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Desc. Unit.</label>
-                          {(() => {
-                            const userRole = currentUser?.roleName?.toLowerCase() || currentUser?.role?.toLowerCase() || '';
-                            const canEditDiscount = esAdminOSistemas(userRole);
-
-                            return (
-                              <input
-                                type="number"
-                                value={line.discount || 0}
-                                onChange={(e) => handleLineChange(idx, 'discount', parseFloat(e.target.value) || 0)}
-                                disabled={!hasProduct || !canEditDiscount}
-                                className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct
-                                  ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed'
-                                  : !canEditDiscount
-                                    ? 'bg-white border-red-400 text-[#003366] focus:border-red-500 focus:ring-1 focus:ring-red-300'
-                                    : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/30'
-                                  }`}
-                                min={0}
-                                step="any"
-                                title={!canEditDiscount ? 'Solo administradores pueden aplicar descuentos' : ''}
-                              />
-                            );
-                          })()}
-                        </div>
-
-                        {/* ITBIS (Tasa) */}
-                        <div className="space-y-1.5 md:space-y-0">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">ITBIS (Tasa)</label>
-                          {/*
-                            El 0% son DOS cosas para la DGII y antes eran una
-                            sola opcion ("0% Exento"):
-
-                              Exento (indicador 4): exento por ley. No se cobra
-                                ITBIS y NO se recupera el de los insumos.
-                              Tasa 0% (indicador 3): exportaciones. Tampoco se
-                                cobra, pero SI se conserva el credito.
-
-                            El valor del desplegable lleva las dos cosas
-                            ("0.00|tasa_cero") porque la tasa sola no distingue.
-                          */}
-                          <select
-                            value={
-                              Number(line.taxRate) === 0
-                                ? `0.00|${line.taxCategory === 'tasa_cero' ? 'tasa_cero' : 'exento'}`
-                                : String(line.taxRate)
-                            }
-                            onChange={(e) => {
-                              const [tasa, categoria] = e.target.value.split('|');
-                              handleLineChange(idx, 'taxRate', parseFloat(tasa));
-                              handleLineChange(idx, 'taxCategory', categoria || null);
-                            }}
-                            disabled={!hasProduct}
-                            className={`w-full rounded-lg border py-1.5 px-2 outline-none text-xs transition ${!hasProduct ? 'bg-slate-100 border-slate-300 text-[#003366]/50 cursor-not-allowed' : 'bg-white border-slate-300 text-[#003366] focus:border-[#C5A059]'}`}
-                          >
-                            <option value="0.18">18% ITBIS</option>
-                            <option value="0.16">16% ITBIS</option>
-                            <option value="0.00|exento">Exento (0%)</option>
-                            <option value="0.00|tasa_cero">Tasa 0% — exportación</option>
-                          </select>
-                        </div>
-
-                        {/* Total Fila */}
-                        <div className="space-y-1.5 md:space-y-0 text-right">
-                          <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-left">Total Fila</label>
-                          <input
-                            type="text"
-                            value={lineTotal.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            disabled
-                            className="w-full rounded-lg bg-slate-100 border border-slate-200 py-1.5 px-2 text-[#003366] text-xs font-semibold md:text-right"
-                          />
-                        </div>
-
-                        {/* Delete Button */}
-                        <div className="flex justify-end md:justify-center items-center">
-                          <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {err('lines')}
-                {err('warehouseId')}
-                {err('modifiedNcf')}
-                {err('indicadorNotaCredito')}
-                {Object.entries(errores)
-                  .filter(([k]) => k.startsWith('lines.'))
-                  .map(([k, m]) => (
-                    <p key={k} data-campo={k} className="text-[11px] font-semibold text-rose-600">
-                      Línea {Number(k.split('.')[1]) + 1}: {m}
-                    </p>
-                  ))}
-
-                {/* Aviso, no error: en ambar y sin `data-campo`, para que no lo
-                    arrastre el salto al primer error ni parezca que bloquea. */}
-                {avisosDeStock.length > 0 && (
-                  <div data-aviso-stock className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                    {avisosDeStock.map((a) => (
-                      <p key={a.idx} className="text-[11px] font-semibold text-amber-800 flex items-start gap-1.5">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-px" />
-                        <span>Línea {a.idx + 1}: {a.mensaje}</span>
-                      </p>
-                    ))}
-                  </div>
-                )}
-                <div className="flex justify-start mt-2">
-                  <button
-                    type="button"
-                    onClick={handleAddLine}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Agregar Fila
-                  </button>
-                </div>
-              </div>
-
-              {/* Notas de la Factura */}
-              <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200 space-y-2">
-                <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Notas de la Factura</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ej: Términos de pago, garantía, o cualquier otra observación que aparecerá en la factura impresa..."
-                  rows={3}
-                  className="w-full rounded-lg bg-white border border-slate-300 py-3 px-4 text-[#003366] focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059] outline-none text-sm transition resize-y placeholder:text-slate-400"
-                />
-              </div>
-
-              {/* Retenciones Fiscales */}
-              <RetentionSelector
-                subtotal={subtotal}
-                discount={discount}
-                itbis={taxes}
-                defaultRnc={customerRnc}
-                onChange={(applied, enabled) => {
-                  setRetentions(applied);
-                  setRetentionsEnabled(enabled);
-                }}
-              />
-
-              {/* Calculation Summary & Submit */}
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-t border-slate-200 pt-8">
-                <div className="bg-slate-50/60 p-5 rounded-xl border border-slate-200 w-full md:max-w-sm space-y-2 text-sm text-slate-700">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span className="font-semibold text-[#003366]">RD$ {subtotal.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Descuento:</span>
-                    <span className="font-semibold text-[#003366]">RD$ {discount.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between text-on-surface-variant/80">
-                    <span>Impuestos (ITBIS):</span>
-                    <span className="font-semibold text-[#003366]">RD$ {taxes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-200 pt-3 mt-3 text-lg font-bold">
-                    <span className="text-[#003366]">Total Bruto:</span>
-                    <span className="text-[#003366]">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  {retentionsEnabled && totalRetained > 0 && (
-                    <>
-                      <div className="flex justify-between text-orange-600 text-sm">
-                        <span>Total Retenido:</span>
-                        <span className="font-semibold">- RD$ {totalRetained.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                      <div className="flex justify-between border-t border-orange-200 pt-3 mt-1 text-lg font-bold">
-                        <span className="text-emerald-700">Total Neto a Cobrar:</span>
-                        <span className="text-emerald-500">RD$ {totalNet.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    </>
-                  )}
-                  {(!retentionsEnabled || totalRetained === 0) && (
-                    <div className="flex justify-between border-t border-slate-200 pt-1 mt-1 text-lg font-bold">
-                      <span className="text-[#003366]">Total General:</span>
-                      <span className="text-emerald-400">RD$ {total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col-reverse sm:flex-row gap-4 w-full md:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForm(false);
-                      router.replace('/dashboard/invoices');
-                      resetForm();
-                    }}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    Cancelar
-                  </button>
-
-                  {/* Save Draft button */}
-                  <button
-                    type="button"
-                    onClick={handleSaveDraft}
-                    disabled={savingDraft || submitting}
-                    title="Guardar como Borrador (sin emitir NCF)"
-                    className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    {savingDraft ? (
-                      <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
-                    ) : (
-                      <><Save className="h-4 w-4" /> Guardar Borrador</>
-                    )}
-                  </button>
-
-                  {/* Split Emit Button */}
-                  <div className="relative flex items-center h-9 shadow-md rounded-lg">
-                    {/* Main action: Emitir e Imprimir */}
-                    <button
-                      type="submit"
-                      disabled={submitting || savingDraft}
-                      onClick={(e) => { setSaveDropdownOpen(false); }}
-                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-full rounded-l-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                    >
-                      {submitting ? (
-                        <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Procesando...</>
-                      ) : (
-                        <><Printer className="h-3.5 w-3.5" /> Emitir e Imprimir</>
-                      )}
-                    </button>
-                    {/* Dropdown toggle */}
-                    <button
-                      type="button"
-                      disabled={submitting || savingDraft}
-                      onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
-                      className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed outline-none"
-                      title="Más opciones"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-
-                    {/* Dropdown menu */}
-                    <AnimatePresence>
-                      {saveDropdownOpen && (
-                        <>
-                          {/* Backdrop to close */}
-                          <div
-                            className="fixed inset-0 z-30"
-                            onClick={() => setSaveDropdownOpen(false)}
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute bottom-full right-0 mb-2 z-40 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden min-w-[230px]"
-                          >
-                            <div className="px-3 py-2 border-b border-slate-100">
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Opciones de Guardado</p>
-                            </div>
-                            {/* Option 1: Solo Guardar */}
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => {
-                                setSaveDropdownOpen(false);
-                                handleSubmitTrigger(undefined, 'none');
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
-                            >
-                              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                                <Save className="h-4 w-4 text-slate-700" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-slate-800">Solo Guardar</p>
-                                <p className="text-xs text-slate-500">Emite sin imprimir. El correo al cliente sale cuando la DGII acepta.</p>
-                              </div>
-                            </button>
-                            {/*
-                              Aqui habia un "Emitir y Enviar por Correo". El correo al
-                              cliente lo manda el backend cuando la DGII acepta, se
-                              pulse el boton que se pulse, asi que hacia exactamente lo
-                              mismo que "Solo Guardar". Dos botones iguales no son una
-                              opcion, son una duda.
-
-                              Para pedirlo a mano esta el boton de reenviar del listado.
-                            */}
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
+              {vistaCompleta ? (
+                <>
+                  {paso1()}
+                  {paso2()}
+                  {paso3()}
+                  {paso4()}
+                </>
+              ) : (
+                <>
+                  {paso === 1 && paso1()}
+                  {paso === 2 && paso2()}
+                  {paso === 3 && paso3()}
+                  {paso === 4 && paso4()}
+                  {navegacionPasos()}
+                </>
+              )}
             </form>
             )}
           </motion.div>

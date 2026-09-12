@@ -231,7 +231,6 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
             className="w-full rounded-lg bg-white border border-slate-300 py-1.5 px-3 pr-8 text-[#003366] focus:border-[#C5A059] outline-none text-xs transition truncate"
             placeholder={placeholder}
             title={displayValue || placeholder}
-            required
           />
           {hasProduct ? (
             <button
