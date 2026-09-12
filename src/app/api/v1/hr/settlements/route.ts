@@ -4,6 +4,7 @@ import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 import { z } from 'zod';
+import { mesesEnElAnio } from '@/services/hr/antiguedad';
 
 const calculateSettlementSchema = z.object({
   employeeId: z.string().uuid('ID de empleado no válido'),
@@ -59,23 +60,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: 'Empleado no encontrado' } }, { status: 404 });
     }
 
-    const hire = new Date(emp.hireDate);
-    const term = new Date(terminationDate);
-    
-    // Start of current calendar year
-    const startOfCurrentYear = new Date(term.getFullYear(), 0, 1);
-    const startWagesAccumDate = hire > startOfCurrentYear ? hire : startOfCurrentYear;
-    
-    // Calculate fractional months worked this calendar year
-    const activeTimeMs = term.getTime() - startWagesAccumDate.getTime();
-    const activeDays = Math.max(0, Math.ceil(activeTimeMs / (1000 * 60 * 60 * 24)));
-    const activeMonths = activeDays / 30.4;
-    
+    // Meses trabajados en el año natural de la salida, para la regalia.
+    //
+    // Aqui vivia el fallo del 1 de enero: `new Date('2026-01-01')` es medianoche
+    // UTC, y `getFullYear()` en RD lo lee como 2025. La cuenta arrancaba el 1 de
+    // enero del año ANTERIOR y acumulaba un año entero de salario devengado en
+    // vez de cero -- con un sueldo de 40.000, 40.021 de regalia en lugar de 0.
+    //
+    // El resto del año salia bien por accidente: la resta entre una medianoche
+    // UTC y una LOCAL salia cuatro horas corta y el `Math.ceil` la devolvia al
+    // numero bueno. El desajuste estaba entero; lo tapaba un redondeo que nadie
+    // habia puesto para eso.
+    const activeMonths = mesesEnElAnio(emp.hireDate, terminationDate);
+
     const accumulatedNavidadBase = Number(emp.salary) * activeMonths;
 
     const calculation = PayrollCalculationService.calculateSettlement({
-      hireDate: hire,
-      terminationDate: term,
+      hireDate: emp.hireDate,
+      terminationDate,
       salary: Number(emp.salary),
       includePreaviso,
       includeCesantia,

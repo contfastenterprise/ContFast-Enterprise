@@ -1,4 +1,5 @@
 import { roundMoney } from '@/utils/calculos';
+import { aniosDeServicio, mesesDeServicio } from '@/services/hr/antiguedad';
 
 /**
  * Payroll Calculation Service for Dominican Republic Legislation (TSS, DGII, Labor Code)
@@ -252,22 +253,22 @@ export class PayrollCalculationService {
    * Calculates settlements/severance according to DR Labor Code
    */
   public static calculateSettlement(params: {
-    hireDate: Date;
-    terminationDate: Date;
+    // Admiten cadena tambien: `hire_date` y `termination_date` son columnas
+    // `date`, asi que llegan como 'AAAA-MM-DD' y no como Date.
+    hireDate: string | Date;
+    terminationDate: string | Date;
     salary: number;
     includePreaviso: boolean;
     includeCesantia: boolean;
     vacacionesPendientesDays: number;
     accumulatedNavidadBase: number; // Sum of wages in the calendar year
   }) {
-    const hire = new Date(params.hireDate);
-    const term = new Date(params.terminationDate);
-    
-    // Antigüedad en meses
-    const diffTime = Math.abs(term.getTime() - hire.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const yearsOfService = diffDays / 365.25;
-    const monthsOfService = yearsOfService * 12;
+    // Antigüedad, de `@/services/hr/antiguedad`. La cuenta estaba hecha tres
+    // veces -- aqui, en la ruta y en la pantalla -- y ninguna coincidia con las
+    // otras. Las cifras NO se mueven: con las dos fechas del mismo lado, la
+    // resta de antes ya daba dias enteros y el `Math.ceil` no hacia nada.
+    const yearsOfService = aniosDeServicio(params.hireDate, params.terminationDate);
+    const monthsOfService = mesesDeServicio(params.hireDate, params.terminationDate);
 
     const dailyRate = this.round(params.salary / 23.83);
     

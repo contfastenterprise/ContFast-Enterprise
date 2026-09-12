@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, FileText, Info, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { mesesEnAnio, trabajoEnElAnio } from '@/services/hr/antiguedad';
 import { useConfirm } from '@/providers/confirm-provider';
 
 // Format currency helper
@@ -67,35 +68,20 @@ export default function SettlementsPage() {
     if (employees.length === 0) return;
 
     const currentYear = dobleYear;
+    // La cuenta viene de `@/services/hr/antiguedad`, la misma que usan la ruta
+    // de liquidaciones y el servicio de nomina. Antes estaba escrita aqui, y con
+    // las mismas fechas daba una cifra distinta de la del servidor en SEIS de
+    // seis casos: lo que se veia en pantalla no era lo que se guardaba.
+    //
+    // Dos cosas cambian de resultado, y las dos a proposito:
+    //  - el 1 de enero ya no se lee como el año anterior (`new Date('2026-01-01')`
+    //    con `getFullYear()` daba 2025 en RD);
+    //  - se va el `+1`: el dia de salida no se cuenta, que es lo que el servidor
+    //    ya guardaba.
     const list = employees
-      .filter((emp) => {
-        // Hired before or during the selected year, and not terminated before selected year
-        const hireDate = new Date(emp.hireDate);
-        if (hireDate.getFullYear() > currentYear) return false;
-
-        if (emp.terminationDate) {
-          const termDate = new Date(emp.terminationDate);
-          if (termDate.getFullYear() < currentYear) return false;
-        }
-
-        return true;
-      })
+      .filter((emp) => trabajoEnElAnio(emp.hireDate, emp.terminationDate, currentYear))
       .map((emp) => {
-        const hireDate = new Date(emp.hireDate);
-        const termDate = emp.terminationDate ? new Date(emp.terminationDate) : new Date(currentYear, 11, 31);
-
-        // Find months worked in this specific year
-        const startOfYear = new Date(currentYear, 0, 1);
-        const endOfYear = new Date(currentYear, 11, 31);
-
-        const effectiveStart = hireDate > startOfYear ? hireDate : startOfYear;
-        const effectiveEnd = termDate < endOfYear ? termDate : endOfYear;
-
-        const diffMs = effectiveEnd.getTime() - effectiveStart.getTime();
-        const diffDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1);
-
-        // Months worked (cap at 12)
-        const monthsWorked = Math.min(12, Number((diffDays / 30.4).toFixed(2)));
+        const monthsWorked = Number(mesesEnAnio(emp.hireDate, emp.terminationDate, currentYear).toFixed(2));
 
         // 1/12 of the accumulated wages in the year
         const salary = parseFloat(emp.salary) || 0;
