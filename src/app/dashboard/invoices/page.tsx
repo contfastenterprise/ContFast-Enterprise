@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback, useMemo, useRef } from 'react';
 import { TIPOS_COMPROBANTE, nombreTipo, nombreCortoTipo } from '@/services/dgii/tiposComprobante';
+import { disponible as loQueSePuedeSacar } from '@/services/inventario/existencia';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
@@ -1021,7 +1022,7 @@ function InvoicesList() {
     // Una nota de credito DEVUELVE mercancia: no hay existencia que agotar.
     if (ecfType === '34') return [];
 
-    const grupos = new Map<string, { idx: number; nombre: string; pedido: number; existencia: number; minimo: number }>();
+    const grupos = new Map<string, { idx: number; nombre: string; pedido: number; existencia: number; minimo: number; disponible: number }>();
 
     lines.forEach((line, idx) => {
       const prod = dbProducts.find((p) => p.id === line.productId);
@@ -1046,17 +1047,16 @@ function InvoicesList() {
         pedido,
         existencia: targetInv ? (parseFloat(targetInv.quantity) || 0) : 0,
         minimo: targetInv ? (parseFloat(targetInv.minStock) || 0) : 0,
+        // La resta no se hace aqui: la hace el mismo modulo que usa el servidor
+        // para aprobar el conduce y el mismo que usa el selector de producto.
+        disponible: loQueSePuedeSacar(targetInv),
       });
     });
 
     const num = (n: number) => n.toLocaleString('es-DO', { maximumFractionDigits: 4 });
 
     return [...grupos.values()]
-      .map(({ idx, nombre, pedido, existencia, minimo }) => {
-        // La misma regla que el servidor aplica en el conduce
-        // (`alcanzaLaExistencia`): lo que puede salir es lo que hay MENOS el
-        // minimo que hay que dejar puesto.
-        const disponible = existencia - minimo;
+      .map(({ idx, nombre, pedido, existencia, minimo, disponible }) => {
         if (pedido <= disponible) return null;
 
         const cola = 'Puedes emitir la factura, pero el conduce no se podrá aprobar hasta que entre mercancía.';
@@ -1890,7 +1890,8 @@ function InvoicesList() {
                             hasProduct={hasProduct}
                             onSelect={(p) => applyProductToLine(idx, p)}
                             onTextChange={(val) => handleLineChange(idx, 'productName', val)}
-                            selectedWarehouseId={line.warehouseId || warehouseId}
+                            selectedProductId={line.productId}
+                            selectedWarehouseId={line.warehouseId}
                             onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
                             onClear={() => clearProductFromLine(idx)}
                           />

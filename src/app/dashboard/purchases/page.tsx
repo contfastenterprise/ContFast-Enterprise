@@ -1282,9 +1282,9 @@ export default function PurchasesPage() {
                             hasProduct={!!l.productId}
                             onSelect={(p: any) => applyProductToLine(l.id, p)}
                             onTextChange={(val: string) => updateLine(l.id, 'desc', val)}
+                            selectedProductId={l.productId}
                             selectedWarehouseId={warehouseId}
                             onClear={() => clearProductFromLine(l.id)}
-                            allowOutOfStock={true}
                             showWarehouses={false}
                           />
                         </div>

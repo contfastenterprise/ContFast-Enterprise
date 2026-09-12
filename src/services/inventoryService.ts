@@ -13,6 +13,7 @@ import {
 } from '@/db/schema';
 import { eq, and, sql, inArray, not, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { alcanzaLaExistencia } from '@/services/inventario/existencia';
 
 /**
  * ¿Este producto lleva control de existencia?
@@ -206,20 +207,11 @@ export async function checkStock(
   return alcanzaLaExistencia(currentStock, minStock, quantityNeeded);
 }
 
-/**
- * Auditoria P2-28 (2026-09-03): la regla de "alcanza la existencia", aislada
- * para que comprobar UNA linea y comprobar un lote entero decidan exactamente
- * igual. Vivia dentro de `checkStock` y no habia forma de reutilizarla sin
- * copiarla -- y ya se corrigio una vez (F1-04), asi que una copia era una
- * copia condenada a quedarse atras.
- *
- * Las cantidades son decimal(15,4): se compara con una tolerancia minima para
- * que restar una cantidad exacta no falle por ruido de coma flotante
- * (p. ej. 3 - 3 puede dar -4.44e-16).
- */
-function alcanzaLaExistencia(existencia: number, minimo: number, cantidadPedida: number): boolean {
-  return existencia - cantidadPedida >= minimo - 1e-6;
-}
+// La regla vivia aqui desde P2-28. Se mudo a `@/services/inventario/existencia`
+// cuando aparecio el TERCER sitio que la respondia -- el selector de producto,
+// que se habia quedado en la version anterior a F1-04. El aviso que P2-28 dejo
+// escrito ("una copia condenada a quedarse atras") se cumplio: ahora el
+// servidor, el aviso en vivo de facturas y el selector importan la misma.
 
 /**
  * Lo mismo que `checkStock`, pero para varias lineas de golpe: DOS consultas en

@@ -423,7 +423,8 @@ export default function NewQuote() {
                         hasProduct={hasProduct}
                         onSelect={(p) => applyProductToLine(idx, p)}
                         onTextChange={(val) => handleLineChange(idx, 'productName', val)}
-                        selectedWarehouseId={line.warehouseId || warehouseId}
+                        selectedProductId={line.productId}
+                        selectedWarehouseId={line.warehouseId}
                         onWarehouseChange={(wId) => handleLineChange(idx, 'warehouseId', wId)}
                         onClear={() => clearProductFromLine(idx)}
                       />
