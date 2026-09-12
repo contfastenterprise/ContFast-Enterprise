@@ -1422,9 +1422,23 @@ export default function PurchasesPage() {
             </label>
 
             {hasGuaranteeCheck && (
+              /*
+                Antes: `height: 0` -> `height: 'auto'`.
+                Animar la altura obliga al navegador a recalcular la
+                disposicion de la pagina en CADA fotograma, y arrastra con ella
+                lo que venga debajo. Aqui el panel del cheque se despliega
+                dentro de un formulario largo, asi que lo que se recalcula no es
+                el panel: es todo el resto.
+
+                Se anima `opacity` y un desplazamiento, que el navegador resuelve
+                en la capa de composicion sin tocar la disposicion. El panel
+                sigue apareciendo con transicion; lo que desaparece es el
+                tiron.
+              */
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18 }}
                 className="space-y-4 bg-slate-50/50 p-4 rounded-lg border border-slate-200"
               >
                 <div>
@@ -1900,7 +1914,7 @@ export default function PurchasesPage() {
                     if (filterNcf) {
                       url += `&ncf=${encodeURIComponent(filterNcf)}`;
                     }
-                    window.open(url, '_blank');
+                    window.open(url, '_blank', 'noopener,noreferrer');
                   }}
                   className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
                 >
@@ -2039,7 +2053,7 @@ export default function PurchasesPage() {
                                 <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
                                   <Eye className="h-4 w-4" />
                                 </button>
-                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
                                   <Printer className="h-4 w-4" />
                                 </button>
                                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
@@ -2100,7 +2114,7 @@ export default function PurchasesPage() {
                                       <Eye className="h-4 w-4" />
                                     </button>
                                     <button
-                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}
                                       className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
                                       title="Imprimir"
                                     >
@@ -2206,7 +2220,7 @@ export default function PurchasesPage() {
                                 <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
                                   <Eye className="h-4 w-4" />
                                 </button>
-                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
                                   <Printer className="h-4 w-4" />
                                 </button>
                                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
@@ -2271,7 +2285,7 @@ export default function PurchasesPage() {
                                       <Eye className="h-4 w-4" />
                                     </button>
                                     <button
-                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank')}
+                                      onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}
                                       className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
                                       title="Imprimir"
                                     >
@@ -2638,7 +2652,7 @@ export default function PurchasesPage() {
                   </button>
                 )}
                 <button
-                  onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank')}
+                  onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank', 'noopener,noreferrer')}
                   className={`bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
                 >
                   <Printer className="h-4 w-4" /> Imprimir
