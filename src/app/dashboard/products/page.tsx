@@ -6,6 +6,21 @@ import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Arch
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
+import { esquemaProducto, erroresPorCampo } from '@/schemas/producto';
+
+/**
+ * Los campos que tienen su propio hueco debajo del control.
+ *
+ * Lo que no este en esta lista se pinta en la red del final del formulario. Es
+ * una lista y no un `includes` suelto para que anadir un campo al formulario y
+ * olvidarse de su `err(...)` no lo deje invisible: seguiria saliendo, solo que
+ * abajo.
+ */
+const CAMPOS_CON_SITIO = [
+  'sku', 'barcode', 'name', 'categoryId', 'cost',
+  'price', 'priceConsumidor', 'priceMayorista', 'priceProveedor',
+  'promotionalPrice', 'unitOfMeasure', 'status',
+];
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -41,6 +56,30 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+
+  /**
+   * P2-34: el error de cada campo, debajo del campo.
+   *
+   * La clave es la ruta del esquema (`cost`, `categoryId`). La rellenan el
+   * esquema al pasar el formulario o el servidor si devuelve `fields`. Antes no
+   * habia nada de esto: se mandaba a ciegas y el fallo salia en un aviso
+   * efimero, sin decir de que campo era.
+   */
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const err = (campo: string) =>
+    errores[campo] ? (
+      <p data-campo={campo} className="text-[11px] font-semibold text-rose-600 mt-1">{errores[campo]}</p>
+    ) : null;
+  /** El borde en rojo del campo que fallo. */
+  const conError = (campo: string) => (errores[campo] ? ' border-rose-400 bg-rose-50/40' : '');
+  const quitarError = (campo: string) =>
+    setErrores((prev) => {
+      if (!(campo in prev)) return prev;
+      const { [campo]: _fuera, ...resto } = prev;
+      return resto;
+    });
+  const irAlPrimerError = () =>
+    setTimeout(() => document.querySelector('[data-campo]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -307,6 +346,7 @@ export default function ProductsPage() {
   };
 
   const openNewModal = () => {
+    setErrores({});
     setEditId(null);
     setManualPricesEnabled(false);
     setSecondaryBarcodes([]);
@@ -340,6 +380,7 @@ export default function ProductsPage() {
       tracksInventory: product.tracksInventory !== false,
       promotionalPrice: product.promotionalPrice || ''
     });
+    setErrores({});
     fetchSecondaryBarcodes(product.id);
     setShowModal(true);
   };
@@ -361,29 +402,47 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    /**
+     * P2-34: el cuerpo se pasa por el MISMO esquema que valida el servidor
+     * (src/schemas/producto.ts). Antes aqui no habia NADA: se armaba el cuerpo,
+     * se mandaba, y si el servidor lo rechazaba salia su mensaje en un aviso
+     * efimero sin marcar ningun campo.
+     *
+     * Los numeros ya NO se convierten aqui. `Number('')` es 0, asi que un costo
+     * en blanco llegaba como 0 y se guardaba: el producto se quedaba sin suelo
+     * de precio -- el aviso de "precio por debajo del costo" de facturas es
+     * `cost > 0 && ...` -- y nadie lo decia. El esquema distingue el hueco del
+     * cero.
+     */
+    const validacion = esquemaProducto.safeParse({
+      ...formData,
+      // Al editar, los secundarios ya se guardaron uno a uno contra
+      // `/products/[id]/barcodes`: mandarlos otra vez los duplicaria.
+      secondaryBarcodes: !editId ? secondaryBarcodes : undefined,
+    });
+
+    if (!validacion.success) {
+      const campos = erroresPorCampo(validacion.error);
+      setErrores(campos);
+      toast.error('Revisa los campos marcados', { description: Object.values(campos)[0] });
+      irAlPrimerError();
+      return;
+    }
+
+    setErrores({});
     setSubmitting(true);
 
     try {
       const method = editId ? 'PUT' : 'POST';
       const url = editId ? `/api/v1/products/${editId}` : '/api/v1/products';
 
-      const payload = {
-        ...formData,
-        cost: Number(formData.cost),
-        price: Number(formData.price),
-        priceConsumidor: Number(formData.priceConsumidor),
-        priceMayorista: Number(formData.priceMayorista),
-        priceProveedor: Number(formData.priceProveedor),
-        isOnSale: formData.isOnSale,
-        tracksInventory: formData.tracksInventory,
-        promotionalPrice: formData.promotionalPrice ? Number(formData.promotionalPrice) : undefined,
-        secondaryBarcodes: !editId ? secondaryBarcodes : undefined
-      };
-
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        // Lo que salio del esquema, no el formulario en crudo: los decimales ya
+        // son numeros y los campos vacios ya no van.
+        body: JSON.stringify(validacion.data)
       });
 
       const data = await res.json();
@@ -393,6 +452,13 @@ export default function ProductsPage() {
         setShowModal(false);
         fetchProducts(search, selectedCategory);
       } else {
+        // El servidor manda `fields` cuando el fallo es de validacion: lo que
+        // el esquema no pudo ver desde aqui -- un SKU repetido, por ejemplo --
+        // se pinta en su campo igual que el resto.
+        if (data.error?.fields) {
+          setErrores(data.error.fields);
+          irAlPrimerError();
+        }
         toast.error(data.error?.message || 'Error al guardar');
       }
     } catch (error) {
@@ -1188,6 +1254,7 @@ export default function ProductsPage() {
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                       placeholder="PROD-001"
                     />
+                    {err('sku')}
                   </div>
 
                   <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -1213,6 +1280,7 @@ export default function ProductsPage() {
                           className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
                           placeholder="Ingresa código o genera uno"
                         />
+                        {err('barcode')}
                       </div>
 
                       <div className="space-y-1">
@@ -1308,12 +1376,12 @@ export default function ProductsPage() {
                     <label className="text-xs font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
-                      required
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                      onChange={(e) => { setFormData({ ...formData, name: e.target.value }); quitarError('name'); }}
+                      className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('name')}
                       placeholder="Ej. Puerta Caoba 100*200 cm"
                     />
+                    {err('name')}
                   </div>
 
                   <div className="space-y-1">
@@ -1328,14 +1396,14 @@ export default function ProductsPage() {
                       </button>
                     </div>
                     <select
-                      required
                       value={formData.categoryId}
-                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                      onChange={(e) => { setFormData({ ...formData, categoryId: e.target.value }); quitarError('categoryId'); }}
+                      className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('categoryId')}
                     >
                       <option value="">Selecciona una categoría...</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
+                    {err('categoryId')}
                   </div>
 
                   <div className="space-y-1">
@@ -1347,12 +1415,12 @@ export default function ProductsPage() {
                       <input
                         type="number"
                         step="0.01"
-                        required
                         value={formData.cost}
-                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                        onChange={(e) => { setFormData({ ...formData, cost: e.target.value }); quitarError('cost'); }}
+                        className={"w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('cost')}
                         placeholder="0.00"
                       />
+                      {err('cost')}
                     </div>
                   </div>
 
@@ -1488,15 +1556,22 @@ export default function ProductsPage() {
                           <input
                             type="number"
                             step="0.01"
-                            required={formData.isOnSale}
                             value={formData.promotionalPrice}
-                            onChange={(e) => setFormData({ ...formData, promotionalPrice: e.target.value })}
+                            onChange={(e) => { setFormData({ ...formData, promotionalPrice: e.target.value }); quitarError('promotionalPrice'); }}
                             className="w-full bg-white border border-red-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-colors font-bold"
                             placeholder="0.00"
                           />
+                          {err('promotionalPrice')}
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2 -mt-2">
+                    {err('price')}
+                    {err('priceConsumidor')}
+                    {err('priceMayorista')}
+                    {err('priceProveedor')}
                   </div>
 
                   <div className="space-y-1">
@@ -1511,6 +1586,7 @@ export default function ProductsPage() {
                       <option value="metro">Metro (m)</option>
                       <option value="servicio">Servicio</option>
                     </select>
+                    {err('unitOfMeasure')}
                   </div>
 
                   <div className="space-y-1">
@@ -1523,14 +1599,26 @@ export default function ProductsPage() {
                       <option value="active">Activo</option>
                       <option value="inactive">Inactivo</option>
                     </select>
+                    {err('status')}
                   </div>
                 </div>
+
+                {/* La red de debajo: cualquier fallo que no tenga su propio sitio
+                    -- `secondaryBarcodes.0.barcode`, o algo que el servidor
+                    devuelva y aqui no se conozca -- se pinta igual. Sin esto un
+                    error podria dejar el formulario trabado sin nada visible, y
+                    `irAlPrimerError` saltaria a un elemento que no existe. */}
+                {Object.entries(errores)
+                  .filter(([k]) => !CAMPOS_CON_SITIO.includes(k))
+                  .map(([k, m]) => (
+                    <p key={k} data-campo={k} className="text-[11px] font-semibold text-rose-600">{m}</p>
+                  ))}
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
                   <Button size="sm"
                     type="button"
                     variant="ghost"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => { setErrores({}); setShowModal(false); }}
                     className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                   >
                     <X className="w-4 h-4" />

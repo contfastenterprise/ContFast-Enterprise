@@ -1,29 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission, isAdminOrSistemas } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
 import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 
-const updateProductSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
-  sku: z.string().max(100).nullable().optional(),
-  name: z.string().min(1, 'El nombre del producto es requerido').max(255).optional(),
-  description: z.string().nullable().optional(),
-  price: z.number().nonnegative('El precio base no puede ser negativo').optional(),
-  cost: z.number().nonnegative('El costo no puede ser negativo').optional(),
-  unitOfMeasure: z.string().min(1, 'La unidad de medida es requerida').max(50).optional(),
-  priceConsumidor: z.number().nonnegative('El precio consumidor no puede ser negativo').optional(),
-  priceProveedor: z.number().nonnegative('El precio proveedor no puede ser negativo').optional(),
-  priceMayorista: z.number().nonnegative('El precio mayorista no puede ser negativo').optional(),
-  imageUrl: z.string().nullable().optional(),
-  barcode: z.string().max(100).nullable().optional(),
-  status: z.string().max(50).optional(),
-  isOnSale: z.boolean().optional(),
-  tracksInventory: z.boolean().optional(),
-  promotionalPrice: z.number().nonnegative('El precio promocional no puede ser negativo').optional(),
-});
+// El esquema vivia aqui, y su gemelo en `../route.ts`. El parcial es el mismo
+// objeto con todo opcional: ausente sigue queriendo decir "no lo toques".
+import { esquemaProductoParcial, completarPrecios, erroresPorCampo } from '@/schemas/producto';
 
 type RouteContext = {
   params: Promise<any>;
@@ -111,21 +95,19 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const body = await req.json();
-    const result = updateProductSchema.safeParse(body);
+    const result = esquemaProductoParcial.safeParse(body);
 
     if (!result.success) {
+      const campos = erroresPorCampo(result.error);
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message, fields: campos } },
         { status: 400, headers: resHeaders }
       );
     }
 
-    const data = { ...result.data };
-    if (data.price !== undefined && data.priceConsumidor === undefined) {
-      data.priceConsumidor = data.price;
-    } else if (data.priceConsumidor !== undefined && data.price === undefined) {
-      data.price = data.priceConsumidor;
-    }
+    // Las dos ramas estaban escritas al reves que en el alta -- equivalentes,
+    // porque las condiciones se excluyen, pero dos copias de la misma regla.
+    const data = completarPrecios({ ...result.data });
 
     const product = await ProductRepository.update(id, auth.companyId, data);
 

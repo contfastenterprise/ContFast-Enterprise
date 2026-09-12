@@ -1,35 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, products, inventoryLevels, warehouses } from '@/db';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
-import { z } from 'zod';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { ProductRepository } from '@/repositories/productRepository';
 import { getCache, setCache, clearCachePattern } from '@/infrastructure/redis';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-
-const createProductSchema = z.object({
-  categoryId: z.string().uuid().nullable().optional(),
-  sku: z.string().max(100).nullable().optional(),
-  name: z.string().min(1, 'El nombre del producto es requerido').max(255),
-  description: z.string().nullable().optional(),
-  price: z.number().nonnegative('El precio base no puede ser negativo').optional(),
-  cost: z.number().nonnegative('El costo no puede ser negativo').optional(),
-  unitOfMeasure: z.string().min(1, 'La unidad de medida es requerida').max(50).default('unidad'),
-  priceConsumidor: z.number().nonnegative('El precio consumidor no puede ser negativo').optional(),
-  priceProveedor: z.number().nonnegative('El precio proveedor no puede ser negativo').optional(),
-  priceMayorista: z.number().nonnegative('El precio mayorista no puede ser negativo').optional(),
-  imageUrl: z.string().nullable().optional(),
-  barcode: z.string().max(100).nullable().optional(),
-  status: z.string().max(50).default('active'),
-  isOnSale: z.boolean().default(false).optional(),
-  tracksInventory: z.boolean().default(true).optional(),
-  promotionalPrice: z.number().nonnegative('El precio promocional no puede ser negativo').optional(),
-  secondaryBarcodes: z.array(z.object({
-    barcode: z.string().min(1),
-    barcodeType: z.string()
-  })).optional()
-});
+// El esquema vivia aqui, y su gemelo en `[id]/route.ts`. Dos copias que ya
+// habian empezado a separarse, y ninguna de las dos la podia usar la pantalla.
+import { esquemaProducto, completarPrecios, erroresPorCampo } from '@/schemas/producto';
 
 export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -204,22 +183,20 @@ export async function POST(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
 
     const body = await req.json();
-    const result = createProductSchema.safeParse(body);
+    const result = esquemaProducto.safeParse(body);
 
     if (!result.success) {
+      // `fields` es un mapa campo -> mensaje, y la pantalla lo pinta debajo de
+      // cada campo. Antes solo iba `issues[0].message`: el primer fallo, en
+      // texto, sin decir de que campo era.
+      const campos = erroresPorCampo(result.error);
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message } },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message, fields: campos } },
         { status: 400, headers: resHeaders }
       );
     }
 
-    // Default base price to priceConsumidor if not specified
-    const data = { ...result.data };
-    if (data.price === undefined && data.priceConsumidor !== undefined) {
-      data.price = data.priceConsumidor;
-    } else if (data.priceConsumidor === undefined && data.price !== undefined) {
-      data.priceConsumidor = data.price;
-    }
+    const data = completarPrecios({ ...result.data });
 
     if (data.sku && data.sku.trim()) {
       const [existingSku] = await db
