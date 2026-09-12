@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import { diaDe, diasEntreDias, hoyDia, formatDateShort } from '@/utils/fechasLocales';
 import { Clock, AlertCircle, Calendar, PhoneCall, CheckCircle } from 'lucide-react';
 
 const fmt = (val: number) => {
@@ -17,17 +18,16 @@ export default function KanbanTab({ data }: { data: any[] }) {
       gestion: { title: 'En Gestión de Cobro', icon: <PhoneCall className="w-4 h-4 text-purple-500" />, items: [] as any[] },
     };
 
-    const now = new Date();
-    now.setHours(0,0,0,0);
+    // Hoy como texto. La columna "Vence Hoy" ensenaba en realidad lo que vence
+    // MANANA, y lo que vencia hoy caia en "Vencidas": convertir 'AAAA-MM-DD' a
+    // `Date` lo lee como medianoche UTC, que aqui es el dia anterior.
+    const hoy = hoyDia();
 
     data.forEach(item => {
       if (Number(item.balance) <= 0) return;
 
-      const due = new Date(item.dueDate);
-      due.setHours(0,0,0,0);
-      
-      const diffTime = now.getTime() - due.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      const vence = diaDe(item.dueDate);
+      const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
 
       // Asignación simple para el kanban basado en fechas (simulando "en gestión" si tiene status)
       if (item.status === 'in_collection') {
@@ -70,7 +70,7 @@ export default function KanbanTab({ data }: { data: any[] }) {
                     FC-{item.id.split('-')[0].toUpperCase()}
                   </span>
                   <span className="text-xs bg-surface-container text-neutral-600 px-2 py-0.5 rounded-full">
-                    {new Date(item.dueDate).toLocaleDateString('es-DO', { month: 'short', day: 'numeric' })}
+                    {formatDateShort(item.dueDate)}
                   </span>
                 </div>
                 <h4 className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 line-clamp-1 mb-1">

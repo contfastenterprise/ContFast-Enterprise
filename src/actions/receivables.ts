@@ -5,6 +5,7 @@ import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
+import { diaDe, diasEntreDias, hoyDia } from '@/utils/fechasLocales';
 
 export async function getReceivablesDashboardData() {
   const auth = await exigirSesion();
@@ -79,8 +80,10 @@ export async function getReceivablesDashboardData() {
       '90_plus': 0
     };
 
-    const now = new Date();
-    now.setHours(0,0,0,0);
+    // El dia de hoy como texto. Ni un `Date` mas en todo el calculo: las
+    // fechas de vencimiento llegan como 'AAAA-MM-DD' y convertirlas a `Date`
+    // las corre un dia hacia atras en cualquier huso al oeste de Greenwich.
+    const hoy = hoyDia();
 
     const pendingInvoicesCount = allAr.filter(x => Number(x.balance) > 0).length;
 
@@ -90,11 +93,10 @@ export async function getReceivablesDashboardData() {
 
       totalPending += bal;
 
-      const due = new Date(ar.dueDate);
-      due.setHours(0,0,0,0);
-      
-      const diffTime = now.getTime() - due.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      // Positivo = dias de atraso. Cero el mismo dia del vencimiento, que
+      // todavia NO esta vencido: ese dia se puede pagar.
+      const vence = diaDe(ar.dueDate);
+      const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
 
       if (diffDays > 0) {
         totalOverdue += bal;

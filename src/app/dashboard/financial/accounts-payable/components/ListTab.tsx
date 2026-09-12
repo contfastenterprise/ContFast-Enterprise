@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, ChevronUp, ChevronsUpDown, Download, Printer, Filter } from 'lucide-react';
 import { Card } from "@/components/ui/card";
+import { diaDe, diasEntreDias, hoyDia, formatDateDisplay } from '@/utils/fechasLocales';
 
 const fmt = (val: number) => new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(val || 0);
 
@@ -35,21 +36,14 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
     {
       accessorKey: 'dueDate',
       header: 'Vencimiento',
-      cell: ({ row }: any) => {
-        const date = new Date(row.original.dueDate);
-        return <span>{date.toLocaleDateString('es-DO')}</span>;
-      },
+      cell: ({ row }: any) => <span>{formatDateDisplay(row.original.dueDate)}</span>,
     },
     {
       id: 'diasVencidos',
       header: 'Días',
       cell: ({ row }: any) => {
-        const due = new Date(row.original.dueDate);
-        due.setHours(0,0,0,0);
-        const now = new Date();
-        now.setHours(0,0,0,0);
-        const diffTime = now.getTime() - due.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const vence = diaDe(row.original.dueDate);
+        const diffDays = vence ? diasEntreDias(vence, hoyDia()) : 0;
         
         if (row.original.balance <= 0) return <span className="text-emerald-500">-</span>;
         if (diffDays > 0) return <span className="text-rose-500 font-bold">+{diffDays}</span>;
@@ -81,7 +75,9 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
       header: 'Estado',
       cell: ({ row }: any) => {
         const bal = row.original.balance;
-        const status = bal <= 0 ? 'Pagado' : (new Date(row.original.dueDate).setHours(0,0,0,0) < new Date().setHours(0,0,0,0) ? 'Vencida' : 'Pendiente');
+          const vence = diaDe(row.original.dueDate);
+          const vencida = !!vence && diasEntreDias(vence, hoyDia()) > 0;
+        const status = bal <= 0 ? 'Pagado' : (vencida ? 'Vencida' : 'Pendiente');
         
         const variants: any = {
           'Pagado': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -114,6 +110,8 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const hoy = hoyDia();
 
     const html = `
       <!DOCTYPE html>
@@ -172,9 +170,8 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
             </thead>
             <tbody>
               ${data.filter(d => !globalFilter || d.supplierName?.toLowerCase().includes(globalFilter.toLowerCase())).map(item => {
-                const due = new Date(item.dueDate); due.setHours(0,0,0,0);
-                const now = new Date(); now.setHours(0,0,0,0);
-                const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+                const vence = diaDe(item.dueDate);
+                const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
                 const isOverdue = diffDays > 0;
                 const isPaid = Number(item.balance) <= 0;
                 const statusStr = isPaid ? 'Pagado' : (isOverdue ? 'Vencida' : 'Pendiente');
@@ -184,7 +181,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                   <tr>
                     <td>${item.id.split('-')[0].toUpperCase()}</td>
                     <td><strong>${item.supplierName}</strong></td>
-                    <td>${due.toLocaleDateString('es-DO')}</td>
+                    <td>${formatDateDisplay(item.dueDate)}</td>
                     <td class="text-center ${isOverdue ? 'status-vencida' : ''}">${isOverdue ? diffDays : '-'}</td>
                     <td class="text-right">${fmt(Number(item.amount))}</td>
                     <td class="text-right font-bold">${fmt(Number(item.balance))}</td>
@@ -212,20 +209,18 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
   };
 
   const handleExportCSV = () => {
+    const hoy = hoyDia();
     const headers = ['Factura/Ref', 'Suplidor', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
     
     const rows = data.filter(d => !globalFilter || d.supplierName?.toLowerCase().includes(globalFilter.toLowerCase())).map(item => {
-      const due = new Date(item.dueDate);
-      due.setHours(0,0,0,0);
-      const now = new Date();
-      now.setHours(0,0,0,0);
-      const diffDays = Math.round((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+      const vence = diaDe(item.dueDate);
+      const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
       const status = Number(item.balance) <= 0 ? 'Pagado' : (diffDays > 0 ? 'Vencida' : 'Pendiente');
       
       return [
         `CXP-${item.id.split('-')[0].toUpperCase()}`,
         `"${item.supplierName}"`,
-        due.toLocaleDateString('es-DO'),
+        formatDateDisplay(item.dueDate),
         diffDays > 0 ? diffDays : 0,
         item.amount || 0,
         item.balance || 0,

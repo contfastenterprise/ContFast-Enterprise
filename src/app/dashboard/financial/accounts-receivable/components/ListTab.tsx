@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, ArrowUpDown, Download, Printer, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { diaDe, diasEntreDias, hoyDia, formatDateDisplay } from '@/utils/fechasLocales';
 
 const fmt = (val: number) => {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(val || 0);
@@ -109,11 +110,11 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
             <tbody>
               ${filteredData.map(item => {
                 const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
-                const due = new Date(item.dueDate); due.setHours(0,0,0,0);
                 const now = new Date(); now.setHours(0,0,0,0);
                 // Dias vencidos contando desde el dia de emision de la factura
                 const diffDays = Math.round((now.getTime() - emission.getTime()) / (1000 * 60 * 60 * 24));
-                const isOverdue = now.getTime() > due.getTime();
+                const vence = diaDe(item.dueDate);
+                const isOverdue = !!vence && diasEntreDias(vence, hoyDia()) > 0;
                 const isPaid = Number(item.balance) <= 0;
                 const statusStr = isPaid ? 'Pagado' : (isOverdue ? 'Vencida' : 'Al Día');
                 const statusClass = isPaid ? 'status-aldia' : (isOverdue ? 'status-vencida' : 'status-aldia');
@@ -123,7 +124,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                     <td>${item.codigoFactura || item.ncf || item.id.split('-')[0].toUpperCase()}</td>
                     <td><strong>${item.customerName}</strong></td>
                     <td>${emission.toLocaleDateString('es-DO')}</td>
-                    <td>${due.toLocaleDateString('es-DO')}</td>
+                    <td>${formatDateDisplay(item.dueDate)}</td>
                     <td class="text-center ${isOverdue ? 'status-vencida' : ''}">${isOverdue ? diffDays : '-'}</td>
                     <td class="text-right">${fmt(Number(item.amount))}</td>
                     <td class="text-right font-bold">${fmt(Number(item.balance))}</td>
@@ -155,19 +156,18 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
     const headers = ['Factura/Ref', 'Cliente', 'Fecha Emision', 'Fecha Vencimiento', 'Dias Vencidos', 'Monto Original', 'Balance Pendiente', 'Estado'];
     const rows = filteredData.map(item => {
       const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
-      const due = new Date(item.dueDate);
-      due.setHours(0,0,0,0);
       const now = new Date();
       now.setHours(0,0,0,0);
       const diffDays = Math.round((now.getTime() - emission.getTime()) / (1000 * 60 * 60 * 24));
-      const isOverdue = now.getTime() > due.getTime();
+      const vence = diaDe(item.dueDate);
+      const isOverdue = !!vence && diasEntreDias(vence, hoyDia()) > 0;
       const status = Number(item.balance) <= 0 ? 'Pagado' : (isOverdue ? 'Vencida' : 'Al Dia');
       
       return [
         `"${item.codigoFactura || item.ncf || item.id.split('-')[0].toUpperCase()}"`,
         `"${item.customerName}"`,
         emission.toLocaleDateString('es-DO'),
-        due.toLocaleDateString('es-DO'),
+        formatDateDisplay(item.dueDate),
         isOverdue ? diffDays : 0,
         item.amount || 0,
         item.balance || 0,
@@ -237,14 +237,13 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
           <tbody className="divide-y divide-outline-variant/20">
             {filteredData.map((item, i) => {
               const emission = new Date(item.createdAt); emission.setHours(0,0,0,0);
-              const due = new Date(item.dueDate);
-              due.setHours(0,0,0,0);
               const now = new Date();
               now.setHours(0,0,0,0);
-              
+
               const diffTime = now.getTime() - emission.getTime();
               const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-              const isOverdue = now.getTime() > due.getTime();
+              const vence = diaDe(item.dueDate);
+              const isOverdue = !!vence && diasEntreDias(vence, hoyDia()) > 0;
 
               return (
                 <tr key={item.id || i} className="hover:bg-surface-container-lowest transition-colors">
@@ -258,7 +257,7 @@ export default function ListTab({ data, companyInfo }: { data: any[], companyInf
                     {emission.toLocaleDateString('es-DO')}
                   </td>
                   <td className="px-6 py-4 text-neutral-600">
-                    {due.toLocaleDateString('es-DO')}
+                    {formatDateDisplay(item.dueDate)}
                     {isOverdue && <span className="ml-2 text-xs text-rose-500 font-medium">({diffDays} días)</span>}
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-neutral-900 dark:text-neutral-100">

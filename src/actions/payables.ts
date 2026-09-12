@@ -5,6 +5,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
+import { diaDe, diasEntreDias, hoyDia } from '@/utils/fechasLocales';
 
 export async function getPayablesDashboardData() {
   const auth = await exigirSesion();
@@ -69,9 +70,8 @@ export async function getPayablesDashboardData() {
     );
 
   // Extraer los Pagos de este mes
-  const currentMonthStart = new Date();
-  currentMonthStart.setDate(1);
-  currentMonthStart.setHours(0,0,0,0);
+  // Como texto: 'AAAA-MM-01' se compara con otro dia 'AAAA-MM-DD' sin mas.
+  const primerDiaDelMes = hoyDia().slice(0, 8) + '01';
   
   const paymentsList = await db
     .select({
@@ -92,7 +92,10 @@ export async function getPayablesDashboardData() {
     ...ap,
     balance: Number(ap.balance),
     amount: Number(ap.amount),
-    dueDate: new Date(ap.dueDate).toISOString()
+    // El dia, tal cual lo guardo la base. Pasarlo por `new Date(...).toISOString()`
+    // no anadia nada y obligaba a todo el que lo recibiera a volver a
+    // interpretarlo -- que es donde se perdia el dia.
+    dueDate: diaDe(ap.dueDate) ?? ''
   }));
 
   // Inicializar KPIs
@@ -101,18 +104,19 @@ export async function getPayablesDashboardData() {
   let totalPorVencer = 0;
   let pagadoEsteMes = 0;
 
-  const now = new Date();
-  now.setHours(0,0,0,0);
+  const hoy = hoyDia();
 
   // Calcular métricas AP
   raw.forEach(item => {
-    totalPorPagar += item.balance;
+    // El `return` iba DESPUES de esta suma, asi que un saldo negativo -- que es
+    // dinero que el suplidor nos debe a nosotros -- restaba del total por
+    // pagar. Su gemela de cobrar nunca lo hizo. Medido en produccion: cero
+    // filas con saldo negativo, asi que hoy el numero no se mueve.
     if (item.balance <= 0) return;
+    totalPorPagar += item.balance;
 
-    const due = new Date(item.dueDate);
-    due.setHours(0,0,0,0);
-    
-    if (due.getTime() < now.getTime()) {
+    const vence = diaDe(item.dueDate);
+    if (vence && diasEntreDias(vence, hoy) > 0) {
       totalVencido += item.balance;
     } else {
       totalPorVencer += item.balance;
@@ -121,8 +125,8 @@ export async function getPayablesDashboardData() {
 
   // Calcular Pagos del Mes
   paymentsList.forEach(payment => {
-    const pDate = new Date(payment.date);
-    if (pDate.getTime() >= currentMonthStart.getTime()) {
+    const dia = diaDe(payment.date);
+    if (dia && dia >= primerDiaDelMes) {
       pagadoEsteMes += Number(payment.amount);
     }
   });
@@ -131,10 +135,8 @@ export async function getPayablesDashboardData() {
   const buckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
   raw.forEach(item => {
     if (item.balance <= 0) return;
-    const due = new Date(item.dueDate);
-    due.setHours(0,0,0,0);
-    const diffTime = now.getTime() - due.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const vence = diaDe(item.dueDate);
+    const diffDays = vence ? diasEntreDias(vence, hoy) : 0;
     
     if (diffDays > 90) buckets['90+'] += item.balance;
     else if (diffDays > 60) buckets['61-90'] += item.balance;
