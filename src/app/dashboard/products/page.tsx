@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag, Check, ChevronLeft, ChevronRight, LayoutList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
 import { esquemaProducto, erroresPorCampo } from '@/schemas/producto';
+import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 
 /**
  * Los campos que tienen su propio hueco debajo del control.
@@ -66,6 +67,9 @@ export default function ProductsPage() {
    * efimero, sin decir de que campo era.
    */
   const [errores, setErrores] = useState<Record<string, string>>({});
+  // P2-35: en que paso va el asistente, y si se esta viendo todo de una vez.
+  const [paso, setPaso] = useState(1);
+  const [vistaCompleta, setVistaCompleta] = useState(false);
   const err = (campo: string) =>
     errores[campo] ? (
       <p data-campo={campo} className="text-[11px] font-semibold text-rose-600 mt-1">{errores[campo]}</p>
@@ -347,6 +351,8 @@ export default function ProductsPage() {
 
   const openNewModal = () => {
     setErrores({});
+    setPaso(1);
+    setVistaCompleta(false);
     setEditId(null);
     setManualPricesEnabled(false);
     setSecondaryBarcodes([]);
@@ -381,6 +387,10 @@ export default function ProductsPage() {
       promotionalPrice: product.promotionalPrice || ''
     });
     setErrores({});
+    // La edicion NO va por pasos: quien reabre un producto viene a corregir UN
+    // campo que ya sabe cual es, y cruzar tres pantallas para llegar es peor que
+    // el scroll de antes. Misma regla que en compras y en facturas.
+    setVistaCompleta(true);
     fetchSecondaryBarcodes(product.id);
     setShowModal(true);
   };
@@ -400,6 +410,20 @@ export default function ProductsPage() {
     }
   };
 
+  /**
+   * El cuerpo que se valida y se manda, armado en UN sitio.
+   *
+   * Lo usan el guardado y `erroresDelPaso`. Si cada uno lo armara por su
+   * cuenta, un paso podria dar verde con un cuerpo distinto del que se acaba
+   * mandando, que es la forma mas silenciosa de que un asistente mienta.
+   */
+  const cuerpoDelFormulario = () => ({
+    ...formData,
+    // Al editar, los secundarios ya se guardaron uno a uno contra
+    // `/products/[id]/barcodes`: mandarlos otra vez los duplicaria.
+    secondaryBarcodes: !editId ? secondaryBarcodes : undefined,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -415,16 +439,16 @@ export default function ProductsPage() {
      * `cost > 0 && ...` -- y nadie lo decia. El esquema distingue el hueco del
      * cero.
      */
-    const validacion = esquemaProducto.safeParse({
-      ...formData,
-      // Al editar, los secundarios ya se guardaron uno a uno contra
-      // `/products/[id]/barcodes`: mandarlos otra vez los duplicaria.
-      secondaryBarcodes: !editId ? secondaryBarcodes : undefined,
-    });
+    const validacion = esquemaProducto.safeParse(cuerpoDelFormulario());
 
     if (!validacion.success) {
       const campos = erroresPorCampo(validacion.error);
       setErrores(campos);
+      // Se puede guardar desde cualquier paso, asi que el fallo puede estar en
+      // uno que no se esta viendo. Sin esto, el mensaje se pintaria en una
+      // pantalla invisible y el boton pareceria no hacer nada.
+      const destino = primerPasoConFallo(Object.keys(campos));
+      if (destino !== null && !vistaCompleta) setPaso(destino);
       toast.error('Revisa los campos marcados', { description: Object.values(campos)[0] });
       irAlPrimerError();
       return;
@@ -782,6 +806,488 @@ export default function ProductsPage() {
 
   // Metrics calculation (Mock/derived from current page for demo purposes)
   const totalValue = products.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
+
+  // ===========================================================================
+  // P2-35: EL ALTA DE UN PRODUCTO VA POR PASOS
+  //
+  // CADA `pasoN` ES UNA FUNCION QUE DEVUELVE JSX, NO UN COMPONENTE.
+  // Es a proposito, y ya costo una vez en compras: un componente definido dentro
+  // del render es un tipo nuevo en cada pasada, asi que React desmonta el
+  // anterior y monta otro, y el campo que estabas escribiendo pierde el foco a
+  // la primera tecla. Como funcion, los elementos quedan en linea y no hay
+  // frontera que remontar.
+  //
+  // EL CONTENIDO DE CADA PASO ES EL DE ANTES, MOVIDO
+  // Ni un campo reescrito: los bloques se mudan enteros. Lo unico que cambia es
+  // el orden -- los codigos de barra bajan al final, porque son el bloque mas
+  // grande, el que menos gente toca, y todo lo suyo es opcional; tenerlos en
+  // medio obligaba a atravesarlos para llegar al costo, que si es obligatorio.
+  //
+  // SE PUEDE GUARDAR DESDE CUALQUIER PASO. Un producto no es una factura: no hay
+  // un momento "ahora se firma". Si al guardar el esquema rechaza algo, el
+  // asistente va SOLO al paso que contiene ese campo (`primerPasoConFallo`), en
+  // vez de dejar el error pintado en una pantalla que no estas viendo.
+  // ===========================================================================
+
+  /** Lo que falla en UN paso, segun el esquema de siempre. */
+  const erroresDelPaso = (n: number): Record<string, string> => {
+    const v = esquemaProducto.safeParse(cuerpoDelFormulario());
+    const campos: Record<string, string> = v.success ? {} : erroresPorCampo(v.error);
+    return Object.fromEntries(
+      Object.entries(campos).filter(([campo]) => campoDelPaso(campo, n))
+    );
+  };
+
+  const frenaElPaso = (n: number): boolean => {
+    const fallos = erroresDelPaso(n);
+    if (Object.keys(fallos).length === 0) return false;
+    setErrores(fallos);
+    toast.error('Revisa los campos marcados', { description: Object.values(fallos)[0] });
+    irAlPrimerError();
+    return true;
+  };
+
+  const avanzar = () => {
+    if (frenaElPaso(paso)) return;
+    setErrores({});
+    setPaso(p => Math.min(PASOS.length, p + 1));
+  };
+
+  /**
+   * Saltar a un paso. Hacia atras es libre; hacia adelante hay que haber
+   * rellenado lo de en medio -- si no, el numerito de la barra seria un atajo
+   * para saltarse la validacion que el boton "Siguiente" si aplica.
+   */
+  const irAPaso = (n: number) => {
+    if (n <= paso) {
+      setErrores({});
+      setPaso(n);
+      return;
+    }
+    for (let i = paso; i < n; i++) {
+      if (frenaElPaso(i)) {
+        setPaso(i);
+        return;
+      }
+    }
+    setErrores({});
+    setPaso(n);
+  };
+
+  /** Paso 1 -- Que es: nombre, categoria, unidad, estado y SKU. */
+  const paso1 = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1 col-span-1 md:col-span-2">
+          <label className="text-xs font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => { setFormData({ ...formData, name: e.target.value }); quitarError('name'); }}
+            className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('name')}
+            placeholder="Ej. Puerta Caoba 100*200 cm"
+          />
+          {err('name')}
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
+            <button
+              type="button"
+              onClick={() => setShowCategoryModal(true)}
+              className="text-xs text-[#c5a059] hover:text-[#d4b069] font-bold flex items-center gap-1 transition-colors"
+            >
+              <Plus className="h-3 w-3" /> Nueva
+            </button>
+          </div>
+          <select
+            value={formData.categoryId}
+            onChange={(e) => { setFormData({ ...formData, categoryId: e.target.value }); quitarError('categoryId'); }}
+            className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('categoryId')}
+          >
+            <option value="">Selecciona una categoría...</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {err('categoryId')}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-[#001e40]">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
+          <select
+            value={formData.unitOfMeasure}
+            onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
+          >
+            <option value="unidad">Unidad</option>
+            <option value="pie">Pie (pie)</option>
+            <option value="metro">Metro (m)</option>
+            <option value="servicio">Servicio</option>
+          </select>
+          {err('unitOfMeasure')}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-[#001e40]">Estado</label>
+          <select
+            value={formData.status}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
+          >
+            <option value="active">Activo</option>
+            <option value="inactive">Inactivo</option>
+          </select>
+          {err('status')}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-[#001e40]">Código SKU <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
+          <input
+            type="text"
+            value={formData.sku}
+            onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
+            placeholder="PROD-001"
+          />
+          {err('sku')}
+        </div>
+      </div>
+  );
+
+  /** Paso 2 -- Precios y existencia: el costo manda, el resto sale de el. */
+  const paso2 = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <div className="flex justify-between items-center min-h-[18px]">
+            <label className="text-xs font-semibold text-[#001e40]">Costo de Compra <span className="text-[#c5a059]">*</span></label>
+          </div>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-xs">RD$</span>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.cost}
+              onChange={(e) => { setFormData({ ...formData, cost: e.target.value }); quitarError('cost'); }}
+              className={"w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('cost')}
+              placeholder="0.00"
+            />
+            {err('cost')}
+          </div>
+        </div>
+
+        <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-[#001e40]">Precios de Venta</label>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm" title="Importante: Los precios no incluyen ITBIS">
+                <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                <span>Sin ITBIS</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-[#001e40]">
+                <input
+                  type="checkbox"
+                  checked={!manualPricesEnabled}
+                  onChange={(e) => setManualPricesEnabled(!e.target.checked)}
+                  className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                Autocalcular
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setManualPricesEnabled(true);
+                  setShowPricesModal(true);
+                }}
+                className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-2 py-1 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
+              >
+                <Edit2 className="h-3 w-3" />
+                {manualPricesEnabled ? 'Editar Precios' : 'Ajustar Manual'}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="relative">
+              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (+25%)</label>
+              <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
+              <input
+                type="number"
+                readOnly
+                value={formData.price}
+                className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+              />
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (+20%)</label>
+              <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
+              <input
+                type="number"
+                readOnly
+                value={formData.priceConsumidor}
+                className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+              />
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Mayorista (+15%)</label>
+              <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
+              <input
+                type="number"
+                readOnly
+                value={formData.priceMayorista}
+                className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+              />
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Proveedor (+10%)</label>
+              <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
+              <input
+                type="number"
+                readOnly
+                value={formData.priceProveedor}
+                className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="col-span-1 md:col-span-2 -mt-2">
+          {err('price')}
+          {err('priceConsumidor')}
+          {err('priceMayorista')}
+          {err('priceProveedor')}
+        </div>
+
+        {/* Control de existencia */}
+        <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-slate-600" />
+              <label className="text-xs font-bold text-slate-900">Lleva control de existencia</label>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={formData.tracksInventory}
+                onChange={(e) => setFormData({ ...formData, tracksInventory: e.target.checked })}
+              />
+              <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-slate-700"></div>
+            </label>
+          </div>
+          {!formData.tracksInventory && (
+            <p className="text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-200/70">
+              Este producto no se almacena: no se le comprueba ni se le descuenta existencia
+              al despachar, y no admite ajustes ni transferencias. Úsalo para servicios
+              (instalación, transporte, mano de obra) y para mercancía que se vende por encargo.
+            </p>
+          )}
+        </div>
+
+        {/* Ofertas y Promociones */}
+        <div className="space-y-2 col-span-1 md:col-span-2 bg-red-50 p-3 rounded-lg border border-red-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-red-600" />
+              <label className="text-xs font-bold text-red-900">Activar Oferta (Tienda en Línea)</label>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={formData.isOnSale} 
+                onChange={(e) => setFormData({ ...formData, isOnSale: e.target.checked })} 
+              />
+              <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-red-600"></div>
+            </label>
+          </div>
+
+          {formData.isOnSale && (
+            <div className="mt-3 pt-3 border-t border-red-200/60">
+              <label className="text-[11px] text-red-800 font-semibold block mb-1">Precio Promocional (Sustituye al P. Consumidor en tienda)</label>
+              <div className="relative md:w-1/2">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 font-bold text-xs">RD$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.promotionalPrice}
+                  onChange={(e) => { setFormData({ ...formData, promotionalPrice: e.target.value }); quitarError('promotionalPrice'); }}
+                  className="w-full bg-white border border-red-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-colors font-bold"
+                  placeholder="0.00"
+                />
+                {err('promotionalPrice')}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+  );
+
+  /** Paso 3 -- Codigos de barra: el principal y los secundarios. Todo opcional. */
+  const paso3 = () => (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-[#001e40]">Código de Barra Principal</label>
+            <button
+              type="button"
+              onClick={handleGenerateBarcode}
+              disabled={generatingBarcode}
+              className="text-[11px] flex items-center gap-1 bg-[#003366] text-white px-2 py-1 rounded-md font-bold hover:bg-[#002244] transition-colors disabled:opacity-50"
+            >
+              {generatingBarcode ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+              Generar Automático
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <input
+                type="text"
+                value={formData.barcode}
+                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
+                placeholder="Ingresa código o genera uno"
+              />
+              {err('barcode')}
+            </div>
+
+            <div className="space-y-1">
+              <select
+                value={barcodeType}
+                onChange={(e) => setBarcodeType(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+              >
+                <option value="code128">Code 128 (Estándar)</option>
+                <option value="ean13">EAN-13 (Productos internacionales)</option>
+                <option value="ean8">EAN-8 (Paquetes pequeños)</option>
+                <option value="upca">UPC-A (América del Norte)</option>
+                <option value="qrcode">Código QR</option>
+              </select>
+            </div>
+          </div>
+
+          {formData.barcode && (
+            <div className="mt-2 flex justify-center border-t border-slate-200/60 pt-2">
+              <div className="flex flex-col items-center gap-1 bg-white p-1.5 rounded-lg border border-slate-100 shadow-inner">
+                <p className="text-[9px] uppercase font-bold text-slate-400">Vista Previa del Código</p>
+                <BarcodeRenderer value={formData.barcode} type={barcodeType} height={30} />
+              </div>
+            </div>
+          )}
+
+          <div className="border-t border-slate-200/60 pt-2 mt-1">
+            <button
+              type="button"
+              onClick={() => setShowSecondarySection(!showSecondarySection)}
+              className="text-xs font-bold text-[#003366] hover:text-[#002244] flex items-center gap-1.5 transition-colors"
+            >
+              <Layers className="h-3.5 w-3.5 animate-pulse" />
+              <span>Códigos de Barra Secundarios ({secondaryBarcodes.length})</span>
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSecondarySection ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showSecondarySection && (
+              <div className="mt-2 space-y-2 pl-2 border-l-2 border-[#c5a059] bg-slate-50/50 p-2 rounded-r-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSecBarcode}
+                    onChange={(e) => setNewSecBarcode(e.target.value)}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none font-mono"
+                    placeholder="Código secundario..."
+                  />
+                  <select
+                    value={newSecBarcodeType}
+                    onChange={(e) => setNewSecBarcodeType(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
+                  >
+                    <option value="code128">Code 128</option>
+                    <option value="ean13">EAN-13</option>
+                    <option value="ean8">EAN-8</option>
+                    <option value="upca">UPC-A</option>
+                    <option value="qrcode">QR</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddSecondaryBarcode}
+                    className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                  >
+                    Añadir
+                  </button>
+                </div>
+
+                {secondaryBarcodes.length > 0 && (
+                  <div className="max-h-24 overflow-y-auto space-y-1.5 mt-1.5">
+                    {secondaryBarcodes.map((b, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-mono font-bold text-slate-700">{b.barcode}</span>
+                          <span className="text-[8px] uppercase font-bold text-slate-400">{b.barcodeType}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSecondaryBarcode(idx, b.id)}
+                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+  );
+
+  const barraPasos = () => (
+    <nav aria-label="Pasos del producto" className="flex flex-wrap items-center gap-1.5">
+      {PASOS.map((p, i) => (
+        <div key={p.n} className="flex items-center gap-1.5">
+          {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" aria-hidden="true" />}
+          <button
+            type="button"
+            onClick={() => irAPaso(p.n)}
+            aria-current={p.n === paso ? 'step' : undefined}
+            className={'flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (
+              p.n === paso
+                ? 'bg-[#c5a059] text-white shadow-sm'
+                : p.n < paso
+                  ? 'text-[#c5a059] bg-[#c5a059]/10 hover:bg-[#c5a059]/20'
+                  : 'text-slate-400 hover:bg-slate-100'
+            )}
+          >
+            <span
+              className={'w-4 h-4 rounded-full grid place-items-center text-[10px] shrink-0 ' + (
+                p.n === paso ? 'bg-white/25' : p.n < paso ? 'bg-[#c5a059]/20' : 'bg-slate-200'
+              )}
+            >
+              {p.n < paso ? <Check className="w-2.5 h-2.5" /> : p.n}
+            </span>
+            <span className="hidden sm:inline">{p.titulo}</span>
+          </button>
+        </div>
+      ))}
+    </nav>
+  );
+
+  const botonVista = () => (
+    <button
+      type="button"
+      onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}
+      className="inline-flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition shrink-0"
+    >
+      <LayoutList className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">{vistaCompleta ? 'Ver por pasos' : 'Ver todo de una vez'}</span>
+      <span className="sm:hidden">{vistaCompleta ? 'Pasos' : 'Todo'}</span>
+    </button>
+  );
 
   return (
 
@@ -1244,364 +1750,30 @@ export default function ProductsPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Código SKU <span className="text-slate-500 font-normal text-xs">(Opcional)</span></label>
-                    <input
-                      type="text"
-                      value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
-                      placeholder="PROD-001"
-                    />
-                    {err('sku')}
-                  </div>
-
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[#001e40]">Código de Barra Principal</label>
-                      <button
-                        type="button"
-                        onClick={handleGenerateBarcode}
-                        disabled={generatingBarcode}
-                        className="text-[11px] flex items-center gap-1 bg-[#003366] text-white px-2 py-1 rounded-md font-bold hover:bg-[#002244] transition-colors disabled:opacity-50"
-                      >
-                        {generatingBarcode ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                        Generar Automático
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <div className="space-y-1">
-                        <input
-                          type="text"
-                          value={formData.barcode}
-                          onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
-                          placeholder="Ingresa código o genera uno"
-                        />
-                        {err('barcode')}
-                      </div>
-
-                      <div className="space-y-1">
-                        <select
-                          value={barcodeType}
-                          onChange={(e) => setBarcodeType(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                        >
-                          <option value="code128">Code 128 (Estándar)</option>
-                          <option value="ean13">EAN-13 (Productos internacionales)</option>
-                          <option value="ean8">EAN-8 (Paquetes pequeños)</option>
-                          <option value="upca">UPC-A (América del Norte)</option>
-                          <option value="qrcode">Código QR</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {formData.barcode && (
-                      <div className="mt-2 flex justify-center border-t border-slate-200/60 pt-2">
-                        <div className="flex flex-col items-center gap-1 bg-white p-1.5 rounded-lg border border-slate-100 shadow-inner">
-                          <p className="text-[9px] uppercase font-bold text-slate-400">Vista Previa del Código</p>
-                          <BarcodeRenderer value={formData.barcode} type={barcodeType} height={30} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="border-t border-slate-200/60 pt-2 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowSecondarySection(!showSecondarySection)}
-                        className="text-xs font-bold text-[#003366] hover:text-[#002244] flex items-center gap-1.5 transition-colors"
-                      >
-                        <Layers className="h-3.5 w-3.5 animate-pulse" />
-                        <span>Códigos de Barra Secundarios ({secondaryBarcodes.length})</span>
-                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSecondarySection ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {showSecondarySection && (
-                        <div className="mt-2 space-y-2 pl-2 border-l-2 border-[#c5a059] bg-slate-50/50 p-2 rounded-r-lg">
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newSecBarcode}
-                              onChange={(e) => setNewSecBarcode(e.target.value)}
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none font-mono"
-                              placeholder="Código secundario..."
-                            />
-                            <select
-                              value={newSecBarcodeType}
-                              onChange={(e) => setNewSecBarcodeType(e.target.value)}
-                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
-                            >
-                              <option value="code128">Code 128</option>
-                              <option value="ean13">EAN-13</option>
-                              <option value="ean8">EAN-8</option>
-                              <option value="upca">UPC-A</option>
-                              <option value="qrcode">QR</option>
-                            </select>
-                            <button
-                              type="button"
-                              onClick={handleAddSecondaryBarcode}
-                              className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0"
-                            >
-                              Añadir
-                            </button>
-                          </div>
-
-                          {secondaryBarcodes.length > 0 && (
-                            <div className="max-h-24 overflow-y-auto space-y-1.5 mt-1.5">
-                              {secondaryBarcodes.map((b, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm">
-                                  <div className="flex flex-col">
-                                    <span className="text-xs font-mono font-bold text-slate-700">{b.barcode}</span>
-                                    <span className="text-[8px] uppercase font-bold text-slate-400">{b.barcodeType}</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteSecondaryBarcode(idx, b.id)}
-                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 col-span-1 md:col-span-2">
-                    <label className="text-xs font-semibold text-[#001e40]">Nombre del Producto <span className="text-[#c5a059]">*</span></label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => { setFormData({ ...formData, name: e.target.value }); quitarError('name'); }}
-                      className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('name')}
-                      placeholder="Ej. Puerta Caoba 100*200 cm"
-                    />
-                    {err('name')}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <label className="text-xs font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
-                      <button
-                        type="button"
-                        onClick={() => setShowCategoryModal(true)}
-                        className="text-xs text-[#c5a059] hover:text-[#d4b069] font-bold flex items-center gap-1 transition-colors"
-                      >
-                        <Plus className="h-3 w-3" /> Nueva
-                      </button>
-                    </div>
-                    <select
-                      value={formData.categoryId}
-                      onChange={(e) => { setFormData({ ...formData, categoryId: e.target.value }); quitarError('categoryId'); }}
-                      className={"w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('categoryId')}
-                    >
-                      <option value="">Selecciona una categoría...</option>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    {err('categoryId')}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center min-h-[18px]">
-                      <label className="text-xs font-semibold text-[#001e40]">Costo de Compra <span className="text-[#c5a059]">*</span></label>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium text-xs">RD$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={formData.cost}
-                        onChange={(e) => { setFormData({ ...formData, cost: e.target.value }); quitarError('cost'); }}
-                        className={"w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('cost')}
-                        placeholder="0.00"
-                      />
-                      {err('cost')}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs font-semibold text-[#001e40]">Precios de Venta</label>
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded text-[9px] font-bold uppercase tracking-wider shadow-sm" title="Importante: Los precios no incluyen ITBIS">
-                          <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
-                          <span>Sin ITBIS</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-semibold text-[#001e40]">
-                          <input
-                            type="checkbox"
-                            checked={!manualPricesEnabled}
-                            onChange={(e) => setManualPricesEnabled(!e.target.checked)}
-                            className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
-                          />
-                          Autocalcular
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setManualPricesEnabled(true);
-                            setShowPricesModal(true);
-                          }}
-                          className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-2 py-1 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                          {manualPricesEnabled ? 'Editar Precios' : 'Ajustar Manual'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <div className="relative">
-                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (+25%)</label>
-                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
-                        <input
-                          type="number"
-                          readOnly
-                          value={formData.price}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (+20%)</label>
-                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
-                        <input
-                          type="number"
-                          readOnly
-                          value={formData.priceConsumidor}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Mayorista (+15%)</label>
-                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
-                        <input
-                          type="number"
-                          readOnly
-                          value={formData.priceMayorista}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Proveedor (+10%)</label>
-                        <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
-                        <input
-                          type="number"
-                          readOnly
-                          value={formData.priceProveedor}
-                          className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Control de existencia */}
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-slate-600" />
-                        <label className="text-xs font-bold text-slate-900">Lleva control de existencia</label>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={formData.tracksInventory}
-                          onChange={(e) => setFormData({ ...formData, tracksInventory: e.target.checked })}
-                        />
-                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-slate-700"></div>
-                      </label>
-                    </div>
-                    {!formData.tracksInventory && (
-                      <p className="text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-200/70">
-                        Este producto no se almacena: no se le comprueba ni se le descuenta existencia
-                        al despachar, y no admite ajustes ni transferencias. Úsalo para servicios
-                        (instalación, transporte, mano de obra) y para mercancía que se vende por encargo.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Ofertas y Promociones */}
-                  <div className="space-y-2 col-span-1 md:col-span-2 bg-red-50 p-3 rounded-lg border border-red-100">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-red-600" />
-                        <label className="text-xs font-bold text-red-900">Activar Oferta (Tienda en Línea)</label>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer" 
-                          checked={formData.isOnSale} 
-                          onChange={(e) => setFormData({ ...formData, isOnSale: e.target.checked })} 
-                        />
-                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition peer-checked:bg-red-600"></div>
-                      </label>
-                    </div>
-
-                    {formData.isOnSale && (
-                      <div className="mt-3 pt-3 border-t border-red-200/60">
-                        <label className="text-[11px] text-red-800 font-semibold block mb-1">Precio Promocional (Sustituye al P. Consumidor en tienda)</label>
-                        <div className="relative md:w-1/2">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-600 font-bold text-xs">RD$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={formData.promotionalPrice}
-                            onChange={(e) => { setFormData({ ...formData, promotionalPrice: e.target.value }); quitarError('promotionalPrice'); }}
-                            className="w-full bg-white border border-red-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-500/20 outline-none transition-colors font-bold"
-                            placeholder="0.00"
-                          />
-                          {err('promotionalPrice')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2 -mt-2">
-                    {err('price')}
-                    {err('priceConsumidor')}
-                    {err('priceMayorista')}
-                    {err('priceProveedor')}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Unidad de Medida <span className="text-[#c5a059]">*</span></label>
-                    <select
-                      value={formData.unitOfMeasure}
-                      onChange={(e) => setFormData({ ...formData, unitOfMeasure: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
-                    >
-                      <option value="unidad">Unidad</option>
-                      <option value="pie">Pie (pie)</option>
-                      <option value="metro">Metro (m)</option>
-                      <option value="servicio">Servicio</option>
-                    </select>
-                    {err('unitOfMeasure')}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-[#001e40]">Estado</label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
-                    >
-                      <option value="active">Activo</option>
-                      <option value="inactive">Inactivo</option>
-                    </select>
-                    {err('status')}
-                  </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
+                  {vistaCompleta ? (
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      {editId ? 'Editando un producto' : 'Registro completo'}
+                    </p>
+                  ) : (
+                    barraPasos()
+                  )}
+                  {botonVista()}
                 </div>
+
+                {vistaCompleta ? (
+                  <>
+                    {paso1()}
+                    {paso2()}
+                    {paso3()}
+                  </>
+                ) : (
+                  <>
+                    {paso === 1 && paso1()}
+                    {paso === 2 && paso2()}
+                    {paso === 3 && paso3()}
+                  </>
+                )}
 
                 {/* La red de debajo: cualquier fallo que no tenga su propio sitio
                     -- `secondaryBarcodes.0.barcode`, o algo que el servidor
@@ -1614,7 +1786,35 @@ export default function ProductsPage() {
                     <p key={k} data-campo={k} className="text-[11px] font-semibold text-rose-600">{m}</p>
                   ))}
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                  {/* Atras / Siguiente a la izquierda; guardar y cancelar donde
+                      han estado siempre. En la vista completa no hay pasos que
+                      recorrer, asi que el hueco queda vacio. */}
+                  {!vistaCompleta ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
+                        disabled={paso === 1}
+                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
+                      >
+                        <ChevronLeft className="w-4 h-4" /> Atrás
+                      </button>
+                      {paso < PASOS.length && (
+                        <button
+                          type="button"
+                          onClick={avanzar}
+                          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-xs font-bold text-white bg-[#c5a059] hover:bg-[#b8934f] transition active:scale-95"
+                        >
+                          Siguiente <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <span />
+                  )}
+
+                  <div className="flex items-center gap-3">
                   <Button size="sm"
                     type="button"
                     variant="ghost"
@@ -1632,6 +1832,7 @@ export default function ProductsPage() {
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Producto'}
                   </Button>
+                  </div>
                 </div>
               </form>
             </motion.div>
