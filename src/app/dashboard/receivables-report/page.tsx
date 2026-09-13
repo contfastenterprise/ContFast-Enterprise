@@ -10,6 +10,7 @@ import clsx from 'clsx';
 import { Input } from '@/components/ui/input';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface ReceivablesData {
   id: string;
@@ -312,7 +313,7 @@ export default function ReceivablesReportPage() {
                                                   <td className="px-4 py-2.5">
                                                     <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10' : 'text-slate-600')}>
                                                       {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
-                                                      {new Date(invoice.dueDate).toLocaleDateString('es-DO')}
+                                                      {formatDateDisplay(invoice.dueDate)}
                                                     </span>
                                                   </td>
                                                   <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(Number(invoice.amount))}</td>

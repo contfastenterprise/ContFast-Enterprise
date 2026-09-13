@@ -5,6 +5,7 @@ import { DoorOpen, RotateCcw, Printer, Plus, Layers, Save, Check, Calculator } f
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import TablaPuertaComercial, { type TablaPuertaHandle } from './TablaPuertaComercial';
+import { formatTimeDisplay } from '@/utils/fechasLocales';
 
 export default function DesglosePuertasComercialesPage() {
   const confirm = useConfirm();
@@ -120,7 +121,7 @@ export default function DesglosePuertasComercialesPage() {
     }
     localStorage.setItem('cf_desglose_puertas_comerciales', JSON.stringify(datos));
     const now = new Date();
-    setLastSavedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    setLastSavedTime(formatTimeDisplay(now));
     toast.success('Datos guardados localmente');
   };
 

@@ -9,6 +9,7 @@ import Avatar from '@/components/ui/Avatar';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas, esSistemas } from '@/utils/rolMatch';
+import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
 interface User {
   id: string;
@@ -182,12 +183,7 @@ export default function AdminPage() {
   const groupSessionsByDay = () => {
     const groups: Record<string, any[]> = {};
     sessionsList.forEach(session => {
-      const dateStr = new Date(session.createdAt).toLocaleDateString('es-DO', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
+      const dateStr = formatDateDisplay(session.createdAt);
       const capitalizedDateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
       if (!groups[capitalizedDateStr]) {
         groups[capitalizedDateStr] = [];
@@ -592,8 +588,8 @@ export default function AdminPage() {
                                     </span>
                                   </td>
                                   <td className="px-6 py-4">
-                                    <p className="font-bold text-xs text-slate-700">{new Date(session.createdAt).toLocaleDateString('es-DO')}</p>
-                                    <p className="text-[10px] text-on-surface-variant/70 font-mono">{new Date(session.createdAt).toLocaleTimeString('es-DO')}</p>
+                                    <p className="font-bold text-xs text-slate-700">{formatDateDisplay(session.createdAt)}</p>
+                                    <p className="text-[10px] text-on-surface-variant/70 font-mono">{formatTimeDisplay(session.createdAt)}</p>
                                   </td>
 
                                   <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate" title={session.userAgent || ''}>
@@ -772,11 +768,7 @@ export default function AdminPage() {
                           <span className="text-xs font-semibold">
                             Vencimiento / Renovación:{' '}
                             <span className="text-slate-800 font-bold">
-                              {new Date(subscription.currentPeriodEnd).toLocaleDateString('es-DO', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
+                              {formatDateDisplay(subscription.currentPeriodEnd)}
                             </span>
                           </span>
                         </div>

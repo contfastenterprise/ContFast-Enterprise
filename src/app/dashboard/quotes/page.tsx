@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export default function QuotesList() {
   const router = useRouter();
@@ -236,7 +237,7 @@ export default function QuotesList() {
                           {quote.sequenceNumber}
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
-                          {new Date(quote.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {formatDateDisplay(quote.createdAt)}
                         </span>
                       </div>
                       <span className={clsx('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border', badge.cls)}>
@@ -308,7 +309,7 @@ export default function QuotesList() {
                         className="hover:bg-[#C5A059]/5 transition-colors group"
                       >
                         <td className="px-4 py-2.5 align-middle text-xs font-semibold text-slate-700">
-                          {new Date(quote.createdAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {formatDateDisplay(quote.createdAt)}
                         </td>
                         <td className="px-4 py-2.5 align-middle">
                           <span className="font-mono text-xs font-bold text-[#003366] bg-[#003366]/5 px-2 py-0.5 rounded">

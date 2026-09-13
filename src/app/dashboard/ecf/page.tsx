@@ -34,6 +34,7 @@ import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 import DateRangePicker from '@/components/ui/date-range-picker';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -226,7 +227,7 @@ function formatCurrency(amount: string | number) {
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '–';
-  return new Date(dateStr).toLocaleDateString('es-DO', { year: 'numeric', month: 'short', day: '2-digit' });
+  return formatDateDisplay(dateStr);
 }
 
 // ─── Skeleton ───────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { DocumentViewer } from '@/components/documents/DocumentViewer';
 import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export default async function PublicDocumentPage({
   params
@@ -64,7 +65,7 @@ export default async function PublicDocumentPage({
     invoice: {
       number: invoiceData.codigoFactura || invoiceData.ncf || 'DRAFT',
       ncf: invoiceData.ncf,
-      date: new Date(invoiceData.createdAt).toLocaleDateString('es-DO'),
+      date: formatDateDisplay(invoiceData.createdAt),
       status: invoiceData.status,
       paymentType: invoiceData.paymentType,
       subtotal: Number(invoiceData.subtotal),

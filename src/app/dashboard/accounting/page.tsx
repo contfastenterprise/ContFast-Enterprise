@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import clsx from 'clsx';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // -- Types --
 type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
@@ -267,7 +268,7 @@ export default function AccountingPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">CATÁLOGO DE CUENTAS</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Total Cuentas:</strong> ${accounts.length}</div>
               </div>
             </div>
@@ -719,7 +720,7 @@ export default function AccountingPage() {
                           >
                             <div className="flex justify-between items-start">
                               <span className="font-mono text-xs font-bold text-[#003366]">
-                                {new Date(journal.date).toLocaleDateString('es-DO')}
+                                {formatDateDisplay(journal.date)}
                               </span>
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-800">
                                 Contabilizado
@@ -806,7 +807,7 @@ export default function AccountingPage() {
                                   )}
                                 </td>
                                 <td className="px-4 py-2.5 text-xs font-mono font-semibold text-[#003366]">
-                                  {new Date(journal.date).toLocaleDateString('es-DO')}
+                                  {formatDateDisplay(journal.date)}
                                 </td>
                                 <td className="px-4 py-2.5 text-xs font-semibold text-slate-800">{journal.description}</td>
                                 <td className="px-4 py-2.5 text-xs font-mono text-slate-500">{journal.reference || '-'}</td>
@@ -928,7 +929,7 @@ export default function AccountingPage() {
                         ledgerData.movements.map((mov: any) => (
                           <div key={mov.id} className="flex flex-col p-4 hover:bg-slate-50/50 gap-2">
                             <div className="flex justify-between items-start">
-                              <span className="text-xs font-mono font-bold text-[#003366]">{new Date(mov.date).toLocaleDateString('es-DO')}</span>
+                              <span className="text-xs font-mono font-bold text-[#003366]">{formatDateDisplay(mov.date)}</span>
                               <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Ref: {mov.reference || '-'}</span>
                             </div>
                             <span className="font-semibold text-sm text-slate-800 leading-tight">{mov.description}</span>
@@ -979,7 +980,7 @@ export default function AccountingPage() {
                         ) : (
                           ledgerData.movements.map((mov: any) => (
                             <tr key={mov.id} className="hover:bg-slate-50/50">
-                              <td className="px-4 py-2.5 text-xs font-mono text-xs">{new Date(mov.date).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-2.5 text-xs font-mono text-xs">{formatDateDisplay(mov.date)}</td>
                               <td className="px-4 py-2.5 text-xs font-semibold text-slate-800">{mov.description}</td>
                               <td className="px-4 py-2.5 text-xs font-mono text-xs text-slate-500">{mov.reference || '-'}</td>
                               <td className="px-4 py-2.5 text-xs text-right font-mono text-slate-700">{mov.debit > 0 ? fmt(mov.debit) : ''}</td>
@@ -1303,11 +1304,11 @@ export default function AccountingPage() {
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="flex flex-col">
                               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Inicio</span>
-                              <span className="font-mono text-slate-700">{new Date(p.startDate).toLocaleDateString('es-DO')}</span>
+                              <span className="font-mono text-slate-700">{formatDateDisplay(p.startDate)}</span>
                             </div>
                             <div className="flex flex-col">
                               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Cierre</span>
-                              <span className="font-mono text-slate-700">{new Date(p.endDate).toLocaleDateString('es-DO')}</span>
+                              <span className="font-mono text-slate-700">{formatDateDisplay(p.endDate)}</span>
                             </div>
                           </div>
                           
@@ -1348,8 +1349,8 @@ export default function AccountingPage() {
                         periods.map((p) => (
                           <tr key={p.id} className="hover:bg-slate-50/50">
                             <td className="px-4 py-2.5 text-xs font-bold text-slate-800">{p.name}</td>
-                            <td className="px-4 py-2.5 text-xs font-mono">{new Date(p.startDate).toLocaleDateString('es-DO')}</td>
-                            <td className="px-4 py-2.5 text-xs font-mono">{new Date(p.endDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{formatDateDisplay(p.startDate)}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono">{formatDateDisplay(p.endDate)}</td>
                             <td className="px-4 py-2.5 text-xs text-center">
                               <span className={clsx(
                                 "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",

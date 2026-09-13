@@ -5,6 +5,7 @@ import { Landmark, ArrowLeft, Calendar, FileText, ChevronRight, CheckCircle2, Al
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface BankAccount {
   id: string;
@@ -373,7 +374,7 @@ export default function BankReconciliationPage() {
                     <h4 className="font-bold text-[#003366] text-xs uppercase tracking-widest border-b border-slate-100 pb-2">Sección 2: Libros</h4>
                     
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Saldo en Libros al {new Date(endDate).toLocaleDateString('es-DO')}:</span>
+                      <span className="text-slate-600">Saldo en Libros al {formatDateDisplay(endDate)}:</span>
                       <span className="font-mono font-bold text-slate-800">{fmt(bookBalanceAtCutoff, selectedAccount?.currency)}</span>
                     </div>
 
@@ -472,7 +473,7 @@ export default function BankReconciliationPage() {
                                 />
                               </td>
                               <td className="px-6 py-3 font-medium text-slate-600 font-mono text-xs">
-                                {new Date(tx.date).toLocaleDateString('es-DO')}
+                                {formatDateDisplay(tx.date)}
                               </td>
                               <td className="px-6 py-3">
                                 <p className="font-semibold text-slate-800 text-sm">{tx.description || 'Movimiento Bancario'}</p>
@@ -516,7 +517,7 @@ export default function BankReconciliationPage() {
                     reconciliations.map(recon => (
                       <div key={recon.id} className="border border-slate-100 hover:border-slate-200 p-4 rounded-lg bg-slate-50/50 hover:bg-slate-50 transition text-xs space-y-2">
                         <div className="flex justify-between items-center font-bold">
-                          <span className="text-[#003366]">Corte al {new Date(recon.endDate).toLocaleDateString('es-DO')}</span>
+                          <span className="text-[#003366]">Corte al {formatDateDisplay(recon.endDate)}</span>
                           <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase text-[9px]">
                             {recon.status}
                           </span>
@@ -528,7 +529,7 @@ export default function BankReconciliationPage() {
                           </div>
                           <div>
                             <span className="block text-[9px] uppercase tracking-wider text-slate-400">Fecha Registro</span>
-                            <span>{new Date(recon.createdAt).toLocaleDateString('es-DO')}</span>
+                            <span>{formatDateDisplay(recon.createdAt)}</span>
                           </div>
                         </div>
                       </div>

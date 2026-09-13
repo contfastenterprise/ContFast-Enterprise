@@ -5,6 +5,7 @@ import { RefreshCw, Search, ArrowRightLeft, Calendar, Building2, Package, Histor
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
+import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
 
 interface Movement {
@@ -180,7 +181,7 @@ export default function MovementsPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">HISTORIAL DE MOVIMIENTOS</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Movimientos Filtrados:</strong> ${printMovements.length}</div>
               </div>
             </div>
@@ -202,7 +203,7 @@ export default function MovementsPage() {
                   const formattedDesc = getMovementDescription(mov);
                   return `
                     <tr>
-                      <td>${new Date(mov.createdAt).toLocaleString('es-DO')}</td>
+                      <td>${formatDateTimeDisplay(mov.createdAt)}</td>
                       <td><strong>${mov.productName || '-'}</strong>${mov.productSku ? `<br><small style="color: #666; font-family: monospace;">${mov.productSku}</small>` : ''}</td>
                       <td>${mov.warehouseName || '-'}</td>
                       <td>${getMovementTypeText(mov.type)}</td>
@@ -399,7 +400,7 @@ export default function MovementsPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col gap-1">
                         <span className="font-semibold text-xs text-[#003366]">
-                          {new Date(mov.createdAt).toLocaleDateString('es-DO')} <span className="text-[10px] text-slate-400 font-mono ml-1">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</span>
+                          {formatDateDisplay(mov.createdAt)} <span className="text-[10px] text-slate-400 font-mono ml-1">{formatTimeDisplay(mov.createdAt)}</span>
                         </span>
                         <div className="flex items-center gap-2 mt-1">
                           {getMovementTypeBadge(mov.type)}
@@ -461,8 +462,8 @@ export default function MovementsPage() {
                     return (
                       <tr key={mov.id} className="hover:bg-slate-50/60 transition-colors">
                         <td className="px-4 py-2.5">
-                          <div className="font-semibold text-xs text-[#003366]">{new Date(mov.createdAt).toLocaleDateString('es-DO')}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{new Date(mov.createdAt).toLocaleTimeString('es-DO')}</div>
+                          <div className="font-semibold text-xs text-[#003366]">{formatDateDisplay(mov.createdAt)}</div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{formatTimeDisplay(mov.createdAt)}</div>
                         </td>
                         <td className="px-4 py-2.5">
                           <p className="font-semibold text-xs text-[#003366] max-w-[200px] truncate" title={mov.productName || ''}>{mov.productName}</p>

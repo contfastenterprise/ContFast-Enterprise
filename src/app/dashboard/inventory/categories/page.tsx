@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer, ShieldCheck } fr
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Category {
   id: string;
@@ -98,7 +99,7 @@ export default function CategoriesPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">CATEGORÍAS DE PRODUCTOS</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Total Categorías:</strong> ${categories.length}</div>
               </div>
             </div>

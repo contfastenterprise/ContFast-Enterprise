@@ -5,6 +5,7 @@ import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, F
 import { toast } from 'sonner';
 import { mesesEnAnio, trabajoEnElAnio } from '@/services/hr/antiguedad';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -384,7 +385,7 @@ export default function SettlementsPage() {
                       {calculation.employee.firstName} {calculation.employee.lastName}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Código: {calculation.employee.employeeCode} | Ingreso: {new Date(calculation.employee.hireDate).toLocaleDateString('es-DO')}
+                      Código: {calculation.employee.employeeCode} | Ingreso: {formatDateDisplay(calculation.employee.hireDate)}
                     </p>
                   </div>
                   <Sparkles className="h-6 w-6 text-[#003366] dark:text-[#799dd6]" />
@@ -502,7 +503,7 @@ export default function SettlementsPage() {
                           <tr key={set.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-slate-900">
                             <td className="px-4 py-2.5 align-middle font-semibold text-[#003366] text-xs">{set.firstName} {set.lastName}</td>
                             <td className="px-4 py-2.5 align-middle font-mono text-slate-900 text-xs">{set.employeeCode}</td>
-                            <td className="px-4 py-2.5 align-middle text-slate-900 text-xs">{new Date(set.settlementDate).toLocaleDateString('es-DO')}</td>
+                            <td className="px-4 py-2.5 align-middle text-slate-900 text-xs">{formatDateDisplay(set.settlementDate)}</td>
                             <td className="px-4 py-2.5 align-middle font-mono text-slate-900 text-xs">
                               {formatCurrency(Number(set.cesantia) + Number(set.preaviso))}
                             </td>
@@ -606,7 +607,7 @@ export default function SettlementsPage() {
                     <tr key={item.id} className="hover:bg-[#C5A059]/5 transition-colors group text-xs text-[#191c1d]">
                       <td className="px-4 py-2.5 align-middle font-semibold text-[#003366] text-xs">{item.firstName} {item.lastName}</td>
                       <td className="px-4 py-2.5 align-middle font-mono text-[#191c1d] text-xs">{item.employeeCode}</td>
-                      <td className="px-4 py-2.5 align-middle text-[#191c1d] text-xs">{new Date(item.hireDate).toLocaleDateString('es-DO')}</td>
+                      <td className="px-4 py-2.5 align-middle text-[#191c1d] text-xs">{formatDateDisplay(item.hireDate)}</td>
                       <td className="px-4 py-2.5 align-middle text-right font-mono font-semibold text-[#191c1d] text-xs">{formatCurrency(item.salary)}</td>
                       <td className="px-4 py-2.5 align-middle text-center text-[#191c1d] text-xs">{item.monthsWorked} meses</td>
                       <td className="px-4 py-2.5 align-middle text-right font-bold text-[#003366] font-mono text-xs">

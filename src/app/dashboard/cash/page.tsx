@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -355,8 +356,8 @@ export default function CashPage() {
       ...history.map(h => [
         h.registerName,
         h.userId,
-        new Date(h.createdAt).toLocaleString('es-DO'),
-        h.closedAt ? new Date(h.closedAt).toLocaleString('es-DO') : 'Abierto',
+        formatDateTimeDisplay(h.createdAt),
+        h.closedAt ? formatDateTimeDisplay(h.closedAt) : 'Abierto',
         h.initialBalance || 0,
         h.expectedBalance || 0,
         h.actualBalance || 0,
@@ -678,7 +679,7 @@ export default function CashPage() {
                 <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                   Turno en curso — iniciado{' '}
-                  {session ? new Date(session.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  {session ? formatTimeDisplay(session.createdAt) : ''}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -812,7 +813,7 @@ export default function CashPage() {
                         return (
                           <tr key={mv.id} className="hover:bg-amber-50/30 transition-colors border-b border-slate-200 last:border-0">
                             <td className="px-4 py-2.5 font-mono text-xs text-slate-500">
-                              {new Date(mv.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                              {formatTimeDisplay(mv.createdAt)}
                             </td>
                             <td className={clsx('px-4 py-2.5 font-bold', colorClass)}>{label}</td>
                             <td className="px-4 py-2.5 text-slate-700">{mv.description || mv.reference || '—'}</td>
@@ -877,7 +878,7 @@ export default function CashPage() {
               <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Fecha y Hora</p>
                 <p className="font-mono text-sm font-bold text-[#001e40]">
-                  {new Date().toLocaleString('es-DO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {formatDateTimeDisplay(new Date())}
                 </p>
               </div>
             </div>
@@ -1192,20 +1193,20 @@ export default function CashPage() {
                             <tr key={s.id} className="hover:bg-amber-50/30 transition-colors group">
                               <td className="px-4 py-2.5">
                                 <p className="font-mono text-xs text-slate-700">
-                                  {new Date(s.createdAt).toLocaleDateString('es-DO')}
+                                  {formatDateDisplay(s.createdAt)}
                                 </p>
                                 <p className="text-[10px] text-slate-500">
-                                  {new Date(s.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                  {formatTimeDisplay(s.createdAt)}
                                 </p>
                               </td>
                               <td className="px-4 py-2.5">
                                 {s.closedAt ? (
                                   <>
                                     <p className="font-mono text-xs text-slate-700">
-                                      {new Date(s.closedAt).toLocaleDateString('es-DO')}
+                                      {formatDateDisplay(s.closedAt)}
                                     </p>
                                     <p className="text-[10px] text-slate-500">
-                                      {new Date(s.closedAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                      {formatTimeDisplay(s.closedAt)}
                                     </p>
                                   </>
                                 ) : (
@@ -1492,11 +1493,11 @@ export default function CashPage() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <span className="block text-slate-500 font-bold mb-1">Apertura</span>
-                    <span className="font-bold text-slate-800">{new Date(selectedSession.createdAt).toLocaleString('es-DO')}</span>
+                    <span className="font-bold text-slate-800">{formatDateTimeDisplay(selectedSession.createdAt)}</span>
                   </div>
                   <div>
                     <span className="block text-slate-500 font-bold mb-1">Cierre</span>
-                    <span className="font-bold text-slate-800">{selectedSession.closedAt ? new Date(selectedSession.closedAt).toLocaleString('es-DO') : 'En curso'}</span>
+                    <span className="font-bold text-slate-800">{selectedSession.closedAt ? formatDateTimeDisplay(selectedSession.closedAt) : 'En curso'}</span>
                   </div>
                   <div>
                     <span className="block text-slate-500 font-bold mb-1">Usuario</span>

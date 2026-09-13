@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 import {
   TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
@@ -455,7 +456,7 @@ export default function DeliveryNotesPage() {
                                 {note.deliveryNumber}
                               </td>
                               <td className="px-4 py-2.5 align-middle text-xs text-slate-600">
-                                {new Date(note.deliveryDate + 'T00:00:00').toLocaleDateString('es-DO')}
+                                {formatDateDisplay(note.deliveryDate)}
                               </td>
                               <td className="px-4 py-2.5 align-middle text-xs text-slate-700 font-semibold">
                                 {note.driverName || 'N/A'}

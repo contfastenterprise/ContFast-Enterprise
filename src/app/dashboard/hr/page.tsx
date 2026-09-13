@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, Banknote, Calendar, ShieldAlert, Award, FileText, HeartPulse, ShieldCheck, RefreshCw, BarChart3, TrendingUp, UserCheck, Palmtree, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -110,9 +111,9 @@ export default function HRDashboard() {
 
       // Simulated recent audits for premium look
       setRecentAudits([
-        { action: 'Cálculo de Nómina', user: 'Admin', date: new Date().toLocaleDateString('es-DO'), desc: 'Se recalculó nómina del período quincenal.' },
-        { action: 'Registro Empleado', user: 'Recursos Humanos', date: new Date().toLocaleDateString('es-DO'), desc: 'Ingreso de nuevo empleado administrativo.' },
-        { action: 'Configuración TSS', user: 'Sistemas', date: new Date().toLocaleDateString('es-DO'), desc: 'Modificación de topes salariales para AFP/SFS.' },
+        { action: 'Cálculo de Nómina', user: 'Admin', date: formatDateDisplay(new Date()), desc: 'Se recalculó nómina del período quincenal.' },
+        { action: 'Registro Empleado', user: 'Recursos Humanos', date: formatDateDisplay(new Date()), desc: 'Ingreso de nuevo empleado administrativo.' },
+        { action: 'Configuración TSS', user: 'Sistemas', date: formatDateDisplay(new Date()), desc: 'Modificación de topes salariales para AFP/SFS.' },
       ]);
 
     } catch (err: any) {

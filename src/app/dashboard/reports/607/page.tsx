@@ -17,6 +17,7 @@ interface InvoiceSale {
 }
 
 import { FileText, Download, Calendar } from 'lucide-react';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export default function Report607() {
   const [period, setPeriod] = useState<string>(() => {
@@ -148,7 +149,7 @@ export default function Report607() {
               ) : (
                 invoices.map((e) => (
                   <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">{new Date(e.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{formatDateDisplay(e.createdAt)}</td>
                     <td className="px-6 py-4 font-mono">{e.ncf}</td>
                     <td className="px-6 py-4">
                       {e.customerName || 'Consumidor Final'} {e.customerRnc ? <span className="text-xs text-slate-400 block">{e.customerRnc}</span> : ''}

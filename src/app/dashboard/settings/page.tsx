@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -967,11 +968,7 @@ export default function SettingsPage() {
                       <span className="text-xs font-semibold">
                         Vencimiento / Renovación:{' '}
                         <span className="text-slate-800 font-bold">
-                          {new Date(subscription.currentPeriodEnd).toLocaleDateString('es-DO', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
+                          {formatDateDisplay(subscription.currentPeriodEnd)}
                         </span>
                       </span>
                     </div>

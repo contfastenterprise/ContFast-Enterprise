@@ -15,6 +15,7 @@ import SkeletonBasic from '@/components/ui/skeleton';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
 import dynamic from 'next/dynamic';
+import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
 const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
   ssr: false,
@@ -538,7 +539,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col gap-1">
                         <span className="font-mono-data text-primary font-extrabold text-sm">{inv.ncf || `e-${inv.ecfType}`}</span>
                         <div className="text-[10px] text-slate-500 font-medium">
-                          {date.toLocaleDateString('es-DO')} <span className="font-mono-data text-slate-400 ml-1">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {formatDateDisplay(date)} <span className="font-mono-data text-slate-400 ml-1">{formatTimeDisplay(date)}</span>
                         </div>
                       </div>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${badge.cls} text-[9px] font-extrabold uppercase tracking-wider`}>
@@ -612,7 +613,7 @@ export default function DashboardPage() {
                       >
                         <td className="px-4 py-3 text-sm font-mono-data text-slate-800 font-extrabold">{inv.ncf || `e-${inv.ecfType}`}</td>
                         <td className="px-4 py-3 text-sm font-body-sm text-slate-600 font-semibold">
-                          {date.toLocaleDateString('es-DO')} <span className="block text-xs font-bold text-slate-400 mt-0.5">{date.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {formatDateDisplay(date)} <span className="block text-xs font-bold text-slate-400 mt-0.5">{formatTimeDisplay(date)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <p className="font-label-md font-bold text-slate-800 text-sm">{inv.buyerName || 'Consumidor Final'}</p>

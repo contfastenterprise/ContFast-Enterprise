@@ -6,6 +6,7 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface BankAccount {
   id: string;
@@ -297,7 +298,7 @@ export default function BankAccountsPage() {
                 <div class="subtitle">HISTORIAL DE TRANSACCIONES</div>
                 <div><strong>Cuenta:</strong> ${selectedAccount.bankName} ${selectedAccount.currency !== '-' ? `(${selectedAccount.currency})` : ''}</div>
                 <div><strong>Rango:</strong> ${startDate || 'Inicio'} - ${endDate || 'Fin'}</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
               </div>
             </div>
 
@@ -317,7 +318,7 @@ export default function BankAccountsPage() {
                   const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
                   return `
                     <tr>
-                      <td>${new Date(tx.date).toLocaleDateString('es-DO')}</td>
+                      <td>${formatDateDisplay(tx.date)}</td>
                       <td><strong>${tx.description || 'Movimiento Bancario'}</strong></td>
                       <td class="font-mono">${tx.reference || '-'}</td>
                       <td>${tx.type.toUpperCase()}</td>
@@ -539,7 +540,7 @@ export default function BankAccountsPage() {
                       return (
                         <div key={tx.id} className="flex flex-col p-4 hover:bg-slate-50/50 transition-colors gap-2">
                           <div className="flex justify-between items-start">
-                            <span className="text-xs text-slate-500/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</span>
+                            <span className="text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</span>
                             <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
                               {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
                               {tx.type}
@@ -593,7 +594,7 @@ export default function BankAccountsPage() {
                           const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
                           return (
                             <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{new Date(tx.date).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</td>
                               <td className="px-4 py-2.5 text-xs font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
                               <td className="px-4 py-2.5 text-xs font-mono text-slate-500/70">{tx.reference || '-'}</td>
                               <td className="px-4 py-2.5 text-xs">

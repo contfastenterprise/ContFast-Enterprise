@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 
 interface InvoiceDetail {
   id: string;
@@ -294,7 +295,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Fecha Emisión:</span>
-              <span className="font-medium">{new Date(invoice.createdAt).toLocaleString('es-DO')}</span>
+              <span className="font-medium">{formatDateTimeDisplay(invoice.createdAt)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Tipo Pago:</span>

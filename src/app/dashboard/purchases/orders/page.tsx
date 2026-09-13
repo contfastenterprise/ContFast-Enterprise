@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 
 interface OrderLine {
   id?: string;
@@ -687,7 +688,7 @@ export default function PurchaseOrdersPage() {
                         {order.orderNumber}
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono">
-                        {new Date(order.orderDate).toLocaleDateString('es-DO')}
+                        {formatDateDisplay(order.orderDate)}
                       </span>
                     </div>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border whitespace-nowrap ${statusBadges[order.status]}`}>
@@ -743,7 +744,7 @@ export default function PurchaseOrdersPage() {
                     <tr key={order.id} className="hover:bg-[#C5A059]/5 transition-colors group">
                       <td className="px-4 py-2.5 align-middle">
                         <span className="font-mono text-slate-700 whitespace-nowrap">
-                          {new Date(order.orderDate).toLocaleDateString('es-DO')}
+                          {formatDateDisplay(order.orderDate)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 align-middle">
@@ -827,11 +828,11 @@ export default function PurchaseOrdersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div>
                     <span className="block text-[10px] font-bold text-slate-500 uppercase">Fecha de Creación</span>
-                    <span className="font-semibold">{new Date(activeOrder.orderDate).toLocaleString('es-DO')}</span>
+                    <span className="font-semibold">{formatDateTimeDisplay(activeOrder.orderDate)}</span>
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-slate-500 uppercase">Estimada de Entrega</span>
-                    <span className="font-semibold">{activeOrder.expectedDate ? new Date(activeOrder.expectedDate).toLocaleDateString('es-DO') : 'No especificada'}</span>
+                    <span className="font-semibold">{activeOrder.expectedDate ? formatDateDisplay(activeOrder.expectedDate) : 'No especificada'}</span>
                   </div>
                   <div>
                     <span className="block text-[10px] font-bold text-slate-500 uppercase">Almacén de Recepción</span>
@@ -895,7 +896,7 @@ export default function PurchaseOrdersPage() {
                         <div key={log.id} className="flex flex-col gap-0.5 border-l-2 border-slate-300 pl-3">
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="font-bold text-slate-700">{log.action}</span>
-                            <span className="text-slate-400">{new Date(log.createdAt).toLocaleString('es-DO')}</span>
+                            <span className="text-slate-400">{formatDateTimeDisplay(log.createdAt)}</span>
                           </div>
                           <p className="text-[11px] text-slate-600 font-mono whitespace-pre-wrap">{log.changeDetails}</p>
                           <span className="text-[9px] text-slate-400 font-semibold">Realizado por: {log.userName}</span>

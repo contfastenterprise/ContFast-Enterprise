@@ -7,6 +7,7 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Company {
   id: string;
@@ -343,7 +344,7 @@ export default function AdminCompaniesPage() {
                             </span>
                             {company.currentPeriodEnd && (
                               <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                                <Calendar className="h-3 w-3" /> Vence: {new Date(company.currentPeriodEnd).toLocaleDateString('es-DO')}
+                                <Calendar className="h-3 w-3" /> Vence: {formatDateDisplay(company.currentPeriodEnd)}
                               </span>
                             )}
                           </div>

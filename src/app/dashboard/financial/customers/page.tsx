@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 
 import Loading from '../../accounting/loading';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Customer {
   id: string;
@@ -400,11 +401,11 @@ export default function CustomerStatementPage() {
               <div className="space-y-3 divide-y divide-outline-variant/10 text-xs">
                 <div className="flex justify-between py-2">
                   <span className="text-neutral-500">Última Venta:</span>
-                  <span className="font-semibold">{statementData.summary.lastPurchaseDate ? new Date(statementData.summary.lastPurchaseDate + 'T00:00:00').toLocaleDateString('es-DO') : 'N/A'}</span>
+                  <span className="font-semibold">{statementData.summary.lastPurchaseDate ? formatDateDisplay(statementData.summary.lastPurchaseDate) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-neutral-500">Último Pago:</span>
-                  <span className="font-semibold">{statementData.summary.lastPaymentDate ? new Date(statementData.summary.lastPaymentDate + 'T00:00:00').toLocaleDateString('es-DO') : 'N/A'}</span>
+                  <span className="font-semibold">{statementData.summary.lastPaymentDate ? formatDateDisplay(statementData.summary.lastPaymentDate) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-neutral-500">Notas de Crédito Recibidas:</span>
@@ -538,7 +539,7 @@ export default function CustomerStatementPage() {
                       const isInvoice = m.movementType === 'invoice' || m.movementType === 'debit_note';
                       return (
                         <tr key={m.id} className="hover:bg-surface-container-low/30">
-                          <td className="py-3 text-xs">{new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+                          <td className="py-3 text-xs">{formatDateDisplay(m.date)}</td>
                           <td className="py-3 font-mono text-xs font-semibold">{m.documentNumber}</td>
                           <td className="py-3 text-xs">
                             <span className={clsx(

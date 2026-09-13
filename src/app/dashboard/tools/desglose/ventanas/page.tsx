@@ -5,6 +5,7 @@ import { Calculator, RotateCcw, Printer, Plus, Layers, Save, Trash2, LayoutGrid,
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import TablaDesglose, { type TablaDesgloseHandle } from './TablaDesglose';
+import { formatTimeDisplay } from '@/utils/fechasLocales';
 
 export default function DesgloseVentanasPage() {
   const confirm = useConfirm();
@@ -123,7 +124,7 @@ export default function DesgloseVentanasPage() {
     }
     localStorage.setItem('cf_desglose_ventanas', JSON.stringify(datos));
     const now = new Date();
-    setLastSavedTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    setLastSavedTime(formatTimeDisplay(now));
     toast.success('Datos guardados localmente');
   };
 

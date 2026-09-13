@@ -41,7 +41,7 @@ import {
 import { Search, ChevronDown, ChevronUp, ChevronsUpDown, Download, Printer, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatDateDisplay, hoyDia } from '@/utils/fechasLocales';
+import { formatDateDisplay, hoyDia, formatDateTimeDisplay } from '@/utils/fechasLocales';
 import {
   normalizarFilas, filtrarFilas, PALABRAS,
   type FilaCuenta, type TipoCuenta,
@@ -211,7 +211,7 @@ export default function TablaCuentas({
           <div class="header">
             <div class="header-info">
               <h1>${P.titulo}</h1>
-              <div class="date">Generado el: ${new Date().toLocaleString('es-DO')}${verSaldadas ? ' · incluye cuentas saldadas' : ''}</div>
+              <div class="date">Generado el: ${formatDateTimeDisplay(new Date())}${verSaldadas ? ' · incluye cuentas saldadas' : ''}</div>
             </div>
             ${companyInfo?.logoUrl
               ? `<img src="${companyInfo.logoUrl}" class="header-logo" alt="Logo" />`

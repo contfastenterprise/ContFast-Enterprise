@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, X, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Payroll {
   id: string;
@@ -222,10 +223,10 @@ export default function PayrollPage() {
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
                         <span className="font-semibold text-xs text-slate-800">
-                          Desde {new Date(pr.periodStart).toLocaleDateString('es-DO')}
+                          Desde {formatDateDisplay(pr.periodStart)}
                         </span>
                         <span className="font-semibold text-xs text-slate-800">
-                          Hasta {new Date(pr.periodEnd).toLocaleDateString('es-DO')}
+                          Hasta {formatDateDisplay(pr.periodEnd)}
                         </span>
                       </div>
                       <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase ${pr.status === 'approved' 
@@ -241,11 +242,11 @@ export default function PayrollPage() {
                     <div className="flex flex-col gap-1 text-xs text-slate-600">
                       <div className="flex justify-between">
                         <span className="text-slate-400">Fecha de Pago:</span>
-                        <span className="font-mono font-bold text-[#003366]">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</span>
+                        <span className="font-mono font-bold text-[#003366]">{formatDateDisplay(pr.paymentDate)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Creación:</span>
-                        <span className="text-slate-500">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</span>
+                        <span className="text-slate-500">{formatDateDisplay(pr.createdAt)}</span>
                       </div>
                     </div>
                     
@@ -287,9 +288,9 @@ export default function PayrollPage() {
                     {pagedPayrolls.map((pr) => (
                       <tr key={pr.id} className="hover:bg-slate-50 transition-colors group">
                         <td className="px-4 py-2.5 align-middle text-xs font-semibold text-slate-700">
-                          Desde {new Date(pr.periodStart).toLocaleDateString('es-DO')} Hasta {new Date(pr.periodEnd).toLocaleDateString('es-DO')}
+                          Desde {formatDateDisplay(pr.periodStart)} Hasta {formatDateDisplay(pr.periodEnd)}
                         </td>
-                        <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-[#003366]">{new Date(pr.paymentDate).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-[#003366]">{formatDateDisplay(pr.paymentDate)}</td>
                         <td className="px-4 py-2.5 align-middle text-center">
                           <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${pr.status === 'approved' 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -300,7 +301,7 @@ export default function PayrollPage() {
                             {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 align-middle text-xs text-slate-500">{new Date(pr.createdAt).toLocaleDateString('es-DO')}</td>
+                        <td className="px-4 py-2.5 align-middle text-xs text-slate-500">{formatDateDisplay(pr.createdAt)}</td>
                         <td className="px-4 py-2.5 align-middle text-right">
                           <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -366,10 +367,10 @@ export default function PayrollPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-3">
               <div>
                 <h3 className="font-bold text-slate-800 text-base">
-                  Nómina Período: {new Date(selectedPayroll.periodStart).toLocaleDateString('es-DO')} - {new Date(selectedPayroll.periodEnd).toLocaleDateString('es-DO')}
+                  Nómina Período: {formatDateDisplay(selectedPayroll.periodStart)} - {formatDateDisplay(selectedPayroll.periodEnd)}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Estado: <span className="font-semibold text-[#003366]">{selectedPayroll.status.toUpperCase()}</span> | Pago: {new Date(selectedPayroll.paymentDate).toLocaleDateString('es-DO')}
+                  Estado: <span className="font-semibold text-[#003366]">{selectedPayroll.status.toUpperCase()}</span> | Pago: {formatDateDisplay(selectedPayroll.paymentDate)}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

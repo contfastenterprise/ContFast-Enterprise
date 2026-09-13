@@ -5,6 +5,7 @@ import {
   Palmtree, CalendarCheck, CalendarClock, Plus, X, RefreshCw, AlertCircle, Scale, Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 type Saldo = {
   employeeId: string;
@@ -20,7 +21,7 @@ type Saldo = {
   diasPorRegistrar: number;
 };
 
-const fecha = (v: string) => (v ? new Date(v).toLocaleDateString('es-DO', { timeZone: 'UTC' }) : '—');
+const fecha = (v: string) => (v ? formatDateDisplay(v) : '—');
 
 function antiguedad(hireDate: string) {
   if (!hireDate) return '—';

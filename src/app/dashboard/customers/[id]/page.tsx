@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, Mail, Phone, ShieldCheck, FileText, CreditCard, DollarSign, RefreshCw, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface CustomerHistory {
   customer: {
@@ -190,7 +191,7 @@ export default function CustomerHistoryPage() {
                     data.recentInvoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-surface-container-high/30 transition-colors">
                         <td className="p-4 font-mono text-sm text-primary font-medium">{inv.ncf}</td>
-                        <td className="p-4 text-sm text-on-surface-variant">{new Date(inv.date).toLocaleDateString('es-DO')}</td>
+                        <td className="p-4 text-sm text-on-surface-variant">{formatDateDisplay(inv.date)}</td>
                         <td className="p-4 text-sm font-semibold text-primary text-right">{formatCurrency(inv.amount)}</td>
                         <td className="p-4 text-center">{getStatusBadge(inv.status)}</td>
                       </tr>
@@ -219,7 +220,7 @@ export default function CustomerHistoryPage() {
                     data.recentPayments.map((pay) => (
                       <tr key={pay.id} className="hover:bg-surface-container-high/30 transition-colors">
                         <td className="p-4 font-mono text-sm text-primary">{pay.reference || 'N/A'}</td>
-                        <td className="p-4 text-sm text-on-surface-variant">{new Date(pay.date).toLocaleDateString('es-DO')}</td>
+                        <td className="p-4 text-sm text-on-surface-variant">{formatDateDisplay(pay.date)}</td>
                         <td className="p-4 text-sm text-on-surface-variant uppercase">{pay.method}</td>
                         <td className="p-4 text-sm font-semibold text-emerald-400 text-right">+{formatCurrency(pay.amount)}</td>
                       </tr>

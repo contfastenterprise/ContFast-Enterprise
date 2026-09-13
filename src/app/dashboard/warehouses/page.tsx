@@ -14,6 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Warehouse {
   id: string;
@@ -97,7 +98,7 @@ export default function WarehousesPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">DIRECTORIO DE ALMACENES</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Almacenes Filtrados:</strong> ${filteredWarehouses.length}</div>
               </div>
             </div>

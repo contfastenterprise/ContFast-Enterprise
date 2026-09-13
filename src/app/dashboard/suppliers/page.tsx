@@ -17,6 +17,7 @@ import {
   TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface Supplier {
   id: string;
@@ -122,7 +123,7 @@ export default function SuppliersPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">DIRECTORIO DE SUPLIDORES</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Total Suplidores:</strong> ${allSuppliers.length}</div>
               </div>
             </div>
@@ -397,7 +398,7 @@ export default function SuppliersPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-[#003366] text-xs">{s.name}</p>
-                          <p className="text-[10px] text-slate-400 hidden sm:block">Creado: {new Date(s.createdAt).toLocaleDateString('es-DO')}</p>
+                          <p className="text-[10px] text-slate-400 hidden sm:block">Creado: {formatDateDisplay(s.createdAt)}</p>
                         </div>
                       </div>
                     </td>

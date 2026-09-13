@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 
 // -- Types --
 interface InvoiceAR {
@@ -546,11 +547,11 @@ export default function ReceivablesPage() {
                             <tr key={inv.arId} className="hover:bg-slate-50/60 transition-colors">
                               <td className="px-4 py-2 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
                               <td className="px-4 py-2 font-mono text-slate-500">{inv.invoiceNumber}</td>
-                              <td className="px-4 py-2 text-slate-500">{new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
+                              <td className="px-4 py-2 text-slate-500">{formatDateDisplay(inv.invoiceDate)}</td>
                               <td className="px-4 py-2">
                                 <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium", isOverdue ? 'bg-rose-100 text-rose-700' : 'text-slate-500')}>
                                   {isOverdue && <AlertCircle className="w-3 h-3" />}
-                                  {new Date(inv.dueDate).toLocaleDateString('es-DO')}
+                                  {formatDateDisplay(inv.dueDate)}
                                 </span>
                               </td>
                               <td className="px-4 py-2 text-right text-slate-500 font-mono">{fmt(inv.amount)}</td>
@@ -659,7 +660,7 @@ export default function ReceivablesPage() {
                             </td>
                             <td className="px-4 py-2.5 text-xs font-semibold text-slate-700">{rec.customerName}</td>
                             <td className="px-4 py-2.5 text-xs text-slate-500">
-                              {new Date(rec.date).toLocaleDateString('es-DO')}
+                              {formatDateDisplay(rec.date)}
                             </td>
                             <td className="px-4 py-2.5">
                               <span className={clsx(
@@ -833,7 +834,7 @@ export default function ReceivablesPage() {
                     <p className="text-sm text-slate-600 mt-1">
                       <strong>Cliente:</strong> {statementCustomers.find(c => c.id === selectedStatementCustomerId)?.name}
                     </p>
-                    <p className="text-xs text-slate-500">Generado el: {new Date().toLocaleString('es-DO')}</p>
+                    <p className="text-xs text-slate-500">Generado el: {formatDateTimeDisplay(new Date())}</p>
                   </div>
 
                   <table className="w-full text-xs text-left">
@@ -926,7 +927,7 @@ export default function ReceivablesPage() {
                           return (
                             <tr key={item.appliedId} className="hover:bg-slate-50/60 transition-colors">
                               <td className="px-4 py-2.5 text-slate-500">
-                                {new Date(item.receiptDate).toLocaleDateString('es-DO')}
+                                {formatDateDisplay(item.receiptDate)}
                               </td>
                               <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">
                                 REC-{item.receiptId.slice(0, 8).toUpperCase()}
@@ -1107,7 +1108,7 @@ export default function ReceivablesPage() {
                               <td className="px-3 py-3">
                                 <span className="font-mono text-slate-600 block">{inv.invoiceNumber}</span>
                               </td>
-                              <td className="px-3 py-3 text-right text-slate-600 font-semibold">{new Date(inv.dueDate).toLocaleDateString('es-DO')}</td>
+                              <td className="px-3 py-3 text-right text-slate-600 font-semibold">{formatDateDisplay(inv.dueDate)}</td>
                               <td className="px-3 py-3 text-right font-mono text-slate-500">{fmt(inv.amount)}</td>
                               <td className="px-3 py-3 text-right font-mono font-bold text-rose-600">{fmt(inv.balance)}</td>
                               <td className="px-3 py-3 text-right">
@@ -1193,7 +1194,7 @@ export default function ReceivablesPage() {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Detalles de Cobro</p>
-                      <p className="text-xs text-slate-700"><strong>Fecha:</strong> {new Date(selectedReceipt.date).toLocaleDateString('es-DO')}</p>
+                      <p className="text-xs text-slate-700"><strong>Fecha:</strong> {formatDateDisplay(selectedReceipt.date)}</p>
                       <p className="text-xs text-slate-700"><strong>Método:</strong> {selectedReceipt.paymentMethod === 'cash' ? 'Efectivo' : 'Banco'}</p>
                       {selectedReceipt.reference && <p className="text-xs text-slate-700"><strong>Referencia:</strong> {selectedReceipt.reference}</p>}
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 
 interface ThermalTicketPrintProps {
   sessionId: string;
@@ -85,8 +86,8 @@ export function ThermalTicketPrint({ sessionId, autoPrint = false }: ThermalTick
       </div>
       
       <div><strong>Cajero:</strong> {ticketData.cashier}</div>
-      <div><strong>Apertura:</strong> {new Date(ticketData.openedAt).toLocaleString()}</div>
-      <div><strong>Cierre:</strong> {new Date(ticketData.closedAt).toLocaleString()}</div>
+      <div><strong>Apertura:</strong> {formatDateTimeDisplay(ticketData.openedAt)}</div>
+      <div><strong>Cierre:</strong> {formatDateTimeDisplay(ticketData.closedAt)}</div>
       
       <div className="totals">
         <div className="row"><span>Fondo Inicial:</span><span>\$\${ticketData.initialBalance.toFixed(2)}</span></div>

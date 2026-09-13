@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import { Package, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/storefront/ui/client-button';
 import Link from 'next/link';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export const dynamic = 'force-dynamic';
 
@@ -172,7 +173,7 @@ export default async function MiCuentaPage({ params }: { params: Promise<{ empre
                     <tr key={q.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 font-medium text-[#001e40]">{q.sequenceNumber}</td>
                       <td className="px-6 py-4 text-slate-500">
-                        {new Date(q.createdAt).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {formatDateDisplay(q.createdAt)}
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(q.status)}</td>
                       <td className="px-6 py-4 text-right font-bold text-slate-700">

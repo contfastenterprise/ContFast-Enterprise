@@ -8,6 +8,7 @@ import { CONFIG_RIESGO } from '@/services/cartera/riesgo';
 import type { FilaCartera, TipoCartera } from './tipos';
 import { AVISO_CREDITO, PALABRAS, dinero } from './tipos';
 import { abrirEstadoImpreso } from './estadoImpreso';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface DocumentoPendiente {
   id: string;
@@ -22,7 +23,7 @@ interface DocumentoPendiente {
 }
 
 const fecha = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  v ? formatDateDisplay(v) : '—';
 
 export function ModalEstadoCuenta({
   fila,

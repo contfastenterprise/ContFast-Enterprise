@@ -26,6 +26,7 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 
 interface Product {
@@ -668,7 +669,7 @@ export default function ProductsPage() {
               </div>
               <div class="doc-info">
                 <div class="subtitle">CATÁLOGO DE PRODUCTOS</div>
-                <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+                <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
                 <div><strong>Productos Filtrados:</strong> ${allProducts.length}</div>
               </div>
             </div>

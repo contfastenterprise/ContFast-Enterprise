@@ -5,6 +5,7 @@ import { Clock, Coins, Percent, Plus, Trash2, X, RefreshCw, User, Calendar, Aler
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -346,7 +347,7 @@ export default function OvertimeAndEntriesPage() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {activeList.map((record) => {
                   const empName = `${record.firstName} ${record.lastName}`;
-                  const formattedDate = new Date(record.dateWorked || record.date).toLocaleDateString('es-DO');
+                  const formattedDate = formatDateDisplay(record.dateWorked || record.date);
 
                   // Style for status badge
                   const statusClass =
