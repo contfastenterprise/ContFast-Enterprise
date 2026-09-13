@@ -13,17 +13,6 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Format a Date or date string to DGII dd-MM-yyyy format.
- */
-function toDgiiDate(d: Date | string): string {
-  const date = typeof d === 'string' ? new Date(d) : d;
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
-}
-
-/**
  * La resolucion del entorno vivia aqui, en una copia que solo miraba el ajuste
  * de la empresa y no el MODO de la operacion: con la empresa en produccion, un
  * reenvio lanzado en modo PRUEBA salia a la DGII de verdad con un NCF de la

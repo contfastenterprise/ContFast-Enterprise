@@ -3,6 +3,7 @@ import { leerEstado, mensajeEstado, motivoDgii } from './estadoEnvio';
 import { leerDesenlace } from './desenlaceEnvio';
 import { leerDatosFirma } from './codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
+import { fechaDgiiExigida } from './fechaDgii';
 
 export interface ECFPayload {
   ECF: {
@@ -518,12 +519,11 @@ export class MSellerClient {
       taxCategory?: 'exento' | 'tasa_cero' | null;
     }>;
   }): ECFPayload {
-    const formatDate = (d: Date) => {
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      return `${dd}-${mm}-${yyyy}`;
-    };
+    //  El formateo dd-MM-aaaa vive en fechaDgii.ts, no aqui. Era una de las
+    //  cinco copias identicas repartidas por el sistema, y la copia de
+    //  secuencia.ts restaba un dia a cada fecha. Las que reciben una marca de
+    //  tiempo -- estas tres -- dan exactamente el mismo resultado que antes;
+    //  el banco de comprobaciones lo fija.
 
     // ------------------------------------------------------------------
     //  TASAS DE ITBIS DEL COMPROBANTE
@@ -776,7 +776,7 @@ export class MSellerClient {
       if (!dueDateStr) {
         const defaultDueDate = new Date(params.issueDate);
         defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-        dueDateStr = formatDate(defaultDueDate);
+        dueDateStr = fechaDgiiExigida(defaultDueDate, 'FechaLimitePago');
       }
       idDoc.FechaLimitePago = dueDateStr;
     }
@@ -793,7 +793,7 @@ export class MSellerClient {
         RNCEmisor: params.emitterRnc,
         RazonSocialEmisor: params.emitterName,
         DireccionEmisor: params.emitterAddress,
-        FechaEmision: formatDate(params.issueDate),
+        FechaEmision: fechaDgiiExigida(params.issueDate, 'FechaEmision'),
       },
     };
 
@@ -926,7 +926,7 @@ export class MSellerClient {
         NCFModificado: params.modifiedNcf,
       };
       if (params.modifiedNcfDate) {
-        refItem.FechaNCFModificado = formatDate(params.modifiedNcfDate);
+        refItem.FechaNCFModificado = fechaDgiiExigida(params.modifiedNcfDate, 'FechaNCFModificado');
       }
       // CODIGO DE MODIFICACION. Dos campos distintos, no uno.
       //

@@ -4,6 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, ecfSequences } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { diaDesdeFechaDgii } from '@/services/dgii/fechaDgii';
 
 export async function PUT(
   req: NextRequest,
@@ -92,25 +93,25 @@ export async function PUT(
         );
       } else {
         const trimmed = sequenceExpiry.trim();
-        if (!/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+        // Antes esto era /^\d{2}-\d{2}-\d{4}$/, que comprueba la FORMA y no la
+        // fecha: '32-13-2026' y '31-02-2026' pasaban enteras. Y este texto se
+        // guarda tal cual en `sequence_expiry`, que es lo PRIMERO que
+        // `vencimientoSecuencia` devuelve, asi que una fecha imposible viajaba
+        // dentro del e-CF hasta la DGII.
+        //
+        // El `new Date(anio, mes, dia)` que derivaba `expiry_date` lo empeoraba:
+        // ese constructor normaliza en silencio, y el 32 de enero se guardaba
+        // como el 1 de febrero. Las dos columnas de la misma secuencia acababan
+        // diciendo cosas distintas, y la que se envia era la imposible.
+        const dia = diaDesdeFechaDgii(trimmed);
+        if (!dia) {
           return NextResponse.json(
-            { success: false, error: { code: 'VALIDATION_ERROR', message: 'La fecha de vencimiento debe estar en formato dd-MM-yyyy.' } },
+            { success: false, error: { code: 'VALIDATION_ERROR', message: 'La fecha de vencimiento debe ser una fecha real en formato dd-MM-yyyy.' } },
             { status: 400, headers: resHeaders }
           );
         }
         updateFields.sequenceExpiry = trimmed;
-        
-        const parts = trimmed.split('-');
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        const dateObj = new Date(year, month, day);
-        if (!isNaN(dateObj.getTime())) {
-          const yyyy = dateObj.getFullYear();
-          const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const dd = String(dateObj.getDate()).padStart(2, '0');
-          updateFields.expiryDate = `${yyyy}-${mm}-${dd}`;
-        }
+        updateFields.expiryDate = dia;
       }
     }
 

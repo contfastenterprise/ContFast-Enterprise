@@ -40,6 +40,8 @@
  * un comprobante con un codigo inventado es un comprobante falso.
  */
 
+import { fechaDgii } from './fechaDgii';
+
 /** Nombres con los que se ha visto llegar el codigo. */
 const CLAVES_CODIGO = [
   'securityCode',
@@ -148,8 +150,11 @@ export function urlConsultaDgii(datos: {
   // La fecha va en dd-mm-aaaa CON relleno de ceros. Las cuatro rutas la
   // formateaban con `toLocaleDateString('es-DO')` y cambiando `/` por `-`, que
   // para el 2 de septiembre da "2-9-2026" en vez de "02-09-2026".
-  const d = new Date(datos.fecha);
-  const fecha = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+  // El formateo esta en fechaDgii.ts. Aqui llega siempre un `createdAt` o un
+  // `new Date()` -- una marca de tiempo real -- asi que el resultado es el
+  // mismo que antes; lo que cambia es que una fecha ilegible ya no produce
+  // "NaN-NaN-NaN" dentro del QR impreso.
+  const fecha = fechaDgii(datos.fecha) ?? '';
   const p = new URLSearchParams({
     rncEmisor: datos.rncEmisor || '',
     rncComprador: datos.rncComprador || '',

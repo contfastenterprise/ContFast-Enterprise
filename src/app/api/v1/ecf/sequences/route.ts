@@ -4,6 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, ecfSequences, invoices } from '@/db';
 import { eq, and, isNull, count, sql } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
+import { diaDesdeFechaDgii } from '@/services/dgii/fechaDgii';
 
 export async function GET(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -130,15 +131,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate sequenceExpiry format dd-MM-yyyy
-    if (sequenceExpiry && !/^\d{2}-\d{2}-\d{4}$/.test(sequenceExpiry)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: { code: 'VALIDATION_ERROR', message: 'sequenceExpiry debe estar en formato dd-MM-yyyy.' },
-        },
-        { status: 400, headers: resHeaders }
-      );
+    // La fecha se comprueba contra el CALENDARIO, no contra una forma. La
+    // expresion regular de antes dejaba pasar '32-13-2026' y '31-02-2026', y
+    // ese texto se guarda tal cual y es el que sale dentro del e-CF.
+    let diaDeVencimiento: string | null = null;
+    if (sequenceExpiry) {
+      diaDeVencimiento = diaDesdeFechaDgii(sequenceExpiry);
+      if (!diaDeVencimiento) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: { code: 'VALIDATION_ERROR', message: 'sequenceExpiry debe ser una fecha real en formato dd-MM-yyyy.' },
+          },
+          { status: 400, headers: resHeaders }
+        );
+      }
     }
 
     // Check if there is already an active sequence for this ecfType (category)
@@ -179,6 +186,10 @@ export async function POST(req: NextRequest) {
         currentSequence: startSeq - 1, // Will be incremented on first use
         maxSequence: maxSeq,
         sequenceExpiry: sequenceExpiry || null,
+        // El alta guardaba solo el texto y dejaba `expiry_date` vacia, asi que
+        // las dos columnas de la misma secuencia nacian desparejas. Se llenan
+        // juntas o no se llena ninguna.
+        expiryDate: diaDeVencimiento,
         status: 'active',
       })
       .returning();

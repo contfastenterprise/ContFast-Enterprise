@@ -41,18 +41,24 @@
  * Devolver `null` -- y no una cadena vacia ni un hueco -- es lo que deja que
  * quien arma el payload OMITA el campo, que es lo que pide el formato.
  *
+ * Y LA FECHA SALIA UN DIA ANTES
+ * -----------------------------
+ * Cuando la fecha venia de la columna `expiry_date` -- que es una columna
+ * `date`, o sea la cadena 'AAAA-MM-DD' -- esto la pasaba por `new Date(...)`
+ * y la leia con los captadores locales. Medianoche UTC son las 20:00 del dia
+ * ANTERIOR en Republica Dominicana, asi que a la DGII se le declaraba siempre
+ * un dia menos: 336 de 336 fechas medidas. El caso peor era una secuencia que
+ * vence el 1 de enero: se declaraba como del 31 de diciembre anterior, es
+ * decir, una autorizacion ya vencida dentro del propio comprobante.
+ *
+ * El formateo vive ahora en fechaDgii.ts, que no construye ningun `Date`.
+ *
  * Vive en un solo sitio a proposito: la logica estaba duplicada en dos
  * ficheros, y esa duplicacion es la razon de que el valor fijo sobreviviera
  * tanto -- arreglarlo en uno dejaba el otro igual.
  */
 import { exigeVencimientoSecuencia } from './tiposComprobante';
-
-/** dd-MM-aaaa, que es lo que espera la DGII. */
-function aFechaDgii(d: Date): string {
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  return `${dd}-${mm}-${d.getFullYear()}`;
-}
+import { fechaDgii, esFechaDgii } from './fechaDgii';
 
 /**
  * La fecha de vencimiento de la secuencia en formato dd-MM-aaaa.
@@ -71,12 +77,28 @@ export function vencimientoSecuencia(
   if (!exigeVencimientoSecuencia(ecfType)) return null;
 
   const explicita = seq?.sequenceExpiry?.trim();
-  if (explicita) return explicita;
-
-  if (seq?.expiryDate) {
-    const d = new Date(seq.expiryDate as any);
-    if (!Number.isNaN(d.getTime())) return aFechaDgii(d);
+  if (explicita) {
+    // El texto guardado se comprueba contra el CALENDARIO, no contra una
+    // forma. Las dos rutas de secuencias validaban con /^\d{2}-\d{2}-\d{4}$/,
+    // que deja pasar '32-13-2026' y '31-02-2026', y este es el valor que sale
+    // dentro del e-CF. Una fecha imposible declarada a la DGII es el mismo
+    // dano que la fecha inventada que origino este fichero.
+    if (!esFechaDgii(explicita)) {
+      throw new Error(
+        `La secuencia e-CF de tipo e-${ecfType} tiene una fecha de vencimiento que no existe: ` +
+        `"${explicita}". ` +
+        'Corrijala en Ajustes > Secuencias (dd-MM-aaaa) antes de emitir. ' +
+        'No se envia el comprobante con una fecha imposible.'
+      );
+    }
+    return explicita;
   }
+
+  // `expiry_date` es una columna `date`: drizzle la entrega como la cadena
+  // 'AAAA-MM-DD'. Aqui habia un `new Date(...)` con captadores locales, y eso
+  // restaba un dia a TODAS las fechas (336 de 336 medidas). Ver fechaDgii.ts.
+  const deLaColumna = fechaDgii(seq?.expiryDate);
+  if (deLaColumna) return deLaColumna;
 
   throw new Error(
     `La secuencia e-CF de tipo e-${ecfType} no tiene fecha de vencimiento configurada, ` +
