@@ -3,7 +3,9 @@ import { leerEstado, mensajeEstado, motivoDgii } from './estadoEnvio';
 import { leerDesenlace } from './desenlaceEnvio';
 import { leerDatosFirma } from './codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
+import { claveDeSesion, sesionVigente, olvidarSesion } from './sesionMseller';
 import { fechaDgiiExigida } from './fechaDgii';
+import { Logger } from '@/utils/logger';
 
 export interface ECFPayload {
   ECF: {
@@ -100,24 +102,16 @@ export interface MSellerStatusResponse {
   rawResponse?: unknown;
 }
 
-interface TokenCache {
-  idToken: string;
-  expiresAt: number;
-}
-
-interface SessionCookieCache {
-  cookie: string;
-  expiresAt: number;
-}
-
 export class MSellerClient {
   private baseUrl: string;
   private entorno: string;
   private email: string;
   private password: string;
   private apiKeyEncrypted: string;
-  private tokenCache: TokenCache | null = null;
-  private sessionCookieCache: SessionCookieCache | null = null;
+  //  El token y la cookie NO viven aqui. Vivian, y por eso no servian de nada:
+  //  cada emision hace `new MSellerClient(...)`, asi que el campo de instancia
+  //  nacia vacio en cada factura y se autenticaba siempre. Ahora viven en
+  //  `sesionMseller`, que dura lo que dura el proceso.
 
   constructor(config: {
     baseUrl: string;
@@ -150,70 +144,134 @@ export class MSellerClient {
     return decryptAsync(this.apiKeyEncrypted);
   }
 
-  private async authenticate(): Promise<string> {
-    // Check cache (tokens ~1 hour, we refresh at 50 min)
-    if (this.tokenCache && Date.now() < this.tokenCache.expiresAt) {
-      return this.tokenCache.idToken;
-    }
+  /** La clave con la que esta instancia busca su sesion en el caché compartido. */
+  private claveApi(): string {
+    return claveDeSesion('api', this.baseUrl, this.entorno, this.email, this.password);
+  }
 
-    const url = `${this.baseUrl}/${this.entorno}/customer/authentication`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MS_AUTENTICACION);
+  /**
+   * El token de la API, del caché compartido si lo hay.
+   *
+   * Devuelve tambien si vino del caché: lo necesitan los tiempos que se
+   * registran en cada envio, y la decision de reintentar ante un 401.
+   */
+  private async authenticate(): Promise<{ idToken: string; deCache: boolean }> {
+    const sesion = await sesionVigente(this.claveApi(), async () => {
+      const url = `${this.baseUrl}/${this.entorno}/customer/authentication`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), MS_AUTENTICACION);
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: this.email, password: this.password }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: this.email, password: this.password }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`mSeller auth failed (${response.status}): ${errText}`);
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`mSeller auth failed (${response.status}): ${errText}`);
+        }
+
+        const data = await response.json();
+        const idToken = data.idToken;
+        if (!idToken) {
+          throw new Error('mSeller auth: idToken not returned in response');
+        }
+
+        //  mSeller da tokens de alrededor de una hora; se renuevan a los 50
+        //  minutos para no apurar el margen. El numero vivia aqui antes y
+        //  sigue viviendo aqui: quien pide la sesion es quien sabe lo que dura.
+        return { valor: idToken, duracionMs: 50 * 60 * 1000 };
+      } catch (err: unknown) {
+        clearTimeout(timeoutId);
+        if ((err as Error).name === 'AbortError') {
+          throw new Error('Timeout de autenticación con mSeller (el servidor no responde).');
+        }
+        throw err;
       }
+    });
 
-      const data = await response.json();
-      const idToken = data.idToken;
-      if (!idToken) {
-        throw new Error('mSeller auth: idToken not returned in response');
-      }
-
-      // Cache for 50 minutes
-      this.tokenCache = { idToken, expiresAt: Date.now() + 50 * 60 * 1000 };
-      return idToken;
-    } catch (err: unknown) {
-      clearTimeout(timeoutId);
-      if ((err as Error).name === 'AbortError') {
-        throw new Error('Timeout de autenticación con mSeller (el servidor no responde).');
-      }
-      throw err;
-    }
+    return { idToken: sesion.valor, deCache: sesion.deCache };
   }
 
   async sendDocument(payload: ECFPayload): Promise<MSellerSendResponse> {
-    const idToken = await this.authenticate();
-    const apiKey = await this.getApiKey();
-
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), MS_ENVIO);
 
+    //  Los tiempos de cada tramo. Se registran al final pase lo que pase: si
+    //  solo se apuntaran los envios que salen bien, el dia que algo se ponga
+    //  lento no habria con que compararlo.
+    const arranque = performance.now();
+    let msAutenticacion = 0;
+    let msClaveApi = 0;
+    let msTransmision = 0;
+    let tokenDeCache = false;
+    let seReintento = false;
+
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'X-API-KEY': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+      const t0 = performance.now();
+      const sesion = await this.authenticate();
+      msAutenticacion = performance.now() - t0;
+      let idToken = sesion.idToken;
+      tokenDeCache = sesion.deCache;
+
+      const t1 = performance.now();
+      const apiKey = await this.getApiKey();
+      msClaveApi = performance.now() - t1;
+
+      const transmitir = async (token: string) => {
+        const t = performance.now();
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-API-KEY': apiKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        msTransmision += performance.now() - t;
+        return r;
+      };
+
+      //  El plazo (`MS_ENVIO`) es del envio COMPLETO, reintento incluido: el
+      //  `AbortController` es uno solo y su reloj no se reinicia. Es lo que se
+      //  quiere -- quien espera en caja espera una vez, no dos veces 45 s.
+      let response = await transmitir(idToken);
+
+      //  UN 401 CON TOKEN DEL CACHE: SE RENUEVA Y SE REINTENTA UNA VEZ.
+      //
+      //  Este caso no existia antes, y lo trae hacer que el cache funcione de
+      //  verdad: un token guardado puede caducar antes de lo que dijo, o que se
+      //  lo revoquen. Sin esto, una venta en caja moriria con "no autorizado"
+      //  por un token viejo.
+      //
+      //  Reintentar un ENVIO es delicado -- en este proyecto ya hubo e-CF
+      //  duplicados por dar por no enviado algo que si se proceso. Por eso el
+      //  reintento es estrecho:
+      //
+      //    - Solo con 401 o 403, que es una negativa EXPLICITA con cuerpo de
+      //      respuesta: mSeller rechazo la peticion sin procesar el documento.
+      //      Un corte o un plazo agotado NO entran aqui: esos son ambiguos y
+      //      siguen tratandose como antes.
+      //    - Solo si el token venia del CACHE. Si se acababa de pedir uno
+      //      nuevo y aun asi contesta 401, el problema son las credenciales, no
+      //      la caducidad, y repetir solo gasta tiempo.
+      //    - Una sola vez.
+      if ((response.status === 401 || response.status === 403) && tokenDeCache) {
+        olvidarSesion(this.claveApi());
+        const renovada = await this.authenticate();
+        idToken = renovada.idToken;
+        seReintento = true;
+        response = await transmitir(idToken);
+      }
 
       const raw = await response.json().catch(() => ({}));
 
@@ -310,7 +368,6 @@ export class MSellerClient {
         rawResponse: raw,
       };
     } catch (err: unknown) {
-      clearTimeout(timeoutId);
       const e = err as Error;
       if (e.name === 'AbortError') {
         return {
@@ -322,11 +379,26 @@ export class MSellerClient {
         success: false,
         message: e.message || 'FetchError - Error de comunicación con mSeller',
       };
+    } finally {
+      //  Se apaga aqui y no tras el fetch: con el reintento del 401 hay dos
+      //  envios posibles, y un `clearTimeout` por cada uno se olvida el dia que
+      //  aparezca un tercero. Dejarlo vivo no aborta nada ya terminado, pero
+      //  mantiene un temporizador de 45 s ocupando el proceso.
+      clearTimeout(timeoutId);
+
+      Logger.info('[tiempos-ecf] envio', {
+        autenticacion_ms: Math.round(msAutenticacion),
+        token: tokenDeCache ? 'del cache' : 'pedido',
+        clave_api_ms: Math.round(msClaveApi),
+        transmision_ms: Math.round(msTransmision),
+        total_ms: Math.round(performance.now() - arranque),
+        reintento_por_401: seReintento,
+      });
     }
   }
 
   async getDocumentStatus(ncf: string): Promise<MSellerStatusResponse> {
-    const idToken = await this.authenticate();
+    const { idToken } = await this.authenticate();
     const apiKey = await this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf?ecf=${encodeURIComponent(ncf)}`;
@@ -420,7 +492,7 @@ export class MSellerClient {
     rawResponse?: unknown;
     message?: string;
   }> {
-    const idToken = await this.authenticate();
+    const { idToken } = await this.authenticate();
     const apiKey = await this.getApiKey();
 
     const url = `${this.baseUrl}/${this.entorno}/documentos-ecf/status/batch`;
@@ -1024,11 +1096,27 @@ export class MSellerClient {
     return payload as unknown as ECFPayload;
   }
 
+  /**
+   * La cookie del PORTAL de mSeller, que no es el token de la API: otro sitio,
+   * otro inicio de sesion, otra sesion. Solo la usa `downloadXml`.
+   *
+   * Tenia el mismo fallo que el token -- caché de instancia, instancia nueva en
+   * cada llamada -- asi que tampoco acertaba nunca. Se arregla igual y en el
+   * mismo sitio: dejar uno de los dos con el defecto seria dejar dos formas
+   * distintas de hacer lo mismo a un palmo de distancia.
+   */
   private async getPortalSessionCookie(): Promise<string> {
-    if (this.sessionCookieCache && Date.now() < this.sessionCookieCache.expiresAt) {
-      return this.sessionCookieCache.cookie;
-    }
+    const clave = claveDeSesion('portal', 'https://ecf.mseller.app', this.entorno, this.email, this.password);
+    const sesion = await sesionVigente(clave, async () => {
+      const cookie = await this.iniciarSesionEnPortal();
+      //  Las cookies de NextAuth duran del orden de una hora; se renuevan a los
+      //  50 minutos, igual que el token.
+      return { valor: cookie, duracionMs: 50 * 60 * 1000 };
+    });
+    return sesion.valor;
+  }
 
+  private async iniciarSesionEnPortal(): Promise<string> {
     const domain = 'https://ecf.mseller.app';
     const csrfRes = await fetch(`${domain}/api/auth/csrf`);
     if (!csrfRes.ok) {
@@ -1064,12 +1152,6 @@ export class MSellerClient {
     if (!sessionCookie || !sessionCookie.includes('session-token')) {
       throw new Error('Failed to obtain NextAuth session cookie from mSeller portal.');
     }
-
-    // Cache session cookie for 50 minutes
-    this.sessionCookieCache = {
-      cookie: sessionCookie,
-      expiresAt: Date.now() + 50 * 60 * 1000,
-    };
 
     return sessionCookie;
   }
