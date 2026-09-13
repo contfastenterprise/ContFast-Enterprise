@@ -245,7 +245,20 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   // 8. Update dgii_submissions status to 'processing'
   await db
     .update(dgiiSubmissions)
-    .set({ status: 'processing', updatedAt: new Date() })
+    .set({
+      status: 'processing',
+      //  La PETICION se guarda AQUI, en la marca de 'processing', y no en
+      //  cada una de las tres ramas de resultado de mas abajo.
+      //
+      //  Por dos razones. Una: es un sitio en vez de tres, y tres copias de lo
+      //  mismo es como se pierde una. Dos, la que importa: esto ocurre ANTES
+      //  de `sendDocument`. Si el envio revienta -- se cae la red, mSeller no
+      //  contesta, el proceso muere -- lo que hace falta para entender que
+      //  paso es justamente lo que se intento mandar, y para entonces ya esta
+      //  guardado.
+      requestPayload: JSON.stringify(ecfPayload),
+      updatedAt: new Date(),
+    })
     .where(esteEnvio);
 
   // 9. Send document to mSeller

@@ -775,6 +775,11 @@ export class InvoiceDbBooker {
           trackId: submission.msellerTrackId,
           responseMessage: submission.dgiiMessage,
           responsePayload: JSON.stringify(submission.msellerResponsePayload),
+          //  La otra mitad de la conversacion. Hasta ahora se guardaba lo que
+          //  contesto la DGII y no lo que se le declaro.
+          requestPayload: submission.msellerRequestPayload
+            ? JSON.stringify(submission.msellerRequestPayload)
+            : null,
           // El codigo de seguridad, en su propia columna (0041). Antes solo
           // vivia dentro de `response_payload`, y las rutas de sincronizacion
           // pisaban ese JSON con la respuesta de la consulta de estado, que no
@@ -784,6 +789,10 @@ export class InvoiceDbBooker {
           modo: data.modo,
         });
       } else if (submission.finalStatus === 'signed') {
+        //  Aqui NO se guarda `requestPayload`, y no es un olvido: en este
+        //  camino el comprobante todavia no se ha armado. Lo arma el trabajo
+        //  en diferido (`jobRunners`), y es el quien lo guarda al marcar el
+        //  envio como 'processing'.
         const [envio] = await tx.insert(dgiiSubmissions).values({
           companyId: data.companyId,
           invoiceId: invoice.id,
@@ -817,6 +826,9 @@ export class InvoiceDbBooker {
           responseMessage: submission.dgiiMessage,
           responsePayload: submission.msellerResponsePayload
             ? JSON.stringify(submission.msellerResponsePayload)
+            : null,
+          requestPayload: submission.msellerRequestPayload
+            ? JSON.stringify(submission.msellerRequestPayload)
             : null,
           securityCode: submission.securityHash || null,
           retryCount: 0,

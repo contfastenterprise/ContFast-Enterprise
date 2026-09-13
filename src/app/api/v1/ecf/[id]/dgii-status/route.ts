@@ -172,6 +172,11 @@ export async function GET(
         // La consulta que se acaba de hacer SI es una respuesta de la DGII
         // sobre este comprobante, asi que se guarda como lo que es: la
         // constancia que faltaba.
+        //  Sin `requestPayload`, y a proposito: esto NO es un envio, es una
+        //  CONSULTA de estado. Lo que se le mando a la DGII aqui es una
+        //  pregunta por un trackId, no un comprobante. La fila que queda
+        //  recoge la respuesta a esa consulta; la peticion del envio original
+        //  esta en la fila de aquel envio.
         await db.insert(dgiiSubmissions).values({
           companyId: auth.companyId,
           invoiceId: id,

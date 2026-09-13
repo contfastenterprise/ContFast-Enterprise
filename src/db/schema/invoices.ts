@@ -402,7 +402,36 @@ export const dgiiSubmissions = pgTable('dgii_submissions', {
   status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | processing | accepted | rejected | failed
   responseCode: varchar('response_code', { length: 50 }),
   responseMessage: text('response_message'),
-  xmlPayload: text('xml_payload'),
+  /**
+   * El payload que se le MANDO a la DGII, tal cual salio.
+   *
+   * SE LLAMABA `xml_payload` Y NUNCA SE ESCRIBIO
+   * -------------------------------------------
+   * La columna existe desde la migracion 0000. En todo src/ la palabra
+   * aparecia UNA sola vez: aqui, en la declaracion. Ningun `insert` ni
+   * `update` la tocaba, y nadie la leia. O sea: del envio a la DGII se
+   * guardaba la RESPUESTA (`response_payload`) y no la PETICION.
+   *
+   * Eso no es una curiosidad. Un e-CF es un documento fiscal: lo que importa
+   * cuando alguien pregunta meses despues no es solo que contesto la DGII,
+   * sino QUE SE LE DECLARO. Sin esto, la unica forma de saberlo es deducirlo
+   * del codigo de hoy -- que puede haber cambiado diez veces desde entonces.
+   *
+   * Medido en la auditoria: tres veces hubo que responder "que fecha se
+   * declaro en este comprobante" y las tres hubo que deducirlo, porque las
+   * consultas que leian esta columna volvian vacias.
+   *
+   * Y EL NOMBRE MENTIA
+   * ------------------
+   * Lo que se manda a mSeller es JSON, no XML. La columna se renombro a
+   * `request_payload` en el mismo movimiento: estaba vacia y nadie la leia,
+   * asi que no habia mejor momento. Hace juego con `response_payload`, que
+   * tampoco se llama xml y tampoco lo es.
+   *
+   * NULO significa "de antes de que esto se guardara". No se rellena hacia
+   * atras: el payload de un envio pasado no se puede reconstruir sin mentir.
+   */
+  requestPayload: text('request_payload'),
   responsePayload: text('response_payload'),
   // El codigo de seguridad de la DGII, en su propia columna (0041). Vivia solo
   // dentro de `response_payload`, y las rutas de sincronizacion pisaban ese

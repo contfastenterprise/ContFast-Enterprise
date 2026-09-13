@@ -1,0 +1,1 @@
+ALTER TABLE "dgii_submissions" RENAME COLUMN "xml_payload" TO "request_payload";

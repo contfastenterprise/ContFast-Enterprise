@@ -30,6 +30,10 @@ export class InvoiceSubmissionService {
     let qrCode: string | null = null;
     let finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected' = 'signed';
     let msellerResponsePayload: unknown = null;
+    //  La PETICION, no solo la respuesta. Se declara aqui arriba porque
+    //  `msellerPayload` se arma dentro de un bloque anidado y no llega al
+    //  return: el mismo motivo por el que `msellerResponsePayload` vive aqui.
+    let msellerRequestPayload: unknown = null;
 
     // El entorno depende del MODO de la emision. La copia local que habia aqui
     // era la unica de las cuatro que lo miraba, pero perdia el caso de
@@ -146,6 +150,10 @@ export class InvoiceSubmissionService {
         });
 
         // MSeller synchronously sends the document to DGII
+        //  Se guarda ANTES de enviar. Si el envio revienta, lo que importa
+        //  para entender que paso es justamente lo que se intento mandar.
+        msellerRequestPayload = msellerPayload;
+
         const msellerRes = await msellerClient.sendDocument(msellerPayload);
 
         if (msellerRes.success) {
@@ -222,6 +230,7 @@ export class InvoiceSubmissionService {
       qrCode,
       finalStatus,
       msellerResponsePayload,
+      msellerRequestPayload,
     };
   }
 }

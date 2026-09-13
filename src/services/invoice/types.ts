@@ -111,6 +111,14 @@ export interface DgiiSubmissionResult {
   qrCode: string | null;
   finalStatus: 'signed' | 'submitted' | 'accepted' | 'rejected';
   msellerResponsePayload: unknown;
+  /**
+   * El payload que se le mando a la DGII. `null` si no se llego a enviar
+   * -- sin credenciales, o si fallo antes de armarlo.
+   *
+   * Viaja hasta aqui para que quien escribe la fila de `dgii_submissions`
+   * pueda guardarlo: del envio se guardaba la respuesta y no la peticion.
+   */
+  msellerRequestPayload: unknown;
 }
 
 export class EcfRejectedError extends Error {
