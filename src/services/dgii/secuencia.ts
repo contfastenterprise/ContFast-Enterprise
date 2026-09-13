@@ -68,37 +68,72 @@ import { fechaDgii, esFechaDgii } from './fechaDgii';
  *   - La fecha, en los tipos que la llevan.
  *   - Lanza si el tipo la lleva y no consta: no hay valor por defecto.
  */
-export function vencimientoSecuencia(
-  seq: { sequenceExpiry?: string | null; expiryDate?: Date | string | null } | null | undefined,
-  ecfType: string
-): string | null {
+type Secuencia = { sequenceExpiry?: string | null; expiryDate?: Date | string | null } | null | undefined;
+
+/**
+ * La fecha de vencimiento SI CONSTA, sin parar nada. Para IMPRIMIR.
+ *
+ * Emitir e imprimir no son lo mismo, y por eso hay dos funciones:
+ *
+ *   EMITIR    se para. Un comprobante que todavia no existe y al que le falta
+ *             un dato fiscal no se manda; pararse es reparable.
+ *   IMPRIMIR  devuelve `null`. El comprobante YA existe y YA se declaro a la
+ *             DGII. Negarse a imprimirlo o a mandarlo por correo no arregla
+ *             nada -- solo deja al cliente sin su papel. La plantilla ya omite
+ *             la linea cuando esto es null (`inv.ncfExpiryDate` en
+ *             documentTemplates), que es lo correcto: mejor sin la linea que
+ *             con una fecha inventada.
+ *
+ * Nacio porque TRES sitios -- el correo, la impresion y el PDF -- tenian su
+ * propia copia de esta logica, escrita asi:
+ *
+ *     sequence?.sequenceExpiry
+ *       || (sequence?.expiryDate
+ *             ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-')
+ *             : null)
+ *
+ * Tres fallos en una linea, y la linea repetida tres veces:
+ *   - `new Date` sobre una columna `date` resta un dia (lo de siempre);
+ *   - `toLocaleDateString('es-DO')` no rellena con ceros, asi que el
+ *     `.replace` daba "1-9-2026", que ni siquiera es dd-MM-aaaa;
+ *   - el texto guardado no se comprobaba contra el calendario.
+ */
+export function vencimientoSecuenciaSiConsta(seq: Secuencia, ecfType: string): string | null {
   // El tipo manda. Aunque la secuencia tuviera una fecha cargada, en un e-32 o
   // un e-34 el campo no va en el documento: devolverla haria que se enviara.
   if (!exigeVencimientoSecuencia(ecfType)) return null;
 
+  // El texto guardado se comprueba contra el CALENDARIO, no contra una forma.
+  // Las dos rutas de secuencias validaban con /^\d{2}-\d{2}-\d{4}$/, que deja
+  // pasar '32-13-2026' y '31-02-2026', y este es el valor que sale dentro del
+  // e-CF y en el papel.
   const explicita = seq?.sequenceExpiry?.trim();
-  if (explicita) {
-    // El texto guardado se comprueba contra el CALENDARIO, no contra una
-    // forma. Las dos rutas de secuencias validaban con /^\d{2}-\d{2}-\d{4}$/,
-    // que deja pasar '32-13-2026' y '31-02-2026', y este es el valor que sale
-    // dentro del e-CF. Una fecha imposible declarada a la DGII es el mismo
-    // dano que la fecha inventada que origino este fichero.
-    if (!esFechaDgii(explicita)) {
-      throw new Error(
-        `La secuencia e-CF de tipo e-${ecfType} tiene una fecha de vencimiento que no existe: ` +
-        `"${explicita}". ` +
-        'Corrijala en Ajustes > Secuencias (dd-MM-aaaa) antes de emitir. ' +
-        'No se envia el comprobante con una fecha imposible.'
-      );
-    }
-    return explicita;
-  }
+  if (explicita) return esFechaDgii(explicita) ? explicita : null;
 
   // `expiry_date` es una columna `date`: drizzle la entrega como la cadena
   // 'AAAA-MM-DD'. Aqui habia un `new Date(...)` con captadores locales, y eso
   // restaba un dia a TODAS las fechas (336 de 336 medidas). Ver fechaDgii.ts.
-  const deLaColumna = fechaDgii(seq?.expiryDate);
-  if (deLaColumna) return deLaColumna;
+  return fechaDgii(seq?.expiryDate);
+}
+
+export function vencimientoSecuencia(seq: Secuencia, ecfType: string): string | null {
+  if (!exigeVencimientoSecuencia(ecfType)) return null;
+
+  const valor = vencimientoSecuenciaSiConsta(seq, ecfType);
+  if (valor) return valor;
+
+  // Aqui abajo ya se sabe que falta. Solo queda decir POR QUE, que no es lo
+  // mismo segun lo que haya en la fila: una fecha imposible se corrige, una
+  // ausente se carga.
+  const explicita = seq?.sequenceExpiry?.trim();
+  if (explicita) {
+    throw new Error(
+      `La secuencia e-CF de tipo e-${ecfType} tiene una fecha de vencimiento que no existe: ` +
+      `"${explicita}". ` +
+      'Corrijala en Ajustes > Secuencias (dd-MM-aaaa) antes de emitir. ' +
+      'No se envia el comprobante con una fecha imposible.'
+    );
+  }
 
   throw new Error(
     `La secuencia e-CF de tipo e-${ecfType} no tiene fecha de vencimiento configurada, ` +

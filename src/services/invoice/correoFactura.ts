@@ -41,6 +41,7 @@ import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
+import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
 
 export type Modo = 'PRODUCCION' | 'PRUEBA';
 
@@ -116,11 +117,12 @@ export async function regenerarPdfFactura(opciones: {
         )
         .limit(1);
 
-      // Era `: '31-12-2027'`. Una fecha de vencimiento inventada, impresa en el
-// comprobante del cliente bajo el rotulo "Fecha Vencimiento". Sin fecha no se
-// imprime la linea: la plantilla ya la omite cuando esto es null.
-const ncfExpiry = sequence?.sequenceExpiry
-  || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : null);
+      // La misma regla que usa la emision, en el mismo sitio. Aqui habia una
+      // copia escrita a mano que restaba un dia (`new Date` sobre una columna
+      // `date`) y que ademas no rellenaba con ceros: daba "1-9-2026", que no
+      // es dd-MM-aaaa. Sin fecha no se imprime la linea: la plantilla ya la
+      // omite cuando esto es null.
+      const ncfExpiry = vencimientoSecuenciaSiConsta(sequence, invoice.ecfType);
 
       // Fetch lines with product SKU
       const lines = await db

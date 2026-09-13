@@ -8,6 +8,7 @@ import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmission
 import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
 import { verifyAuth } from '@/middleware/auth';
 import { Logger } from '@/utils/logger';
+import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
 
 async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', isReprint: boolean = false) {
   // 1. Fetch invoice from DB
@@ -56,11 +57,11 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
     )
     .limit(1);
 
-  // Era `: '31-12-2027'`. Una fecha de vencimiento inventada, impresa en el
-  // comprobante del cliente bajo el rotulo "Fecha Vencimiento". Sin fecha no se
-  // imprime la linea: la plantilla ya la omite cuando esto es null.
-  const ncfExpiry = sequence?.sequenceExpiry
-    || (sequence?.expiryDate ? new Date(sequence.expiryDate).toLocaleDateString('es-DO').replace(/\//g, '-') : null);
+  // La misma regla que usa la emision, en el mismo sitio. Aqui habia una copia
+  // escrita a mano que restaba un dia (`new Date` sobre una columna `date`) y
+  // que ademas no rellenaba con ceros: daba "1-9-2026", que no es dd-MM-aaaa.
+  // Sin fecha no se imprime la linea: la plantilla ya la omite cuando es null.
+  const ncfExpiry = vencimientoSecuenciaSiConsta(sequence, invoiceRecordDb.ecfType);
 
   if (!company) {
     throw new Error('Company profile not found');
