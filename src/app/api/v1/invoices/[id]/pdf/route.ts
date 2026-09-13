@@ -30,10 +30,24 @@ import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
  *  4. Un credencial en la barra de direcciones queda en los registros del
  *     servidor, en el historial del navegador y en la cabecera Referer.
  *
- * Si en algun momento hace falta entregar una factura a alguien sin sesion, el
- * sistema YA tiene el mecanismo correcto y es mejor que este: `documentShares`
- * (DocumentService.createShareToken), con testigo aleatorio de 32 bytes
- * guardado en la base, caducidad y posibilidad de revocarlo.
+ * SI ALGUN DIA HACE FALTA ENTREGAR UNA FACTURA SIN SESION
+ * -------------------------------------------------------
+ * Aqui decia que el sistema ya tenia el mecanismo bueno y que solo habia que
+ * usarlo: `documentShares` / `DocumentService.createShareToken`. Era cierto
+ * cuando se escribio, y dejo de serlo en el lote 100: aquel mecanismo estaba
+ * en un modulo al que no se llegaba desde ninguna parte -- la pagina no
+ * figuraba en el menu, nada enlazaba a ella, y la tabla `document_shares`
+ * tenia CERO filas desde que existia -- asi que se retiro entero.
+ *
+ * Se queda escrita la forma, que es lo que valia: testigo ALEATORIO de 32
+ * bytes guardado en la base junto al id del documento y la empresa, con
+ * caducidad y una columna para revocarlo; la ruta publica resuelve el testigo
+ * contra la base y sirve el documento, sin tocar la sesion. Escribirlo de
+ * nuevo es media tarde.
+ *
+ * Lo que NO hay que volver a hacer es lo de los cuatro puntos de arriba: un
+ * credencial en la barra de direcciones. Un testigo de base de datos se
+ * revoca; un JWT en la URL, no.
  */
 export async function GET(
   req: NextRequest,

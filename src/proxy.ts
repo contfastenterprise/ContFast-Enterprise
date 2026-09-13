@@ -241,8 +241,6 @@ export async function proxy(req: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/api/v1') ||
-    // Auditoria F0-03: /api/documents servia PDF y enviaba correos sin autenticacion.
-    pathname.startsWith('/api/documents') ||
     pathname.startsWith('/bank') ||
     pathname.startsWith('/reports') ||
     pathname.startsWith('/support');
@@ -432,7 +430,6 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/api/v1/:path*',
-    '/api/documents/:path*',
     '/bank/:path*',
     '/reports/:path*',
     '/support/:path*',

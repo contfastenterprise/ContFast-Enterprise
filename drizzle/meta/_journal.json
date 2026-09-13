@@ -43,6 +43,13 @@
       "when": 1789334357759,
       "tag": "0005_fat_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789336020087,
+      "tag": "0006_smart_maggott",
+      "breakpoints": true
     }
   ]
 }

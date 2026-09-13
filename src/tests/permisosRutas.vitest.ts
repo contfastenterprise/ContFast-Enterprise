@@ -34,6 +34,9 @@
  *   - `actions/documents.ts` no comprobaba NADA, y recibia el `companyId` como
  *     PARAMETRO. Preguntarle a quien llama de que empresa es no acota nada:
  *     quien invoca elige la respuesta.
+ *     (Ese fichero ya no existe: el lote 100 retiro el modulo de documentos
+ *     entero por no llegarse a el desde ninguna parte. Se deja escrito aqui
+ *     porque es el motivo por el que estas pruebas miran las acciones.)
  *
  * Las tres pruebas de abajo cierran ese hueco por forma, no por lista: una
  * accion nueva sin permiso, o que vuelva a recibir la empresa por parametro,
@@ -79,9 +82,9 @@ const COMPROBACIONES = [
  *    cerrarlos junto a el.
  */
 const PENDIENTES = new Set([
-  // `documents/email` y `documents/share` salieron de aqui: ya comprueban
-  // `facturacion:read` y `facturacion:write`. La lista solo puede encoger.
-  'documents/pdf/[type]/[id]/route.ts',
+  // Las tres rutas `documents/*` salieron de aqui en el lote 100, no por
+  // haberse corregido sino porque se retiro el modulo entero: no se llegaba a
+  // el desde ninguna parte. La lista solo puede encoger.
   'storefront/quotes/route.ts',
   'v1/admin/permissions/route.ts',
   'v1/admin/sessions/route.ts',
@@ -164,11 +167,9 @@ describe('ISO-03 · comprobacion de permisos en las rutas de la API', () => {
 
   it('las rutas sensibles del lote corregido comprueban permiso', () => {
     const cerradas = [
-      // Salieron de PENDIENTES al cerrarse las acciones de documentos. Aqui
-      // quedan fijadas: si alguien les quita la comprobacion, esto se cae en vez
-      // de que vuelvan calladas a la lista de deuda.
-      'documents/email/[type]/[id]/route.ts',
-      'documents/share/[type]/[id]/route.ts',
+      // Aqui estaban `documents/email` y `documents/share`, fijadas tras
+      // cerrarles el permiso. El lote 100 retiro el modulo entero, asi que ya
+      // no hay ruta que fijar. Las demas siguen.
       'v1/hr/employees/route.ts',
       'v1/hr/payroll/route.ts',
       'v1/hr/settlements/route.ts',
