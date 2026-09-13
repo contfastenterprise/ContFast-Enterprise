@@ -47,13 +47,86 @@ export function getFirstDayOfMonthString(): string {
   return `${year}-${month}-01`;
 }
 
-export function formatDateDisplay(dateString: string | null | undefined): string {
-  if (!dateString) return '-';
-  const parts = dateString.split('T')[0].split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateString;
+/**
+ * La fecha que LEE UNA PERSONA: dd-MM-aaaa.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * POR QUE HAY QUE PASAR POR AQUI Y NO LLAMAR A `toLocaleDateString`
+ * ─────────────────────────────────────────────────────────────────────────
+ * Medido en el barrido: 147 sitios pintaban fechas con
+ * `new Date(algo).toLocaleDateString('es-DO')`, y de ellos 61 recibian una
+ * columna `date` -- o sea la cadena 'AAAA-MM-DD'. `new Date` la lee como
+ * MEDIANOCHE UTC, que en Republica Dominicana son las 20:00 del dia
+ * ANTERIOR, asi que esos 61 sitios enseñaban un dia menos: vencimientos de
+ * CxC y CxP, periodos de nomina, fechas de cheques.
+ *
+ * Y ademas `toLocaleDateString('es-DO')` NO rellena con ceros:
+ *
+ *     new Date(2026, 8, 2).toLocaleDateString('es-DO')   ->  "2/9/2026"
+ *
+ * Asi que convivian cinco formatos distintos en la misma aplicacion.
+ *
+ * Aqui no se construye ningun `Date` para la fecha: `diaDe` corta la cadena
+ * cuando es una cadena y usa los captadores locales cuando es un instante
+ * real. Esa es la propiedad que hay que conservar si alguien toca esto.
+ *
+ * Lo ilegible se devuelve TAL CUAL en vez de taparse con un guion. Un dato
+ * raro que se ve es un dato que alguien puede arreglar; uno tapado, no.
+ */
+export function formatDateDisplay(valor: string | Date | null | undefined): string {
+  const dia = diaDe(valor);
+  if (dia) return `${dia.slice(8, 10)}-${dia.slice(5, 7)}-${dia.slice(0, 4)}`;
+  if (typeof valor === 'string' && valor.trim() !== '') return valor;
+  return '-';
+}
+
+/**
+ * La hora local de un instante, 'hh:mm' en 24 horas. `null` si no hay hora
+ * que leer.
+ *
+ * Solo la tiene una MARCA DE TIEMPO. Una columna `date` es un dia, no un
+ * instante: no hay hora que enseñar y fabricar "00:00" seria inventarla.
+ */
+function horaDe(valor: string | Date | null | undefined): string | null {
+  const d = valor instanceof Date
+    ? valor
+    : (typeof valor === 'string' && valor.includes('T') ? new Date(valor) : null);
+  if (!d || Number.isNaN(d.getTime())) return null;
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Solo la hora, 'hh:mm' en 24 horas. `'-'` si no hay hora que enseñar.
+ *
+ * La usan las pantallas que ya tienen la fecha en otra columna -- la caja, el
+ * panel de sesiones -- y solo necesitan la hora. Antes era
+ * `toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })`, que
+ * en RD da "02:05 a. m.": el "a. m." ocupa sitio sin decir nada que las 24
+ * horas no digan, y en una tabla estrecha es justo lo que sobra.
+ *
+ * Un dia sin hora da `'-'`, no "00:00": una columna `date` no tiene hora y
+ * fabricar una medianoche seria inventarla.
+ */
+export function formatTimeDisplay(valor: string | Date | null | undefined): string {
+  return horaDe(valor) ?? '-';
+}
+
+/**
+ * Fecha y hora: 'dd-MM-aaaa hh:mm'.
+ *
+ * Sustituye a `new Date(x).toLocaleString('es-DO')`, que daba
+ * "2/9/2026, 12:00:00 a. m.": sin relleno, con segundos que en un listado
+ * son ruido, y con un "a. m." que ocupa sitio sin decir nada que las 24
+ * horas no digan.
+ *
+ * Si lo que llega es un dia sin hora, devuelve solo la fecha. No se inventa
+ * una medianoche que nadie ha medido.
+ */
+export function formatDateTimeDisplay(valor: string | Date | null | undefined): string {
+  const fecha = formatDateDisplay(valor);
+  if (fecha === '-') return fecha;
+  const hora = horaDe(valor);
+  return hora ? `${fecha} ${hora}` : fecha;
 }
 
 /**
