@@ -7,6 +7,13 @@ export interface IssueInvoiceInput {
   cashSessionId?: string;
   ecfType: string; // '31' (Fiscal), '32' (Consumo), etc.
   paymentType: 'cash' | 'credit' | 'bank_transfer';
+  /**
+   * 'AAAA-MM-DD'. Obligatoria cuando el pago es a CREDITO; el esquema la exige.
+   *
+   * Es la `FechaLimitePago` del e-CF. Antes no llegaba hasta aqui y
+   * `msellerClient` la fabricaba con `issueDate + 1 mes`.
+   */
+  paymentDueDate?: string;
   bankName?: string;
   transactionNumber?: string;
   buyerRnc?: string;

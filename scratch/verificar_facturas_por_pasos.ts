@@ -151,14 +151,19 @@ if (src.length < 50000 || auto.length < 5000 || cot.length < 5000) {
 // ============================================================================
 const claves = clavesDelEsquema(esquemaFactura);
 
-// Precondicion, no comprobacion: este lote no toca el esquema, asi que salir
-// OK aqui no dice nada -- salia OK igual antes. Lo que hace falta es que el
-// desenvuelto de la cadena de `.refine(...)` haya funcionado: con `claves`
-// vacio, los dos `every` de abajo son ciertos gratis y el banco daria verde sin
-// mirar nada. Si cambia el numero de campos, hay que revisar el reparto a mano.
-if (claves.length !== 17) {
+// Precondicion, no comprobacion: salir OK aqui no dice nada -- lo que hace
+// falta es que el desenvuelto de la cadena de `.refine(...)` haya funcionado.
+// Con `claves` vacio, los dos `every` de abajo son ciertos gratis y el banco
+// daria verde sin mirar nada. Si cambia el numero de campos, hay que revisar
+// el reparto a mano.
+//
+// Eran 17 hasta el lote 94, que anadio `paymentDueDate`: la fecha limite de
+// pago de una factura a credito, que hasta entonces se fabricaba con
+// `issueDate + 1 mes` dentro de `msellerClient` porque no habia donde
+// guardarla. Va al paso 1 porque la decide la forma de pago.
+if (claves.length !== 18) {
   throw new Error(
-    `Se esperaban 17 campos en esquemaFactura y se leyeron ${claves.length}. ` +
+    `Se esperaban 18 campos en esquemaFactura y se leyeron ${claves.length}. ` +
     'O el esquema cambio -- y entonces hay que repartir el campo nuevo en ' +
     'pasos.ts -- o el desenvuelto de los .refine() dejo de funcionar.'
   );
@@ -328,9 +333,19 @@ ok('y no sale dos veces en el ultimo paso',
 // Las seis secciones se mudaron tal cual. Si al partirlas se hubiera perdido un
 // campo por el camino, esto lo caza: son los controles que tenian que seguir
 // existiendo, cada uno en su paso.
-ok('el paso 1 conserva sus cinco controles',
-  ['value={ecfType}', 'value={paymentType}', 'value={bankName}',
+ok('el paso 1 conserva sus seis controles',
+  ['value={ecfType}', 'value={paymentType}', 'value={paymentDueDate}', 'value={bankName}',
    'value={transactionNumber}', 'value={indicadorNotaCredito}'].every(c => tiene(p1, c)));
+
+// La fecha limite solo tiene sentido a credito, y solo el credito la exige. Si
+// se pintara siempre, pediria un dato que en una factura al contado no va en el
+// comprobante; si se pintara nunca, el paso 1 no podria frenar por ella y el
+// asistente dejaria llegar al final para morir al emitir.
+ok('la fecha limite de pago aparece solo cuando el pago es a credito',
+  tiene(p1, "{paymentType === 'credit' && (") && tiene(p1, 'value={paymentDueDate}'));
+
+ok('y su error se pinta en el paso 1, junto al control',
+  tiene(p1, "err('paymentDueDate')"));
 
 ok('el paso 2 conserva el cliente entero',
   ['<CustomerAutocomplete', 'value={customerRnc}', 'value={customerPhone}'].every(c => tiene(p2, c)));

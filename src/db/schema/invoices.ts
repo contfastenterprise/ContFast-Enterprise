@@ -162,6 +162,41 @@ export const invoices = pgTable('invoices', {
   dgiiMessage: text('dgii_message'),
   notes: text('notes'),
   paymentType: varchar('payment_type', { length: 50 }).default('cash').notNull(),
+  /**
+   * La fecha limite de pago de una factura a CREDITO, tal y como se pacto.
+   *
+   * Existe porque no existia. `FechaLimitePago` es un campo del e-CF que la
+   * DGII exige cuando el `TipoPago` es 2 (credito), y el sistema no tenia de
+   * donde sacarlo: no hay vencimiento en la factura ni plazo en el cliente
+   * (`customers` solo guarda `credit_limit`). Asi que `msellerClient` lo
+   * FABRICABA:
+   *
+   *     const defaultDueDate = new Date(params.issueDate);
+   *     defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+   *
+   * El parametro `paymentDueDate` que habria evitado eso estaba declarado pero
+   * NO LO PASABA NADIE, en todo el sistema, asi que la rama del valor
+   * inventado corria siempre. Medido: el credito es el 84% de las facturas de
+   * produccion, o sea que casi todos los comprobantes emitidos declaran a la
+   * DGII una fecha limite que nadie pacto.
+   *
+   * Y el `setMonth` lo empeoraba en los dias 29-31: emitida el 31 de enero, la
+   * fecha limite declarada era el 3 de MARZO, porque el 31 de febrero no
+   * existe y JavaScript lo normaliza hacia adelante.
+   *
+   * Es el mismo patron que `ecf_sequences.sequence_expiry` con su
+   * '31-12-2026' y que el codigo de seguridad con su sha256: inventar un valor
+   * antes que admitir una ausencia. Aqui la ausencia era de columna.
+   *
+   * Columna `date`, no `timestamp`: es un DIA pactado, no un instante. Llega
+   * por drizzle como la cadena 'AAAA-MM-DD' y se formatea con `fechaDgii`,
+   * que no construye ningun `Date` -- ver src/services/dgii/fechaDgii.ts.
+   *
+   * NULA solo en lo emitido ANTES de esta columna. De aqui en adelante una
+   * factura a credito no se emite sin ella: el esquema la exige en el paso 1
+   * del asistente y `buildECFPayload` se para si falta.
+   */
+  paymentDueDate: date('payment_due_date'),
   bankName: varchar('bank_name', { length: 100 }),
   transactionNumber: varchar('transaction_number', { length: 100 }),
   modifiedNcf: varchar('modified_ncf', { length: 13 }),

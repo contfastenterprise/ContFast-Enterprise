@@ -35,6 +35,12 @@
  * paso 4 llegaria tarde -- y hasta ahora su error se pintaba, literalmente,
  * debajo de la tabla de articulos.
  *
+ * POR QUE `paymentDueDate` VA EN EL PASO 1
+ * -------------------------------------
+ * Porque lo decide la FORMA DE PAGO, que se elige aqui mismo. El campo solo
+ * existe cuando el pago es a credito, y su error tiene que salir al lado del
+ * desplegable que lo hizo aparecer, no cuatro pasos despues.
+ *
  * POR QUE `warehouseId` VA EN EL PASO 3
  * -------------------------------------
  * Es el almacen del que sale la mercancia, y cada linea puede llevar el suyo
@@ -52,7 +58,7 @@ export const PASOS = [
     n: 1,
     titulo: 'El comprobante',
     campos: [
-      'ecfType', 'paymentType', 'bankName', 'transactionNumber',
+      'ecfType', 'paymentType', 'paymentDueDate', 'bankName', 'transactionNumber',
       'modifiedNcf', 'modifiedInvoiceId', 'indicadorNotaCredito',
       'cashSessionId', 'quoteId',
     ],

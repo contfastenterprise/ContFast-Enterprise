@@ -16,6 +16,11 @@ const saveDraftSchema = z.object({
   // Misma lista que la emision. Ver src/services/dgii/tiposComprobante.ts.
   ecfType: z.enum(CODIGOS_EMITIBLES),
   paymentType: z.enum(['cash', 'credit', 'bank_transfer']),
+  //  Opcional incluso a credito, a diferencia de `esquemaFactura`: un borrador
+  //  esta incompleto por definicion y se guarda desde cualquier paso. Exigirla
+  //  aqui seria impedir guardar a medias justo lo que aun no se ha decidido.
+  //  Quien la exige es la EMISION.
+  paymentDueDate: z.string().optional(),
   bankName: z.string().optional(),
   transactionNumber: z.string().optional(),
   notes: z.string().optional(),
@@ -84,6 +89,7 @@ export async function POST(req: NextRequest) {
       userId: auth.userId,
       ecfType: data.ecfType,
       paymentType: data.paymentType,
+      paymentDueDate: data.paymentDueDate,
       bankName: data.bankName,
       transactionNumber: data.transactionNumber,
       buyerRnc: data.buyerRnc,
@@ -126,6 +132,7 @@ export async function POST(req: NextRequest) {
           status: 'draft',
           paymentStatus: data.paymentType === 'credit' ? 'unpaid' : 'paid',
           paymentType: data.paymentType,
+          paymentDueDate: data.paymentDueDate ?? null,
           bankName: data.bankName,
           transactionNumber: data.transactionNumber,
           subtotal: totals.subtotal.toString(),

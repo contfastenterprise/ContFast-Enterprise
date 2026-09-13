@@ -183,13 +183,39 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   const subtotal = parseFloat(invoice.subtotal.toString());
   const totalTaxes = parseFloat(invoice.totalTaxes.toString());
   const total = parseFloat(invoice.total.toString());
-  const paymentType = invoice.paymentStatus === 'unpaid' ? '2' : '1';
+  //  EL TIPO DE PAGO SALE DE COMO SE PACTO, NO DE SI YA SE COBRO.
+  //
+  //  Aqui habia `invoice.paymentStatus === 'unpaid' ? '2' : '1'`, y esas son
+  //  dos columnas distintas que no significan lo mismo:
+  //
+  //    payment_type    cash | credit | bank_transfer   -> COMO se pacto
+  //    payment_status  unpaid | partial | paid         -> SI ya se cobro
+  //
+  //  Con la de cobro, una factura al CONTADO todavia sin cobrar se declaraba a
+  //  la DGII como a CREDITO -- y arrastraba consigo una `FechaLimitePago`. Y al
+  //  reves: una a credito ya cobrada se declaraba al contado.
+  //
+  //  La emision directa (invoiceSubmissionService) siempre uso la columna
+  //  buena; este camino, el del envio en diferido, usaba la otra. Los dos
+  //  arman el MISMO comprobante.
+  //
+  //  Medido antes de tocarlo: 0 discrepancias, pero por casualidad. Solo hay
+  //  dos combinaciones en la base -- credit+unpaid (46) y cash+paid (17) --
+  //  porque todavia no se ha cobrado ninguna factura a credito. El dia que una
+  //  de esas 46 pase a 'paid', este camino la declara al contado.
+  const paymentType = invoice.paymentType === 'credit' ? '2' : '1';
 
   const ecfPayload = MSellerClient.buildECFPayload({
     ncf: invoice.ncf,
     ecfType: invoice.ecfType,
     sequenceExpiry,
     paymentType,
+    //  La fecha limite PACTADA, en 'AAAA-MM-DD' tal cual la guarda la columna.
+    //  La formatea `buildECFPayload`, que es donde vive la unica copia del
+    //  formateo de la DGII. Nula solo en facturas anteriores a la columna: si
+    //  una de esas se reenvia a credito, el envio se para con el nombre del
+    //  campo delante en vez de inventarle la fecha.
+    paymentDueDate: (invoice as any).paymentDueDate || undefined,
     issueDate: new Date(invoice.createdAt),
     emitterRnc: company.rnc,
     emitterName: company.name,

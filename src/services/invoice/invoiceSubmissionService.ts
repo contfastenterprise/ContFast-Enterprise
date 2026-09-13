@@ -110,6 +110,17 @@ export class InvoiceSubmissionService {
           ecfType: data.ecfType,
           sequenceExpiry,
           paymentType: data.paymentType === 'credit' ? '2' : '1',
+          //  La fecha limite PACTADA, no una supuesta. Aqui no llegaba nada, y
+          //  `buildECFPayload` la fabricaba con `issueDate + 1 mes`: el credito
+          //  es el 84% de las facturas de produccion, asi que casi todos los
+          //  comprobantes declaraban a la DGII una fecha que nadie acordo.
+          //
+          //  Se pasa el dia CRUDO ('AAAA-MM-DD'). Lo formatea
+          //  `buildECFPayload`, que es la ultima puerta antes del e-CF y donde
+          //  vive la unica copia del formateo dd-MM-aaaa. Formatearlo aqui
+          //  seria repartirlo otra vez entre el llamador y el payload, que es
+          //  justo de lo que venimos.
+          paymentDueDate: data.paymentDueDate || undefined,
           issueDate: new Date(),
           emitterRnc: company.rnc,
           emitterName: company.name,

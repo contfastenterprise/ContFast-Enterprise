@@ -17,6 +17,7 @@ import clsx from 'clsx';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -169,6 +170,10 @@ function InvoicesList() {
   // Form State
   const [ecfType, setEcfType] = useState('31'); // 31 (Fiscal), 32 (Consumo)
   const [paymentType, setPaymentType] = useState<'cash' | 'credit' | 'bank_transfer'>('cash');
+  //  La fecha limite de pago de una factura a credito, en 'AAAA-MM-DD'.
+  //  Antes no existia: `msellerClient` la fabricaba con `issueDate + 1 mes` y
+  //  la declaraba a la DGII. Ver src/db/schema/invoices.ts.
+  const [paymentDueDate, setPaymentDueDate] = useState('');
   const [bankName, setBankName] = useState('');
   const [transactionNumber, setTransactionNumber] = useState('');
   const [customerId, setCustomerId] = useState('');
@@ -888,6 +893,7 @@ function InvoicesList() {
       setWarehouseId(invoice.warehouseId || '');
       setEcfType(noteType);
       setPaymentType(invoice.paymentType || 'cash');
+      setPaymentDueDate(invoice.paymentDueDate || '');
       setBankName(invoice.bankName || '');
       setTransactionNumber(invoice.transactionNumber || '');
       setCustomerId(invoice.customerId || '');
@@ -948,6 +954,7 @@ function InvoicesList() {
     warehouseId,
     ecfType,
     paymentType,
+    paymentDueDate: paymentType === 'credit' ? (paymentDueDate || undefined) : undefined,
     bankName: paymentType === 'bank_transfer' ? bankName : undefined,
     transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
     notes: notes || undefined,
@@ -1148,6 +1155,7 @@ function InvoicesList() {
 
       setEcfType(draft.ecfType || '32');
       setPaymentType(draft.paymentType || 'cash');
+      setPaymentDueDate(draft.paymentDueDate || '');
       setBankName(draft.bankName || '');
       setTransactionNumber(draft.transactionNumber || '');
       setNotes(draft.notes || '');
@@ -1283,6 +1291,7 @@ function InvoicesList() {
           warehouseId,
           ecfType,
           paymentType,
+          paymentDueDate: paymentType === 'credit' ? (paymentDueDate || undefined) : undefined,
           bankName: paymentType === 'bank_transfer' ? bankName : undefined,
           transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
           notes: notes || undefined,
@@ -1314,6 +1323,7 @@ function InvoicesList() {
                 warehouseId,
                 ecfType,
                 paymentType,
+                paymentDueDate: paymentType === 'credit' ? (paymentDueDate || undefined) : undefined,
                 bankName: paymentType === 'bank_transfer' ? bankName : undefined,
                 transactionNumber: paymentType === 'bank_transfer' ? transactionNumber : undefined,
                 buyerRnc: customerRnc || undefined,
@@ -1708,6 +1718,27 @@ function InvoicesList() {
           </select>
           {err('paymentType')}
         </div>
+        {paymentType === 'credit' && (
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-on-surface-variant/80 uppercase tracking-wider">Fecha Límite de Pago</label>
+            <input
+              type="date"
+              value={paymentDueDate}
+              onChange={(e) => { setPaymentDueDate(e.target.value); quitarError('paymentDueDate'); }}
+              className={clsx(
+                'w-full bg-slate-50 border rounded-lg px-3 py-1.5 text-xs text-[#003366] focus:border-[#C5A059] outline-none transition-colors',
+                errores.paymentDueDate ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300'
+              )}
+            />
+            {err('paymentDueDate')}
+            {!paymentDueDate && (
+              <p className="text-[11px] text-slate-500 mt-1">
+                Va dentro del comprobante como «FechaLimitePago». Se pacta con el
+                cliente; el sistema no la supone.
+              </p>
+            )}
+          </div>
+        )}
         {paymentType === 'bank_transfer' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-1 md:col-span-3 bg-[#003366]/5 p-3 rounded-xl border border-[#003366]/10 mt-2">
             <div className="space-y-1">
@@ -2291,6 +2322,9 @@ function InvoicesList() {
     const filas: [string, string, number][] = [
       ['Tipo de comprobante', getTypeLabel(ecfType), 1],
       ['Forma de pago', pagos[paymentType] || paymentType, 1],
+      ...(paymentType === 'credit'
+        ? ([['Fecha límite de pago', paymentDueDate ? formatDateDisplay(paymentDueDate) : '— sin pactar —', 1]] as [string, string, number][])
+        : []),
       ...(paymentType === 'bank_transfer'
         ? ([['Banco', bankName || '— sin elegir —', 1]] as [string, string, number][])
         : []),

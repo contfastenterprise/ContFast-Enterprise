@@ -17,6 +17,7 @@
  */
 import { z } from 'zod';
 import { CODIGOS_EMITIBLES, TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
+import { esDiaReal } from '@/utils/fechasLocales';
 
 /**
  * Los motivos de ajuste que admite cada tipo de nota.
@@ -45,6 +46,10 @@ export const esquemaFactura = z.object({
     message: `Tipo de e-CF inválido. Los admitidos son: ${TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => `${t.codigo} (${t.corto})`).join(', ')}.`,
   }),
   paymentType: z.enum(['cash', 'credit', 'bank_transfer'], { message: 'Selecciona la forma de pago.' }),
+  //  'AAAA-MM-DD', que es lo que da un <input type="date"> y lo que guarda la
+  //  columna `date`. Opcional aqui y exigido abajo solo para el credito: en
+  //  una factura al contado el campo no va en el comprobante.
+  paymentDueDate: z.string().optional(),
   bankName: z.string().optional(),
   transactionNumber: z.string().optional(),
   notes: z.string().optional(),
@@ -115,4 +120,21 @@ export const esquemaFactura = z.object({
 }, {
   message: 'Debe seleccionar el Motivo / Tipo de Ajuste para emitir una nota de crédito o débito.',
   path: ['indicadorNotaCredito'],
+}).refine((data) => {
+  // LA FECHA LIMITE DE PAGO SE PACTA, NO SE SUPONE.
+  //
+  // `FechaLimitePago` es un campo del e-CF que la DGII exige cuando el
+  // TipoPago es 2 (credito). El sistema no tenia de donde sacarlo -- no habia
+  // columna de vencimiento en la factura ni plazo en el cliente -- asi que
+  // `msellerClient` lo fabricaba con `issueDate + 1 mes`. Medido: el credito
+  // es el 84% de las facturas de produccion, o sea que casi todos los
+  // comprobantes declaraban a la DGII una fecha que nadie habia pactado.
+  //
+  // Se comprueba que EXISTA en el calendario, no solo que tenga la forma:
+  // '2026-02-31' pasa cualquier expresion regular y no es un dia.
+  if (data.paymentType !== 'credit') return true;
+  return esDiaReal(data.paymentDueDate);
+}, {
+  message: 'Indica la fecha límite de pago: una factura a crédito la declara a la DGII y no se puede suponer.',
+  path: ['paymentDueDate'],
 });

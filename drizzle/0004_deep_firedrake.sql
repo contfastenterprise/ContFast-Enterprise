@@ -1,0 +1,1 @@
+ALTER TABLE "invoices" ADD COLUMN "payment_due_date" date;

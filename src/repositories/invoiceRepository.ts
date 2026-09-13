@@ -13,6 +13,8 @@ export interface CreateInvoiceInput {
   status: 'draft' | 'signed' | 'submitted' | 'accepted' | 'rejected' | 'void';
   paymentStatus: 'unpaid' | 'partial' | 'paid';
   paymentType: 'cash' | 'credit' | 'bank_transfer';
+  /** 'AAAA-MM-DD'. La fecha limite pactada; solo la llevan las de credito. */
+  paymentDueDate?: string;
   bankName?: string;
   transactionNumber?: string;
   subtotal: number;
@@ -126,6 +128,7 @@ export class InvoiceRepository {
           buyerName: data.buyerName,
           notes: data.notes,
           paymentType: data.paymentType,
+          paymentDueDate: data.paymentDueDate ?? null,
           bankName: data.bankName,
           transactionNumber: data.transactionNumber,
           modifiedNcf: data.modifiedNcf,
@@ -236,6 +239,7 @@ export class InvoiceRepository {
         notes: invoices.notes || null,
         dgiiMessage: invoices.dgiiMessage || null,
         paymentType: invoices.paymentType,
+        paymentDueDate: invoices.paymentDueDate,
         bankName: invoices.bankName || null,
         transactionNumber: invoices.transactionNumber || null,
         modifiedNcf: invoices.modifiedNcf || null,
@@ -401,6 +405,7 @@ export class InvoiceRepository {
         dgiiMessage: invoices.dgiiMessage,
         notes: invoices.notes,
         paymentType: invoices.paymentType,
+        paymentDueDate: invoices.paymentDueDate,
         bankName: invoices.bankName,
         transactionNumber: invoices.transactionNumber,
         modifiedNcf: invoices.modifiedNcf,

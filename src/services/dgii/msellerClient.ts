@@ -492,7 +492,13 @@ export class MSellerClient {
      */
     sequenceExpiry: string | null;
     paymentType: '1' | '2'; // 1=contado, 2=crédito
-    paymentDueDate?: string; // dd-MM-yyyy, solo crédito
+    //  'AAAA-MM-DD', el dia tal cual lo guarda la columna `date`. Se
+    //  formatea AQUI, no en el llamador: el formateo dd-MM-aaaa vive en un
+    //  solo sitio (fechaDgii.ts) y esta es la ultima puerta antes del e-CF,
+    //  que es donde tiene que estar la parada.
+    //
+    //  Obligatorio cuando paymentType es '2' (credito).
+    paymentDueDate?: string;
     issueDate: Date;
     emitterRnc: string;
     emitterName: string;
@@ -772,13 +778,26 @@ export class MSellerClient {
     }
 
     if (params.paymentType === '2') {
-      let dueDateStr = params.paymentDueDate;
-      if (!dueDateStr) {
-        const defaultDueDate = new Date(params.issueDate);
-        defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-        dueDateStr = fechaDgiiExigida(defaultDueDate, 'FechaLimitePago');
-      }
-      idDoc.FechaLimitePago = dueDateStr;
+      //  LA FECHA LIMITE DE PAGO SE PACTA, NO SE SUPONE.
+      //
+      //  Aqui se construia una fecha a mano: la emision mas un mes, redondeada
+      //  por `Date` cuando el mes siguiente era mas corto. Y el parametro que
+      //  habria evitado eso NO LO PASABA NADIE en todo el sistema -- las dos
+      //  unicas apariciones eran la firma y la linea que comprobaba si faltaba
+      //  -- asi que esa rama corria SIEMPRE.
+      //
+      //  Medido contra la base: el credito es el 84% de las facturas de
+      //  produccion. O sea que casi todos los comprobantes emitidos declaraban
+      //  a la DGII una fecha limite que nadie habia acordado.
+      //
+      //  El redondeo ademas fallaba los dias 29-31: emitida el 31 de enero, la
+      //  fecha declarada era el 3 de MARZO, porque el 31 de febrero no existe
+      //  y JavaScript lo corre hacia adelante en silencio.
+      //
+      //  Ahora se para. Detenerse con el nombre del campo delante es
+      //  reparable; declarar una fecha fiscal inventada no lo es. Misma regla
+      //  que `vencimientoSecuencia` y que el codigo de seguridad.
+      idDoc.FechaLimitePago = fechaDgiiExigida(params.paymentDueDate, 'FechaLimitePago');
     }
 
     // TotalPaginas only for standard invoices

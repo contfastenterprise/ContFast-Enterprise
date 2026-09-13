@@ -121,6 +121,36 @@ export function diasDeAntiguedad(emision: string | Date | null | undefined, hoy:
   return Math.max(0, diasEntreDias(dia, hoy));
 }
 
+const DIAS_DEL_MES = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** Bisiesto de verdad: 2000 lo es, 1900 no. La regla de los 400 no es un adorno. */
+const esBisiesto = (anio: number): boolean =>
+  (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
+
+/**
+ * `true` solo si 'AAAA-MM-DD' es un dia que EXISTE en el calendario.
+ *
+ * Un 31 de febrero no es una fecha con un problema de formato: es una fecha
+ * que no existe. La diferencia importa porque la forma se valida con una
+ * expresion regular y la existencia no: `/^\d{4}-\d{2}-\d{2}$/` deja pasar
+ * '2026-02-31' y '2026-13-01' enteras.
+ *
+ * No construye ningun `Date`, y esa es la propiedad que hay que conservar:
+ * `new Date(2026, 1, 31)` NO falla -- se convierte en el 3 de marzo. Validar
+ * con `Date` es pedirle que normalice justo lo que estamos buscando.
+ */
+export function esDiaReal(dia: string | null | undefined): boolean {
+  if (typeof dia !== 'string') return false;
+  const m = dia.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return false;
+  const aaaa = Number(m[1]);
+  const mm = Number(m[2]);
+  const dd = Number(m[3]);
+  if (mm < 1 || mm > 12) return false;
+  const tope = mm === 2 && esBisiesto(aaaa) ? 29 : DIAS_DEL_MES[mm - 1];
+  return dd >= 1 && dd <= tope;
+}
+
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 /**
