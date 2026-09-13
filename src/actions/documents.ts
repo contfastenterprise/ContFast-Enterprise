@@ -7,6 +7,7 @@ import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // Auditoria F0-03: estas rutas no verificaban sesion ni empresa, y quedaban fuera
 // del matcher del proxy. Cualquiera con el UUID de una factura podia descargar su
@@ -75,7 +76,7 @@ export async function sendDocumentEmailAction(
       invoice: {
         number: invoiceData.codigoFactura || invoiceData.ncf || 'DRAFT',
         ncf: invoiceData.ncf,
-        date: new Date(invoiceData.createdAt).toLocaleDateString('es-DO'),
+        date: formatDateDisplay(invoiceData.createdAt),
         status: invoiceData.status,
         paymentType: invoiceData.paymentType,
         subtotal: Number(invoiceData.subtotal),

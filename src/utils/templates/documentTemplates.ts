@@ -1,6 +1,7 @@
 import { parseFraction } from '../calculos';
 import { etiquetaTipo, exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 import { windowProfiles } from '../profilesRegistry';
+import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 
 function deepEscape<T>(obj: T): T {
   if (obj === null || obj === undefined) {
@@ -718,7 +719,7 @@ export class DocumentTemplates {
           <div class="doc-info">
             <div class="subtitle">FACTURA CON VALOR FISCAL</div>
             <div><strong>e-NCF:</strong> ${inv.ncf}</div>
-            <div><strong>Fecha:</strong> ${new Date(inv.createdAt).toLocaleDateString()}</div>
+            <div><strong>Fecha:</strong> ${formatDateDisplay(inv.createdAt)}</div>
             <div><strong>Condición:</strong> ${inv.paymentStatus}</div>
           </div>
         </div>
@@ -799,10 +800,10 @@ export class DocumentTemplates {
             ${hayFirma
               ? `<strong>Firma Digital Válida</strong><br>
             <strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
-            <strong>Fecha de Firma:</strong> ${new Date(inv.signatureDate).toLocaleString('es-DO')}<br>
+            <strong>Fecha de Firma:</strong> ${formatDateTimeDisplay(inv.signatureDate)}<br>
             Puede validar este e-CF en el portal de la DGII.`
               : `<strong>${leyendaSinFirma}</strong><br>
-            <strong>Fecha de emisión:</strong> ${new Date(inv.createdAt).toLocaleString('es-DO')}<br>
+            <strong>Fecha de emisión:</strong> ${formatDateTimeDisplay(inv.createdAt)}<br>
             ${rechazado ? 'La DGII rechazó este comprobante. NO tiene validez fiscal.' : 'Este comprobante aún no tiene la firma de la DGII.'}`}
           </div>
           ${hayFirma && qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
@@ -1097,7 +1098,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       return `
         <tr>
           <td>${invoiceLabel}</td>
-          <td>${new Date(inv.invoiceDate).toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(inv.invoiceDate)}</td>
           <td class="text-right">$${formatNum(inv.totalAmount)}</td>
           <td class="text-right" style="font-weight: bold; color: #001e40;">$${formatNum(inv.amountApplied)}</td>
           <td class="text-center" style="font-weight: bold; color: ${typeColor};">${typeLabel}</td>
@@ -1126,7 +1127,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div class="doc-info">
             <div class="subtitle" style="margin-bottom: 8px;">RECIBO DE INGRESO</div>
             <div><strong>Recibo #:</strong> REC-${id.slice(0, 8).toUpperCase()}</div>
-            <div><strong>Fecha:</strong> ${new Date(date).toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha:</strong> ${formatDateDisplay(date)}</div>
             <div><strong>Método:</strong> ${methodLabel}</div>
             ${reference ? `<div><strong>Referencia:</strong> ${reference}</div>` : ''}
           </div>
@@ -1362,7 +1363,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           item.paymentMethod === 'check' ? 'Cheque' : 'Tarjeta';
       return `
         <tr>
-          <td>${new Date(item.receiptDate).toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(item.receiptDate)}</td>
           <td class="font-mono">REC-${item.receiptId.slice(0, 8).toUpperCase()}</td>
           <td class="font-semibold text-slate-800">${item.codigoFactura || 'N/A'}${item.invoiceNumber ? ` (${item.invoiceNumber})` : ''}</td>
           <td>${methodLabel}${item.reference ? ` - Ref: ${item.reference}` : ''}</td>
@@ -1399,7 +1400,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA</div>
             <div><strong>Cliente:</strong> ${customer.name}</div>
             ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
           </div>
         </div>
 
@@ -1505,7 +1506,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR PAGAR</div>
             <div><strong>Proveedor:</strong> ${supplier.name}</div>
             ${supplier.rnc ? `<div><strong>RNC:</strong> ${supplier.rnc}</div>` : ''}
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="margin-top: 8px; font-size: 11pt; font-weight: bold; color: #dc3545;">Total Pendiente: $${formatNum(totalBalance)}</div>
           </div>
         </div>
@@ -1557,10 +1558,10 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       return `
         <tr>
           <td>${invoiceLabel}${ncfLabel}</td>
-          <td>${new Date(item.date).toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(item.date)}</td>
           <td>
             <span style="${isOverdue ? 'color: #dc3545; font-weight: bold;' : ''}">
-              ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+              ${formatDateDisplay(item.dueDate)}
             </span>
           </td>
           <td class="text-right font-mono">$${formatNum(Number(item.amount))}</td>
@@ -1593,7 +1594,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR CLIENTE</div>
             <div><strong>Cliente:</strong> ${customer.name}</div>
             ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
-            <div><strong>Fecha de Corte:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha de Corte:</strong> ${formatDateDisplay(asOf)}</div>
           </div>
         </div>
 
@@ -1655,10 +1656,10 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <tr>
           <td>${supplierLabel}</td>
           <td>${documentLabel}</td>
-          <td>${new Date(item.date).toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(item.date)}</td>
           <td>
             <span style="${isOverdue ? 'color: #dc3545; font-weight: bold;' : ''}">
-              ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+              ${formatDateDisplay(item.dueDate)}
             </span>
           </td>
           <td class="text-right font-mono">$${formatNum(Number(item.amount))}</td>
@@ -1691,7 +1692,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTAS POR PAGAR</div>
             <div><strong>Proveedor:</strong> ${supplier.name}</div>
             ${supplier.rnc ? `<div><strong>RNC/Cédula:</strong> ${supplier.rnc}</div>` : ''}
-            <div><strong>Fecha de Corte:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha de Corte:</strong> ${formatDateDisplay(asOf)}</div>
           </div>
         </div>
 
@@ -1786,7 +1787,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">CATÁLOGO DE PRODUCTOS</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div><strong>Total Productos:</strong> ${items.length}</div>
           </div>
         </div>
@@ -1867,7 +1868,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">DIRECTORIO DE SUPLIDORES</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div><strong>Total Suplidores:</strong> ${items.length}</div>
           </div>
         </div>
@@ -1948,7 +1949,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">DIRECTORIO DE CLIENTES</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div><strong>Total Clientes:</strong> ${items.length}</div>
           </div>
         </div>
@@ -2030,8 +2031,8 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE RESULTADOS</div>
-            <div><strong>Periodo:</strong> Desde ${new Date(startDate).toLocaleDateString('es-DO')} Hasta ${new Date(endDate).toLocaleDateString('es-DO')}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Periodo:</strong> Desde ${formatDateDisplay(startDate)} Hasta ${formatDateDisplay(endDate)}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
           </div>
         </div>
 
@@ -2179,8 +2180,8 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">BALANCE GENERAL</div>
-            <div><strong>Corte Al:</strong> ${new Date(asOf).toLocaleDateString('es-DO')}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Corte Al:</strong> ${formatDateDisplay(asOf)}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
           </div>
         </div>
 
@@ -2265,7 +2266,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
 
   static renderWindowBreakdown(data: { company: any; items: any[] }): string {
     const { company, items } = data;
-    const currentDateStr = new Date().toLocaleDateString('es-DO');
+    const currentDateStr = formatDateDisplay(new Date());
 
     const padDots = (label: string, length: number) => {
       const dotsNeeded = length - label.length;
@@ -2855,7 +2856,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     const tipVal = parseFloat(purchase.tip) || 0;
     const totalVal = subtotal + itbisVal + iscVal + otherTaxesVal + tipVal;
 
-    const issueDateStr = new Date(purchase.issueDate).toLocaleDateString('es-DO');
+    const issueDateStr = formatDateDisplay(purchase.issueDate);
 
     return `
       <!DOCTYPE html>
@@ -3031,7 +3032,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td class="text-center">${new Date(item.issueDate).toLocaleDateString('es-DO')}</td>
+          <td class="text-center">${formatDateDisplay(item.issueDate)}</td>
           <td class="ellipsis">
             <strong>${supplierName}</strong>${supplierRnc}
           </td>
@@ -3092,7 +3093,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE COMPRAS Y GASTOS</div>
             <div><strong>Rango:</strong> ${formatRangeDate(filters.startDate)} al ${formatRangeDate(filters.endDate)}</div>
             <div><strong>Tipo:</strong> ${filters.type === 'purchases' ? 'Compras Comerciales' : filters.type === 'expenses' ? 'Gastos Menores' : 'Todos'}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Lote: $${formatNum(totalAmount)}</div>
           </div>
         </div>
@@ -3236,7 +3237,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div class="doc-info" style="text-align: right; font-size: 9pt; line-height: 1.4;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE CHEQUES EN GARANTÍA</div>
             <div><strong>Rango:</strong> ${formatDateStr(filters.startDate)} al ${formatDateStr(filters.endDate)}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
           </div>
         </div>
 
@@ -3337,7 +3338,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       return `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td class="text-center">${new Date(item.createdAt).toLocaleDateString('es-DO')}</td>
+          <td class="text-center">${formatDateDisplay(item.createdAt)}</td>
           <td class="ellipsis">
             <strong>${buyerName}</strong>${buyerRnc}
           </td>
@@ -3399,7 +3400,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 13pt; color: #003366; font-weight: bold;">REPORTE DE FACTURACIÓN (VENTAS)</div>
             <div><strong>Rango:</strong> ${formatRangeDate(filters.startDate)} al ${formatRangeDate(filters.endDate)}</div>
             <div><strong>Estado:</strong> ${filters.status === 'draft' ? 'Borrador' : filters.status === 'signed' ? 'Firmado' : filters.status === 'submitted' ? 'Transmitido' : filters.status === 'accepted' ? 'Aceptado DGII' : filters.status === 'rejected' ? 'Rechazado' : 'Todos'}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="font-size: 11pt; font-weight: bold; margin-top: 5px; color: #003366;">Total Facturado: $${formatNum(totalAmount)}</div>
           </div>
         </div>
@@ -3509,7 +3510,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           <div class="doc-info" style="text-align: right;">
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">COMPRAS VS VENTAS</div>
             <div><strong>Periodo:</strong> Desde ${startDate} Hasta ${endDate}</div>
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
           </div>
         </div>
 
@@ -3599,7 +3600,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       const typeLabel = getMovementTypeLabel(m.movementType);
       return `
         <tr>
-          <td>${new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(m.date + 'T00:00:00')}</td>
           <td class="font-mono">${m.documentNumber}</td>
           <td><span style="font-weight: 600;">${typeLabel}</span></td>
           <td style="font-size: 8pt; color: #555;">${m.notes || ''}</td>
@@ -3647,7 +3648,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA (CLIENTE)</div>
             <div><strong>Cliente:</strong> ${customer.name}</div>
             ${customer.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${customer.rncCedula}</div>` : ''}
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="margin-top: 5px; font-weight: bold; color: #003366; font-size: 12pt;">Saldo Actual: $${formatNum(summary.currentBalance)}</div>
           </div>
         </div>
@@ -3728,7 +3729,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
       const typeLabel = getMovementTypeLabel(m.movementType);
       return `
         <tr>
-          <td>${new Date(m.date + 'T00:00:00').toLocaleDateString('es-DO')}</td>
+          <td>${formatDateDisplay(m.date + 'T00:00:00')}</td>
           <td class="font-mono">${m.documentNumber}</td>
           <td><span style="font-weight: 600;">${typeLabel}</span></td>
           <td style="font-size: 8pt; color: #555;">${m.notes || ''}</td>
@@ -3776,7 +3777,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <div class="subtitle" style="margin-bottom: 8px; font-size: 14pt; color: #003366; font-weight: bold;">ESTADO DE CUENTA (PROVEEDOR)</div>
             <div><strong>Proveedor:</strong> ${supplier.name}</div>
             ${supplier.rnc ? `<div><strong>RNC:</strong> ${supplier.rnc}</div>` : ''}
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="margin-top: 5px; font-weight: bold; color: #dc3545; font-size: 12pt;">Balance Pendiente: $${formatNum(summary.currentBalance)}</div>
           </div>
         </div>
@@ -4300,7 +4301,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info">
             <div class="subtitle">Balance Acumulado de Clientes</div>
-            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Fecha: ${formatDateDisplay(new Date())}</div>
             <div>Total Clientes: ${items.length}</div>
           </div>
         </div>
@@ -4414,7 +4415,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info">
             <div class="subtitle">Balance Acumulado de Suplidores</div>
-            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Fecha: ${formatDateDisplay(new Date())}</div>
             <div>Total Suplidores: ${items.length}</div>
           </div>
         </div>
@@ -4472,7 +4473,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <tr>
           <td class="text-center">${idx + 1}</td>
           <td class="font-mono text-center"><strong>${item.orderNumber}</strong></td>
-          <td class="text-center">${new Date(item.orderDate).toLocaleDateString('es-DO')}</td>
+          <td class="text-center">${formatDateDisplay(item.orderDate)}</td>
           <td>
             <strong>${item.supplierName}</strong>${item.supplierRnc ? ` (${item.supplierRnc})` : ''}
           </td>
@@ -4511,7 +4512,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
           </div>
           <div class="doc-info">
             <div class="subtitle">Reporte de Pedidos a Suplidores</div>
-            <div>Fecha: ${new Date().toLocaleDateString('es-DO')}</div>
+            <div>Fecha: ${formatDateDisplay(new Date())}</div>
             <div>Total Pedidos: ${items.length}</div>
           </div>
         </div>
@@ -4557,7 +4558,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <span style="font-size: 8pt; color: #666;">${item.codigoFactura || ''}</span>
           </td>
           <td class="${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
-            ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+            ${formatDateDisplay(item.dueDate)}
           </td>
           <td class="text-right">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
           <td class="text-right"><strong>RD$ ${Number(item.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</strong></td>
@@ -4660,7 +4661,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             <span style="font-size: 8pt; color: #666;">CXP: ${item.apId.slice(0, 8).toUpperCase()}</span>
           </td>
           <td class="${isOverdue ? 'text-red' : ''}" style="${isOverdue ? 'color: red;' : ''}">
-            ${new Date(item.dueDate).toLocaleDateString('es-DO')}
+            ${formatDateDisplay(item.dueDate)}
           </td>
           <td class="text-right">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
           <td class="text-right"><strong>RD$ ${Number(item.balance).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</strong></td>
@@ -4753,7 +4754,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
 
     const renderMovementRow = (item: any) => `
       <tr>
-        <td class="px-2 py-1">${new Date(item.createdAt).toLocaleString('es-DO')}</td>
+        <td class="px-2 py-1">${formatDateTimeDisplay(item.createdAt)}</td>
         <td class="px-2 py-1">${item.description || item.type}</td>
         <td class="px-2 py-1">${item.reference || '-'}</td>
         <td class="px-2 py-1 text-right font-mono">RD$ ${Number(item.amount).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
@@ -4790,8 +4791,8 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
         <div style="margin-bottom: 20px; font-size: 10pt;">
           <table style="width: 100%; border: none;">
             <tr>
-              <td style="border: none; padding: 0;"><strong>Apertura:</strong> ${new Date(session.openedAt).toLocaleString('es-DO')}</td>
-              <td style="border: none; padding: 0; text-align: right;"><strong>Cierre:</strong> ${session.closedAt ? new Date(session.closedAt).toLocaleString('es-DO') : 'Sin Cerrar'}</td>
+              <td style="border: none; padding: 0;"><strong>Apertura:</strong> ${formatDateTimeDisplay(session.openedAt)}</td>
+              <td style="border: none; padding: 0; text-align: right;"><strong>Cierre:</strong> ${session.closedAt ? formatDateTimeDisplay(session.closedAt) : 'Sin Cerrar'}</td>
             </tr>
           </table>
         </div>
@@ -5237,7 +5238,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     const fecha = (v: string) => {
       if (!v) return '-';
       const d = new Date(v);
-      return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('es-DO');
+      return isNaN(d.getTime()) ? String(v) : formatDateDisplay(d);
     };
 
     const total = (campo: string) =>
@@ -5290,7 +5291,7 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
             </div>
             <div><strong>${esCliente ? 'Cliente' : 'Suplidor'}:</strong> ${entidad.name}</div>
             ${entidad.rncCedula ? `<div><strong>RNC/Cédula:</strong> ${entidad.rncCedula}</div>` : ''}
-            <div><strong>Fecha Emisión:</strong> ${new Date().toLocaleDateString('es-DO')}</div>
+            <div><strong>Fecha Emisión:</strong> ${formatDateDisplay(new Date())}</div>
             <div style="margin-top: 5px; font-weight: bold; color: #003366; font-size: 12pt;">
               Saldo Pendiente: $${n(total('saldo'))}
             </div>

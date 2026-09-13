@@ -5,6 +5,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { requirePermission } from '@/middleware/permissions';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
       items,
       filters: {
         supplierName: supplierFilterName,
-        date: new Date().toLocaleDateString('es-DO')
+        date: formatDateDisplay(new Date())
       },
       totals: {
         balance: totalBalance,

@@ -7,6 +7,7 @@ import { eq, and } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { DocumentService } from '@/services/documents/documentService';
 import { InvoiceTemplate } from '@/components/documents/templates/InvoiceTemplate';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 // Ideally you would have an Auth check here using your standard auth provider (e.g. Supabase Auth)
 // import { createClient } from '@/utils/supabase/server';
 
@@ -63,7 +64,7 @@ export async function GET(
       invoice: {
         number: invoiceData.codigoFactura || invoiceData.ncf || 'DRAFT',
         ncf: invoiceData.ncf,
-        date: new Date(invoiceData.createdAt).toLocaleDateString('es-DO'),
+        date: formatDateDisplay(invoiceData.createdAt),
         status: invoiceData.status,
         paymentType: invoiceData.paymentType,
         subtotal: Number(invoiceData.subtotal),

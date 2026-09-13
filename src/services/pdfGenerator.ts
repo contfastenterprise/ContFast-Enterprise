@@ -6,6 +6,7 @@ import { windowProfiles } from '@/utils/profilesRegistry';
 import type { ReportRepository } from '@/repositories/reportRepository';
 import type { HRRepository } from '@/repositories/hrRepository';
 import type { chartOfAccounts } from '@/db';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface CompanyInfo {
   name: string;
@@ -97,7 +98,7 @@ export class PdfGenerator {
         doc.on('error', (err) => reject(err));
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
-        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        const currentDateStr = formatDateDisplay(new Date());
 
         this.drawHeader(doc, company, 'Estado de Resultados (P&L)', `Desde: ${startDate} Hasta: ${endDate}`, currentDateStr, logoBuffer);
 
@@ -167,7 +168,7 @@ export class PdfGenerator {
         doc.on('error', (err) => reject(err));
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
-        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        const currentDateStr = formatDateDisplay(new Date());
 
         this.drawHeader(doc, company, 'Balance General', `Al: ${asOfDate}`, currentDateStr, logoBuffer);
 
@@ -225,7 +226,7 @@ export class PdfGenerator {
         doc.on('error', (err) => reject(err));
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
-        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        const currentDateStr = formatDateDisplay(new Date());
 
         this.drawHeader(doc, company, 'Estado de Cuentas', `Al: ${asOfDate}`, currentDateStr, logoBuffer);
 
@@ -274,8 +275,8 @@ export class PdfGenerator {
 
           const invoiceLabel = `${item.invoiceNumber}${item.ncf ? ' / ' + item.ncf : ''}`;
           doc.text(invoiceLabel, 55, y, { width: 150 });
-          doc.text(new Date(item.date).toLocaleDateString('es-DO'), 210, y, { width: 70 });
-          doc.text(new Date(item.dueDate).toLocaleDateString('es-DO'), 285, y, { width: 70 });
+          doc.text(formatDateDisplay(item.date), 210, y, { width: 70 });
+          doc.text(formatDateDisplay(item.dueDate), 285, y, { width: 70 });
           doc.text(this.formatCurrency(Number(item.amount)), 360, y, { width: 80, align: 'right' });
           doc.text(this.formatCurrency(Number(item.balance)), 445, y, { width: 95, align: 'right' });
           y += 14;
@@ -582,7 +583,7 @@ export class PdfGenerator {
         doc.on('error', (err) => reject(err));
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
-        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        const currentDateStr = formatDateDisplay(new Date());
 
         const padDots = (label: string, length: number) => {
           const dotsNeeded = length - label.length;
@@ -809,7 +810,7 @@ export class PdfGenerator {
         doc.on('error', (err) => reject(err));
 
         const logoBuffer = await this.getLogoBuffer(company.logoUrl);
-        const currentDateStr = new Date().toLocaleDateString('es-DO');
+        const currentDateStr = formatDateDisplay(new Date());
 
         for (let sIdx = 0; sIdx < sheets.length; sIdx++) {
           const sheet = sheets[sIdx];
@@ -950,8 +951,8 @@ export class PdfGenerator {
 
           // Receipt Subtitle
           doc.font('Helvetica-Bold').fontSize(11).fillColor('#333333').text('VOLANTE DE PAGO DE NÓMINA', { align: 'center' });
-          doc.font('Helvetica').fontSize(9).text(`Período: Desde ${new Date(payroll.periodStart).toLocaleDateString('es-DO')} Hasta ${new Date(payroll.periodEnd).toLocaleDateString('es-DO')}`, { align: 'center' });
-          doc.text(`Fecha de Pago: ${new Date(payroll.paymentDate).toLocaleDateString('es-DO')}`, { align: 'center' });
+          doc.font('Helvetica').fontSize(9).text(`Período: Desde ${formatDateDisplay(payroll.periodStart)} Hasta ${formatDateDisplay(payroll.periodEnd)}`, { align: 'center' });
+          doc.text(`Fecha de Pago: ${formatDateDisplay(payroll.paymentDate)}`, { align: 'center' });
           doc.moveDown(1);
 
           // Employee Information Block (Two Columns)
@@ -1092,7 +1093,7 @@ export class PdfGenerator {
 
         // Subtitle
         doc.font('Helvetica-Bold').fontSize(11).fillColor('#333333').text('RECIBO DESCARGO DE PRESTACIONES LABORALES', { align: 'center' });
-        doc.font('Helvetica').fontSize(9).text(`Fecha de Liquidación: ${new Date(settlementDate).toLocaleDateString('es-DO')}`, { align: 'center' });
+        doc.font('Helvetica').fontSize(9).text(`Fecha de Liquidación: ${formatDateDisplay(settlementDate)}`, { align: 'center' });
         doc.moveDown(1);
 
         // Employee Info
@@ -1105,7 +1106,7 @@ export class PdfGenerator {
 
         doc.font('Helvetica-Bold').text('DATOS LABORALES', 320, topY);
         doc.font('Helvetica').fontSize(9);
-        doc.text(`Fecha Ingreso: ${new Date(employee.hireDate).toLocaleDateString('es-DO')}`, 320, topY + 15);
+        doc.text(`Fecha Ingreso: ${formatDateDisplay(employee.hireDate)}`, 320, topY + 15);
         doc.text(`Antigüedad: ${calculation.yearsOfService} años, ${calculation.monthsOfService} meses`, 320, topY + 30);
         doc.text(`Salario Promedio Diario: RD$ ${calculation.dailyRate.toLocaleString('es-DO', { minimumFractionDigits: 2 })}`, 320, topY + 45);
         doc.moveDown(2);
