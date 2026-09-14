@@ -336,7 +336,7 @@ export class InvoiceDbBooker {
     pdfPath: string,
     msellerXmlPath: string
   ) {
-    return await db.transaction(async (tx) => {
+    const resultado = await db.transaction(async (tx) => {
       // El NCF ya viene reservado desde antes del envio a la DGII, asi que aqui
       // no se toca la secuencia. Mientras se reservaba tambien aqui, cada
       // factura la avanzaba dos veces y dos emisiones simultaneas hacian que la
@@ -841,6 +841,45 @@ export class InvoiceDbBooker {
         msellerResponse: submission.msellerResponsePayload,
       };
     });
+
+    //  ── LA PERSECUCION DEL VEREDICTO, YA FUERA DE LA TRANSACCION ────────
+    //
+    //  mSeller devuelve la firma en el acto pero el veredicto de la DGII
+    //  llega despues, asi que la factura queda en 'submitted' y se quedaba
+    //  ahi hasta que una persona pulsaba sincronizar. En caja eso es una
+    //  tarea manual por venta.
+    //
+    //  FUERA de la transaccion, y no por elegancia: el primer intento sale a
+    //  los DOS segundos, y un trabajo que arranque antes del COMMIT leeria
+    //  una factura que todavia no existe para el. El encolado del reenvio que
+    //  hay mas arriba si vive dentro, y funciona porque aquel trabajo no
+    //  lleva retraso y vuelve a leer de la base -- pero no es un ejemplo a
+    //  seguir, es una deuda que aqui no se repite.
+    //
+    //  Solo para 'submitted'. Un 'accepted' o un 'rejected' ya tienen su
+    //  veredicto, y un 'signed' ni siquiera se ha enviado: ese es de la cola
+    //  de emision.
+    if (submission.finalStatus === 'submitted') {
+      try {
+        const { empezarAPerseguir } = await import('@/services/dgii/perseguirVeredicto');
+        await empezarAPerseguir({
+          companyId: data.companyId,
+          invoiceId: resultado.invoice.id,
+          modo: data.modo,
+        });
+      } catch (err: unknown) {
+        //  Que no se pueda encolar NO puede tumbar una emision que ya salio
+        //  hacia la DGII: el comprobante existe, la venta esta hecha y la
+        //  factura esta guardada. Se queda como antes de este lote -- en
+        //  'submitted', esperando al barrido o al boton -- y se anota.
+        Logger.warn('[InvoiceDbBooker] no se pudo encolar la persecucion del veredicto', {
+          invoiceId: resultado.invoice.id,
+          error: (err as Error)?.message,
+        });
+      }
+    }
+
+    return resultado;
   }
 
   // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.

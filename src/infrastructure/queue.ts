@@ -10,8 +10,19 @@ const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || proc
 export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis as any, skipVersionCheck: true }) : null;
 export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any, skipVersionCheck: true }) : null;
 
+/**
+ * Consultar el estado de un e-CF ya enviado. SOLO CONSULTA.
+ *
+ * Tiene cola propia y no comparte la de `dgii-submissions` por una razon que
+ * no es de orden: el worker de aquella IGNORA el nombre del trabajo y siempre
+ * llama a `processDgiiSubmissionJob`, que EMITE. Un trabajo de consulta
+ * encolado ahi habria reemitido el comprobante una vez por intento.
+ */
+export const estadoQueue = (redis && !isBuildPhase) ? new Queue('dgii-estado', { connection: redis as any, skipVersionCheck: true }) : null;
+
 if (dgiiQueue) dgiiQueue.on('error', err => console.error(`[Queue] dgii-submissions error: ${err.message}`));
 if (emailQueue) emailQueue.on('error', err => console.error(`[Queue] emails-sending error: ${err.message}`));
+if (estadoQueue) estadoQueue.on('error', err => console.error(`[Queue] dgii-estado error: ${err.message}`));
 
 export interface JobPayloads {
   'dgii-submissions': {
@@ -23,6 +34,13 @@ export interface JobPayloads {
      * esto no lo llevan, y jobRunners lo deduce para esos.
      */
     submissionId?: string;
+  };
+  'dgii-estado': {
+    companyId: string;
+    invoiceId: string;
+    modo: string;
+    /** Que peldaño de la escalera toca. Ver services/dgii/perseguirVeredicto.ts. */
+    intento: number;
   };
   'emails-sending': {
     to: string;
@@ -43,24 +61,36 @@ export interface JobPayloads {
 async function triggerFallback<K extends keyof JobPayloads>(
   queueName: K,
   name: string,
-  data: JobPayloads[K]
+  data: JobPayloads[K],
+  delay = 0
 ): Promise<Job> {
-  console.log(`[Queue Fallback] Redis is offline. Running job "${name}" of queue "${queueName}" in-process asynchronously...`);
-  
-  // Execute asynchronously to not block the calling request thread
+  console.log(`[Queue Fallback] Redis is offline. Running job "${name}" of queue "${queueName}" in-process in ${delay}ms...`);
+
+  //  EL RETRASO SE RESPETA.
+  //
+  //  Antes este camino ejecutaba siempre con `0`, tirando el `delay` que
+  //  pidiera quien encolaba. Daba igual mientras el unico trabajo se encolaba
+  //  sin retraso; deja de dar igual con la persecucion del veredicto, que ES
+  //  una escalera de esperas: sin esto, los ocho intentos saldrian de golpe y
+  //  a la vez, preguntando ocho veces por algo que aun no puede haber
+  //  cambiado. Y en desarrollo, que es donde no suele haber Redis, seria el
+  //  unico comportamiento que se ve.
   setTimeout(async () => {
     try {
       if (queueName === 'emails-sending') {
         await sendEmailJob(data as any);
       } else if (queueName === 'dgii-submissions') {
         await processDgiiSubmissionJob(data as any);
+      } else if (queueName === 'dgii-estado') {
+        const { perseguirVeredicto } = await import('@/services/dgii/perseguirVeredicto');
+        await perseguirVeredicto(data as any);
       } else {
         console.warn(`[Queue Fallback] Unknown queue: ${queueName}`);
       }
     } catch (err: any) {
       console.error(`[Queue Fallback] Job "${name}" in queue "${queueName}" failed:`, err.message);
     }
-  }, 0);
+  }, delay);
 
   // Return a dummy Job object that mimics BullMQ Job structure
   return {
@@ -100,6 +130,12 @@ export async function addJob<K extends keyof JobPayloads>(
         backoff: { type: 'exponential', delay: backoff },
         ...opts
       });
+    } else if (queueName === 'dgii-estado' && estadoQueue) {
+      addPromise = estadoQueue.add(name, data, {
+        attempts,
+        backoff: { type: 'fixed', delay: backoff },
+        ...opts
+      });
     } else if (queueName === 'emails-sending' && emailQueue) {
       addPromise = emailQueue.add(name, data, {
         attempts,
@@ -108,17 +144,17 @@ export async function addJob<K extends keyof JobPayloads>(
       });
     } else {
       console.warn(`Could not add job to ${queueName}: Queue or Redis is offline.`);
-      return await triggerFallback(queueName, name, data);
+      return await triggerFallback(queueName, name, data, opts.delay);
     }
 
     const result = await Promise.race([addPromise, timeoutPromise]);
     if (result === null) {
       // Redis timed out
-      return await triggerFallback(queueName, name, data);
+      return await triggerFallback(queueName, name, data, opts.delay);
     }
     return result;
   } catch (error: any) {
     console.error(`Failed to add job to queue ${queueName}:`, error.message);
-    return await triggerFallback(queueName, name, data);
+    return await triggerFallback(queueName, name, data, opts.delay);
   }
 }

@@ -92,7 +92,32 @@ const MINUTOS_PARA_DARLO_POR_NO_LLEGADO = 30;
  * docena de empresas dependieran de que la primera tenga las credenciales
  * puestas, una configuracion incompleta pararia la sincronizacion de todas.
  */
-export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]> {
+/**
+ * A que pendientes mirar. Vacio = todos, que es lo que hace el cron.
+ *
+ * POR QUE SE ACOTA EN VEZ DE ESCRIBIR OTRA CONSULTA
+ * ------------------------------------------------
+ * La persecucion del veredicto tras emitir necesita preguntar por UNA factura.
+ * Escribirle su propia consulta habria sido la CUARTA copia de "leer el estado
+ * y aplicarlo": ya estan la de aqui, la de la ruta individual y la de la ruta
+ * por lotes. En este proyecto, cada vez que esa logica se ha copiado, las
+ * copias se han desincronizado -- las seis tablas de tipos de comprobante, las
+ * cuatro resoluciones de entorno, las tres del estado.
+ *
+ * Asi que no hay copia: la persecucion llama AQUI con un filtro. El correo al
+ * aceptar, el aviso de "mSeller dice algo que no es un veredicto" y el
+ * tratamiento del e-NCF que no consta salen gratis, ya escritos y ya probados.
+ */
+export interface FiltroSincronizacion {
+  companyId?: string;
+  modo?: Modo;
+  /** Una factura concreta. Con esto, `DIAS_ATRAS` deja de aplicar. */
+  invoiceId?: string;
+}
+
+export async function sincronizarPendientes(
+  filtro: FiltroSincronizacion = {}
+): Promise<ResultadoSincronizacion[]> {
   const desde = new Date();
   desde.setDate(desde.getDate() - DIAS_ATRAS);
 
@@ -114,7 +139,14 @@ export async function sincronizarPendientes(): Promise<ResultadoSincronizacion[]
       eq(invoices.status, 'submitted'),
       isNull(invoices.deletedAt),
       isNull(companies.deletedAt),
-      gte(invoices.createdAt, desde),
+      //  El limite de antiguedad es para el barrido: evita que cada pasada
+      //  arrastre el historico. Cuando se pregunta por UNA factura no pinta
+      //  nada -- se acaba de emitir -- y ademas estorbaria si el reloj del
+      //  servidor y el de la base no coinciden.
+      ...(filtro.invoiceId ? [] : [gte(invoices.createdAt, desde)]),
+      ...(filtro.invoiceId ? [eq(invoices.id, filtro.invoiceId)] : []),
+      ...(filtro.companyId ? [eq(invoices.companyId, filtro.companyId)] : []),
+      ...(filtro.modo ? [eq(invoices.modo, filtro.modo)] : []),
     ))
     .orderBy(desc(invoices.createdAt))
     .limit(MAXIMO_POR_LOTE * 20);

@@ -328,6 +328,24 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       }
     }
 
+    //  Si mSeller contesto sin veredicto -- la firma viene, el dictamen de la
+    //  DGII no -- se persigue igual que en la emision directa. Este camino
+    //  atiende "Enviar", "Reenviar" y el envio diferido: dejarlo fuera seria
+    //  que la misma factura se resolviera sola o no segun por donde saliera.
+    //
+    //  Solo CONSULTA, y en su propia cola. Encolarlo en la de este mismo
+    //  trabajo lo reemitiria.
+    if (newStatus === 'submitted') {
+      try {
+        const { empezarAPerseguir } = await import('@/services/dgii/perseguirVeredicto');
+        await empezarAPerseguir({ companyId, invoiceId, modo });
+      } catch (err: unknown) {
+        Logger.warn('[JobRunner] no se pudo encolar la persecucion del veredicto', {
+          invoiceId, error: (err as Error)?.message,
+        });
+      }
+    }
+
     return { success: true, trackId: result.trackId };
   } else {
     // Auditoria P0-06 (2026-09-03): este `else` trataba TODO fallo de

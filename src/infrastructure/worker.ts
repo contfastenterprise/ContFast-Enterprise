@@ -69,6 +69,36 @@ if (redis && !isBuildPhase) {
     console.error(`[Worker] (dgii-submissions) connection/redis error: ${err.message}`);
   });
 
+  // 1-bis. Perseguidor del veredicto. SOLO CONSULTA.
+  //
+  //  Cola aparte de `dgii-submissions` a proposito, y no por orden: el
+  //  processor de aquella ignora `job.name` y siempre EMITE. Un trabajo de
+  //  consulta encolado alli habria mandado el comprobante otra vez en cada
+  //  intento, que es justo la forma en que este proyecto ya duplico un e-CF.
+  //
+  //  `attempts: 1` viene puesto desde quien encola: cada peldaño de la
+  //  escalera encola el siguiente por su cuenta, porque "la DGII no ha
+  //  contestado todavia" no es un error y no debe gastar reintentos.
+  const estadoWorker = new Worker(
+    'dgii-estado',
+    async (job: Job) => {
+      const { perseguirVeredicto } = await import('@/services/dgii/perseguirVeredicto');
+      return await perseguirVeredicto(job.data);
+    },
+    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
+  );
+
+  estadoWorker.on('failed', (job, err) => {
+    //  Que falle una consulta no marca la factura de ninguna forma: sigue
+    //  siendo un 'submitted' legitimo y el barrido de siempre la recogera. Lo
+    //  unico que se pierde es ese peldaño.
+    console.error(`[Worker] Job ${job?.id} (dgii-estado) failed: ${err.message}`);
+  });
+
+  estadoWorker.on('error', (err) => {
+    console.error(`[Worker] (dgii-estado) connection/redis error: ${err.message}`);
+  });
+
   // 2. Email Sending Worker
   const emailWorker = new Worker(
     'emails-sending',
