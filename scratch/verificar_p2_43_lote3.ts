@@ -110,11 +110,9 @@ const PDF = 'src/app/api/v1/invoices/[id]/pdf/route.ts';
     !s.includes('Logger.error(`[StorageService] Error ensuring bucket')
     && s.includes('no se pudo asegurar el bucket ${bucketName}; se intenta subir igual'));
 
-  const d = fuente('src/services/documents/documentService.ts');
-  ok('la ruta que devuelve el PDF no promete que el fichero este guardado',
-    !d.includes("console.error('[DocumentService] Failed to save PDF to storage:'")
-    && d.includes('el PDF no se pudo guardar en almacenamiento; se devuelve generado')
-    && crudo('src/services/documents/documentService.ts').includes('es donde ESTARIA, no la prueba de que'));
+  //  Aqui se comprobaba el log de `documentService.ts` al no poder guardar el
+  //  PDF. El lote 100 retiro ese servicio con el modulo de documentos, y leerlo
+  //  hacia reventar este banco con ENOENT; se quita en el lote 106.
 }
 
 console.log(fallos === 0 ? '\nTODO OK' : `\n${fallos} FALLA(S)`);

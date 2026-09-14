@@ -109,12 +109,13 @@ async function main() {
   ok('el token se puede seguir fabricando (el secreto no cambio)', falso.split('.').length === 3);
   ok('pero la ruta no tiene donde leerlo', !r.includes('decoded.companyId'));
 
-  console.log('\n6) El mecanismo bueno sigue en pie\n');
-  const ds = fuente('src/services/documents/documentService.ts');
-  ok('documentShares usa testigo aleatorio de 32 bytes',
-    /crypto\.randomBytes\(32\)/.test(ds));
-  ok('con caducidad', /expiresAt/.test(ds));
-  ok('y se puede revocar', /revokedAt/.test(ds));
+  //  6) Aqui se comprobaba que `documentShares` (testigo aleatorio, caducidad,
+  //  revocacion) seguia en pie como la via buena para compartir sin sesion.
+  //  El lote 100 retiro el modulo de documentos entero: `document_shares` tenia
+  //  CERO filas desde que existia. Leer `documentService.ts` hacia reventar este
+  //  banco con ENOENT desde entonces (arreglado en el lote 106). Hoy el PDF solo
+  //  se abre con sesion y permiso, que es lo que fijan las secciones 1 a 5; que
+  //  el modulo se fue lo vigila `verificar_modulo_documentos_retirado.ts`.
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

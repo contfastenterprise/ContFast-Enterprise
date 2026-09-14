@@ -92,19 +92,12 @@ function ok(t: string, c: boolean): void {
 }
 
 // ─── el correo que salio y no quedo anotado ─────────────────────────────
-{
-  const src = fuente('src/services/documents/emailService.ts');
-
-  ok('el registro de correo perdido deja traza durable',
-    src.includes('await registrarFalloSilencioso({')
-    && src.includes("paso: 'registro_correo',")
-    && src.includes("entityType: 'system_email_logs',")
-    && src.includes('estadoDelEnvio: status'));
-
-  ok('y el fallo de SMTP dice a quien y de que documento',
-    src.includes("Logger.error('[EmailService] fallo el envio por SMTP'")
-    && !src.includes("console.error('[EmailService] Exception sending email via SMTP:'"));
-}
+//  Aqui se comprobaba `src/services/documents/emailService.ts`. Ese servicio
+//  solo lo usaba el modulo de documentos, que el lote 100 retiro entero
+//  (`document_shares` tenia cero filas). Leerlo hacia reventar este banco con
+//  ENOENT desde entonces; se quita en el lote 106. El correo de las facturas
+//  no pasaba por ahi: va por `infrastructure/jobRunners.ts`, que escribe en
+//  `system_email_logs` por su cuenta.
 
 // ─── las tres vias del correo al aceptar ────────────────────────────────
 {

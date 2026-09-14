@@ -123,8 +123,13 @@ ok('antiguedad y atraso son cosas distintas',
   hay && diasDeAntiguedad('2026-06-14', '2026-09-12') === 90
   && diasDeAtraso('2026-07-14', '2026-09-12') === 60);
 
+//  '30-09-2026' y no '30/09/2026': el lote 96 (`05b8f57`) paso toda fecha que
+//  lee una persona a dd-MM-aaaa, a proposito, y lo fija
+//  `verificar_fecha_visible.ts`. Esta comprobacion se quedo con el formato
+//  viejo y estaba en rojo desde entonces; lo que vigila -- que las dos formas
+//  salen del MISMO dia, sin correrse por la zona horaria -- no cambia.
 ok('las dos formas de pintar una fecha salen del mismo dia',
-  hay && formatDateDisplay('2026-09-30') === '30/09/2026'
+  hay && formatDateDisplay('2026-09-30') === '30-09-2026'
   && formatDateShort('2026-09-30') === '30 sep'
   && formatDateShort('2026-09-30T00:00:00.000Z') === '30 sep'
   && formatDateShort(null) === '-');

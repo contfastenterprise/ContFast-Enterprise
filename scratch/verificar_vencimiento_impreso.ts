@@ -90,7 +90,10 @@ for (const dia of ['2026-12-31', '2027-06-30', '2027-01-01', '2026-09-02']) {
   const antes = copiaVieja({ expiryDate: dia });
   const ahora = siConsta({ expiryDate: dia }, '31');
   const bueno = `${dia.slice(8, 10)}-${dia.slice(5, 7)}-${dia.slice(0, 4)}`;
-  ok(`${dia}   se imprimia "${antes}"   ahora "${ahora}"   (correcto: ${bueno})`,
+  //  `String(...)`: `ahora` puede ser el simbolo LANZO, y un simbolo metido a
+  //  pelo en una plantilla revienta en ejecucion. `tsc -p scratch` lo marcaba y
+  //  paraba `verificar.ps1` antes de correr un solo banco.
+  ok(`${dia}   se imprimia "${antes}"   ahora "${String(ahora)}"   (correcto: ${bueno})`,
      ahora === bueno && antes !== bueno);
 }
 ok('el caso peor: una secuencia que vence el 1 de enero se imprimia como del 31 de diciembre ANTERIOR',

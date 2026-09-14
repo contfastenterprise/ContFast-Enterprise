@@ -49,8 +49,17 @@ ok('suma las lineas repetidas del mismo producto en el mismo almacen',
 
 // La misma regla que `alcanzaLaExistencia` en el servidor: lo que puede salir
 // es lo que hay MENOS el minimo que hay que dejar puesto.
+//
+// Desde `be03e9e` la regla ya no se escribe a mano en la pantalla: vive en
+// `services/inventario/existencia.ts`, que comparten el servidor, el selector
+// de producto y este aviso. La comprobacion vieja buscaba la resta escrita en
+// la pagina y estaba en rojo desde entonces. Ahora se fijan las dos mitades:
+// que la pagina IMPORTA la regla y la USA, y que la regla es la resta.
+const existenciaTs = fuente('src/services/inventario/existencia.ts');
 ok('usa la misma regla que el servidor: existencia menos el minimo a conservar',
-  src.includes('const disponible = existencia - minimo;'));
+  src.includes("import { disponible as loQueSePuedeSacar } from '@/services/inventario/existencia';")
+  && src.includes('disponible: loQueSePuedeSacar(targetInv),')
+  && /return aCantidad\(nivel\.quantity\) - aCantidad\(nivel\.minStock\);/.test(existenciaTs));
 
 ok('un servicio no genera aviso: no tiene existencia que agotar',
   src.includes('if (prod.tracksInventory === false) return;'));
