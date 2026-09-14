@@ -268,6 +268,20 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
   };
 }
 
+/**
+ * CUANTO PUEDE DURAR ESTA FUNCION.
+ *
+ * Sin declararlo, la plataforma aplica su valor por defecto -- del orden de 10
+ * o 15 segundos -- y este PDF lo dibuja un Chromium que, en frio, tarda varios
+ * segundos solo en arrancar. Cuando la plataforma corta antes, el cliente no ve
+ * un error de impresion: ve que no pasa nada.
+ *
+ * Es la misma leccion que `services/dgii/tiempos.ts` dejo escrita para la
+ * emision: subir un plazo por dentro no sirve de nada si la funcion se corta
+ * por fuera. Los dos numeros tienen que ir juntos.
+ */
+export const maxDuration = 60;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<any> }

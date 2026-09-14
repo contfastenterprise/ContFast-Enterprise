@@ -1,18 +1,31 @@
 import type { Browser } from 'puppeteer';
 import { Logger } from '@/utils/logger';
 import QRCode from 'qrcode';
+import { incrustarImagenes } from './imagenesIncrustadas';
 
 export class PdfGenerator {
   private static browserInstance: Browser | null = null;
 
   /**
+   * Si el ULTIMO `getBrowser()` reutilizo el navegador o tuvo que arrancarlo.
+   *
+   * Arrancar Chromium en una funcion sin servidor no es barato: se descomprime
+   * un navegador de ~50 MB y se lanza. Mientras la funcion sigue caliente se
+   * reutiliza; el primer PDF tras un rato quieto lo paga entero. Sin saber cual
+   * de los dos casos fue, un tiempo de impresion no dice nada.
+   */
+  private static ultimoArranqueEnCaliente = false;
+
+  /**
    * Gets or initializes the shared browser instance.
    */
   private static async getBrowser(): Promise<Browser> {
+    this.ultimoArranqueEnCaliente = false;
     if (this.browserInstance) {
       try {
         // Test connection to ensure the browser hasn't crashed or closed
         await this.browserInstance.version();
+        this.ultimoArranqueEnCaliente = true;
         return this.browserInstance;
       } catch (err) {
         console.warn('Puppeteer shared browser instance disconnected or crashed. Recreating...', err);
@@ -92,6 +105,34 @@ export class PdfGenerator {
    * @param layout The printer layout ('carta' | '80mm' | '58mm')
    */
   static async generatePdfFromHtml(html: string, layout: 'carta' | '80mm' | '58mm' | string, landscape: boolean = false): Promise<Buffer> {
+    //  ESTE METODO SOLO MIDE Y PREPARA. El trabajo de siempre esta intacto en
+    //  `dibujar`, debajo, sin una linea movida: envolver en vez de reescribir
+    //  deja el cambio en algo que se puede leer de un vistazo.
+    const arranque = performance.now();
+
+    //  Las imagenes remotas, DENTRO del HTML antes de dar nada al navegador.
+    //  El QR ya venia en base64; el LOGO era una URL de Supabase que Chromium
+    //  salia a buscar por red EN CADA IMPRESION, con una venta esperando.
+    const t0 = performance.now();
+    const imagenes = await incrustarImagenes(html);
+    const msImagenes = performance.now() - t0;
+
+    try {
+      return await this.dibujar(imagenes.html, layout, landscape);
+    } finally {
+      Logger.info('[tiempos-pdf] render', {
+        imagenes_ms: Math.round(msImagenes),
+        incrustadas: imagenes.incrustadas,
+        del_cache: imagenes.deCache,
+        navegador: this.ultimoArranqueEnCaliente ? 'caliente' : 'arrancado',
+        total_ms: Math.round(performance.now() - arranque),
+        formato: layout,
+      });
+    }
+  }
+
+  /** El dibujo de siempre: servicio externo si lo hay, y si no, Puppeteer. */
+  private static async dibujar(html: string, layout: 'carta' | '80mm' | '58mm' | string, landscape: boolean): Promise<Buffer> {
     const pdfServiceUrl = process.env.PDF_SERVICE_URL;
     const generatorMode = process.env.PDF_GENERATOR_MODE || 'local';
 
