@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
-import { eq, and, isNull, desc, count, ilike, gte, lte, sql, notInArray, type SQL } from 'drizzle-orm';
+import { eq, and, isNull, desc, count, ilike, gte, lte, sql, inArray, notInArray, type SQL } from 'drizzle-orm';
+import { tiposDelFiltro } from '@/services/dgii/tiposComprobante';
 
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
@@ -38,7 +39,15 @@ export async function GET(req: NextRequest) {
     ];
 
     if (status) conditions.push(eq(invoices.status, status as any));
-    if (ecfType) conditions.push(eq(invoices.ecfType, ecfType));
+    //  `ecfType` puede ser una lista (`33,34`). La pantalla de notas la necesita
+    //  para filtrar AQUI, donde se pagina, y no sobre una pagina ya cortada.
+    //  Un tipo suelto sigue siendo la misma igualdad de antes.
+    const tipos = tiposDelFiltro(ecfType);
+    if (tipos.length === 1) conditions.push(eq(invoices.ecfType, tipos[0]));
+    else if (tipos.length > 1) conditions.push(inArray(invoices.ecfType, tipos));
+    //  Antes `ecfType=,` buscaba ese tipo literal y no devolvia nada. Que la
+    //  lista quede vacia al limpiarla no puede convertirlo en "todos".
+    if (ecfType && tipos.length === 0) conditions.push(sql`false`);
     if (from) {
       const fromDate = from.includes('T') ? new Date(from) : new Date(`${from}T00:00:00-04:00`);
       conditions.push(gte(invoices.createdAt, fromDate));

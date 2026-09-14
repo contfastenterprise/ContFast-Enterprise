@@ -109,8 +109,11 @@ for (const [ruta, n] of [
 {
   const src = crudo('src/app/api/v1/ecf/route.ts');
   ok("ecf/route: 0 ': any' (2 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
+  //  Lo que se fija es `type SQL` en el import de drizzle-orm, no la linea
+  //  entera: el lote 109 anadio `inArray` a ese import y la comprobacion, que
+  //  copiaba la linea literal, paso a fallar sin que faltara nada.
   ok('ecf/route: importa type SQL de drizzle-orm',
-    src.includes("import { eq, and, isNull, desc, count, ilike, gte, lte, sql, notInArray, type SQL } from 'drizzle-orm';"));
+    /import \{[^}]*\btype SQL\b[^}]*\} from 'drizzle-orm';/.test(src));
   ok('ecf/route: conditions tipado SQL[]', src.includes('const conditions: SQL[] = ['));
   ok('ecf/route: catch status+code+message (const e = ...CAST)',
     src.includes(`const e = error as ${CAST};`));

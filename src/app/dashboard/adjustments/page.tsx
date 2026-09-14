@@ -14,7 +14,14 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { motivosValidosNota } from '@/schemas/factura';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
-import { esModificablePorNota } from '@/services/dgii/tiposComprobante';
+import { esModificablePorNota, CODIGOS_NOTA } from '@/services/dgii/tiposComprobante';
+
+/**
+ * Lo que lista esta pantalla: las notas electronicas y las dos tradicionales
+ * que ya enseñaba (03/04). Hoy no hay ninguna 03 ni 04 en la base, pero
+ * quitarlas seria esconder algo que la pantalla mostraba.
+ */
+const TIPOS_DE_ESTA_PANTALLA = [...CODIGOS_NOTA, '03', '04'];
 
 export default function AdjustmentsPage() {
   const [loading, setLoading] = useState(true);
@@ -59,16 +66,18 @@ export default function AdjustmentsPage() {
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: '15',
-        ecfType: typeFilter || '',
+        //  Con "Todos", la LISTA de notas, no un tipo vacio. Antes se pedia la
+        //  pagina sin tipo y las notas se filtraban aqui, sobre una pagina que
+        //  el servidor ya habia cortado contando facturas: "Pagina 1 de 4" con
+        //  tres vacias, y una nota antigua enterrada entre facturas salia como
+        //  "no hay notas". El filtro va donde se pagina.
+        ecfType: typeFilter || TIPOS_DE_ESTA_PANTALLA.join(','),
         q: searchTerm || ''
       });
-      // Notes are stored in invoices table with type 33/34
       const res = await fetch(`/api/v1/ecf?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
-        // Filter list for only 33 and 34 to be secure
-        const filtered = data.data.filter((d: any) => ['33', '34', '03', '04'].includes(d.ecfType));
-        setNotes(filtered);
+        setNotes(data.data);
         setTotalPages(data.meta?.total_pages || 1);
       } else {
         setNotes([]);

@@ -112,6 +112,21 @@ export const CODIGOS_MODIFICABLES_POR_NOTA =
     .filter((t) => t.emitible && !(CODIGOS_NOTA as readonly string[]).includes(t.codigo))
     .map((t) => t.codigo);
 
+/**
+ * Los tipos que pide un filtro `ecfType`: uno (`31`) o una lista (`33,34`).
+ *
+ * Existe porque la pantalla de notas pedia una pagina SIN tipo y filtraba las
+ * notas en el navegador, sobre una pagina que el servidor ya habia cortado
+ * contando facturas: "Pagina 1 de 4" con tres paginas vacias, y una nota
+ * antigua enterrada entre facturas que la pantalla daba por inexistente. El
+ * filtro tiene que ir donde se pagina, y para eso la API tiene que poder
+ * recibir varios tipos.
+ */
+export function tiposDelFiltro(param: string | null | undefined): string[] {
+  if (!param) return [];
+  return [...new Set(param.split(',').map((t) => t.trim()).filter(Boolean))];
+}
+
 /** ¿A este comprobante se le puede emitir una nota de credito o debito? */
 export function esModificablePorNota(codigo: string | null | undefined): boolean {
   return CODIGOS_MODIFICABLES_POR_NOTA.includes(String(codigo ?? '').trim());
