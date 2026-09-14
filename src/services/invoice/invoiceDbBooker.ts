@@ -850,8 +850,10 @@ export class InvoiceDbBooker {
     //  tarea manual por venta.
     //
     //  FUERA de la transaccion, y no por elegancia: el primer intento sale a
-    //  los DOS segundos, y un trabajo que arranque antes del COMMIT leeria
-    //  una factura que todavia no existe para el. El encolado del reenvio que
+    //  MEDIO segundo, y un trabajo que arranque antes del COMMIT leeria una
+    //  factura que todavia no existe para el. Cuanto mas corto el primer
+    //  peldaño, mas estrecha la carrera: a medio segundo, meter esto dentro
+    //  de la transaccion seria perderla casi siempre. El encolado del reenvio que
     //  hay mas arriba si vive dentro, y funciona porque aquel trabajo no
     //  lleva retraso y vuelve a leer de la base -- pero no es un ejemplo a
     //  seguir, es una deuda que aqui no se repite.

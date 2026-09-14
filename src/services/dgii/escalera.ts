@@ -10,19 +10,25 @@
  *
  * LOS NUMEROS
  * -----------
- *     2s · 4s · 8s · 15s · 30s · 60s · 120s · 300s
+ *     0.5s · 1s · 2s · 4s · 8s · 15s · 30s · 60s · 120s · 300s
  *
- * Ocho intentos en algo mas de ocho minutos, apretados al principio. Se empieza
- * a los DOS segundos porque es lo que se pidio y porque es el momento en que ya
- * puede haber veredicto: mSeller devuelve la firma en el acto, y el dictamen de
- * la DGII suele venir detras en segundos.
+ * Diez intentos en nueve minutos, muy apretados al principio: los tres primeros
+ * caen dentro de los 3,5 segundos siguientes a la emision, que es cuando el
+ * cajero sigue mirando la pantalla.
  *
- * Crecen porque preguntar cada dos segundos durante ocho minutos serian 240
- * consultas por factura, y en caja hay una factura detras de otra. Lo que no se
- * resuelva en esta escalera no es urgente: se queda para el barrido de siempre.
+ * Se empieza a MEDIO segundo porque es lo que se pidio, y porque puede haber
+ * veredicto ya: mSeller devuelve la firma en el acto y el dictamen de la DGII
+ * suele venir detras en segundos. El precio de preguntar tan pronto es una
+ * consulta de mas cuando aun no esta; el premio es que la factura pase sola de
+ * "Enviado" a "Aceptada" antes de que nadie mire.
+ *
+ * Y crecen deprisa porque preguntar cada medio segundo durante nueve minutos
+ * serian mas de mil consultas por factura, y en caja hay una factura detras de
+ * otra. Lo que no se resuelva en esta escalera no es urgente: se queda para el
+ * barrido de siempre.
  */
 export const ESCALERA_MS: readonly number[] = [
-  2_000, 4_000, 8_000, 15_000, 30_000, 60_000, 120_000, 300_000,
+  500, 1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 60_000, 120_000, 300_000,
 ];
 
 /**

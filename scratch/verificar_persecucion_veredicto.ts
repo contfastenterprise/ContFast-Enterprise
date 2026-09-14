@@ -16,7 +16,7 @@
  *
  * LO QUE HACE ESTE LOTE
  * ---------------------
- * Al emitir, si el veredicto no vino, se encola una consulta a los 2 segundos,
+ * Al emitir, si el veredicto no vino, se encola una consulta a MEDIO segundo,
  * y otra despues, con los huecos creciendo, hasta rendirse a los ~9 minutos y
  * dejarlo para el barrido.
  *
@@ -116,16 +116,23 @@ async function main(): Promise<void> {
   // ───────────────────────────────────────────────────────────────────────
   console.log('A. LA ESCALERA, CORRIENDOLA');
   // ───────────────────────────────────────────────────────────────────────
-  okA('empieza a los 2 segundos, que es lo pedido', () => E!.ESCALERA_MS[0] === 2_000);
-  okA('son ocho peldaños', () => E!.ESCALERA_MS.length === 8);
+  okA('empieza a los 0,5 segundos, que es lo pedido', () => E!.ESCALERA_MS[0] === 500);
+  okA('son diez peldaños', () => E!.ESCALERA_MS.length === 10);
+  //  Lo que de verdad importa del principio: que haya varios intentos mientras
+  //  el cajero sigue mirando. Se mide en segundos, no en numero de peldaños,
+  //  para que reordenar la escalera no lo pase por alto.
+  okA('tres intentos caben en los primeros 4 segundos',
+      () => E!.ESCALERA_MS.filter(
+        (_, i) => E!.ESCALERA_MS.slice(0, i + 1).reduce((a, b) => a + b, 0) <= 4_000
+      ).length >= 3);
   okA('y cada uno espera MAS que el anterior',
       () => E!.ESCALERA_MS.every((v, i) => i === 0 || v > E!.ESCALERA_MS[i - 1]));
   okA('cubre entre 8 y 15 minutos: ni un suspiro ni una tarde',
       () => E!.alcanceTotalMs() >= 8 * 60_000 && E!.alcanceTotalMs() <= 15 * 60_000);
-  okA('la mitad de los intentos caen en el primer medio minuto, que es donde se resuelve',
+  okA('y la mitad, en el primer medio minuto, que es donde se resuelve',
       () => E!.ESCALERA_MS.filter(
         (_, i) => E!.ESCALERA_MS.slice(0, i + 1).reduce((a, b) => a + b, 0) <= 30_000
-      ).length >= 4);
+      ).length >= E!.ESCALERA_MS.length / 2);
   okA('pasado el ultimo peldaño ya no hay hueco: la escalera se acaba',
       () => E!.huecoDelIntento(E!.ESCALERA_MS.length) === null);
   okA('y un intento absurdo tampoco devuelve nada',
@@ -194,6 +201,8 @@ async function main(): Promise<void> {
      codigo(BOO).includes('const resultado = await db.transaction')
      && codigo(BOO).includes('return resultado;'));
   ok('se explica por que va fuera', crudo(BOO).includes('antes del COMMIT'));
+  ok('y que cuanto mas corto el primer peldaño, mas estrecha la carrera',
+     crudo(BOO).includes('mas estrecha la carrera'));
   //  Buscar `catch` a secas daba OK aunque se quitara el `try` -- la palabra
   //  seguia en el fichero, roto y todo. Se exige la forma entera.
   ok('y si no se puede encolar, la emision NO se cae',

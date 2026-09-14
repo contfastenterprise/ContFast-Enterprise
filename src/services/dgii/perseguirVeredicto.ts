@@ -26,14 +26,15 @@ import { ESCALERA_MS, huecoDelIntento } from './escalera';
  *
  * LA ESCALERA
  * -----------
- * Preguntar una sola vez no sirve: a veces el veredicto tarda dos segundos y a
- * veces diez minutos. Y preguntar en bucle cada segundo es castigar a mSeller
- * por cada venta. Se pregunta con los huecos creciendo:
+ * Preguntar una sola vez no sirve: a veces el veredicto tarda medio segundo y a
+ * veces diez minutos. Y preguntar en bucle cada medio segundo es castigar a
+ * mSeller por cada venta. Se pregunta con los huecos creciendo:
  *
- *     2s · 4s · 8s · 15s · 30s · 60s · 120s · 300s
+ *     0.5s · 1s · 2s · 4s · 8s · 15s · 30s · 60s · 120s · 300s
  *
- * Ocho intentos repartidos en algo mas de ocho minutos, concentrados al
- * principio, que es donde se resuelve la mayoria. Lo que no caiga ahi se queda
+ * Diez intentos repartidos en nueve minutos, concentrados al principio -- los
+ * tres primeros dentro de los 3,5 segundos siguientes a la emision, que es
+ * mientras el cajero sigue mirando la pantalla. Lo que no caiga ahi se queda
  * para el barrido de siempre: esto NO sustituye al cron, le quita el trabajo
  * urgente.
  *
