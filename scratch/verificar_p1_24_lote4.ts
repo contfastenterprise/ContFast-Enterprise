@@ -102,14 +102,18 @@ ok("0 ocurrencias de ': any' (5 antes)",
   (quoteCrudo.match(/: any/g) || []).length === 0,
   `quedan ${(quoteCrudo.match(/: any/g) || []).length}`);
 
+//  Lo que se fija es `type SQL` en el import y el tipo de `whereClause`, no la
+//  linea literal: el lote 110 anadio `or`, `ilike` e `isNull` al import y la
+//  condicion de borradas a `whereClause`, y las dos comprobaciones pasaron a
+//  fallar sin que faltara nada.
 ok("importa SQL de drizzle-orm (tipo)",
-  /import \{ eq, and, sql, type SQL \} from 'drizzle-orm';/.test(quote));
+  /import \{[^}]*\btype SQL\b[^}]*\} from 'drizzle-orm';/.test(quote));
 
 ok('los 2 taxInserts (createQuote y updateQuote) tipados con quoteTaxes.$inferInsert (solo los 3 campos que arma el propio codigo)',
   (quote.match(/const taxInserts: Pick<typeof quoteTaxes\.\$inferInsert, 'taxType' \| 'rate' \| 'amount'>\[\] = \[\];/g) || []).length === 2);
 
 ok('whereClause tipado SQL | undefined (antes any), y el cast `as any` desaparecio del segundo assignment',
-  /let whereClause: SQL \| undefined = and\(eq\(quotes\.companyId, companyId\), eq\(quotes\.modo, modo\)\);/.test(quote) &&
+  /let whereClause: SQL \| undefined = and\(eq\(quotes\.companyId, companyId\), eq\(quotes\.modo, modo\)[^;]*\);/.test(quote) &&
   /whereClause = and\(whereClause, eq\(quotes\.status, status\)\);/.test(quote) &&
   !/whereClause = and\(whereClause, eq\(quotes\.status, status\)\) as any;/.test(quote));
 

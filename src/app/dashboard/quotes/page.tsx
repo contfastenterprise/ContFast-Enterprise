@@ -25,6 +25,9 @@ export default function QuotesList() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<'pending' | 'invoiced' | 'cancelled' | ''>('');
   const [searchTerm, setSearchTerm] = useState('');
+  // Lo que se le pregunta al servidor: `searchTerm` con un retardo corto, para
+  // no lanzar una consulta por tecla.
+  const [busqueda, setBusqueda] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -38,6 +41,10 @@ export default function QuotesList() {
       url.searchParams.set('page', page.toString());
       url.searchParams.set('per_page', '10');
       if (statusFilter) url.searchParams.set('status', statusFilter);
+      // La busqueda la hace el servidor, sobre todas las cotizaciones. Antes se
+      // filtraba aqui la pagina que ya habia llegado, y una cotizacion de otra
+      // pagina salia como "0 cotizaciones" existiendo.
+      if (busqueda) url.searchParams.set('q', busqueda);
 
       const res = await fetch(url.toString());
       const data = await res.json();
@@ -64,11 +71,22 @@ export default function QuotesList() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, busqueda]);
 
   useEffect(() => {
     fetchQuotes();
   }, [fetchQuotes]);
+
+  // Al cambiar lo buscado se vuelve a la pagina 1: la pagina 3 de una busqueda
+  // nueva puede no existir.
+  useEffect(() => {
+    if (searchTerm.trim() === busqueda) return;
+    const t = setTimeout(() => {
+      setBusqueda(searchTerm.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchTerm, busqueda]);
 
   const convertToInvoice = async (quoteId: string) => {
     try {
@@ -93,16 +111,6 @@ export default function QuotesList() {
       default: return { label: status.toUpperCase(), cls: 'bg-slate-500/10 text-slate-500 border-slate-500/20', dot: 'bg-slate-500' };
     }
   };
-
-  // Local Search Filtering
-  const filteredQuotes = quotes.filter(quote => {
-    const s = searchTerm.toLowerCase();
-    return (
-      quote.sequenceNumber?.toLowerCase().includes(s) ||
-      (quote.customerName && quote.customerName.toLowerCase().includes(s)) ||
-      String(quote.total).includes(s)
-    );
-  });
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
@@ -226,8 +234,8 @@ export default function QuotesList() {
                 <RefreshCw className="h-6 w-6 animate-spin text-[#C5A059]" />
                 <span className="text-slate-400 text-xs">Cargando cotizaciones...</span>
               </div>
-            ) : filteredQuotes.length > 0 ? (
-              filteredQuotes.map((quote) => {
+            ) : quotes.length > 0 ? (
+              quotes.map((quote) => {
                 const badge = getStatusBadge(quote.status);
                 return (
                   <div key={quote.id} className="flex flex-col p-4 bg-white hover:bg-slate-50 transition-colors gap-3">
@@ -300,8 +308,8 @@ export default function QuotesList() {
                       Cargando cotizaciones...
                     </td>
                   </tr>
-                ) : filteredQuotes.length > 0 ? (
-                  filteredQuotes.map((quote) => {
+                ) : quotes.length > 0 ? (
+                  quotes.map((quote) => {
                     const badge = getStatusBadge(quote.status);
                     return (
                       <tr
@@ -377,7 +385,7 @@ export default function QuotesList() {
           {/* Pagination Toolbar */}
           <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
             <p className="text-xs text-slate-500 font-medium">
-              Mostrando <span className="font-bold text-slate-800">{filteredQuotes.length}</span> de <span className="font-bold text-slate-800">{totalRecords}</span> cotizaciones
+              Mostrando <span className="font-bold text-slate-800">{quotes.length}</span> de <span className="font-bold text-slate-800">{totalRecords}</span> cotizaciones
             </p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">

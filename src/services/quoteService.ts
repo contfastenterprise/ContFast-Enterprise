@@ -1,5 +1,5 @@
 import { db, quotes, quoteLines, quoteTaxes, quoteSequences, invoices, invoiceLines, invoiceTaxes, customers, products, users } from '@/db';
-import { eq, and, sql, type SQL } from 'drizzle-orm';
+import { eq, and, or, ilike, isNull, sql, type SQL } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface CreateQuoteInput {
@@ -394,15 +394,33 @@ export class QuoteService {
     modo: 'PRODUCCION' | 'PRUEBA',
     page = 1,
     limit = 50,
-    status?: string
+    status?: string,
+    q?: string
   ) {
     const offset = (page - 1) * limit;
 
     // El listado, el conteo y las estadisticas comparten esta condicion, asi
     // que el entorno entra una vez y cubre las tres.
-    let whereClause: SQL | undefined = and(eq(quotes.companyId, companyId), eq(quotes.modo, modo));
+    //
+    // Sin borradas: las estadisticas de abajo ya las excluian y el listado y
+    // el conteo no. Hoy no hay ninguna (no hay ruta de borrado), pero las tres
+    // consultas tienen que decir lo mismo.
+    let whereClause: SQL | undefined = and(eq(quotes.companyId, companyId), eq(quotes.modo, modo), isNull(quotes.deletedAt));
     if (status) {
       whereClause = and(whereClause, eq(quotes.status, status));
+    }
+    // La busqueda va AQUI, en la condicion que pagina. La pantalla la hacia en
+    // el navegador sobre la pagina que ya habia llegado, y una cotizacion de
+    // otra pagina salia como "0 cotizaciones" existiendo. Numero, cliente o
+    // total, como buscaba la pantalla. `%` y `_` escritos por el usuario se
+    // escapan: buscan esos caracteres, no cualquier cosa.
+    if (q) {
+      const patron = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+      whereClause = and(whereClause, or(
+        ilike(quotes.sequenceNumber, patron),
+        ilike(customers.name, patron),
+        ilike(sql`${quotes.total}::text`, patron),
+      ));
     }
 
     const items = await db.select({
@@ -430,8 +448,11 @@ export class QuoteService {
       .offset(offset)
       .orderBy(sql`${quotes.createdAt} DESC`);
 
+    // El mismo join que el listado: la busqueda mira el nombre del cliente, y
+    // sin el join el conteo no podria aplicarla y "Pagina X de Y" mentiria.
     const [{ count }] = await db.select({ count: sql<number>`count(*)` })
       .from(quotes)
+      .leftJoin(customers, eq(quotes.customerId, customers.id))
       .where(whereClause);
 
     // Calculate overall stats for all quotes (non-deleted) of the company

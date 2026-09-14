@@ -43,10 +43,14 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const perPage = parseInt(searchParams.get('limit') || '50', 10);
+    //  `per_page`, que es lo que manda la pantalla y lo que usan las demas
+    //  listas. Solo se leia `limit`: la pantalla pedia 10, recibia 50 y no se
+    //  enteraba. Se sigue entendiendo `limit` por si alguien lo usa.
+    const perPage = parseInt(searchParams.get('per_page') || searchParams.get('limit') || '50', 10);
     const status = searchParams.get('status') || undefined;
+    const q = searchParams.get('q')?.trim() || undefined;
 
-    const result = await QuoteService.getQuotes(auth.companyId, auth.modo, page, perPage, status);
+    const result = await QuoteService.getQuotes(auth.companyId, auth.modo, page, perPage, status, q);
 
     return NextResponse.json(
       { success: true, data: result.items, meta: { total: result.total, page: result.page, totalPages: result.totalPages, stats: result.stats } },
