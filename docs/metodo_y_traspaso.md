@@ -158,7 +158,29 @@ módulo de documentos, 996 líneas), 101 (compartir la sesión de mSeller), 102
 1.515 líneas de código muerto), 105 (velocidad de impresión, `ac9dba8`) y 106
 (este documento, y recuperar `verificar_p1_24_lote8.ts`, que acompañó al
 commit `70559d4` pero nunca se commiteó y reventaba con ENOENT desde el lote
-100).
+100), 107 (P3-48, `0a8dd65`) y 108 (P3-49).
+
+**Lote 106**: además del documento, `verificar.ps1` se paraba antes de correr
+un solo banco (`tsc -p scratch` marcaba `verificar_vencimiento_impreso.ts`), y
+al arreglarlo salieron cinco bancos en rojo fuera de la deuda. Ninguno señalaba
+un defecto: tres leían ficheros retirados en el lote 100 y dos se quedaron
+atrás tras cambios hechos a propósito (fechas dd-MM-aaaa del lote 96; la regla
+de existencia llevada a `services/inventario/existencia.ts` en `be03e9e`).
+**Lección**: retirar un módulo obliga a correr **todos** los bancos, no solo
+el del lote; el lote 100 dejó tres rotos sin que nadie lo viera.
+
+**Lote 107 (P3-48)**: `createPayment`/`createCheck` ya no admiten `'voided'`,
+porque no existe anulación de pagos ni cheques (ni reversa del asiento ni
+saldo devuelto). Medido: cero filas con ese estado. Sin migración; las
+columnas `voided_by` quedan marcadas como reservadas. Si algún día se
+implementa la anulación, el estado vuelve con ella.
+
+**Lote 108 (P3-49)**: fuera `pdf-lib`, `node-forge`, `@types/node-forge` y
+`xml-crypto`. **Siguen**, porque viven: `jsbarcode` y `tesseract.js`.
+
+Para commitear un lote hay ahora `scratch/_to_delete/commitear_lote.ps1
+-Lote NN -Ficheros "a,b,c"` (el mensaje en `commit_msgNN.txt`): se niega si ya
+había algo preparado o si lo preparado no es exactamente la lista.
 
 **Lote 105** (velocidad de impresión):
 - `src/services/print/imagenesIncrustadas.ts` (nuevo): incrusta en base64 las
@@ -190,8 +212,8 @@ se trabaja** (medido el 2026-09-14, al abrir el lote 106):
 
 | Orden | # | Asunto | Por qué ahí |
 |---|---|---|---|
-| 1 | P3-48 | `'voided'` en el tipo de cheques y pagos a suplidores (`apRepository.ts`), sin que nada lo escriba. En conduces **sí** está implementado | Toca dinero: un tipo que promete una anulación que no existe |
-| 2 | P3-49 | Dependencias sin uso | Riesgo bajo, medible. **Medido**: `jsbarcode` VIVE (`import()` dinámico en `BarcodeRenderer.tsx`); `tesseract.js` VIVE (`/api/v1/ocr` lanza `scripts/run-ocr.js` con `execFile`: ni `tsc` ni el build lo verían); sin ningún import y sin nadie que dependa de ellos (`pnpm why`): `pdf-lib`, `node-forge`, `xml-crypto`. El "Radix duplicado" **no se toca**: `radix-ui` trae dentro `react-slot` 1.3.0 y `button.tsx` usa la 1.3.3; unificar bajaría de versión el `Slot` de todos los botones `asChild` |
+| ✔ | P3-48 | Cerrado en el lote 107 | — |
+| ✔ | P3-49 | Cerrado en el lote 108. El "Radix duplicado" **no se toca**: `radix-ui` trae dentro `react-slot` 1.3.0 y `button.tsx` usa la 1.3.3; unificar bajaría de versión el `Slot` de todos los botones `asChild` | — |
 | 3 | P3-45 | Paginación a mano. **Medido**: no son 11 páginas sino 18 bloques en 16 ficheros, con 5 formas distintas de respuesta de la API, filtros en cliente sobre páginas del servidor (`quotes`, `adjustments`: páginas incompletas) y `products` que vuelve a la página 1 tras guardar. El componente compartido (`components/ui/pagination.tsx`) no es equivalente: se pinta siempre y su texto de rango depende de `pageSize` | No es de riesgo bajo: es un cambio visual en 16 pantallas. Si se hace, primero los defectos reales (páginas incompletas, vuelta a la página 1) y después la unificación, de pocas en pocas |
 | 4 | P2-42 | Doble motor de PDF. **Medido**: pdfkit (`src/services/pdfGenerator.ts`) no es solo nómina: recibos de nómina, liquidaciones, `reports/pdf` y `tools/print` | **Espera** a la línea `[tiempos-pdf]` de producción: si domina el arranque en frío, pasar 4 rutas más a Chromium empeora las cosas. Y recibos y liquidaciones son documentos del Código de Trabajo |
 | 5 | — | `console.*` → `Logger`. **Medido**: `Logger` (`src/utils/logger.ts`) es una envoltura fina de `console` — escribe en el mismo sitio. En Vercel un `console.error` suelto se ve igual que uno por `Logger`. Revisados los que podrían volcar secretos: ninguno lo hace | Valor bajo: solo consistencia y silenciar `debug` en producción. Ya no es "lo que no pasa por Logger no se ve" |
@@ -228,4 +250,4 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 106.*
+*Última actualización: lote 108.*
