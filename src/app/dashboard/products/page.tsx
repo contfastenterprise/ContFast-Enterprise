@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag, Check, ChevronLeft, ChevronRight, LayoutList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,6 +56,8 @@ export default function ProductsPage() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  // Numero de la ultima peticion del listado. Ver `fetchProducts`.
+  const ultimaPeticion = useRef(0);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
@@ -190,13 +192,25 @@ export default function ProductsPage() {
   }, [formData.cost, manualPricesEnabled]);
 
   const fetchProducts = async (searchQuery = search, catId = selectedCategory, pageNum = 1) => {
+    // Solo la ULTIMA peticion escribe en la tabla. Al teclear salian varias
+    // (y antes, dos por tecla), sin nada que descartara las viejas: si la
+    // respuesta de "pue" llegaba despues que la de "puerta", la tabla
+    // enseñaba "pue" con "puerta" escrito en el buscador.
+    const estaPeticion = ++ultimaPeticion.current;
     setLoading(true);
     setErrorCarga(null);
     try {
-      let url = `/api/v1/products?search=${searchQuery}&page=${pageNum}&per_page=20`;
-      if (catId) url += `&categoryId=${catId}`;
-      const res = await fetch(url);
+      // Con URLSearchParams y no pegando el texto: un `&` cortaba la consulta,
+      // un `#` la truncaba y un `+` llegaba como espacio.
+      const params = new URLSearchParams({
+        search: searchQuery,
+        page: String(pageNum),
+        per_page: '20',
+      });
+      if (catId) params.set('categoryId', catId);
+      const res = await fetch(`/api/v1/products?${params.toString()}`);
       const data = await res.json();
+      if (estaPeticion !== ultimaPeticion.current) return;
       if (data.success) {
         setProducts(data.data);
         if (data.meta) {
@@ -210,11 +224,13 @@ export default function ProductsPage() {
         toast.error('Error al cargar productos');
       }
     } catch (error) {
+      // Tampoco un fallo viejo puede tapar un resultado nuevo.
+      if (estaPeticion !== ultimaPeticion.current) return;
       setProducts([]);
       setErrorCarga(motivoDeCarga(error));
       toast.error('Error de red');
     } finally {
-      setLoading(false);
+      if (estaPeticion === ultimaPeticion.current) setLoading(false);
     }
   };
 
@@ -475,7 +491,9 @@ export default function ProductsPage() {
       if (data.success) {
         toast.success(editId ? 'Producto actualizado' : 'Producto creado exitosamente');
         setShowModal(false);
-        fetchProducts(search, selectedCategory);
+        // La pagina en la que estabas: sin ella, `fetchProducts` cae a la 1 y
+        // editar un producto de la pagina 4 te devolvia al principio.
+        fetchProducts(search, selectedCategory, page);
       } else {
         // El servidor manda `fields` cuando el fallo es de validacion: lo que
         // el esquema no pudo ver desde aqui -- un SKU repetido, por ejemplo --
@@ -1369,8 +1387,9 @@ export default function ProductsPage() {
                 placeholder="Buscar por código, nombre o código de barras..."
                 value={search}
                 onChange={(val) => {
+                  // Solo el texto. Pide el efecto con retardo de arriba; pedir
+                  // tambien aqui eran dos peticiones por tecla.
                   setSearch(val);
-                  fetchProducts(val, selectedCategory);
                 }}
               />
             </div>
@@ -1513,7 +1532,7 @@ export default function ProductsPage() {
                 Cargando catálogo...
               </div>
             ) : errorCarga ? (
-              <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts()} />
+              <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts(search, selectedCategory, page)} />
             ) : products.length === 0 ? (
               <div className="p-12 text-center text-slate-400">
                 <Archive className="h-12 w-12 mx-auto mb-3 opacity-20" />
@@ -1631,7 +1650,7 @@ export default function ProductsPage() {
                 ) : errorCarga ? (
                   <tr>
                     <td colSpan={8}>
-                      <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts()} />
+                      <ErrorDeCarga mensaje={errorCarga} onReintentar={() => fetchProducts(search, selectedCategory, page)} />
                     </td>
                   </tr>
                 ) : products.length === 0 ? (

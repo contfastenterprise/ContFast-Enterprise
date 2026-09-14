@@ -69,7 +69,9 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/inventory/movements/page.tsx', 'movimientos', 'fetchMovements', 2],
   ['src/app/dashboard/purchases/orders/page.tsx', 'pedidos', 'fetchOrders', 1],
   ['src/app/dashboard/cash/page.tsx', 'caja', 'loadHistory', 1],
-  ['src/app/dashboard/products/page.tsx', 'productos', '() => fetchProducts()', 2],
+  //  Lote 111: la recarga pasa la pagina en la que estabas; con
+  //  `fetchProducts()` a secas "Reintentar" volvia a la pagina 1.
+  ['src/app/dashboard/products/page.tsx', 'productos', '() => fetchProducts(search, selectedCategory, page)', 2],
   ['src/app/dashboard/hr/employees/page.tsx', 'empleados', 'fetchData', 1],
   ['src/app/dashboard/hr/overtime/page.tsx', 'horas extra', 'fetchData', 1],
   ['src/app/dashboard/adjustments/page.tsx', 'notas de ajuste', 'loadAdjustments', 1],

@@ -14,7 +14,7 @@ El proyecto se encuentra **Verified & Polished** tras solucionar múltiples erro
   - Se habilitó la recuperación y renderizado en pantalla del **Código de Seguridad oficial** emitido por la firma de la DGII, consultándolo directamente desde la transacción.
 
 ### 1. NÃºcleo Backend & Servicios
-- **XMLDSIG & node-forge**: Firma digital envelopada de facturas e-CF.
+- **Firma del e-CF**: la hace mSeller, no este repositorio. (Aquí ponía "XMLDSIG & node-forge"; `node-forge` y `xml-crypto` no los usaba nadie y se retiraron en el lote 108.)
 - **Generador de PDF**: GeneraciÃ³n de representaciones impresas en formatos Carta, 80mm y 58mm.
 - **Colas BullMQ & Redis**: TransmisiÃ³n asÃ­ncrona de e-CF a los servidores web de la DGII.
 - **RefactorizaciÃ³n Modular de Invoicing (`InvoiceService`)**: Desacoplamiento de la lÃ³gica de facturaciÃ³n electrÃ³nica en submÃ³dulos especializados (Calculator, Validator, Submitter, DB Booker, File Generator) bajo `/src/services/invoice/`, facilitando pruebas unitarias sobre cÃ¡lculos fiscales aislados y aislando fallos de comunicaciÃ³n de red de las transacciones SQL de persistencia.

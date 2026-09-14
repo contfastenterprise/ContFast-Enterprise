@@ -158,7 +158,9 @@ módulo de documentos, 996 líneas), 101 (compartir la sesión de mSeller), 102
 1.515 líneas de código muerto), 105 (velocidad de impresión, `ac9dba8`) y 106
 (este documento, y recuperar `verificar_p1_24_lote8.ts`, que acompañó al
 commit `70559d4` pero nunca se commiteó y reventaba con ENOENT desde el lote
-100), 107 (P3-48, `0a8dd65`) y 108 (P3-49).
+100), 107 (P3-48, `0a8dd65`), 108 (P3-49, `8f28e70`), 109 (notas paginadas,
+`41fc024`), 110 (búsqueda de cotizaciones, `8560389`) y 111 (listado de
+productos).
 
 **Lote 106**: además del documento, `verificar.ps1` se paraba antes de correr
 un solo banco (`tsc -p scratch` marcaba `verificar_vencimiento_impreso.ts`), y
@@ -177,6 +179,35 @@ implementa la anulación, el estado vuelve con ella.
 
 **Lote 108 (P3-49)**: fuera `pdf-lib`, `node-forge`, `@types/node-forge` y
 `xml-crypto`. **Siguen**, porque viven: `jsbarcode` y `tesseract.js`.
+
+**Lotes 109 a 111 — los defectos reales que salieron al medir P3-45.** No se
+unificó la paginación (ver sección 8); se cerraron los sitios donde una lista
+**escondía registros que existen**:
+- 109: la pantalla de notas de crédito/débito pedía páginas de TODOS los e-CF
+  y filtraba las notas en el navegador ("Página 1 de 4" con tres vacías; una
+  nota antigua enterrada entre facturas salía como "no hay notas").
+  `/api/v1/ecf` acepta ahora `ecfType` como lista (`tiposDelFiltro`).
+- 110: la búsqueda de cotizaciones filtraba solo la página que había llegado,
+  y la API leía `limit` mientras la pantalla mandaba `per_page` (pedía 10,
+  recibía 50: eso lo tapaba). Búsqueda al servidor, con escape de `%`/`_`.
+- 111: productos pedía dos veces por tecla sin descartar respuestas viejas,
+  pegaba el texto a la URL sin codificar, y guardar volvía a la página 1.
+
+**Trampa nueva (lotes 109 y 110)**: varios bancos de P1-24 anclan la línea de
+`import` **entera** (`import { eq, and, sql, type SQL } from 'drizzle-orm'`).
+Añadir un nombre a ese import los hace fallar sin que falte nada. Al tocar un
+import, correr los bancos de deuda que leen ese fichero y comparar el número
+de FALLAs contra HEAD; si sube, ajustar la comprobación a lo que vigilaba.
+
+**`PLAN.md` y `task.md` no se mantienen** (últimos cambios: 27-08 y 02-09).
+AGENTS.md pide actualizarlos, pero el registro vivo de lo hecho es este
+documento más los mensajes de commit y los bancos. En el lote 111 solo se
+corrigió en `PLAN.md` la línea que atribuía la firma a `node-forge`, falsa
+desde el lote 108.
+
+Pendiente menor visto de paso: `QuoteService.getQuotes` hace sus tres
+consultas (listado, conteo, estadísticas) una tras otra; son independientes y
+podrían ir en `Promise.all`.
 
 Para commitear un lote hay ahora `scratch/_to_delete/commitear_lote.ps1
 -Lote NN -Ficheros "a,b,c"` (el mensaje en `commit_msgNN.txt`): se niega si ya
@@ -214,7 +245,7 @@ se trabaja** (medido el 2026-09-14, al abrir el lote 106):
 |---|---|---|---|
 | ✔ | P3-48 | Cerrado en el lote 107 | — |
 | ✔ | P3-49 | Cerrado en el lote 108. El "Radix duplicado" **no se toca**: `radix-ui` trae dentro `react-slot` 1.3.0 y `button.tsx` usa la 1.3.3; unificar bajaría de versión el `Slot` de todos los botones `asChild` | — |
-| 3 | P3-45 | Paginación a mano. **Medido**: no son 11 páginas sino 18 bloques en 16 ficheros, con 5 formas distintas de respuesta de la API, filtros en cliente sobre páginas del servidor (`quotes`, `adjustments`: páginas incompletas) y `products` que vuelve a la página 1 tras guardar. El componente compartido (`components/ui/pagination.tsx`) no es equivalente: se pinta siempre y su texto de rango depende de `pageSize` | No es de riesgo bajo: es un cambio visual en 16 pantallas. Si se hace, primero los defectos reales (páginas incompletas, vuelta a la página 1) y después la unificación, de pocas en pocas |
+| 3 | P3-45 | Paginación a mano. **Medido**: no son 11 páginas sino 18 bloques en 16 ficheros, con 5 formas distintas de respuesta de la API, filtros en cliente sobre páginas del servidor (`quotes`, `adjustments`: páginas incompletas) y `products` que vuelve a la página 1 tras guardar. El componente compartido (`components/ui/pagination.tsx`) no es equivalente: se pinta siempre y su texto de rango depende de `pageSize` | Los defectos reales **ya están cerrados** (lotes 109-111). Lo que queda es la unificación visual en 16 pantallas: no es de riesgo bajo y no cierra ningún hueco. Si se hace, de pocas en pocas. Queda un detalle menor en `ecf/page.tsx`: el texto usa `meta.page` y los botones el `page` local |
 | 4 | P2-42 | Doble motor de PDF. **Medido**: pdfkit (`src/services/pdfGenerator.ts`) no es solo nómina: recibos de nómina, liquidaciones, `reports/pdf` y `tools/print` | **Espera** a la línea `[tiempos-pdf]` de producción: si domina el arranque en frío, pasar 4 rutas más a Chromium empeora las cosas. Y recibos y liquidaciones son documentos del Código de Trabajo |
 | 5 | — | `console.*` → `Logger`. **Medido**: `Logger` (`src/utils/logger.ts`) es una envoltura fina de `console` — escribe en el mismo sitio. En Vercel un `console.error` suelto se ve igual que uno por `Logger`. Revisados los que podrían volcar secretos: ninguno lo hace | Valor bajo: solo consistencia y silenciar `debug` en producción. Ya no es "lo que no pasa por Logger no se ve" |
 | 6 | P3-47 | `next/image` sin usar (0 usos, 25 ficheros con `<img>`, muchos plantillas de impresión donde no aplica) | Valor bajo |
@@ -250,4 +281,4 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 108.*
+*Última actualización: lote 111.*
