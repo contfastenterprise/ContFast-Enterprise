@@ -129,7 +129,14 @@ export class ApRepository {
     debitAccountId: string;
     creditAccountId: string;
     paymentDate: Date | string;
-    status: 'pending_guarantee' | 'applied' | 'voided';
+    /**
+     * Auditoria P3-48. Aqui ponia tambien `'voided'`, pero NO existe anulacion
+     * de pagos: ninguna ruta revierte el asiento ni devuelve el saldo a la
+     * cuenta por pagar. Pasar `'voided'` solo cambiaba la etiqueta de la fila,
+     * con el dinero intacto. Medido el 2026-09-14: cero filas con ese estado.
+     * Si algun dia se implementa la anulacion, el estado vuelve con ella.
+     */
+    status: 'pending_guarantee' | 'applied';
     /** Auditoria P1-13 (2026-09-03), migracion 0049. Quien registra el pago. */
     createdBy?: string;
   }) {
@@ -270,7 +277,8 @@ export class ApRepository {
     dueDate?: Date | string;
     isGuarantee: boolean;
     apId?: string;
-    status: 'pending' | 'cleared' | 'voided';
+    /** Sin `'voided'`, por lo mismo que en `createPayment` (P3-48). */
+    status: 'pending' | 'cleared';
     /** Fecha real de cobro. Solo aplica cuando status === 'cleared'. */
     clearedDate?: Date | string;
   }) {

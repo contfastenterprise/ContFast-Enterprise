@@ -141,6 +141,7 @@ export const customerReceipts = pgTable('customer_receipts', {
   // Auditoria P1-13 (2026-09-03), migracion 0049. NULL en cobros anteriores
   // a la migracion -- no se reconstruye.
   createdBy: uuid('created_by').references(() => users.id),
+  // Columna reservada: no existe anulacion de cobros y nadie la escribe (P3-48).
   voidedBy: uuid('voided_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -250,7 +251,9 @@ export const checks = pgTable('checks', {
   dueDate: date('due_date'),
   isGuarantee: boolean('is_guarantee').default(false).notNull(),
   apId: uuid('ap_id').references(() => accountsPayable.id),
-  status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | cleared | voided
+  // P3-48: no existe anulacion de cheques. El comentario listaba `voided` y
+  // ningun codigo lo escribe (0 filas medidas el 2026-09-14).
+  status: varchar('status', { length: 50 }).default('pending').notNull(), // pending | cleared
   // Fecha real en que el cheque fue cobrado/aplicado contablemente.
   // NO confundir con dueDate (fecha pactada) ni con issueDate (fecha de emision).
   // El historial de cheques cobrados se filtra por esta columna.
@@ -288,10 +291,13 @@ export const apPayments = pgTable('ap_payments', {
   debitAccountId: uuid('debit_account_id').notNull().references(() => chartOfAccounts.id),
   creditAccountId: uuid('credit_account_id').notNull().references(() => chartOfAccounts.id),
   paymentDate: date('payment_date').notNull(),
-  status: varchar('status', { length: 50 }).default('applied').notNull(), // pending_guarantee | applied | voided
+  // P3-48: no existe anulacion de pagos (ni reversa del asiento ni saldo
+  // devuelto a la CxP). El comentario listaba `voided`; 0 filas medidas.
+  status: varchar('status', { length: 50 }).default('applied').notNull(), // pending_guarantee | applied
   // Auditoria P1-13 (2026-09-03), migracion 0049. NULL en pagos anteriores
   // a la migracion -- no se reconstruye.
   createdBy: uuid('created_by').references(() => users.id),
+  // Columna reservada para cuando exista la anulacion: hoy nadie la escribe.
   voidedBy: uuid('voided_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
