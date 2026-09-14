@@ -270,9 +270,13 @@ Además, fuera de la tabla:
 
 ## 9. Antes de desplegar lo que ya está
 
-- Correr `scratch/_to_delete/urls_de_mseller.sql` (lote 103). El único riesgo
-  real de ese lote es una empresa con una dirección de mSeller a medida que la
-  nueva regla normalice de forma distinta.
+- ~~Correr `scratch/_to_delete/urls_de_mseller.sql` (lote 103).~~ **Hecho el
+  2026-09-14**: las 6 empresas vivas tienen ajustes (ninguna sin fila) y las 6
+  usan `https://ecf.api.mseller.app/v1`. Con esa URL la regla nueva y las tres
+  viejas (emisión, consulta, barrido) dan la misma dirección,
+  `https://ecf.api.mseller.app`: el lote 103 no cambia nada para nadie, y
+  antes tampoco hubo empresas emitiendo contra un servidor y consultando
+  contra otro. **Volver a mirarlo** si alguna empresa configura una URL propia.
 - Mirar la primera línea `[tiempos-pdf] render` que salga en producción, por lo
   dicho en la sección 7.
 - El gancho de pre-commit **está puesto** (comprobado en el lote 106:
