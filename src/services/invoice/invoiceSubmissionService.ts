@@ -2,6 +2,7 @@ import { db, ecfSequences, invoices } from '@/db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { entornoDgii } from '@/services/dgii/entorno';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 import { credencialesMseller } from '@/services/dgii/credenciales';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { vencimientoSecuencia } from '@/services/dgii/secuencia';
@@ -54,8 +55,7 @@ export class InvoiceSubmissionService {
 
     if (credenciales) {
       try {
-        const msellerUrl = settings?.msellerUrl || 'https://ecf.api.mseller.app';
-        const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
+        const baseUrl = baseUrlMseller(settings?.msellerUrl);
 
         const msellerClient = new MSellerClient({
           baseUrl,

@@ -12,6 +12,7 @@ import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 import { Logger } from '@/utils/logger';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 
 export async function GET(
   req: NextRequest,
@@ -85,8 +86,11 @@ export async function GET(
     }
     const msellerUrl = settings?.msellerUrl || 'https://api.mseller.app/v1';
     
-    // Convert /v1 to base URL if needed, MSellerClient uses baseUrl
-    const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : 'https://ecf.api.mseller.app';
+    //  ANTES: si la URL configurada no acababa en `/v1`, esta linea la TIRABA
+    //  y ponia la de por defecto. La emision, en cambio, la respetaba. O sea
+    //  que una empresa con servidor propio emitia contra el suyo y consultaba
+    //  contra otro. Ahora las dos pasan por la misma funcion.
+    const baseUrl = baseUrlMseller(msellerUrl);
     
     const client = new MSellerClient({
       baseUrl,

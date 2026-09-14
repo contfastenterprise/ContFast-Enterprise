@@ -8,6 +8,7 @@ import { eq, and } from 'drizzle-orm';
 import { envioVigente } from '@/repositories/dgiiSubmissionRepository';
 import { entornoDgii } from '@/services/dgii/entorno';
 import { credencialesMseller, entornosConCredenciales } from '@/services/dgii/credenciales';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 
 export async function GET(
   req: NextRequest,
@@ -87,7 +88,7 @@ export async function GET(
         const entorno = entornoDgii(auth.modo);
         const credenciales = await credencialesMseller(invoice.companyId, entorno);
         const msellerUrl = settings?.msellerUrl || 'https://ecf.api.mseller.app';
-        const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
+        const baseUrl = baseUrlMseller(msellerUrl);
 
         const msellerClient = new MSellerClient({
           baseUrl,

@@ -4,6 +4,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { leerEstado, mensajeEstado, camposDeFirma } from '@/services/dgii/estadoEnvio';
 import { leerDesenlace, mensajeDesconocido } from '@/services/dgii/desenlaceEnvio';
 import { Logger } from '@/utils/logger';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { envioEnCurso } from '@/repositories/dgiiSubmissionRepository';
@@ -118,7 +119,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
   const credenciales = await credencialesMseller(companyId, entorno);
 
   const msellerUrl = settings.msellerUrl || 'https://ecf.api.mseller.app';
-  const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : msellerUrl;
+  const baseUrl = baseUrlMseller(msellerUrl);
 
   // 5. Instantiate MSellerClient
   const client = new MSellerClient({

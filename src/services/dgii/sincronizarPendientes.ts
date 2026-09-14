@@ -30,10 +30,11 @@
  * proposito: una cuarta copia de la misma logica es como se desincronizaron
  * todas las demas.
  */
-import { db, invoices, dgiiSubmissions, companies } from '@/db';
+import { db, invoices, dgiiSubmissions, companies, companySettings } from '@/db';
 import { and, eq, isNull, gte, desc } from 'drizzle-orm';
 import { entornoDgii, type ModoSistema } from '@/services/dgii/entorno';
 import { credencialesMseller } from '@/services/dgii/credenciales';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 import { MSellerClient } from '@/services/dgii/msellerClient';
 import { leerEstado, mensajeEstado, camposDeFirma, motivoDgii } from '@/services/dgii/estadoEnvio';
 import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
@@ -177,8 +178,19 @@ export async function sincronizarPendientes(
       const entorno = entornoDgii(modo as ModoSistema);
       const credenciales = await credencialesMseller(companyId, entorno);
 
+      //  El servidor de la EMPRESA. Aqui habia una URL a pelo, asi que el
+      //  barrido consultaba siempre contra el de por defecto aunque la empresa
+      //  tuviera el suyo configurado y emitiera contra el. Una consulta al
+      //  servidor equivocado no encuentra el comprobante, y un comprobante que
+      //  "no consta" se queda en Enviado para siempre.
+      const [ajustes] = await db
+        .select({ msellerUrl: companySettings.msellerUrl })
+        .from(companySettings)
+        .where(and(eq(companySettings.companyId, companyId), isNull(companySettings.deletedAt)))
+        .limit(1);
+
       const cliente = new MSellerClient({
-        baseUrl: 'https://ecf.api.mseller.app',
+        baseUrl: baseUrlMseller(ajustes?.msellerUrl),
         entorno,
         email: credenciales.email,
         password: credenciales.password,

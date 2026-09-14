@@ -12,6 +12,7 @@ import { leerCodigoSeguridad } from '@/services/dgii/codigoSeguridad';
 import { camposDeFirma, leerEstado, motivoDgii } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 import { Logger } from '@/utils/logger';
+import { baseUrlMseller } from '@/services/dgii/urlMseller';
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -115,7 +116,9 @@ export async function POST(req: NextRequest) {
       );
     }
     const msellerUrl = settings?.msellerUrl || 'https://api.mseller.app/v1';
-    const baseUrl = msellerUrl.endsWith('/v1') ? msellerUrl.replace('/v1', '') : 'https://ecf.api.mseller.app';
+    //  Misma correccion que en la consulta individual: esto tiraba una URL
+    //  propia y la sustituia por la de por defecto.
+    const baseUrl = baseUrlMseller(msellerUrl);
 
     const client = new MSellerClient({
       baseUrl,

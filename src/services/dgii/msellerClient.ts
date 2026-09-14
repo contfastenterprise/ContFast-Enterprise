@@ -6,6 +6,7 @@ import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from './tiempos';
 import { claveDeSesion, sesionVigente, olvidarSesion } from './sesionMseller';
 import { fechaDgiiExigida } from './fechaDgii';
 import { Logger } from '@/utils/logger';
+import { baseUrlMseller } from './urlMseller';
 
 export interface ECFPayload {
   ECF: {
@@ -120,20 +121,12 @@ export class MSellerClient {
     password: string;
     apiKeyEncrypted: string;
   }) {
-    let baseUrl = config.baseUrl || 'https://ecf.api.mseller.app';
-    if (baseUrl.includes('api.mseller.app') && !baseUrl.includes('ecf.api.mseller.app')) {
-      baseUrl = baseUrl.replace('api.mseller.app', 'ecf.api.mseller.app');
-    }
-    // Clean up baseUrl by removing any appended entornos and trailing slashes
-    baseUrl = baseUrl.replace(/\/TesteCF$/gi, '')
-                     .replace(/\/CerteCF$/gi, '')
-                     .replace(/\/eCF$/gi, '');
-    if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.slice(0, -1);
-    }
-    
-    console.log('[MSellerClient] Constructor - config.baseUrl:', config.baseUrl, 'cleaned baseUrl:', baseUrl);
-    this.baseUrl = baseUrl;
+    //  La limpieza vivia AQUI, escondida: quitaba `/TesteCF`, `/CerteCF`,
+    //  `/eCF` y la barra final por debajo de quien construyera el cliente, y
+    //  lo unico que lo delataba era un `console.log` que imprimia en CADA
+    //  emision. Ese ruido se va y la regla sube a `urlMseller`, donde se ve,
+    //  se comparte con los otros cinco sitios y se puede probar sola.
+    this.baseUrl = baseUrlMseller(config.baseUrl);
     this.entorno = config.entorno || 'TesteCF';
     this.email = config.email;
     this.password = config.password;
