@@ -58,10 +58,17 @@ if (s) {
     'sin la bandera, el monto general se deduce de la forma del cuerpo',
     s.includes('const montoGeneral = c.isGeneralAmount || (c.lines.length === 0 && !!c.debitAccountId);')
   );
+  //  06bb396 (P2-34 facturas) llevo erroresPorCampo a `schemas/errores.ts`
+  //  para compartirla, y compra.ts la reexporta. El banco de facturas exige
+  //  justo que compra.ts NO la defina: los dos se contradecian. Se fija en su
+  //  sitio, y que sea el PRIMER mensaje por campo, no el ultimo. (Lote 115.)
+  const er = crudo('src/schemas/errores.ts') ?? '';
   ok(
     'erroresPorCampo da un mapa campo -> primer mensaje',
-    s.includes('export function erroresPorCampo(error: z.ZodError): Record<string, string> {') &&
-      s.includes("const clave = issue.path.map(String).join('.') || '_';")
+    s.includes("export { erroresPorCampo } from './errores';") &&
+      er.includes('export function erroresPorCampo(error: ZodError): Record<string, string> {') &&
+      er.includes("const clave = issue.path.map(String).join('.') || '_';") &&
+      er.includes('if (!(clave in out)) out[clave] = issue.message;')
   );
 } else {
   for (let i = 0; i < 4; i++) ok('esquema: (no existe)', false);

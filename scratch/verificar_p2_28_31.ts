@@ -16,10 +16,18 @@ function ok(t: string, c: boolean): void {
 // transaccion que mantiene bloqueadas las filas de inventario.
 {
   const s = crudo('src/services/inventoryService.ts');
+  //  Lote 115: be03e9e llevo la regla a `services/inventario/existencia.ts`,
+  //  que comparten el servidor, el selector de producto y el aviso de factura.
+  //  Las comprobaciones de abajo que miraban la regla DENTRO de
+  //  inventoryService estaban en rojo con la regla intacta en su sitio nuevo.
+  const e = crudo('src/services/inventario/existencia.ts');
 
   ok(
     'inventoryService: la regla de existencia sale a su propia funcion',
-    s.includes('function alcanzaLaExistencia(existencia: number, minimo: number, cantidadPedida: number): boolean {')
+    s.includes("import { alcanzaLaExistencia } from '@/services/inventario/existencia';")
+    && !/function alcanzaLaExistencia\b/.test(s)
+    && e.includes('export function alcanzaLaExistencia(existencia: number, minimo: number, cantidadPedida: number): boolean {')
+    && e.includes('return existencia - cantidadPedida >= minimo - HOLGURA;')
   );
   ok(
     'inventoryService: checkStock delega en ella (una sola fuente de verdad)',
@@ -31,7 +39,10 @@ function ok(t: string, c: boolean): void {
   );
   ok(
     'inventoryService: la nota recuerda que esta regla ya se corrigio una vez (F1-04)',
-    s.includes('ya se corrigio una vez (F1-04)')
+    //  La nota viajo con la regla: en inventoryService queda el aviso de la
+    //  mudanza, y el historial de F1-04 esta en existencia.ts.
+    s.includes('Se mudo a `@/services/inventario/existencia`')
+    && e.includes('F1-04') && e.includes('condenada a quedarse')
   );
 
   ok('inventoryService: existe checkStockBatch', s.includes('export async function checkStockBatch('));
@@ -50,11 +61,22 @@ function ok(t: string, c: boolean): void {
   );
   ok(
     'inventoryService: un servicio (sin inventario) sigue sin bloquear el despacho',
-    s.includes('if (!llevaPorProducto.get(productId)) return true;')
+    //  fd2c179 reescribio el bucle por producto: el servicio pasa a marcarse
+    //  como "alcanza" y seguir, en vez de `return true` por linea.
+    /if \(!llevaPorProducto\.get\(productId\)\) \{\s*\n\s*alcanzaPorProducto\.set\(productId, true\);\s*\n\s*continue;/.test(s)
+    && s.includes('if (!(await llevaInventario(companyId, productId, tx))) return true;')
   );
   ok(
-    'inventoryService: la nota explica por que array por indice y no mapa por producto',
-    s.includes('NO un mapa por producto') && s.includes('no se suman entre si')
+    //  ESTA COMPROBACION DEFENDIA UN ERROR, y se invierte. Fijaba la nota "array
+    //  por indice, no se suman entre si": con 10 en almacen, dos lineas de 8 del
+    //  mismo producto pasaban las dos y el nivel quedaba en -6. fd2c179 lo
+    //  corrigio sumando por producto antes de decidir (y lo vigila
+    //  verificar_conduce_duplicadas.ts). Lo que se fija ahora es la suma y que la
+    //  respuesta siga alineada por indice con las lineas.
+    'inventoryService: las lineas repetidas del mismo producto se SUMAN antes de decidir, y la respuesta sigue por indice',
+    s.includes('pedidoPorProducto.set(productId, (pedidoPorProducto.get(productId) || 0) + quantityNeeded);')
+    && s.includes('return items.map(({ productId }) => alcanzaPorProducto.get(productId) ?? false);')
+    && !s.includes('no se suman entre si')
   );
   ok(
     'inventoryService: la nota deja claro que el camino provisional no cambia',

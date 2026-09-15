@@ -98,12 +98,25 @@ ok(
     !pc.includes("throw new Error('Debe seleccionar un almacén.')") &&
     !pc.includes("throw new Error('La factura debe tener al menos una línea de producto seleccionada.')")
 );
-ok(
-  'las reglas que dependen de productos quedan aparte y devuelven campos',
-  pc.includes('const erroresBasicos = (): Record<string, string> => {') &&
-    pc.includes('const erroresDeStock = (): Record<string, string> => {') &&
-    pc.includes('Object.assign(campos, erroresBasicos(), erroresDeStock());')
-);
+//  180fe9f quito `erroresDeStock` A PROPOSITO: emitir no descuenta existencia
+//  (se descuenta al aprobar el conduce) y la regla vieja bloqueaba mal. La
+//  existencia al facturar paso a ser un aviso (lo fija
+//  verificar_aviso_stock_factura.ts), y el freno de verdad esta en el servidor,
+//  al aprobar el conduce. Se fijan las reglas por producto que SI siguen
+//  bloqueando (precio bajo costo) en las dos puertas, y ese freno. (Lote 115.)
+{
+  const dr = sinComentarios(crudo('src/repositories/deliveryRepository.ts') ?? '');
+  ok(
+    'las reglas que dependen de productos quedan aparte y devuelven campos',
+    pc.includes('const erroresBasicos = (): Record<string, string> => {') &&
+      pc.includes('Object.assign(campos, erroresBasicos());') &&
+      pc.includes('Object.assign(camposEmision, erroresBasicos());') &&
+      pc.includes('out[`lines.${idx}.unitPrice`] = `Precio por debajo del costo') &&
+      !pc.includes('erroresDeStock') &&
+      /const hayExistencia = await checkStockBatch\(/.test(dr) &&
+      /if \(!hayExistencia\[idx\]\) \{/.test(dr)
+  );
+}
 // El borrador se guarda a medias a proposito: no puede exigir el esquema entero.
 {
   const i = pc.indexOf('const handleSaveDraft');

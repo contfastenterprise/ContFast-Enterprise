@@ -27,8 +27,12 @@ function ok(t: string, c: boolean, d = ''): void {
 {
   const src = fuente('src/services/inventoryService.ts');
 
+  //  El tipo de `tx` pasa de `typeof db` a `DbOTx` en f7b5cd8; la comprobacion
+  //  lo copiaba literal y estaba en rojo con el costo llegando igual al kardex
+  //  y al asiento de costo de venta (revisado el 2026-09-14, lote 115). Se fija
+  //  el parametro y el retorno, y que el tipo no sea `any`.
   ok('addStock: nuevo parametro unitCost antes de tx',
-    /unitCost\?:\s*number,\s*\n\s*tx:\s*typeof db = db\s*\n\s*\):\s*Promise<\{\s*averageCost:\s*number\s*\}>\s*\{/.test(src));
+    /unitCost\?:\s*number,\s*\n\s*tx:\s*(?!any\b)[\w.]+\s*=\s*db\s*\n\s*\):\s*Promise<\{\s*averageCost:\s*number\s*\}>\s*\{/.test(src));
 
   ok('addStock: early-return de producto sin inventario devuelve { averageCost: 0 }',
     /if \(!\(await llevaInventario\(companyId, productId, tx\)\)\) return \{ averageCost: 0 \};/.test(src));

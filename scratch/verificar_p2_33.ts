@@ -91,8 +91,20 @@ ok(
   );
 }
 ok(
+  //  a8df497 (P2-38) saco la vista de cheques en garantia a su componente; el
+  //  dialogo viajo con ella (y ahi dejo de caer al window.confirm global). Se
+  //  fija en el componente: su propio useConfirm, el dialogo ANTES del fetch que
+  //  aplica, y ningun window.confirm. (Lote 115.)
   'purchases/page: aplicar cheque con useConfirm',
-  crudo('src/app/dashboard/purchases/page.tsx').includes("title: 'Aplicar cheque contablemente',")
+  (() => {
+    const g = crudo('src/app/dashboard/purchases/components/GuaranteeChecksView.tsx');
+    const dialogo = g.indexOf("title: 'Aplicar cheque contablemente'");
+    const aplica = g.indexOf("fetch('/api/v1/ap/payments/apply-guarantees'");
+    return g.includes('const confirm = useConfirm();')
+      && /const handleApplyCheck = async[^\n]*\{\s*\n\s*if \(\s*\n\s*!\(await confirm\(\{\s*\n\s*title: 'Aplicar cheque contablemente',/.test(g)
+      && dialogo > 0 && aplica > dialogo
+      && !g.includes('window.confirm(');
+  })()
 );
 {
   const src = crudo('src/app/dashboard/invoices/page.tsx');
