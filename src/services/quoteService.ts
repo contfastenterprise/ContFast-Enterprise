@@ -423,7 +423,11 @@ export class QuoteService {
       ));
     }
 
-    const items = await db.select({
+    // Las tres consultas A LA VEZ (lote 127): listado, conteo y estadisticas no
+    // dependen una de otra, y en fila eran tres idas y vueltas a la base. Con el
+    // pool de produccion (2 conexiones) se ahorra una espera de las tres.
+    const [items, [{ count }], [statsResult]] = await Promise.all([
+    db.select({
       id: quotes.id,
       companyId: quotes.companyId,
       warehouseId: quotes.warehouseId,
@@ -446,17 +450,17 @@ export class QuoteService {
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(sql`${quotes.createdAt} DESC`);
+      .orderBy(sql`${quotes.createdAt} DESC`),
 
     // El mismo join que el listado: la busqueda mira el nombre del cliente, y
     // sin el join el conteo no podria aplicarla y "Pagina X de Y" mentiria.
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` })
+    db.select({ count: sql<number>`count(*)` })
       .from(quotes)
       .leftJoin(customers, eq(quotes.customerId, customers.id))
-      .where(whereClause);
+      .where(whereClause),
 
     // Calculate overall stats for all quotes (non-deleted) of the company
-    const [statsResult] = await db.select({
+    db.select({
       totalAmount: sql<string>`coalesce(sum(total), 0)`,
       pendingCount: sql<number>`count(case when status = 'pending' then 1 end)`
     })
@@ -468,7 +472,8 @@ export class QuoteService {
         eq(quotes.companyId, companyId),
         eq(quotes.modo, modo),
         sql`deleted_at is null`
-      ));
+      )),
+    ]);
 
     return {
       items,

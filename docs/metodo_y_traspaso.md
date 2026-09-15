@@ -343,9 +343,8 @@ Además, fuera de la tabla:
 - ~~`any` que volvieron sin que ningún banco lo viera~~ **Hecho en el lote
   123**: `: any` a 0 otra vez en servicios, repositorios y middleware, y
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
-  `as any` techo **2** tras los lotes 124 y 125. Los 2 que quedan son `connection: redis as any` en `services/jobs/reportQueue.ts`, a propósito: hay dos `ioredis` instalados (5.11.1 y el 5.10.1 que trae bullmq) y sus tipos no encajan; lo arregla deduplicar la dependencia, no otro molde. En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
-- `QuoteService.getQuotes`: tres consultas independientes en serie
-  (candidatas a `Promise.all`).
+  `as any` techo **0** tras los lotes 124-126. El 126 dejó un solo `ioredis`, el que fija bullmq (`verificar_ioredis_unico.ts` avisa si al actualizar bullmq se vuelven a separar). En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
+- ~~`QuoteService.getQuotes`: tres consultas en serie~~ **Hecho en el lote 127** (`Promise.all`).
 
 ## 9. Antes de desplegar lo que ya está
 
