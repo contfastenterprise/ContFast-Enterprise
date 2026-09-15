@@ -6,7 +6,7 @@ import { accountsPayable } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { addStock } from './inventoryService';
 import { AccountRepository } from '../repositories/accountRepository';
-import { resolverCuentaPorMapeo } from './accounting/resolverCuentas';
+import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from './accounting/resolverCuentas';
 import { FinancialMovementService } from '@/services/financialMovementService';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
@@ -150,7 +150,9 @@ export async function createExpense(expenseData: {
       const accDebit = expenseData.debitAccountId
         ? { id: expenseData.debitAccountId }
         : (hasInventory 
-          ? await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_inventory', '1.1.06', 'Compra - Inventario de Mercancía')
+          // La MISMA cuenta de la que sale el costo de venta. Ver
+          // resolverCuentaDeInventario: con `purchase_inventory`/1.1.06 eran dos.
+          ? await resolverCuentaDeInventario(tx, expenseData.companyId, 'Compra - Inventario de Mercancía')
           : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas'));
 
       const accCredit = isCredit

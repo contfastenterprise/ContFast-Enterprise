@@ -2,7 +2,7 @@ import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEn
 import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
 import { checkStockBatch, deductStock } from '@/services/inventoryService';
 import { AccountRepository } from '@/repositories/accountRepository';
-import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
 
 export interface CreateDeliveryNoteInput {
   companyId: string;
@@ -381,7 +381,7 @@ export class DeliveryRepository {
       // asentar un costo inventado seria peor que no asentar nada.
       if (costoDeVentaTotal > 0.004) {
         const accCosto = await resolverCuentaPorMapeo(tx, companyId, 'cost_of_goods_sold', '5.1.01', 'Despacho - Costo de Venta');
-        const accInventario = await resolverCuentaPorMapeo(tx, companyId, 'inventory', '1.1.03.01', 'Despacho - Inventario de Mercancía');
+        const accInventario = await resolverCuentaDeInventario(tx, companyId, 'Despacho - Inventario de Mercancía');
         const monto = Math.round(costoDeVentaTotal * 100) / 100;
         await AccountRepository.createJournalEntry(tx, {
           companyId,

@@ -10,7 +10,7 @@ import { siguienteCodigoFactura } from './codigoFactura';
 import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './types';
 import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
 import { esAdminOSistemas } from '@/utils/rolMatch';
-import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
 import { Logger } from '@/utils/logger';
 
 export class InvoiceDbBooker {
@@ -563,7 +563,7 @@ export class InvoiceDbBooker {
       // no una busqueda-y-reversion del original.
       if (costoDevueltoTotal > 0.004) {
         const accCostoDevolucion = await resolverCuentaPorMapeo(tx, data.companyId, 'cost_of_goods_sold', '5.1.01', 'Nota de Crédito - Reverso Costo de Venta');
-        const accInventarioDevolucion = await resolverCuentaPorMapeo(tx, data.companyId, 'inventory', '1.1.03.01', 'Nota de Crédito - Inventario de Mercancía');
+        const accInventarioDevolucion = await resolverCuentaDeInventario(tx, data.companyId, 'Nota de Crédito - Inventario de Mercancía');
         const montoDevuelto = Math.round(costoDevueltoTotal * 100) / 100;
         await AccountRepository.createJournalEntry(tx, {
           companyId: data.companyId,

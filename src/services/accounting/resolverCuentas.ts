@@ -186,6 +186,36 @@ export async function resolverCuentaPorMapeo(
 }
 
 /**
+ * Cuenta de INVENTARIO DE MERCANCIA. La misma para comprar y para vender.
+ *
+ * POR QUE UNA FUNCION Y NO LA PAREJA CLAVE/CODIGO EN CADA SITIO
+ * -----------------------------------------------------------
+ * Eso habia, y se separaron. Las compras con productos buscaban la clave
+ * `purchase_inventory` con defecto `1.1.06`; el costo de venta del conduce y la
+ * devolucion de la nota de credito, `inventory` con defecto `1.1.03.01`.
+ * Ninguna empresa tiene mapeada `purchase_inventory` y el catalogo sembrado solo
+ * trae `1.1.03.01`, asi que:
+ *
+ *   - en Latin Doors, donde el codigo de antes de P0-05 habia CREADO una
+ *     `1.1.06` con el mismo nombre, el valor entraba por una cuenta y salia por
+ *     otra. Medido el 2026-09-14 en PRODUCCION: 1.1.06 +347.892,30 (nunca sale)
+ *     y 1.1.03.01 -229.927,25 (nunca entro). Un activo en negativo.
+ *   - en las demas, sin `1.1.06`, registrar una compra con productos FALLABA:
+ *     este resolvedor no crea cuentas.
+ *
+ * La clave es `inventory`, la que se configura en Ajustes > Contabilidad. Los
+ * saldos ya asentados en 1.1.06 y 1.1.03.01 NO se tocan desde aqui:
+ * reclasificarlos es un asiento del contador.
+ */
+export async function resolverCuentaDeInventario(
+  tx: DbTransaction,
+  companyId: string,
+  contexto: string
+): Promise<CuentaValidada> {
+  return resolverCuentaPorMapeo(tx, companyId, 'inventory', '1.1.03.01', contexto);
+}
+
+/**
  * Cuenta de CUENTAS POR PAGAR a proveedores.
  *
  * Por defecto `2.1.01.01`, la hija transaccional. NUNCA `2.1.01`, que es la

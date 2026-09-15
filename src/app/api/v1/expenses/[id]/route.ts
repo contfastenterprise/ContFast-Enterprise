@@ -6,7 +6,7 @@ import { isAdminOrSistemas } from '@/middleware/permissions';
 import { esSistemas } from '@/utils/rolMatch';
 import { eq, and, or, inArray, sql, isNull, desc } from 'drizzle-orm';
 import { checkRateLimit } from '@/middleware/rateLimiter';
-import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
@@ -1297,7 +1297,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         // empresa.
         if (!accDebit) {
           accDebit = hasInventory
-            ? await resolverCuentaPorMapeo(tx, session.companyId, 'purchase_inventory', '1.1.06', 'Compra - Inventario de Mercancía')
+            // La MISMA cuenta de la que sale el costo de venta. Ver
+            // resolverCuentaDeInventario: con `purchase_inventory`/1.1.06 eran dos.
+            ? await resolverCuentaDeInventario(tx, session.companyId, 'Compra - Inventario de Mercancía')
             : await resolverCuentaPorMapeo(tx, session.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas');
         }
 

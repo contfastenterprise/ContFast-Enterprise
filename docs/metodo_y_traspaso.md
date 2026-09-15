@@ -330,11 +330,14 @@ Además, fuera de la tabla:
     producto). Si esa mercancía es la que luego apareció por conteo, valorar el
     conteo a costo de catálogo la costearía DOS veces. La decisión de cómo se
     valora un sobrante de conteo es contable (del contador), no de código.
-  - **Arreglo de código hacia adelante (pendiente de decisión)**: que las
-    compras usen la misma cuenta de inventario que el costo de venta (la del
-    mapeo `inventory`, que es la que se configura en Ajustes). Los saldos ya
-    asentados en 1.1.06 y 1.1.03.01 NO se tocan: una reclasificación es un
-    asiento del contador.
+  - **HECHO en el lote 121** (autorizado por el dueño): compras, conduce y
+    nota de crédito resuelven la cuenta de inventario en UN sitio,
+    `resolverCuentaDeInventario` (clave `inventory`, defecto 1.1.03.01). Las
+    compras nuevas cargan 1.1.03.01; en las empresas sin 1.1.06 las compras con
+    productos dejan de fallar. **Pendiente del contador**: reclasificar el saldo
+    ya asentado en 1.1.06 de Latin Doors hacia 1.1.03.01 (no se toca desde el
+    código). **Sigue pendiente de decisión contable**: el costo 0 de los conteos
+    físicos.
 - **`ap/page.tsx:420`** (`handleConfirmarCobros`) aplica cheques en garantía
   sin diálogo de confirmación; `GuaranteeChecksView` sí lo pide.
 - **`any` que volvieron sin que ningún banco lo viera**: 3 `: any` en

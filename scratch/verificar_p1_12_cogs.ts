@@ -88,7 +88,8 @@ function ok(t: string, c: boolean, d = ''): void {
 
   ok('importa AccountRepository, resolverCuentaPorMapeo y journalEntries',
     src.includes("import { AccountRepository } from '@/repositories/accountRepository';") &&
-    src.includes("import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';") &&
+    //  Lote 121 anadio resolverCuentaDeInventario a este import: se admite.
+    /import \{[^}]*\bresolverCuentaPorMapeo\b[^}]*\} from '@\/services\/accounting\/resolverCuentas';/.test(src) &&
     src.includes('journalEntries'));
 
   ok('approve(): captura averageCost de deductStock y acumula costoDeVentaTotal',
@@ -99,7 +100,9 @@ function ok(t: string, c: boolean, d = ''): void {
   ok('approve(): asienta Costo de Venta (5.1.01 / 1.1.03.01) referenciando el conduce (reference: id), solo si > 0',
     src.includes('if (costoDeVentaTotal > 0.004) {') &&
     src.includes("resolverCuentaPorMapeo(tx, companyId, 'cost_of_goods_sold', '5.1.01'") &&
-    src.includes("resolverCuentaPorMapeo(tx, companyId, 'inventory', '1.1.03.01'") &&
+    //  Lote 121: la cuenta de inventario se resuelve en resolverCuentaDeInventario
+    //  (clave `inventory`, defecto 1.1.03.01), la misma que usan las compras.
+    src.includes("resolverCuentaDeInventario(tx, companyId, 'Despacho - Inventario de Mercancía')") &&
     /reference: id,\s*\n\s*date: new Date\(\)\.toISOString\(\)\.split\('T'\)\[0\],\s*\n\s*description: `Costo de Venta - Conduce/.test(src));
 
   ok('void(): busca el asiento de costo por reference = id y lo revierte con AccountRepository.revertirAsientoContable',
