@@ -12,6 +12,17 @@ export interface PaginationProps {
   onPageSizeChange?: (size: number) => void;
   pageSizeOptions?: number[];
   className?: string;
+  /**
+   * Lo que se lista: "Mostrando 1 - 15 de 40 categorías". Por defecto
+   * "registros", como siempre (lote 128: clientes y suplidores no cambian).
+   */
+  itemLabel?: string;
+  /**
+   * Con una sola pagina, no pintar los botones (el conteo si). Por defecto
+   * apagado, como siempre. Las pantallas que venian de paginacion escrita a mano
+   * los ocultaban, y cambiarlas no deberia empeorar lo que ya se veia.
+   */
+  hideControlsWhenSinglePage?: boolean;
 }
 
 export function Pagination({
@@ -23,6 +34,8 @@ export function Pagination({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
   className = "",
+  itemLabel = "registros",
+  hideControlsWhenSinglePage = false,
 }: PaginationProps) {
   const safeTotalPages = Math.max(1, totalPages);
   const startItem = totalItems ? (currentPage - 1) * pageSize + 1 : undefined;
@@ -34,7 +47,7 @@ export function Pagination({
       <div className="flex items-center gap-4">
         {totalItems !== undefined && startItem !== undefined && endItem !== undefined ? (
           <span>
-            Mostrando <strong className="font-semibold text-slate-900 dark:text-slate-100">{startItem}</strong> - <strong className="font-semibold text-slate-900 dark:text-slate-100">{endItem}</strong> de <strong className="font-semibold text-slate-900 dark:text-slate-100">{totalItems}</strong> registros
+            Mostrando <strong className="font-semibold text-slate-900 dark:text-slate-100">{startItem}</strong> - <strong className="font-semibold text-slate-900 dark:text-slate-100">{endItem}</strong> de <strong className="font-semibold text-slate-900 dark:text-slate-100">{totalItems}</strong> {itemLabel}
           </span>
         ) : (
           <span>
@@ -62,6 +75,7 @@ export function Pagination({
       </div>
 
       {/* Controls */}
+      {!(hideControlsWhenSinglePage && safeTotalPages <= 1) && (
       <div className="flex items-center gap-1">
         <Button
           variant="outline"
@@ -109,6 +123,7 @@ export function Pagination({
           <ChevronsRight className="h-3.5 w-3.5" />
         </Button>
       </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Category {
   id: string;
@@ -301,35 +302,16 @@ export default function CategoriesPage() {
             </table>
           </div>
 
-          {/* Pagination Toolbar */}
-          <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-            <p className="text-xs text-slate-500 font-medium">
-              Mostrando <span className="font-bold text-slate-800">{pagedCategories.length}</span> de <span className="font-bold text-slate-800">{categories.length}</span> categorías
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                  type="button"
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
-                  Anterior
-                </button>
-                <span className="text-xs text-slate-500 font-bold px-2">
-                  Pág. {page} de {totalPages}
-                </span>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(page + 1)}
-                  type="button"
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
-                  Siguiente
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Paginacion: el componente comun (P3-45, lote 128) */}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={categories.length}
+            pageSize={itemsPerPage}
+            onPageChange={setPage}
+            itemLabel="categorías"
+            hideControlsWhenSinglePage
+          />
         </>
       )}
     </div>

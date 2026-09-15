@@ -5,6 +5,7 @@ import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Payroll {
   id: string;
@@ -328,35 +329,16 @@ export default function PayrollPage() {
                 </table>
               </div>
 
-              {/* Pagination Toolbar */}
-              <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <p className="text-xs text-slate-500 font-medium">
-                  Mostrando <span className="font-bold text-slate-800">{pagedPayrolls.length}</span> de <span className="font-bold text-slate-800">{payrolls.length}</span> nóminas
-                </p>
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={page <= 1}
-                      onClick={() => setPage(page - 1)}
-                      type="button"
-                      className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                    >
-                      Anterior
-                    </button>
-                    <span className="text-xs text-slate-500 font-bold px-2">
-                      Pág. {page} de {totalPages}
-                    </span>
-                    <button
-                      disabled={page >= totalPages}
-                      onClick={() => setPage(page + 1)}
-                      type="button"
-                      className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Paginacion: el componente comun (P3-45, lote 128) */}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={payrolls.length}
+                pageSize={itemsPerPage}
+                onPageChange={setPage}
+                itemLabel="nóminas"
+                hideControlsWhenSinglePage
+              />
             </>
           </div>
         )
