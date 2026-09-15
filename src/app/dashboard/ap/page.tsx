@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
+import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
@@ -82,6 +83,10 @@ export default function AccountsPayablePage() {
   const [bankAccountsList, setBankAccountsList] = useState<BankAccount[]>([]);
   const [paymentsList, setPaymentsList] = useState<PaymentHistory[]>([]);
   const [paymentsTotal, setPaymentsTotal] = useState(0);
+  // El tamano de pagina viajaba escrito a mano dentro de la peticion. El
+  // componente calcula el rango con el, asi que si los dos numeros se separan
+  // el rango miente: vive en un solo sitio (lote 132).
+  const itemsPerPage = 20;
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [paymentsTotalPages, setPaymentsTotalPages] = useState(1);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -164,7 +169,7 @@ export default function AccountsPayablePage() {
       const query = new URLSearchParams({
         payments: 'true',
         page: paymentsPage.toString(),
-        pageSize: '20',
+        pageSize: String(itemsPerPage),
         status: 'applied'
       });
       if (qSearch) query.append('search', qSearch);
@@ -905,30 +910,16 @@ export default function AccountsPayablePage() {
               </div>
             </div>
               
-              {/* Paginación */}
-              {paymentsTotalPages > 1 && (
-                <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50/20">
-                  <span className="text-xs text-slate-500 font-mono">
-                    Mostrando página {paymentsPage} de {paymentsTotalPages} ({paymentsTotal} registros)
-                  </span>
-                  <div className="flex gap-2">
-                    <button 
-                      disabled={paymentsPage <= 1}
-                      onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
-                      className="px-3 py-1.5 h-8 bg-surface-container border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-xs font-bold transition-colors"
-                    >
-                      Anterior
-                    </button>
-                    <button 
-                      disabled={paymentsPage >= paymentsTotalPages}
-                      onClick={() => setPaymentsPage(p => Math.min(paymentsTotalPages, p + 1))}
-                      className="px-3 py-1.5 h-8 bg-surface-container border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-xs font-bold transition-colors"
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Paginacion: el componente comun (P3-45, lote 132) */}
+              <Pagination
+                currentPage={paymentsPage}
+                totalPages={paymentsTotalPages}
+                totalItems={paymentsTotal}
+                pageSize={itemsPerPage}
+                onPageChange={setPaymentsPage}
+                itemLabel="pagos"
+                hideControlsWhenSinglePage
+              />
             </motion.div>
           )}
         </AnimatePresence>

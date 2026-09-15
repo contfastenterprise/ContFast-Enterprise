@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Search, RefreshCw, Printer, Plus, Check, X,
-  Layers, Package, AlertCircle, Edit2, Save,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  Layers, Package, AlertCircle, Edit2, Save
 } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -45,6 +45,11 @@ export default function BarcodeDashboardPage() {
   // Pagination states
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  // Cuantos productos cumplen el filtro Y la busqueda de ahora mismo. Es lo
+  // que la barra de abajo necesita para decir el rango ("Mostrando 16 - 30 de
+  // 57"); los tres contadores de arriba son otra cosa, el catalogo entero.
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 15;
   const [totalCount, setTotalCount] = useState(0);
   const [withCodeCount, setWithCodeCount] = useState(0);
   const [withoutCodeCount, setWithoutCodeCount] = useState(0);
@@ -76,14 +81,36 @@ export default function BarcodeDashboardPage() {
     setLoading(true);
     setErrorCarga(null);
     try {
-      // 1. Fetch total counts to calculate statistics
-      const statsRes = await fetch('/api/v1/products?limit=100000');
+      // 1. Los tres contadores de arriba (Total, Con codigo, Sin codigo).
+      //
+      // Pedian `?limit=100000` y contaban lo que llegaba. La API NO lee
+      // `limit`: lee `per_page`, con defecto 20 (misma confusion que cerro el
+      // lote 110 en cotizaciones). Asi que ese "todo el catalogo" era la
+      // PRIMERA PAGINA DE 20, y los tres numeros eran de esos 20. Medido el
+      // 2026-09-15 en la empresa que opera: 87 productos y 30 con codigo,
+      // mientras la pantalla decia 20 y 2 -- y "Sin Codigo (Pendientes)", que
+      // es a lo que se viene a esta pantalla, decia 18 en vez de 57.
+      //
+      // Ahora cuenta quien sabe contar: dos paginas de UN producto, de las que
+      // solo se lee `meta.total`, que la API calcula con el mismo filtro que
+      // la consulta. Sin traerse el catalogo entero al navegador, y sin que el
+      // numero envejezca cuando el catalogo crezca.
+      //
+      // Siguen siendo del catalogo entero, sin la busqueda, como antes: son la
+      // composicion del catalogo, no del resultado de buscar. El total DE LO
+      // BUSCADO va abajo, en la barra de paginacion.
+      const [statsRes, conCodigoRes] = await Promise.all([
+        fetch('/api/v1/products?per_page=1'),
+        fetch('/api/v1/products?per_page=1&has_barcode=true'),
+      ]);
       const statsData = await statsRes.json();
-      if (statsData.success) {
-        const allItems: Product[] = statsData.data || [];
-        setTotalCount(allItems.length);
-        setWithCodeCount(allItems.filter(p => !!p.barcode).length);
-        setWithoutCodeCount(allItems.filter(p => !p.barcode).length);
+      const conCodigoData = await conCodigoRes.json();
+      if (statsData.success && conCodigoData.success) {
+        const total = statsData.meta?.total || 0;
+        const conCodigo = conCodigoData.meta?.total || 0;
+        setTotalCount(total);
+        setWithCodeCount(conCodigo);
+        setWithoutCodeCount(total - conCodigo);
       } else {
         // Son los contadores de arriba. Sin esto se quedaban con los numeros de
         // la consulta anterior, encabezando una tabla que ya no los cumple.
@@ -95,12 +122,13 @@ export default function BarcodeDashboardPage() {
 
       // 2. Fetch active page products
       const isCodeFilter = filterType === 'all' ? '' : filterType === 'with_code' ? 'true' : 'false';
-      const query = `/api/v1/products?page=${page}&per_page=15&search=${encodeURIComponent(search)}${isCodeFilter !== '' ? `&has_barcode=${isCodeFilter}` : ''}`;
+      const query = `/api/v1/products?page=${page}&per_page=${itemsPerPage}&search=${encodeURIComponent(search)}${isCodeFilter !== '' ? `&has_barcode=${isCodeFilter}` : ''}`;
       const res = await fetch(query);
       const data = await res.json();
       if (data.success) {
         setProducts(data.data || []);
         setTotalPages(data.meta?.total_pages || 1);
+        setTotalItems(data.meta?.total || 0);
       }
 
       const catRes = await fetch('/api/v1/categories');
@@ -276,13 +304,29 @@ export default function BarcodeDashboardPage() {
     setBulkGenerating(true);
     const toastId = toast.loading('Generando códigos de barra en lote...');
     try {
-      // Fetch list of all products without barcode
-      const res = await fetch('/api/v1/products?limit=100000');
-      const data = await res.json();
-      if (!data.success) throw new Error('No se pudo leer catálogo');
-
-      const allItems: Product[] = data.data || [];
-      const missing = allItems.filter(p => !p.barcode);
+      // Los productos sin codigo. Esto pedia `?limit=100000` y filtraba en el
+      // navegador, la misma trampa que los contadores de arriba: la API no lee
+      // `limit`, asi que "TODOS los productos faltantes" eran los que faltaban
+      // ENTRE LOS 20 PRIMEROS. Medido el 2026-09-15 en la empresa que opera:
+      // 57 sin codigo, de los cuales solo 18 caian en esa primera pagina. El
+      // boton asignaba 18 y anunciaba que habia terminado -- o, con los 20
+      // primeros ya con codigo, decia "Todos los productos ya cuentan con un
+      // codigo de barra" con 57 sin el.
+      //
+      // Ahora los filtra el servidor (`has_barcode=false`, el mismo filtro que
+      // usa la pestaña "Sin Codigo") y se recorren las paginas hasta agotarlas,
+      // en vez de confiar en que una sola peticion traiga el catalogo entero.
+      const missing: Product[] = [];
+      let paginaFaltantes = 1;
+      let paginasFaltantes = 1;
+      do {
+        const res = await fetch(`/api/v1/products?per_page=200&has_barcode=false&page=${paginaFaltantes}`);
+        const data = await res.json();
+        if (!data.success) throw new Error('No se pudo leer catálogo');
+        missing.push(...(data.data || []));
+        paginasFaltantes = data.meta?.total_pages || 1;
+        paginaFaltantes++;
+      } while (paginaFaltantes <= paginasFaltantes);
 
       if (missing.length === 0) {
         toast.success('Todos los productos ya cuentan con un código de barra', { id: toastId });
@@ -601,49 +645,20 @@ export default function BarcodeDashboardPage() {
           </table>
         </div>
 
-        {/* Pagination controls */}
-        {totalPages > 1 && (
-          <div className="flex justify-between items-center px-6 py-4 bg-slate-50 border-t border-slate-200">
-            <div className="text-xs text-slate-500 font-medium">
-              Mostrando página <span className="text-[#003366] font-bold">{page}</span> de <span className="text-[#003366] font-bold">{totalPages}</span>
-              {' '}({filterType === 'all' ? totalCount : filterType === 'with_code' ? withCodeCount : withoutCodeCount} registros en total)
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setPage(1)} disabled={page === 1}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              <div className="flex gap-1 mx-2">
-                <button className="w-8 h-8 rounded-lg bg-[#C5A059] text-slate-950 font-bold text-xs flex items-center justify-center">
-                  {page}
-                </button>
-              </div>
-
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setPage(totalPages)} disabled={page >= totalPages}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Paginacion: el componente comun (P3-45, lote 132).
+            El total que enseñaba aqui era uno de los tres contadores de
+            arriba, que son del catalogo entero: con una busqueda puesta decia
+            "87 registros en total" debajo de cuatro filas. Ahora es el total
+            de lo que se esta enseñando. */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={itemsPerPage}
+          onPageChange={setPage}
+          itemLabel="productos"
+          hideControlsWhenSinglePage
+        />
        </div>
 
       {/* Diálogo Avanzado de Impresión de Etiquetas */}

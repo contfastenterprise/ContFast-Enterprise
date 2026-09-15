@@ -85,8 +85,12 @@ console.log('B. UNA PETICION POR BUSQUEDA, BIEN ESCRITA');
 const buscador = bloque(src, 'onChange={(val) => {');
 ok('el buscador solo cambia el texto; pide el efecto con retardo',
    buscador.includes('setSearch(val);') && !buscador.includes('fetchProducts('));
+// El tamano de pagina iba escrito aqui a mano; desde el lote 132 vive en una
+// constante que se usa tambien para pintar el rango. Lo que esta comprobacion
+// vigila es que la URL SE ARME (que el texto no se pegue a mano), no donde
+// este escrito el 20: se acepta de las dos formas.
 ok('la URL se arma con URLSearchParams',
-   /new URLSearchParams\(\{\s*search: searchQuery,\s*page: String\(pageNum\),\s*per_page: '20',\s*\}\)/.test(carga)
+   /new URLSearchParams\(\{\s*search: searchQuery,\s*page: String\(pageNum\),\s*per_page: (?:'20'|String\(itemsPerPage\)),\s*\}\)/.test(carga)
    && carga.includes("if (catId) params.set('categoryId', catId);")
    && carga.includes('fetch(`/api/v1/products?${params.toString()}`)'));
 ok('y ya no se pega el texto a mano', !carga.includes('search=${searchQuery}'));
