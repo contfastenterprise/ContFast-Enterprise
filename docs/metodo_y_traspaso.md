@@ -300,11 +300,41 @@ Además, fuera de la tabla:
   avisos de fallo).
 - **33 bancos en `deuda_bancos.txt`**, todos de integración con base de datos
   (ver sección 7). Necesitan una base desechable.
-- **Costo de venta 0 en lo que entra por pedido a suplidor**:
-  `supplierOrderService.ts:473` recibe mercancía sin costo unitario, así que un
-  producto que solo entra por ahí tiene promedio 0 y sale con costo de venta 0.
-  Hueco antiguo, no regresión. **Medir primero** cuántos niveles de inventario
-  tienen promedio 0 con existencia, y si hay pedidos recibidos.
+- **Costo de venta 0 — MEDIDO el 2026-09-14** (solo lectura; scripts en
+  `scratch/_to_delete/medir_costo_venta_cero*.ts`). Toda la operación real es
+  de Latin Doors S.R.L. La sospecha inicial era equivocada:
+  - **El pedido a suplidor NO es la causa**: hay uno solo en toda la historia,
+    en borrador, nunca recibido.
+  - **La causa real son los conteos físicos**: 104 entradas `adjustment`
+    (julio–28 de agosto: "Ajuste rápido desde tabla", `CONTEO-2026-08`) meten
+    existencia **sin costo y sin asiento contable**. Además 7 compras con NCF
+    anteriores a P1-12 entraron sin costo (hoy ese camino ya lo lleva).
+  - Hoy **23 de 34** niveles con existencia en PRODUCCIÓN tienen promedio 0
+    (108 unidades; RD$171.893,74 a costo de catálogo; los 23 productos tienen
+    `cost` de catálogo). El kardex vale RD$65.766 a promedio y RD$250.685 a
+    catálogo. Todo lo que se venda de esos 23 saldrá con costo de venta 0.
+  - Ya pasó: `CON-2026-000047` (14-09) despachó 2 puertas con costo 0
+    (~RD$5.314 a catálogo, sin asentar).
+  - **Lo más serio, y es código**: HAY DOS CUENTAS "Inventario de Mercancía".
+    Las compras resuelven la clave `purchase_inventory` con defecto **1.1.06**
+    (`expenses/route.ts:338`, `expenses/[id]/route.ts:1300`,
+    `expenseService.ts:153`); el costo de venta y la nota de crédito resuelven
+    `inventory` con defecto **1.1.03.01** (`deliveryRepository.ts:384`,
+    `invoiceDbBooker.ts:566`). El catálogo sembrado y los mapeos solo traen
+    1.1.03.01, así que la primera compra CREÓ la 1.1.06. Saldos en PRODUCCIÓN:
+    **1.1.06 = +347.892,30** (entra por compras, nunca sale) y **1.1.03.01 =
+    −229.927,25** (sale por costo de venta, nunca entró). Cada compra nueva lo
+    agranda.
+  - **Cuidado con el arreglo ingenuo del costo 0**: 66 asientos de compra
+    llevan RD$3,27 M directo a 5.1.01 Costo de Venta (compras sin líneas de
+    producto). Si esa mercancía es la que luego apareció por conteo, valorar el
+    conteo a costo de catálogo la costearía DOS veces. La decisión de cómo se
+    valora un sobrante de conteo es contable (del contador), no de código.
+  - **Arreglo de código hacia adelante (pendiente de decisión)**: que las
+    compras usen la misma cuenta de inventario que el costo de venta (la del
+    mapeo `inventory`, que es la que se configura en Ajustes). Los saldos ya
+    asentados en 1.1.06 y 1.1.03.01 NO se tocan: una reclasificación es un
+    asiento del contador.
 - **`ap/page.tsx:420`** (`handleConfirmarCobros`) aplica cheques en garantía
   sin diálogo de confirmación; `GuaranteeChecksView` sí lo pide.
 - **`any` que volvieron sin que ningún banco lo viera**: 3 `: any` en
