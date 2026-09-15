@@ -136,8 +136,19 @@ console.log('\n4c) El cliente lo detecta antes de dar el envio por bueno\n');
     /const porEstructura = leerDesenlace\(null, raw\);/.test(cli));
   ok('y entra en la rama de rechazo tambien por esa via',
     /if \(lectura\.estado === 'rejected' \|\| porEstructura\.desenlace === 'rechazo'\)/.test(cli));
-  ok('el motivo real llega al mensaje (error y mensaje, no solo message)',
-    /\[raw\?\.error, raw\?\.mensaje\]\.filter\(Boolean\)/.test(cli));
+  //  ffc5dcf llevo la lectura del motivo a UN sitio, `motivoDgii` en
+  //  estadoEnvio.ts, que recurre a `error` y `mensaje` sueltos cuando no hay
+  //  `mensajes`. Esta comprobacion buscaba la lectura copiada dentro del cliente
+  //  y estaba en rojo con el motivo llegando igual. Se fija que la rama de
+  //  rechazo usa `motivoDgii` y que `motivoDgii` conserva el respaldo. (Lote 116.)
+  {
+    const est = fuente('src/services/dgii/estadoEnvio.ts');
+    ok('el motivo real llega al mensaje (error y mensaje, no solo message)',
+      /const motivo = motivoDgii\(raw\);/.test(cli)
+      && /const rejectionMsg = motivo \|\|/.test(cli)
+      && /export function motivoDgii\(raw: unknown\): string \| null \{/.test(est)
+      && /const suelto = \[r\.error, r\.mensaje\]/.test(est));
+  }
   ok('y el HTTP no-ok tampoco se queda en "Error NNN"',
     /\[raw\?\.message, raw\?\.error, raw\?\.mensaje\]\.filter\(Boolean\)/.test(cli));
 }

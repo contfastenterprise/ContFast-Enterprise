@@ -52,11 +52,23 @@ console.log('\n1) La firma se afirma por el ESTADO, no por tener codigo\n');
   ok('y un pendiente no se hace pasar por firmado',
     /Pendiente de confirmaci.n de la DGII/.test(tpl));
 
-  for (const r of ['src/app/api/v1/invoices/[id]/print/route.ts',
-                   'src/app/api/v1/invoices/[id]/pdf/route.ts',
-                   'src/app/api/v1/invoices/[id]/email/route.ts']) {
+  //  0ce19c2 dejo la ruta del correo como envoltorio HTTP: el documento lo
+  //  dibuja `services/invoice/correoFactura.ts`, que es donde hay que mirar. Y
+  //  `/estadoFiscal:/` a secas dejaba vivo `estadoFiscal: 'accepted'` -- un
+  //  rechazado impreso como aceptado --, asi que se exige el estado REAL de la
+  //  factura. (Lote 116.)
+  for (const [r, v] of [['src/app/api/v1/invoices/[id]/print/route.ts', 'invoiceRecordDb'],
+                        ['src/app/api/v1/invoices/[id]/pdf/route.ts', 'invoice'],
+                        ['src/services/invoice/correoFactura.ts', 'invoice']] as const) {
     ok(`${r.split('/').slice(-2).join('/')}: pasa el estado a la plantilla`,
-      /estadoFiscal:/.test(fuente(r)));
+      new RegExp(`estadoFiscal:\\s*${v}\\.status\\b`).test(fuente(r)));
+  }
+  {
+    const email = fuente('src/app/api/v1/invoices/[id]/email/route.ts');
+    ok('email/route.ts: delega el documento en correoFactura, sin dibujar por su cuenta',
+      /from '@\/services\/invoice\/correoFactura'/.test(email)
+      && /\benviarFacturaPorCorreo\(/.test(email)
+      && !/renderInvoice\(/.test(email));
   }
 }
 

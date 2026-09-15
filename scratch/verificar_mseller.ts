@@ -112,18 +112,26 @@ async function main() {
 
   console.log('\n4) Ninguna ruta fabrica ya un codigo con sha256\n');
 
+  //  LO QUE SE EXIGE SE INVIRTIO A PROPOSITO. 63451ca (DB-23) cambio
+  //  `datosFirmaDeEnvio(envio)` por `firmaDelComprobante(factura, envio)`: el
+  //  `response_payload` lo reescribe cada sincronizacion y se llevaba la firma,
+  //  asi que se lee de la factura con el envio de respaldo. El vitest
+  //  firmaComprobante ya exige lo contrario de lo que pedia esto. Y la ruta del
+  //  correo ya no resuelve la firma: lo hace correoFactura.ts. (Lote 116.)
   const rutas = [
-    'src/app/api/v1/invoices/[id]/route.ts',
-    'src/app/api/v1/invoices/[id]/print/route.ts',
-    'src/app/api/v1/invoices/[id]/pdf/route.ts',
-    'src/app/api/v1/invoices/[id]/email/route.ts',
-  ];
-  for (const r of rutas) {
+    ['src/app/api/v1/invoices/[id]/route.ts', 'invoice'],
+    ['src/app/api/v1/invoices/[id]/print/route.ts', 'invoiceRecordDb'],
+    ['src/app/api/v1/invoices/[id]/pdf/route.ts', 'invoice'],
+    ['src/services/invoice/correoFactura.ts', 'invoice'],
+  ] as const;
+  for (const [r, v] of rutas) {
     const src = fuente(r);
     ok(`${r.split('/').slice(-2).join('/')}: sin sha256 inventado`,
       !/createHash\(\s*'sha256'\s*\)/.test(src));
-    ok(`${r.split('/').slice(-2).join('/')}: lee por datosFirmaDeEnvio`,
-      /datosFirmaDeEnvio\(/.test(src));
+    ok(`${r.split('/').slice(-2).join('/')}: lee la firma con firmaDelComprobante (factura y envio de respaldo)`,
+      new RegExp(`\\bfirmaDelComprobante\\(${v}, submission\\)`).test(src)
+      && /import \{[^}]*\bfirmaDelComprobante\b[^}]*\} from '@\/repositories\/dgiiSubmissionRepository'/.test(src)
+      && !/\bdatosFirmaDeEnvio\(/.test(src));
   }
   const gen = fuente('src/services/invoice/invoiceFileGenerator.ts');
   ok('el generador de ficheros no arma un QR con el codigo vacio',

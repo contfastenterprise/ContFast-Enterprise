@@ -50,15 +50,30 @@ ok(
     s.includes("toast.error('La DGII rechazó el comprobante', {") &&
     s.includes('duration: 15000,')
 );
+//  4a57361 metio una tercera rama: quien pulso "emitir e imprimir" SI recibe un
+//  aviso si sigue pendiente (espera un papel que no llega). La regla de fondo no
+//  cambio -- sin pedir imprimir, un pendiente no dice nada -- pero el comentario
+//  literal que buscaba esto cambio y quedo en rojo. Se fija la ESTRUCTURA: tres
+//  avisos (aceptado, rechazado, imprimir pendiente) y ningun `else` a secas que
+//  avise a todo pendiente. (Lote 116.)
+const bloqueVeredicto = (() => {
+  const i = s.indexOf("if (est.data?.status === 'accepted') {");
+  const j = s.indexOf('} catch {', i);
+  return i < 0 || j < 0 ? '' : s.slice(i, j);
+})();
 ok(
   "invoices: si sigue pendiente NO dice nada (no repetir el aviso de la emision)",
-  s.includes("Si sigue en 'submitted' no se dice nada")
+  /\} else if \(postAction === 'print'\) \{[\s\S]*?toast\.info\(/.test(bloqueVeredicto) &&
+    !/\}\s*else\s*\{/.test(bloqueVeredicto) &&
+    (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 3
 );
 ok('invoices: un fallo de la consulta no molesta a quien ya termino', s.includes('no puede molestar a quien ya'));
 ok(
   'invoices: recarga el listado en los dos veredictos',
-  s.includes("              loadInvoices();\n            } else if (est.data?.status === 'rejected') {") &&
-    s.includes("              loadInvoices();\n            }\n            // Si sigue en 'submitted'")
+  //  La recarga del rechazo ya no va seguida del comentario, sino de la rama de
+  //  imprimir pendiente (4a57361). Se ancla en los dos avisos. (Lote 116.)
+  /toast\.success\('La DGII aceptó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);\s*\} else if \(est\.data\?\.status === 'rejected'\)/.test(bloqueVeredicto) &&
+    /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);\s*\} else if \(postAction === 'print'\)/.test(bloqueVeredicto)
 );
 ok(
   "invoices: la nota explica por que 'submitted' al emitir es correcto",

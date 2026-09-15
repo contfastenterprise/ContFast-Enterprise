@@ -118,12 +118,23 @@ ok('la plantilla ya no cae en "Factura de Consumo" por defecto',
 
 console.log('\n6) La emision acepta lo que el formulario ofrece\n');
 
-for (const f of ['src/app/api/v1/invoices/route.ts', 'src/app/api/v1/invoices/draft/route.ts']) {
+//  06bb396 (P2-34) saco la validacion de la emision a `schemas/factura.ts`,
+//  que comparten la ruta y la pantalla: el enum vive alli. La ruta de emision
+//  quedo en rojo con el enum saliendo igual de la lista. El borrador sigue
+//  validando en linea. (Lote 116.)
+for (const f of ['src/schemas/factura.ts', 'src/app/api/v1/invoices/draft/route.ts']) {
   const src = fuente(f);
   ok(`${f.split('/').slice(-2).join('/')}: el enum sale de la lista`,
-    /z\.enum\(CODIGOS_EMITIBLES/.test(src));
+    /z\.enum\(CODIGOS_EMITIBLES\b/.test(src) && /from '@\/services\/dgii\/tiposComprobante'/.test(src));
   ok(`${f.split('/').slice(-2).join('/')}: ya no lleva la lista a pelo`,
-    !/z\.enum\(\['31', '32', '33', '34', '45'\]/.test(src));
+    !/z\.enum\(\[\s*'3\d'/.test(src));
+}
+{
+  const ruta = fuente('src/app/api/v1/invoices/route.ts');
+  ok('invoices/route.ts: valida con el esquema compartido, sin enum propio',
+    /import \{ esquemaFactura \} from '@\/schemas\/factura'/.test(ruta)
+    && /esquemaFactura\.safeParse\(body\)/.test(ruta)
+    && !/ecfType:\s*z\./.test(ruta));
 }
 
 
