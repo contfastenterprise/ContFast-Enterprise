@@ -183,7 +183,7 @@ ok('bank.ts: el comentario explica que 0039 (2026-09-01) es la fuente real, y qu
 
 console.log('\n=== Nota historica en drizzle/0052 (superada por 0039, no aplicada) ===\n');
 
-const nota0052 = crudo('drizzle/0052_fk_bank_accounts_chart_account.sql');
+const nota0052 = crudo('drizzle_historico_pre_2026-09-04/0052_fk_bank_accounts_chart_account.sql');
 ok('0052: lleva la nota (P1-19) al inicio explicando que quedo superada por 0039',
   nota0052.startsWith('-- ====') && nota0052.includes('NOTA (P1-19, 2026-09-04)') &&
   nota0052.includes('es REDUNDANTE'));

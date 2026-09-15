@@ -66,8 +66,11 @@ ok('se agrupa por empresa Y modo',
 // La propiedad de verdad, no el comentario que la describe: el try/catch esta
 // DENTRO del bucle de empresas, anota el error en el resumen de esa empresa, y
 // el bucle sigue empujando resultados.
+//  `err: unknown` y `(err as Error)?.message`: P1-24 quito el `any` de este
+//  catch y la comprobacion, que exigia `err: any`, quedo en rojo con la
+//  propiedad intacta (comprobado a mano el 2026-09-14, lote 114).
 ok('un fallo en una empresa no para a las demas',
-  /catch \(err: any\) \{[\s\S]{0,400}?resumen\.error = err\?\.message/.test(servicio)
+  /catch \(err: unknown\) \{[\s\S]{0,400}?resumen\.error = \(err as Error\)\?\.message/.test(servicio)
   && /\}\s*salida\.push\(resumen\);\s*\}\s*return salida;/.test(servicio));
 
 console.log('\n4) Solo se escribe cuando HAY veredicto\n');
@@ -75,8 +78,27 @@ console.log('\n4) Solo se escribe cuando HAY veredicto\n');
 // Un "en curso" RECONOCIDO (Recibido, En Proceso) se cuenta y se sigue, sin
 // escribir nada: reescribirlo cada pasada mueve `updated_at` y borra la pista
 // de cuando cambio de verdad. Lo NO reconocido si se anota -- ver 4b.
-ok("un 'submitted' reconocido no se reescribe, solo se cuenta",
-  /if \(lectura\.estado === 'submitted'\) \{[\s\S]{0,900}?\} else \{\s*resumen\.sinCambio\+\+;\s*\}\s*continue;\s*\}/.test(servicio));
+//  El bloque entero con las llaves emparejadas, no 900 caracteres: el aviso de
+//  los estados NO reconocidos crecio dentro de este `if` y la ventana dejo de
+//  llegar al `else`. Lo que se fija: el reconocido va al `else` que solo cuenta,
+//  y el bloque termina en `continue` sin escribir la factura.
+{
+  const i = servicio.indexOf("if (lectura.estado === 'submitted') {");
+  const resto = i < 0 ? '' : servicio.slice(i);
+  const bloqueSubmitted = resto.slice(0, (() => {
+    let n = 0;
+    for (let j = resto.indexOf('{'); j >= 0 && j < resto.length; j++) {
+      if (resto[j] === '{') n++;
+      else if (resto[j] === '}') { n--; if (n === 0) return j + 1; }
+    }
+    return 0;
+  })());
+  //  (Dentro de este bloque el NO reconocido SI escribe en la factura -- es a
+  //  proposito, ver 4b --, asi que no se puede exigir "sin update" al bloque
+  //  entero: se fija la rama del reconocido y el `continue` que cierra.)
+  ok("un 'submitted' reconocido no se reescribe, solo se cuenta",
+    /\} else \{\s*resumen\.sinCambio\+\+;\s*\}\s*continue;\s*\}$/.test(bloqueSubmitted));
+}
 ok('la firma que ya estaba no se borra (camposDeFirma solo trae lo que vino)',
   /\.\.\.camposDeFirma\(r\.data\)/.test(servicio));
 ok('el response_payload del envio no se pisa',

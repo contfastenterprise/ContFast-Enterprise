@@ -18,7 +18,7 @@ const ok = (t: string, c: boolean, d = '') => {
 
 console.log('\n=== Migracion 0052 ===\n');
 
-const migracion = crudo('drizzle/0052_fk_bank_accounts_chart_account.sql');
+const migracion = crudo('drizzle_historico_pre_2026-09-04/0052_fk_bank_accounts_chart_account.sql');
 
 ok('cuenta filas huerfanas (chart_account_id que no existe en chart_of_accounts) antes de crear la FK',
   /SELECT COUNT\(\*\) INTO huerfanas/.test(migracion) &&
@@ -43,11 +43,19 @@ const schema = fuente('src/db/schema/bank.ts');
 ok("importa chartOfAccounts de './accounting'",
   /import\s*\{\s*chartOfAccounts\s*\}\s*from\s*'\.\/accounting';/.test(schema));
 
-ok('chartAccountId sigue siendo nullable (sin .notNull()) y ahora tiene .references() a chartOfAccounts.id con onDelete restrict',
-  /chartAccountId:\s*uuid\('chart_account_id'\)\.references\(\(\) => chartOfAccounts\.id, \{ onDelete: 'restrict' \}\),/.test(schema));
+//  Estas dos exigian la FK SIMPLE de 0052 (`.references()` en la columna). Esa
+//  migracion nunca se aplico: la 0039 ya tenia la FK COMPUESTA
+//  (chart_account_id, company_id) -> chart_of_accounts(id, company_id), que
+//  ademas impide enlazar la cuenta contable de OTRA empresa. P1-19 lo dejo
+//  escrito en bank.ts y lo fija `verificar_p1_19_schema.ts`. Aqui se fija la
+//  propiedad de P1-20 -- que la columna no quede sin FK -- sobre la real.
+ok('chartAccountId sigue siendo nullable (sin .notNull()) y tiene FK a chartOfAccounts con onDelete restrict (compuesta, 0039)',
+  /chartAccountId:\s*uuid\('chart_account_id'\),/.test(schema)
+  && /foreignKey\(\{\s*columns: \[table\.chartAccountId, table\.companyId\],\s*foreignColumns: \[chartOfAccounts\.id, chartOfAccounts\.companyId\],\s*name: 'bank_accounts_chart_account_company_fk',\s*\}\)\.onDelete\('restrict'\)/.test(schema));
 
-ok('chartAccountId ya no queda declarado sin FK (sin .references())',
-  !/chartAccountId:\s*uuid\('chart_account_id'\),/.test(schema));
+ok('chartAccountId no queda declarado sin FK (ni simple ni compuesta)',
+  /\.references\(\(\) => chartOfAccounts\.id/.test(schema)
+  || /columns: \[table\.chartAccountId, table\.companyId\]/.test(schema));
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);

@@ -20,7 +20,7 @@ const ok = (t: string, c: boolean, d = '') => {
 
 console.log('\n=== Migracion 0051 ===\n');
 
-const migracion = crudo('drizzle/0051_idempotency_keys.sql');
+const migracion = crudo('drizzle_historico_pre_2026-09-04/0051_idempotency_keys.sql');
 
 ok('crea la tabla idempotency_keys de forma idempotente (CREATE TABLE IF NOT EXISTS)',
   /CREATE TABLE IF NOT EXISTS public\.idempotency_keys/.test(migracion));
@@ -104,8 +104,14 @@ for (const [archivo, llamadaInterna, routeName] of rutas) {
   ok(`${archivo}: llama a withIdempotency con route '${routeName}' y el header Idempotency-Key`,
     new RegExp(`withIdempotency\\(\\s*\\n\\s*\\{ companyId: [^,]+, modo: [^,]+, route: '${routeName.replace(/\//g, '\\/')}', idempotencyKey: req\\.headers\\.get\\('Idempotency-Key'\\) \\},`).test(src));
 
+  //  El cuerpo del handler con las llaves emparejadas, no una ventana de 400
+  //  caracteres: en invoices/route.ts se anadieron dentro del handler los
+  //  comentarios de los avisos post-emision y la ventana dejo de llegar a
+  //  `issueInvoice`, con la llamada todavia dentro. Rojo sin defecto.
+  const desdeIdem = src.indexOf('withIdempotency(');
+  const handler = desdeIdem < 0 ? '' : bloque(src.slice(desdeIdem), 'async () =>');
   ok(`${archivo}: ${llamadaInterna} queda envuelto DENTRO del handler pasado a withIdempotency`,
-    new RegExp(`withIdempotency\\([\\s\\S]{0,400}?${llamadaInterna.replace('.', '\\.')}\\(`).test(src));
+    handler.includes(`${llamadaInterna}(`));
 }
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);

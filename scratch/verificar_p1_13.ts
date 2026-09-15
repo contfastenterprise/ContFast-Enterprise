@@ -22,7 +22,7 @@ const ok = (t: string, c: boolean, d = '') => {
 
 console.log('\n=== Migracion 0049 ===\n');
 
-const migracion = crudo('drizzle/0049_autor_de_pagos_y_cobros.sql');
+const migracion = crudo('drizzle_historico_pre_2026-09-04/0049_autor_de_pagos_y_cobros.sql');
 for (const [tabla, columna] of [
   ['ap_payments', 'created_by'], ['ap_payments', 'voided_by'],
   ['customer_receipts', 'created_by'], ['customer_receipts', 'voided_by'],

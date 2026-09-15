@@ -49,7 +49,7 @@ ok("users tiene isPlatformStaff: boolean('is_platform_staff').default(false).not
 
 console.log('\n2) Migracion 0048 -- agrega la columna, no activa a nadie\n');
 
-const migracion = fuente('drizzle/0048_staff_de_plataforma.sql');
+const migracion = fuente('drizzle_historico_pre_2026-09-04/0048_staff_de_plataforma.sql');
 ok("agrega la columna is_platform_staff boolean not null default false",
   /ADD COLUMN is_platform_staff boolean NOT NULL DEFAULT false/.test(migracion));
 ok("el UPDATE que activa una cuenta esta comentado (no se ejecuta solo)",

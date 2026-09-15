@@ -24,7 +24,7 @@ const ok = (t: string, c: boolean, d = '') => {
 
 console.log('\n=== Migracion 0050 ===\n');
 
-const migracion = crudo('drizzle/0050_idempotencia_movimientos_financieros.sql');
+const migracion = crudo('drizzle_historico_pre_2026-09-04/0050_idempotencia_movimientos_financieros.sql');
 
 ok('cuenta combinaciones duplicadas activas antes de crear el indice',
   /SELECT COUNT\(\*\) INTO duplicados_activos/.test(migracion) &&
