@@ -35,7 +35,11 @@ function ok(t: string, x: boolean, d = ''): void {
 const TECHO_DOS_PUNTOS_ANY = 0;
 //  Lote 124: 27 -> 15. Los 12 de arRepository eran `parseFloat(x as any)`
 //  sobre columnas decimales que Drizzle entrega como texto.
-const TECHO_AS_ANY = 15;
+//  Lote 125: 15 -> 2. Quedan los dos de services/jobs/reportQueue.ts
+//  (`connection: redis as any`), A PROPOSITO: hay dos ioredis instalados
+//  (5.11.1 y el 5.10.1 que trae bullmq) y sus tipos no encajan. Taparlo con
+//  otro molde no arregla nada; lo que lo arregla es deduplicar la dependencia.
+const TECHO_AS_ANY = 2;
 
 function contar(): { dosPuntos: number; asAny: number; donde: string[] } {
   let dosPuntos = 0; let asAny = 0; const donde: string[] = [];
@@ -84,6 +88,20 @@ ok('carteraRepository: armar recibe filas con forma declarada',
   const ar = sinComentarios(fs.readFileSync('src/repositories/arRepository.ts', 'utf8'));
   ok('arRepository: los importes se leen sin molde, con el mismo resultado',
      !/\bas any\b/.test(ar) && (ar.match(/parseFloat\(String\(/g) || []).length >= 12);
+}
+{
+  //  Lote 125: dos moldes que TAPABAN un tipo falso, no solo apagaban ruido.
+  const fms = sinComentarios(fs.readFileSync('src/services/financialMovementService.ts', 'utf8'));
+  ok('financialMovementService: tx con el tipo del proyecto, no el de node-postgres',
+     /tx: DbOTx \| null,/.test(fms) && !/NodePgDatabase/.test(fms) && fms.includes('const dbClient = tx ?? db;'));
+  const hr = sinComentarios(fs.readFileSync('src/repositories/hrRepository.ts', 'utf8'));
+  const pcs = sinComentarios(fs.readFileSync('src/services/payrollCalculationService.ts', 'utf8'));
+  ok('nomina: la frecuencia se valida en vez de castearse',
+     hr.includes('frequency: PayrollCalculationService.frecuencia(payroll.frequency),')
+     && /return valor === 'quincenal' \|\| valor === 'semanal' \? valor : 'mensual';/.test(pcs));
+  const auth = sinComentarios(fs.readFileSync('src/middleware/auth.ts', 'utf8'));
+  ok('auth: el access token se lee con su forma declarada',
+     auth.includes('jwt.verify(accessToken, JWT_SECRET) as CargaAccessToken;') && !/\(req as any\)\.ip/.test(auth));
 }
 ok('quoteService: las lineas de la cotizacion ya no se castean a any',
    quo.includes('productName: line.productName ?? null,') && !/\(line as any\)/.test(quo));

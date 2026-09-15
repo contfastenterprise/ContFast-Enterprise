@@ -105,6 +105,19 @@ function getRequestPathname(req: NextRequest): string {
  *
  * Ademas acota el alcance de las sesiones del storefront: ver STOREFRONT_ROLE.
  */
+/**
+ * Lo que `createSession` firma dentro del access token.
+ *
+ * Lote 125: se leia con `as any`. Los dos arrays y la marca de staff pueden
+ * faltar en un token emitido antes de que existieran -- de ahi los `|| []` y
+ * `|| false` al leerlo --, y `modo` no viaja en el token (sale de la cookie).
+ */
+type CargaAccessToken = Omit<AuthPayload, 'modo' | 'allowedWarehouses' | 'permissions' | 'isPlatformStaff'> & {
+  allowedWarehouses?: string[];
+  permissions?: string[];
+  isPlatformStaff?: boolean;
+};
+
 export async function verifyAuth(
   req: NextRequest,
   resHeaders: Headers = new Headers()
@@ -217,7 +230,7 @@ async function resolveAuthPayload(
   // 1. Try to verify the access token
   if (accessToken) {
     try {
-      const decoded = jwt.verify(accessToken, JWT_SECRET) as any;
+      const decoded = jwt.verify(accessToken, JWT_SECRET) as CargaAccessToken;
       // Cookie: puede faltar, puede quedar vieja, y NUNCA debe poder tumbar la
       // sesion por eso -- esto va DENTRO del try de jwt.verify, y su catch de
       // abajo solo esta pensado para un token vencido. Aqui hubo un fallo real:
@@ -255,7 +268,9 @@ async function resolveAuthPayload(
   }
 
   try {
-    const decodedRefresh = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as any;
+    //  Solo importa que VERIFIQUE (lanza si la firma o la fecha no valen): su
+    //  contenido no se lee. Por eso sin molde.
+    const decodedRefresh = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
     const refreshHash = hashToken(refreshToken);
 
     // Look up session in DB
@@ -345,7 +360,9 @@ async function resolveAuthPayload(
     );
 
     const newRefreshHash = hashToken(newRefreshToken);
-    const ipAddress = req.headers.get('x-forwarded-for') || (req as any).ip || 'unknown';
+    //  Sin `(req as any).ip`: NextRequest ya no tiene `ip` en Next 16, asi que
+    //  valia siempre undefined. En Vercel la cabecera es la fuente fiable.
+    const ipAddress = req.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = req.headers.get('user-agent') || '';
 
     // Update session table with new refresh token hash (Rotate!)

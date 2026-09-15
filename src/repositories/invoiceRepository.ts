@@ -344,7 +344,7 @@ export class InvoiceRepository {
     }
 
     if (options?.status) {
-      baseConditions.push(eq(invoices.status, options.status as any));
+      baseConditions.push(eq(invoices.status, options.status));
     }
 
     if (options?.ecfType) {
@@ -502,7 +502,7 @@ export class InvoiceRepository {
     const [updated] = await db
       .update(invoices)
       .set({
-        status: status as any,
+        status,
         ...paths,
         updatedAt: new Date(),
       })

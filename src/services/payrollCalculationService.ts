@@ -104,6 +104,18 @@ export class PayrollCalculationService {
   }
 
   /**
+   * La frecuencia de una nomina tal como viene de la base (texto libre).
+   *
+   * Lote 125: se pasaba con `as any`. Lo que no sea quincenal ni semanal se
+   * devuelve 'mensual', que es exactamente como `calculateDetails` ya lo
+   * trataba (factor de periodo 1): el resultado del calculo no cambia, solo
+   * deja de mentirle al compilador.
+   */
+  public static frecuencia(valor: string | null | undefined): 'mensual' | 'quincenal' | 'semanal' {
+    return valor === 'quincenal' || valor === 'semanal' ? valor : 'mensual';
+  }
+
+  /**
    * Calculate Complete Payroll details for an employee
    */
   public static calculateDetails(params: {

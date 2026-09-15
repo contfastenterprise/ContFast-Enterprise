@@ -39,7 +39,7 @@ export class InvoiceCalculator {
         taxRate: line.taxRate,
         //  La categoria viaja con la linea hasta el e-CF: sin ella, el envio
         //  no puede distinguir un exento de una exportacion.
-        taxCategory: (line as any).taxCategory ?? null,
+        taxCategory: line.taxCategory ?? null,
         warehouseId: line.warehouseId,
       });
     });

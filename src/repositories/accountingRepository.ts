@@ -237,8 +237,8 @@ export class AccountingRepository {
 
     const mapeados = entries.map(entry => {
       const entryLines = lines.filter(l => l.journalEntryId === entry.id);
-      const totalDebit = entryLines.reduce((acc, l) => acc + parseFloat(l.debit as any), 0);
-      const totalCredit = entryLines.reduce((acc, l) => acc + parseFloat(l.credit as any), 0);
+      const totalDebit = entryLines.reduce((acc, l) => acc + parseFloat(String(l.debit)), 0);
+      const totalCredit = entryLines.reduce((acc, l) => acc + parseFloat(String(l.credit)), 0);
       return {
         ...entry,
         lines: entryLines,
@@ -412,7 +412,7 @@ export class AccountingRepository {
           date: formattedDate,
           description: data.description,
           status: 'posted',
-          createdBy: (data as any).createdBy || null,
+          createdBy: ('createdBy' in data && data.createdBy) || null,
         })
         .returning();
 
@@ -834,7 +834,7 @@ export class AccountingRepository {
           code: account.code,
           name: account.name,
           type: account.type,
-          nature: account.nature as any,
+          nature: account.nature,
           level,
           isTransactional: account.isTransactional,
           parentId,

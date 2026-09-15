@@ -87,7 +87,9 @@ describe('JRN-16 · todo asiento registra quién lo hizo', () => {
   it('el repositorio la persiste', () => {
     const repo = leer('src/repositories/accountingRepository.ts');
     expect(repo).toContain('createdBy?: string | null;');
-    expect(repo).toMatch(/createdBy: \(data as any\)\.createdBy \|\| null/);
+    // Lote 125: sin `(data as any)`. Lo que se fija es que el autor que llega
+    // se guarda, no la forma del molde.
+    expect(repo).toMatch(/createdBy: \('createdBy' in data && data\.createdBy\) \|\| null/);
   });
 
   it('ninguna llamada a createJournalEntry deja el asiento sin autor', () => {

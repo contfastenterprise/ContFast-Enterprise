@@ -485,7 +485,7 @@ export class HRRepository {
 
       const payrollCalcs = PayrollCalculationService.calculateDetails({
         baseSalary: periodBaseSalary,
-        frequency: payroll.frequency as any,
+        frequency: PayrollCalculationService.frecuencia(payroll.frequency),
         overtimeAmount,
         bonusAmount: bonusSum,
         commissionAmount: commissionSum,

@@ -1,12 +1,11 @@
-import { db } from '@/db';
+import { db, type DbOTx } from '@/db';
 import { financialMovements, invoices, expenses, customerReceipts, apPayments, customers, suppliers } from '@/db/schema';
 import { eq, and, desc, asc, sql, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type * as schema from '@/db/schema';
-
-// Drizzle transaction type alias — avoids using `any` for tx parameters
-export type DbTx = Parameters<Parameters<NodePgDatabase<typeof schema>['transaction']>[0]>[0];
+// Lote 125: aqui vivia `DbTx`, sacado de `NodePgDatabase` -- node-postgres --,
+// pero la aplicacion habla con Postgres por postgres.js. El tipo era de OTRO
+// driver y solo compilaba porque `(tx as any) || db` lo apagaba. `DbOTx` es el
+// del proyecto (db o transaccion).
 
 export interface RegisterMovementInput {
   companyId: string;
@@ -31,10 +30,10 @@ export class FinancialMovementService {
    * Automatically calculates/rebuilds progressive running balances.
    */
   static async registerMovement(
-    tx: DbTx | null,
+    tx: DbOTx | null,
     input: RegisterMovementInput
   ) {
-    const dbClient = (tx as any) || db;
+    const dbClient = tx ?? db;
 
     const dateStr = typeof input.date === 'string' 
       ? input.date 
@@ -88,13 +87,13 @@ export class FinancialMovementService {
    * Recalculates progressive balances for a customer or supplier in chronological order.
    */
   static async rebuildBalances(
-    tx: DbTx | null,
+    tx: DbOTx | null,
     companyId: string,
     entityType: 'customer' | 'supplier',
     entityId: string,
     modo: 'PRODUCCION' | 'PRUEBA' = 'PRODUCCION'
   ) {
-    const dbClient = (tx as any) || db;
+    const dbClient = tx ?? db;
 
     // Performance optimization: replace N individual UPDATE calls with a single SQL
     // window function that computes all running balances in one pass, then batch-updates
