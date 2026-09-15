@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { NextRequest, NextResponse } from 'next/server';
 import { db, type DbTransaction, expenses, expenseLines, suppliers, warehouses, products, journalEntries, journalEntryLines, inventoryMovements, inventoryLevels, chartOfAccounts, checks, accountsPayable, apPayments, supplierPaymentApplied, auditLogs } from '@/db';
 import { verifyAuth } from '@/middleware/auth';
@@ -35,7 +36,7 @@ import { addStock, llevaInventario } from '@/services/inventoryService';
 async function revertirAsientoContable(
   tx: DbTransaction,
   companyId: string,
-  modo: 'PRODUCCION' | 'PRUEBA',
+  modo: ModoOperativo,
   journalEntryId: string,
   motivo: string,
   userId: string
@@ -108,7 +109,7 @@ async function revertirAsientoContable(
 async function revertirMovimientosInventario(
   tx: DbTransaction,
   companyId: string,
-  modo: 'PRODUCCION' | 'PRUEBA',
+  modo: ModoOperativo,
   expenseId: string,
   userId: string,
   motivo: string

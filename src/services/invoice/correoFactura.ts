@@ -29,6 +29,7 @@
  * UPDATE: gana una sola y el cliente recibe un correo, no dos. No se
  * comprueba-y-luego-escribe, que es justo la carrera que dejaria mandar dos.
  */
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { Logger } from '@/utils/logger';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { CustomerRepository } from '@/repositories/customerRepository';
@@ -43,7 +44,7 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
 import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
 
-export type Modo = 'PRODUCCION' | 'PRUEBA';
+export type Modo = ModoOperativo;
 
 /** Por que NO se envio, cuando no se envia. Ninguno es un error del sistema. */
 export type MotivoNoEnviado =

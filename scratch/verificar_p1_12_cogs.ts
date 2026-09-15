@@ -69,8 +69,10 @@ function ok(t: string, c: boolean, d = ''): void {
 {
   const src = fuente('src/repositories/accountingRepository.ts');
 
+  //  Lote 118: `modo` paso de la union literal a `ModoOperativo` (el mismo
+  //  tipo, con nombre). Se admiten las dos formas.
   ok('AccountingRepository expone revertirAsientoContable como metodo estatico',
-    /static async revertirAsientoContable\(\s*\n\s*tx: DbTransaction,\s*\n\s*companyId: string,\s*\n\s*modo: 'PRODUCCION' \| 'PRUEBA',\s*\n\s*journalEntryId: string,\s*\n\s*motivo: string,\s*\n\s*userId: string\s*\n\s*\)/.test(src));
+    /static async revertirAsientoContable\(\s*\n\s*tx: DbTransaction,\s*\n\s*companyId: string,\s*\n\s*modo: (?:'PRODUCCION' \| 'PRUEBA'|ModoOperativo),\s*\n\s*journalEntryId: string,\s*\n\s*motivo: string,\s*\n\s*userId: string\s*\n\s*\)/.test(src));
 
   ok('revertirAsientoContable: guarda de "ya revertido" (busca por reference = journalEntryId)',
     /const \[yaRevertido\] = await tx\s*\n\s*\.select\(\{ id: journalEntries\.id \}\)\s*\n\s*\.from\(journalEntries\)\s*\n\s*\.where\(eq\(journalEntries\.reference, journalEntryId\)\)/.test(src));

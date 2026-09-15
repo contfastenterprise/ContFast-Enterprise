@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { db, idempotencyKeys } from '@/db';
 import { and, eq } from 'drizzle-orm';
 
@@ -38,7 +39,7 @@ export interface IdempotencyResult {
 export async function withIdempotency(
   opts: {
     companyId: string;
-    modo: 'PRODUCCION' | 'PRUEBA';
+    modo: ModoOperativo;
     route: string;
     idempotencyKey: string | null | undefined;
   },

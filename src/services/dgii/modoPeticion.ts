@@ -109,19 +109,27 @@ export function modoDePeticion(valor: unknown, origen: string): ModoSistema {
  * Los modos que el sistema sabe OPERAR hoy, no solo nombrar.
  *
  * `CERTIFICACION` existe en la base desde la 0046 y `entornoDgii()` sabe que le
- * corresponde `CerteCF`, pero el resto del sistema no lo soporta: 132
- * declaraciones de tipo siguen fijando `'PRODUCCION' | 'PRUEBA'`.
+ * corresponde `CerteCF`, pero el resto del sistema no lo soporta: mas de un
+ * centenar de declaraciones de tipo siguen fijando `'PRODUCCION' | 'PRUEBA'`
+ * (la cifra viva la da `scratch/verificar_modo_certificacion.ts`, que no deja
+ * que suba).
  *
  * Mientras eso sea asi, dejarlo pasar es peor que rechazarlo. Se rechaza en la
  * ENTRADA (ajustes y alta de empresa), asi que una cabecera con CERTIFICACION
  * no deberia poder verse nunca -- esta aqui por si acaso.
+ *
+ * USA ESTE ALIAS en codigo nuevo, no la union escrita a mano. Es el mismo tipo,
+ * pero con nombre: el dia que CERTIFICACION se soporte hay UN sitio que
+ * ensanchar y una lista de usos que revisar, en vez de uniones literales
+ * sueltas. El lote 118 paso a este alias las 9 que se habian anadido sin que el
+ * medidor -- roto entonces -- lo viera.
  */
 export type ModoOperativo = 'PRODUCCION' | 'PRUEBA';
 
 export const MOTIVO_CERTIFICACION_NO_SOPORTADA =
   'El modo CERTIFICACION todavia no esta soportado. Esta reconocido como modo ' +
   'valido y le corresponde el ambiente CerteCF de la DGII, pero el resto del ' +
-  'sistema aun fija PRODUCCION o PRUEBA en 132 sitios. Hasta completarlo no se ' +
+  'sistema aun fija PRODUCCION o PRUEBA en muchos sitios. Hasta completarlo no se ' +
   'admite: operar en pruebas mientras la pantalla dice "Certificacion" seria peor.';
 
 /**

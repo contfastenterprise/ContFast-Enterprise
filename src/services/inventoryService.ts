@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { db, type DbOTx } from '@/db';
 import { 
   inventoryLevels, 
@@ -235,7 +236,7 @@ export async function checkStock(
  */
 export async function checkStockBatch(
   companyId: string,
-  modo: 'PRODUCCION' | 'PRUEBA',
+  modo: ModoOperativo,
   warehouseId: string,
   items: { productId: string; quantityNeeded: number }[],
   tx: DbOTx = db

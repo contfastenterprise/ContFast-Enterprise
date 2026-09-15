@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import {
   db,
   accountsReceivable,
@@ -13,7 +14,7 @@ import { and, eq, inArray, sql, isNull, desc } from 'drizzle-orm';
 import { nivelPorAtraso, type NivelRiesgo } from '@/services/cartera/riesgo';
 
 export type TipoCartera = 'clientes' | 'suplidores';
-export type Modo = 'PRODUCCION' | 'PRUEBA';
+export type Modo = ModoOperativo;
 
 /** Un punto de la grafica mensual. */
 export interface PuntoMensual {

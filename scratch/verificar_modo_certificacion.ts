@@ -29,7 +29,7 @@
  * anade una declaracion nueva de `'PRODUCCION' | 'PRUEBA'`, salta.
  */
 import { entornoDgii, NOMBRE_ENTORNO, type ModoSistema } from '../src/services/dgii/entorno';
-import { execSync } from 'child_process';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 let fallos = 0;
@@ -54,23 +54,50 @@ const ok = (t: string, c: boolean, d = '') => {
  * una regresion: cada declaracion nueva que fije dos modos es un sitio mas que
  * leera CERTIFICACION como si fuera produccion.
  */
-const TECHO_UNIONES = 132;
+const TECHO_UNIONES = 127;
+//  LOTE 118, Y POR QUE BAJA A 127 Y NO SUBE A 136
+//  ----------------------------------------------
+//  Durante semanas este banco no pudo contar: `contar()` llamaba a `grep`, que
+//  no existe bajo cmd.exe, devolvia -1, y la comprobacion fallaba por eso. Con
+//  el contador roto nadie vio que la cifra real habia SUBIDO a 136: el lote 100
+//  quito 5 y despues se anadieron 9 declaraciones nuevas (admin/settings,
+//  expenses/[id] x2, lib/idempotency, accountingRepository, carteraRepository,
+//  auditoria/rastroDeFallo, inventoryService, correoFactura).
+//
+//  Ninguna es un fallo en ejecucion: el `modo` de los datos es binario por
+//  construccion (el enum `environment_mode` solo admite PRODUCCION y PRUEBA) y
+//  CERTIFICACION se rechaza en la entrada. Pero se escribieron como union
+//  literal en vez de usar `ModoOperativo`, el alias que existe justo para esto,
+//  y el medidor subia sin que nadie lo supiera. Las 9 pasan a `ModoOperativo`:
+//  136 - 9 = 127.
 
 const lanza = (fn: () => unknown): string | null => {
   try { fn(); return null; } catch (e: any) { return e.message; }
 };
 
+/**
+ * Cuantas LINEAS de src/ (.ts/.tsx, sin los vitest) contienen el patron.
+ *
+ * Recorre el arbol con `fs`, sin `grep`: la version anterior llamaba a `grep`
+ * por la shell, que no existe en Windows fuera de Git Bash, y un `catch`
+ * devolvia -1 -- asi que el banco fallo durante semanas por el contador y no
+ * por lo que contaba, y la subida real de 132 a 136 no la vio nadie. Si no
+ * puede leer src/, LANZA: un contador que no cuenta no puede dar un numero.
+ */
 function contar(patron: string): number {
-  const raiz = join(__dirname, '..');
-  try {
-    const salida = execSync(
-      `grep -rn ${JSON.stringify(patron)} src/ --include=*.ts --include=*.tsx | grep -v vitest | wc -l`,
-      { cwd: raiz, encoding: 'utf8' }
-    );
-    return Number(salida.trim());
-  } catch {
-    return -1;
-  }
+  const raiz = join(__dirname, '..', 'src');
+  if (!existsSync(raiz)) throw new Error(`No existe ${raiz}: el medidor no puede contar.`);
+  let n = 0;
+  (function andar(dir: string) {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) andar(p);
+      else if (/\.tsx?$/.test(e.name) && !p.includes('vitest')) {
+        for (const linea of readFileSync(p, 'utf8').split(/\r?\n/)) if (linea.includes(patron)) n++;
+      }
+    }
+  })(raiz);
+  return n;
 }
 
 console.log('\n1) Un modo, un ambiente\n');
@@ -125,10 +152,10 @@ console.log('        parte del sistema. Por eso el modo no se ofrece todavia en'
 console.log('        ninguna interfaz.');
 
 ok('el numero de declaraciones de dos modos NO ha subido',
-  uniones >= 0 && uniones <= TECHO_UNIONES,
+  uniones <= TECHO_UNIONES,
   `${uniones} vs techo ${TECHO_UNIONES}`);
 
-if (uniones >= 0 && uniones < TECHO_UNIONES) {
+if (uniones < TECHO_UNIONES) {
   console.log(`\n        (bajo de ${TECHO_UNIONES} a ${uniones}: baja TECHO_UNIONES a ${uniones} en este fichero)`);
 }
 

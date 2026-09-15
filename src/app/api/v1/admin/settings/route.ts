@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { db, companies, companySettings, subscriptions, plans, msellerApiKeys, auditLogs } from '@/db';
@@ -314,7 +315,7 @@ export async function PATCH(req: NextRequest) {
       // credenciales de mSeller solo se guarda SI cambiaron (booleano) y a
       // que ambiente pertenecen, nunca su valor.
       await tx.insert(auditLogs).values({
-        modo: (dgiiEnv ?? currentSettings?.dgiiEnv ?? 'PRODUCCION') as 'PRODUCCION' | 'PRUEBA',
+        modo: (dgiiEnv ?? currentSettings?.dgiiEnv ?? 'PRODUCCION') as ModoOperativo,
         companyId: session.companyId,
         userId: session.userId,
         action: 'company_settings_updated',

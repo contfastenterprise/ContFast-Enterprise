@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { db, auditLogs } from '@/db';
 import { Logger } from '@/utils/logger';
 
@@ -34,7 +35,7 @@ import { Logger } from '@/utils/logger';
 export interface FalloSilencioso {
   /** Sin empresa no hay fila en `audit_logs`: la traza va solo al Logger. */
   companyId: string | null | undefined;
-  modo?: 'PRODUCCION' | 'PRUEBA' | null;
+  modo?: ModoOperativo | null;
   userId?: string | null;
   /** Que se estaba haciendo cuando fallo: 'correo_cliente', 'guardar_pdf'... */
   paso: string;

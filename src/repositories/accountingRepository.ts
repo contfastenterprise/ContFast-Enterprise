@@ -1,3 +1,4 @@
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { 
   db, 
   chartOfAccounts, 
@@ -474,7 +475,7 @@ export class AccountingRepository {
   static async revertirAsientoContable(
     tx: DbTransaction,
     companyId: string,
-    modo: 'PRODUCCION' | 'PRUEBA',
+    modo: ModoOperativo,
     journalEntryId: string,
     motivo: string,
     userId: string
