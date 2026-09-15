@@ -7,8 +7,8 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || process.env.IS_BUILD === 'true';
 
 // Define Queues
-export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis as any, skipVersionCheck: true }) : null;
-export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis as any, skipVersionCheck: true }) : null;
+export const dgiiQueue = (redis && !isBuildPhase) ? new Queue('dgii-submissions', { connection: redis, skipVersionCheck: true }) : null;
+export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending', { connection: redis, skipVersionCheck: true }) : null;
 
 /**
  * Consultar el estado de un e-CF ya enviado. SOLO CONSULTA.
@@ -18,7 +18,7 @@ export const emailQueue = (redis && !isBuildPhase) ? new Queue('emails-sending',
  * llama a `processDgiiSubmissionJob`, que EMITE. Un trabajo de consulta
  * encolado ahi habria reemitido el comprobante una vez por intento.
  */
-export const estadoQueue = (redis && !isBuildPhase) ? new Queue('dgii-estado', { connection: redis as any, skipVersionCheck: true }) : null;
+export const estadoQueue = (redis && !isBuildPhase) ? new Queue('dgii-estado', { connection: redis, skipVersionCheck: true }) : null;
 
 if (dgiiQueue) dgiiQueue.on('error', err => console.error(`[Queue] dgii-submissions error: ${err.message}`));
 if (emailQueue) emailQueue.on('error', err => console.error(`[Queue] emails-sending error: ${err.message}`));

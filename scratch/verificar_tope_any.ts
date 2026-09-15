@@ -35,11 +35,10 @@ function ok(t: string, x: boolean, d = ''): void {
 const TECHO_DOS_PUNTOS_ANY = 0;
 //  Lote 124: 27 -> 15. Los 12 de arRepository eran `parseFloat(x as any)`
 //  sobre columnas decimales que Drizzle entrega como texto.
-//  Lote 125: 15 -> 2. Quedan los dos de services/jobs/reportQueue.ts
-//  (`connection: redis as any`), A PROPOSITO: hay dos ioredis instalados
-//  (5.11.1 y el 5.10.1 que trae bullmq) y sus tipos no encajan. Taparlo con
-//  otro molde no arregla nada; lo que lo arregla es deduplicar la dependencia.
-const TECHO_AS_ANY = 2;
+//  Lote 125: 15 -> 2 (quedaban los de reportQueue.ts, a proposito: dos ioredis
+//  instalados cuyos tipos no encajaban). Lote 126: 2 -> 0, al dejar un solo
+//  ioredis, el que fija bullmq (ver verificar_ioredis_unico.ts).
+const TECHO_AS_ANY = 0;
 
 function contar(): { dosPuntos: number; asAny: number; donde: string[] } {
   let dosPuntos = 0; let asAny = 0; const donde: string[] = [];

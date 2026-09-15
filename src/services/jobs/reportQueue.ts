@@ -21,7 +21,7 @@ const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || proc
 // si es codigo real, y ahora ademas se programa (ver instrumentation.ts).
 
 // Recurring Cleanup Job Setup
-export const cleanupQueue = (redis && !isBuildPhase) ? new Queue('cleanup', { connection: redis as any }) : null;
+export const cleanupQueue = (redis && !isBuildPhase) ? new Queue('cleanup', { connection: redis }) : null;
 
 export const cleanupWorker = (redis && !isBuildPhase) ? new Worker('cleanup', async () => {
   console.log('Running temporary file cleanup job');
@@ -42,7 +42,7 @@ export const cleanupWorker = (redis && !isBuildPhase) ? new Worker('cleanup', as
   } catch (error) {
     console.error('Error during cleanup job:', error);
   }
-}, { connection: redis as any }) : null;
+}, { connection: redis }) : null;
 
 // Schedule cleanup job every 5 minutes
 export async function setupRecurringJobs() {

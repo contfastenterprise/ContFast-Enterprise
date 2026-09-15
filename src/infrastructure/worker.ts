@@ -33,7 +33,7 @@ if (redis && !isBuildPhase) {
         attemptsMade: job.attemptsMade,
       });
     },
-    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
+    { connection: redis, concurrency: CONCURRENCY, skipVersionCheck: true }
   );
 
   dgiiWorker.on('completed', (job) => {
@@ -85,7 +85,7 @@ if (redis && !isBuildPhase) {
       const { perseguirVeredicto } = await import('@/services/dgii/perseguirVeredicto');
       return await perseguirVeredicto(job.data);
     },
-    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
+    { connection: redis, concurrency: CONCURRENCY, skipVersionCheck: true }
   );
 
   estadoWorker.on('failed', (job, err) => {
@@ -105,7 +105,7 @@ if (redis && !isBuildPhase) {
     async (job: Job) => {
       return await sendEmailJob(job.data);
     },
-    { connection: redis as any, concurrency: CONCURRENCY, skipVersionCheck: true }
+    { connection: redis, concurrency: CONCURRENCY, skipVersionCheck: true }
   );
 
   emailWorker.on('completed', (job) => {
