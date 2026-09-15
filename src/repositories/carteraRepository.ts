@@ -16,6 +16,21 @@ import { nivelPorAtraso, type NivelRiesgo } from '@/services/cartera/riesgo';
 export type TipoCartera = 'clientes' | 'suplidores';
 export type Modo = ModoOperativo;
 
+/** Una fila del resumen por cliente o suplidor, tal como sale de la consulta. */
+interface FilaEntidadCartera {
+  id: string;
+  nombre: string;
+  rncCedula: string | null;
+  telefono: string | null;
+  correo: string | null;
+  /** Solo clientes: `suppliers` no tiene cupo. */
+  cupoCredito?: string | number | null;
+  saldo: string;
+  diasAtraso: number;
+  documentosPendientes: number;
+  ultimoDocumento: string | null;
+}
+
 /** Un punto de la grafica mensual. */
 export interface PuntoMensual {
   /** 'AAAA-MM', para ordenar sin ambigüedad. La etiqueta corta la pone la pantalla. */
@@ -232,8 +247,10 @@ export class CarteraRepository {
   }
 
   // ─────────────────────────── el cruce ───────────────────────────
+  //  Lote 123: `filas` era `any[]`. Es lo que devuelven los dos `select` de
+  //  arriba (clientes lleva `cupoCredito`, suplidores no), con su forma escrita.
   private static armar(
-    filas: any[],
+    filas: FilaEntidadCartera[],
     series: { id: string; mes: string; monto: string }[],
     conCupo: boolean
   ): FilaCartera[] {

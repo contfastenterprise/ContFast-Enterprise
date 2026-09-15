@@ -532,13 +532,16 @@ export class QuoteService {
           // "Producto Cotizado", y una caja o un galon se vendian como unidad.
           //
           // Mismo caso que la tasa de ITBIS de aqui abajo, y por eso van juntos.
-          productName: (line as any).productName ?? null,
-          unitOfMeasure: (line as any).unitOfMeasure ?? null,
+          //
+          // Sin `(line as any)`: `getQuote` selecciona estos cuatro campos con
+          // tipo, asi que el molde solo apagaba al compilador (lote 123).
+          productName: line.productName ?? null,
+          unitOfMeasure: line.unitOfMeasure ?? null,
           quantity: Number(line.quantity),
           unitPrice: Number(line.unitPrice),
           discount: Number(line.discount),
-          taxRate: (line as any).taxRate != null ? Number((line as any).taxRate) : deducida,
-          taxCategory: (line as any).taxCategory ?? null,
+          taxRate: line.taxRate != null ? Number(line.taxRate) : deducida,
+          taxCategory: line.taxCategory ?? null,
         }
       })
     };

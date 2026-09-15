@@ -54,10 +54,12 @@ const PANT = 'src/app/dashboard/invoices/page.tsx';
 
 {
   const src = fuente(SERV);
+  //  Lote 123: sin el molde `(line as any)` -- getQuote ya trae los campos con
+  //  tipo --. Se admiten las dos formas; lo que se fija es que viajen.
   ok('el payload de conversion lleva el NOMBRE del producto',
-    src.includes('productName: (line as any).productName ?? null,'));
+    /productName: (?:\(line as any\)|line)\.productName \?\? null,/.test(src));
   ok('y lleva tambien la UNIDAD de medida',
-    src.includes('unitOfMeasure: (line as any).unitOfMeasure ?? null,'));
+    /unitOfMeasure: (?:\(line as any\)|line)\.unitOfMeasure \?\? null,/.test(src));
 }
 
 {

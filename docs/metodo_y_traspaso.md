@@ -338,14 +338,13 @@ Además, fuera de la tabla:
     ya asentado en 1.1.06 de Latin Doors hacia 1.1.03.01 (no se toca desde el
     código). **Sigue pendiente de decisión contable**: el costo 0 de los conteos
     físicos.
-- **`ap/page.tsx:420`** (`handleConfirmarCobros`) aplica cheques en garantía
-  sin diálogo de confirmación; `GuaranteeChecksView` sí lo pide.
-- **`any` que volvieron sin que ningún banco lo viera**: 3 `: any` en
-  `cartera/documentos.ts` (x2) y `carteraRepository.ts`, escritos después de
-  cerrar P1-24, y 4 `(line as any)` innecesarios en `quoteService.ts:535-541`
-  (el `getQuote` ya selecciona esos campos con tipo). Hay 31 `as any` en
-  servicios y repositorios. Falta un banco con TOPE GLOBAL que solo pueda
-  bajar, como el de `modo_certificacion`.
+- ~~`ap/page.tsx` aplica cheques en garantía sin diálogo~~ **Hecho en el lote
+  122**: el diálogo dice cuántos cheques, el total y la fecha de cobro.
+- ~~`any` que volvieron sin que ningún banco lo viera~~ **Hecho en el lote
+  123**: `: any` a 0 otra vez en servicios, repositorios y middleware, y
+  `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
+  `as any` techo 27 — moldes antiguos en `arRepository` (12),
+  `accountingRepository` (4), `auth.ts` (3)… que se pueden ir bajando).
 - `QuoteService.getQuotes`: tres consultas independientes en serie
   (candidatas a `Promise.all`).
 

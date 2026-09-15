@@ -129,9 +129,14 @@ ok('cuatro sitios, un solo centavo de tolerancia',
   && src.includes('g.saldo > 0.01') && src.includes('p.saldo > 0.01'));
 
 // Un contrato que no se escribe se rompe sin que nadie lo note.
-ok('FilaCartera.saldo documenta que el que no debe no sale',
-  raw.slice(raw.indexOf('export interface FilaCartera'), raw.indexOf('cupoCredito'))
-    .includes('no debe nada no es una fila'));
+//  `cupoCredito` se busca DESPUES de FilaCartera: el lote 123 declaro arriba
+//  otra interfaz con ese campo, el primer `indexOf` caia en ella y el tramo
+//  salia vacio, con la nota intacta en su sitio.
+{
+  const desde = raw.indexOf('export interface FilaCartera');
+  ok('FilaCartera.saldo documenta que el que no debe no sale',
+    desde >= 0 && raw.slice(desde, raw.indexOf('cupoCredito', desde)).includes('no debe nada no es una fila'));
+}
 
 console.log(fallos === 0 ? '\nTODO OK' : `\n${fallos} FALLA(S)`);
 process.exit(fallos === 0 ? 0 : 1);

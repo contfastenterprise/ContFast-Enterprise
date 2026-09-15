@@ -75,13 +75,32 @@ export const PALABRAS: Record<TipoCuenta, {
   },
 };
 
+/**
+ * Una fila tal como llega de la API de CxC/CxP, antes de normalizarla.
+ *
+ * Lote 123: aqui ponia `any`. Se declaran los campos que `normalizarFila` lee
+ * de verdad, todos opcionales y con los tipos que admiten las funciones a las
+ * que llegan: una API que cambie un nombre ya no pasa en silencio.
+ */
+export interface FilaBruta {
+  id?: string | null;
+  balance?: string | number | null;
+  amount?: string | number | null;
+  dueDate?: string | Date | null;
+  createdAt?: string | Date | null;
+  codigoFactura?: string | null;
+  ncf?: string | null;
+  customerName?: string | null;
+  supplierName?: string | null;
+}
+
 /** `Number` sobre una cadena vacia da 0, pero sobre `null` tambien: se fuerza a 0 explicito. */
 const aNumero = (v: unknown): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
 
-export function normalizarFila(bruta: any, tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta {
+export function normalizarFila(bruta: FilaBruta | null | undefined, tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta {
   const P = PALABRAS[tipo];
   const id = String(bruta?.id ?? '');
   const saldo = aNumero(bruta?.balance);
@@ -107,7 +126,7 @@ export function normalizarFila(bruta: any, tipo: TipoCuenta, hoy: string = hoyDi
   };
 }
 
-export const normalizarFilas = (brutas: any[], tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta[] =>
+export const normalizarFilas = (brutas: (FilaBruta | null | undefined)[] | null | undefined, tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta[] =>
   (Array.isArray(brutas) ? brutas : []).map(b => normalizarFila(b, tipo, hoy));
 
 /** Lo que se ve: saldadas fuera salvo que se pidan, y el texto buscado en documento o entidad. */
