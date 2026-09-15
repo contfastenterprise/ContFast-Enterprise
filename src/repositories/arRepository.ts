@@ -61,15 +61,18 @@ export class ArRepository {
           invoices: []
         };
       }
-      grouped[ar.customerId].totalBalance += parseFloat(ar.balance as any);
+      // `parseFloat(String(x))` y no `Number(x)` en este fichero (lote 124): era
+      // `parseFloat(x as any)`, y con null daba NaN; `Number(null)` da 0. Se
+      // quita el molde sin cambiar ni un resultado.
+      grouped[ar.customerId].totalBalance += parseFloat(String(ar.balance));
       grouped[ar.customerId].invoices.push({
         arId: ar.id,
         invoiceId: ar.invoiceId,
         invoiceNumber: ar.invoiceNumber || 'Sin NCF',
         codigoFactura: ar.codigoFactura || '',
         invoiceDate: ar.invoiceDate,
-        amount: parseFloat(ar.amount as any),
-        balance: parseFloat(ar.balance as any),
+        amount: parseFloat(String(ar.amount)),
+        balance: parseFloat(String(ar.balance)),
         dueDate: ar.dueDate,
         status: ar.status
       });
@@ -195,7 +198,7 @@ export class ArRepository {
         // 50,000 aplicado a una factura con 20,000 pendientes dejaba el saldo en
         // -30,000 con estado 'paid', y como los pendientes se listan con
         // balance > 0, el sobrepago se volvia invisible.
-        const saldoActual = parseFloat(ar.balance as any);
+        const saldoActual = parseFloat(String(ar.balance));
         if (applied.amountApplied > saldoActual + 0.01) {
           throw new Error(
             `El importe aplicado (RD$ ${applied.amountApplied.toFixed(2)}) excede el saldo pendiente del documento (RD$ ${saldoActual.toFixed(2)}).`
@@ -399,12 +402,12 @@ export class ArRepository {
       ...receipt,
       appliedInvoices: appliedInvoices.map(ai => ({
         ...ai,
-        amountApplied: parseFloat(ai.amountApplied as any),
-        totalAmount: parseFloat(ai.totalAmount as any),
-        remainingBalance: parseFloat(ai.remainingBalance as any),
+        amountApplied: parseFloat(String(ai.amountApplied)),
+        totalAmount: parseFloat(String(ai.totalAmount)),
+        remainingBalance: parseFloat(String(ai.remainingBalance)),
         codigoFactura: ai.codigoFactura || undefined
       })),
-      amount: parseFloat(receipt.amount as any),
+      amount: parseFloat(String(receipt.amount)),
       customerTotalBalance
     };
   }
@@ -453,10 +456,10 @@ export class ArRepository {
 
     return applications.map(app => ({
       ...app,
-      receiptAmount: parseFloat(app.receiptAmount as any),
-      amountApplied: parseFloat(app.amountApplied as any),
-      invoiceTotal: parseFloat(app.invoiceTotal as any),
-      currentBalance: parseFloat(app.currentBalance as any)
+      receiptAmount: parseFloat(String(app.receiptAmount)),
+      amountApplied: parseFloat(String(app.amountApplied)),
+      invoiceTotal: parseFloat(String(app.invoiceTotal)),
+      currentBalance: parseFloat(String(app.currentBalance))
     }));
   }
 

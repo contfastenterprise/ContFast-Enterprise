@@ -343,7 +343,7 @@ Además, fuera de la tabla:
 - ~~`any` que volvieron sin que ningún banco lo viera~~ **Hecho en el lote
   123**: `: any` a 0 otra vez en servicios, repositorios y middleware, y
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
-  `as any` techo 27 — moldes antiguos en `arRepository` (12),
+  `as any` techo 15 tras el lote 124, que quitó los 12 de `arRepository`; quedan moldes antiguos en
   `accountingRepository` (4), `auth.ts` (3)… que se pueden ir bajando).
 - `QuoteService.getQuotes`: tres consultas independientes en serie
   (candidatas a `Promise.all`).

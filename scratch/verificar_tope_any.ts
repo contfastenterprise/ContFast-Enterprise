@@ -33,7 +33,9 @@ function ok(t: string, x: boolean, d = ''): void {
 }
 
 const TECHO_DOS_PUNTOS_ANY = 0;
-const TECHO_AS_ANY = 27;
+//  Lote 124: 27 -> 15. Los 12 de arRepository eran `parseFloat(x as any)`
+//  sobre columnas decimales que Drizzle entrega como texto.
+const TECHO_AS_ANY = 15;
 
 function contar(): { dosPuntos: number; asAny: number; donde: string[] } {
   let dosPuntos = 0; let asAny = 0; const donde: string[] = [];
@@ -75,6 +77,14 @@ ok('cartera/documentos: las filas en bruto tienen forma declarada',
    && /export const normalizarFilas = \(brutas: \(FilaBruta \| null \| undefined\)\[\] \| null \| undefined, tipo: TipoCuenta/.test(doc));
 ok('carteraRepository: armar recibe filas con forma declarada',
    /private static armar\(\s*filas: FilaEntidadCartera\[\],/.test(rep));
+{
+  //  Lote 124. `parseFloat(String(x))` y no `Number(x)`: con null o undefined
+  //  `parseFloat(x as any)` daba NaN y `Number(null)` da 0. El cambio tiene que
+  //  ser de tipos, no de resultado.
+  const ar = sinComentarios(fs.readFileSync('src/repositories/arRepository.ts', 'utf8'));
+  ok('arRepository: los importes se leen sin molde, con el mismo resultado',
+     !/\bas any\b/.test(ar) && (ar.match(/parseFloat\(String\(/g) || []).length >= 12);
+}
 ok('quoteService: las lineas de la cotizacion ya no se castean a any',
    quo.includes('productName: line.productName ?? null,') && !/\(line as any\)/.test(quo));
 
