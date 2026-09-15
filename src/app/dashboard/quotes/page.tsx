@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Pagination } from '@/components/ui/pagination';
 
 export default function QuotesList() {
   const router = useRouter();
@@ -31,6 +32,10 @@ export default function QuotesList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  // El tamano de pagina, en UN sitio: se pide a la API y se le pasa al
+  // componente, que calcula con el el rango que enseña (lote 130). Con el
+  // numero escrito a mano en la URL, el rango podia decir otra cosa.
+  const itemsPerPage = 10;
   const [stats, setStats] = useState({ totalMonth: 0, pending: 0 });
 
   const fetchQuotes = useCallback(async () => {
@@ -39,7 +44,7 @@ export default function QuotesList() {
     try {
       const url = new URL('/api/v1/quotes', window.location.origin);
       url.searchParams.set('page', page.toString());
-      url.searchParams.set('per_page', '10');
+      url.searchParams.set('per_page', String(itemsPerPage));
       if (statusFilter) url.searchParams.set('status', statusFilter);
       // La busqueda la hace el servidor, sobre todas las cotizaciones. Antes se
       // filtraba aqui la pagina que ya habia llegado, y una cotizacion de otra
@@ -382,35 +387,15 @@ export default function QuotesList() {
             </table>
           </div>
 
-          {/* Pagination Toolbar */}
-          <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-            <p className="text-xs text-slate-500 font-medium">
-              Mostrando <span className="font-bold text-slate-800">{quotes.length}</span> de <span className="font-bold text-slate-800">{totalRecords}</span> cotizaciones
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                  type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                >
-                  Anterior
-                </button>
-                <span className="text-xs text-slate-500 font-bold px-2">
-                  Pág. {page} de {totalPages}
-                </span>
-                <button
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(page + 1)}
-                  type="button"
-                  className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                >
-                  Siguiente
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Paginacion: el componente comun (P3-45, lote 130) */}
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={totalRecords}
+            pageSize={itemsPerPage}
+            onPageChange={setPage}
+            itemLabel="cotizaciones"
+          />
         </div>
       </motion.div>
 

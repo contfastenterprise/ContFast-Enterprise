@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
+import { Pagination } from '@/components/ui/pagination';
 
 
 interface Movement {
@@ -42,7 +43,10 @@ export default function MovementsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  
+  // El tamano de pagina, en UN sitio: se pide a la API y se le pasa al
+  // componente, que calcula con el el rango que enseña (lote 130).
+  const itemsPerPage = 20;
+
   const [filters, setFilters] = useState({
     warehouseId: 'all',
     productId: 'all',
@@ -70,7 +74,7 @@ export default function MovementsPage() {
     try {
       const query = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: String(itemsPerPage),
         warehouseId: filters.warehouseId,
         productId: filters.productId,
         type: filters.type,
@@ -509,31 +513,15 @@ export default function MovementsPage() {
             </table>
           </div>
         
-        {/* Pagination */}
-        <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-200 flex justify-between items-center">
-          <span className="text-xs font-semibold text-slate-500">
-            Total: <span className="text-[#003366] font-bold">{totalItems}</span>
-          </span>
-          <div className="flex gap-2 items-center">
-            <button 
-              disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              Anterior
-            </button>
-            <span className="px-3 py-1 bg-[#003366]/10 text-[#003366] rounded-lg text-[11px] font-bold">
-              {page} / {Math.max(1, totalPages)}
-            </span>
-            <button 
-              disabled={page >= totalPages}
-              onClick={() => setPage(p => p + 1)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
+        {/* Paginacion: el componente comun (P3-45, lote 130) */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={itemsPerPage}
+          onPageChange={setPage}
+          itemLabel="movimientos"
+        />
       </section>
     </div>
   );

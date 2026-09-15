@@ -56,8 +56,13 @@ exige(codigo(SRV).includes('static async getQuotes('), 'getQuotes ya no esta en 
 //  La razon del fallo: se pagina en la base.
 exige(/\.limit\(limit\)\s*\.offset\(offset\)/.test(codigo(SRV)), 'getQuotes ya no pagina en la base');
 //  La pantalla pide paginas de 10: es lo que la API no entendia.
-exige(codigo(PANT).includes("url.searchParams.set('per_page', '10');"),
-      'la pantalla de cotizaciones ya no pide per_page=10');
+//  Lote 130: el tamano de pagina salio a una constante (`itemsPerPage`), para
+//  que lo que se pide y el rango que se enseña no puedan separarse. Lo que se
+//  fija aqui es que la pantalla siga pidiendo `per_page` -- el nombre que la
+//  API no entendia y que este lote (110) arreglo --, con el numero o con la
+//  constante.
+exige(/url\.searchParams\.set\('per_page', (?:'\d+'|String\(itemsPerPage\))\);/.test(codigo(PANT)),
+      'la pantalla de cotizaciones ya no pide per_page');
 //  Nadie mas lista cotizaciones con esta API: cambiarle parametros no rompe a
 //  otro. (`quotes/new` hace POST, no GET.)
 exige(codigo('src/app/dashboard/quotes/new/page.tsx').includes("fetch('/api/v1/quotes', {"),
