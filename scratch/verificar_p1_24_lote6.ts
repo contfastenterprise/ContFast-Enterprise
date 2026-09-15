@@ -88,8 +88,11 @@ console.log('\n=== deliveryRepository.ts ===\n');
 
   ok("0 ocurrencias de ': any' (1 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
-  ok('getNextDeliveryNumber: tx tipado typeof db = db (antes any = db)',
-    /getNextDeliveryNumber\(\s*\n\s*companyId: string,\s*\n\s*modo: 'PRODUCCION' \| 'PRUEBA',\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<string> \{/.test(src));
+  //  Lote 117: f7b5cd8 cambio `typeof db` por `DbOTx` (= Omit<typeof db,
+//  '$client'>, que acepta db y transaccion). Aqui y en las cuatro de mas abajo
+//  se admiten los dos: lo que se vigila es que `tx` no vuelva a `any`.
+ok('getNextDeliveryNumber: tx tipado typeof db = db (antes any = db)',
+    /getNextDeliveryNumber\(\s*\n\s*companyId: string,\s*\n\s*modo: 'PRODUCCION' \| 'PRUEBA',\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<string> \{/.test(src));
 }
 
 // ═══════════════════ dashboardRepository.ts ═══════════════════
@@ -231,10 +234,10 @@ console.log('\n=== dgiiSubmissionRepository.ts ===\n');
   ok("0 ocurrencias de ': any' (2 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
   ok('envioVigente: tx tipado typeof db = db (antes any = db)',
-    /export async function envioVigente\(\s*\n\s*invoiceId: string,\s*\n\s*companyId: string,\s*\n\s*modo: Modo,\s*\n\s*tx: typeof db = db\s*\n\s*\) \{/.test(src));
+    /export async function envioVigente\(\s*\n\s*invoiceId: string,\s*\n\s*companyId: string,\s*\n\s*modo: Modo,\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\) \{/.test(src));
 
   ok('envioEnCurso: tx tipado typeof db = db (antes any = db)',
-    /export async function envioEnCurso\(\s*\n\s*invoiceId: string,\s*\n\s*companyId: string,\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<string \| null> \{/.test(src));
+    /export async function envioEnCurso\(\s*\n\s*invoiceId: string,\s*\n\s*companyId: string,\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<string \| null> \{/.test(src));
 }
 
 // ═══════════════════ bankRepository.ts ═══════════════════
@@ -246,10 +249,10 @@ console.log('\n=== bankRepository.ts ===\n');
   ok("0 ocurrencias de ': any' (2 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
   ok('saldo: tx tipado typeof db = db (antes any = db)',
-    /bankAccountId: string,\s*\n\s*companyId: string,\s*\n\s*modo: 'PRODUCCION' \| 'PRUEBA',\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<number> \{\s*\n\s*const \[fila\] = await tx\.select/.test(src));
+    /bankAccountId: string,\s*\n\s*companyId: string,\s*\n\s*modo: 'PRODUCCION' \| 'PRUEBA',\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<number> \{\s*\n\s*const \[fila\] = await tx\.select/.test(src));
 
   ok('ajustarSaldo: tx tipado typeof db = db (antes any = db)',
-    /delta: number,\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<number> \{/.test(src));
+    /delta: number,\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<number> \{/.test(src));
 
   ok('cuenta.balance sin cast `as any` (bonus, fuera del conteo de : any)',
     /return cuenta \? parseFloat\(cuenta\.balance\) : 0;/.test(src) &&

@@ -50,8 +50,10 @@ console.log('\n=== invoice/types.ts ===\n');
 const types = fuente('src/services/invoice/types.ts');
 const typesCrudo = crudo('src/services/invoice/types.ts');
 
-ok("queda exactamente 1 ocurrencia de ': any' (4 antes -- msellerResponsePayload, marcada a proposito)",
-  (typesCrudo.match(/: any/g) || []).length === 1,
+//  Lote 117: el `any` "a proposito" de msellerResponsePayload paso a unknown en
+//  00313df. Se exige 0 y el tipo nuevo, para cazar que VUELVA.
+ok("0 ocurrencias de ': any' (4 antes; msellerResponsePayload paso a unknown en 00313df)",
+  (typesCrudo.match(/: any/g) || []).length === 0,
   `hay ${(typesCrudo.match(/: any/g) || []).length}`);
 
 ok('define InvoiceItemLine con los campos exactos que arma invoiceCalculator.ts',
@@ -68,8 +70,8 @@ ok('CalculatedTotals usa las 3 interfaces nuevas (ya no any[])',
   /taxesList: InvoiceTaxLine\[\];/.test(types) &&
   /calculatedRetentions: CalculatedRetentionLine\[\];/.test(types));
 
-ok('DgiiSubmissionResult.msellerResponsePayload queda `any` a proposito (espeja msellerClient.ts, fuera de este lote)',
-  /msellerResponsePayload: any;/.test(types));
+ok('DgiiSubmissionResult.msellerResponsePayload tipado unknown (antes `any` a proposito; 00313df)',
+  /msellerResponsePayload: unknown;/.test(types));
 
 // ═══════════════════ invoiceCalculator.ts ═══════════════════
 console.log('\n=== invoiceCalculator.ts ===\n');
@@ -102,7 +104,8 @@ ok('importa InvoiceItemLine de types.ts',
   /import \{ IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult, InvoiceItemLine \} from '\.\/types';/.test(ifg));
 
 ok('processPostEmission: itemLines tipado InvoiceItemLine[] (ya no any[]), y el callback .map ya no lleva anotacion any redundante',
-  /itemLines: InvoiceItemLine\[\]\s*\n\s*\) \{/.test(ifg) &&
+  //  c3459cb le puso tipo de retorno a processPostEmission: se admite.
+    /itemLines: InvoiceItemLine\[\]\s*\n\s*\)(?:: Promise<string\[\]>)? \{/.test(ifg) &&
   /lines: itemLines\.map\(\(line\) => \(\{/.test(ifg));
 
 // ═══════════════════ invoiceService.ts ═══════════════════
@@ -129,8 +132,8 @@ console.log('\n=== invoiceSubmissionService.ts (limpieza adicional, fuera del co
 const iss = fuente('src/services/invoice/invoiceSubmissionService.ts');
 const issCrudo = crudo('src/services/invoice/invoiceSubmissionService.ts');
 
-ok("sigue en 1 ocurrencia de ': any' (msellerResponsePayload, sin cambios desde el lote 4)",
-  (issCrudo.match(/: any/g) || []).length === 1,
+ok("0 ocurrencias de ': any' (msellerResponsePayload paso a unknown en 00313df)",
+  (issCrudo.match(/: any/g) || []).length === 0,
   `hay ${(issCrudo.match(/: any/g) || []).length}`);
 
 ok('el cast `(line as any).taxCategory` en el armado del payload de mSeller desaparecio (itemLines ya trae taxCategory tipado)',

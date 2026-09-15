@@ -76,11 +76,14 @@ const inv = fuente('src/services/inventoryService.ts');
 
 sinAny('src/services/inventoryService.ts');
 
+//  Lote 117: f7b5cd8 cambio `typeof db` por `DbOTx`, y 89f0a17 anadio
+//  checkStockBatch con otro `tx: DbOTx = db`, asi que la cifra exacta de 3 ya
+//  no vale: al menos 3, y ningun `tx: any`. Lo que se vigila es el tipo.
 ok('los 5 tx con default `= db` quedan tipados `typeof db` (no DbTransaction -- callers reales omiten el argumento y usan `db`)',
-  /export async function llevaInventario\(\s*\n\s*companyId: string,\s*\n\s*productId: string,\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<boolean> \{/.test(inv) &&
-  /export async function getProvisionalStock\(companyId: string, modo: 'PRODUCCION' \| 'PRUEBA', productId: string, warehouseId: string, tx: typeof db = db\): Promise<number> \{/.test(inv) &&
-  /tx: typeof db = db,\s*\n\s*useProvisional = false/.test(inv) &&
-  (inv.match(/tx: typeof db = db\s*\n\)/g) || []).length === 3);
+  /export async function llevaInventario\(\s*\n\s*companyId: string,\s*\n\s*productId: string,\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<boolean> \{/.test(inv) &&
+  /export async function getProvisionalStock\(companyId: string, modo: 'PRODUCCION' \| 'PRUEBA', productId: string, warehouseId: string, tx: (?:typeof db|DbOTx) = db\): Promise<number> \{/.test(inv) &&
+  /tx: (?:typeof db|DbOTx) = db,\s*\n\s*useProvisional = false/.test(inv) &&
+  (inv.match(/tx: (?:typeof db|DbOTx) = db\s*\n\)/g) || []).length >= 3 && !/\btx\??\s*:\s*any\b/.test(inv));
 
 ok('las 4 anotaciones any en .map()\\/.reduce() corriente abajo se eliminaron sin reemplazo',
   /activeInvoices\.map\(\(inv\) => inv\.id\)/.test(inv) &&

@@ -122,11 +122,14 @@ console.log('\n=== credenciales.ts ===\n');
 
   ok("0 ocurrencias de ': any' (3 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
+  //  Lote 117: f7b5cd8 cambio `typeof db` por `DbOTx` (= Omit<typeof db,
+  //  '$client'>, que acepta db y transaccion). Se admiten los dos: lo que se
+  //  vigila es que `tx` no vuelva a `any`.
   ok('credencialesMseller: tx tipado typeof db = db (antes any = db)',
-    /entorno: EntornoDgii,\s*\n\s*tx: typeof db = db\s*\n\s*\): Promise<CredencialesMseller> \{/.test(src));
+    /entorno: EntornoDgii,\s*\n\s*tx: (?:typeof db|DbOTx) = db\s*\n\s*\): Promise<CredencialesMseller> \{/.test(src));
 
   ok('entornosConCredenciales: tx tipado typeof db = db (antes any = db)',
-    /export async function entornosConCredenciales\(companyId: string, tx: typeof db = db\): Promise<string\[\]> \{/.test(src));
+    /export async function entornosConCredenciales\(companyId: string, tx: (?:typeof db|DbOTx) = db\): Promise<string\[\]> \{/.test(src));
 
   ok('filas.map sin anotacion any redundante (filas ya viene tipado de tx.select)',
     /return filas\.map\(\(f\) => f\.entorno\);/.test(src));

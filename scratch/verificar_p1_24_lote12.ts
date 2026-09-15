@@ -30,9 +30,13 @@ function contarOcurrencias(s: string, sub: string): number {
 const MSC = 'src/services/dgii/msellerClient.ts';
 
 // 1. Interfaz MensajeDgii
+//  Lote 117: ffc5dcf llevo la lectura de `mensajes` -- y con ella esta interfaz
+//  -- a estadoEnvio.ts (motivoDgii), que comparten el cliente y la ruta batch.
+//  Las secciones 1, 7 y 8 se fijan alli y en el uso desde el cliente.
+const EST = 'src/services/dgii/estadoEnvio.ts';
 ok(
   'msellerClient: interfaz MensajeDgii definida',
-  crudo(MSC).includes('interface MensajeDgii {\n  codigo?: number;\n  valor?: string;\n}')
+  crudo(EST).includes('export interface MensajeDgii {\n  codigo?: number;\n  valor?: string;\n}')
 );
 
 // 2. rawResponse tipado
@@ -49,12 +53,8 @@ ok('msellerClient: sin catch (err: any)', !crudo(MSC).includes('catch (err: any)
 // 5. authenticate(): cast inline .name, relanza err intacto
 ok(
   'msellerClient: authenticate() cast inline .name + throw err intacto',
-  crudo(MSC).includes(
-    "if ((err as Error).name === 'AbortError') {\n" +
-      "        throw new Error('Timeout de autenticación con mSeller (el servidor no responde).');\n" +
-      '      }\n' +
-      '      throw err;'
-  )
+  //  ec7dac2 (lote 101) solo cambio la sangria; se admite cualquiera.
+  /if \(\(err as Error\)\.name === 'AbortError'\) \{\s*\n\s*throw new Error\('Timeout de autenticación con mSeller \(el servidor no responde\)\.'\);\s*\n\s*\}\s*\n\s*throw err;/.test(crudo(MSC))
 );
 
 // 6. sendDocument/getDocumentStatus/getDocumentsStatusBatch: CAST
@@ -80,28 +80,30 @@ ok(
 );
 
 // 7. dgiiMessages tipado
+//  Los dos sitios (sendDocument y getDocumentStatus) ya no arman dgiiMessages
+//  por su cuenta: llaman a motivoDgii(raw), con raw `unknown`.
 ok(
   'msellerClient: dgiiMessages tipado en sendDocument()',
-  crudo(MSC).includes('let dgiiMessages: MensajeDgii[] | undefined = raw?.mensajes;')
+  /import \{[^}]*\bmotivoDgii\b[^}]*\} from '\.\/estadoEnvio'/.test(crudo(MSC))
 );
 ok(
   'msellerClient: dgiiMessages tipado en getDocumentStatus()',
-  crudo(MSC).includes('let dgiiMessages: MensajeDgii[] = raw?.mensajes || [];')
+  contarOcurrencias(crudo(MSC), 'motivoDgii(raw)') === 2
 );
 
 // 8. callbacks sin : any
-ok("msellerClient: sin '(m: any)' remanente", !crudo(MSC).includes('(m: any)'));
+ok("msellerClient: sin '(m: any)' remanente", !crudo(MSC).includes('(m: any)') && !crudo(EST).includes('(m: any)'));
 ok(
   'msellerClient: map de mensaje de rechazo sin any',
-  crudo(MSC).includes('dgiiMessages.map((m) => `${m.valor} (Código: ${m.codigo})`)')
+  /export function motivoDgii\(raw: unknown\): string \| null \{/.test(crudo(EST))
 );
 ok(
   'msellerClient: filter de dgiiMessages sin any (2x)',
-  contarOcurrencias(crudo(MSC), "(m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0") === 2
+  contarAny(crudo(EST)) === 0
 );
 ok(
   'msellerClient: map de validMsgs sin any (2x)',
-  contarOcurrencias(crudo(MSC), "(m) => m.valor).join(' | ')") === 2
+  !/\bdgiiMessages\b|\bvalidMsgs\b/.test(crudo(MSC))
 );
 
 // 9. constructor de ECFPayload
@@ -125,21 +127,9 @@ for (const [variable, tipo] of [
 
 sinAny(MSC);
 
-// ─────────────────── documentService.ts ───────────────────
-const DS = 'src/services/documents/documentService.ts';
-ok(
-  'documentService: indice dinamico BaseDocumentData tipado unknown',
-  crudo(DS).includes("  modo: 'PRODUCCION' | 'PRUEBA';\n  [key: string]: unknown;")
-);
-sinAny(DS);
-
-// ─────────────────── emailService.ts ───────────────────
-const ES = 'src/services/documents/emailService.ts';
-ok(
-  'emailService: catch unknown + cast inline .message',
-  crudo(ES).includes('} catch (e: unknown) {\n      errorMessage = (e as Error).message')
-);
-sinAny(ES);
+// ─────────────────── documentService.ts / emailService.ts ───────────────────
+//  Retirados en el lote 100 (62c43f8) con el modulo de documentos. Leerlos
+//  hacia reventar este banco con ENOENT antes de llegar al final. Lote 117.
 
 // ─────────────────── ecfValidator.ts ───────────────────
 const EV = 'src/services/ecfValidator.ts';
@@ -159,7 +149,8 @@ sinAny(IV);
 
 // ─────────────────── reportQueue.ts ───────────────────
 const RQ = 'src/services/jobs/reportQueue.ts';
-ok('reportQueue: filters tipado Record<string, string>', crudo(RQ).includes('filters: Record<string, string>;'));
+//  d14986b borro la cola de informes, y con ella `filters`: no queda campo que
+//  tipar. Se mantiene que el fichero no tenga `any`. Lote 117.
 sinAny(RQ);
 
 // ─────────────────── kmsService.ts ───────────────────
@@ -184,13 +175,15 @@ sinAny(EG);
 const SS = 'src/services/storageService.ts';
 ok(
   'storageService: catch trivial unknown (err solo se loguea)',
-  crudo(SS).includes('} catch (err: unknown) {\n      Logger.error(`[StorageService] Error ensuring bucket')
+  //  eb3dcfc cambio el cuerpo (aviso en vez de error); el tipado sigue.
+  crudo(SS).includes('} catch (err: unknown) {') && !/catch\s*\(\s*\w+\s*:\s*any\b/.test(crudo(SS))
 );
 sinAny(SS);
 
 // ─────────────────── quoteService.ts ───────────────────
 const QS = 'src/services/storefront/quoteService.ts';
-ok('quoteService: quoteLinesData sin anotacion any[]', crudo(QS).includes('const quoteLinesData = [];'));
+//  f7b5cd8 le dio tipo explicito a quoteLinesData.
+ok('quoteService: quoteLinesData sin anotacion any[]', /const quoteLinesData: \{/.test(crudo(QS)));
 ok('quoteService: sin quoteLinesData: any[]', !crudo(QS).includes('quoteLinesData: any[]'));
 sinAny(QS);
 
@@ -242,7 +235,9 @@ ok(
 const BR = 'src/app/api/v1/ecf/dgii-status/batch/route.ts';
 ok(
   'dgii-status/batch: cast local para leer dgiiResponse de unknown',
-  crudo(BR).includes('const rawDoc = result.data as { dgiiResponse?: unknown[] } | undefined;')
+  //  ffc5dcf: ya no hay cast local; `result.data` va directo a lecturas con
+  //  `raw: unknown` (motivoDgii entre ellas). Lote 117.
+  /\bmotivoDgii\(result\.data\)/.test(crudo(BR)) && contarAny(crudo(BR)) === 0
 );
 
 console.log(`\nTotal fallos: ${fallos}`);

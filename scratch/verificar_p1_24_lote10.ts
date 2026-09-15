@@ -88,11 +88,20 @@ for (const [ruta, n] of [
   ok("ecf/dgii-status/batch: 0 ': any' (5 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
   ok('ecf/dgii-status/batch: catch interno (err) unknown + .message',
     src.includes('} catch (err: unknown) {') && src.includes("message: (err as Error).message } },\n        { status: 500, headers: resHeaders }"));
-  ok('ecf/dgii-status/batch: dgiiMessages tipado con la forma real (valor/codigo)',
-    src.includes('let dgiiMessages: { valor?: string; codigo?: number }[] = [];'));
-  ok('ecf/dgii-status/batch: filter/map de dgiiMessages sin any (infiere del array tipado)',
-    src.includes("dgiiMessages.filter((m) => m.valor && m.valor.trim() !== '' && m.codigo !== 0)") &&
-    src.includes('validMsgs.map((m) => m.valor)'));
+  //  Lote 117: ffc5dcf saco la lectura de `mensajes` de esta ruta y la llevo a
+  //  `motivoDgii` (estadoEnvio.ts), con `raw: unknown` y MensajeDgii[]. Ya no
+  //  hay dgiiMessages ni validMsgs locales que tipar: se fija que la ruta usa la
+  //  lectura comun y que esta no tiene `any`.
+  {
+    const est = crudo('src/services/dgii/estadoEnvio.ts');
+    ok('ecf/dgii-status/batch: dgiiMessages tipado con la forma real (valor/codigo)',
+      /import \{[^}]*\bmotivoDgii\b[^}]*\} from '@\/services\/dgii\/estadoEnvio'/.test(src)
+      && /\bmotivoDgii\(result\.data\)/.test(src)
+      && /export function motivoDgii\(raw: unknown\): string \| null \{/.test(est)
+      && /interface MensajeDgii \{/.test(est));
+    ok('ecf/dgii-status/batch: filter/map de dgiiMessages sin any (infiere del array tipado)',
+      sinAny(src) === 0 && sinAny(est) === 0);
+  }
   ok('ecf/dgii-status/batch: catch externo status+code+message (const e = ...CAST)',
     src.includes(`const e = error as ${CAST};`) && src.includes("code: e.code || 'SERVER_ERROR', message: e.message"));
 }
@@ -169,8 +178,12 @@ for (const [ruta, n] of [
     src.includes('const idsYaRevertidos = new Set(yaRevertidos.map((r) => r.referenceId));') &&
     src.includes('const idsAsientosSnapshot = snapshotAsientos.map((j) => j.id);') &&
     src.includes('const idsAsientosPut = snapshotAsientosPut.map((j) => j.id);'));
+  //  Lote 117: 1c9375d hizo que el PUT distinga DUPLICATE_NCF, y el cuerpo de su
+  //  catch dejo de ser el literal que se copiaba. Se fija lo que P1-24 queria:
+  //  los tres catch del fichero tipados `unknown`, y ninguno `any`.
   ok('expenses/[id]/route: GET + PUT catch (err: unknown) + .message (2)',
-    (src.match(/\} catch \(err: unknown\) \{\n    console\.error\('Error (fetching expense details|editing expense):', err\);\n    return NextResponse\.json\(\{ success: false, error: \{ message: \(err as Error\)\.message \} \}, \{ status: 500 \}\);/g) || []).length === 2);
+    (src.match(/\} catch \(err: unknown\) \{/g) || []).length === 3 &&
+    !/catch\s*\(\s*\w+\s*:\s*any\b/.test(src));
   // Cinco desde el freno de existencia consumida: revertir la entrada de una
   // compra cuya mercancia ya se vendio deja el almacen en negativo, y eso
   // significa que esas unidades ya salieron valoradas con su costo.
@@ -295,8 +308,12 @@ for (const [ruta, n] of [
 {
   const src = crudo('src/app/api/v1/hr/employees/route.ts');
   ok("hr/employees: 0 ': any' (4 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
+  //  Lote 117: 2a366fe (P2-27) hizo que el PUT responda 409 ante un codigo o
+  //  cedula duplicados, y su catch dejo de ser el literal. Se fija el tipado:
+  //  los cuatro catch `unknown`, ninguno `any`.
   ok('hr/employees: GET + PUT + DELETE catch unknown + .message inline (3)',
-    (src.match(/\} catch \(error: unknown\) \{\n    return NextResponse\.json\(\{ success: false, error: \{ message: \(error as Error\)\.message \} \}, \{ status: 500 \}\);\n  \}/g) || []).length === 3);
+    (src.match(/\} catch \(error: unknown\) \{/g) || []).length === 4 &&
+    !/catch\s*\(\s*\w+\s*:\s*any\b/.test(src));
   ok('hr/employees: POST catch unknown, const e = error as Error, isDup via e.message',
     src.includes('} catch (error: unknown) {\n    const e = error as Error;\n    const isDup = e.message.includes'));
 }

@@ -25,7 +25,8 @@ const FIRMAS: [string, number][] = [
   ['src/repositories/deliveryRepository.ts', 1],
   ['src/repositories/dgiiSubmissionRepository.ts', 2],
   ['src/services/dgii/credenciales.ts', 2],
-  ['src/services/inventoryService.ts', 5],
+  //  Lote 117: 89f0a17 anadio checkStockBatch con su `tx: DbOTx = db`: 5 -> 6.
+  ['src/services/inventoryService.ts', 6],
 ];
 
 // ─────────── GRUPO A: tx: typeof db -> DbOTx (24 errores) ───────────
@@ -59,7 +60,7 @@ const FIRMAS: [string, number][] = [
     ok(`${base(path)}: ${esperadas} firma(s) usan DbOTx (halladas ${n})`, n === esperadas);
     ok(`${base(path)}: importa el tipo DbOTx`, /import\s*\{[^}]*\btype DbOTx\b[^}]*\}\s*from\s*'@\/db'/s.test(s));
   }
-  ok(`las 15 firmas estan cubiertas (contadas ${totalFirmas})`, totalFirmas === 15);
+  ok(`las 16 firmas estan cubiertas (contadas ${totalFirmas}; 15 + checkStockBatch de 89f0a17)`, totalFirmas === 16);
 
   for (const [path] of FIRMAS) {
     ok(`${base(path)}: sin ninguna firma ': typeof db' remanente`, !crudo(path).includes(': typeof db'));

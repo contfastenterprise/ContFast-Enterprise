@@ -49,8 +49,12 @@ console.log('\n=== pdfGenerator.ts ===\n');
 const pdf = fuente('src/services/pdfGenerator.ts');
 const pdfCrudo = crudo('src/services/pdfGenerator.ts');
 
-ok("quedan exactamente 3 ocurrencias de ': any' (10 antes -- generateWindowBreakdown/generateGlassCutting, marcadas a proposito)",
-  (pdfCrudo.match(/: any/g) || []).length === 3,
+//  Lote 117: los `any` que este lote dejo "a proposito" los resolvieron lotes
+//  posteriores (1a475a7, b7164d3, 00313df). Donde se exigia una cifra exacta de
+//  `any` restantes se exige ahora 0, y los tipos que los sustituyeron: asi la
+//  comprobacion caza que un `any` VUELVA, en vez de exigir que siga.
+ok("0 ocurrencias de ': any' (10 antes; las 3 marcadas a proposito se resolvieron en 1a475a7)",
+  (pdfCrudo.match(/: any/g) || []).length === 0,
   `hay ${(pdfCrudo.match(/: any/g) || []).length}`);
 
 ok('importa ReportRepository, HRRepository y chartOfAccounts solo como tipo',
@@ -77,9 +81,9 @@ ok('generateSettlementReceipt: employee/calculation tipados con literales verifi
   /employee: \{ employeeCode: string; firstName: string; lastName: string; cedula: string; hireDate: Date \| string \}/.test(pdf) &&
   /calculation: \{ yearsOfService: number; monthsOfService: number; dailyRate: number; preavisoDays: number; cesantiaDays: number; vacacionesDays: number; preaviso: number; cesantia: number; vacaciones: number; navidad: number \}/.test(pdf));
 
-ok('generateWindowBreakdown y generateGlassCutting quedan `any[]` a proposito (JSON crudo sin schema desde tools/print/route.ts)',
-  /static generateWindowBreakdown\(company: CompanyInfo, data: any\[\]/.test(pdf) &&
-  /static generateGlassCutting\(company: CompanyInfo, sheets: any\[\]/.test(pdf));
+ok('generateWindowBreakdown y generateGlassCutting tipados (antes `any[]` a proposito; 1a475a7)',
+  /static generateWindowBreakdown\(company: CompanyInfo, data: WindowBreakdownItem\[\]/.test(pdf) &&
+  /static generateGlassCutting\(company: CompanyInfo, sheets: GlassCuttingSheet\[\]/.test(pdf));
 
 // ═══════════════════ companyRepository.ts ═══════════════════
 console.log('\n=== companyRepository.ts (fix de terreno, fuera del lote declarado) ===\n');
@@ -127,8 +131,8 @@ console.log('\n=== invoiceFileGenerator.ts ===\n');
 const ifg = fuente('src/services/invoice/invoiceFileGenerator.ts');
 const ifgCrudo = crudo('src/services/invoice/invoiceFileGenerator.ts');
 
-ok("quedan exactamente 2 ocurrencias de ': any' (7 antes -- itemLines: any[], parametro y callback, marcadas a proposito)",
-  (ifgCrudo.match(/: any/g) || []).length === 2,
+ok("0 ocurrencias de ': any' (7 antes; itemLines se tipo en b7164d3)",
+  (ifgCrudo.match(/: any/g) || []).length === 0,
   `hay ${(ifgCrudo.match(/: any/g) || []).length}`);
 
 ok('importa CompanyRepository solo como tipo',
@@ -144,7 +148,7 @@ ok('catch (pdfErr): unknown (solo se usa en un Logger.error, sin acceder a .mess
   /\} catch \(pdfErr: unknown\) \{/.test(ifg));
 
 ok('processPostEmission: settings tipado igual que en generateFilesAndSendEmail (mismo caller, misma variable)',
-  /settings: Awaited<ReturnType<typeof CompanyRepository\.getSettings>>,\s*\n\s*itemLines: any\[\]/.test(ifg));
+  /settings: Awaited<ReturnType<typeof CompanyRepository\.getSettings>>,\s*\n\s*itemLines: InvoiceItemLine\[\]/.test(ifg));
 
 // ═══════════════════ invoiceSubmissionService.ts ═══════════════════
 console.log('\n=== invoiceSubmissionService.ts ===\n');
@@ -152,8 +156,8 @@ console.log('\n=== invoiceSubmissionService.ts ===\n');
 const iss = fuente('src/services/invoice/invoiceSubmissionService.ts');
 const issCrudo = crudo('src/services/invoice/invoiceSubmissionService.ts');
 
-ok("queda exactamente 1 ocurrencia de ': any' (5 antes -- msellerResponsePayload, marcada a proposito)",
-  (issCrudo.match(/: any/g) || []).length === 1,
+ok("0 ocurrencias de ': any' (5 antes; msellerResponsePayload paso a unknown en 00313df)",
+  (issCrudo.match(/: any/g) || []).length === 0,
   `hay ${(issCrudo.match(/: any/g) || []).length}`);
 
 ok('importa CompanyRepository solo como tipo',
@@ -171,8 +175,8 @@ ok('el catch principal: err tipado unknown (ya narrowed por instanceof antes de 
   /ncf, error: \(err as Error\)\?\.message,/.test(iss) &&
   /dgiiMessage = mensajeDesconocido\(\(err as Error\)\?\.message \?\? ''\);/.test(iss));
 
-ok('msellerResponsePayload queda `any` a proposito (espeja MSellerSendResponse.rawResponse?: any en msellerClient.ts, fuera de este lote)',
-  /let msellerResponsePayload: any = null;/.test(iss));
+ok('msellerResponsePayload tipado unknown (antes `any` a proposito; 00313df)',
+  /let msellerResponsePayload: unknown = null;/.test(iss));
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);

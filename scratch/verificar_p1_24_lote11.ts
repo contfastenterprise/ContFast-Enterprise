@@ -59,9 +59,16 @@ for (const ruta of [
 {
   const src = crudo('src/app/api/v1/invoices/[id]/email/route.ts');
   ok("invoices/[id]/email: 0 ': any' (3 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('invoices/[id]/email: retentions.map sin any', src.includes('(invoice.retentions || []).map((r) => ({'));
-  ok('invoices/[id]/email: catch interno (err) unknown trivial',
-    src.includes('} catch (err: unknown) {') && src.includes("Logger.error('[Email Route] Failed to regenerate PDF on the fly', err);"));
+  //  Lote 117: 0ce19c2 dejo la ruta como envoltorio y llevo el armado del
+  //  correo a `services/invoice/correoFactura.ts`, con el map de retenciones y
+  //  el catch que regenera el PDF. Se miran alli.
+  {
+    const cf = crudo('src/services/invoice/correoFactura.ts');
+    ok('invoices/[id]/email: retentions.map sin any',
+      cf.includes('(invoice.retentions || []).map((r) => ({') && sinAny(cf) === 0);
+    ok('invoices/[id]/email: catch interno (err) unknown trivial',
+      cf.includes("} catch (err: unknown) {\n      Logger.error('[correoFactura] no se pudo regenerar el PDF', err);"));
+  }
   ok('invoices/[id]/email: catch externo status+code+message (const e = ...CAST)',
     src.includes(`const e = error as ${CAST};`) && src.includes("code = e.code || 'SERVER_ERROR'"));
 }
@@ -143,11 +150,9 @@ for (const ruta of [
 }
 
 // ═══════════════════ jobs/[jobId] (1) ═══════════════════
-{
-  const src = crudo('src/app/api/v1/jobs/[jobId]/route.ts');
-  ok("jobs/[jobId]: 0 ': any'", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('jobs/[jobId]: catch .message inline', src.includes('Internal server error: ${(error as Error).message}'));
-}
+//  Retirada en d14986b ("borrar las 2 colas falsas"): nadie la importaba y
+//  leerla hacia reventar este banco con ENOENT antes de llegar al final.
+//  Lote 117.
 
 // ═══════════════════ ocr (2) ═══════════════════
 {
@@ -186,7 +191,8 @@ for (const ruta of [
 {
   const src = crudo('src/app/api/v1/products/barcodes/pdf/route.ts');
   ok("products/barcodes/pdf: 0 ': any' (2 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('products/barcodes/pdf: flatList sin any', src.includes('const flatList = [];'));
+  //  f7b5cd8 le dio tipo explicito (lo fija tambien verificar_tipos_mios).
+  ok('products/barcodes/pdf: flatList sin any', src.includes('const flatList: typeof productsToPrint = [];'));
   ok('products/barcodes/pdf: catch (err) .message inline',
     src.includes('} catch (err: unknown) {') && src.includes('(err as Error).message'));
 }
@@ -210,7 +216,8 @@ for (const ruta of [
 {
   const src = crudo('src/app/api/v1/products/route.ts');
   ok("products/route: 0 ': any' (5 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('products/route: dataWithInventory (barcode) sin any', src.includes('let dataWithInventory = [];'));
+  //  f7b5cd8 lo convirtio en `const` inicializado en una sola expresion.
+  ok('products/route: dataWithInventory (barcode) sin any', src.includes('const dataWithInventory = !product ? [] : [{'));
   ok('products/route: productIds.map + dataWithInventory (list) sin any',
     src.includes('result.data.map((p) => p.id);') && src.includes('result.data.map((p) => ({'));
   ok('products/route: GET+POST catch CAST (x2)',
@@ -282,11 +289,7 @@ for (const ruta of [
 }
 
 // ═══════════════════ reports/[reportType]/print (1) ═══════════════════
-{
-  const src = crudo('src/app/api/v1/reports/[reportType]/print/route.ts');
-  ok("reports/[reportType]/print: 0 ': any'", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('reports/[reportType]/print: catch CAST', src.includes(`const e = error as ${CAST};`));
-}
+//  Retirada en d14986b junto con la cola de informes. Lote 117.
 
 // ═══════════════════ reports/balance-sheet (1) ═══════════════════
 {

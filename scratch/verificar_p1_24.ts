@@ -44,14 +44,17 @@ sinAny('src/repositories/accountingRepository.ts');
 ok("importa DbTransaction de '@/db'",
   /import type \{ DbTransaction \} from '@\/db';/.test(accRepo));
 
+//  Lote 117: f7b5cd8 cambio `typeof db` por `DbOTx` (= Omit<typeof db,
+//  '$client'>). Aqui y en createJournalEntry y seedRolePermissionsForCompany se
+//  admiten los dos: lo que se vigila es que `tx` no vuelva a `any`.
 ok('isPeriodOpen: tx tipado como `typeof db = db` (no DbTransaction -- el default es `db`, que no es una transaccion real)',
-  /tx: typeof db = db\): Promise<boolean> \{/.test(accRepo));
+  /tx: (?:typeof db|DbOTx) = db\): Promise<boolean> \{/.test(accRepo));
 
 ok('createJournalEntry: firma acepta DbTransaction o el payload de datos (union), sin any',
   /static async createJournalEntry\(txOrData: DbTransaction \| CreateJournalEntryInput \| NewJournalEntry, dataInput\?: CreateJournalEntryInput \| NewJournalEntry\) \{/.test(accRepo));
 
 ok('createJournalEntry: variable local tx tipada `typeof db = db`, con aserto a DbTransaction cuando en verdad viene una transaccion',
-  /let tx: typeof db = db;/.test(accRepo) &&
+  /let tx: (?:typeof db|DbOTx) = db;/.test(accRepo) &&
   /data = txOrData as CreateJournalEntryInput \| NewJournalEntry;/.test(accRepo) &&
   /tx = txOrData as DbTransaction;/.test(accRepo));
 
@@ -120,7 +123,7 @@ ok('los dos objetos de error con status/code quedan tipados Error & { status?, c
   (perms.match(/const err: Error & \{ status\?: number; code\?: string \} = new Error\(/g) || []).length === 2);
 
 ok('seedRolePermissionsForCompany: tx tipado `typeof db` (se llama con `db` directo en auth\\/register\\/route.ts, y con una tx real en admin\\/companies y setup\\/confirm -- DbTransaction no acepta `db`)',
-  /export async function seedRolePermissionsForCompany\(\s*\n\s*tx: typeof db,/.test(perms));
+  /export async function seedRolePermissionsForCompany\(\s*\n\s*tx: (?:typeof db|DbOTx),/.test(perms));
 
 ok('DbTransaction ya no se importa en permissions.ts (no se volvio a usar tras tipar seedRolePermissionsForCompany como `typeof db`)',
   !/DbTransaction/.test(perms));
