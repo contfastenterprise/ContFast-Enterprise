@@ -33,6 +33,7 @@ import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
+import { Pagination } from '@/components/ui/pagination';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
@@ -617,6 +618,10 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
 function ComprobantesTab() {
   const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, per_page: 20, total: 0, total_pages: 0 });
+  // El tamano de pagina iba escrito a mano dentro de la peticion. El componente
+  // comun calcula con el el rango que enseña, asi que vive en un solo sitio
+  // (lote 133).
+  const itemsPerPage = 20;
   const [stats, setStats] = useState<ECFStats | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
@@ -731,7 +736,7 @@ function ComprobantesTab() {
     setLoadingList(true);
     setErrorCarga(null);
     try {
-      const params = new URLSearchParams({ page: page.toString(), per_page: '20' });
+      const params = new URLSearchParams({ page: page.toString(), per_page: String(itemsPerPage) });
       if (filters.status) params.set('status', filters.status);
       if (filters.ecfType) params.set('ecfType', filters.ecfType);
       if (filters.from) params.set('from', filters.from);
@@ -1022,15 +1027,20 @@ function ComprobantesTab() {
           )}
         </div>
 
-        {meta.total_pages > 1 && (
-          <div className="flex items-center justify-between px-4 py-2.5 text-xs border-t border-slate-200 bg-white">
-            <span className="text-xs text-slate-500 font-medium">Página {meta.page} de {meta.total_pages}</span>
-            <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Anterior</button>
-              <button onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))} disabled={page >= meta.total_pages} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Siguiente</button>
-            </div>
-          </div>
-        )}
+        {/* Paginacion: el componente comun (P3-45, lote 133).
+            El texto decia `meta.page` -- la pagina que CONTESTO la API -- y los
+            botones movian `page`, la que se esta pidiendo. Mientras carga, y
+            para siempre si la peticion falla, el numero de arriba y el de los
+            botones eran distintos. Ahora hay uno solo: `page`. */}
+        <Pagination
+          currentPage={page}
+          totalPages={meta.total_pages}
+          totalItems={meta.total}
+          pageSize={itemsPerPage}
+          onPageChange={setPage}
+          itemLabel="comprobantes"
+          hideControlsWhenSinglePage
+        />
       </div>
 
       <AnimatePresence>

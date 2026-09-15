@@ -8,7 +8,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
-  ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
+  ChevronRight, AlertCircle, Building2, Mail,
   Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter,
   LayoutList
 } from 'lucide-react';
@@ -26,6 +26,7 @@ import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
+import { Pagination } from '@/components/ui/pagination';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
@@ -154,6 +155,10 @@ function InvoicesList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  // El tamano de pagina iba escrito a mano dentro de la peticion, y el texto de
+  // abajo no lo usaba. El componente comun calcula con el el rango que enseña,
+  // asi que vive en un solo sitio (lote 133).
+  const itemsPerPage = 10;
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -677,7 +682,7 @@ function InvoicesList() {
     try {
       const queryParams = new URLSearchParams({
         page: page.toString(),
-        per_page: '10',
+        per_page: String(itemsPerPage),
       });
       if (statusFilter) queryParams.append('status', statusFilter);
       if (searchTerm) queryParams.append('ncf', searchTerm);
@@ -2985,48 +2990,16 @@ function InvoicesList() {
                 </table>
               </div>
 
-              {/* Pagination Footer */}
-              <div className="bg-slate-50/80 px-6 py-4 flex flex-col md:flex-row items-center justify-between border-t border-slate-200 gap-4">
-                <div className="text-xs text-on-surface-variant/70 font-medium">
-                  Mostrando página <span className="text-[#003366]">{page}</span> de <span className="text-[#003366]">{totalPages}</span>
-                  {' '}({totalRecords} registros en total)
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setPage(1)} disabled={page === 1}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <ChevronsLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  {/* Simplified page numbers (just current around) */}
-                  <div className="flex gap-1 mx-2">
-                    <button className="w-8 h-8 rounded-lg bg-[#003366] text-white font-bold text-xs flex items-center justify-center">
-                      {page}
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setPage(totalPages)} disabled={page >= totalPages}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <ChevronsRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+              {/* Paginacion: el componente comun (P3-45, lote 133) */}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalRecords}
+                pageSize={itemsPerPage}
+                onPageChange={setPage}
+                itemLabel="facturas"
+                hideControlsWhenSinglePage
+              />
             </div>
           </motion.div>
         )}
