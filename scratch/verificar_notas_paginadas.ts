@@ -61,9 +61,19 @@ exige(codigo(API).includes('.limit(perPage)') && codigo(API).includes('.offset(o
       'la API de e-CF ya no pagina en la base');
 exige(codigo(API).includes('total_pages: Math.ceil(total / perPage)'),
       'la API ya no calcula total_pages sobre lo que filtra');
-//  La pantalla pagina de 15 en 15 contra esa API.
-exige(codigo(PANT).includes("per_page: '15',") && codigo(PANT).includes('fetch(`/api/v1/ecf?${params.toString()}`)'),
-      'la pantalla de notas ya no pide paginas de 15 a /api/v1/ecf');
+//  La pantalla pagina de 15 en 15 contra esa API. El 15 se escribia aqui a
+//  mano; desde el lote 131 vive en una constante que se usa tambien para
+//  pintar el rango. Lo que esta precondicion vigila es que la pantalla PIDA
+//  paginas de 15, no donde este escrito el numero: se acepta de las dos
+//  formas, y el valor se comprueba en las dos.
+{
+  const src = codigo(PANT);
+  const literal = src.includes("per_page: '15',");
+  const porConstante = src.includes('per_page: String(itemsPerPage),')
+    && /const itemsPerPage = 15;/.test(src);
+  exige((literal || porConstante) && src.includes('fetch(`/api/v1/ecf?${params.toString()}`)'),
+        'la pantalla de notas ya no pide paginas de 15 a /api/v1/ecf');
+}
 //  Las otras dos pantallas que filtran por UN tipo no pueden romperse: siguen
 //  mandando un solo codigo.
 exige(codigo('src/app/dashboard/ecf/page.tsx').includes('fetch(`/api/v1/ecf?ecfType=${t}'),

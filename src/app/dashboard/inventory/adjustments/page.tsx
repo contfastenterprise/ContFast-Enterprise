@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, PackageMinus, Settings2, RefreshCw, Scale, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Save, PackageMinus, Settings2, RefreshCw, Scale, Search } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -31,6 +32,12 @@ export default function InventoryAdjustmentsPage() {
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [tablePage, setTablePage] = useState(1);
   const [tableTotalPages, setTableTotalPages] = useState(1);
+  // El total venia en la respuesta y se tiraba: la barra solo decia "Página 2
+  // de 4", que no dice cuantos productos hay (lote 131). El tamano sale a una
+  // constante porque el componente calcula el rango con el, y si el numero de
+  // la URL y el del componente se separan, el rango miente.
+  const [tableTotalItems, setTableTotalItems] = useState(0);
+  const itemsPerPage = 10;
   const [tableLoading, setTableLoading] = useState(false);
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
   // enseña el error en vez de su mensaje de vacio.
@@ -110,7 +117,7 @@ export default function InventoryAdjustmentsPage() {
     let active = true;
     setTableLoading(true);
     setErrorCarga(null);
-    fetch(`/api/v1/products?per_page=10&page=${tablePage}&search=${encodeURIComponent(tableSearchQuery)}`)
+    fetch(`/api/v1/products?per_page=${itemsPerPage}&page=${tablePage}&search=${encodeURIComponent(tableSearchQuery)}`)
       .then(r => r.json())
       .then(data => {
         if (!active) return;
@@ -118,6 +125,7 @@ export default function InventoryAdjustmentsPage() {
           const items = data.data || [];
           setTableProducts(items);
           setTableTotalPages(data.meta?.total_pages || 1);
+          setTableTotalItems(data.meta?.total || 0);
         } else {
           setTableProducts([]);
           setErrorCarga(motivoDeCarga(null, data.error?.message));
@@ -475,30 +483,16 @@ export default function InventoryAdjustmentsPage() {
               </tbody>
             </table>
 
-            {/* Controles de paginación */}
-            {tableTotalPages > 1 && (
-              <div className="flex justify-between items-center mt-6 pt-4 border-t border-outline-variant/20">
-                <span className="text-xs text-on-surface-variant">
-                  Página {tablePage} de {tableTotalPages}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setTablePage(p => Math.max(p - 1, 1))}
-                    disabled={tablePage === 1}
-                    className="p-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container transition-colors disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setTablePage(p => Math.min(p + 1, tableTotalPages))}
-                    disabled={tablePage === tableTotalPages}
-                    className="p-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container transition-colors disabled:opacity-40"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* Paginacion: el componente comun (P3-45, lote 131) */}
+            <Pagination
+              currentPage={tablePage}
+              totalPages={tableTotalPages}
+              totalItems={tableTotalItems}
+              pageSize={itemsPerPage}
+              onPageChange={setTablePage}
+              itemLabel="productos"
+              hideControlsWhenSinglePage
+            />
           </div>
         )}
       </div>

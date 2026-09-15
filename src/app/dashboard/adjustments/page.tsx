@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
-  ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
-  ChevronRight, ChevronsLeft, ChevronsRight, AlertCircle, Building2, Mail,
+  ArrowLeft, Calendar, Filter, Eye, Printer, XCircle,
+  AlertCircle, Building2, Mail,
   Package, Users, FileMinus, FilePlus, ArrowUpRight, ArrowDownLeft, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import { motivosValidosNota } from '@/schemas/factura';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
 import { esModificablePorNota, CODIGOS_NOTA } from '@/services/dgii/tiposComprobante';
+import { Pagination } from '@/components/ui/pagination';
 
 /**
  * Lo que lista esta pantalla: las notas electronicas y las dos tradicionales
@@ -37,6 +38,12 @@ export default function AdjustmentsPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  // El total lo manda la API y no se guardaba: la pantalla solo decia "Página 2
+  // de 4". Con el, el componente enseña "Mostrando 16 - 30 de 57 notas". El
+  // tamano va en una constante para que lo que se pide y lo que se enseña no
+  // puedan separarse (lote 131).
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 15;
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [resubmittingId, setResubmittingId] = useState<string | null>(null);
 
@@ -65,7 +72,7 @@ export default function AdjustmentsPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        per_page: '15',
+        per_page: String(itemsPerPage),
         //  Con "Todos", la LISTA de notas, no un tipo vacio. Antes se pedia la
         //  pagina sin tipo y las notas se filtraban aqui, sobre una pagina que
         //  el servidor ya habia cortado contando facturas: "Pagina 1 de 4" con
@@ -79,6 +86,7 @@ export default function AdjustmentsPage() {
       if (data.success) {
         setNotes(data.data);
         setTotalPages(data.meta?.total_pages || 1);
+        setTotalItems(data.meta?.total || 0);
       } else {
         setNotes([]);
         setErrorCarga(motivoDeCarga(null, data.error?.message));
@@ -501,28 +509,16 @@ export default function AdjustmentsPage() {
                   </div>
                 )}
 
-                {/* Pagination Footer */}
-                {totalPages > 1 && (
-                  <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between bg-slate-50/50">
-                    <span className="text-xs text-slate-500">Página {page} de {totalPages}</span>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={page === 1}
-                        onClick={() => setPage(p => Math.max(p - 1, 1))}
-                        className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-40"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <button
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-                        className="p-2 border border-slate-200 rounded-lg bg-white disabled:opacity-40"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* Paginacion: el componente comun (P3-45, lote 131) */}
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={itemsPerPage}
+                  onPageChange={setPage}
+                  itemLabel="notas"
+                  hideControlsWhenSinglePage
+                />
               </div>
             </motion.div>
           ) : (

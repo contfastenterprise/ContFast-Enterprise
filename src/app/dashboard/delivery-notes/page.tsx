@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, FileText, Check, RefreshCw, X, Trash2,
-  ArrowLeft, Calendar, FileDown, Printer, ChevronLeft,
-  ChevronRight, AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck
+  ArrowLeft, Calendar, FileDown, Printer,
+  AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck
 } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -36,6 +37,10 @@ export default function DeliveryNotesPage() {
   // Pagination & Filters for List
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  // El total lo manda la API y no se guardaba: se decia "Mostrando 15
+  // conduces", que es cuantos caben, no cuantos hay (lote 131).
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 15;
   const [searchTerm, setSearchTerm] = useState('');
 
   // Creation Flow
@@ -66,13 +71,14 @@ export default function DeliveryNotesPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        per_page: '15',
+        per_page: String(itemsPerPage),
       });
       const res = await fetch(`/api/v1/delivery-notes?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
         setNotes(data.data || []);
         setTotalPages(data.meta?.total_pages || 1);
+        setTotalItems(data.meta?.total || 0);
       } else {
         setNotes([]);
         setErrorCarga(motivoDeCarga(null, data.error?.message));
@@ -521,35 +527,16 @@ export default function DeliveryNotesPage() {
                     </div>
                   )}
 
-                  {/* Pagination Toolbar */}
-                  <div className="p-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                    <p className="text-xs text-slate-500 font-medium">
-                      Mostrando <span className="font-bold text-slate-800">{notes.length}</span> conduces
-                    </p>
-                    {totalPages > 1 && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          disabled={page <= 1}
-                          onClick={() => setPage(page - 1)}
-                          type="button"
-                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                        >
-                          Anterior
-                        </button>
-                        <span className="text-xs text-slate-500 font-bold px-2">
-                          Pág. {page} de {totalPages}
-                        </span>
-                        <button
-                          disabled={page >= totalPages}
-                          onClick={() => setPage(page + 1)}
-                          type="button"
-                          className="px-3 py-1.5 bg-[#003366]/10 hover:bg-[#003366]/20 text-[#003366] text-xs font-bold rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                        >
-                          Siguiente
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {/* Paginacion: el componente comun (P3-45, lote 131) */}
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    pageSize={itemsPerPage}
+                    onPageChange={setPage}
+                    itemLabel="conduces"
+                    hideControlsWhenSinglePage
+                  />
                 </div>
               </motion.div>
             ) : (
