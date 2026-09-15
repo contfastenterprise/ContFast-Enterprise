@@ -160,7 +160,8 @@ módulo de documentos, 996 líneas), 101 (compartir la sesión de mSeller), 102
 commit `70559d4` pero nunca se commiteó y reventaba con ENOENT desde el lote
 100), 107 (P3-48, `0a8dd65`), 108 (P3-49, `8f28e70`), 109 (notas paginadas,
 `41fc024`), 110 (búsqueda de cotizaciones, `8560389`) y 111 (listado de
-productos).
+productos, `c38c96b`), 112 (URL de mSeller medida, `10f6816`) y 113
+(`[tiempos-pdf]` dice qué motor dibujó).
 
 **Lote 106**: además del documento, `verificar.ps1` se paraba antes de correr
 un solo banco (`tsc -p scratch` marcaba `verificar_vencimiento_impreso.ts`), y
@@ -278,11 +279,22 @@ Además, fuera de la tabla:
   antes tampoco hubo empresas emitiendo contra un servidor y consultando
   contra otro. **Volver a mirarlo** si alguna empresa configura una URL propia.
 - Mirar la primera línea `[tiempos-pdf] render` que salga en producción, por lo
-  dicho en la sección 7.
+  dicho en la sección 7. **Desde el lote 113 lleva `motor` y `externo_ms`.**
+  `dibujar` tiene tres caminos: `PDF_GENERATOR_MODE=external` (solo el
+  externo), `PDF_SERVICE_URL` a secas (el externo PRIMERO, hasta 15 s, y si
+  falla Puppeteer), o nada (Puppeteer). En Vercel no hay `PDF_GENERATOR_MODE`
+  (dicho por el dueño el 2026-09-14); el `.env` local tiene
+  `PDF_SERVICE_URL=http://localhost:3000`, la propia aplicación. **Si Vercel
+  tiene `PDF_SERVICE_URL`**, cada PDF espera a que ese externo falle antes de
+  dibujar: saldrá `motor: 'local tras fallo del externo'` con `externo_ms`
+  alto, y la cura es quitar la variable, no montar un Gotenberg. Ojo también
+  con la sección 7: pasar a Gotenberg "por el camino que ya existe" no es solo
+  `PDF_SERVICE_URL`; sin `PDF_GENERATOR_MODE=external` sigue cayendo a
+  Puppeteer cuando el externo falla.
 - El gancho de pre-commit **está puesto** (comprobado en el lote 106:
   `.git/hooks/pre-commit` es idéntico a `scratch/_to_delete/pre-commit`).
   `pre-commit.nuevo` es distinto y no está instalado.
 
 ---
 
-*Última actualización: lote 111.*
+*Última actualización: lote 113.*

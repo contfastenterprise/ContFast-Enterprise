@@ -3,6 +3,22 @@ import { Logger } from '@/utils/logger';
 import QRCode from 'qrcode';
 import { incrustarImagenes } from './imagenesIncrustadas';
 
+/**
+ * Lo que `dibujar` cuenta de si mismo para la linea `[tiempos-pdf]`.
+ *
+ * `dibujar` tiene TRES caminos: solo el servicio externo
+ * (`PDF_GENERATOR_MODE=external`); el externo PRIMERO y Puppeteer si falla
+ * (basta con que exista `PDF_SERVICE_URL`); o Puppeteer. Sin decir cual, un
+ * `total_ms` alto con `navegador: arrancado` se leia como "Chromium en frio"
+ * aunque el tiempo se hubiera ido esperando a un servicio externo que no
+ * convierte nada -- el `.env` local apunta `PDF_SERVICE_URL` a la propia
+ * aplicacion. Se habria montado un Gotenberg para arreglar una variable.
+ */
+type MedidaDibujo = {
+  motor: 'local' | 'externo' | 'local tras fallo del externo';
+  externoMs: number;
+};
+
 export class PdfGenerator {
   private static browserInstance: Browser | null = null;
 
@@ -117,14 +133,19 @@ export class PdfGenerator {
     const imagenes = await incrustarImagenes(html);
     const msImagenes = performance.now() - t0;
 
+    const medida: MedidaDibujo = { motor: 'local', externoMs: 0 };
     try {
-      return await this.dibujar(imagenes.html, layout, landscape);
+      return await this.dibujar(imagenes.html, layout, landscape, medida);
     } finally {
       Logger.info('[tiempos-pdf] render', {
         imagenes_ms: Math.round(msImagenes),
         incrustadas: imagenes.incrustadas,
         del_cache: imagenes.deCache,
-        navegador: this.ultimoArranqueEnCaliente ? 'caliente' : 'arrancado',
+        motor: medida.motor,
+        externo_ms: Math.round(medida.externoMs),
+        //  Si dibujo el externo no hubo navegador propio: decir "arrancado"
+        //  ahi era mentir justo en el dato que decide.
+        navegador: medida.motor === 'externo' ? 'no se usa' : (this.ultimoArranqueEnCaliente ? 'caliente' : 'arrancado'),
         total_ms: Math.round(performance.now() - arranque),
         formato: layout,
       });
@@ -132,7 +153,7 @@ export class PdfGenerator {
   }
 
   /** El dibujo de siempre: servicio externo si lo hay, y si no, Puppeteer. */
-  private static async dibujar(html: string, layout: 'carta' | '80mm' | '58mm' | string, landscape: boolean): Promise<Buffer> {
+  private static async dibujar(html: string, layout: 'carta' | '80mm' | '58mm' | string, landscape: boolean, medida: MedidaDibujo): Promise<Buffer> {
     const pdfServiceUrl = process.env.PDF_SERVICE_URL;
     const generatorMode = process.env.PDF_GENERATOR_MODE || 'local';
 
@@ -142,6 +163,8 @@ export class PdfGenerator {
       }
 
       console.log(`[PdfGenerator] Routing PDF generation to external service: ${pdfServiceUrl}`);
+      medida.motor = 'externo';
+      const inicioExterno = performance.now();
       const formData = new FormData();
       // Convert html string to Blob and append to Gotenberg required "files" key
       const htmlBlob = new Blob([html], { type: 'text/html' });
@@ -199,15 +222,18 @@ export class PdfGenerator {
         }
 
         const arrayBuffer = await response.arrayBuffer();
+        medida.externoMs = performance.now() - inicioExterno;
         return Buffer.from(arrayBuffer);
       } catch (err: unknown) {
         clearTimeout(timeoutId);
+        medida.externoMs = performance.now() - inicioExterno;
         throw new Error(`[PdfGenerator] External PDF service failed: ${(err as Error).message}`);
       }
     }
 
     if (pdfServiceUrl) {
       console.log(`[PdfGenerator] Routing PDF generation to external service (local fallback enabled): ${pdfServiceUrl}`);
+      const inicioExterno = performance.now();
       try {
         const formData = new FormData();
         // Convert html string to Blob and append to Gotenberg required "files" key
@@ -265,8 +291,14 @@ export class PdfGenerator {
         }
 
         const arrayBuffer = await response.arrayBuffer();
+        medida.motor = 'externo';
+        medida.externoMs = performance.now() - inicioExterno;
         return Buffer.from(arrayBuffer);
       } catch (err: unknown) {
+        //  Lo que se perdio esperando a que el externo fallara va aparte, con
+        //  nombre. Antes se sumaba a `total_ms` y parecia tiempo de Chromium.
+        medida.motor = 'local tras fallo del externo';
+        medida.externoMs = performance.now() - inicioExterno;
         console.warn(`[PdfGenerator] External PDF service failed. Falling back to local Puppeteer. Error: ${(err as Error).message}`);
       }
     }

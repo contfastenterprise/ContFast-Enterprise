@@ -215,11 +215,15 @@ console.log('\n=== print/pdfGenerator.ts ===\n');
 
   ok("0 ocurrencias de ': any' (2 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
+  //  `[^}]*?` y no una sucesion fija de lineas: el lote 113 anoto dentro de
+  //  los dos catch el motor y la espera del externo para `[tiempos-pdf]`, y la
+  //  comprobacion, que copiaba el cuerpo linea a linea, paso a fallar sin que
+  //  cambiara el tipado que vigila. Sin llaves en medio: no se sale del catch.
   ok('catch del servicio externo (con timeout): err tipado unknown, (err as Error).message',
-    /\} catch \(err: unknown\) \{\s*\n\s*clearTimeout\(timeoutId\);\s*\n\s*throw new Error\(`\[PdfGenerator\] External PDF service failed: \$\{\(err as Error\)\.message\}`\);/.test(src));
+    /\} catch \(err: unknown\) \{[^}]*?clearTimeout\(timeoutId\);[^}]*?throw new Error\(`\[PdfGenerator\] External PDF service failed: \$\{\(err as Error\)\.message\}`\);/.test(src));
 
   ok('catch del fallback a Puppeteer: err tipado unknown, (err as Error).message',
-    /\} catch \(err: unknown\) \{\s*\n\s*console\.warn\(`\[PdfGenerator\] External PDF service failed\. Falling back to local Puppeteer\. Error: \$\{\(err as Error\)\.message\}`\);/.test(src));
+    /\} catch \(err: unknown\) \{[^}]*?console\.warn\(`\[PdfGenerator\] External PDF service failed\. Falling back to local Puppeteer\. Error: \$\{\(err as Error\)\.message\}`\);/.test(src));
 }
 
 // ═══════════════════ apService.ts ═══════════════════
