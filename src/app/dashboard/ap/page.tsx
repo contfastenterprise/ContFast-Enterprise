@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { SearchBar } from '@/components/ui/search-bar';
+import { useConfirm } from '@/providers/confirm-provider';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 
 // -- Types --
 interface BillAP {
@@ -69,6 +71,7 @@ const fmt = (val: number) => {
 };
 
 export default function AccountsPayablePage() {
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
   // enseña el error en vez de su mensaje de vacio: "no pude leerlo" y "no hay
@@ -419,6 +422,22 @@ export default function AccountsPayablePage() {
 
   const handleConfirmarCobros = async () => {
     if (chequesConfirmados.length === 0) return;
+
+    // Esto ASIENTA: salida del banco y rebaja de la cuenta por pagar de cada
+    // cheque, con la FECHA DE COBRO del selector. Una fecha equivocada cae en
+    // otro periodo contable, y hasta ahora nada lo enseñaba antes de escribir.
+    // La otra puerta que aplica cheques en garantia (GuaranteeChecksView) ya
+    // pedia confirmacion; esta no. El "Procesando..." se enciende despues:
+    // cancelar no puede dejar el boton colgado.
+    const seleccionados = pendingGuarantees.filter((p) => !!p.checkId && chequesConfirmados.includes(p.checkId));
+    const total = seleccionados.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const confirmado = await confirm({
+      title: 'Registrar el cobro de los cheques',
+      description: `Se van a asentar ${seleccionados.length} cheque(s) en garantía por ${fmt(total)}, con fecha de cobro ${formatDateDisplay(fechaCobro)}: salida del banco y rebaja de las cuentas por pagar. ¿Es correcta la fecha?`,
+      confirmText: 'Registrar cobro',
+    });
+    if (!confirmado) return;
+
     setApplyingGuarantees(true);
     try {
       const res = await fetch('/api/v1/ap/payments/apply-guarantees', {
