@@ -160,8 +160,40 @@ módulo de documentos, 996 líneas), 101 (compartir la sesión de mSeller), 102
 commit `70559d4` pero nunca se commiteó y reventaba con ENOENT desde el lote
 100), 107 (P3-48, `0a8dd65`), 108 (P3-49, `8f28e70`), 109 (notas paginadas,
 `41fc024`), 110 (búsqueda de cotizaciones, `8560389`) y 111 (listado de
-productos, `c38c96b`), 112 (URL de mSeller medida, `10f6816`) y 113
-(`[tiempos-pdf]` dice qué motor dibujó).
+productos, `c38c96b`), 112 (URL de mSeller medida, `10f6816`), 113
+(`[tiempos-pdf]` dice qué motor dibujó, `177c8a9`), 114 a 117 (revisión de los
+bancos de deuda: `174bd2f`, `8ae96c9`, `1245a6e`, `71cd548`) y 118 (el medidor
+de CERTIFICACION, `6ae4d7f`).
+
+**Lotes 114 a 118 — la deuda de bancos, revisada.** `deuda_bancos.txt` tenía 61
+bancos que `verificar.ps1` salta sin ejecutar. Medido:
+- **33 necesitan base de datos**: se conectan al arrancar y ESCRIBEN (inserts
+  y updates sin rollback). Son pruebas de integración y no se corren contra la
+  base real. Siguen en la lista; hacen falta una base desechable (Supabase
+  local o una rama) para volver a vigilarlos.
+- **28 eran de solo código** y fallaban. Revisada cada comprobación (siguiendo
+  las llamadas, no solo buscando el texto): **ninguna regresión en lo que
+  vigilaban**. Todo era deriva — código movido (`existencia.ts`,
+  `correoFactura.ts`, `motivoDgii`, `GuaranteeChecksView`), tipado mejorado
+  después (`DbOTx`, `any` a 0), migraciones movidas a
+  `drizzle_historico_pre_2026-09-04/`, ficheros retirados a propósito. Dos
+  comprobaciones **defendían un error** ya corregido y se invirtieron (p2_28_31:
+  "las líneas repetidas no se suman"). Los 28 vuelven a verde con mutantes que
+  los hacen fallar, y salen de la lista (61 → 33). La verificación completa
+  pasa de 83 a **111 bancos en verde**.
+- **Un hallazgo real** (lote 118): el trinquete de `modo_certificacion` llevaba
+  semanas sin contar (usaba `grep`, que no existe bajo cmd.exe) y por debajo la
+  cifra había subido de 132 a 136. No era un fallo en ejecución (el `modo` de
+  los datos es binario por el enum de la base y CERTIFICACION se rechaza en la
+  entrada), sino 9 uniones escritas a mano donde existe `ModoOperativo`. Pasan
+  al alias; techo 127; el contador ya no depende de la shell.
+
+**Trampa que se repitió siete veces en esta revisión**: bancos que copian una
+línea **literal** (un `import`, una firma, el cuerpo de un `catch`, una ventana
+de N caracteres). Cualquier mejora posterior los rompe sin que falte nada, y un
+banco en rojo permanente acaba en la lista de deuda, donde nadie lo mira. Al
+escribir un banco: fijar la PROPIEDAD (con `bloque()`, regex tolerante al
+espacio, "ningún `any`"), no la forma.
 
 **Lote 106**: además del documento, `verificar.ps1` se paraba antes de correr
 un solo banco (`tsc -p scratch` marcaba `verificar_vencimiento_impreso.ts`), y
@@ -205,10 +237,6 @@ AGENTS.md pide actualizarlos, pero el registro vivo de lo hecho es este
 documento más los mensajes de commit y los bancos. En el lote 111 solo se
 corrigió en `PLAN.md` la línea que atribuía la firma a `node-forge`, falsa
 desde el lote 108.
-
-Pendiente menor visto de paso: `QuoteService.getQuotes` hace sus tres
-consultas (listado, conteo, estadísticas) una tras otra; son independientes y
-podrían ir en `Promise.all`.
 
 Para commitear un lote hay ahora `scratch/_to_delete/commitear_lote.ps1
 -Lote NN -Ficheros "a,b,c"` (el mensaje en `commit_msgNN.txt`): se niega si ya
@@ -263,11 +291,30 @@ suplantación. `x-vercel-forwarded-for` y `x-real-ip` son idénticas a ella.
 No hay agujero que tapar.
 
 Además, fuera de la tabla:
-- **El cron no tiene quien lo llame.** Esto es configuración, no código:
-  necesita `CRON_SECRET` y un programador externo que pegue la ruta.
-- **61 bancos en `deuda_bancos.txt`**: fallaban ya en HEAD cuando se generó la
-  lista. No es de ningún lote reciente, pero es mucha memoria del proyecto que
-  no se está vigilando.
+- **El cron SÍ tiene quien lo llame** (corregido en la revisión de los lotes
+  114-118; este documento decía lo contrario): `.github/workflows/sincronizar-ecf.yml`
+  (`15e71ec`) llama a `/api/v1/cron/sincronizar-ecf` cada 5 minutos. Le falta
+  CONFIGURACIÓN: `CRON_SECRET` en Vercel, el secreto `CRON_SECRET` en GitHub
+  (mismo valor) y la variable `APP_URL` en GitHub. **Mientras falten, el
+  workflow falla a propósito cada 5 minutos** (GitHub puede estar enviando
+  avisos de fallo).
+- **33 bancos en `deuda_bancos.txt`**, todos de integración con base de datos
+  (ver sección 7). Necesitan una base desechable.
+- **Costo de venta 0 en lo que entra por pedido a suplidor**:
+  `supplierOrderService.ts:473` recibe mercancía sin costo unitario, así que un
+  producto que solo entra por ahí tiene promedio 0 y sale con costo de venta 0.
+  Hueco antiguo, no regresión. **Medir primero** cuántos niveles de inventario
+  tienen promedio 0 con existencia, y si hay pedidos recibidos.
+- **`ap/page.tsx:420`** (`handleConfirmarCobros`) aplica cheques en garantía
+  sin diálogo de confirmación; `GuaranteeChecksView` sí lo pide.
+- **`any` que volvieron sin que ningún banco lo viera**: 3 `: any` en
+  `cartera/documentos.ts` (x2) y `carteraRepository.ts`, escritos después de
+  cerrar P1-24, y 4 `(line as any)` innecesarios en `quoteService.ts:535-541`
+  (el `getQuote` ya selecciona esos campos con tipo). Hay 31 `as any` en
+  servicios y repositorios. Falta un banco con TOPE GLOBAL que solo pueda
+  bajar, como el de `modo_certificacion`.
+- `QuoteService.getQuotes`: tres consultas independientes en serie
+  (candidatas a `Promise.all`).
 
 ## 9. Antes de desplegar lo que ya está
 
@@ -297,4 +344,4 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 113.*
+*Última actualización: lote 119.*
