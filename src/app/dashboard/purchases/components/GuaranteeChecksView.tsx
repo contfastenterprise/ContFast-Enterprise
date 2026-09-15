@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
+import { Pagination } from '@/components/ui/pagination';
 
 /**
  * Cheques en garantia: pendientes de aplicar y aplicados.
@@ -229,32 +230,16 @@ function GuaranteeChecksView() {
                   </tbody>
                 </table>
               </div>
-              {totalPendingPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-slate-500 gap-3">
-                  <span>
-                    Mostrando {pendingStart + 1} a {Math.min(pendingEnd, pendingChecks.length)} de {pendingChecks.length} cheques pendientes
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPendingPage(p => Math.max(1, p - 1))}
-                      disabled={pendingPage === 1}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                    >
-                      Anterior
-                    </button>
-                    <span className="font-semibold text-[#c5a059] px-2">
-                      Pág. {pendingPage} de {totalPendingPages}
-                    </span>
-                    <button
-                      onClick={() => setPendingPage(p => Math.min(totalPendingPages, p + 1))}
-                      disabled={pendingPage === totalPendingPages}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Paginacion: el componente comun (P3-45, lote 129) */}
+              <Pagination
+                currentPage={pendingPage}
+                totalPages={totalPendingPages}
+                totalItems={pendingChecks.length}
+                pageSize={itemsPerPage}
+                onPageChange={setPendingPage}
+                itemLabel="cheques pendientes"
+                hideControlsWhenSinglePage
+              />
             </div>
 
             {/* Aplicados */}
@@ -303,32 +288,16 @@ function GuaranteeChecksView() {
                   </tbody>
                 </table>
               </div>
-              {totalAppliedPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 text-xs text-slate-500 gap-3">
-                  <span>
-                    Mostrando {appliedStart + 1} a {Math.min(appliedEnd, appliedChecks.length)} de {appliedChecks.length} cheques aplicados
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setAppliedPage(p => Math.max(1, p - 1))}
-                      disabled={appliedPage === 1}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                    >
-                      Anterior
-                    </button>
-                    <span className="font-semibold text-[#c5a059] px-2">
-                      Pág. {appliedPage} de {totalAppliedPages}
-                    </span>
-                    <button
-                      onClick={() => setAppliedPage(p => Math.min(totalAppliedPages, p + 1))}
-                      disabled={appliedPage === totalAppliedPages}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Paginacion: el componente comun (P3-45, lote 129) */}
+              <Pagination
+                currentPage={appliedPage}
+                totalPages={totalAppliedPages}
+                totalItems={appliedChecks.length}
+                pageSize={itemsPerPage}
+                onPageChange={setAppliedPage}
+                itemLabel="cheques aplicados"
+                hideControlsWhenSinglePage
+              />
             </div>
           </div>
         )}

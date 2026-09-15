@@ -21,6 +21,7 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
 import GuaranteeChecksView from './components/GuaranteeChecksView';
 import { PASOS, campoDelPaso } from './pasos';
+import { Pagination } from '@/components/ui/pagination';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -2147,32 +2148,16 @@ export default function PurchasesPage() {
                       </table>
                     </div>
                   </div>
-                  {totalPurchasesPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-slate-200 gap-3 text-xs">
-                      <span className="text-slate-500 text-center sm:text-left">
-                        Mostrando {purchasesStart + 1} a {Math.min(purchasesEnd, filteredPurchases.length)} de {filteredPurchases.length} compras
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setPurchasesPage(p => Math.max(1, p - 1))}
-                          disabled={purchasesPage === 1}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                        >
-                          Anterior
-                        </button>
-                        <span className="font-semibold text-[#c5a059] px-2">
-                          Pág. {purchasesPage} de {totalPurchasesPages}
-                        </span>
-                        <button
-                          onClick={() => setPurchasesPage(p => Math.min(totalPurchasesPages, p + 1))}
-                          disabled={purchasesPage === totalPurchasesPages}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                        >
-                          Siguiente
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Paginacion: el componente comun (P3-45, lote 129) */}
+                  <Pagination
+                    currentPage={purchasesPage}
+                    totalPages={totalPurchasesPages}
+                    totalItems={filteredPurchases.length}
+                    pageSize={itemsPerPage}
+                    onPageChange={setPurchasesPage}
+                    itemLabel="compras"
+                    hideControlsWhenSinglePage
+                  />
                 </div>
 
                 {/* Gastos Menores / Caja Chica */}
@@ -2318,32 +2303,16 @@ export default function PurchasesPage() {
                       </table>
                     </div>
                   </div>
-                  {totalExpensesPages > 1 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 pt-4 border-t border-slate-200 gap-3 text-xs">
-                      <span className="text-slate-500 text-center sm:text-left">
-                        Mostrando {expensesStart + 1} a {Math.min(expensesEnd, filteredExpenses.length)} de {filteredExpenses.length} gastos
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setExpensesPage(p => Math.max(1, p - 1))}
-                          disabled={expensesPage === 1}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                        >
-                          Anterior
-                        </button>
-                        <span className="font-semibold text-[#c5a059] px-2">
-                          Pág. {expensesPage} de {totalExpensesPages}
-                        </span>
-                        <button
-                          onClick={() => setExpensesPage(p => Math.min(totalExpensesPages, p + 1))}
-                          disabled={expensesPage === totalExpensesPages}
-                          className="px-3 py-1.5 bg-slate-50 hover:bg-surface-container text-[#c5a059] rounded-xl font-bold transition disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-95"
-                        >
-                          Siguiente
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Paginacion: el componente comun (P3-45, lote 129) */}
+                  <Pagination
+                    currentPage={expensesPage}
+                    totalPages={totalExpensesPages}
+                    totalItems={filteredExpenses.length}
+                    pageSize={itemsPerPage}
+                    onPageChange={setExpensesPage}
+                    itemLabel="gastos"
+                    hideControlsWhenSinglePage
+                  />
                 </div>
               </div>
             </div>
