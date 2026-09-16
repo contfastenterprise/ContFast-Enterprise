@@ -6,6 +6,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { enforcePermission } from '@/middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { motivoParaNoCrearPeriodo } from '@/services/accounting/coberturaPeriodos';
 
 const createPeriodSchema = z.object({
   name: z.string().min(1, 'El nombre del periodo es requerido (ej: MM/AAAA)'),
@@ -96,6 +97,31 @@ export async function POST(req: NextRequest) {
     if (existing.length > 0) {
       return NextResponse.json(
         { success: false, error: { code: 'CONFLICT', message: 'Ya existe un período contable con este nombre.' } },
+        { status: 409 }
+      );
+    }
+
+    // Lote 145: el nombre era lo UNICO que se comprobaba. Un periodo con el fin
+    // antes que el inicio, o encima de otro, se creaba igual. Asi nacio "periodo
+    // 2026" de Latin Doors, que se pisa con septiembre a diciembre: con el
+    // abierto, cerrar septiembre no cierra septiembre, porque `isPeriodOpen`
+    // acepta la fecha si CUALQUIER periodo abierto la contiene.
+    const delEntorno = await db.select({
+      name: accountingPeriods.name,
+      startDate: accountingPeriods.startDate,
+      endDate: accountingPeriods.endDate,
+    }).from(accountingPeriods)
+      .where(and(
+        eq(accountingPeriods.companyId, session.companyId),
+        eq(accountingPeriods.modo, session.modo)
+      ));
+    const motivo = motivoParaNoCrearPeriodo(
+      { startDate: parsed.data.startDate, endDate: parsed.data.endDate },
+      delEntorno
+    );
+    if (motivo) {
+      return NextResponse.json(
+        { success: false, error: { code: 'CONFLICT', message: motivo } },
         { status: 409 }
       );
     }

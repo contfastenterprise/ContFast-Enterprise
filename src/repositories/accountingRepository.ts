@@ -12,6 +12,8 @@ import {
 import { eq, and, desc, sql, isNull, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import type { DbTransaction } from '@/db';
+import { auditLogs } from '@/db';
+import { mesesQueFaltan, MESES_A_ABRIR, type PeriodoNuevo } from '@/services/accounting/coberturaPeriodos';
 
 export interface NewAccount {
   companyId: string;
@@ -669,7 +671,13 @@ export class AccountingRepository {
   // ==========================================
   /**
    * Siembra los periodos contables que le faltan a una empresa, del mes indicado
-   * hasta diciembre de ese anio, en los DOS entornos.
+   * y los MESES_A_ABRIR siguientes (12), en los DOS entornos.
+   *
+   * Lote 145: sembraba "hasta diciembre de ese anio". Una empresa dada de alta en
+   * noviembre nacia con dos meses, y todas se quedaban sin periodos el 1 de
+   * enero. Ahora son doce meses cruzando de anio, y un mes que ya toca cualquier
+   * periodo existente no se crea (se pisarian). Para las empresas que ya
+   * existen, `abrirPeriodosSiguientes` hace lo mismo desde un boton.
    *
    * --- POR QUE (auditoria JRN-11) ---------------------------------------
    *
@@ -700,21 +708,18 @@ export class AccountingRepository {
     desde: Date = new Date()
   ): Promise<number> {
     const execute = async (tx: DbTransaction) => {
-      const anio = desde.getFullYear();
-      const primerMes = desde.getMonth() + 1;
-
       const existentes = await tx
-        .select({ startDate: accountingPeriods.startDate, modo: accountingPeriods.modo })
+        .select({ startDate: accountingPeriods.startDate, endDate: accountingPeriods.endDate, modo: accountingPeriods.modo })
         .from(accountingPeriods)
         .where(eq(accountingPeriods.companyId, companyId));
 
       const yaEstan = new Set(existentes.map((p) => `${p.modo}|${p.startDate}`));
 
-      const faltantes: { entorno: 'PRODUCCION' | 'PRUEBA'; mes: number }[] = [];
+      const faltantes: { entorno: 'PRODUCCION' | 'PRUEBA'; mes: PeriodoNuevo }[] = [];
       for (const entorno of ['PRODUCCION', 'PRUEBA'] as const) {
-        for (let mes = primerMes; mes <= 12; mes++) {
-          const startDate = `${anio}-${String(mes).padStart(2, '0')}-01`;
-          if (yaEstan.has(`${entorno}|${startDate}`)) continue;
+        const delEntorno = existentes.filter((p) => p.modo === entorno);
+        for (const mes of mesesQueFaltan(delEntorno, desde, MESES_A_ABRIR)) {
+          if (yaEstan.has(`${entorno}|${mes.startDate}`)) continue;
           faltantes.push({ entorno, mes });
         }
       }
@@ -728,25 +733,76 @@ export class AccountingRepository {
       // desconfiar: la columna lleva DEFAULT 'PRODUCCION', asi que olvidar el
       // modo no falla, guarda la fila en el entorno equivocado sin avisar.
       await tx.insert(accountingPeriods).values(
-        faltantes.map(({ entorno, mes }) => {
-          const mm = String(mes).padStart(2, '0');
-          const ultimoDia = new Date(anio, mes, 0).getDate();
-          return {
-            id: uuidv4(),
-            companyId,
-            modo: entorno,
-            name: `${mm}/${anio}`,
-            startDate: `${anio}-${mm}-01`,
-            endDate: `${anio}-${mm}-${String(ultimoDia).padStart(2, '0')}`,
-            status: 'open',
-          };
-        })
+        faltantes.map(({ entorno, mes }) => ({
+          id: uuidv4(),
+          companyId,
+          modo: entorno,
+          name: mes.name,
+          startDate: mes.startDate,
+          endDate: mes.endDate,
+          status: 'open',
+        }))
       );
 
       return faltantes.length;
     };
 
     return externalTx ? await execute(externalTx) : await db.transaction(execute);
+  }
+
+  /**
+   * Abre los periodos mensuales que faltan desde este mes y los doce siguientes,
+   * en UN entorno. Es la accion del boton "Abrir los proximos 12 meses".
+   *
+   * Lote 145. No se llama sola: un control que crea el dato que valida no valida
+   * nada (JRN-11). Lo pide el aviso del panel de inicio cuando quedan menos de
+   * DIAS_AVISO_PERIODOS cubiertos. No toca el pasado, no crea un mes que ya toca
+   * otro periodo, y deja rastro de quien los abrio.
+   *
+   * Devuelve los periodos creados.
+   */
+  public static async abrirPeriodosSiguientes(
+    companyId: string,
+    modo: ModoOperativo,
+    userId: string,
+    desde: Date = new Date()
+  ): Promise<PeriodoNuevo[]> {
+    return await db.transaction(async (tx) => {
+      // Dos pulsaciones a la vez no pueden crear los mismos meses dos veces.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${'periodos|' + companyId + '|' + modo}))`);
+
+      const existentes = await tx
+        .select({ startDate: accountingPeriods.startDate, endDate: accountingPeriods.endDate })
+        .from(accountingPeriods)
+        .where(and(eq(accountingPeriods.companyId, companyId), eq(accountingPeriods.modo, modo)));
+
+      const faltan = mesesQueFaltan(existentes, desde, MESES_A_ABRIR);
+      if (faltan.length === 0) return faltan;
+
+      await tx.insert(accountingPeriods).values(
+        faltan.map((mes) => ({
+          id: uuidv4(),
+          companyId,
+          modo: modo,
+          name: mes.name,
+          startDate: mes.startDate,
+          endDate: mes.endDate,
+          status: 'open',
+        }))
+      );
+
+      await tx.insert(auditLogs).values({
+        companyId,
+        userId,
+        modo: modo,
+        action: 'abrir_periodos_siguientes',
+        entityType: 'accounting_periods',
+        newValues: { periodos: faltan.map((m) => m.name) },
+        ipAddress: 'server',
+      });
+
+      return faltan;
+    });
   }
 
   public static async seedDefaultChartOfAccounts(companyId: string, externalTx?: DbTransaction) {

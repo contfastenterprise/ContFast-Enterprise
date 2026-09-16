@@ -65,6 +65,12 @@ export default function AccountingPage() {
   const router = useRouter();
   const { user, loading: rbacLoading } = useRbac();
   const [activeTab, setActiveTab] = useState<'catalog' | 'journals' | 'ledger' | 'trial-balance' | 'financials' | 'periods'>('catalog');
+  // Lote 145: el aviso de periodos del panel de inicio lleva aqui con
+  // `?tab=periods`. Se lee de `window` y no con `useSearchParams`, que obligaria
+  // a envolver la pagina en Suspense.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'periods') setActiveTab('periods');
+  }, []);
   const [loading, setLoading] = useState(true);
   // P2-37: uno para las seis pestañas, porque el cargador es uno. Mientras
   // este puesto, el aviso se pinta encima y ninguna pestaña presenta los datos
@@ -430,6 +436,34 @@ export default function AccountingPage() {
       toast.error('Error de red');
     } finally {
       setPeriodSubmitting(false);
+    }
+  };
+
+  // Lote 145: los periodos se acababan el 31 de diciembre y nadie abria los
+  // siguientes. Esto abre los meses que falten desde este mes y los doce
+  // siguientes, sin pisar ninguno existente. Lo pide el aviso del panel de
+  // inicio cuando quedan menos de 45 dias.
+  const handleAbrirSiguientes = async () => {
+    const confirmado = await confirm({
+      title: 'Abrir los próximos 12 meses',
+      description:
+        'Se abrirán los períodos mensuales que falten desde este mes hasta dentro de un año. ' +
+        'Los meses que ya tengan período no se tocan, y no se crea ninguno en el pasado.',
+      confirmText: 'Abrir períodos',
+    });
+    if (!confirmado) return;
+
+    try {
+      const res = await fetch('/api/v1/accounting/periods/abrir-siguientes', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Períodos abiertos.');
+        fetchData();
+      } else {
+        toast.error(data.error?.message || 'No se pudieron abrir los períodos.');
+      }
+    } catch (err) {
+      toast.error('Error de red');
     }
   };
 
@@ -1272,12 +1306,20 @@ export default function AccountingPage() {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-bold text-[#003366]">Períodos Contables</h3>
-                <button 
+                <div className="flex flex-wrap gap-2 justify-end">
+                <button
+                  onClick={handleAbrirSiguientes}
+                  className="flex items-center gap-2 border border-[#003366] text-[#003366] hover:bg-[#003366]/5 px-4 py-2 h-9 rounded-lg font-bold transition justify-center text-sm"
+                >
+                  <RefreshCw className="w-4 h-4" /> Abrir próximos 12 meses
+                </button>
+                <button
                   onClick={() => setShowPeriodModal(true)}
                   className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Plus className="w-4 h-4" /> Abrir Período
                 </button>
+                </div>
               </div>
 
               {loading ? (

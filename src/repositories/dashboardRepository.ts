@@ -1,9 +1,11 @@
 import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
+import { accountingPeriods } from '@/db';
+import { diasDeCobertura, DIAS_AVISO_PERIODOS } from '@/services/accounting/coberturaPeriodos';
 
 interface DashboardAlert {
   id: string;
-  type: 'invoice_rejected' | 'check_due';
+  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse';
   title: string;
   description: string;
   actionText: string;
@@ -143,13 +145,44 @@ export class DashboardRepository {
       });
     }
 
+    // Lote 145: los periodos contables se acaban sin aviso. Medido el
+    // 2026-09-16: las seis empresas terminaban el 31/12/2026, y sin periodo
+    // abierto no se registra ni una factura. El aviso sale con margen para que
+    // alguien pulse "Abrir los proximos 12 meses" antes, no despues.
+    const periodosAbiertos = await db.select({
+      startDate: accountingPeriods.startDate,
+      endDate: accountingPeriods.endDate,
+    }).from(accountingPeriods)
+      .where(and(
+        eq(accountingPeriods.companyId, companyId),
+        eq(accountingPeriods.modo, modo),
+        eq(accountingPeriods.status, 'open')
+      ));
+    const diasCubiertos = diasDeCobertura(periodosAbiertos, new Date());
+    let avisoPeriodos = 0;
+    if (diasCubiertos < DIAS_AVISO_PERIODOS) {
+      avisoPeriodos = 1;
+      alertsDetails.push({
+        id: `periodos-${modo}`,
+        type: 'periodos_por_agotarse',
+        title: diasCubiertos === 0
+          ? 'No hay período contable abierto para hoy'
+          : `Los períodos contables se acaban en ${diasCubiertos} día(s)`,
+        description: diasCubiertos === 0
+          ? 'Sin período abierto no se puede registrar ninguna factura, compra ni cobro.'
+          : 'Cuando se acaben no se podrá registrar ninguna factura, compra ni cobro. Ábralos antes.',
+        actionText: 'Abrir períodos',
+        actionLink: '/dashboard/accounting?tab=periods'
+      });
+    }
+
     return {
       invoicesToday,
       invoicesTodayAmount,
       invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
-      alertCount: alertCount + dueGuaranteeChecksCount,
+      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos,
       totalInvoices,
       monthlyGoal: 2000000, // Fixed for now
       dueGuaranteeChecksCount,

@@ -395,7 +395,15 @@ Además, fuera de la tabla:
   General de Facturas de Consumo** para el módulo de la Oficina Virtual. En
   PRODUCCIÓN eran las 31 e-32 de jul–sep. Queda para el contador: si el umbral
   mira el total o el monto sin ITBIS, y qué hacer con las notas de crédito sobre
-  una factura de consumo que no va en el detalle (hoy siguen dentro). **El 606 tiene la misma cabecera
+  una factura de consumo que no va en el detalle (hoy siguen dentro).
+  **Lote 145: períodos contables.** Las 6 empresas terminaban el 31/12/2026 y
+  nadie abría los siguientes. Botón "Abrir próximos 12 meses" en Contabilidad >
+  Períodos, aviso en el panel de inicio con menos de 45 días cubiertos, y crear
+  un período a mano ya no admite fechas invertidas ni solapes. **Nada se crea
+  solo** (JRN-11): **alguien tiene que pulsar el botón en cada empresa y en cada
+  modo antes del 01/01/2027.** "periodo 2026" de Latin Doors sigue ahí, pisando
+  septiembre a diciembre. Hallazgo sin tocar: el aviso de factura rechazada del
+  panel de inicio no puede salir nunca (la consulta excluye `rejected`). **El 606 tiene la misma cabecera
   mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero

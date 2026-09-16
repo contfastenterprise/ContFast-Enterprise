@@ -103,8 +103,11 @@ console.log('\n=== dashboardRepository.ts ===\n');
 
   ok("0 ocurrencias de ': any' (1 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
+  //  Lote 145: el metodo arma tambien el aviso de periodos por agotarse, asi
+  //  que el tipo exacto lo incluye. La propiedad es la misma: la interfaz dice
+  //  justo lo que el metodo construye.
   ok('define DashboardAlert con los campos exactos que arma el metodo',
-    /interface DashboardAlert \{\s*\n\s*id: string;\s*\n\s*type: 'invoice_rejected' \| 'check_due';\s*\n\s*title: string;\s*\n\s*description: string;\s*\n\s*actionText: string;\s*\n\s*actionLink: string;\s*\n\s*\}/.test(src));
+    /interface DashboardAlert \{\s*\n\s*id: string;\s*\n\s*type: 'invoice_rejected' \| 'check_due' \| 'periodos_por_agotarse';\s*\n\s*title: string;\s*\n\s*description: string;\s*\n\s*actionText: string;\s*\n\s*actionLink: string;\s*\n\s*\}/.test(src));
 
   ok('alertsDetails tipado DashboardAlert[] (antes any[])',
     /let alertsDetails: DashboardAlert\[\] = \[\];/.test(src));
