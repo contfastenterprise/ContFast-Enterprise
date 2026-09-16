@@ -26,7 +26,12 @@ ok('revertirMovimientosInventario: lee originales por referenceId=expenseId',
 ok('revertirMovimientosInventario: detecta ya-revertidos via inArray sobre los ids originales, y los salta',
   src.includes('const yaRevertidos = await tx') &&
   src.includes('.where(inArray(inventoryMovements.referenceId, idsOriginales));') &&
-  src.includes('if (idsYaRevertidos.has(mov.id)) continue;'));
+  // Lote 150: la lectura salio a `movimientosVivosDeCompra`, que devuelve ya
+  // filtrados los no revertidos, y `revertirMovimientosInventario` recorre eso.
+  // Mismo efecto: un movimiento ya revertido no se vuelve a revertir.
+  src.includes('return originales.filter((m) => !idsYaRevertidos.has(m.id));') &&
+  /const vivos = await movimientosVivosDeCompra\(tx, companyId, modo, expenseId\);/.test(src) &&
+  /for \(const mov of vivos\) \{/.test(src));
 
 ok('revertirMovimientosInventario: llama addStock con cantidad negativa y referenceId=mov.id (id del movimiento ORIGINAL, no el de la compra)',
   // P1-12 metio `unitCost` ANTES de `tx` (undefined en una reversion: salir no
@@ -45,8 +50,10 @@ ok('DELETE/PUT: ya no hay llamadas reales a tx.delete(inventoryMovements), ni el
 ok('DELETE: llama revertirMovimientosInventario con el motivo de eliminacion',
   /await revertirMovimientosInventario\(\s*\n\s*tx,\s*\n\s*session\.companyId,\s*\n\s*session\.modo,\s*\n\s*id,\s*\n\s*session\.userId,\s*\n\s*`Eliminación de compra NCF: \$\{expenseRow\.ncf \|\| 'N\/A'\}`\s*\n\s*\);/.test(src));
 
+//  Lote 150: la edicion pasa ademas lo que vuelve a entrar (freno neto) y solo
+//  revierte si el inventario cambia; eso lo vigila verificar_edicion_compra_kardex.ts.
 ok('PUT: llama revertirMovimientosInventario con el motivo de edicion',
-  /await revertirMovimientosInventario\(\s*\n\s*tx,\s*\n\s*session\.companyId,\s*\n\s*session\.modo,\s*\n\s*id,\s*\n\s*session\.userId,\s*\n\s*`Edición de compra NCF: \$\{existing\[0\]\.ncf \|\| 'N\/A'\}`\s*\n\s*\);/.test(src));
+  /await revertirMovimientosInventario\(\s*\n\s*tx,\s*\n\s*session\.companyId,\s*\n\s*session\.modo,\s*\n\s*id,\s*\n\s*session\.userId,\s*\n\s*`Edición de compra NCF: \$\{existing\[0\]\.ncf \|\| 'N\/A'\}`,\s*\n\s*cantidadPorNivel\(entradasDespues\)\s*\n\s*\);/.test(src));
 
 ok("no quedan referencias muertas a 'linesList'/'oldLines'/'oldWarehouseId'",
   !src.includes('linesList') && !src.includes('oldLines') && !src.includes('oldWarehouseId'));

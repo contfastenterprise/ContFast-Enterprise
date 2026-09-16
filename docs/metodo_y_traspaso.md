@@ -420,6 +420,11 @@ Además, fuera de la tabla:
   (`reservas_nota_credito`) anotada con la factura bloqueada y liberada al
   terminar la emisión. **MIGRACIÓN `drizzle/0007_reservas_nota_credito.sql`:
   aplicarla en la base ANTES de desplegar**, o emitir notas fallará.
+  **Lote 150: editar una compra sin cambiar producto, almacén, cantidad ni
+  costo ya no toca el kardex**, y el freno de existencia consumida mira lo neto
+  (`services/inventario/entradasDeCompra.ts`). El −94 de E310000013249 fue
+  anterior al freno del 11/09; con el freno, 6 de 7 compras con inventario no
+  se podían editar en nada. En la base no hay CHECK de existencia no negativa.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
   RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
   tipo va vacío en vez de "3".

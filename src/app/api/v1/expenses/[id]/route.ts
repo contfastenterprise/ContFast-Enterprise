@@ -11,6 +11,7 @@ import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock, llevaInventario } from '@/services/inventoryService';
+import { claveDeNivel, entradasDeLineas, cantidadPorNivel, kardexSinCambios, existenciaTrasEditar, quedaEnRojo } from '@/services/inventario/entradasDeCompra';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -106,13 +107,17 @@ async function revertirAsientoContable(
  * esto, editar la misma compra una segunda vez volveria a revertir tambien
  * los movimientos de la primera edicion.
  */
-async function revertirMovimientosInventario(
+/**
+ * Las entradas de inventario de una compra que siguen vivas: las suyas que
+ * nadie ha revertido todavia (ver arriba por que `referenceId` del reverso es
+ * el id del movimiento original). Lote 150: se lee aparte porque la edicion
+ * necesita saber lo que hay vivo ANTES de decidir si revierte.
+ */
+async function movimientosVivosDeCompra(
   tx: DbTransaction,
   companyId: string,
   modo: ModoOperativo,
-  expenseId: string,
-  userId: string,
-  motivo: string
+  expenseId: string
 ) {
   const originales = await tx
     .select({
@@ -128,7 +133,7 @@ async function revertirMovimientosInventario(
       eq(inventoryMovements.modo, modo)
     ));
 
-  if (originales.length === 0) return;
+  if (originales.length === 0) return [];
 
   const idsOriginales = originales.map((m) => m.id);
   const yaRevertidos = await tx
@@ -136,6 +141,21 @@ async function revertirMovimientosInventario(
     .from(inventoryMovements)
     .where(inArray(inventoryMovements.referenceId, idsOriginales));
   const idsYaRevertidos = new Set(yaRevertidos.map((r) => r.referenceId));
+  return originales.filter((m) => !idsYaRevertidos.has(m.id));
+}
+
+async function revertirMovimientosInventario(
+  tx: DbTransaction,
+  companyId: string,
+  modo: ModoOperativo,
+  expenseId: string,
+  userId: string,
+  motivo: string,
+  // Lote 150: lo que la edicion vuelve a meter, por nivel. Al eliminar, nada.
+  vuelveAEntrar: ReadonlyMap<string, number> = new Map()
+) {
+  const vivos = await movimientosVivosDeCompra(tx, companyId, modo, expenseId);
+  if (vivos.length === 0) return;
 
   // ─────────────────────────────────────────────────────────────────────────
   //  NO SE REVIERTE EXISTENCIA QUE YA SALIO
@@ -156,17 +176,21 @@ async function revertirMovimientosInventario(
   //  Se comprueba ANTES de mover nada, y con la fila bloqueada: `addStock`
   //  bloquea por su cuenta, pero si se leyera aqui sin bloquear, entre la
   //  comprobacion y el movimiento cabria una venta.
+  //
+  //  Lote 150: se mira lo NETO. Una edicion que revierte 120 y vuelve a meter
+  //  120 no deja nada en rojo aunque ya se hayan vendido 94; antes se negaba
+  //  igual, y 6 de las 7 compras con inventario de PRODUCCION no se podian
+  //  editar ni en la descripcion.
   const aRevertir = new Map<string, { productId: string; warehouseId: string; cantidad: number }>();
-  for (const mov of originales) {
-    if (idsYaRevertidos.has(mov.id)) continue;
-    const clave = `${mov.productId}|${mov.warehouseId}`;
+  for (const mov of vivos) {
+    const clave = claveDeNivel(mov.productId, mov.warehouseId);
     const acc = aRevertir.get(clave);
     const cantidad = Number(mov.quantity) || 0;
     if (acc) acc.cantidad += cantidad;
     else aRevertir.set(clave, { productId: mov.productId, warehouseId: mov.warehouseId, cantidad });
   }
 
-  for (const r of aRevertir.values()) {
+  for (const [clave, r] of aRevertir) {
     // Un producto sin control de existencia no tiene nivel que dejar en rojo.
     if (!(await llevaInventario(companyId, r.productId, tx))) continue;
 
@@ -182,8 +206,9 @@ async function revertirMovimientosInventario(
       .for('update');
 
     const actual = Number(nivel?.quantity ?? 0);
-    const quedaria = actual - r.cantidad;
-    if (quedaria < 0) {
+    const entra = vuelveAEntrar.get(clave) ?? 0;
+    const quedaria = existenciaTrasEditar(actual, r.cantidad, entra);
+    if (quedaEnRojo(quedaria)) {
       const [prod] = await tx
         .select({ name: products.name })
         .from(products)
@@ -198,7 +223,8 @@ async function revertirMovimientosInventario(
       const err: Error & { status?: number; code?: string } = new Error(
         `No se puede ${motivo.toLowerCase().startsWith('eliminaci') ? 'eliminar' : 'editar'} esta compra: ` +
         `deshacer su entrada de inventario dejaría "${prod?.name || r.productId}" en ${quedaria} ` +
-        `unidades en el almacén "${alm?.name || r.warehouseId}" (hay ${actual}, entraron ${r.cantidad}). ` +
+        `unidades en el almacén "${alm?.name || r.warehouseId}" (hay ${actual}, entraron ${r.cantidad}` +
+        `${entra ? `, la edición vuelve a meter ${entra}` : ''}). ` +
         `Eso significa que esas unidades ya salieron en facturas o despachos, y esas salidas se ` +
         `valoraron con el costo que trajo esta compra. Anule primero los documentos que las ` +
         `consumieron, o registre la diferencia como un ajuste de inventario.`
@@ -209,8 +235,7 @@ async function revertirMovimientosInventario(
     }
   }
 
-  for (const mov of originales) {
-    if (idsYaRevertidos.has(mov.id)) continue;
+  for (const mov of vivos) {
     // Auditoria P1-12 (2026-09-05): sin costo, a proposito. Recalcular el
     // promedio ponderado hacia atras solo es exacto si nada se movio desde
     // la compra original -- y para cuando alguien edita o elimina una
@@ -887,14 +912,36 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       // 2-4. Revertir (no borrar) los movimientos de inventario previos de
       // esta compra -- misma tecnica que DELETE (ver
       // `revertirMovimientosInventario` arriba).
-      await revertirMovimientosInventario(
-        tx,
-        session.companyId,
-        session.modo,
-        id,
-        session.userId,
-        `Edición de compra NCF: ${existing[0].ncf || 'N/A'}`
+      //
+      // Lote 150: SOLO si la edicion cambia lo que la compra metio en el
+      // almacen. Corregir la descripcion, la fecha, el NCF o el suplidor
+      // revertia y volvia a meter toda la mercancia: lineas en rojo en el
+      // kardex (E310000013249, hasta -94, el 11/09) y, con el freno puesto, la
+      // edicion negada si parte ya se habia vendido. Si producto, almacen,
+      // cantidad y costo son los mismos, el kardex no se toca. `entradasDespues`
+      // usa la misma condicion que el `addStock` del paso 8.
+      const lineasAntes = await tx
+        .select({ productId: expenseLines.productId, quantity: expenseLines.quantity, unitCost: expenseLines.unitCost })
+        .from(expenseLines)
+        .where(eq(expenseLines.expenseId, id));
+      const vivosAntes = await movimientosVivosDeCompra(tx, session.companyId, session.modo, id);
+      const entradasDespues = entradasDeLineas(lines, warehouseId, sinInventario);
+      const kardexIgual = kardexSinCambios(
+        cantidadPorNivel(vivosAntes.map((m) => ({ productId: m.productId, warehouseId: m.warehouseId, cantidad: Number(m.quantity) || 0 }))),
+        entradasDeLineas(lineasAntes, existing[0].warehouseId, new Set()),
+        entradasDespues
       );
+      if (!kardexIgual) {
+        await revertirMovimientosInventario(
+          tx,
+          session.companyId,
+          session.modo,
+          id,
+          session.userId,
+          `Edición de compra NCF: ${existing[0].ncf || 'N/A'}`,
+          cantidadPorNivel(entradasDespues)
+        );
+      }
 
       // 5. Revertir (no borrar) los asientos contables previos de esta
       // compra -- misma técnica que DELETE (ver `revertirAsientoContable` al
@@ -970,7 +1017,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           // `.for('update')`, y nunca alimentaba el costo promedio ponderado
           // porque no pasaba por `addStock`. Se reutiliza `addStock` con
           // `line.unitCost`, igual que en la creacion.
-          if (line.productId && warehouseId && !sinInventario.has(line.productId)) {
+          //
+          // Lote 150: sin cambios en el kardex no se revirtio nada (paso 2-4),
+          // asi que tampoco se vuelve a meter.
+          if (!kardexIgual && line.productId && warehouseId && !sinInventario.has(line.productId)) {
             const qty = parseFloat(line.quantity) || 0;
             await addStock(
               session.companyId,
