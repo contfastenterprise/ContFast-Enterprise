@@ -47,7 +47,9 @@ async function main() {
   console.log('\n0) Precondiciones\n');
   const cobro = bloque(REPO, 'static async registerReceipt(');
   exige('el cobro sigue insertando recibo y renglones de asiento en una transaccion',
-    cobro.includes('return await db.transaction(async (tx) => {') && cobro.includes('.insert(customerReceipts)') && cobro.includes('.insert(journalEntryLines)'));
+    //  (Lote 152: el asiento paso de insertarse a mano a `createJournalEntry`.)
+    cobro.includes('return await db.transaction(async (tx) => {') && cobro.includes('.insert(customerReceipts)')
+    && (cobro.includes('.insert(journalEntryLines)') || cobro.includes('AccountRepository.createJournalEntry(tx, {')));
   exige('la ruta sigue pasando el cuerpo validado al repositorio', /ArRepository\.registerReceipt\(\{\s*\.\.\.parsed\.data,/.test(RUTA));
 
   let m: typeof import('../src/services/cartera/cuentaDelCobro') | null = null;
@@ -85,7 +87,7 @@ async function main() {
   }
   ok('el asiento debita la cuenta del banco; solo el efectivo debita la caja',
     /const accCaja = cuentaDelBanco\s*\?\?\s*await resolverCuentaPorMapeo\(tx, data\.companyId, 'cash', '1\.1\.01\.01', 'Recibo de Cobro - Efectivo'\);/.test(cobro)
-    && /accountId: accCaja\.id,\s*debit: data\.amount\.toString\(\),/.test(cobro));
+    && /accountId: accCaja\.id,\s*debit: data\.amount(\.toString\(\))?,/.test(cobro));
   ok('sin un segundo asiento: no pasa por registerTransaction', cobro.includes('ajustarSaldo(') && !cobro.includes('registerTransaction('));
 
   console.log('\n3) La ruta, la tabla y la migracion\n');

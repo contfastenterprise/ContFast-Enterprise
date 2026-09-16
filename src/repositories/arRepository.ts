@@ -1,4 +1,5 @@
-import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, auditLogs, bankTransactions, type DbTransaction } from '@/db';
+import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, auditLogs, bankTransactions, type DbTransaction } from '@/db';
+import { AccountRepository } from '@/repositories/accountRepository';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
@@ -137,10 +138,10 @@ export class ArRepository {
         createdBy: data.userId,
       }).returning();
 
-      // Auditoria P1-13: a diferencia de ap_payments, un cobro no genera
-      // ningun asiento contable (esta funcion no llama a
-      // AccountRepository.createJournalEntry en ningun punto), asi que aqui
-      // no habia ni siquiera el rastro indirecto que si tenian los pagos.
+      // Auditoria P1-13: el rastro de quien registro el cobro. (Cuando se
+      // escribio, el asiento del cobro se insertaba a mano y no dejaba autor;
+      // desde el lote 152 va por `AccountRepository.createJournalEntry`, mas
+      // abajo, con `createdBy`. El audit_log sigue: guarda metodo y referencia.)
       await tx.insert(auditLogs).values({
         modo: data.modo,
         companyId: data.companyId,
@@ -329,15 +330,23 @@ export class ArRepository {
         ?? await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Recibo de Cobro - Efectivo');
       const accCxC = await resolverCuentaPorMapeo(tx, data.companyId, 'accounts_receivable', '1.1.02.01', 'Recibo de Cobro - Cuentas por Cobrar');
 
-      const entryId = uuidv4();
-      await tx.insert(journalEntries).values({
-        id: entryId,
+      // Lote 152: por el motor central, `createJournalEntry`, como el resto de
+      // asientos. Este era el unico que se insertaba a mano, y con eso se
+      // saltaba el cuadre, la validacion por linea y la de cuentas, y sobre
+      // todo el PERIODO ABIERTO: medido el 2026-09-16, julio de Latin Doors
+      // (PRODUCCION) esta cerrado desde el 01/08 y un cobro fechado en julio
+      // se habria asentado dentro. Ninguno lo hizo todavia (los 8 de julio son
+      // anteriores al cierre). Si falla, la transaccion entera se deshace:
+      // ni recibo, ni saldos de CxC, ni caja, ni deposito.
+      //
+      // La referencia es el id COMPLETO del recibo, como en los demas asientos
+      // (JRN-22); los 22 anteriores guardan solo los 8 primeros caracteres.
+      await AccountRepository.createJournalEntry(tx, {
         companyId: data.companyId,
         modo: data.modo,
         date: data.date,
-        reference: receiptId.slice(0, 8),
+        reference: receiptId,
         description: `Recibo de Cobro - Cliente ID: ${data.customerId.slice(0,8)}`,
-        status: 'posted',
         // Auditoria JRN-16. La columna se añadio despues del asiento duplicado
         // de 545.724,30 de julio, y este camino era el UNICO que seguia sin
         // rellenarla: medido el 2026-09-15, desde que la columna se escribe,
@@ -345,28 +354,11 @@ export class ArRepository {
         // -- el ultimo, de hoy. El `userId` estaba aqui al lado: ya se usa
         // para el recibo, para el audit_log y para buscar la sesion de caja.
         createdBy: data.userId,
+        lines: [
+          { accountId: accCaja.id, debit: data.amount, credit: 0 },
+          { accountId: accCxC.id, debit: 0, credit: data.amount },
+        ],
       });
-
-      await tx.insert(journalEntryLines).values([
-        {
-          id: uuidv4(),
-          companyId: data.companyId,
-          modo: data.modo,
-          journalEntryId: entryId,
-          accountId: accCaja.id,
-          debit: data.amount.toString(),
-          credit: '0.00'
-        },
-        {
-          id: uuidv4(),
-          companyId: data.companyId,
-          modo: data.modo,
-          journalEntryId: entryId,
-          accountId: accCxC.id,
-          debit: '0.00',
-          credit: data.amount.toString()
-        }
-      ]);
 
       return receipt;
     });

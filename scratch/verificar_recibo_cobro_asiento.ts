@@ -90,7 +90,10 @@ const FACTURA_CUENTAS = 'src/services/invoice/asientoDeFactura.ts';
 console.log('A. EL ASIENTO DEL COBRO LLEVA AUTOR');
 // ─────────────────────────────────────────────────────────────────────────
 {
-  const cabecera = bloque(codigo(AR), 'await tx.insert(journalEntries).values({');
+  //  Lote 152: el asiento del cobro ya no se inserta a mano, va por
+  //  `AccountRepository.createJournalEntry` (que escribe `createdBy` en la
+  //  cabecera). Se acota el objeto que se le pasa.
+  const cabecera = bloque(codigo(AR), 'await AccountRepository.createJournalEntry(tx, {');
   //  `bloque()` acota el `values({...})` del asiento: no basta con que el
   //  fichero mencione `createdBy`, porque ya lo mencionaba para la fila del
   //  recibo (P1-13) y para nada mas. Un primer intento miraba la distancia en
@@ -143,7 +146,13 @@ for (const f of ficherosTs('src')) {
     if (!/createdBy:/.test(ventana)) sinAutor.push(`${f} (posicion ${m.index})`);
   }
 }
-exige(puertas.length >= 2, `el barrido no encontro las puertas al libro (${puertas.length}): algo cambio de sitio`);
+//  Lote 152: eran 2 (el motor central y el recibo de cobro). El recibo paso al
+//  motor, asi que la unica puerta que queda es `createJournalEntry`; se exige
+//  que siga ahi y que el recibo ya no sea una.
+exige(puertas.some((f) => f.endsWith('repositories/accountingRepository.ts')),
+  `el barrido no encontro el motor central entre las puertas al libro (${puertas.join(', ')}): algo cambio de sitio`);
+ok('el recibo de cobro ya no inserta asientos a mano (pasa por el motor central)',
+   !puertas.some((f) => f.endsWith('repositories/arRepository.ts')));
 ok(`las ${puertas.length} puertas al libro diario guardan el autor (${sinAutor.length} sin el)`,
    sinAutor.length === 0);
 for (const s of sinAutor) console.log(`         ${s}`);

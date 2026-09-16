@@ -432,6 +432,10 @@ Además, fuera de la tabla:
   ningún cobro se registra). Desde ese despliegue los depósitos de clientes no
   se meten a mano como "Ajuste". Los 6 cobros por banco anteriores
   (RD$186.093,77 en 1.1.01) son del contador.
+  **Lote 152: el asiento del recibo de cobro va por `createJournalEntry`** (era
+  la última inserción de asiento a mano): un cobro fechado en un período cerrado
+  o sin período se niega entero. Julio de Latin Doors está cerrado desde el
+  01/08; sus 8 cobros son anteriores al cierre.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
   RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
   tipo va vacío en vez de "3".
