@@ -128,8 +128,19 @@ async function main() {
     const reenviar = fuente('src/app/api/v1/ecf/[id]/resubmit/route.ts');
     const permitidos = (reenviar.match(/!\[([^\]]+)\]\.includes\(invoice\.status\)/) || [])[1] ?? '';
     exige('"Reenviar" NO admite un comprobante en void', permitidos.includes("'rejected'") && !permitidos.includes("'void'"), permitidos);
-    exige('el TXT del 607 excluye void', /ne\(invoices\.status, 'void'\)/.test(fuente('src/app/api/v1/reports/607/txt/route.ts')));
-    exige('el libro de ventas excluye void', /ne\(invoices\.status, 'void'\)/.test(fuente('src/app/api/v1/reports/sales-book/route.ts')));
+    //  Lote 141: los dos pasaron de `ne(status, 'void')` a una lista compartida,
+    //  ESTADOS_FUERA_DEL_607, que tambien saca los rechazados. Lo que se fija es
+    //  lo mismo: `void` no entra. Vale en las dos formas.
+    const excluyeVoid = (ruta: string): boolean => {
+      const src = fuente(ruta);
+      if (/ne\(invoices\.status, 'void'\)/.test(src)) return true;
+      let lista = '';
+      try { lista = fuente('src/services/dgii/estadosReportables.ts'); } catch { return false; }
+      return /notInArray\(invoices\.status, ESTADOS_FUERA_DEL_607\)/.test(src)
+        && /export const ESTADOS_FUERA_DEL_607 = \[[^\]]*'void'[^\]]*\]/.test(lista);
+    };
+    exige('el TXT del 607 excluye void', excluyeVoid('src/app/api/v1/reports/607/txt/route.ts'));
+    exige('el libro de ventas excluye void', excluyeVoid('src/app/api/v1/reports/sales-book/route.ts'));
     exige('una nota en void no cuenta como ajuste de su factura', /ESTADOS_QUE_NO_AJUSTAN = \['rejected', 'void'\]/.test(fuente('src/app/api/v1/ecf/route.ts')));
     exige('el guardian de asientos rechaza las cuentas de agrupacion', /!cuenta\.isTransactional/.test(fuente('src/repositories/accountingRepository.ts')));
     const n = casos().length;

@@ -375,7 +375,17 @@ Además, fuera de la tabla:
   crédito), contramovimiento del cliente y estado `void`. Se niega con cobros,
   conduces, caja, inventario u otros asientos. El reparto del asiento de venta
   vive ahora en `services/invoice/asientoDeFactura.ts`, compartido por emisión y
-  baja. **Pendiente, otro lote**: el TXT del 607 no excluye `rejected`.
+  baja.
+  **Lote 141: el 607 ya no declara rechazados** (TXT y libro de ventas, con una
+  sola lista: `services/dgii/estadosReportables.ts`). **Al medir salió que el
+  único rechazado de PRODUCCIÓN, `E320000000059`, está ACEPTADO en la DGII**, y
+  que `E320000000060` es la misma venta, también aceptada: dos e-CF válidos por
+  una venta. **Antes de desplegar**: "Consultar estado" en la 0059 (pasa a
+  aceptada; envía el correo de aceptada si el cliente tiene email). La nota de
+  crédito que la anule es del contador. Las e-32 de consumo se verifican en
+  `fc.dgii.gov.do`, no en `ecf.dgii.gov.do`. Pendientes en el TXT del 607, sin
+  medir: cabecera con el id interno en vez del RNC, NCF modificado siempre
+  vacío, y fecha en UTC.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la

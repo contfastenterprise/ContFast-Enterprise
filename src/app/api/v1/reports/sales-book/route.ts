@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
-import { eq, and, isNull, gte, lte, desc, ne } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, desc, notInArray } from 'drizzle-orm';
+import { ESTADOS_FUERA_DEL_607 } from '@/services/dgii/estadosReportables';
 
 /**
  * GET /api/v1/reports/sales-book - e-CF Sales Book report (DGII Formato 607 equivalent)
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch invoices in date range (exclude drafts and voided for tax purposes)
+    // Fetch invoices in date range (exclude drafts, rejected and voided for tax purposes)
     const list = await db
       .select({
         id: invoices.id,
@@ -62,8 +63,9 @@ export async function GET(req: NextRequest) {
           isNull(invoices.deletedAt),
           gte(invoices.createdAt, new Date(startDateStr + 'T00:00:00-04:00')),
           lte(invoices.createdAt, new Date(endDateStr + 'T23:59:59.999-04:00')),
-          ne(invoices.status, 'draft'),
-          ne(invoices.status, 'void')
+          // Lote 141: fuera tambien los rechazados. La misma lista que el TXT:
+          // si divergen, la pantalla ensena un total y el fichero declara otro.
+          notInArray(invoices.status, ESTADOS_FUERA_DEL_607)
         )
       )
       .orderBy(desc(invoices.createdAt));

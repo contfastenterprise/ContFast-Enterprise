@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers, invoiceRetentions } from '@/db';
-import { eq, and, isNull, gte, lte, ne, inArray } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, inArray, notInArray } from 'drizzle-orm';
+import { ESTADOS_FUERA_DEL_607 } from '@/services/dgii/estadosReportables';
 
 /** GET: Return the generated 607 TXT file for download */
 export async function GET(req: NextRequest) {
@@ -63,8 +64,9 @@ export async function GET(req: NextRequest) {
           isNull(invoices.deletedAt),
           gte(invoices.createdAt, start),
           lte(invoices.createdAt, end),
-          ne(invoices.status, 'draft'),
-          ne(invoices.status, 'void')
+          // Lote 141: fuera tambien los rechazados. La lista vive en
+          // `estadosReportables.ts`, compartida con el libro de ventas.
+          notInArray(invoices.status, ESTADOS_FUERA_DEL_607)
         )
       );
 
