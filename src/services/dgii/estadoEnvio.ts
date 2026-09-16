@@ -32,6 +32,8 @@
  * reclama.
  */
 
+import { marcaDeRechazo } from './marcasRechazo';
+
 /** Estados en los que puede quedar un envio recien mandado. */
 export type EstadoEnvio = 'accepted' | 'rejected' | 'submitted';
 
@@ -72,12 +74,27 @@ export function textoEstado(raw: unknown): string | null {
   // El codigo que habia antes en las rutas de sincronizacion recorria TODAS y
   // se quedaba con la ultima. Al unificar la lectura aqui se perdio ese
   // detalle: la unificacion era correcta, la implementacion no.
+  //
+  // Y una entrada SIN `estado` tambien puede ser un veredicto: el rechazo por
+  // ESTRUCTURA. La DGII no llega a darle estado al comprobante -- el XSD no
+  // valida -- y la entrada trae `error` y `mensaje` en su lugar:
+  //
+  //     {"trackId":null,"error":"Estructura del archivo XML inválida. ",
+  //      "mensaje":"The element 'Totales' has invalid child element ..."}
+  //
+  // Antes se saltaba por no tener `estado`, y el ultimo `estado` legible del
+  // historial -- un "En Proceso" que mSeller intercala en sus reintentos --
+  // pasaba por el estado actual. Asi se quedo E340000000002 trece dias "En
+  // Proceso" con la DGII sin tenerla, y se emitio otra nota por la misma
+  // factura (lote 139). Ahora cuenta como una entrada mas del historial: si es
+  // la ULTIMA, manda, igual que mandaria un "Rechazado".
   if (Array.isArray(r.dgiiResponse)) {
     let ultimo: string | null = null;
     for (const item of r.dgiiResponse) {
       try {
         const p = typeof item === 'string' ? JSON.parse(item) : item;
         if (p?.estado != null && String(p.estado).trim() !== '') ultimo = String(p.estado);
+        else ultimo = rechazoDeEstructura(p) ?? ultimo;
       } catch {
         // Un elemento ilegible no invalida los demas.
       }
@@ -89,6 +106,28 @@ export function textoEstado(raw: unknown): string | null {
     if (campo != null && String(campo).trim() !== '') return String(campo);
   }
   return null;
+}
+
+/**
+ * El texto de una entrada del historial que es un rechazo por estructura, o
+ * `null` si no lo es.
+ *
+ * Devuelve `error` y `mensaje` juntos y TAL CUAL -- el mismo par que
+ * `motivoDgii` usa de respaldo --, porque ese texto acaba en el mensaje de la
+ * factura y sin el `mensaje` no se sabe que elemento sobra.
+ *
+ * Solo cuenta si lleva una MARCA de rechazo. Una entrada con `error` no basta:
+ * E440000000001 trae "read ECONNRESET", que es un corte entre mSeller y la DGII
+ * y no dice nada de si la DGII lo tiene. Esa se sigue saltando.
+ */
+function rechazoDeEstructura(entrada: unknown): string | null {
+  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) return null;
+  const e = entrada as Record<string, unknown>;
+  const texto = [e.error, e.mensaje]
+    .filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+    .map((v) => v.trim())
+    .join(' ');
+  return texto && marcaDeRechazo(texto) ? texto : null;
 }
 
 /**
@@ -105,7 +144,12 @@ export function leerEstado(raw: unknown): LecturaEstado {
   const t = textoCrudo.toLowerCase();
 
   // El rechazo se mira ANTES que la aceptacion: "no aceptado" contiene "acept".
-  if (t.includes('rechaz') || t.includes('rejected') || t.includes('no acept')) {
+  //
+  // `marcaDeRechazo` anade las marcas del validador ("has invalid child
+  // element", "Estructura del archivo XML invalida"): un rechazo por estructura
+  // no dice "rechazado" en ninguna parte, y sin esto el texto que devuelve
+  // `textoEstado` para esa entrada se leeria como un estado desconocido.
+  if (t.includes('rechaz') || t.includes('rejected') || t.includes('no acept') || marcaDeRechazo(textoCrudo)) {
     return { estado: 'rejected', textoCrudo, reconocido: true };
   }
   if (t.includes('acept') || t.includes('accepted') || t.includes('aprob')) {

@@ -50,6 +50,9 @@
  * eso no lo descubre nadie hasta que la DGII reclama.
  */
 import { leerEstado } from './estadoEnvio';
+// La lista vivia aqui. Desde el lote 139 la comparte la consulta de estado:
+// ver el porque en `marcasRechazo.ts`.
+import { MARCAS_RECHAZO } from './marcasRechazo';
 
 export type Desenlace = 'rechazo' | 'desconocido';
 
@@ -60,24 +63,6 @@ export interface LecturaDesenlace {
   /** Que marca lo identifico. `null` cuando no hubo ninguna. */
   marca: string | null;
 }
-
-/** Frases con las que la DGII y mSeller nombran un rechazo. */
-const MARCAS_RECHAZO: Array<[RegExp, string]> = [
-  [/\bno\s+acept/i, 'dice "no aceptado"'],
-  [/rechaz/i, 'dice "rechazado"'],
-  [/\brejected\b/i, 'dice "rejected"'],
-  // El validador XSD de la DGII. Es la forma de rechazo mas comun y la que
-  // recibio esta empresa en su primer e-44:
-  //   "The element 'IdDoc' has invalid child element 'IndicadorMontoGravado'".
-  [/has invalid child element/i, 'el validador nombra un elemento invalido'],
-  [/is not valid according to its datatype/i, 'el validador rechaza un tipo de dato'],
-  [/the element .* is invalid/i, 'el validador declara invalido un elemento'],
-  // mSeller lo dice con sus propias palabras cuando el XSD no valida. El
-  // acento importa: el texto real es "invalida" CON tilde, y un patron sin
-  // ella no casa. Se admiten las dos formas porque el mensaje viene del
-  // proveedor y no hay garantia de como lo escriba.
-  [/estructura del archivo xml inv[aá]lid/i, 'mSeller dice que la estructura del XML no vale'],
-];
 
 /**
  * Todo el texto que trae una respuesta, para buscar en el las marcas.

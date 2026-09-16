@@ -354,6 +354,19 @@ Además, fuera de la tabla:
   con cuántos hay y cuánto lleva el más antiguo, y un botón que filtra la lista).
   El aviso **no reenvía** a propósito: un `submitted` sí salió y reenviarlo
   duplicaría un comprobante fiscal.
+  **Lote 139: ese atasco no era esperar, era un rechazo que no se leía.** La
+  DGII no tiene `E340000000002` (portal: "No fue encontrada"); mSeller la tiene
+  en `Error`, con 6 rechazos por estructura del XML (`MontoExento` en
+  `Totales`) intercalados con "En Proceso". `textoEstado` saltaba las entradas
+  del historial sin `estado`, que es justo la forma del rechazo por estructura.
+  Ahora cuentan si llevan una marca de rechazo (lista única en
+  `services/dgii/marcasRechazo.ts`); un `error` sin marca, como "read
+  ECONNRESET", sigue sin ser veredicto. **Al desplegar**: la próxima consulta la
+  pondrá en `rejected` y la pantalla ofrecerá "Reenviar". **No reenviarla**:
+  `E340000000003` ya acreditó esa factura entera. Un rechazo descubierto al
+  consultar tampoco revierte asiento ni CxC (pendiente, otro lote). El cuadre
+  contable de Latin Doors, que es donde salió, está en
+  `docs/auditoria/cuadre_latin_doors_informe.md` (sin commitear).
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la

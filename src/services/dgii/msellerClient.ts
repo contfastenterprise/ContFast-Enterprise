@@ -419,27 +419,18 @@ export class MSellerClient {
         };
       }
 
-      // Los mensajes del validador los saca `motivoDgii`. El estado anidado se
-      // sigue leyendo aqui porque es otra cosa: `dgiiEstado` es el rotulo que
-      // se enseña, no el motivo.
-      let dgiiEstado = raw?.dgiiStatus || raw?.estadoDGII || null;
-
-      if (raw?.dgiiResponse && Array.isArray(raw.dgiiResponse)) {
-        for (const respStr of raw.dgiiResponse) {
-          try {
-            const parsed = typeof respStr === 'string' ? JSON.parse(respStr) : respStr;
-            if (parsed?.estado) {
-              dgiiEstado = parsed.estado;
-            }
-          } catch (e) {}
-        }
-      }
-
       // `|| 'Aceptado'` inventaba un estado cuando la respuesta no traia
       // ninguno, y ese texto acababa en `dgiiStatus` y en el mensaje que se
       // guarda con el envio. La lectura la hace `leerEstado`, en un solo sitio.
+      //
+      // Y el ROTULO tambien (lote 139). Aqui habia un bucle propio sobre
+      // `dgiiResponse` que se quedaba con el ultimo `estado` y saltaba las
+      // entradas de rechazo por estructura. La ruta de sincronizacion individual
+      // guarda ESTE texto como mensaje de la factura, asi que con el arreglo
+      // hecho solo en `leerEstado` la factura habria quedado `rejected` y
+      // diciendo "En Proceso". Una lectura, un texto.
       const lectura = leerEstado(raw);
-      const finalDGIIStatus = dgiiEstado || lectura.textoCrudo || 'Sin estado';
+      const finalDGIIStatus = lectura.textoCrudo || 'Sin estado';
 
       let customMessage = finalDGIIStatus;
       const motivoConsulta = motivoDgii(raw);
