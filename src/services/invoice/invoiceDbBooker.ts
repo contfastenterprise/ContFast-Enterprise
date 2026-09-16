@@ -1,6 +1,7 @@
 import { db, invoices, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable, products, customers } from '@/db';
 import { FinancialMovementService } from '@/services/financialMovementService';
-import { eq, and, isNull, sql } from 'drizzle-orm';
+import { eq, and, isNull, sql, inArray } from 'drizzle-orm';
+import { motivoParaNoEmitirNota, NotaNoPermitidaError, NOTAS_VIGENTES } from './limiteNotaCredito';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -80,6 +81,50 @@ export class InvoiceDbBooker {
       // Bloquear aqui impediria facturar mercancia que aun esta por fabricar o
       // por recibir, que es una venta perfectamente legitima, sin evitar ni un
       // solo negativo adicional.
+
+    // Lote 146: una nota de credito o debito contra la factura que modifica.
+    // Aqui, ANTES de reservar el NCF y de enviar a la DGII: despues, negarse
+    // dejaria un comprobante emitido sin factura en el sistema. El porque, y el
+    // caso de E340000000002, en `limiteNotaCredito.ts`.
+    if (data.ecfType === '33' || data.ecfType === '34') {
+      const [factura] = data.modifiedInvoiceId
+        ? await db
+            .select({ id: invoices.id, ncf: invoices.ncf, ecfType: invoices.ecfType, status: invoices.status, totalNet: invoices.totalNet })
+            .from(invoices)
+            .where(and(
+              eq(invoices.id, data.modifiedInvoiceId),
+              eq(invoices.companyId, data.companyId),
+              eq(invoices.modo, data.modo),
+              isNull(invoices.deletedAt)
+            ))
+            .limit(1)
+        : [];
+
+      const [vigentes] = factura
+        ? await db
+            .select({
+              credito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '34'), 0)`,
+              debito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '33'), 0)`,
+            })
+            .from(invoices)
+            .where(and(
+              eq(invoices.modifiedInvoiceId, factura.id),
+              eq(invoices.companyId, data.companyId),
+              eq(invoices.modo, data.modo),
+              isNull(invoices.deletedAt),
+              inArray(invoices.status, NOTAS_VIGENTES as never[])
+            ))
+        : [{ credito: '0', debito: '0' }];
+
+      const motivo = motivoParaNoEmitirNota(
+        { ecfType: data.ecfType, netoNota: totals.totalNet, modifiedNcf: data.modifiedNcf },
+        factura ? { ncf: factura.ncf, ecfType: factura.ecfType, status: factura.status, totalNet: parseFloat(factura.totalNet) } : null,
+        parseFloat(vigentes?.credito ?? '0'),
+        parseFloat(vigentes?.debito ?? '0')
+      );
+      if (motivo) throw new NotaNoPermitidaError(motivo);
+    }
+
     if (data.ecfType !== '34') {
       for (const line of totals.itemLines) {
         // Cost validation

@@ -408,7 +408,13 @@ Además, fuera de la tabla:
   antes era ancho fijo sin "|", 7 datos en vez de 23 e importes ×100. Sin NCF no
   va (decisión del dueño). Servicios/bienes y fecha de pago con la recomendación
   aplicada (cambian en ese módulo). Quedan en blanco, porque el sistema no los
-  registra: ITBIS llevado al costo y tipo de retención ISR. **El 606 tiene la misma cabecera
+  registra: ITBIS llevado al costo y tipo de retención ISR.
+  **Lote 146: una nota de crédito ya no acredita más de lo que queda de su
+  factura** (`services/invoice/limiteNotaCredito.ts`, en la validación previa,
+  antes de reservar el NCF y de enviar). También se niega una nota sin factura,
+  con NCF que no coincide, sobre otra nota o sobre una factura no aceptada.
+  Pendiente, escrito: dos notas simultáneas sobre la misma factura pueden pasar
+  las dos. **El 606 tiene la misma cabecera
   mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
