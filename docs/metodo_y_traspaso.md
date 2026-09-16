@@ -345,6 +345,15 @@ Además, fuera de la tabla:
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
   `as any` techo **0** tras los lotes 124-126. El 126 dejó un solo `ioredis`, el que fija bullmq (`verificar_ioredis_unico.ts` avisa si al actualizar bullmq se vuelven a separar). En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
 - ~~`QuoteService.getQuotes`: tres consultas en serie~~ **Hecho en el lote 127** (`Promise.all`).
+- **El 606 estaba muerto — cerrado en el lote 134.** Tres causas a la vez, y
+  ninguna se veía: `companyId=TODO_COMPANY_ID` (403 siempre, tabla vacía con
+  48 gastos en julio y 33 en agosto en la base), el botón de exportar apuntando
+  a `/api/v1/reports/606/txt`, que no existe (es `download/`; el que tiene
+  `txt/` es el 607), y el mes cerrado el día 31 contra una columna `date`, que
+  **revienta la consulta entera** en los meses de 30 días y en febrero. Lo
+  encontró `scratch/_to_delete/medir_parametros_sordos.ts`, que cruza lo que
+  manda cada llamada con lo que lee su ruta. **Queda para el contador**: si
+  algún 606 se remitió con el TXT roto, el lote no lo arregla hacia atrás.
 - **`limit` contra `per_page`: mirar si queda algún sitio más.** El lote 110 lo
   cerró en cotizaciones y el **132** lo encontró otra vez, peor, en códigos de
   barras: `/api/v1/products?limit=100000` devolvía 20 filas (la API lee

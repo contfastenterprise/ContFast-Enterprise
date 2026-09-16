@@ -15,11 +15,17 @@ export async function GET(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
-    const companyId = searchParams.get('companyId');
+    // El navegador no tiene por que decir de que empresa es: la sesion ya lo
+    // dice. Era obligatorio, y la pantalla del 606 mandaba el literal
+    // 'TODO_COMPANY_ID', con lo que esta ruta contestaba 403 siempre y la
+    // tabla salia vacia todos los meses. Se sigue admitiendo que venga, porque
+    // el rol `sistemas` consulta empresas ajenas con este mismo parametro, y
+    // la comprobacion de abajo no cambia.
+    const companyId = searchParams.get('companyId') || auth.companyId;
     const period = searchParams.get('period'); // format YYYY-MM
 
-    if (!companyId || !period) {
-      return NextResponse.json({ error: 'companyId and period are required' }, { status: 400 });
+    if (!period) {
+      return NextResponse.json({ error: 'period is required' }, { status: 400 });
     }
 
     if (auth.role !== 'sistemas' && auth.companyId !== companyId) {

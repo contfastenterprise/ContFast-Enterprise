@@ -16,10 +16,13 @@ export async function GET(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
-    const companyId = searchParams.get('companyId');
+    // Como en el 606: la sesion ya dice de que empresa es, asi que la pantalla
+    // no tiene que ir antes a `auth/me` a preguntarselo. Se sigue admitiendo
+    // `companyId` para el rol `sistemas`, y la comprobacion de abajo no cambia.
+    const companyId = searchParams.get('companyId') || auth.companyId;
     let period = searchParams.get('period'); // YYYY-MM
 
-    if (!companyId || !period) {
+    if (!period) {
       return NextResponse.json({ success: false, error: { message: 'Faltan parámetros.' } }, { status: 400 });
     }
     

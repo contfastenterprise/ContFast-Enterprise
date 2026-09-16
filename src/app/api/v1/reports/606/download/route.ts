@@ -15,11 +15,13 @@ export async function GET(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'reportes', 'read');
 
     const { searchParams } = new URL(req.url);
-    const companyId = searchParams.get('companyId');
+    // Como en la ruta del listado: la sesion ya dice de que empresa es. Se
+    // sigue admitiendo `companyId` para el rol `sistemas`.
+    const companyId = searchParams.get('companyId') || auth.companyId;
     const period = searchParams.get('period');
 
-    if (!companyId || !period) {
-      return NextResponse.json({ error: 'companyId and period are required' }, { status: 400 });
+    if (!period) {
+      return NextResponse.json({ error: 'period is required' }, { status: 400 });
     }
 
     if (auth.role !== 'sistemas' && auth.companyId !== companyId) {

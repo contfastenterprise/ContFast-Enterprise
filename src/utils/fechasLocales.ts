@@ -224,6 +224,33 @@ export function esDiaReal(dia: string | null | undefined): boolean {
   return dd >= 1 && dd <= tope;
 }
 
+/**
+ * El ultimo dia de un periodo 'AAAA-MM', como 'AAAA-MM-DD'. `null` si el
+ * periodo no tiene esa forma o el mes no existe.
+ *
+ * Existe porque el 606 cerraba el mes en el dia 31 a pelo
+ * (`${year}-${month}-31`) y lo comparaba con `expenses.issue_date`, que es
+ * columna `date`. En abril, junio, septiembre, noviembre y febrero ese literal
+ * no es una fecha: Postgres no devuelve menos filas, RECHAZA LA CONSULTA
+ * ENTERA con "date/time field value out of range". Comprobado contra la base
+ * el 2026-09-15.
+ *
+ * Tampoco se arma con `Date`, por lo mismo que `esDiaReal`: la otra forma de
+ * escribirlo, `new Date(anio, mes, 0)`, da el ultimo dia en la hora LOCAL, y
+ * al pasarlo por `toISOString()` se corre un dia en cualquier huso al este de
+ * Greenwich. Aqui no hay husos.
+ */
+export function ultimoDiaDelMes(periodo: string | null | undefined): string | null {
+  if (typeof periodo !== 'string') return null;
+  const m = periodo.trim().match(/^(\d{4})-(\d{2})$/);
+  if (!m) return null;
+  const aaaa = Number(m[1]);
+  const mm = Number(m[2]);
+  if (mm < 1 || mm > 12) return null;
+  const tope = mm === 2 && esBisiesto(aaaa) ? 29 : DIAS_DEL_MES[mm - 1];
+  return `${m[1]}-${m[2]}-${String(tope).padStart(2, '0')}`;
+}
+
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 /**

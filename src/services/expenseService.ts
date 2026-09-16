@@ -8,6 +8,7 @@ import { addStock } from './inventoryService';
 import { AccountRepository } from '../repositories/accountRepository';
 import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from './accounting/resolverCuentas';
 import { FinancialMovementService } from '@/services/financialMovementService';
+import { ultimoDiaDelMes } from '@/utils/fechasLocales';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -234,9 +235,14 @@ export async function createExpense(expenseData: {
 
 /** Fetch expenses for a company within a month (YYYY-MM) */
 export async function getExpenses(companyId: string, period: string, modo: 'PRODUCCION' | 'PRUEBA') {
-  const [year, month] = period.split('-');
-  const start = `${year}-${month}-01`;
-  const end = `${year}-${month}-31`;
+  // El cierre del mes era `${year}-${month}-31` a pelo. `issue_date` es columna
+  // `date`, asi que en los meses de 30 dias y en febrero ese literal no es una
+  // fecha y Postgres RECHAZA LA CONSULTA ENTERA: "date/time field value out of
+  // range". No devolvia de menos, reventaba. Comprobado contra la base el
+  // 2026-09-15: el 606 del mes en curso (septiembre, 30 dias) daba 500.
+  const end = ultimoDiaDelMes(period);
+  if (!end) throw new Error(`Periodo invalido: ${period} (se espera AAAA-MM)`);
+  const start = `${end.slice(0, 8)}01`;
   return await db
     .select()
     .from(expenses)

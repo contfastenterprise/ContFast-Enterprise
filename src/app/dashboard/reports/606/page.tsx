@@ -15,6 +15,8 @@ interface Expense {
 }
 
 import { FileText, Download, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
+import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 
 export default function Report606() {
   const [period, setPeriod] = useState<string>(() => {
@@ -24,16 +26,33 @@ export default function Report606() {
   });
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totals, setTotals] = useState({ amount: 0, itbis: 0, itbisRetained: 0 });
+  // P2-37: "no pude leerlo" y "no hay nada" no son la misma pantalla. Aqui era
+  // literalmente el mismo mensaje: la ruta contestaba 403 y se leia "No hay
+  // gastos registrados para este periodo".
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const fetchExpenses = async () => {
-    const companyId = 'TODO_COMPANY_ID'; // TODO: replace with actual context
+    setErrorCarga(null);
     try {
-      const res = await fetch(`/api/v1/reports/606?companyId=${companyId}&period=${period}`);
+      // Iba `companyId=TODO_COMPANY_ID`, el literal, con un "// TODO: replace
+      // with actual context" al lado. La ruta contestaba 403 y esta pantalla
+      // enseñaba "No hay gastos registrados para este periodo" -- todos los
+      // meses, con 48 gastos en julio y 33 en agosto en la base. Ya no hace
+      // falta decirlo: la sesion dice de que empresa es.
+      const res = await fetch(`/api/v1/reports/606?period=${period}`);
       const data = await res.json();
+      if (!res.ok) {
+        setExpenses([]);
+        setTotals({ amount: 0, itbis: 0, itbisRetained: 0 });
+        setErrorCarga(motivoDeCarga(null, data?.error));
+        return;
+      }
       setExpenses(data.expenses || []);
       setTotals(data.totals || { amount: 0, itbis: 0, itbisRetained: 0 });
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      setExpenses([]);
+      setTotals({ amount: 0, itbis: 0, itbisRetained: 0 });
+      setErrorCarga(motivoDeCarga(error));
     }
   };
 
@@ -42,18 +61,27 @@ export default function Report606() {
   }, [period]);
 
   const exportTxt = async () => {
-    const companyId = 'TODO_COMPANY_ID';
     try {
-      const res = await fetch(`/api/v1/reports/606/txt?companyId=${companyId}&period=${period}`);
+      // Apuntaba a `/api/v1/reports/606/txt`, que NO EXISTE: el 606 tiene
+      // `download/` y el que tiene `txt/` es el 607. Y como `res.blob()` no
+      // mira el estado, el 404 se descargaba como si fuera el fichero: un
+      // `606_TODO_COMPANY_ID_2026-09.txt` con la pagina de error dentro, que
+      // es lo que se le habria mandado a la DGII.
+      const res = await fetch(`/api/v1/reports/606/download?period=${period}`);
+      if (!res.ok) {
+        const detalle = await res.json().catch(() => null);
+        toast.error(motivoDeCarga(null, detalle?.error) || 'No se pudo generar el TXT del 606');
+        return;
+      }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `606_${companyId}_${period}.txt`;
+      a.download = `606_${period}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting TXT:', error);
+      toast.error(motivoDeCarga(error));
     }
   };
 
@@ -135,7 +163,13 @@ export default function Report606() {
               </tr>
             </thead>
             <tbody className="text-sm text-slate-700 divide-y divide-slate-100">
-              {!expenses || expenses.length === 0 ? (
+              {errorCarga ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4">
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchExpenses} />
+                  </td>
+                </tr>
+              ) : !expenses || expenses.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                     No hay gastos registrados para este periodo.

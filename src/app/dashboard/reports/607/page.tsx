@@ -17,7 +17,9 @@ interface InvoiceSale {
 }
 
 import { FileText, Download, Calendar } from 'lucide-react';
-import { formatDateDisplay } from '@/utils/fechasLocales';
+import { toast } from 'sonner';
+import { motivoDeCarga } from '@/components/ui/estado-carga';
+import { formatDateDisplay, ultimoDiaDelMes } from '@/utils/fechasLocales';
 
 export default function Report607() {
   const [period, setPeriod] = useState<string>(() => {
@@ -30,9 +32,12 @@ export default function Report607() {
 
   const fetchSales = async () => {
     try {
-      const [year, month] = period.split('-');
-      const start = `${year}-${month}-01`;
-      const end = new Date(Number(year), Number(month), 0).toISOString().split('T')[0]; // last day of month
+      // El fin de mes se armaba con `new Date(anio, mes, 0).toISOString()`, que
+      // es el ultimo dia en hora LOCAL pasado a UTC: al este de Greenwich se
+      // corre un dia y el 607 perdia el ultimo dia del mes. Aqui no hay husos.
+      const end = ultimoDiaDelMes(period);
+      if (!end) return;
+      const start = `${end.slice(0, 8)}01`;
 
       const res = await fetch(`/api/v1/reports/sales-book?start_date=${start}&end_date=${end}`);
       const data = await res.json();
@@ -54,25 +59,30 @@ export default function Report607() {
   }, [period]);
 
   const exportTxt = async () => {
-    // We need the companyId to export the 607 txt. We can try fetching company profile or relying on the backend to figure it out from the auth session.
-    // The txt route expects companyId. Let's fetch it from auth/me.
     try {
-      const authRes = await fetch('/api/v1/auth/me');
-      const authData = await authRes.json();
-      const companyId = authData.data?.user?.companyId;
-
-      if (!companyId) throw new Error('No companyId found');
-
-      const res = await fetch(`/api/v1/reports/607/txt?companyId=${companyId}&period=${period}`);
+      // Antes preguntaba a `auth/me` de que empresa era, para devolverselo a
+      // una ruta que ya lo sabia. Ese rodeo era ademas un punto de fallo
+      // silencioso: si `auth/me` no traia `companyId`, la excepcion se iba a
+      // la consola y el boton no hacia nada visible.
+      //
+      // Y `res.blob()` no mira el estado: un 403 o un 500 se descargaban como
+      // si fueran el fichero, con el error dentro. Un TXT del 607 con una
+      // pagina de error dentro es lo que se le remite a la DGII.
+      const res = await fetch(`/api/v1/reports/607/txt?period=${period}`);
+      if (!res.ok) {
+        const detalle = await res.json().catch(() => null);
+        toast.error(motivoDeCarga(null, detalle?.error?.message) || 'No se pudo generar el TXT del 607');
+        return;
+      }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `607_${companyId}_${period}.txt`;
+      a.download = `607_${period}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting TXT:', error);
+      toast.error(motivoDeCarga(error));
     }
   };
 
