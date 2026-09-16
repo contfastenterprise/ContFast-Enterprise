@@ -345,6 +345,21 @@ Además, fuera de la tabla:
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
   `as any` techo **0** tras los lotes 124-126. El 126 dejó un solo `ioredis`, el que fija bullmq (`verificar_ioredis_unico.ts` avisa si al actualizar bullmq se vuelven a separar). En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
 - ~~`QuoteService.getQuotes`: tres consultas en serie~~ **Hecho en el lote 127** (`Promise.all`).
+- **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
+  `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
+  colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la
+  ruta: sin contrapartida, saldo movido y mayor sin enterarse, sin un error.
+  Medido: **las 8 transacciones bancarias (RD$3,99 M, seis ya marcadas como
+  conciliadas) no tienen asiento ninguno.** Ahora la contrapartida es
+  obligatoria en el tipo y en el esquema. De paso se retiró
+  `bank/accounts/[id]/transactions`, una ruta gemela **que no llamaba nadie** y
+  que contabilizaba todos los bancos contra el código fijo `1.1.01.02` (las
+  cuentas reales son 1.1.01.03 y 1.1.01.04; la 02 tiene cero renglones) además
+  de crear al vuelo `4.1.99` y `6.1.99`, inexistentes en las seis empresas. Con
+  ella se fue la última copia de `getOrCreateAccount`: **la lista PENDIENTES de
+  `resolucionCuentas.vitest.ts` queda vacía.** **Para el contador**: los 8
+  movimientos ya registrados siguen sin asiento; entrarlos al mayor es decisión
+  suya.
 - **El libro diario, medido el 2026-09-15 (lote 136): CUADRA.** 199 asientos en
   PRODUCCIÓN y 23 en PRUEBA, todos con debe = haber; 598 renglones, ninguno con
   debe y haber a la vez ni con los dos en cero; sin asientos huérfanos;

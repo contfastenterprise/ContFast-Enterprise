@@ -12,7 +12,16 @@ const registerTxSchema = z.object({
   amount: z.number().min(0.01),
   reference: z.string().optional(),
   description: z.string().optional(),
-  contraAccountId: z.string().uuid().optional()
+  // OBLIGATORIA desde el lote 137. Era opcional, y sin ella `registerTransaction`
+  // mueve el saldo del banco y SE SALTA EL ASIENTO -- en silencio, porque el
+  // bloque contable entero vive dentro de un `if (data.contraAccountId)`.
+  // Medido el 2026-09-15: las 8 transacciones bancarias de la empresa que opera
+  // (RD$3,99 M, seis de ellas ya marcadas como conciliadas) no tienen asiento
+  // ninguno. El formulario ya la exige (`<select required>`), asi que esto no
+  // cierra nada que hoy funcione: cierra la puerta de atras, para que un
+  // guion, otra pantalla o una llamada directa no puedan mover el banco sin
+  // que el mayor se entere.
+  contraAccountId: z.string().uuid({ message: 'Debe indicar la cuenta de contrapartida: sin ella el movimiento no se puede contabilizar.' })
 });
 
 export async function GET(req: NextRequest) {

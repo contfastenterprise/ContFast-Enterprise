@@ -38,18 +38,15 @@ function ok(t: string, c: boolean): void {
 // ─────────── 2. resolucionCuentas ───────────
 {
   const src = crudo('src/tests/resolucionCuentas.vitest.ts');
-  //  La lista solo puede encoger. El lote 136 saco `arRepository` (su asiento,
-  //  el del recibo de cobro, resuelve ya por `resolverCuentaPorMapeo`), asi que
-  //  queda uno. Se exige que los cinco migrados NO esten y que el que sigue con
-  //  deuda SI: si alguien reintroduce cualquiera de los cinco, esto muerde.
+  //  La lista solo puede encoger, y en el lote 137 llego a CERO: el 136 saco
+  //  `arRepository` y el 137 retiro la ruta gemela de movimientos bancarios,
+  //  que era la ultima. Ya no se enumeran los migrados uno a uno -- esa forma
+  //  hubo que tocarla en los dos lotes --: se fija la propiedad, que es que no
+  //  quede NINGUNA entrada. Si alguien añade una, esto muerde.
+  const entradas = (src.match(/^\s*'src\/[^']+':\s*\{ definiciones:/gm) || []).length;
   ok(
-    'resolucionCuentas: PENDIENTES suelta los 5 ficheros migrados y conserva el que tiene deuda real',
-    !src.includes("'src/app/api/v1/expenses/route.ts':") &&
-      !src.includes("'src/app/api/v1/expenses/[id]/route.ts':") &&
-      !src.includes("'src/services/expenseService.ts':") &&
-      !src.includes("'src/services/invoice/invoiceDbBooker.ts':") &&
-      !src.includes("'src/repositories/arRepository.ts':") &&
-      src.includes("'src/app/api/v1/bank/accounts/[id]/transactions/route.ts':")
+    `resolucionCuentas: PENDIENTES esta vacia, ninguna copia de getOrCreateAccount (${entradas} entradas)`,
+    entradas === 0
   );
   ok(
     'resolucionCuentas: la nota documenta lo que migro P0-05',

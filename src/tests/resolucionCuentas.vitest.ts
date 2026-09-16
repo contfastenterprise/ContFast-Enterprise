@@ -54,8 +54,17 @@ const sinComentarios = (fuente: string) =>
  * cuatro están hoy en 0 llamadas y sus entradas se han quitado de aquí.
  */
 const PENDIENTES: Record<string, { definiciones: number; llamadas: number }> = {
-  'src/app/api/v1/bank/accounts/[id]/transactions/route.ts': { definiciones: 1, llamadas: 2 },
-  // `arRepository` salio de esta lista en el lote 136: su asiento (el recibo
+  // VACIA desde el lote 137. No queda ninguna copia de `getOrCreateAccount` en
+  // el arbol: la ultima vivia en `bank/accounts/[id]/transactions/route.ts`, una
+  // ruta que no llamaba nadie y que contabilizaba TODOS los bancos contra el
+  // codigo fijo '1.1.01.02' (las cuentas reales de la empresa son 1.1.01.03 y
+  // 1.1.01.04) ademas de crear al vuelo 4.1.99 y 6.1.99, que no existen en
+  // ninguna empresa. Se retiro entera.
+  //
+  // La lista se deja aqui, vacia, a proposito: la prueba de arriba falla si
+  // aparece un fichero nuevo que no este en ella, asi que vacia significa
+  // "ninguna copia nueva, nunca mas".
+  // `arRepository` habia salido en el lote 136: su asiento (el recibo
   // de cobro) resuelve por `resolverCuentaPorMapeo`, con las mismas dos claves
   // que la facturacion (`cash` y `accounts_receivable`). Era el que caia en la
   // trampa peor: 1.1.01 y 1.1.02 son cuentas de AGRUPACION.

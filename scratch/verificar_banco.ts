@@ -34,7 +34,7 @@ import { db, bankAccounts } from '../src/db';
 import { sql, eq } from 'drizzle-orm';
 import { limpiar as limpiarTodo } from './_limpieza';
 import { BankRepository } from '../src/repositories/bankRepository';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { fuente, crudo } from './_fuente';
 
@@ -156,10 +156,13 @@ async function main() {
 
   console.log('\n7) Ya no queda ningun sitio que escriba el saldo a mano\n');
   const escritores: string[] = [];
+  // `bank/accounts/[id]/transactions/route.ts` estaba en esta lista y se
+  // retiro en el lote 137 (no la llamaba nadie). La propiedad que se vigila --
+  // que nadie escriba el saldo a mano -- no cambia; un fichero menos donde
+  // pueda aparecer.
   for (const f of [
     'src/repositories/bankRepository.ts',
     'src/services/apService.ts',
-    'src/app/api/v1/bank/accounts/[id]/transactions/route.ts',
   ]) {
     const s = fuente(f);
     const n = (s.match(/update\(bankAccounts\)/g) || []).length;
@@ -173,10 +176,15 @@ async function main() {
     /if \(modo === 'PRODUCCION'\)/.test(fuente('src/repositories/bankRepository.ts')));
 
   console.log('\n8) Las rutas y la herramienta del asistente\n');
-  const rutaTx = fuente('src/app/api/v1/bank/accounts/[id]/transactions/route.ts');
-  ok('el libro de banco de la ruta filtra entorno',
-    /eq\(bankTransactions\.modo, auth\.modo\)/.test(rutaTx));
-  ok('y tambien empresa', /eq\(bankTransactions\.companyId, auth\.companyId\)/.test(rutaTx));
+  // El libro de banco lo servia esa ruta retirada, con su propia consulta. La
+  // unica que queda es `BankRepository.getBankTransactions`, que la sirve a
+  // `/api/v1/bank/transactions`: ahi es donde tiene que filtrar ahora.
+  const repoBanco = fuente('src/repositories/bankRepository.ts');
+  ok('el libro de banco filtra entorno',
+    /eq\(bankTransactions\.modo, modo\)/.test(repoBanco));
+  ok('y tambien empresa', /eq\(bankTransactions\.companyId, companyId\)/.test(repoBanco));
+  ok('y la ruta que duplicaba ese libro ya no existe',
+    !existsSync('src/app/api/v1/bank/accounts/[id]/transactions/route.ts'));
   ok('las conciliaciones filtran entorno',
     /eq\(bankReconciliations\.modo, auth\.modo\)/.test(
       fuente('src/app/api/v1/bank/reconciliations/route.ts')));

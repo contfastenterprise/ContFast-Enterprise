@@ -24,7 +24,19 @@ export interface RegisterBankTransactionInput {
   amount: number;
   reference?: string;
   description?: string;
-  contraAccountId?: string; // The chart of account ID to offset the transaction
+  /**
+   * La cuenta contable de contrapartida. OBLIGATORIA desde el lote 137.
+   *
+   * Era opcional, y todo el bloque del asiento vivia dentro de un
+   * `if (data.contraAccountId)`: sin ella, el paso 3 movia el saldo del banco
+   * y el mayor no se enteraba. Es el mismo defecto (b) que esta documentado
+   * arriba -- "el `if` se saltaba el asiento EN SILENCIO" --, que se arreglo
+   * para el caso de la cuenta contable ausente pero seguia abierto para este.
+   *
+   * Medido el 2026-09-15: las 8 transacciones bancarias de la empresa que
+   * opera (RD$3,99 M, seis ya marcadas como conciliadas) no tienen asiento.
+   */
+  contraAccountId: string;
   /** Usuario que registra el movimiento. Auditoria JRN-16. */
   createdBy?: string;
 }
@@ -280,7 +292,19 @@ export class BankRepository {
       // Ahora: la cuenta sale del enlace explicito `bank_accounts.chart_account_id`
       // (migracion 0039), se valida la contrapartida, y el asiento pasa por el
       // motor central.
-      if (data.contraAccountId) {
+      // Y el defecto (b) queda cerrado del todo. Se arreglo para la cuenta
+      // contable ausente, pero el bloque entero seguia colgando de un
+      // `if (data.contraAccountId)`: sin contrapartida, el paso 3 ya habia
+      // movido el saldo y aqui no pasaba nada. Ahora se para antes, con el
+      // criterio de siempre en este repositorio: es preferible una operacion
+      // detenida que un saldo movido sin asiento.
+      if (!data.contraAccountId) {
+        throw new Error(
+          'Debe indicar la cuenta de contrapartida: sin ella el movimiento del banco ' +
+          'no se puede contabilizar y el mayor quedaria sin el asiento.'
+        );
+      }
+      {
         if (!account.chartAccountId) {
           throw new Error(
             `La cuenta bancaria "${account.bankName} ${account.accountNumber}" no tiene cuenta contable asignada, ` +

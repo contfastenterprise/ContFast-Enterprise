@@ -1,4 +1,17 @@
+import fs from 'fs';
+import path from 'path';
 import { fuente, crudo as crudoCrudo } from './_fuente';
+
+/** Todos los .ts de src, para las comprobaciones que barren el arbol. */
+function ficherosTs(dir: string, acc: string[] = []): string[] {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name === '.next') continue;
+    const p = path.join(dir, e.name).replace(/\\/g, '/');
+    if (e.isDirectory()) ficherosTs(p, acc);
+    else if (e.name.endsWith('.ts')) acc.push(p);
+  }
+  return acc;
+}
 
 // Normaliza CRLF -> LF antes de comparar: varios ficheros de este lote tienen
 // fin de linea CRLF (confirmado con `file`), y las comprobaciones multilinea
@@ -142,14 +155,24 @@ for (const [ruta, mensajeConsola] of [
 
 // ═══════════════════ bank/accounts/[id]/transactions/route.ts ═══════════════════
 {
-  const src = crudo('src/app/api/v1/bank/accounts/[id]/transactions/route.ts');
-  ok("bank/accounts/[id]/transactions: 0 ': any' (3 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('bank/.../transactions: importa DbTransaction de @/db',
-    src.includes("import { db, type DbTransaction, bankAccounts, bankTransactions, auditLogs, chartOfAccounts } from '@/db';"));
-  ok('bank/.../transactions: getOrCreateAccount(tx: DbTransaction, ...)',
-    src.includes('async function getOrCreateAccount(tx: DbTransaction, companyId: string'));
-  ok('bank/.../transactions: GET y POST catch status+code+message (const e = ...CAST)',
-    (src.match(new RegExp(`const e = error as ${CAST.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')};`, 'g')) || []).length === 2);
+  // Estas tres comprobaciones vigilaban los tipos de una ruta que el lote 137
+  // retiro entera: no la llamaba nadie, contabilizaba TODOS los bancos contra
+  // el codigo fijo '1.1.01.02' (las cuentas reales son 1.1.01.03 y 1.1.01.04)
+  // y creaba al vuelo 4.1.99 y 6.1.99, que no existen en ninguna empresa.
+  //
+  // La forma fuerte de lo que vigilaban -- "aqui no hay `any` ni se crean
+  // cuentas por codigo literal" -- es ahora mas simple: el fichero no esta, y
+  // con el se fue la ULTIMA copia de `getOrCreateAccount` del arbol. Se
+  // comprueban las dos cosas juntas, porque la ausencia sola seria cierta de
+  // balde si alguien moviera la funcion a otro sitio.
+  ok('la ruta duplicada de movimientos bancarios ya no existe',
+    !fs.existsSync('src/app/api/v1/bank/accounts/[id]/transactions/route.ts'));
+  ok('y no queda ninguna copia de getOrCreateAccount fuera del resolvedor',
+    ficherosTs('src').filter((f) =>
+      f !== 'src/services/accounting/resolverCuentas.ts'
+      && !f.startsWith('src/tests/')
+      && /(async function|static async)\s+getOrCreateAccount/.test(crudo(f))
+    ).length === 0);
 }
 
 // ═══════════════════ bank/accounts/route.ts ═══════════════════
