@@ -59,10 +59,18 @@ export default function MovementsPage() {
     try {
       const [whRes, prRes] = await Promise.all([
         fetch('/api/v1/warehouses').then(r => r.json()),
-        fetch('/api/v1/products?limit=1000').then(r => r.json()) // get mostly all for filter
+        // El desplegable de productos salia SIEMPRE VACIO, por dos motivos a la
+        // vez. Uno: `?limit=1000` no lo lee nadie -- la ruta lee `per_page`,
+        // con defecto 20 --, asi que llegaban 20 y no 1000. Dos, y este se lo
+        // comia todo: la respuesta es `{ data: [...] }` y aqui se leia
+        // `data.items`, que no existe, o sea `undefined`. Medido el
+        // 2026-09-15: 87 productos en el catalogo, CERO opciones en el filtro.
+        // Nadie podia filtrar los movimientos por producto, y el hueco no se
+        // ve: un desplegable vacio parece un desplegable sin datos.
+        fetch('/api/v1/products?per_page=1000').then(r => r.json())
       ]);
       if (whRes.success) setWarehouses(whRes.data);
-      if (prRes.success) setProducts(prRes.data.items || []);
+      if (prRes.success) setProducts(prRes.data || []);
     } catch (err) {
       console.error('Error loading filters dependencies', err);
     }

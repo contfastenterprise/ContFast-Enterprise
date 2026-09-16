@@ -354,16 +354,20 @@ Además, fuera de la tabla:
   encontró `scratch/_to_delete/medir_parametros_sordos.ts`, que cruza lo que
   manda cada llamada con lo que lee su ruta. **Queda para el contador**: si
   algún 606 se remitió con el TXT roto, el lote no lo arregla hacia atrás.
-- **`limit` contra `per_page`: mirar si queda algún sitio más.** El lote 110 lo
-  cerró en cotizaciones y el **132** lo encontró otra vez, peor, en códigos de
-  barras: `/api/v1/products?limit=100000` devolvía 20 filas (la API lee
-  `per_page`, defecto 20) y de ahí salían las tres tarjetas de la pantalla
-  **y** la lista de "TODOS los productos faltantes" del botón de autogenerar.
-  Medido el 2026-09-15: 87 productos, 30 con código; la pantalla decía 20 y 2,
-  y "Sin Código (Pendientes)" decía 18 de 57. **La forma del defecto es que un
-  parámetro que nadie lee no falla: devuelve la primera página en silencio.**
-  Al ver un `?limit=` o un `per_page=100000` en el navegador, comprobar qué
-  parámetro lee de verdad la ruta antes de fiarse.
+- **`limit` contra `per_page` — barrido cerrado en el lote 135, con trinquete.**
+  El lote 110 lo cerró en cotizaciones; el **132** lo encontró otra vez, peor,
+  en códigos de barras (`?limit=100000` devolvía 20 filas, y de ahí salían las
+  tres tarjetas **y** la lista de "TODOS los productos faltantes" del botón de
+  autogenerar: 18 de 57); el **134** acabó en el 606; el **135** barrió el
+  resto. **La forma del defecto es que un parámetro que nadie lee no falla:
+  devuelve la primera página en silencio**, y si eso alimenta un desplegable,
+  la opción que falta no deja hueco donde mirar. Lo peor que salió: el filtro
+  de productos de movimientos de inventario estaba **vacío del todo** (leía
+  `data.items`, que no existe), y la compra por reorden buscaba el producto
+  dentro de una página de 20 de 87, abriéndose vacía y callada para los otros
+  67. **Ya no hay que acordarse**: `scratch/verificar_listas_completas.ts`
+  ejecuta el barrido entero en cada verificación y solo tolera dos casos
+  anotados; el próximo parámetro sordo hace fallar el banco solo.
 
 ## 9. Antes de desplegar lo que ya está
 

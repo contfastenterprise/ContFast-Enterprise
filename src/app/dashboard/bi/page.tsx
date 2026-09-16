@@ -116,8 +116,13 @@ export default function BIDashboardPage() {
         const [whRes, catRes, custRes, suppRes, sellRes] = await Promise.all([
           fetch('/api/v1/warehouses'),
           fetch('/api/v1/categories'),
-          fetch('/api/v1/customers?per_page=100'),
-          fetch('/api/v1/suppliers?per_page=100'),
+          // Estas dos rutas paginan con `limit`/`offset`, no con `per_page`.
+          // Mandaban `per_page=100`, que nadie lee, y se llevaban el defecto de
+          // la ruta: 50. Hoy no muerde (14 clientes y 14 suplidores el
+          // 2026-09-15), pero el dia que pasen de 50 estos desplegables
+          // empezarian a esconder opciones sin que nada avise.
+          fetch('/api/v1/customers?limit=100'),
+          fetch('/api/v1/suppliers?limit=100'),
           fetch('/api/v1/admin/users').catch(() => null) // Suppress error if user doesn't have full admin user rights yet
         ]);
 

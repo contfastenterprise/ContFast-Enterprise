@@ -343,11 +343,20 @@ export default function PurchasesPage() {
         setIsGeneralAmount(false); // Ir a modo detalle de líneas
         setActiveTab('nuevo');
 
-        fetch('/api/v1/products')
+        // Esto pedia una PAGINA de productos y buscaba dentro el que se viene a
+        // reponer. Como la llamada no decia cuantos queria, la ruta mandaba su
+        // pagina por defecto: 20. Medido el 2026-09-15: 87 productos en el
+        // catalogo, asi que 67 de cada 87 NO estaban en esa pagina. Para esos,
+        // `find` no encontraba nada, no se añadia la linea y la compra se abria
+        // vacia -- sin aviso, porque el `if (prod)` no tenia `else`.
+        //
+        // Se pide el producto QUE ES. La ruta de un solo producto existe y es
+        // mas barata que traerse una pagina entera para buscar dentro.
+        fetch(`/api/v1/products/${reorderProductId}`)
           .then(r => r.json())
           .then(data => {
-            if (data.success && data.data) {
-              const prod = data.data.find((p: any) => p.id === reorderProductId);
+            {
+              const prod = data.success ? data.data : null;
               if (prod) {
                 const subtotal = Number(prod.cost || 0) * Number(reorderQty);
                 const newLine = {
@@ -362,10 +371,14 @@ export default function PurchasesPage() {
                 };
                 setLines([newLine]);
                 toast.success(`Producto ${prod.name} (Cant: ${reorderQty}) pre-cargado desde sugerencia de reorden.`);
+              } else {
+                // Antes esto era la rama vacia: la compra se abria sin linea y
+                // sin explicacion. Si el producto no se puede leer, se dice.
+                toast.error('No se pudo cargar el producto de la sugerencia de reorden. Añádelo a mano.');
               }
             }
           })
-          .catch(err => console.error("Error pre-loading reorder product", err));
+          .catch(() => toast.error('No se pudo cargar el producto de la sugerencia de reorden. Añádelo a mano.'));
       }
     }
   }, []);

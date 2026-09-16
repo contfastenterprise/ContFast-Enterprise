@@ -83,7 +83,10 @@ export default function InventoryAdjustmentsPage() {
     const delay = setTimeout(() => {
       if (searchQuery.length >= 2) {
         setSearching(true);
-        fetch(`/api/v1/products?search=${searchQuery}&limit=10`)
+        // `limit` no lo lee la ruta de productos: pedia 10 y llegaban 20, su
+        // defecto. No escondia nada, pero el numero escrito ahi no significaba
+        // nada; el parametro que se lee es `per_page`.
+        fetch(`/api/v1/products?search=${searchQuery}&per_page=10`)
           .then(r => r.json())
           .then(data => {
             if (data.success) setProducts(data.data.items || data.data || []);
