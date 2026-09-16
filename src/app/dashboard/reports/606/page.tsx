@@ -17,6 +17,7 @@ interface Expense {
 import { FileText, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
+import { vaEnElDetalle606 } from '@/services/dgii/formato606';
 
 export default function Report606() {
   const [period, setPeriod] = useState<string>(() => {
@@ -77,7 +78,9 @@ export default function Report606() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `606_${period}.txt`;
+      // El nombre lo pone el servidor (lote 144): DGII_F_606_<RNC>_<AAAAMM>.TXT.
+      const disposicion = res.headers.get('Content-Disposition') || '';
+      a.download = /filename="([^"]+)"/.exec(disposicion)?.[1] || `606_${period}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -148,6 +151,16 @@ export default function Report606() {
         </div>
       </div>
 
+      {/* Lote 144: las compras sin NCF no van al TXT (una linea del 606 sin NCF
+          no es valida). Se dicen aqui para que no desaparezcan sin que nadie lo
+          sepa: sustentarlas es cosa del contador. */}
+      {expenses.filter((e) => !vaEnElDetalle606(e)).length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 text-sm">
+          {expenses.filter((e) => !vaEnElDetalle606(e)).length} compra(s) de este período no tienen NCF y <strong>no van en el TXT</strong>.
+          Aparecen marcadas en la tabla.
+        </div>
+      )}
+
       {/* Table Container */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -178,7 +191,10 @@ export default function Report606() {
               ) : (
                 expenses.map((e) => (
                   <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-mono">{e.ncf}</td>
+                    <td className="px-6 py-4 font-mono">
+                      {e.ncf}
+                      {!vaEnElDetalle606(e) && <span className="block text-[10px] font-sans text-amber-700">Sin NCF: no va en el TXT</span>}
+                    </td>
                     <td className="px-6 py-4">{e.issueDate}</td>
                     <td className="px-6 py-4">
                       {expenseTypes.find((t) => t.value === e.expenseType)?.label ?? e.expenseType ?? '—'}

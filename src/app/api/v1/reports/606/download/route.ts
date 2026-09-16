@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { generate606Txt } from '@/services/expenseService';
+import { generate606Txt, rncDeLaEmpresa } from '@/services/expenseService';
+import { nombreFichero606 } from '@/services/dgii/formato606';
 
 /** GET: Return the generated 606 TXT file for download */
 export async function GET(req: NextRequest) {
@@ -29,11 +30,14 @@ export async function GET(req: NextRequest) {
     }
 
     const txtContent = await generate606Txt(companyId, period, auth.modo);
-    
+    // Lote 144: el nombre de la herramienta de la DGII, con el RNC. Llevaba el
+    // id interno de la empresa.
+    const rnc = (await rncDeLaEmpresa(companyId)) ?? '';
+
     // Merge resHeaders into the download headers
     const headers = new Headers(resHeaders);
-    headers.set('Content-Type', 'text/plain');
-    headers.set('Content-Disposition', `attachment; filename="606_${companyId}_${period}.txt"`);
+    headers.set('Content-Type', 'text/plain; charset=utf-8');
+    headers.set('Content-Disposition', `attachment; filename="${nombreFichero606(rnc, period)}"`);
     return new NextResponse(txtContent, { status: 200, headers });
   } catch (error: unknown) {
     console.error('Error generating 606 download:', error);

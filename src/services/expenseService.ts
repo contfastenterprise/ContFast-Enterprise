@@ -1,7 +1,8 @@
 // src/services/expenseService.ts
-import { eq, and, between } from 'drizzle-orm';
+import { eq, and, between, isNull, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { expenses } from '../db/schema';
+import { expenses, expenseLines, suppliers, companies } from '../db/schema';
+import { txtDel606, type Compra606 } from './dgii/formato606';
 import { accountsPayable } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 import { addStock } from './inventoryService';
@@ -254,27 +255,68 @@ export async function getExpenses(companyId: string, period: string, modo: 'PROD
         // NCF y su monto, indistinguibles de las reales. Es parametro
         // obligatorio para que ninguna llamada nueva pueda olvidarlo.
         eq(expenses.modo, modo),
-        between(expenses.issueDate, start, end)
+        between(expenses.issueDate, start, end),
+        // Lote 144: una compra borrada no es una compra. Entraba en el listado
+        // del 606 y en su TXT. Medido el 2026-09-16: cero borradas hoy.
+        isNull(expenses.deletedAt)
       )
     );
 }
 
-/** Generate the 606 TXT file content */
+/**
+ * El contenido del TXT del 606 del periodo.
+ *
+ * Lote 144: el fichero no cumplia el Anexo A de la NG 07-2018 en nada --
+ * cabecera sin RNC ni cantidad, detalle de ancho fijo sin separadores y con
+ * siete datos donde van 23, importes sin punto decimal. Lo arma ahora
+ * `dgii/formato606.ts`, donde estan escritas tambien las decisiones sobre las
+ * compras sin NCF, el reparto servicios/bienes y la fecha de pago.
+ */
 export async function generate606Txt(companyId: string, period: string, modo: 'PRODUCCION' | 'PRUEBA') {
   const rows = await getExpenses(companyId, period, modo);
-  const lines = rows.map((e) => {
-    const fields = [
-      (e.ncf || '').padEnd(19, ' '),
-      e.issueDate.replace(/-/g, ''),
-      e.paymentMethod.padStart(2, '0'),
-      Number(e.amount).toFixed(2).replace('.', ''),
-      Number(e.itbis).toFixed(2).replace('.', ''),
-      Number(e.itbisRetained).toFixed(2).replace('.', ''),
-      Number(e.isrRetained).toFixed(2).replace('.', ''),
-    ];
-    return fields.join('');
-  });
-  const header = `606|${companyId}|${period}\n`;
-  return header + lines.join('\n') + '\n';
+
+  const rncEmisor = await rncDeLaEmpresa(companyId);
+  if (!rncEmisor) throw new Error('Empresa no encontrada.');
+
+  // RNC de cada proveedor y lineas de cada compra, en una consulta cada uno.
+  const idsProveedor = [...new Set(rows.map((e) => e.supplierId).filter((id): id is string => !!id))];
+  const rncs = idsProveedor.length === 0 ? [] : await db
+    .select({ id: suppliers.id, rnc: suppliers.rnc })
+    .from(suppliers)
+    .where(and(eq(suppliers.companyId, companyId), inArray(suppliers.id, idsProveedor)));
+  const rncDe = new Map(rncs.map((s) => [s.id, s.rnc]));
+
+  const idsCompra = rows.map((e) => e.id);
+  const lineas = idsCompra.length === 0 ? [] : await db
+    .select({ expenseId: expenseLines.expenseId, productId: expenseLines.productId, subtotal: expenseLines.subtotal })
+    .from(expenseLines)
+    .where(inArray(expenseLines.expenseId, idsCompra));
+
+  const compras: Compra606[] = rows.map((e) => ({
+    ncf: e.ncf,
+    ncfModified: e.ncfModified,
+    supplierRnc: e.supplierId ? rncDe.get(e.supplierId) ?? null : null,
+    expenseType: e.expenseType,
+    issueDate: e.issueDate,
+    paymentDate: e.paymentDate,
+    paymentMethod: e.paymentMethod,
+    amount: e.amount,
+    itbis: e.itbis,
+    itbisRetained: e.itbisRetained,
+    itbisProportionality: e.itbisProportionality,
+    isrRetained: e.isrRetained,
+    isc: e.isc,
+    otherTaxes: e.otherTaxes,
+    tip: e.tip,
+    lineas: lineas.filter((l) => l.expenseId === e.id),
+  }));
+
+  return txtDel606({ rncEmisor, periodo: period, compras });
+}
+
+/** El RNC de la empresa, para el nombre del fichero. */
+export async function rncDeLaEmpresa(companyId: string): Promise<string | null> {
+  const [empresa] = await db.select({ rnc: companies.rnc }).from(companies).where(eq(companies.id, companyId)).limit(1);
+  return empresa?.rnc ?? null;
 }
 

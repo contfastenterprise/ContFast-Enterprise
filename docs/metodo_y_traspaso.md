@@ -403,7 +403,12 @@ Además, fuera de la tabla:
   solo** (JRN-11): **alguien tiene que pulsar el botón en cada empresa y en cada
   modo antes del 01/01/2027.** "periodo 2026" de Latin Doors sigue ahí, pisando
   septiembre a diciembre. Hallazgo sin tocar: el aviso de factura rechazada del
-  panel de inicio no puede salir nunca (la consulta excluye `rejected`). **El 606 tiene la misma cabecera
+  panel de inicio no puede salir nunca (la consulta excluye `rejected`).
+  **Lote 144: el TXT del 606 cumple el Anexo A** (`services/dgii/formato606.ts`):
+  antes era ancho fijo sin "|", 7 datos en vez de 23 e importes ×100. Sin NCF no
+  va (decisión del dueño). Servicios/bienes y fecha de pago con la recomendación
+  aplicada (cambian en ese módulo). Quedan en blanco, porque el sistema no los
+  registra: ITBIS llevado al costo y tipo de retención ISR. **El 606 tiene la misma cabecera
   mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
