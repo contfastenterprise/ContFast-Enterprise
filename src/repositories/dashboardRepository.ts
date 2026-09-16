@@ -78,19 +78,38 @@ export class DashboardRepository {
       if (inv.status === 'draft' || inv.status === 'submitted') {
         pendingDgii++;
       }
+    }
 
-      // Alerts
-      if (inv.status === 'rejected') {
-        alertCount++;
-        alertsDetails.push({
-          id: inv.id,
-          type: 'invoice_rejected',
-          title: `Factura ${inv.ncf || 'sin NCF'} rechazada`,
-          description: inv.dgiiMessage || 'Error de validación en la DGII',
-          actionText: 'Revisar Factura',
-          actionLink: `/dashboard/invoices/${inv.id}`
-        });
-      }
+    // Lote 148: el aviso de comprobante rechazado vivia DENTRO del bucle de
+    // arriba, sobre facturas pedidas con `status IN ('accepted', 'signed',
+    // 'submitted')`. Una rechazada no podia llegar nunca, y el aviso no salio
+    // jamas. Medido el 2026-09-16: dos e-44 rechazadas en PRUEBA sin aviso. Van
+    // con su propia consulta; la de arriba sigue siendo la de las ventas.
+    const rechazados = await db.select({
+      id: invoices.id,
+      ncf: invoices.ncf,
+      dgiiMessage: invoices.dgiiMessage,
+    }).from(invoices)
+    .where(
+      withTenantMode(
+        invoices,
+        ctx,
+        eq(invoices.status, 'rejected'),
+        isNull(invoices.deletedAt)
+      )
+    )
+    .orderBy(desc(invoices.createdAt));
+
+    for (const inv of rechazados) {
+      alertCount++;
+      alertsDetails.push({
+        id: inv.id,
+        type: 'invoice_rejected',
+        title: `Factura ${inv.ncf || 'sin NCF'} rechazada`,
+        description: inv.dgiiMessage || 'Error de validación en la DGII',
+        actionText: 'Revisar Factura',
+        actionLink: `/dashboard/invoices/${inv.id}`
+      });
     }
 
     let invoicesTodayChangePct = 0;
