@@ -66,6 +66,12 @@ interface ECFStats {
   byType: Record<string, { count: number; amount: string }>;
   byStatus: Record<string, number>;
   approvalRate: number;
+  /**
+   * Comprobantes en `signed` o `submitted` mas viejos que el umbral, SIN
+   * filtro de fechas: uno atascado importa lo mismo sea de este mes o de
+   * julio. Ver el comentario de `api/v1/ecf/stats`.
+   */
+  sinDesenlace?: { total: number; horasDelMasViejo: number; umbralHoras: number };
 }
 
 interface Submission {
@@ -842,6 +848,38 @@ function ComprobantesTab() {
 
   return (
     <div className="space-y-6">
+      {/* COMPROBANTES SIN DESENLACE.
+          La escalera del lote 102 persigue el veredicto unos 9 minutos; pasado
+          eso no queda nadie preguntando, porque el cron que barre los
+          pendientes es configuracion y mientras falte no corre. Un comprobante
+          atascado se quedaba en la lista sin distinguirse de los demas: medido
+          el 2026-09-15, uno llevaba 13 dias en `submitted`.
+          El boton no reenvia -- eso duplicaria un comprobante fiscal -- : filtra
+          la lista para poder consultarles el estado uno a uno. */}
+      {!loadingStats && (stats?.sinDesenlace?.total ?? 0) > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-900">
+              <span className="font-bold">
+                {stats!.sinDesenlace!.total} comprobante{stats!.sinDesenlace!.total === 1 ? '' : 's'} sin respuesta de la DGII
+              </span>
+              <span className="block text-xs text-amber-800 mt-0.5">
+                El más antiguo lleva {stats!.sinDesenlace!.horasDelMasViejo} h. La DGII contesta en segundos:
+                pasado ese tiempo, nadie vuelve a preguntar por su cuenta.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setFilters((f) => ({ ...f, status: 'submitted' })); setPage(1); }}
+            className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
+          >
+            Ver cuáles son
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards Premium Light */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {loadingStats

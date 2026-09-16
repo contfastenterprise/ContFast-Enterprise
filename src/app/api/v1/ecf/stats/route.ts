@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices } from '@/db';
-import { eq, and, isNull, gte, lte, sum, count, sql } from 'drizzle-orm';
+import { eq, and, isNull, gte, lte, sum, count, sql, inArray } from 'drizzle-orm';
 
 function getDRCurrentDateParts() {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -103,6 +103,45 @@ export async function GET(req: NextRequest) {
       byType[r.ecfType] = { count: Number(r.cnt), amount: r.amount || '0' };
     });
 
+    // COMPROBANTES SIN DESENLACE.
+    //
+    // La DGII acepta o rechaza en decimas de segundo, y desde el lote 102 la
+    // propia factura persigue su veredicto con una escalera que alcanza unos 9
+    // minutos. Pasado eso no queda nadie preguntando: el cron que barre los
+    // pendientes existe pero es configuracion (CRON_SECRET), no codigo, y
+    // mientras falte no corre. Un comprobante que no se resolvio en esos 9
+    // minutos se queda como esta, para siempre, y en la lista no se distingue
+    // de los demas.
+    //
+    // Medido el 2026-09-15: `E340000000002` llevaba 316 horas -- 13 dias -- en
+    // `submitted`, sin que nada lo señalara.
+    //
+    // `signed` cuenta tambien, y es peor: significa emitida en local con su NCF
+    // y NUNCA enviada. `draft` no cuenta: todavia no es un comprobante.
+    //
+    // SIN FILTRO DE FECHAS, a proposito. El resto de estas estadisticas son del
+    // periodo que se este mirando; un comprobante atascado importa lo mismo sea
+    // de este mes o de julio, y limitarlo al periodo lo escondería justo cuando
+    // mas lleva sin resolverse.
+    const HORAS_SIN_DESENLACE = 1;
+    const limite = new Date(Date.now() - HORAS_SIN_DESENLACE * 60 * 60 * 1000);
+    const [atascadosRow] = await db
+      .select({
+        total: count(),
+        masViejo: sql<Date | null>`min(${invoices.createdAt})`,
+      })
+      .from(invoices)
+      .where(and(
+        eq(invoices.companyId, auth.companyId),
+        eq(invoices.modo, auth.modo),
+        isNull(invoices.deletedAt),
+        inArray(invoices.status, ['signed', 'submitted']),
+        lte(invoices.createdAt, limite)
+      ));
+
+    const atascadosTotal = Number(atascadosRow?.total || 0);
+    const masViejo = atascadosRow?.masViejo ? new Date(atascadosRow.masViejo) : null;
+
     const totalCountNum = Number(totals?.totalCount || 0);
     const acceptedCount = byStatus['accepted'] || 0;
     const approvalRate = totalCountNum > 0 ? Math.round((acceptedCount / totalCountNum) * 100) : 0;
@@ -117,6 +156,13 @@ export async function GET(req: NextRequest) {
           byType,
           byStatus,
           approvalRate,
+          sinDesenlace: {
+            total: atascadosTotal,
+            horasDelMasViejo: masViejo
+              ? Math.floor((Date.now() - masViejo.getTime()) / (60 * 60 * 1000))
+              : 0,
+            umbralHoras: HORAS_SIN_DESENLACE,
+          },
           period: {
             from: from.toISOString(),
             to: to.toISOString(),

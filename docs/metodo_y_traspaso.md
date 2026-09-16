@@ -345,6 +345,15 @@ Además, fuera de la tabla:
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
   `as any` techo **0** tras los lotes 124-126. El 126 dejó un solo `ioredis`, el que fija bullmq (`verificar_ioredis_unico.ts` avisa si al actualizar bullmq se vuelven a separar). En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
 - ~~`QuoteService.getQuotes`: tres consultas en serie~~ **Hecho en el lote 127** (`Promise.all`).
+- **El núcleo fiscal, medido el 2026-09-15 (lote 138): casi limpio.** Ningún NCF
+  repetido, ninguna factura emitida sin NCF, 51 aceptadas y 1 rechazada en
+  PRODUCCIÓN. Lo único: **`E340000000002` llevaba 316 horas (13 días) en
+  `submitted`**. La escalera del lote 102 persigue ~9 minutos y después no queda
+  nadie preguntando, porque el cron es configuración y no corre. El lote 138 no
+  sustituye al cron: hace que el atasco **se vea** (aviso en la pantalla de e-CF
+  con cuántos hay y cuánto lleva el más antiguo, y un botón que filtra la lista).
+  El aviso **no reenvía** a propósito: un `submitted` sí salió y reenviarlo
+  duplicaría un comprobante fiscal.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la
