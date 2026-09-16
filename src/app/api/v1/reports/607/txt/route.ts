@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
-import { db, invoices, customers, invoiceRetentions } from '@/db';
+import { db, invoices, customers, invoiceRetentions, companies } from '@/db';
 import { eq, and, isNull, gte, lte, inArray, notInArray } from 'drizzle-orm';
 import { ESTADOS_FUERA_DEL_607 } from '@/services/dgii/estadosReportables';
+import { txtDel607, nombreFichero607, type RetencionDeVenta607 } from '@/services/dgii/formato607';
 
 /** GET: Return the generated 607 TXT file for download */
 export async function GET(req: NextRequest) {
@@ -26,10 +27,21 @@ export async function GET(req: NextRequest) {
     if (!period) {
       return NextResponse.json({ success: false, error: { message: 'Faltan parámetros.' } }, { status: 400 });
     }
-    
+
     // Authorization
     if (auth.role !== 'sistemas' && auth.companyId !== companyId) {
       return NextResponse.json({ success: false, error: { message: 'No autorizado' } }, { status: 403 });
+    }
+
+    // Lote 142: la cabecera del 607 lleva el RNC de quien remite (Anexo B de
+    // la NG 07-2018). Salia el id interno de la empresa.
+    const [empresa] = await db
+      .select({ rnc: companies.rnc })
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .limit(1);
+    if (!empresa) {
+      return NextResponse.json({ success: false, error: { message: 'Empresa no encontrada.' } }, { status: 404 });
     }
 
     const [year, month] = period.split('-');
@@ -72,7 +84,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch retentions for these invoices
     const invoiceIds = list.map((inv) => inv.id);
-    const retMap: Record<string, any[]> = {};
+    const retMap: Record<string, RetencionDeVenta607[]> = {};
 
     if (invoiceIds.length > 0) {
       const allRet = await db
@@ -88,102 +100,18 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const formatAmount = (val: number | string) => {
-      const num = parseFloat(String(val));
-      if (isNaN(num) || num <= 0) return '';
-      return num.toFixed(2).replace('.', '');
-    };
-
-    const txtLines = list.map((inv) => {
-      const rnc = (inv.customerRnc || '').replace(/\D/g, '').substring(0, 11);
-      const idTipo = rnc.length === 9 ? '1' : rnc.length === 11 ? '2' : '3';
-      const ncf = inv.ncf.trim();
-      const ncfModified = '';
-      const tipoIngreso = '01'; // Standard: Ingresos por operaciones (financieros/ventas)
-      const fechaFactura = inv.createdAt.toISOString().substring(0, 10).replace(/-/g, '');
-      
-      // Retentions calculations
-      const itemRets = retMap[inv.id] || [];
-      const itbisRet = itemRets.filter(r => r.retentionType === 'ITBIS').reduce((acc, curr) => acc + parseFloat(curr.retentionAmount), 0);
-      const isrRet = itemRets.filter(r => r.retentionType === 'ISR').reduce((acc, curr) => acc + parseFloat(curr.retentionAmount), 0);
-      const otrasRet = itemRets.filter(r => r.retentionType === 'OTRA').reduce((acc, curr) => acc + parseFloat(curr.retentionAmount), 0);
-
-      let fechaRet = '';
-      if (itemRets.length > 0) {
-        const firstRet = itemRets[0];
-        if (firstRet.retentionDate) {
-          fechaRet = firstRet.retentionDate.replace(/-/g, '');
-        } else {
-          fechaRet = fechaFactura;
-        }
-      }
-
-      // Amounts
-      const subtotalVal = parseFloat(inv.subtotal);
-      const discountVal = parseFloat(inv.discount);
-      const montoFacturado = subtotalVal - discountVal;
-      const itbisFacturado = parseFloat(inv.totalTaxes);
-
-      // Net amount due / paid
-      const totalNetVal = parseFloat(inv.totalNet || inv.total);
-
-      // Payment Types columns
-      let efectivo = '';
-      let chequeTransferencia = '';
-      let tarjeta = '';
-      let credito = '';
-      let bonos = '';
-      let permuta = '';
-      let otrasFormas = '';
-
-      if (inv.paymentType === 'cash') {
-        efectivo = formatAmount(totalNetVal);
-      } else if (inv.paymentType === 'bank_transfer') {
-        chequeTransferencia = formatAmount(totalNetVal);
-      } else if (inv.paymentType === 'credit') {
-        credito = formatAmount(totalNetVal);
-      } else {
-        tarjeta = formatAmount(totalNetVal);
-      }
-
-      // Format row matching DGII 607 specs (27 columns)
-      return [
-        rnc,                                  // Column 1: RNC/Cédula
-        idTipo,                               // Column 2: Tipo Identificación
-        ncf,                                  // Column 3: NCF
-        ncfModified,                          // Column 4: NCF Modificado
-        tipoIngreso,                          // Column 5: Tipo Ingreso
-        fechaFactura,                         // Column 6: Fecha Comprobante
-        fechaRet,                             // Column 7: Fecha Retención
-        formatAmount(montoFacturado),         // Column 8: Monto Facturado
-        formatAmount(itbisFacturado),         // Column 9: ITBIS Facturado
-        formatAmount(itbisRet),               // Column 10: ITBIS Retenido por Terceros
-        '',                                   // Column 11: ITBIS Sujeto a Proporcionalidad
-        '',                                   // Column 12: ITBIS Retenido por Presunción
-        '',                                   // Column 13: ITBIS Llevado al Costo
-        '',                                   // Column 14: ITBIS por Adelantar
-        '',                                   // Column 15: ITBIS Percibido
-        formatAmount(isrRet),                 // Column 16: Retención Renta por Terceros / ISR
-        '',                                   // Column 17: ISR Percibido
-        '',                                   // Column 18: Impuesto Selectivo al Consumo
-        formatAmount(otrasRet),               // Column 19: Otros Impuestos/Tasas
-        '',                                   // Column 20: Propina Legal
-        efectivo,                             // Column 21: Efectivo
-        chequeTransferencia,                  // Column 22: Cheque/Transferencia
-        tarjeta,                              // Column 23: Tarjeta
-        credito,                              // Column 24: Crédito
-        bonos,                                // Column 25: Bonos/Cupones
-        permuta,                              // Column 26: Permuta
-        otrasFormas,                          // Column 27: Otras formas de venta
-      ].join('|');
+    // Lote 142: el fichero lo arma `formato607.ts`, conforme al Anexo B --
+    // cabecera con RNC y cantidad, 23 campos, importes con punto decimal.
+    // Ver alli lo que cambio y lo que se conserva a proposito.
+    const txtContent = txtDel607({
+      rncEmisor: empresa.rnc,
+      periodo: period,
+      comprobantes: list.map((inv) => ({ ...inv, retenciones: retMap[inv.id] || [] })),
     });
-
-    const header = `607|${companyId}|${period.replace('-', '')}\n`;
-    const txtContent = header + txtLines.join('\n') + (txtLines.length > 0 ? '\n' : '');
 
     const headers = new Headers();
     headers.set('Content-Type', 'text/plain; charset=utf-8');
-    headers.set('Content-Disposition', `attachment; filename="607_${companyId}_${period}.txt"`);
+    headers.set('Content-Disposition', `attachment; filename="${nombreFichero607(empresa.rnc, period)}"`);
 
     return new NextResponse(txtContent, { headers, status: 200 });
   } catch (error: unknown) {

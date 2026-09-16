@@ -78,7 +78,10 @@ export default function Report607() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `607_${period}.txt`;
+      // El nombre lo pone el servidor (lote 142): el de la herramienta de la
+      // DGII, DGII_F_607_<RNC>_<AAAAMM>.TXT. Aqui se pisaba con uno propio.
+      const disposicion = res.headers.get('Content-Disposition') || '';
+      a.download = /filename="([^"]+)"/.exec(disposicion)?.[1] || `607_${period}.txt`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {

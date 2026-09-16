@@ -383,9 +383,15 @@ Además, fuera de la tabla:
   una venta. **Antes de desplegar**: "Consultar estado" en la 0059 (pasa a
   aceptada; envía el correo de aceptada si el cliente tiene email). La nota de
   crédito que la anule es del contador. Las e-32 de consumo se verifican en
-  `fc.dgii.gov.do`, no en `ecf.dgii.gov.do`. Pendientes en el TXT del 607, sin
-  medir: cabecera con el id interno en vez del RNC, NCF modificado siempre
-  vacío, y fecha en UTC.
+  `fc.dgii.gov.do`, no en `ecf.dgii.gov.do`.
+  **Lote 142: el TXT del 607 cumple el Anexo B de la NG 07-2018** (cabecera
+  `607|RNC|AAAAMM|cantidad`, 23 campos, importes con punto decimal), armado en
+  `services/dgii/formato607.ts`. Antes: id interno en la cabecera, 27 columnas
+  y los importes sin punto (×100). **Pendientes del 607, cada uno a medir**:
+  NCF modificado vacío en las notas de crédito, fecha en UTC, tipo de
+  identificación "3" con RNC vacío, y las facturas de consumo menores de
+  RD$250.000 (NG 10-18) que no deberían ir. **El 606 tiene la misma cabecera
+  mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la
