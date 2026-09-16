@@ -4,6 +4,7 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
 import { eq, and, isNull, gte, lte, desc, notInArray } from 'drizzle-orm';
 import { ESTADOS_FUERA_DEL_607 } from '@/services/dgii/estadosReportables';
+import { resumenFacturasConsumo607 } from '@/services/dgii/formato607';
 
 /**
  * GET /api/v1/reports/sales-book - e-CF Sales Book report (DGII Formato 607 equivalent)
@@ -103,6 +104,10 @@ export async function GET(req: NextRequest) {
             totalRetained,
             totalNet,
           },
+          // Lote 143: lo que se declara en el modulo "Resumen General de
+          // Facturas de Consumo" de la Oficina Virtual (NG 07-2018, art. 4,
+          // parrafo I). Las de consumo por debajo del umbral no van en el TXT.
+          resumenFacturasConsumo: resumenFacturasConsumo607(list),
           invoices: list,
         },
       },

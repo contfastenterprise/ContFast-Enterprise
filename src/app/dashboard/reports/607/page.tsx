@@ -20,6 +20,9 @@ import { FileText, Download, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { motivoDeCarga } from '@/components/ui/estado-carga';
 import { formatDateDisplay, ultimoDiaDelMes } from '@/utils/fechasLocales';
+import { vaEnElDetalle607, UMBRAL_FACTURA_CONSUMO_607, type ResumenFacturasConsumo607 } from '@/services/dgii/formato607';
+
+const RESUMEN_VACIO: ResumenFacturasConsumo607 = { cantidad: 0, montoFacturado: 0, itbisFacturado: 0, total: 0 };
 
 export default function Report607() {
   const [period, setPeriod] = useState<string>(() => {
@@ -29,6 +32,7 @@ export default function Report607() {
   });
   const [invoices, setInvoices] = useState<InvoiceSale[]>([]);
   const [totals, setTotals] = useState({ subtotal: 0, itbis: 0, total: 0 });
+  const [resumenConsumo, setResumenConsumo] = useState<ResumenFacturasConsumo607>(RESUMEN_VACIO);
 
   const fetchSales = async () => {
     try {
@@ -48,6 +52,7 @@ export default function Report607() {
           itbis: data.data.summary.itbis || 0,
           total: data.data.summary.total || 0,
         });
+        setResumenConsumo(data.data.resumenFacturasConsumo || RESUMEN_VACIO);
       }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -138,6 +143,24 @@ export default function Report607() {
         </div>
       </div>
 
+      {/* Resumen General de Facturas de Consumo (lote 143). NG 07-2018, art. 4:
+          las de consumo por debajo del umbral NO van en el TXT; su total se
+          declara en este modulo de la Oficina Virtual, y sin estas cifras esas
+          ventas desaparecian de la declaracion. */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <p className="text-[#003366] font-bold">Resumen General de Facturas de Consumo (Oficina Virtual)</p>
+        <p className="text-slate-500 text-xs mt-1 mb-4">
+          Las facturas de consumo de menos de RD$ {UMBRAL_FACTURA_CONSUMO_607.toLocaleString('es-DO')} no van en el TXT del 607.
+          Al remitirlo, complete este módulo con estas cifras (incluyen todas las facturas de consumo del período).
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div><p className="text-slate-500 text-xs font-semibold">Cantidad de NCF</p><p className="text-xl font-bold text-[#003366] font-mono">{resumenConsumo.cantidad}</p></div>
+          <div><p className="text-slate-500 text-xs font-semibold">Monto facturado</p><p className="text-xl font-bold text-[#003366] font-mono">{resumenConsumo.montoFacturado.toFixed(2)}</p></div>
+          <div><p className="text-slate-500 text-xs font-semibold">ITBIS facturado</p><p className="text-xl font-bold text-[#003366] font-mono">{resumenConsumo.itbisFacturado.toFixed(2)}</p></div>
+          <div><p className="text-slate-500 text-xs font-semibold">Total</p><p className="text-xl font-bold text-[#003366] font-mono">{resumenConsumo.total.toFixed(2)}</p></div>
+        </div>
+      </div>
+
       {/* Table Container */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -163,7 +186,10 @@ export default function Report607() {
                 invoices.map((e) => (
                   <tr key={e.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">{formatDateDisplay(e.createdAt)}</td>
-                    <td className="px-6 py-4 font-mono">{e.ncf}</td>
+                    <td className="px-6 py-4 font-mono">
+                      {e.ncf}
+                      {!vaEnElDetalle607(e) && <span className="block text-[10px] font-sans text-slate-400">Solo en el resumen de consumo</span>}
+                    </td>
                     <td className="px-6 py-4">
                       {e.customerName || 'Consumidor Final'} {e.customerRnc ? <span className="text-xs text-slate-400 block">{e.customerRnc}</span> : ''}
                     </td>

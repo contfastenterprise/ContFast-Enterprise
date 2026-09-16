@@ -27,12 +27,71 @@
  *   - Campo 4, NCF modificado: sigue vacio, tambien en las notas de credito.
  *   - Campo 6, fecha: sale de `toISOString()`, en UTC.
  *   - Campo 5, tipo de ingreso: '01'.
- *   - Campo 2 con RNC vacio: '3' (pasaporte). Y las facturas de consumo van
- *     todas, cuando el instructivo solo pide las de RD$250.000 o mas.
+ *   - Campo 2 con RNC vacio: '3' (pasaporte).
  *   - Campo 15, otros impuestos o tasas: recibe las retenciones de tipo OTRA,
  *     como antes. Medido: cero retenciones en ventas en toda la base.
  * Este modulo cambia la FORMA del fichero, no lo que se decide declarar.
  */
+
+/*
+ * FACTURAS DE CONSUMO (lote 143)
+ * ------------------------------
+ * NG 07-2018, art. 4: en el detalle del 607 van las facturas de credito fiscal y
+ * los comprobantes especiales; las de CONSUMO "solo cuando tengan un valor igual
+ * o superior" al umbral, que la NG 10-18 fijo en RD$250.000 desde julio de 2018.
+ * Y el parrafo I: el total de TODAS las de consumo, incluidas las que superan el
+ * umbral, se declara aparte, "a modo de resumen", en el modulo "Resumen General
+ * de Facturas de Consumo (F.C.)" de la Oficina Virtual.
+ *
+ * El TXT las metia todas. Medido el 2026-09-16: 31 e-32 en PRODUCCION de julio
+ * a septiembre, la mayor de 147.256,81, todas sin RNC -- en el detalle con
+ * identificacion vacia y tipo 3. Ninguna debia ir.
+ *
+ * Dos lecturas que decide el contador, y que hoy no mueven ningun caso:
+ *   - "valor": se toma el TOTAL del comprobante. Medido: ninguna e-32 entre
+ *     200.000 y 300.000, asi que da igual con o sin ITBIS.
+ *   - Las notas de credito o debito sobre una factura de consumo que no va en el
+ *     detalle: la norma no lo dice y NO se tocan (siguen en el detalle, como
+ *     antes). Medido: una sola, en PRUEBA.
+ */
+
+/** Umbral de la NG 10-18 para que una factura de consumo vaya en el detalle del 607. */
+export const UMBRAL_FACTURA_CONSUMO_607 = 250000;
+
+/** Tipos de comprobante que son facturas de consumo. En e-CF, solo la e-32. */
+export const TIPOS_FACTURA_CONSUMO = ['32'];
+
+export const esFacturaDeConsumo = (ecfType: string): boolean => TIPOS_FACTURA_CONSUMO.includes(ecfType);
+
+/** Si el comprobante va en el detalle del TXT del 607. */
+export function vaEnElDetalle607(c: { ecfType: string; total: string | number }): boolean {
+  if (!esFacturaDeConsumo(c.ecfType)) return true;
+  return parseFloat(String(c.total)) >= UMBRAL_FACTURA_CONSUMO_607;
+}
+
+export interface ResumenFacturasConsumo607 {
+  /** Cantidad de NCF de facturas de consumo emitidas en el periodo. */
+  cantidad: number;
+  /** Monto facturado, sin ITBIS (subtotal menos descuento). */
+  montoFacturado: number;
+  itbisFacturado: number;
+  total: number;
+}
+
+/** El resumen del parrafo I: TODAS las facturas de consumo, superen o no el umbral. */
+export function resumenFacturasConsumo607(
+  comprobantes: Array<{ ecfType: string; subtotal: string | number; discount: string | number; totalTaxes: string | number; total: string | number }>
+): ResumenFacturasConsumo607 {
+  const n = (v: string | number) => parseFloat(String(v)) || 0;
+  const redondeo = (v: number) => Math.round(v * 100) / 100;
+  const deConsumo = comprobantes.filter((c) => esFacturaDeConsumo(c.ecfType));
+  return {
+    cantidad: deConsumo.length,
+    montoFacturado: redondeo(deConsumo.reduce((s, c) => s + n(c.subtotal) - n(c.discount), 0)),
+    itbisFacturado: redondeo(deConsumo.reduce((s, c) => s + n(c.totalTaxes), 0)),
+    total: redondeo(deConsumo.reduce((s, c) => s + n(c.total), 0)),
+  };
+}
 
 export interface RetencionDeVenta607 {
   retentionType: string;
@@ -42,6 +101,7 @@ export interface RetencionDeVenta607 {
 
 export interface Comprobante607 {
   ncf: string;
+  ecfType: string;
   subtotal: string | number;
   discount: string | number;
   totalTaxes: string | number;
@@ -136,9 +196,13 @@ export function lineaDetalle607(c: Comprobante607): string {
   return campos.join('|');
 }
 
-/** El fichero entero: cabecera, detalle, y salto final si hay detalle. */
+/**
+ * El fichero entero: cabecera, detalle, y salto final si hay detalle. Las
+ * facturas de consumo por debajo del umbral no van (lote 143): se declaran en
+ * el resumen de la Oficina Virtual, y la cabecera cuenta solo lo que va.
+ */
 export function txtDel607(p: { rncEmisor: string; periodo: string; comprobantes: Comprobante607[] }): string {
-  const lineas = p.comprobantes.map(lineaDetalle607);
+  const lineas = p.comprobantes.filter(vaEnElDetalle607).map(lineaDetalle607);
   const cabecera = cabecera607(p.rncEmisor, p.periodo, lineas.length);
   return cabecera + '\n' + lineas.join('\n') + (lineas.length > 0 ? '\n' : '');
 }

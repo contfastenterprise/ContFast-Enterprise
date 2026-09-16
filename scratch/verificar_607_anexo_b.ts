@@ -27,8 +27,10 @@ const exige = (t: string, c: boolean, d = '') => {
 };
 
 type Ret = { retentionType: string; retentionAmount: string; retentionDate: string | null };
-const comprobante = (o: Partial<{ ncf: string; subtotal: string; discount: string; totalTaxes: string; total: string; totalNet: string | null; paymentType: string; createdAt: Date; customerRnc: string | null; retenciones: Ret[] }>) => ({
-  ncf: 'E310000000020', subtotal: '11534.46', discount: '0.00', totalTaxes: '2076.20', total: '13610.66', totalNet: '13610.66',
+//  `ecfType` entro en el lote 143 (las e-32 pequeñas no van al detalle). Todos
+//  los de este banco son de credito fiscal: lo que se mide aqui son columnas.
+const comprobante = (o: Partial<{ ncf: string; ecfType: string; subtotal: string; discount: string; totalTaxes: string; total: string; totalNet: string | null; paymentType: string; createdAt: Date; customerRnc: string | null; retenciones: Ret[] }>) => ({
+  ncf: 'E310000000020', ecfType: '31', subtotal: '11534.46', discount: '0.00', totalTaxes: '2076.20', total: '13610.66', totalNet: '13610.66',
   paymentType: 'credit', createdAt: new Date('2026-08-01T17:56:53.110Z'), customerRnc: '131-20461-9', retenciones: [] as Ret[], ...o,
 });
 
@@ -57,7 +59,7 @@ async function main() {
 
   const lote = [
     comprobante({}),
-    comprobante({ ncf: 'E320000000060', paymentType: 'cash', customerRnc: null, subtotal: '1000.00', totalTaxes: '180.00', total: '1180.00', totalNet: '1180.00' }),
+    comprobante({ ncf: 'E310000000061', paymentType: 'cash', customerRnc: null, subtotal: '1000.00', totalTaxes: '180.00', total: '1180.00', totalNet: '1180.00' }),
     comprobante({ ncf: 'E310000000030', paymentType: 'bank_transfer', customerRnc: '001-1234567-8', retenciones: [
       { retentionType: 'ISR', retentionAmount: '115.34', retentionDate: '2026-08-15' },
       { retentionType: 'ITBIS', retentionAmount: '622.86', retentionDate: '2026-08-15' },

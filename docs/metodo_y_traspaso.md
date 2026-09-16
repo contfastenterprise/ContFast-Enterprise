@@ -388,9 +388,14 @@ Además, fuera de la tabla:
   `607|RNC|AAAAMM|cantidad`, 23 campos, importes con punto decimal), armado en
   `services/dgii/formato607.ts`. Antes: id interno en la cabecera, 27 columnas
   y los importes sin punto (×100). **Pendientes del 607, cada uno a medir**:
-  NCF modificado vacío en las notas de crédito, fecha en UTC, tipo de
-  identificación "3" con RNC vacío, y las facturas de consumo menores de
-  RD$250.000 (NG 10-18) que no deberían ir. **El 606 tiene la misma cabecera
+  NCF modificado vacío en las notas de crédito, fecha en UTC y tipo de
+  identificación "3" con RNC vacío.
+  **Lote 143: las facturas de consumo (e-32) de menos de RD$250.000 salen del
+  TXT** (NG 07-2018 art. 4 y NG 10-18), y la pantalla del 607 da el **Resumen
+  General de Facturas de Consumo** para el módulo de la Oficina Virtual. En
+  PRODUCCIÓN eran las 31 e-32 de jul–sep. Queda para el contador: si el umbral
+  mira el total o el monto sin ITBIS, y qué hacer con las notas de crédito sobre
+  una factura de consumo que no va en el detalle (hoy siguen dentro). **El 606 tiene la misma cabecera
   mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
