@@ -34,11 +34,16 @@ const comprobante = (o: Partial<{ ncf: string; ecfType: string; subtotal: string
   paymentType: 'credit', createdAt: new Date('2026-08-01T17:56:53.110Z'), customerRnc: '131-20461-9', retenciones: [] as Ret[], ...o,
 });
 
-/** Campos 1 a 7 como los armaba la ruta antes del lote (HEAD 9680477). */
+/**
+ * Campos 1 a 7 como los armaba la ruta antes del lote 142 (HEAD 9680477), con
+ * lo que el lote 147 cambio A PROPOSITO: sin documento el tipo va vacio (no '3')
+ * y la fecha es la de Republica Dominicana (UTC-4). Los comprobantes de este
+ * banco no traen `buyerRnc` ni `modifiedNcf`, asi que el 1 y el 4 no cambian.
+ */
 function camposIdentidadDeAntes(c: ReturnType<typeof comprobante>): string[] {
   const rnc = (c.customerRnc || '').replace(/\D/g, '').substring(0, 11);
-  const idTipo = rnc.length === 9 ? '1' : rnc.length === 11 ? '2' : '3';
-  const fechaFactura = c.createdAt.toISOString().substring(0, 10).replace(/-/g, '');
+  const idTipo = rnc.length === 9 ? '1' : rnc.length === 11 ? '2' : rnc ? '3' : '';
+  const fechaFactura = new Date(c.createdAt.getTime() - 4 * 3600 * 1000).toISOString().substring(0, 10).replace(/-/g, '');
   let fechaRet = '';
   if (c.retenciones.length > 0) fechaRet = c.retenciones[0].retentionDate ? c.retenciones[0].retentionDate.replace(/-/g, '') : fechaFactura;
   return [rnc, idTipo, c.ncf.trim(), '', '01', fechaFactura, fechaRet];

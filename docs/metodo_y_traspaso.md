@@ -414,7 +414,10 @@ Además, fuera de la tabla:
   antes de reservar el NCF y de enviar). También se niega una nota sin factura,
   con NCF que no coincide, sobre otra nota o sobre una factura no aceptada.
   Pendiente, escrito: dos notas simultáneas sobre la misma factura pueden pasar
-  las dos. **El 606 tiene la misma cabecera
+  las dos.
+  **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
+  RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
+  tipo va vacío en vez de "3". **El 606 tiene la misma cabecera
   mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero

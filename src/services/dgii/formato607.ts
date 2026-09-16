@@ -24,14 +24,41 @@
  *
  * LO QUE SE CONSERVA TAL CUAL, A PROPOSITO (cada uno pide su propia medicion)
  * --------------------------------------------------------------------------
- *   - Campo 4, NCF modificado: sigue vacio, tambien en las notas de credito.
- *   - Campo 6, fecha: sale de `toISOString()`, en UTC.
  *   - Campo 5, tipo de ingreso: '01'.
- *   - Campo 2 con RNC vacio: '3' (pasaporte).
  *   - Campo 15, otros impuestos o tasas: recibe las retenciones de tipo OTRA,
  *     como antes. Medido: cero retenciones en ventas en toda la base.
  * Este modulo cambia la FORMA del fichero, no lo que se decide declarar.
  */
+
+/*
+ * NCF MODIFICADO, FECHA E IDENTIFICACION (lote 147)
+ * --------------------------------------------------
+ * Lo que el lote 142 dejo tal cual, medido el 2026-09-16:
+ *   - Campo 4 ("Numero completo del Comprobante Fiscal afectado por una nota de
+ *     Debito o Credito") iba VACIO siempre. E340000000003 salia en el 607 sin
+ *     decir que corrige E310000000020.
+ *   - Campo 6 salia de `toISOString()`, en UTC. La Republica Dominicana es UTC-4
+ *     todo el año, asi que lo emitido de 20:00 a medianoche tomaba la fecha del
+ *     dia siguiente: 9 comprobantes de PRODUCCION. Un ultimo de mes, del mes
+ *     siguiente -- fuera del periodo que se declara.
+ *   - Campos 1 y 2 salian del RNC del CLIENTE, no del declarado en el
+ *     comprobante (`buyer_rnc`). Hoy coinciden en todos; el declarado es el que
+ *     la DGII tiene. Y sin RNC el tipo salia '3' (pasaporte), afirmando un
+ *     documento que no consta: ahora va vacio. '3' queda para un documento que
+ *     no es RNC (9) ni cedula (11).
+ */
+
+/** AAAAMMDD de un instante, en hora de Republica Dominicana (UTC-4, sin horario de verano). */
+export function fechaRD607(instante: Date): string {
+  return new Date(instante.getTime() - 4 * 60 * 60 * 1000).toISOString().substring(0, 10).replace(/-/g, '');
+}
+
+/** Tipo de identificacion del Anexo B: 1 RNC, 2 cedula, 3 otro documento, vacio si no hay. */
+export function tipoIdentificacion607(documento: string): string {
+  if (documento.length === 9) return '1';
+  if (documento.length === 11) return '2';
+  return documento.length > 0 ? '3' : '';
+}
 
 /*
  * FACTURAS DE CONSUMO (lote 143)
@@ -110,6 +137,10 @@ export interface Comprobante607 {
   paymentType: string;
   createdAt: Date;
   customerRnc: string | null;
+  /** RNC o cedula declarados en el comprobante. Si consta, manda sobre el del cliente (lote 147). */
+  buyerRnc?: string | null;
+  /** NCF que modifica una nota de credito o debito (lote 147). */
+  modifiedNcf?: string | null;
   retenciones: RetencionDeVenta607[];
 }
 
@@ -140,9 +171,9 @@ export function nombreFichero607(rncEmisor: string, periodo: string): string {
 
 /** Una linea de detalle: los 23 campos del Anexo B, en su orden. */
 export function lineaDetalle607(c: Comprobante607): string {
-  const rnc = (c.customerRnc || '').replace(/\D/g, '').substring(0, 11);
-  const idTipo = rnc.length === 9 ? '1' : rnc.length === 11 ? '2' : '3';
-  const fechaFactura = c.createdAt.toISOString().substring(0, 10).replace(/-/g, '');
+  const rnc = (c.buyerRnc || c.customerRnc || '').replace(/\D/g, '').substring(0, 11);
+  const idTipo = tipoIdentificacion607(rnc);
+  const fechaFactura = fechaRD607(c.createdAt);
 
   const suma = (tipo: string) => c.retenciones
     .filter((r) => r.retentionType === tipo)
@@ -172,7 +203,7 @@ export function lineaDetalle607(c: Comprobante607): string {
     rnc,                          // 1  RNC, Cedula o Pasaporte
     idTipo,                       // 2  Tipo Identificacion
     c.ncf.trim(),                 // 3  Numero Comprobante Fiscal
-    '',                           // 4  Numero Comprobante Modificado
+    (c.modifiedNcf ?? '').trim(), // 4  Numero Comprobante Modificado
     '01',                         // 5  Tipo de Ingreso
     fechaFactura,                 // 6  Fecha Comprobante (AAAAMMDD)
     fechaRet,                     // 7  Fecha de Retencion (AAAAMMDD)

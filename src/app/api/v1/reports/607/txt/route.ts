@@ -63,6 +63,9 @@ export async function GET(req: NextRequest) {
         paymentType: invoices.paymentType,
         createdAt: invoices.createdAt,
         customerRnc: customers.rncCedula,
+        // Lote 147: lo DECLARADO en el comprobante, y el NCF que corrige una nota.
+        buyerRnc: invoices.buyerRnc,
+        modifiedNcf: invoices.modifiedNcf,
       })
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))
