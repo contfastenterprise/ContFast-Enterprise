@@ -38,14 +38,18 @@ function ok(t: string, c: boolean): void {
 // ─────────── 2. resolucionCuentas ───────────
 {
   const src = crudo('src/tests/resolucionCuentas.vitest.ts');
+  //  La lista solo puede encoger. El lote 136 saco `arRepository` (su asiento,
+  //  el del recibo de cobro, resuelve ya por `resolverCuentaPorMapeo`), asi que
+  //  queda uno. Se exige que los cinco migrados NO esten y que el que sigue con
+  //  deuda SI: si alguien reintroduce cualquiera de los cinco, esto muerde.
   ok(
-    'resolucionCuentas: PENDIENTES suelta los 4 ficheros migrados y conserva los 2 con deuda real',
+    'resolucionCuentas: PENDIENTES suelta los 5 ficheros migrados y conserva el que tiene deuda real',
     !src.includes("'src/app/api/v1/expenses/route.ts':") &&
       !src.includes("'src/app/api/v1/expenses/[id]/route.ts':") &&
       !src.includes("'src/services/expenseService.ts':") &&
       !src.includes("'src/services/invoice/invoiceDbBooker.ts':") &&
-      src.includes("'src/app/api/v1/bank/accounts/[id]/transactions/route.ts':") &&
-      src.includes("'src/repositories/arRepository.ts':")
+      !src.includes("'src/repositories/arRepository.ts':") &&
+      src.includes("'src/app/api/v1/bank/accounts/[id]/transactions/route.ts':")
   );
   ok(
     'resolucionCuentas: la nota documenta lo que migro P0-05',

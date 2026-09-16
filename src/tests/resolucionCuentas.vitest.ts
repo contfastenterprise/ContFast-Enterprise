@@ -55,7 +55,10 @@ const sinComentarios = (fuente: string) =>
  */
 const PENDIENTES: Record<string, { definiciones: number; llamadas: number }> = {
   'src/app/api/v1/bank/accounts/[id]/transactions/route.ts': { definiciones: 1, llamadas: 2 },
-  'src/repositories/arRepository.ts':                        { definiciones: 1, llamadas: 2 },
+  // `arRepository` salio de esta lista en el lote 136: su asiento (el recibo
+  // de cobro) resuelve por `resolverCuentaPorMapeo`, con las mismas dos claves
+  // que la facturacion (`cash` y `accounts_receivable`). Era el que caia en la
+  // trampa peor: 1.1.01 y 1.1.02 son cuentas de AGRUPACION.
 };
 
 function ficherosTs(dir: string, acc: string[] = []): string[] {

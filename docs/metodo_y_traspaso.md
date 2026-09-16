@@ -345,6 +345,20 @@ Además, fuera de la tabla:
   `scratch/verificar_tope_any.ts` como trinquete global (`: any` techo 0,
   `as any` techo **0** tras los lotes 124-126. El 126 dejó un solo `ioredis`, el que fija bullmq (`verificar_ioredis_unico.ts` avisa si al actualizar bullmq se vuelven a separar). En el lote 125 dos moldes tapaban un tipo falso: `financialMovementService` usaba el tipo de transacción de node-postgres con postgres.js).
 - ~~`QuoteService.getQuotes`: tres consultas en serie~~ **Hecho en el lote 127** (`Promise.all`).
+- **El libro diario, medido el 2026-09-15 (lote 136): CUADRA.** 199 asientos en
+  PRODUCCIÓN y 23 en PRUEBA, todos con debe = haber; 598 renglones, ninguno con
+  debe y haber a la vez ni con los dos en cero; sin asientos huérfanos;
+  diferencia global 0,00. Lo que sí había era **una segunda puerta al libro sin
+  guardia**: `arRepository.registerReceipt` insertaba su asiento a mano, sin la
+  validación de `createJournalEntry`, sin autor (los 7 asientos sin `created_by`
+  desde que existe la columna eran **todos** recibos de cobro) y contra 1.1.01 y
+  1.1.02, que son **cuentas de agrupación** en las seis empresas. Cerrado.
+  **Queda para el contador, no es código**: (1) los renglones ya asentados sobre
+  1.1.01 (108), 1.1.02 (66), 2.1.01 (20) y 5.1 (2) siguen donde están — otras
+  rutas también las usaron, así que el árbol del balance enseña el padre como si
+  fuera el total del grupo cuando en realidad es solo lo suyo; (2) un cobro por
+  transferencia o cheque debita la misma cuenta que uno en efectivo, porque el
+  recibo no guarda contra qué cuenta bancaria entró.
 - **El 606 estaba muerto — cerrado en el lote 134.** Tres causas a la vez, y
   ninguna se veía: `companyId=TODO_COMPANY_ID` (403 siempre, tabla vacía con
   48 gastos en julio y 33 en agosto en la base), el botón de exportar apuntando

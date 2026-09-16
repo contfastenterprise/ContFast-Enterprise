@@ -1,8 +1,9 @@
-import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, chartOfAccounts, auditLogs, type DbTransaction } from '@/db';
+import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, auditLogs, type DbTransaction } from '@/db';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
 import { FinancialMovementService } from '@/services/financialMovementService';
+import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
 
 export interface RegisterReceiptInput {
   companyId: string;
@@ -257,8 +258,34 @@ export class ArRepository {
       }
 
       // 4. Create Journal Entry (Asiento Contable)
-      const accCaja = await ArRepository.getOrCreateAccount(tx, data.companyId, '1.1.01', 'Efectivo en Caja y Bancos', 'asset');
-      const accCxC = await ArRepository.getOrCreateAccount(tx, data.companyId, '1.1.02', 'Cuentas por Cobrar Clientes', 'asset');
+      // Este era el ultimo asiento que resolvia sus cuentas con una copia local
+      // de `getOrCreateAccount`, y por eso caia en las DOS trampas que
+      // `resolverCuentas.ts` existe para cerrar (JRN-01, JRN-02, JRN-12):
+      //
+      //   · 1.1.01 y 1.1.02 son cuentas de AGRUPACION en el plan que el
+      //     sistema siembra. `createJournalEntry` rechaza moverlas -- "no
+      //     admite movimientos directos, use una de sus subcuentas" -- pero
+      //     este camino inserta el asiento a mano y se saltaba esa regla.
+      //     Medido el 2026-09-15 en la empresa que opera: 108 renglones sobre
+      //     1.1.01 y 66 sobre 1.1.02, mientras sus subcuentas transaccionales
+      //     llevan movimiento por su cuenta. El balance no miente en los
+      //     totales (suma cada cuenta por separado), pero en el arbol el padre
+      //     enseña solo lo suyo y se lee como si fuera el total del grupo.
+      //   · `getOrCreateAccount` CREA la cuenta si no la encuentra, con
+      //     `nature` y `level` por defecto. Una cuenta nacida asi invierte
+      //     signos en la balanza por jerarquia.
+      //
+      // Son las mismas dos claves y los mismos dos defectos que ya usa la
+      // facturacion (`invoiceDbBooker`), asi que un cobro y la factura que
+      // salda tocan por fin la misma cuenta. La empresa que quiera otra las
+      // cambia en `accounting_mappings`, sin tocar codigo.
+      //
+      // PENDIENTE, y es decision contable, no de codigo: un cobro por
+      // transferencia o cheque debita hoy la misma cuenta que uno en efectivo,
+      // porque el recibo no guarda contra que cuenta bancaria entro. Era asi
+      // antes de este lote tambien.
+      const accCaja = await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Recibo de Cobro - Efectivo');
+      const accCxC = await resolverCuentaPorMapeo(tx, data.companyId, 'accounts_receivable', '1.1.02.01', 'Recibo de Cobro - Cuentas por Cobrar');
 
       const entryId = uuidv4();
       await tx.insert(journalEntries).values({
@@ -268,7 +295,14 @@ export class ArRepository {
         date: data.date,
         reference: receiptId.slice(0, 8),
         description: `Recibo de Cobro - Cliente ID: ${data.customerId.slice(0,8)}`,
-        status: 'posted'
+        status: 'posted',
+        // Auditoria JRN-16. La columna se añadio despues del asiento duplicado
+        // de 545.724,30 de julio, y este camino era el UNICO que seguia sin
+        // rellenarla: medido el 2026-09-15, desde que la columna se escribe,
+        // 68 asientos llevan autor y los 7 que no son todos "Recibo de Cobro"
+        // -- el ultimo, de hoy. El `userId` estaba aqui al lado: ya se usa
+        // para el recibo, para el audit_log y para buscar la sesion de caja.
+        createdBy: data.userId,
       });
 
       await tx.insert(journalEntryLines).values([
@@ -463,25 +497,8 @@ export class ArRepository {
     }));
   }
 
-  private static async getOrCreateAccount(tx: DbTransaction, companyId: string, code: string, name: string, type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense') {
-    const [acc] = await tx
-      .select()
-      .from(chartOfAccounts)
-      .where(and(eq(chartOfAccounts.code, code), eq(chartOfAccounts.companyId, companyId)));
-
-    if (acc) return acc;
-
-    const [newAcc] = await tx
-      .insert(chartOfAccounts)
-      .values({
-        companyId,
-        code,
-        name,
-        type,
-        status: 'active',
-      })
-      .returning();
-
-    return newAcc;
-  }
+  // Auditoria P0-05: la copia local de `getOrCreateAccount` vivia aqui --
+  // eliminada en el lote 136. Era la ultima de un repositorio; buscaba por
+  // codigo literal y creaba la cuenta si no la encontraba. Su unico uso, el
+  // asiento del recibo de cobro, resuelve ahora por `resolverCuentaPorMapeo`.
 }

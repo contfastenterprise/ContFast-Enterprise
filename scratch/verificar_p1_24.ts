@@ -110,8 +110,15 @@ sinAny('src/repositories/arRepository.ts');
 ok("importa DbTransaction de '@/db' (en la misma lista que el resto de tablas)",
   /type DbTransaction \} from '@\/db';/.test(arRepo));
 
-ok('getOrCreateAccount: tx tipado DbTransaction',
-  /private static async getOrCreateAccount\(tx: DbTransaction, companyId: string, code: string, name: string, type: 'asset' \| 'liability' \| 'equity' \| 'revenue' \| 'expense'\) \{/.test(arRepo));
+// Esto exigia que la copia local de `getOrCreateAccount` tuviera su `tx`
+// tipado `DbTransaction` y no `any`. En el lote 136 esa copia se retiro: el
+// unico asiento que la usaba -- el del recibo de cobro -- resuelve ahora por
+// `resolverCuentaPorMapeo`, que no crea cuentas. Lo que la comprobacion
+// vigilaba (que este repositorio no toque el plan de cuentas con tipos flojos)
+// se conserva y se aprieta: aqui ya no se resuelven cuentas por codigo literal
+// NI se crean al vuelo, que era el riesgo de fondo.
+ok('no queda copia local de getOrCreateAccount, ni se crean cuentas aqui',
+  !/getOrCreateAccount/.test(arRepo) && !/\.insert\(chartOfAccounts\)/.test(arRepo));
 
 console.log('\n=== middleware/permissions.ts ===\n');
 
