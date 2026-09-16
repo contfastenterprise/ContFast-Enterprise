@@ -1,7 +1,8 @@
 import { db, invoices, auditLogs, ecfSequences, dgiiSubmissions, users, roles, accountsReceivable, products, customers } from '@/db';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { eq, and, isNull, sql, inArray } from 'drizzle-orm';
-import { motivoParaNoEmitirNota, NotaNoPermitidaError, NOTAS_VIGENTES } from './limiteNotaCredito';
+import { motivoParaNoEmitirNota, NotaNoPermitidaError, NOTAS_VIGENTES, RESERVA_NOTA_MINUTOS } from './limiteNotaCredito';
+import { reservasNotaCredito } from '@/db';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { CashRepository } from '@/repositories/cashRepository';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -82,48 +83,9 @@ export class InvoiceDbBooker {
       // por recibir, que es una venta perfectamente legitima, sin evitar ni un
       // solo negativo adicional.
 
-    // Lote 146: una nota de credito o debito contra la factura que modifica.
-    // Aqui, ANTES de reservar el NCF y de enviar a la DGII: despues, negarse
-    // dejaria un comprobante emitido sin factura en el sistema. El porque, y el
-    // caso de E340000000002, en `limiteNotaCredito.ts`.
-    if (data.ecfType === '33' || data.ecfType === '34') {
-      const [factura] = data.modifiedInvoiceId
-        ? await db
-            .select({ id: invoices.id, ncf: invoices.ncf, ecfType: invoices.ecfType, status: invoices.status, totalNet: invoices.totalNet })
-            .from(invoices)
-            .where(and(
-              eq(invoices.id, data.modifiedInvoiceId),
-              eq(invoices.companyId, data.companyId),
-              eq(invoices.modo, data.modo),
-              isNull(invoices.deletedAt)
-            ))
-            .limit(1)
-        : [];
-
-      const [vigentes] = factura
-        ? await db
-            .select({
-              credito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '34'), 0)`,
-              debito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '33'), 0)`,
-            })
-            .from(invoices)
-            .where(and(
-              eq(invoices.modifiedInvoiceId, factura.id),
-              eq(invoices.companyId, data.companyId),
-              eq(invoices.modo, data.modo),
-              isNull(invoices.deletedAt),
-              inArray(invoices.status, NOTAS_VIGENTES as never[])
-            ))
-        : [{ credito: '0', debito: '0' }];
-
-      const motivo = motivoParaNoEmitirNota(
-        { ecfType: data.ecfType, netoNota: totals.totalNet, modifiedNcf: data.modifiedNcf },
-        factura ? { ncf: factura.ncf, ecfType: factura.ecfType, status: factura.status, totalNet: parseFloat(factura.totalNet) } : null,
-        parseFloat(vigentes?.credito ?? '0'),
-        parseFloat(vigentes?.debito ?? '0')
-      );
-      if (motivo) throw new NotaNoPermitidaError(motivo);
-    }
+    // Lote 146: la comprobacion de una nota contra su factura vivia aqui. Desde
+    // el lote 149 esta en `comprobarYReservarNota`, que la hace con la factura
+    // bloqueada y descontando las reservas de las notas que se estan emitiendo.
 
     if (data.ecfType !== '34') {
       for (const line of totals.itemLines) {
@@ -209,6 +171,115 @@ export class InvoiceDbBooker {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Comprueba una nota de credito o debito contra la factura que modifica y,
+   * si es de credito, reserva su importe hasta que la emision termine.
+   * Devuelve el id de la reserva, o `null` si no hace falta (debito, factura).
+   *
+   * Lote 146 cerro la nota que acredita mas de lo que queda. Pero comprobaba
+   * ANTES de enviar a la DGII, y la nota no cuenta hasta que se asienta: dos
+   * personas emitiendo a la vez la ultima nota de la misma factura pasaban las
+   * dos. Lote 149: la comprobacion va en una transaccion corta con la fila de la
+   * factura BLOQUEADA (`FOR UPDATE`), descuenta tambien las reservas vivas, y
+   * anota la suya. La segunda nota espera al bloqueo y ya ve la primera.
+   *
+   * Va ANTES de reservar el NCF y de enviar: despues, negarse dejaria un
+   * comprobante emitido sin factura en el sistema. Quien llama libera la
+   * reserva con `liberarReservaNota` pase lo que pase; si el proceso muere,
+   * caduca sola (RESERVA_NOTA_MINUTOS).
+   */
+  static async comprobarYReservarNota(
+    data: IssueInvoiceInput,
+    totals: CalculatedTotals
+  ): Promise<string | null> {
+    if (data.ecfType !== '33' && data.ecfType !== '34') return null;
+
+    return await db.transaction(async (tx) => {
+      const [factura] = data.modifiedInvoiceId
+        ? await tx
+            .select({ id: invoices.id, ncf: invoices.ncf, ecfType: invoices.ecfType, status: invoices.status, totalNet: invoices.totalNet })
+            .from(invoices)
+            .where(and(
+              eq(invoices.id, data.modifiedInvoiceId),
+              eq(invoices.companyId, data.companyId),
+              eq(invoices.modo, data.modo),
+              isNull(invoices.deletedAt)
+            ))
+            .for('update')
+        : [];
+
+      const [vigentes] = factura
+        ? await tx
+            .select({
+              credito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '34'), 0)`,
+              debito: sql<string>`COALESCE(SUM(${invoices.totalNet}) FILTER (WHERE ${invoices.ecfType} = '33'), 0)`,
+            })
+            .from(invoices)
+            .where(and(
+              eq(invoices.modifiedInvoiceId, factura.id),
+              eq(invoices.companyId, data.companyId),
+              eq(invoices.modo, data.modo),
+              isNull(invoices.deletedAt),
+              inArray(invoices.status, NOTAS_VIGENTES as never[])
+            ))
+        : [{ credito: '0', debito: '0' }];
+
+      // Lo que otras notas de credito tienen reservado y aun no han asentado.
+      const [reservado] = factura && data.ecfType === '34'
+        ? await tx
+            .select({ total: sql<string>`COALESCE(SUM(${reservasNotaCredito.monto}), 0)` })
+            .from(reservasNotaCredito)
+            .where(and(
+              eq(reservasNotaCredito.invoiceId, factura.id),
+              eq(reservasNotaCredito.companyId, data.companyId),
+              eq(reservasNotaCredito.modo, data.modo),
+              sql`${reservasNotaCredito.expiraEn} > now()`
+            ))
+        : [{ total: '0' }];
+
+      const motivo = motivoParaNoEmitirNota(
+        { ecfType: data.ecfType, netoNota: totals.totalNet, modifiedNcf: data.modifiedNcf },
+        factura ? { ncf: factura.ncf, ecfType: factura.ecfType, status: factura.status, totalNet: parseFloat(factura.totalNet) } : null,
+        parseFloat(vigentes?.credito ?? '0') + parseFloat(reservado?.total ?? '0'),
+        parseFloat(vigentes?.debito ?? '0')
+      );
+      if (motivo) throw new NotaNoPermitidaError(motivo);
+
+      // La nota de debito no tiene tope: no hay nada que reservar.
+      if (data.ecfType !== '34' || !factura) return null;
+
+      const [reserva] = await tx
+        .insert(reservasNotaCredito)
+        .values({
+          companyId: data.companyId,
+          modo: data.modo,
+          invoiceId: factura.id,
+          monto: totals.totalNet.toFixed(2),
+          expiraEn: sql`now() + make_interval(mins => ${RESERVA_NOTA_MINUTOS})`,
+        })
+        .returning({ id: reservasNotaCredito.id });
+      return reserva.id;
+    });
+  }
+
+  /**
+   * Libera la reserva de una nota. Se llama en un `finally`: tras asentar la
+   * nota (que ya cuenta por si misma) o tras cualquier fallo. No relanza: no
+   * puede tapar el error de la emision, y una reserva que no se borra caduca.
+   */
+  static async liberarReservaNota(reservaId: string | null, companyId: string) {
+    if (!reservaId) return;
+    try {
+      await db
+        .delete(reservasNotaCredito)
+        .where(and(eq(reservasNotaCredito.id, reservaId), eq(reservasNotaCredito.companyId, companyId)));
+    } catch (err) {
+      Logger.warn('[InvoiceDbBooker] no se pudo liberar la reserva de la nota; caducara sola', {
+        reservaId, error: (err as Error)?.message,
+      });
     }
   }
 

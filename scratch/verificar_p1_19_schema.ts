@@ -197,7 +197,11 @@ const todosCrudo = [accountingCrudo, bankCrudo, cashCrudo, contactsCrudo, hrCrud
 const totalUnique = (todosCrudo.match(/unique\(/g) || []).length;
 const totalFk = (todosCrudo.match(/foreignKey\(\{/g) || []).length;
 ok(`exactamente 20 "unique(" en total (hallados ${totalUnique})`, totalUnique === 20);
-ok(`exactamente 58 "foreignKey({" en total (hallados ${totalFk})`, totalFk === 58);
+//  Lote 149: la tabla nueva `reservas_nota_credito` trae su FK compuesta a
+//  invoices, como pide este mismo punto. Las 58 de P1-19 siguen siendo 58; se
+//  cuenta aparte la nueva, por nombre, para que el conteo no esconda un cambio.
+const fkReservas = /foreignKey\(\{\s*columns: \[table\.invoiceId, table\.companyId\],\s*foreignColumns: \[invoices\.id, invoices\.companyId\],\s*name: 'reservas_nota_credito_invoice_company_fk'/.test(invoicesCrudo);
+ok(`exactamente 58 "foreignKey({" de P1-19 mas la de reservas_nota_credito (hallados ${totalFk})`, fkReservas && totalFk === 59);
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);

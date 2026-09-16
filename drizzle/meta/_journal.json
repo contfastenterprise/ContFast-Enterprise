@@ -50,6 +50,13 @@
       "when": 1789336020087,
       "tag": "0006_smart_maggott",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789596147457,
+      "tag": "0007_reservas_nota_credito",
+      "breakpoints": true
     }
   ]
 }

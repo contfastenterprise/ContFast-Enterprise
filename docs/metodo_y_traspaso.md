@@ -402,8 +402,11 @@ Además, fuera de la tabla:
   un período a mano ya no admite fechas invertidas ni solapes. **Nada se crea
   solo** (JRN-11): **alguien tiene que pulsar el botón en cada empresa y en cada
   modo antes del 01/01/2027.** "periodo 2026" de Latin Doors sigue ahí, pisando
-  septiembre a diciembre. Hallazgo sin tocar: el aviso de factura rechazada del
-  panel de inicio no puede salir nunca (la consulta excluye `rejected`).
+  septiembre a diciembre. **Las 12 de 2027 de Latin Doors ya se abrieron**
+  (PRODUCCIÓN y PRUEBA, a petición del dueño el 2026-09-16); faltan las otras
+  cinco empresas si operan.
+  **Lote 148: el aviso de comprobante rechazado del panel de inicio sale** (antes
+  la consulta excluía `rejected` y el bloque era código muerto).
   **Lote 144: el TXT del 606 cumple el Anexo A** (`services/dgii/formato606.ts`):
   antes era ancho fijo sin "|", 7 datos en vez de 23 e importes ×100. Sin NCF no
   va (decisión del dueño). Servicios/bienes y fecha de pago con la recomendación
@@ -413,12 +416,13 @@ Además, fuera de la tabla:
   factura** (`services/invoice/limiteNotaCredito.ts`, en la validación previa,
   antes de reservar el NCF y de enviar). También se niega una nota sin factura,
   con NCF que no coincide, sobre otra nota o sobre una factura no aceptada.
-  Pendiente, escrito: dos notas simultáneas sobre la misma factura pueden pasar
-  las dos.
+  **Lote 149: cerrado lo de las notas simultáneas** con una reserva
+  (`reservas_nota_credito`) anotada con la factura bloqueada y liberada al
+  terminar la emisión. **MIGRACIÓN `drizzle/0007_reservas_nota_credito.sql`:
+  aplicarla en la base ANTES de desplegar**, o emitir notas fallará.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
   RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
-  tipo va vacío en vez de "3". **El 606 tiene la misma cabecera
-  mala** (`expenseService.ts`), sin medir su detalle contra el Anexo A.
+  tipo va vacío en vez de "3".
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la

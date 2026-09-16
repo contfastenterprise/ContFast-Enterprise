@@ -483,3 +483,38 @@ export const invoiceRetentions = pgTable('invoice_retentions', {
 }, (table) => ({
   invoiceIdx: index('invoice_retentions_invoice_idx').on(table.invoiceId),
 }));
+
+/**
+ * Reservas de saldo de una nota de credito mientras se emite (lote 149).
+ *
+ * El lote 146 niega una nota que acredita mas de lo que queda de su factura,
+ * pero la comprobacion ocurre ANTES de enviar a la DGII y la nota no cuenta
+ * hasta que se asienta, segundos despues. Dos personas emitiendo a la vez la
+ * ultima nota de la misma factura pasaban las dos.
+ *
+ * Una reserva ocupa el importe de la nota desde la comprobacion hasta que la
+ * nota queda asentada o la emision falla. Se anota con la fila de la factura
+ * bloqueada, asi que la segunda nota espera y, al comprobar, ya descuenta la
+ * primera. Caduca sola: si el proceso muere a mitad, no bloquea para siempre.
+ *
+ * Sin RLS, como el resto de tablas del tenant (medido el 2026-09-16: ninguna la
+ * tiene; la aplicacion conecta como `postgres`). El aislamiento es la clave
+ * foranea compuesta con la factura y los filtros del codigo.
+ */
+export const reservasNotaCredito = pgTable('reservas_nota_credito', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').notNull(),
+  /** La factura que la nota modifica. */
+  invoiceId: uuid('invoice_id').notNull(),
+  monto: decimal('monto', { precision: 15, scale: 2 }).notNull(),
+  expiraEn: timestamp('expira_en').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  facturaIdx: index('reservas_nota_credito_factura_idx').on(table.invoiceId, table.expiraEn),
+  invoiceCompanyFk: foreignKey({
+    columns: [table.invoiceId, table.companyId],
+    foreignColumns: [invoices.id, invoices.companyId],
+    name: 'reservas_nota_credito_invoice_company_fk',
+  }).onDelete('cascade'),
+}));

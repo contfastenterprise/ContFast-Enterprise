@@ -140,8 +140,9 @@ const contar = (s: string, sub: string): number => s.split(sub).length - 1;
   );
   ok(
     'invoiceService: pasa el NCF a processPostEmision y recoge sus avisos',
-    src.includes('const avisosPostEmision = await InvoiceFileGenerator.processPostEmission(') &&
-      src.includes('      dbResult.invoice.id,\n      ncf,\n')
+    //  Lote 149: la emision quedo dentro de un try/finally y ganó una sangria; se
+    //  fija la llamada con sus argumentos, no los espacios.
+    /const avisosPostEmision = await InvoiceFileGenerator\.processPostEmission\(\s*data,\s*dbResult\.invoice\.id,\s*ncf,/.test(src)
   );
   ok(
     'invoiceService: devuelve los avisos junto al resultado',

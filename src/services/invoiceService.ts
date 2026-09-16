@@ -38,130 +38,147 @@ export class InvoiceService {
     // ── 3. Pre-flight validations ─────────────────────────────────────────────
     await InvoiceDbBooker.preFlightValidations(data, totals);
 
-    // ── 4. Reservar el NCF ANTES de enviarlo a la DGII ────────────────────────
+    // ── 3b. Nota de credito o debito: comprobar contra su factura y reservar ──
     //
-    // Auditoria DB-04: este paso era `predictNextNcf`, que leia la secuencia sin
-    // bloqueo; la reserva real ocurria al final, ya enviado el comprobante. Dos
-    // emisiones simultaneas mandaban el mismo NCF a la DGII y una de las dos
-    // ventas se perdia. El orden correcto es reservar primero: un hueco en la
-    // secuencia se explica, un NCF duplicado ante la DGII no.
-    const { ncf } = await InvoiceDbBooker.reservarNcf(data.companyId, data.ecfType, data.modo);
-
-    // Load company settings
-    const settings = await CompanyRepository.getSettings(data.companyId);
-
-    // ── 5. Submit to DGII / MSeller ───────────────────────────────────────────
-    let submission: DgiiSubmissionResult;
+    // Lotes 146 y 149. Con la factura bloqueada y descontando las notas que se
+    // estan emitiendo en ese momento, para que dos notas simultaneas no pasen
+    // las dos. La reserva se libera en el `finally` de abajo pase lo que pase:
+    // tras asentar, la nota ya cuenta por si misma.
+    const reservaNota = await InvoiceDbBooker.comprobarYReservarNota(data, totals);
     try {
-      submission = await InvoiceSubmissionService.submitToDgii(
-        data,
-        ncf,
-        company,
-        settings,
-        totals,
-        activeCashSessionId
-      );
-    } catch (err: unknown) {
-      if (err instanceof EcfRejectedError) {
-        // Rechazo estructural: la factura se guarda como `rejected` con el NCF
-        // ya reservado, de modo que el numero queda justificado y no hay hueco.
-        await InvoiceDbBooker.saveRejectedInvoice(
+
+      // ── 4. Reservar el NCF ANTES de enviarlo a la DGII ────────────────────────
+      //
+      // Auditoria DB-04: este paso era `predictNextNcf`, que leia la secuencia sin
+      // bloqueo; la reserva real ocurria al final, ya enviado el comprobante. Dos
+      // emisiones simultaneas mandaban el mismo NCF a la DGII y una de las dos
+      // ventas se perdia. El orden correcto es reservar primero: un hueco en la
+      // secuencia se explica, un NCF duplicado ante la DGII no.
+      const { ncf } = await InvoiceDbBooker.reservarNcf(data.companyId, data.ecfType, data.modo);
+
+      // Load company settings
+      const settings = await CompanyRepository.getSettings(data.companyId);
+
+      // ── 5. Submit to DGII / MSeller ───────────────────────────────────────────
+      let submission: DgiiSubmissionResult;
+      try {
+        submission = await InvoiceSubmissionService.submitToDgii(
+          data,
+          ncf,
+          company,
+          settings,
+          totals,
+          activeCashSessionId
+        );
+      } catch (err: unknown) {
+        if (err instanceof EcfRejectedError) {
+          // Rechazo estructural: la factura se guarda como `rejected` con el NCF
+          // ya reservado, de modo que el numero queda justificado y no hay hueco.
+          await InvoiceDbBooker.saveRejectedInvoice(
+            data,
+            ncf,
+            activeCashSessionId,
+            totals,
+            err.message
+          );
+        } else {
+          // Fallo de comunicacion u otro error: el NCF quedo consumido sin
+          // factura. Se deja constancia para poder explicar el hueco.
+          await InvoiceDbBooker.registrarNcfSinUsar(
+            data.companyId,
+            data.modo,
+            data.userId,
+            ncf,
+            data.ecfType,
+            `Fallo al enviar a la DGII: ${(err as Error)?.message || 'error desconocido'}`
+          );
+        }
+        throw err;
+      }
+
+      // Extract signedXml path from mseller response if available
+      let msellerXmlPath = '';
+      if (submission.msellerResponsePayload) {
+        const raw = submission.msellerResponsePayload as { signedXml?: string; summarySignedXml?: string };
+        msellerXmlPath = raw.signedXml || raw.summarySignedXml || '';
+      }
+
+      const xmlPath = '';
+      const signedXmlPath = '';
+      const pdfPath = `invoices/${data.companyId}/${ncf}.pdf`;
+
+      // ── 6. Perform main transactional operations (Fase 3) ──────────────────────
+      //
+      // Si esto falla, el comprobante YA esta en la DGII y el NCF ya esta
+      // reservado: hay que poder localizar el caso, porque exige conciliacion
+      // manual. Se registra y se relanza el error original.
+      let dbResult;
+      try {
+        dbResult = await InvoiceDbBooker.executeDbTransaction(
           data,
           ncf,
           activeCashSessionId,
           totals,
-          err.message
+          submission,
+          xmlPath,
+          signedXmlPath,
+          pdfPath,
+          msellerXmlPath
         );
-      } else {
-        // Fallo de comunicacion u otro error: el NCF quedo consumido sin
-        // factura. Se deja constancia para poder explicar el hueco.
+      } catch (err: unknown) {
         await InvoiceDbBooker.registrarNcfSinUsar(
           data.companyId,
           data.modo,
           data.userId,
           ncf,
           data.ecfType,
-          `Fallo al enviar a la DGII: ${(err as Error)?.message || 'error desconocido'}`
+          `Enviado a la DGII pero no se pudo registrar la factura: ${(err as Error)?.message || 'error desconocido'}`
         );
+        throw err;
       }
-      throw err;
-    }
 
-    // Extract signedXml path from mseller response if available
-    let msellerXmlPath = '';
-    if (submission.msellerResponsePayload) {
-      const raw = submission.msellerResponsePayload as { signedXml?: string; summarySignedXml?: string };
-      msellerXmlPath = raw.signedXml || raw.summarySignedXml || '';
-    }
-
-    const xmlPath = '';
-    const signedXmlPath = '';
-    const pdfPath = `invoices/${data.companyId}/${ncf}.pdf`;
-
-    // ── 6. Perform main transactional operations (Fase 3) ──────────────────────
-    //
-    // Si esto falla, el comprobante YA esta en la DGII y el NCF ya esta
-    // reservado: hay que poder localizar el caso, porque exige conciliacion
-    // manual. Se registra y se relanza el error original.
-    let dbResult;
-    try {
-      dbResult = await InvoiceDbBooker.executeDbTransaction(
+      // ── 7. File generation outside the transaction block to avoid lockups ──────
+      //
+      // Auditoria P2-30 (2026-09-03): lo que falla de aqui en adelante ocurre
+      // DESPUES del commit, asi que no puede deshacer la emision -- pero tampoco
+      // puede quedarse en un log del servidor que nadie mira. Cada paso deja su
+      // traza en audit_logs y devuelve sus avisos, que suben hasta la respuesta
+      // para que quien acaba de facturar los vea en pantalla.
+      const avisosArchivos = await InvoiceFileGenerator.generateFilesAndSendEmail(
         data,
         ncf,
-        activeCashSessionId,
+        company,
+        settings,
         totals,
         submission,
+        // La columna es nullable (hay facturas viejas sin codigo), aunque toda
+        // factura emitida por este camino lo lleva: `siguienteCodigoFactura` se lo
+        // asigna dentro de la transaccion. Solo se usa para pintarlo en el PDF.
+        dbResult.invoice.codigoFactura ?? '',
+        '',
         xmlPath,
         signedXmlPath,
         pdfPath,
         msellerXmlPath
       );
-    } catch (err: unknown) {
-      await InvoiceDbBooker.registrarNcfSinUsar(
-        data.companyId,
-        data.modo,
-        data.userId,
+
+      // ── 8. Post-emission tasks (conduces, quotes) ──────────────────────────────
+      const avisosPostEmision = await InvoiceFileGenerator.processPostEmission(
+        data,
+        dbResult.invoice.id,
         ncf,
-        data.ecfType,
-        `Enviado a la DGII pero no se pudo registrar la factura: ${(err as Error)?.message || 'error desconocido'}`
+        settings,
+        totals.itemLines
       );
-      throw err;
+
+      return { ...dbResult, avisos: [...avisosArchivos, ...avisosPostEmision] };
+
+    } finally {
+      // Lote 149: la reserva de la nota, si la hubo. Tras asentar ya no hace
+      // falta; tras un fallo, tampoco. Cubre la emision entera para no
+      // repartir variables entre dos bloques: los pasos 7 y 8 solo alargan unos
+      // segundos una reserva que, en el peor caso, niega de mas.
+      await InvoiceDbBooker.liberarReservaNota(reservaNota, data.companyId);
     }
-
-    // ── 7. File generation outside the transaction block to avoid lockups ──────
-    //
-    // Auditoria P2-30 (2026-09-03): lo que falla de aqui en adelante ocurre
-    // DESPUES del commit, asi que no puede deshacer la emision -- pero tampoco
-    // puede quedarse en un log del servidor que nadie mira. Cada paso deja su
-    // traza en audit_logs y devuelve sus avisos, que suben hasta la respuesta
-    // para que quien acaba de facturar los vea en pantalla.
-    const avisosArchivos = await InvoiceFileGenerator.generateFilesAndSendEmail(
-      data,
-      ncf,
-      company,
-      settings,
-      totals,
-      submission,
-      // La columna es nullable (hay facturas viejas sin codigo), aunque toda
-      // factura emitida por este camino lo lleva: `siguienteCodigoFactura` se lo
-      // asigna dentro de la transaccion. Solo se usa para pintarlo en el PDF.
-      dbResult.invoice.codigoFactura ?? '',
-      '',
-      xmlPath,
-      signedXmlPath,
-      pdfPath,
-      msellerXmlPath
-    );
-
-    // ── 8. Post-emission tasks (conduces, quotes) ──────────────────────────────
-    const avisosPostEmision = await InvoiceFileGenerator.processPostEmission(
-      data,
-      dbResult.invoice.id,
-      ncf,
-      settings,
-      totals.itemLines
-    );
-
-    return { ...dbResult, avisos: [...avisosArchivos, ...avisosPostEmision] };
   }
 }

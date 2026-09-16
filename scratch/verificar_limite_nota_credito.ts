@@ -76,8 +76,14 @@ async function main() {
   console.log('\n5) El cableado\n');
   {
     const booker = fuente('src/services/invoice/invoiceDbBooker.ts');
-    const i = booker.indexOf('static async preFlightValidations(');
-    const cuerpo = booker.slice(i, booker.indexOf('static async reservarNcf(', i));
+    //  Lote 149: la comprobacion salio de `preFlightValidations` a
+    //  `comprobarYReservarNota` (con la factura bloqueada y las reservas). Se
+    //  mira ahi, y que la emision la llama antes de reservar el NCF.
+    const i = booker.indexOf('static async comprobarYReservarNota(');
+    const cuerpo = i < 0 ? '' : booker.slice(i, booker.indexOf('static async liberarReservaNota(', i));
+    ok('la emision comprueba la nota antes de reservar el NCF',
+      SERVICIO.indexOf('await InvoiceDbBooker.comprobarYReservarNota(data, totals);') > 0
+      && SERVICIO.indexOf('await InvoiceDbBooker.comprobarYReservarNota(data, totals);') < SERVICIO.indexOf('await InvoiceDbBooker.reservarNcf('));
     ok('la validacion previa consulta la factura en la empresa y el modo, sin borradas',
       /eq\(invoices\.id, data\.modifiedInvoiceId\),\s*eq\(invoices\.companyId, data\.companyId\),\s*eq\(invoices\.modo, data\.modo\),\s*isNull\(invoices\.deletedAt\)/.test(cuerpo));
     ok('suma las notas vigentes de ESA factura',
@@ -85,7 +91,7 @@ async function main() {
     ok('decide con la regla y el neto calculado, y se niega con su error',
       /motivoParaNoEmitirNota\(\s*\{ ecfType: data\.ecfType, netoNota: totals\.totalNet, modifiedNcf: data\.modifiedNcf \}/.test(cuerpo)
       && /if \(motivo\) throw new NotaNoPermitidaError\(motivo\);/.test(cuerpo));
-    ok('y lo hace para notas de credito Y de debito', /if \(data\.ecfType === '33' \|\| data\.ecfType === '34'\) \{/.test(cuerpo));
+    ok('y lo hace para notas de credito Y de debito (las demas salen antes)', /if \(data\.ecfType !== '33' && data\.ecfType !== '34'\) return null;/.test(cuerpo));
   }
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);

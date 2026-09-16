@@ -22,6 +22,14 @@
  * Aqui solo se decide, sin base de datos: la consulta la hace quien llama.
  */
 
+/**
+ * Cuanto vive una reserva de nota de credito si nadie la libera (lote 149).
+ * El envio a mSeller tiene 45 s por defecto y la ruta corta a los 60: cinco
+ * minutos cubren de sobra una emision entera, y si el proceso muere la factura
+ * no queda bloqueada mas de eso.
+ */
+export const RESERVA_NOTA_MINUTOS = 5;
+
 /** Estados en los que una nota ya emitida cuenta contra su factura. */
 export const NOTAS_VIGENTES = ['accepted', 'submitted', 'signed'];
 
