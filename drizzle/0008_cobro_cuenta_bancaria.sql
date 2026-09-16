@@ -1,0 +1,3 @@
+ALTER TABLE "customer_receipts" ADD COLUMN "bank_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "customer_receipts" ADD CONSTRAINT "customer_receipts_bank_account_company_fk" FOREIGN KEY ("bank_account_id","company_id") REFERENCES "public"."bank_accounts"("id","company_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "cust_receipts_bank_account_idx" ON "customer_receipts" USING btree ("bank_account_id");

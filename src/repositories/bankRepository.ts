@@ -42,6 +42,32 @@ export interface RegisterBankTransactionInput {
 }
 
 export class BankRepository {
+  /**
+   * Lote 151: las cuentas donde puede entrar un cobro, SIN saldos.
+   *
+   * La pantalla de cobros necesita elegir el banco, pero `GET /bank/accounts`
+   * pide `banco:read` y devuelve saldos; el rol `facturacion` cobra y tiene
+   * `banco:read` denegado en las seis empresas (medido el 2026-09-16). Aqui
+   * solo va lo necesario para elegir, y solo las cuentas que pueden recibir el
+   * cobro: activas y con cuenta contable (sin ella `resolverCuentaDeBanco`
+   * niega el cobro).
+   */
+  static async cuentasParaCobrar(companyId: string) {
+    return await db.select({
+      id: bankAccounts.id,
+      bankName: bankAccounts.bankName,
+      accountNumber: bankAccounts.accountNumber,
+    })
+      .from(bankAccounts)
+      .where(and(
+        eq(bankAccounts.companyId, companyId),
+        eq(bankAccounts.status, 'active'),
+        sql`${bankAccounts.chartAccountId} IS NOT NULL`,
+        sql`${bankAccounts.deletedAt} IS NULL`
+      ))
+      .orderBy(bankAccounts.bankName);
+  }
+
   // Get all bank accounts with balances
   static async getBankAccounts(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     // El saldo sale de bank_account_balances, no del campo del catalogo: es el

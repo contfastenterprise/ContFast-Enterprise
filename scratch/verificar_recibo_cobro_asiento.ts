@@ -113,7 +113,9 @@ console.log('B. LAS CUENTAS SE RESUELVEN, NO SE INVENTAN');
   ok('la copia local de getOrCreateAccount ya no existe, ni se llama',
      !/getOrCreateAccount/.test(src) && !/\.insert\(chartOfAccounts\)/.test(src));
   ok('importa el resolvedor de verdad (no vale nombrarlo)',
-     src.includes("import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';"));
+     // Lote 151: el import gano `resolverCuentaDeBanco` (el cobro por banco).
+     // Se fija que el nombre venga de ese modulo, no la linea entera.
+     /import \{[^}]*\bresolverCuentaPorMapeo\b[^}]*\} from '@\/services\/accounting\/resolverCuentas';/.test(src));
 }
 
 // ─────────────────────────────────────────────────────────────────────────

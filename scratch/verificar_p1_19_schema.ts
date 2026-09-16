@@ -201,7 +201,9 @@ ok(`exactamente 20 "unique(" en total (hallados ${totalUnique})`, totalUnique ==
 //  invoices, como pide este mismo punto. Las 58 de P1-19 siguen siendo 58; se
 //  cuenta aparte la nueva, por nombre, para que el conteo no esconda un cambio.
 const fkReservas = /foreignKey\(\{\s*columns: \[table\.invoiceId, table\.companyId\],\s*foreignColumns: \[invoices\.id, invoices\.companyId\],\s*name: 'reservas_nota_credito_invoice_company_fk'/.test(invoicesCrudo);
-ok(`exactamente 58 "foreignKey({" de P1-19 mas la de reservas_nota_credito (hallados ${totalFk})`, fkReservas && totalFk === 59);
+//  Lote 151: y la del recibo de cobro a su cuenta bancaria.
+const fkCobroBanco = /foreignKey\(\{\s*columns: \[table\.bankAccountId, table\.companyId\],\s*foreignColumns: \[bankAccounts\.id, bankAccounts\.companyId\],\s*name: 'customer_receipts_bank_account_company_fk'/.test(accountingCrudo);
+ok(`exactamente 58 "foreignKey({" de P1-19 mas las de reservas_nota_credito y customer_receipts.bank_account_id (hallados ${totalFk})`, fkReservas && fkCobroBanco && totalFk === 60);
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);

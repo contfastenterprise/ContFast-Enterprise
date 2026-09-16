@@ -425,6 +425,13 @@ Además, fuera de la tabla:
   (`services/inventario/entradasDeCompra.ts`). El −94 de E310000013249 fue
   anterior al freno del 11/09; con el freno, 6 de 7 compras con inventario no
   se podían editar en nada. En la base no hay CHECK de existencia no negativa.
+  **Lote 151: un cobro por banco lleva su cuenta bancaria**, se asienta contra
+  ese banco y crea el depósito (pendiente) en el libro de banco
+  (`services/cartera/cuentaDelCobro.ts`). **MIGRACIÓN
+  `drizzle/0008_cobro_cuenta_bancaria.sql`: aplicarla ANTES de desplegar** (o
+  ningún cobro se registra). Desde ese despliegue los depósitos de clientes no
+  se meten a mano como "Ajuste". Los 6 cobros por banco anteriores
+  (RD$186.093,77 en 1.1.01) son del contador.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
   RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
   tipo va vacío en vez de "3".

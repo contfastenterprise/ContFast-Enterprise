@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
 // -- Types --
 interface InvoiceAR {
@@ -58,10 +59,13 @@ export default function ReceivablesPage() {
   const [paymentForm, setPaymentForm] = useState({
     date: new Date().toISOString().split('T')[0],
     paymentMethod: 'bank',
+    // Lote 151: la cuenta bancaria donde entra un cobro que no es en efectivo.
+    bankAccountId: '',
     amount: '',
     reference: '',
     notes: ''
   });
+  const [bankAccountsList, setBankAccountsList] = useState<{ id: string; bankName: string; accountNumber: string }[]>([]);
   const [appliedInvoices, setAppliedInvoices] = useState<Record<string, number>>({});
 
   // Receipts History Tab State
@@ -269,12 +273,21 @@ export default function ReceivablesPage() {
     setPaymentForm({
       date: new Date().toISOString().split('T')[0],
       paymentMethod: 'cash',
+      bankAccountId: '',
       amount: '',
       reference: '',
       notes: ''
     });
     setAppliedInvoices({});
     setShowPaymentModal(true);
+    // Lote 151: las cuentas bancarias, para elegir donde entra un cobro por
+    // banco. Se piden al abrir: una cuenta creada despues de cargar la
+    // pantalla tiene que salir. Con el permiso de cobros, no el de banco (el
+    // rol facturacion cobra y no puede leer Bancos).
+    fetch('/api/v1/ar/receipts/cuentas-bancarias')
+      .then((r) => r.json())
+      .then((d) => setBankAccountsList(d.success ? (d.data || []) : []))
+      .catch(() => setBankAccountsList([]));
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,6 +360,13 @@ export default function ReceivablesPage() {
       return;
     }
 
+    // Lote 151: la misma regla que aplica el servidor.
+    const motivoCuenta = motivoParaNoRegistrarCobro(paymentForm.paymentMethod, paymentForm.bankAccountId);
+    if (motivoCuenta) {
+      toast.error(motivoCuenta);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/v1/ar/receipts', {
@@ -356,6 +376,7 @@ export default function ReceivablesPage() {
           customerId: selectedCustomer.customerId,
           date: paymentForm.date,
           paymentMethod: paymentForm.paymentMethod,
+          bankAccountId: entraPorBanco(paymentForm.paymentMethod) ? paymentForm.bankAccountId : null,
           amount,
           reference: paymentForm.reference,
           notes: paymentForm.notes,
@@ -366,7 +387,7 @@ export default function ReceivablesPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Cobro registrado exitosamente', {
-          description: paymentForm.paymentMethod === 'cash' ? 'Ingresado a Caja Chica y Asiento contable generado.' : 'Asiento contable generado.'
+          description: paymentForm.paymentMethod === 'cash' ? 'Ingresado a Caja Chica y Asiento contable generado.' : 'Depósito registrado en el banco y asiento contable generado.'
         });
         setShowPaymentModal(false);
         fetchData();
@@ -1016,6 +1037,7 @@ export default function ReceivablesPage() {
                         setPaymentForm({
                           ...paymentForm,
                           paymentMethod: val,
+                          bankAccountId: entraPorBanco(val) ? paymentForm.bankAccountId : '',
                           reference: val === 'cash' ? '' : paymentForm.reference
                         });
                       }}
@@ -1031,6 +1053,23 @@ export default function ReceivablesPage() {
                       </p>
                     )}
                   </div>
+                  {entraPorBanco(paymentForm.paymentMethod) && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"><Landmark className="w-3.5 h-3.5 inline mr-1 text-[#003366]" /> Cuenta Bancaria</label>
+                      <select
+                        required
+                        value={paymentForm.bankAccountId}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, bankAccountId: e.target.value })}
+                        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none text-slate-800 transition-colors"
+                      >
+                        <option value="">Seleccione dónde entró el dinero</option>
+                        {bankAccountsList.map((b) => (
+                          <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 mt-1.5 ml-1 leading-normal">El depósito queda en el libro de ese banco, pendiente de conciliar.</p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Monto Recibido</label>
                     <div className="relative">

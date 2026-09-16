@@ -5,11 +5,14 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { withIdempotency } from '@/lib/idempotency';
 import { ArRepository } from '@/repositories/arRepository';
 import { z } from 'zod';
+import { METODOS_DE_COBRO, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
 const registerReceiptSchema = z.object({
   customerId: z.string().uuid('ID de cliente inválido'),
   date: z.string().min(1, 'La fecha es requerida'),
-  paymentMethod: z.enum(['cash', 'bank', 'check', 'card']),
+  paymentMethod: z.enum(METODOS_DE_COBRO),
+  // Lote 151: la cuenta bancaria donde entro el cobro, si no es en efectivo.
+  bankAccountId: z.string().uuid('Cuenta bancaria inválida').optional().nullable(),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   reference: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -78,6 +81,16 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION_ERROR', message: parsed.error.issues[0].message } },
+        { status: 400 }
+      );
+    }
+
+    // Lote 151: antes de abrir la transaccion, con el mismo mensaje que daria
+    // el repositorio (que lo vuelve a comprobar porque es quien escribe).
+    const motivoCuenta = motivoParaNoRegistrarCobro(parsed.data.paymentMethod, parsed.data.bankAccountId);
+    if (motivoCuenta) {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: motivoCuenta } },
         { status: 400 }
       );
     }

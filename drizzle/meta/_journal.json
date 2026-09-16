@@ -57,6 +57,13 @@
       "when": 1789596147457,
       "tag": "0007_reservas_nota_credito",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789598022987,
+      "tag": "0008_cobro_cuenta_bancaria",
+      "breakpoints": true
     }
   ]
 }

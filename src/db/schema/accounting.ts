@@ -138,6 +138,11 @@ export const customerReceipts = pgTable('customer_receipts', {
   amount: decimal('amount', { precision: 15, scale: 2 }).notNull(),
   reference: varchar('reference', { length: 255 }), // transfer number, check number, etc.
   notes: text('notes'),
+  // Lote 151 (migracion 0008): la cuenta bancaria donde entro un cobro que no
+  // es en efectivo (ver services/cartera/cuentaDelCobro.ts). NULL en los cobros
+  // en efectivo y en los anteriores a la migracion -- no se reconstruye: de los
+  // 6 cobros por banco de Latin Doors nadie anoto el banco.
+  bankAccountId: uuid('bank_account_id'),
   // Auditoria P1-13 (2026-09-03), migracion 0049. NULL en cobros anteriores
   // a la migracion -- no se reconstruye.
   createdBy: uuid('created_by').references(() => users.id),
@@ -157,6 +162,15 @@ export const customerReceipts = pgTable('customer_receipts', {
     foreignColumns: [customers.id, customers.companyId],
     name: 'customer_receipts_customer_id_company_fk',
   }),
+  // Lote 151: compuesta, como todas las del tenant, para que un cobro no pueda
+  // apuntar a la cuenta bancaria de otra empresa. `restrict`: no se borra una
+  // cuenta bancaria con cobros.
+  bankAccountCompanyFk: foreignKey({
+    columns: [table.bankAccountId, table.companyId],
+    foreignColumns: [bankAccounts.id, bankAccounts.companyId],
+    name: 'customer_receipts_bank_account_company_fk',
+  }).onDelete('restrict'),
+  bankAccountIdx: index('cust_receipts_bank_account_idx').on(table.bankAccountId),
 }));
 
 export const customerReceiptApplied = pgTable('customer_receipt_applied', {

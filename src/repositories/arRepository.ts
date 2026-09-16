@@ -1,9 +1,11 @@
-import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, auditLogs, type DbTransaction } from '@/db';
+import { db, accountsReceivable, customers, invoices, customerReceipts, customerReceiptApplied, cashMovements, cashSessions, journalEntries, journalEntryLines, auditLogs, bankTransactions, type DbTransaction } from '@/db';
 import { eq, and, sql, desc, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { CashRepository } from '@/repositories/cashRepository';
+import { BankRepository } from '@/repositories/bankRepository';
 import { FinancialMovementService } from '@/services/financialMovementService';
-import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { resolverCuentaPorMapeo, resolverCuentaDeBanco } from '@/services/accounting/resolverCuentas';
+import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
 export interface RegisterReceiptInput {
   companyId: string;
@@ -12,6 +14,8 @@ export interface RegisterReceiptInput {
   userId: string;
   date: string;
   paymentMethod: string;
+  /** Lote 151: obligatoria si el metodo no es efectivo (ver cartera/cuentaDelCobro.ts). */
+  bankAccountId?: string | null;
   amount: number;
   reference?: string;
   notes?: string;
@@ -105,6 +109,17 @@ export class ArRepository {
         throw new Error('El cliente indicado no pertenece a la empresa.');
       }
 
+      // Lote 151: un cobro por banco lleva su cuenta bancaria, uno en efectivo
+      // no. Se comprueba aqui ademas de en la ruta porque este es el sitio que
+      // escribe; y la cuenta (empresa, activa, con cuenta contable) se resuelve
+      // ANTES de insertar nada, para que un banco mal configurado pare el cobro
+      // entero en vez de dejar el recibo sin asiento.
+      const motivoCuenta = motivoParaNoRegistrarCobro(data.paymentMethod, data.bankAccountId);
+      if (motivoCuenta) throw new Error(motivoCuenta);
+      const cuentaDelBanco = entraPorBanco(data.paymentMethod)
+        ? await resolverCuentaDeBanco(tx, data.companyId, data.bankAccountId as string, 'Recibo de cobro')
+        : null;
+
       // 1. Create Receipt
       const [receipt] = await tx.insert(customerReceipts).values({
         id: receiptId,
@@ -113,6 +128,7 @@ export class ArRepository {
         customerId: data.customerId,
         date: data.date,
         paymentMethod: data.paymentMethod,
+        bankAccountId: cuentaDelBanco ? data.bankAccountId : null,
         amount: data.amount.toString(),
         reference: data.reference || null,
         notes: data.notes || null,
@@ -136,6 +152,7 @@ export class ArRepository {
           customerId: data.customerId,
           amount: data.amount,
           paymentMethod: data.paymentMethod,
+          bankAccountId: cuentaDelBanco ? data.bankAccountId : null,
           reference: data.reference || null,
         },
       });
@@ -257,6 +274,31 @@ export class ArRepository {
         });
       }
 
+      // 3-bis. Lote 151: si entra por banco, el deposito va al libro de banco.
+      //
+      // Mismo camino que el cobro de un cheque en garantia (apService): saldo
+      // del ENTORNO con `ajustarSaldo` (con la fila tomada) y el movimiento en
+      // `pending`, porque conciliar es cotejarlo con el estado de cuenta y eso
+      // no lo puede hacer el codigo que lo crea (ARP-25). Sin esto, el deposito
+      // de un cliente solo aparecia en Bancos si alguien metia un "Ajuste".
+      // El asiento lo hace el paso 4, no `registerTransaction`: ese crea el suyo
+      // y el cobro quedaria contabilizado dos veces.
+      if (cuentaDelBanco && data.bankAccountId) {
+        await BankRepository.ajustarSaldo(data.bankAccountId, data.companyId, data.modo, data.amount, tx);
+        await tx.insert(bankTransactions).values({
+          id: uuidv4(),
+          companyId: data.companyId,
+          modo: data.modo,
+          bankAccountId: data.bankAccountId,
+          date: data.date,
+          type: 'deposit',
+          amount: data.amount.toString(),
+          reference: (data.reference || `REC-${receiptId.slice(0, 8)}`).slice(0, 100),
+          description: `Cobro a cliente, recibo REC-${receiptId.slice(0, 8)}`,
+          status: 'pending',
+        });
+      }
+
       // 4. Create Journal Entry (Asiento Contable)
       // Este era el ultimo asiento que resolvia sus cuentas con una copia local
       // de `getOrCreateAccount`, y por eso caia en las DOS trampas que
@@ -280,11 +322,11 @@ export class ArRepository {
       // salda tocan por fin la misma cuenta. La empresa que quiera otra las
       // cambia en `accounting_mappings`, sin tocar codigo.
       //
-      // PENDIENTE, y es decision contable, no de codigo: un cobro por
-      // transferencia o cheque debita hoy la misma cuenta que uno en efectivo,
-      // porque el recibo no guarda contra que cuenta bancaria entro. Era asi
-      // antes de este lote tambien.
-      const accCaja = await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Recibo de Cobro - Efectivo');
+      // Lote 151: cerrado lo que aqui quedaba pendiente. Un cobro por banco
+      // debita la cuenta contable de SU banco (`bank_accounts.chart_account_id`,
+      // resuelta arriba); solo el efectivo debita la caja.
+      const accCaja = cuentaDelBanco
+        ?? await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Recibo de Cobro - Efectivo');
       const accCxC = await resolverCuentaPorMapeo(tx, data.companyId, 'accounts_receivable', '1.1.02.01', 'Recibo de Cobro - Cuentas por Cobrar');
 
       const entryId = uuidv4();
