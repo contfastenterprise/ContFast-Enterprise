@@ -62,15 +62,22 @@ for (const archivo of ARCHIVOS_P0_05) {
 
 console.log('\n3) Las cuentas del flujo de venta usan las claves corregidas (invoiceDbBooker.ts)\n');
 
+//  Lote 140: la resolucion de estas cuentas salio de invoiceDbBooker a
+//  asientoDeFactura.ts, porque la baja de un comprobante rechazado usa el mismo
+//  reparto. La propiedad es la misma -- el flujo de venta resuelve con estas
+//  claves --, asi que se mira donde vive ahora Y que la emision la usa.
 const booker = fuente('src/services/invoice/invoiceDbBooker.ts');
+const asientoVenta = fuente('src/services/invoice/asientoDeFactura.ts');
+ok("la emision resuelve las cuentas de venta con la funcion compartida",
+  booker.includes("from './asientoDeFactura';") && /await resolverCuentasDeVenta\(tx, data\.companyId, /.test(booker));
 ok("Cuentas por Cobrar -> 'accounts_receivable' / '1.1.02.01' (antes '1.1.02', de agrupacion)",
-  /resolverCuentaPorMapeo\(tx, data\.companyId, 'accounts_receivable', '1\.1\.02\.01'/.test(booker));
+  /resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'accounts_receivable', '1\.1\.02\.01'/.test(asientoVenta));
 ok("Efectivo -> 'cash' / '1.1.01.01' (antes '1.1.01', de agrupacion)",
-  /resolverCuentaPorMapeo\(tx, data\.companyId, 'cash', '1\.1\.01\.01'/.test(booker));
+  /resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'cash', '1\.1\.01\.01'/.test(asientoVenta));
 ok("ITBIS por Pagar -> 'itbis_sales' / '2.1.02.01' (antes '2.1.03', codigo inexistente)",
-  /resolverCuentaPorMapeo\(tx, data\.companyId, 'itbis_sales', '2\.1\.02\.01'/.test(booker));
+  /resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'itbis_sales', '2\.1\.02\.01'/.test(asientoVenta));
 ok("Ingresos por Ventas -> 'sales_revenue' / '4.1.01'",
-  /resolverCuentaPorMapeo\(tx, data\.companyId, 'sales_revenue', '4\.1\.01'/.test(booker));
+  /resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'sales_revenue', '4\.1\.01'/.test(asientoVenta));
 
 console.log('\n4) Las cuentas del flujo de compra usan las claves corregidas (los 3 archivos de expenses)\n');
 

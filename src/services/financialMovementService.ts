@@ -185,7 +185,10 @@ export class FinancialMovementService {
             eq(invoices.companyId, companyId),
             eq(invoices.modo, modo),
             isNull(invoices.deletedAt),
-            sql`${invoices.status} NOT IN ('draft', 'rejected')`
+            // Lote 140: `void` es un comprobante dado de baja; su movimiento y
+            // su contramovimiento se anulan, asi que reconstruir solo el
+            // primero dejaria deuda que no existe.
+            sql`${invoices.status} NOT IN ('draft', 'rejected', 'void')`
           )
         );
 

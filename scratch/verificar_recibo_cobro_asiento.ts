@@ -54,6 +54,7 @@ const AR = 'src/repositories/arRepository.ts';
 const CONTA = 'src/repositories/accountingRepository.ts';
 const RESOLVER = 'src/services/accounting/resolverCuentas.ts';
 const FACTURA = 'src/services/invoice/invoiceDbBooker.ts';
+const FACTURA_CUENTAS = 'src/services/invoice/asientoDeFactura.ts';
 
 // ─────────────────────────────────────────────────────────────────────────
 //  PRECONDICIONES. Revientan: se cumplen antes y despues del lote.
@@ -72,10 +73,14 @@ const FACTURA = 'src/services/invoice/invoiceDbBooker.ts';
   exige(!/\.insert\(chartOfAccounts\)/.test(res), 'el resolvedor de cuentas ahora CREA cuentas');
   exige(/isTransactional/.test(res), 'el resolvedor ya no exige que la cuenta sea transaccional');
   //  Y la facturacion ya usaba estas dos claves: el cobro se pega a ellas.
-  const fac = codigo(FACTURA);
-  exige(/resolverCuentaPorMapeo\(tx, data\.companyId, 'accounts_receivable', '1\.1\.02\.01'/.test(fac),
+  //  (Lote 140: la resolucion salio de invoiceDbBooker a asientoDeFactura.ts,
+  //  que la emision llama. Se mira alli, y que la emision la sigue usando.)
+  const fac = codigo(FACTURA_CUENTAS);
+  exige(/await resolverCuentasDeVenta\(tx, data\.companyId, /.test(codigo(FACTURA)),
+        'la facturacion ya no resuelve sus cuentas con asientoDeFactura');
+  exige(/resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'accounts_receivable', '1\.1\.02\.01'/.test(fac),
         'la facturacion ya no resuelve CxC con accounts_receivable/1.1.02.01');
-  exige(/resolverCuentaPorMapeo\(tx, data\.companyId, 'cash', '1\.1\.01\.01'/.test(fac),
+  exige(/resolverCuentaPorMapeo\(tx, (data\.)?companyId, 'cash', '1\.1\.01\.01'/.test(fac),
         'la facturacion ya no resuelve caja con cash/1.1.01.01');
   //  El `userId` estaba a mano desde siempre.
   exige(/createdBy: data\.userId,/.test(codigo(AR)), 'registerReceipt ya no guarda el autor NI del recibo');

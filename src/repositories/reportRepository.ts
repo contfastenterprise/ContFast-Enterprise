@@ -272,7 +272,9 @@ export class ReportRepository {
       eq(invoices.modo, modo),
       gte(sql`DATE(${invoices.createdAt})`, startDate),
       lte(sql`DATE(${invoices.createdAt})`, endDate),
-      sql`${invoices.status} != 'rejected'`
+      // Lote 140: un comprobante dado de baja queda en `void`, y hasta ahora
+      // ningun comprobante llegaba a ese estado. No es una venta.
+      sql`${invoices.status} NOT IN ('rejected', 'void')`
     ];
     if (warehouseId && warehouseId !== 'all') {
       salesConditions.push(eq(invoices.warehouseId, warehouseId));

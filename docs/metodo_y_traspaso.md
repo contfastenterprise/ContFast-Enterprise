@@ -364,9 +364,18 @@ Además, fuera de la tabla:
   ECONNRESET", sigue sin ser veredicto. **Al desplegar**: la próxima consulta la
   pondrá en `rejected` y la pantalla ofrecerá "Reenviar". **No reenviarla**:
   `E340000000003` ya acreditó esa factura entera. Un rechazo descubierto al
-  consultar tampoco revierte asiento ni CxC (pendiente, otro lote). El cuadre
-  contable de Latin Doors, que es donde salió, está en
-  `docs/auditoria/cuadre_latin_doors_informe.md` (sin commitear).
+  consultar tampoco revierte asiento ni CxC. El cuadre contable de Latin Doors,
+  que es donde salió, está en `docs/auditoria/cuadre_latin_doors_informe.md`
+  (sin commitear).
+  **Lote 140: un rechazado ya contabilizado se DA DE BAJA, a propósito.** No se
+  revierte solo (decisión del dueño, 2026-09-16): un rechazado se corrige
+  reenviando el mismo e-NCF y un reenvío aceptado no recontabiliza. Botón
+  "Dar de baja" en e-CF → `services/invoice/bajaDeRechazado.ts`: asiento
+  contrario con fecha de hoy, CxC retirada (o recalculada si es nota de
+  crédito), contramovimiento del cliente y estado `void`. Se niega con cobros,
+  conduces, caja, inventario u otros asientos. El reparto del asiento de venta
+  vive ahora en `services/invoice/asientoDeFactura.ts`, compartido por emisión y
+  baja. **Pendiente, otro lote**: el TXT del 607 no excluye `rejected`.
 - **Los movimientos bancarios no llegaban al mayor — cerrado en el lote 137.**
   `registerTransaction` ajusta el saldo y luego asienta, pero el asiento entero
   colgaba de un `if (data.contraAccountId)` con el parámetro opcional en la

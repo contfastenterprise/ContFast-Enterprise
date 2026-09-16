@@ -28,7 +28,9 @@ import {
   BarChart3,
   Pencil,
   FileCode,
+  Ban,
 } from 'lucide-react';
+import { useConfirm } from '@/providers/confirm-provider';
 import { useRouter } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
@@ -648,6 +650,8 @@ function ComprobantesTab() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [syncingBatch, setSyncingBatch] = useState(false);
   const [resubmittingId, setResubmittingId] = useState<string | null>(null);
+  const [dandoDeBajaId, setDandoDeBajaId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   useEffect(() => {
     setSelectedIds([]);
@@ -804,6 +808,40 @@ function ComprobantesTab() {
       toast.error(err.message);
     } finally {
       setResubmittingId(null);
+    }
+  };
+
+  // DAR DE BAJA un rechazado (lote 140). El rechazo no deshace nada solo: un
+  // rechazado se puede corregir y reenviar con el mismo e-NCF. Si en cambio se
+  // abandona -- por ejemplo porque ya se emitio otro en su lugar --, esto
+  // registra el asiento contrario, retira su CxC y lo deja anulado. Despues ya
+  // no se puede reenviar, y el dialogo lo dice antes.
+  const handleDarDeBaja = async (inv: Invoice) => {
+    const confirmado = await confirm({
+      title: `Dar de baja ${inv.ncf}`,
+      description:
+        `La DGII rechazó este comprobante. Darlo de baja registra el asiento contrario al de su emisión con fecha de hoy, ` +
+        `retira su cuenta por cobrar y lo deja ANULADO. Después ya no se podrá reenviar. ` +
+        `Si lo que quiere es corregirlo y volver a enviarlo, use "Reenviar" en su lugar.`,
+      confirmText: 'Dar de baja',
+      variant: 'destructive',
+    });
+    if (!confirmado) return;
+
+    setDandoDeBajaId(inv.id);
+    try {
+      const res = await fetch(`/api/v1/ecf/${inv.id}/dar-de-baja`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Comprobante dado de baja');
+        fetchInvoices();
+      } else {
+        toast.error(data.error?.message || 'No se pudo dar de baja');
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
+    } finally {
+      setDandoDeBajaId(null);
     }
   };
 
@@ -1055,6 +1093,9 @@ function ComprobantesTab() {
                             comprobante fiscal, y eso no se retira. */}
                         {['rejected', 'signed', 'draft'].includes(inv.status) && (
                           <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"><ArrowRight className="h-4 w-4" /></button>
+                        )}
+                        {inv.status === 'rejected' && (
+                          <button title="Dar de baja (asiento contrario y anular)" onClick={() => handleDarDeBaja(inv)} disabled={dandoDeBajaId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-700 hover:bg-rose-50">{dandoDeBajaId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}</button>
                         )}
                       </div>
                     </td>

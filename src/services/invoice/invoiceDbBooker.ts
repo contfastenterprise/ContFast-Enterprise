@@ -11,6 +11,7 @@ import { IssueInvoiceInput, CalculatedTotals, DgiiSubmissionResult } from './typ
 import { leerDatosFirma } from '@/services/dgii/codigoSeguridad';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
+import { resolverCuentasDeVenta, lineasDeVenta, type ImportesDeVenta } from './asientoDeFactura';
 import { Logger } from '@/utils/logger';
 
 export class InvoiceDbBooker {
@@ -581,76 +582,22 @@ export class InvoiceDbBooker {
 
       // Book automatic accounting journal entries (Double Entry)
       //
-      // Auditoria P0-05 (2026-09-03): estas cuatro cuentas se resolvian con
-      // `getOrCreateAccount`, que busca por codigo literal y CREA la cuenta si
-      // no la encuentra. '1.1.02' y '1.1.01' ya existian en el catalogo real
-      // como cuentas de AGRUPACION (Cuentas por Cobrar es la primera, no
-      // Efectivo) -- postear ahi duplica el saldo entre padre e hijo. '2.1.03'
-      // no existe en el catalogo real (el ITBIS por Pagar transaccional es
-      // '2.1.02.01'); al no encontrarla, se creaba una cuenta nueva sin
-      // `nature`, heredando 'debit' para lo que es un pasivo. `resolverCuentaPorMapeo`
-      // nunca crea: resuelve por `accounting_mappings` o por el codigo correcto,
-      // y valida que la cuenta sea transaccional, activa y de esta empresa.
-      const accCxC = await resolverCuentaPorMapeo(tx, data.companyId, 'accounts_receivable', '1.1.02.01', 'Facturación - Cuentas por Cobrar');
-      const accCaja = await resolverCuentaPorMapeo(tx, data.companyId, 'cash', '1.1.01.01', 'Facturación - Efectivo');
-      const accVentas = await resolverCuentaPorMapeo(tx, data.companyId, 'sales_revenue', '4.1.01', 'Facturación - Ingresos por Ventas');
-      const accItbis = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_sales', '2.1.02.01', 'Facturación - ITBIS por Pagar');
-
-      const isCashOrBank = data.paymentType === 'cash' || data.paymentType === 'bank_transfer';
-      const paymentAccount = isCashOrBank ? accCaja : accCxC;
-
-      let journalLines = [];
-      if (data.ecfType === '34') {
-        // Credit note reverses standard journal entry
-        const creditAmount = totals.totalNet;
-        journalLines = [
-          { accountId: accVentas.id, debit: totals.subtotal - totals.totalDiscount, credit: 0 },
-          { accountId: paymentAccount.id, debit: 0, credit: creditAmount },
-        ];
-        if (totals.totalTaxes > 0) {
-          journalLines.unshift({ accountId: accItbis.id, debit: totals.totalTaxes, credit: 0 });
-        }
-
-        // Revert retentions if any
-        if (totals.totalRetained > 0) {
-          for (const ret of totals.calculatedRetentions) {
-            if (ret.retentionType === 'ISR') {
-              const accIsr = await resolverCuentaPorMapeo(tx, data.companyId, 'isr_retention_receivable', '1.1.03', 'Retención de ISR sobre venta');
-              journalLines.push({ accountId: accIsr.id, debit: 0, credit: ret.retentionAmount });
-            } else if (ret.retentionType === 'ITBIS') {
-              const accItbisRet = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_retention_receivable', '1.1.04', 'Retención de ITBIS sobre venta');
-              journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: ret.retentionAmount });
-            } else {
-              const accOtras = await resolverCuentaPorMapeo(tx, data.companyId, 'other_retention_receivable', '1.1.05', 'Otra retención sobre venta');
-              journalLines.push({ accountId: accOtras.id, debit: 0, credit: ret.retentionAmount });
-            }
-          }
-        }
-      } else {
-        journalLines = [
-          { accountId: paymentAccount.id, debit: totals.totalNet, credit: 0 },
-          { accountId: accVentas.id, debit: 0, credit: totals.subtotal - totals.totalDiscount },
-        ];
-        if (totals.totalTaxes > 0) {
-          journalLines.push({ accountId: accItbis.id, debit: 0, credit: totals.totalTaxes });
-        }
-
-        // Book retention assets (Anticipo de impuestos)
-        if (totals.totalRetained > 0) {
-          for (const ret of totals.calculatedRetentions) {
-            if (ret.retentionType === 'ISR') {
-              const accIsr = await resolverCuentaPorMapeo(tx, data.companyId, 'isr_retention_receivable', '1.1.03', 'Retención de ISR sobre venta');
-              journalLines.push({ accountId: accIsr.id, debit: ret.retentionAmount, credit: 0 });
-            } else if (ret.retentionType === 'ITBIS') {
-              const accItbisRet = await resolverCuentaPorMapeo(tx, data.companyId, 'itbis_retention_receivable', '1.1.04', 'Retención de ITBIS sobre venta');
-              journalLines.push({ accountId: accItbisRet.id, debit: ret.retentionAmount, credit: 0 });
-            } else {
-              const accOtras = await resolverCuentaPorMapeo(tx, data.companyId, 'other_retention_receivable', '1.1.05', 'Otra retención sobre venta');
-              journalLines.push({ accountId: accOtras.id, debit: ret.retentionAmount, credit: 0 });
-            }
-          }
-        }
-      }
+      // Las cuentas y el reparto viven en `asientoDeFactura.ts` desde el lote
+      // 140: la baja de un comprobante rechazado necesita el asiento contrario,
+      // y una segunda copia del reparto es como se desincroniza. El porque de
+      // cada cuenta (Auditoria P0-05) se fue con el codigo.
+      const importesDeVenta: ImportesDeVenta = {
+        ecfType: data.ecfType,
+        paymentType: data.paymentType,
+        subtotal: totals.subtotal,
+        totalDiscount: totals.totalDiscount,
+        totalTaxes: totals.totalTaxes,
+        totalNet: totals.totalNet,
+        totalRetained: totals.totalRetained,
+        retenciones: totals.calculatedRetentions,
+      };
+      const cuentasDeVenta = await resolverCuentasDeVenta(tx, data.companyId, importesDeVenta);
+      const journalLines = lineasDeVenta(cuentasDeVenta, importesDeVenta);
 
       await AccountRepository.createJournalEntry(tx, {
         companyId: data.companyId,
