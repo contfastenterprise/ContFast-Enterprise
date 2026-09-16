@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+// `@sentry/nextjs/config`, no `@sentry/nextjs`: desde el raiz esta obsoleto y
+// deja de funcionar en la v11 (aviso del propio SDK en el build del lote 153).
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   //  `typescript: { ignoreBuildErrors: true }` vivia aqui, y con el
@@ -52,4 +55,37 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Lote 153: Sentry (solo errores; ver src/lib/observabilidad/opcionesSentry.ts).
+//
+// Nada secreto aqui: organizacion, proyecto y token salen del entorno de Vercel
+// (SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN). El token NUNCA se escribe en
+// el repositorio.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  // Que el plugin no mande a Sentry datos de NUESTRO build.
+  telemetry: false,
+  // Los eventos del navegador salen por una ruta de la propia app. Dos razones:
+  // la Content-Security-Policy de arriba solo permite `connect-src 'self'` (y
+  // Supabase), y los bloqueadores de anuncios cortan el dominio de Sentry.
+  // `/monitoring` no esta en el `matcher` de src/proxy.ts: no pide sesion.
+  tunnelRoute: "/monitoring",
+  // Sin token no hay subida de source maps, y el build local sigue funcionando.
+  // Tras subirlos se borran del build: no se publican los fuentes.
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+    deleteSourcemapsAfterUpload: true,
+  },
+  // Sin trazas no hace falta el mapa de rutas, y asi no se publica en el
+  // navegador la lista de pantallas de la app.
+  routeManifestInjection: false,
+  // El aviso pide `onRouterTransitionStart`, que solo sirve para trazas.
+  suppressOnRouterTransitionStartWarning: true,
+  // Un fallo al subir source maps (Sentry caido, token vencido) avisa pero no
+  // tumba el despliegue.
+  errorHandler: (err) => {
+    console.warn("[sentry] No se pudieron subir los source maps:", err.message);
+  },
+});

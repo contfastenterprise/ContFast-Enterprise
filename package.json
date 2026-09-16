@@ -21,6 +21,7 @@
     "@heroui/react": "^3.2.1",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-slot": "^1.3.3",
+    "@sentry/nextjs": "10.74.0",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/supabase-js": "^2.107.0",
     "@tanstack/react-table": "^8.21.3",

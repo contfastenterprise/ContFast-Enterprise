@@ -436,6 +436,16 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Sentry (lote 153): solo errores.** Servidor (`src/instrumentation.ts`:
+  `onRequestError` y el interceptor de `console.error`, que ve los 500 que las
+  rutas atrapan), navegador (`instrumentation-client.ts`, `app/global-error.tsx`).
+  Sin trazas ni Replay. Todo evento pasa por
+  `src/lib/observabilidad/filtroSentry.ts` (sin RNC, cédulas, correos, tokens,
+  cabeceras ni cuerpos). Túnel `/monitoring` por la CSP. **Se activa solo con
+  variables en Vercel**: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`,
+  `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (de organización). **pnpm 11 exige edad
+  mínima de publicación**: si al instalar añade `minimumReleaseAgeExclude` a
+  `pnpm-workspace.yaml`, deshacerlo y elegir una versión anterior.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
   RD (UTC−4, no UTC) y el RNC declarado en el comprobante**; sin documento, el
   tipo va vacío en vez de "3".
