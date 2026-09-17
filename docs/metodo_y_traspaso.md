@@ -443,7 +443,11 @@ Además, fuera de la tabla:
   `src/lib/observabilidad/filtroSentry.ts` (sin RNC, cédulas, correos, tokens,
   cabeceras ni cuerpos). Túnel `/monitoring` por la CSP. **Se activa solo con
   variables en Vercel**: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`,
-  `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (de organización). **pnpm 11 exige edad
+  `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` (de organización). **ACTIVO desde el
+  2026-09-16**: las cuatro variables están en Vercel (proyecto `cfe`; org y
+  proyecto de Sentry `contfast`; el token solo en Production), el despliegue de
+  `64eae7c` subió los source maps y un error de prueba lanzado desde el navegador
+  en producción llegó a Sentry. **pnpm 11 exige edad
   mínima de publicación**: si al instalar añade `minimumReleaseAgeExclude` a
   `pnpm-workspace.yaml`, deshacerlo y elegir una versión anterior.
   **Lote 147: el 607 lleva el NCF modificado de las notas, la fecha en hora de
