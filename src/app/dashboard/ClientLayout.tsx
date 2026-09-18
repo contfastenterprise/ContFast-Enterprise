@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
+import CampanaAvisos from '@/components/ui/campana-avisos';
 import Avatar from '@/components/ui/Avatar';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { esAdminOSistemas } from '@/utils/rolMatch';
@@ -411,6 +412,10 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
           </div>
   
           <div className="flex items-center gap-4">
+            {/* Lote 160: los avisos del sistema, en todas las pantallas y no
+                solo en el panel de inicio. */}
+            <CampanaAvisos />
+
             {/* Environment Indicator Badge */}
             {activeEnvironment === 'PRUEBA' && (
               <div 

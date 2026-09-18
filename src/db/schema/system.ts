@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb, index, boolean, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, jsonb, index, uniqueIndex, boolean, integer, pgEnum } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 
@@ -23,18 +23,53 @@ export const auditLogs = pgTable('audit_logs', {
   companyModoIdx: index('audit_logs_company_modo_idx').on(table.companyId, table.modo),
 }));
 
+/**
+ * Los avisos del sistema, guardados.
+ *
+ * LOTE 160. La tabla existia desde el principio y estaba VACIA: nadie escribia
+ * ni leia en ella (medido el 2026-09-18: 0 filas, y la unica referencia en todo
+ * `src/` era este esquema). Los avisos se calculaban al vuelo en el panel y
+ * morian ahi: no habia forma de saber desde cuando llevaba avisando algo, ni de
+ * quitarse de encima uno ya atendido.
+ *
+ * Lo que le faltaba para servir, y se añade aqui (migracion 0010):
+ *  · `modo`: sin el, un aviso de PRUEBA sale entre los reales.
+ *  · `clave`: la identidad ESTABLE del aviso ("declaracion-606-202608",
+ *    "caja-<id>"). Sin ella, cada calculo del panel insertaria otra fila del
+ *    mismo aviso. Con ella hay UNA por empresa, modo y clave.
+ *  · `actionLink` / `actionText`: el aviso lleva a donde se resuelve.
+ *  · `resolvedAt`: cuando dejo de aplicar. Un aviso resuelto no se borra --
+ *    saber que el 606 de agosto estuvo avisando tres semanas es informacion.
+ *  · `userId` pasa a OPCIONAL: estos avisos son de la EMPRESA, no de una
+ *    persona. Se conserva para un aviso dirigido a alguien en concreto.
+ *
+ * DECIDIDO por el dueño el 2026-09-18: "leida" es de la empresa, no de cada
+ * persona. Si alguien marca leido "el 607 de agosto vence", desaparece para
+ * todos. Si algun dia hace falta por persona, es una tabla puente aparte.
+ */
 export const notifications = pgTable('notifications', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),
-  userId: uuid('user_id').notNull().references(() => users.id),
+  modo: environmentMode('modo').default('PRODUCCION').notNull(),
+  /** Identidad estable del aviso: una fila por empresa, modo y clave. */
+  clave: varchar('clave', { length: 120 }).notNull(),
+  userId: uuid('user_id').references(() => users.id),
   title: varchar('title', { length: 255 }).notNull(),
   message: text('message').notNull(),
   type: varchar('type', { length: 50 }).default('info').notNull(), // info | warning | error | success
+  actionText: varchar('action_text', { length: 80 }),
+  actionLink: varchar('action_link', { length: 255 }),
   readAt: timestamp('read_at'),
+  /** Cuando el aviso dejo de aplicar (el cheque se cobro, la caja se cerro...). */
+  resolvedAt: timestamp('resolved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   companyIdx: index('notifications_company_idx').on(table.companyId),
   userReadIdx: index('notifications_user_read_idx').on(table.userId, table.readAt),
+  //  Lo que impide duplicar el mismo aviso en cada calculo del panel.
+  claveUq: uniqueIndex('notifications_clave_idx').on(table.companyId, table.modo, table.clave),
+  vivosIdx: index('notifications_vivos_idx').on(table.companyId, table.modo, table.resolvedAt),
 }));
 
 export const routeMappings = pgTable('route_mappings', {

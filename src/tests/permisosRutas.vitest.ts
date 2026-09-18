@@ -109,6 +109,19 @@ const PENDIENTES = new Set([
   'v1/tools/print/route.ts',
 ]);
 
+/**
+ * Rutas SIN permiso de modulo por decision, no por deuda: no van en
+ * PENDIENTES (esa lista solo encoge y aqui no hay nada que corregir).
+ * Cada una lleva su motivo y la prueba de abajo exige que siga acotando por
+ * la sesion: si algun dia lee la empresa de la peticion, deja de valer.
+ */
+const ABIERTAS_A_PROPOSITO: Record<string, string> = {
+  // Lote 160. La campana la ve cualquier usuario de la empresa (decision del
+  // dueno, 2026-09-18): son los avisos de SU empresa, como el panel. El
+  // enlace de cada aviso lleva a su pantalla, y esa si pide permiso.
+  'v1/notifications/route.ts': 'avisos de la propia empresa, para todos sus usuarios',
+};
+
 function rutasApi(dir: string, acc: string[] = []): string[] {
   for (const entrada of readdirSync(dir)) {
     const p = join(dir, entrada);
@@ -141,7 +154,8 @@ describe('ISO-03 · comprobacion de permisos en las rutas de la API', () => {
 
   it('ninguna ruta nueva verifica sesion sin verificar permiso', () => {
     const sinPermiso = ARCHIVOS.filter(
-      (a) => usaSesion(a.contenido) && !compruebaPermiso(a.contenido) && !PENDIENTES.has(a.id)
+      (a) => usaSesion(a.contenido) && !compruebaPermiso(a.contenido) &&
+        !PENDIENTES.has(a.id) && !(a.id in ABIERTAS_A_PROPOSITO)
     ).map((a) => a.id);
 
     expect(
@@ -163,6 +177,21 @@ describe('ISO-03 · comprobacion de permisos en las rutas de la API', () => {
       yaCorregidas,
       'Estas rutas ya comprueban permisos: quitarlas de PENDIENTES para que la lista siga encogiendo.'
     ).toEqual([]);
+  });
+
+  it('las rutas abiertas a proposito existen y acotan por la empresa de la sesion', () => {
+    const porId = new Map(ARCHIVOS.map((a) => [a.id, a.contenido]));
+    for (const [id, motivo] of Object.entries(ABIERTAS_A_PROPOSITO)) {
+      const contenido = porId.get(id);
+      expect(contenido, `${id} ya no existe: quitarla de ABIERTAS_A_PROPOSITO`).toBeDefined();
+      const c = contenido || '';
+      expect(usaSesion(c), `${id} (${motivo}) ya no verifica la sesion`).toBe(true);
+      expect(c, `${id} (${motivo}) no acota por session.companyId`).toMatch(/\bsession\.companyId\b/);
+      // Leer la empresa de la peticion anularia el motivo: quien llama elegiria
+      // de que empresa ver los avisos.
+      expect(c, `${id} (${motivo}) lee companyId de la peticion`)
+        .not.toMatch(/(searchParams\.get\(\s*['"]companyId|\bbody\.companyId|parsed\.data\.companyId)/);
+    }
   });
 
   it('las rutas sensibles del lote corregido comprueban permiso', () => {

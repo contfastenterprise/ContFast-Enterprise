@@ -447,6 +447,15 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Lote 160: los avisos se guardan y hay campana** en la barra de arriba
+  (`services/avisos/sincronizarAvisos.ts`, `components/ui/campana-avisos.tsx`).
+  `notifications` llevaba 0 filas y nadie la tocaba; ahora cada aviso del panel
+  se guarda con clave estable, se actualiza y **se cierra solo** cuando deja de
+  aplicar. **MIGRACIÓN `drizzle/0010_avisos_guardados.sql`: aplicarla ANTES de
+  desplegar.** "Leída" es de la empresa, no de cada persona (decisión del dueño,
+  2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
+  ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
+  `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
 - **Lote 159: el panel avisa del 606 y del 607 del mes cerrado** hasta que
   alguien los marca como presentados (`services/dgii/declaracionesPendientes.ts`,
   tabla `declaraciones_dgii`). **MIGRACIÓN `drizzle/0009_declaraciones_dgii.sql`:

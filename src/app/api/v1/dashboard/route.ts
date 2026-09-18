@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
+import { sincronizarAvisos } from '@/services/avisos/sincronizarAvisos';
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +31,13 @@ export async function GET(req: NextRequest) {
       DashboardRepository.getCategorySales(session.companyId, days, session.modo),
       DashboardRepository.getCollectionStatus(session.companyId, days, session.modo)
     ]);
+
+    // Lote 160: los avisos que el panel acaba de calcular se guardan, para que
+    // no vivan solo en esta pantalla: la campana los enseña en toda la
+    // aplicación y quedan hasta que se atienden. `sincronizarAvisos` cierra
+    // solos los que ya no aparecen y NUNCA lanza: guardar el aviso no puede
+    // tumbar el panel que lo produjo.
+    await sincronizarAvisos(session.companyId, session.modo, stats.alertsDetails ?? []);
 
     return NextResponse.json({
       success: true,
