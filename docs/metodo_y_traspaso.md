@@ -447,6 +447,12 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Lote 159: el panel avisa del 606 y del 607 del mes cerrado** hasta que
+  alguien los marca como presentados (`services/dgii/declaracionesPendientes.ts`,
+  tabla `declaraciones_dgii`). **MIGRACIÓN `drizzle/0009_declaraciones_dgii.sql`:
+  aplicarla ANTES de desplegar.** El fichero **no se guarda**: se genera al
+  descargarlo, así nunca queda viejo. Al medir, el 606 y el 607 de julio y de
+  agosto ya habían pasado el plazo (día 15) sin que nada avisara.
 - **Lote 158: el panel avisa ANTES.** El cheque en garantía se avisa 3 días
   antes del cobro (antes solo el día del cobro o después: el 123, de
   RD$144.092,15, se cobraba al día siguiente y no avisaba nada), y hay aviso

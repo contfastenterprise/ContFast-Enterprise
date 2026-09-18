@@ -105,7 +105,9 @@ async function main() {
     /\.from\(cashSessions\)\s*\.where\(withTenantMode\(cashSessions, ctx, eq\(cashSessions\.status, 'open'\)\)\)/.test(PANEL));
   ok('se avisa solo de las que no se cerraron el mismo dia, y se cuentan',
     /const cajasSinCerrar = sesionesAbiertas\.filter\(\(s\) => cajaSinCerrar\(\{ status: 'open', openedAt: s\.openedAt \}, today\)\);/.test(PANEL)
-    && /alertCount: alertCount \+ dueGuaranteeChecksCount \+ avisoPeriodos \+ cajasSinCerrar\.length,/.test(PANEL));
+    //  Lote 159: el contador gano otro sumando (las declaraciones pendientes).
+    //  Se exige que el de las cajas siga estando, no la suma exacta.
+    && /alertCount: alertCount \+[^;]*\bcajasSinCerrar\.length\b/.test(PANEL));
   ok('el aviso de caja lleva a Caja y dice por que importa',
     /type: 'caja_sin_cerrar',/.test(PANEL) && /actionLink: '\/dashboard\/cash'/.test(PANEL)
     && /el arqueo no cuadra contra nada/.test(PANEL));

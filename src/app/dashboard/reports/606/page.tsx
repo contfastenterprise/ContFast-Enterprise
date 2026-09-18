@@ -14,7 +14,10 @@ interface Expense {
   expenseType?: string;
 }
 
-import { FileText, Download, Calendar } from 'lucide-react';
+import { FileText, Download, Calendar, CheckCircle2 } from 'lucide-react';
+import clsx from 'clsx';
+import { formatDateDisplay } from '@/utils/fechasLocales';
+import { periodoCompacto } from '@/services/dgii/declaracionesPendientes';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { vaEnElDetalle606 } from '@/services/dgii/formato606';
@@ -31,6 +34,51 @@ export default function Report606() {
   // literalmente el mismo mensaje: la ruta contestaba 403 y se leia "No hay
   // gastos registrados para este periodo".
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  //  Lote 159: la constancia de que este período ya se presentó a la DGII. Es
+  //  lo que apaga el aviso del panel; no sube nada a la Oficina Virtual.
+  const [presentadaEn, setPresentadaEn] = useState<string | null>(null);
+  const [marcando, setMarcando] = useState(false);
+
+  const cargarPresentacion = async () => {
+    try {
+      const res = await fetch('/api/v1/reports/declaraciones');
+      const data = await res.json();
+      if (!res.ok || !data.success) return;
+      const marca = (data.data || []).find(
+        (m: { tipo: string; periodo: string }) => m.tipo === '606' && m.periodo === periodoCompacto(period)
+      );
+      setPresentadaEn(marca?.presentadaEn ?? null);
+    } catch {
+      //  Que no se pueda leer la marca no puede romper el informe: lo unico que
+      //  se pierde es saber si ya se presento.
+      setPresentadaEn(null);
+    }
+  };
+
+  const alternarPresentada = async () => {
+    setMarcando(true);
+    try {
+      const periodo = periodoCompacto(period);
+      const res = presentadaEn
+        ? await fetch(`/api/v1/reports/declaraciones?tipo=606&periodo=${periodo}`, { method: 'DELETE' })
+        : await fetch('/api/v1/reports/declaraciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo: '606', periodo }),
+          });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data?.error?.message || 'No se pudo guardar la marca.');
+        return;
+      }
+      toast.success(presentadaEn ? 'Se quitó la marca de presentado.' : 'Marcado como presentado a la DGII.');
+      await cargarPresentacion();
+    } catch {
+      toast.error('Error de red al guardar la marca.');
+    } finally {
+      setMarcando(false);
+    }
+  };
 
   const fetchExpenses = async () => {
     setErrorCarga(null);
@@ -59,6 +107,7 @@ export default function Report606() {
 
   useEffect(() => {
     fetchExpenses();
+    cargarPresentacion();
   }, [period]);
 
   const exportTxt = async () => {
@@ -132,6 +181,20 @@ export default function Report606() {
           className="flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-lg font-bold text-sm transition shadow-md"
         >
           <Download className="h-4 w-4" /> Exportar TXT
+        </button>
+        {/* Lote 159: la constancia de que este período ya se presentó. Es lo
+            que apaga el aviso del panel; no sube nada a la DGII. */}
+        <button
+          onClick={alternarPresentada}
+          disabled={marcando}
+          className={clsx(
+            'flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-bold text-sm transition shadow-md disabled:opacity-50',
+            presentadaEn ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-[#003366] hover:bg-[#002347] text-white'
+          )}
+          title={presentadaEn ? 'Quitar la marca de presentado' : 'Marcar este período como presentado a la DGII'}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {presentadaEn ? `Presentado el ${formatDateDisplay(presentadaEn)}` : 'Marcar como presentado'}
         </button>
       </div>
 

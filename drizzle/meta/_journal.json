@@ -64,6 +64,13 @@
       "when": 1789598022987,
       "tag": "0008_cobro_cuenta_bancaria",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789718455607,
+      "tag": "0009_declaraciones_dgii",
+      "breakpoints": true
     }
   ]
 }

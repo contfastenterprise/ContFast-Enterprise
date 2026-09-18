@@ -415,6 +415,34 @@ export const expenseLines = pgTable('expense_lines', {
   productIdx: index('expense_line_prod_idx').on(table.productId),
 }));
 
+/**
+ * Lote 159: la constancia de que un 606 o un 607 ya se presento a la DGII.
+ *
+ * NO guarda el archivo, a proposito (decidido por el dueño el 2026-09-18): el
+ * TXT se genera al descargarlo, asi que siempre refleja lo que hay ahora; uno
+ * guardado se quedaria viejo en cuanto se corrigiera una compra del mes. Aqui
+ * solo vive la marca -- quien la puso y cuando --, que es lo que le falta al
+ * panel para saber cuando dejar de avisar.
+ */
+export const declaracionesDgii = pgTable('declaraciones_dgii', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  companyId: uuid('company_id').notNull().references(() => companies.id),
+  modo: environmentMode('modo').notNull(),
+  /** '606' (compras) o '607' (ventas). */
+  tipo: varchar('tipo', { length: 8 }).notNull(),
+  /** El periodo declarado, AAAAMM. */
+  periodo: varchar('periodo', { length: 6 }).notNull(),
+  presentadaPor: uuid('presentada_por').references(() => users.id),
+  presentadaEn: timestamp('presentada_en').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  //  Una sola marca por empresa, modo, formato y periodo: marcar dos veces el
+  //  mismo mes no es un dato nuevo, y sin esto el aviso podria apagarse con una
+  //  marca de otro entorno.
+  unicaPorPeriodo: uniqueIndex('declaraciones_dgii_unica_idx')
+    .on(table.companyId, table.modo, table.tipo, table.periodo),
+}));
+
 export const accountingPeriods = pgTable('accounting_periods', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').notNull().references(() => companies.id),

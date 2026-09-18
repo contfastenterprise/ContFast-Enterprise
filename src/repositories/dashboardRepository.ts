@@ -9,10 +9,18 @@ import {
   cajaSinCerrar,
   diasAbierta,
 } from '@/services/avisos/vencimientos';
+import {
+  periodosCerrados,
+  declaracionesPendientes,
+  tituloDeclaracion,
+  DIA_LIMITE_DECLARACION,
+  type DeclaracionPendiente,
+} from '@/services/dgii/declaracionesPendientes';
+import { declaracionesDgii } from '@/db';
 
 interface DashboardAlert {
   id: string;
-  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar';
+  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar' | 'declaracion_pendiente';
   title: string;
   description: string;
   actionText: string;
@@ -242,13 +250,64 @@ export class DashboardRepository {
       });
     }
 
+    //  Lote 159: el 606 y el 607 del mes cerrado. Se arman a mano -alguien
+    //  entra, elige el mes y pulsa exportar- y nada avisaba de que el mes
+    //  hubiera cerrado. Medido el 2026-09-18 en Latin Doors: julio (35 compras,
+    //  23 comprobantes) y agosto (33 y 17) ya habian pasado el plazo del dia 15
+    //  sin que nada lo dijera.
+    //
+    //  El aviso NO genera ni guarda el fichero: lleva a la pantalla, donde el
+    //  TXT se produce al descargarlo y por tanto siempre esta al dia. Se apaga
+    //  cuando alguien marca ese periodo como presentado.
+    const periodos = periodosCerrados(today);
+    let declaracionesPorPresentar: DeclaracionPendiente[] = [];
+    if (periodos.length > 0) {
+      const desde = `${periodos[periodos.length - 1].slice(0, 4)}-${periodos[periodos.length - 1].slice(4, 6)}-01`;
+      const [comprasPorPeriodo, ventasPorPeriodo, marcadas] = await Promise.all([
+        db.select({ periodo: sql<string>`to_char(${expenses.issueDate}, 'YYYYMM')`, n: sql<number>`count(*)::int` })
+          .from(expenses)
+          .where(withTenantMode(expenses, ctx, isNull(expenses.deletedAt), sql`coalesce(${expenses.ncf}, '') <> ''`, gte(expenses.issueDate, desde)))
+          .groupBy(sql`to_char(${expenses.issueDate}, 'YYYYMM')`),
+        db.select({ periodo: sql<string>`to_char(${invoices.createdAt}, 'YYYYMM')`, n: sql<number>`count(*)::int` })
+          .from(invoices)
+          .where(withTenantMode(invoices, ctx, isNull(invoices.deletedAt), sql`${invoices.status} not in ('draft', 'rejected', 'void')`, gte(invoices.createdAt, new Date(`${desde}T00:00:00-04:00`))))
+          .groupBy(sql`to_char(${invoices.createdAt}, 'YYYYMM')`),
+        db.select({ tipo: declaracionesDgii.tipo, periodo: declaracionesDgii.periodo })
+          .from(declaracionesDgii)
+          .where(withTenantMode(declaracionesDgii, ctx)),
+      ]);
+
+      const con606 = new Set(comprasPorPeriodo.filter((f) => f.n > 0).map((f) => f.periodo));
+      const con607 = new Set(ventasPorPeriodo.filter((f) => f.n > 0).map((f) => f.periodo));
+      const presentadas = new Set(marcadas.map((m) => `${m.tipo}|${m.periodo}`));
+
+      declaracionesPorPresentar = declaracionesPendientes({
+        ahora: today,
+        conDatos: (tipo, periodo) => (tipo === '606' ? con606 : con607).has(periodo),
+        presentada: (tipo, periodo) => presentadas.has(`${tipo}|${periodo}`),
+      });
+
+      for (const d of declaracionesPorPresentar) {
+        alertsDetails.push({
+          id: `declaracion-${d.tipo}-${d.periodo}`,
+          type: 'declaracion_pendiente',
+          title: tituloDeclaracion(d),
+          description: d.vencida
+            ? `El formato ${d.tipo} de ese mes no consta presentado y el plazo de la DGII (día ${DIA_LIMITE_DECLARACION}) ya pasó.`
+            : `Descárguelo y preséntelo en la Oficina Virtual antes del ${d.limite}.`,
+          actionText: `Ir al ${d.tipo}`,
+          actionLink: `/dashboard/reports/${d.tipo}?period=${d.periodo}`,
+        });
+      }
+    }
+
     return {
       invoicesToday,
       invoicesTodayAmount,
       invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
-      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos + cajasSinCerrar.length,
+      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos + cajasSinCerrar.length + declaracionesPorPresentar.length,
       totalInvoices,
       monthlyGoal: 2000000, // Fixed for now
       dueGuaranteeChecksCount,
