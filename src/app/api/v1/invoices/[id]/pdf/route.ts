@@ -7,7 +7,7 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { db, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, productCategories } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
-import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
+import { qrDelComprobante } from '@/services/dgii/qrDelComprobante';
 import { Logger } from '@/utils/logger';
 import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
 
@@ -213,19 +213,16 @@ export async function GET(
       qrBase64 = firma.qr.startsWith('http')
         ? await PdfGenerator.generateQrBase64(firma.qr)
         : firma.qr;
-    } else if (securityCode) {
-      // Sin QR de mSeller pero CON codigo real, la consulta se puede construir
-      // y sirve. Sin codigo no se genera ningun QR: un QR que lleva a la DGII a
-      // preguntar por un codigo inexistente es peor que no tenerlo.
-      const urlConsulta = urlConsultaDgii({
-        rncEmisor: company.rnc,
-        rncComprador: invoice.buyerRnc,
+    } else {
+      // Lote 156: el QR se le pide a mSeller (ver qrDelComprobante.ts); ya no
+      // se arma el enlace de la DGII, que responde 404.
+      const enlace = await qrDelComprobante({
+        invoiceId: id,
+        companyId,
+        modo,
         ncf: invoice.ncf,
-        fecha: invoice.createdAt,
-        total: Number(invoice.total),
-        codigoSeguridad: securityCode,
       });
-      if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+      if (enlace) qrBase64 = await PdfGenerator.generateQrBase64(enlace);
     }
 
     if (qrBase64 === null) {

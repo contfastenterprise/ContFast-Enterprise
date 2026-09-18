@@ -5,7 +5,7 @@ import { DocumentService } from '@/services/print/documentService';
 import { db, invoices, companies, companySettings, customers, invoiceLines, invoiceTaxes, products, dgiiSubmissions, ecfSequences, invoiceRetentions, productCategories, warehouses } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
-import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
+import { qrDelComprobante } from '@/services/dgii/qrDelComprobante';
 import { verifyAuth } from '@/middleware/auth';
 import { Logger } from '@/utils/logger';
 import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
@@ -138,19 +138,18 @@ async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: '
     qrBase64 = firma.qr.startsWith('http')
       ? await PdfGenerator.generateQrBase64(firma.qr)
       : firma.qr;
-  } else if (securityCode) {
-    // Sin QR de mSeller pero CON codigo real, la consulta se puede construir
-    // y sirve. Sin codigo no se genera ningun QR: un QR que lleva a la DGII a
-    // preguntar por un codigo inexistente es peor que no tenerlo.
-    const urlConsulta = urlConsultaDgii({
-      rncEmisor: company.rnc,
-      rncComprador: invoiceRecordDb.buyerRnc,
+  } else {
+    // Lote 156: sin QR guardado se le pide a mSeller, que es quien lo emite
+    // (ver services/dgii/qrDelComprobante.ts). Antes se armaba a mano un
+    // enlace de la DGII que responde 404. Si mSeller no lo tiene, se imprime
+    // sin QR.
+    const enlace = await qrDelComprobante({
+      invoiceId: invoiceRecordDb.id,
+      companyId: invoiceRecordDb.companyId,
+      modo: invoiceRecordDb.modo,
       ncf: invoiceRecordDb.ncf,
-      fecha: invoiceRecordDb.createdAt,
-      total: Number(invoiceRecordDb.total),
-      codigoSeguridad: securityCode,
     });
-    if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+    if (enlace) qrBase64 = await PdfGenerator.generateQrBase64(enlace);
   }
 
   if (qrBase64 === null) {

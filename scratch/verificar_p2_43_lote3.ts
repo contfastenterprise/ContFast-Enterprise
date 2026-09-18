@@ -63,11 +63,19 @@ const PDF = 'src/app/api/v1/invoices/[id]/pdf/route.ts';
 
   // Esta es la que protege el arreglo de si mismo: las ramas que deciden QUE
   // codificar estan pensadas y comentadas, y no se han tocado.
+  //  Lote 156: la rama de respaldo ya no arma el enlace de la DGII (respondia
+  //  404), se lo pide a mSeller. Lo que este banco protege sigue igual: hay dos
+  //  ramas -el QR que ya consta y el de respaldo- y el acumulador distingue el
+  //  fallo. Se ancla en eso, no en el comentario que explicaba la rama vieja.
   ok('y las ramas que deciden QUE codificar siguen intactas',
     [CORR, PRINT, PDF].every((p) =>
-      crudo(p).includes('un QR que lleva a la DGII a')
+      /const enlace = await qrDelComprobante\(\{/.test(fuente(p))
       && fuente(p).includes("let qrBase64: string | null = '';"))
-    && crudo(FILE).includes('salia un QR con `codigoSeguridad=` vacio'));
+    //  En la emision, igual: la rama de respaldo existe y distingue el fallo.
+    //  (Antes se anclaba el comentario del QR con `codigoSeguridad=` vacio, que
+    //  explicaba el enlace retirado en el lote 156.)
+    && /const enlace = await qrDelComprobante\(\{/.test(fuente(FILE))
+    && fuente(FILE).includes("let qrBase64: string | null = '';"));
 }
 
 // ─── al emitir ──────────────────────────────────────────────────────────

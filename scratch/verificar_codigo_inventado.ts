@@ -38,8 +38,11 @@ ok(
 ok('la nota deja constancia del valor concreto que se imprimia', s.includes('C71D2DC8464CDC7A'));
 ok('la nota explica que el guardia del QR no llegaba a disparar', s.includes('no disparaba NUNCA'));
 ok(
+  //  Lote 156: el enlace ya no se arma aqui, lo da mSeller, y la variable pasa
+  //  de `urlConsulta` a `enlace`. Lo que se vigila es lo mismo: el QR solo se
+  //  dibuja si HAY enlace, y ninguno se fabrica.
   'el guardia que evita el QR sin codigo ahora SI puede disparar',
-  s.includes('if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);') &&
+  /if \(enlace\) qrBase64 = await PdfGenerator\.generateQrBase64\(enlace\);/.test(s) &&
     !s.includes("crypto.createHash('sha256')")
 );
 

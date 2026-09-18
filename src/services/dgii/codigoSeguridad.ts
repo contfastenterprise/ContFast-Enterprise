@@ -131,37 +131,15 @@ export function leerCodigoSeguridad(raw: unknown): string {
 }
 
 /**
- * La URL de consulta de la DGII para un comprobante.
+ * RETIRADO EN EL LOTE 156: `urlConsultaDgii`.
  *
- * Devuelve `null` si no hay codigo de seguridad. Antes se construia igual y se
- * metia dentro el codigo inventado, asi que el QR impreso llevaba al portal de
- * la DGII a preguntar por un codigo que no existe. Sin codigo no hay consulta
- * posible, y decirlo es mas util que un QR que falla.
+ * Armaba `https://ecf.dgii.gov.do/e-cf/Consulta?...` para el QR impreso cuando
+ * mSeller no habia mandado `qr_url`. Esa direccion responde **404** en el
+ * portal de la DGII (comprobado durante el cuadre de Latin Doors; las que
+ * funcionan son `/ecf/consultatimbre` y, para las de consumo,
+ * `fc.dgii.gov.do/ecf/consultatimbrefc`, con otros nombres de parametro).
+ *
+ * Decidido por el dueño el 2026-09-18: el enlace del QR lo da mSeller, no se
+ * arma aqui. Si falta, se le pide -- ver `services/dgii/qrDelComprobante.ts`.
+ * `fechaDgii` sigue usandose en el resto del modulo.
  */
-export function urlConsultaDgii(datos: {
-  rncEmisor?: string | null;
-  rncComprador?: string | null;
-  ncf: string;
-  fecha: Date | string;
-  total: number;
-  codigoSeguridad: string;
-}): string | null {
-  if (!datos.codigoSeguridad) return null;
-  // La fecha va en dd-mm-aaaa CON relleno de ceros. Las cuatro rutas la
-  // formateaban con `toLocaleDateString('es-DO')` y cambiando `/` por `-`, que
-  // para el 2 de septiembre da "2-9-2026" en vez de "02-09-2026".
-  // El formateo esta en fechaDgii.ts. Aqui llega siempre un `createdAt` o un
-  // `new Date()` -- una marca de tiempo real -- asi que el resultado es el
-  // mismo que antes; lo que cambia es que una fecha ilegible ya no produce
-  // "NaN-NaN-NaN" dentro del QR impreso.
-  const fecha = fechaDgii(datos.fecha) ?? '';
-  const p = new URLSearchParams({
-    rncEmisor: datos.rncEmisor || '',
-    rncComprador: datos.rncComprador || '',
-    eNCF: datos.ncf,
-    fechaFirma: fecha,
-    montoTotal: Number(datos.total).toFixed(2),
-    codigoSeguridad: datos.codigoSeguridad,
-  });
-  return `https://ecf.dgii.gov.do/e-cf/Consulta?${p.toString()}`;
-}

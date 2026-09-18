@@ -1,5 +1,5 @@
 import { db, products, productCategories } from '@/db';
-import { urlConsultaDgii } from '@/services/dgii/codigoSeguridad';
+import { qrDelComprobante } from '@/services/dgii/qrDelComprobante';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
@@ -227,20 +227,16 @@ export class InvoiceFileGenerator {
           qrBase64 = submission.qrCode;
         }
       } else {
-        // Sin QR de mSeller se construye la consulta de la DGII, pero SOLO si
-        // hay codigo de seguridad. Antes se construia siempre, y cuando el
-        // codigo no constaba salia un QR con `codigoSeguridad=` vacio: un QR
-        // impreso en un comprobante fiscal que lleva a una consulta que no
-        // puede responder. Sin codigo, mejor sin QR.
-        const urlConsulta = urlConsultaDgii({
-          rncEmisor: company.rnc,
-          rncComprador: data.buyerRnc,
+        // Lote 156: si el envio no trajo QR se le pide a mSeller, que es quien
+        // lo emite (ver services/dgii/qrDelComprobante.ts). Aqui se armaba a
+        // mano un enlace de la DGII que responde 404. Sin QR de mSeller, el
+        // documento sale sin QR y el aviso de abajo lo deja por escrito.
+        const enlace = await qrDelComprobante({
+          companyId: data.companyId,
+          modo: data.modo,
           ncf,
-          fecha: new Date(),
-          total: Number(totals.total),
-          codigoSeguridad: securityHash,
         });
-        if (urlConsulta) qrBase64 = await PdfGenerator.generateQrBase64(urlConsulta);
+        if (enlace) qrBase64 = await PdfGenerator.generateQrBase64(enlace);
       }
 
       if (qrBase64 === null) {

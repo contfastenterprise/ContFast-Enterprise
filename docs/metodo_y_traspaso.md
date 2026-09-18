@@ -447,6 +447,11 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Lote 156: el QR impreso lo da mSeller.** Si falta, se le pide
+  (`services/dgii/qrDelComprobante.ts`, plazo de 6 s) y se guarda en la factura;
+  si tampoco lo tiene, el documento sale sin QR. Se retiró `urlConsultaDgii`,
+  que armaba `ecf.dgii.gov.do/e-cf/Consulta?...` — esa dirección responde 404.
+  Decisión del dueño (2026-09-18): el enlace no se arma en el código.
 - **Sentry (lote 153): solo errores.** Servidor (`src/instrumentation.ts`:
   `onRequestError` y el interceptor de `console.error`, que ve los 500 que las
   rutas atrapan), navegador (`instrumentation-client.ts`, `app/global-error.tsx`).

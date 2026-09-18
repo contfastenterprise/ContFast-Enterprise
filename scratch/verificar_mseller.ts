@@ -43,7 +43,7 @@
 import { db, dgiiSubmissions } from '../src/db';
 import { sql } from 'drizzle-orm';
 import { envioVigente, datosFirmaDeEnvio } from '../src/repositories/dgiiSubmissionRepository';
-import { leerDatosFirma, leerCodigoSeguridad, urlConsultaDgii } from '../src/services/dgii/codigoSeguridad';
+import { leerDatosFirma, leerCodigoSeguridad } from '../src/services/dgii/codigoSeguridad';
 import { MS_AUTENTICACION, MS_ENVIO, MS_CONSULTA } from '../src/services/dgii/tiempos';
 import { fuente, crudo, bloque } from './_fuente';
 
@@ -95,20 +95,14 @@ async function main() {
   ok('la respuesta de una consulta de estado no aporta codigo',
     leerCodigoSeguridad({ ncf: 'E31...', estado: 'Aceptado', mensajes: [] }) === '');
 
-  const sinCodigo = urlConsultaDgii({
-    rncEmisor: '131793916', ncf: 'E310000000001', fecha: new Date(),
-    total: 1000, codigoSeguridad: '',
-  });
-  ok('sin codigo no hay URL de consulta (ni QR)', sinCodigo === null, String(sinCodigo));
-
-  const conCodigo = urlConsultaDgii({
-    rncEmisor: '131793916', ncf: 'E310000000001', fecha: new Date('2026-09-02T10:00:00'),
-    total: 1000, codigoSeguridad: CODIGO,
-  });
-  ok('con codigo si la hay', !!conCodigo && conCodigo.includes(`codigoSeguridad=${CODIGO}`));
-  ok('y la fecha va con ceros (dd-mm-aaaa)',
-    !!conCodigo && conCodigo.includes('fechaFirma=02-09-2026'),
-    conCodigo ? decodeURIComponent(conCodigo).split('fechaFirma=')[1]?.split('&')[0] : '');
+  //  LOTE 156: aqui se comprobaba `urlConsultaDgii`, que armaba a mano la
+  //  direccion de consulta de la DGII para el QR impreso cuando faltaba el
+  //  `qr_url` de mSeller. Esa direccion responde 404 y la funcion se retiro: el
+  //  enlace del QR lo da mSeller (`services/dgii/qrDelComprobante.ts`, vigilado
+  //  por `verificar_qr_mseller.ts`). Lo que sigue importando aqui es que el QR
+  //  nunca se fabrique con un codigo inventado.
+  ok('ya no existe la funcion que armaba el enlace de la DGII',
+    !/export function urlConsultaDgii/.test(fuente('src/services/dgii/codigoSeguridad.ts')));
 
   console.log('\n4) Ninguna ruta fabrica ya un codigo con sha256\n');
 
@@ -135,7 +129,7 @@ async function main() {
   }
   const gen = fuente('src/services/invoice/invoiceFileGenerator.ts');
   ok('el generador de ficheros no arma un QR con el codigo vacio',
-    !/codigoSeguridad=\$\{securityHash\}/.test(gen) && /urlConsultaDgii\(/.test(gen));
+    !/codigoSeguridad=\$\{securityHash\}/.test(gen) && /qrDelComprobante\(\{/.test(gen));
 
   console.log('\n5) La sincronizacion actualiza UN envio y no borra el codigo\n');
 
