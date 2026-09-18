@@ -447,6 +447,13 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Lote 158: el panel avisa ANTES.** El cheque en garantía se avisa 3 días
+  antes del cobro (antes solo el día del cobro o después: el 123, de
+  RD$144.092,15, se cobraba al día siguiente y no avisaba nada), y hay aviso
+  nuevo para la caja que no se cerró el mismo día (había una abierta desde el
+  06/08, 43 días). `services/avisos/vencimientos.ts`, **con el día de RD
+  (UTC−4), no el del servidor**: en UTC, la caja de anoche y la de esta
+  madrugada salen al revés. La caja no se cierra sola (JRN-11).
 - **Lote 157: los correos quedan registrados** (`system_email_logs` llevaba CERO
   filas con el SMTP puesto hacía 85 días: el registrador exigía empresa y los dos
   correos de factura se encolaban sin ella). Ahora el trabajo de la cola exige

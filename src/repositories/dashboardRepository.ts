@@ -1,11 +1,18 @@
-import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable } from '@/db';
+import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable, cashSessions } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 import { accountingPeriods } from '@/db';
 import { diasDeCobertura, DIAS_AVISO_PERIODOS } from '@/services/accounting/coberturaPeriodos';
+import {
+  limiteDeAvisoDeCheques,
+  urgenciaDelCheque,
+  tituloDelCheque,
+  cajaSinCerrar,
+  diasAbierta,
+} from '@/services/avisos/vencimientos';
 
 interface DashboardAlert {
   id: string;
-  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse';
+  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar';
   title: string;
   description: string;
   actionText: string;
@@ -125,12 +132,19 @@ export class DashboardRepository {
     // consultara la tabla `checks`, un cheque huerfano (sin ap_payment, con la CxP
     // borrada o soft-deleted) dispararia la alerta para siempre mientras la pantalla
     // aparece vacia, y no habria forma de limpiarlo desde la UI.
-    const formattedToday = today.toISOString().split('T')[0];
+    //  Lote 158: el aviso salia el dia del cobro o despues (`due_date <= hoy`).
+    //  Un cheque en garantia se cobra contra la cuenta ESE dia: enterarse
+    //  entonces es enterarse tarde. Ahora entra tambien lo que vence dentro de
+    //  `DIAS_AVISO_CHEQUE` (3, decidido por el dueño el 2026-09-18), sin dejar
+    //  fuera lo ya vencido. Medido ese dia: el cheque 123, de RD$144.092,15,
+    //  vencia al dia siguiente y no avisaba nada.
+    const limiteCheques = limiteDeAvisoDeCheques(today);
     const dueChecks = await db.select({
       id: checks.id,
       checkNumber: checks.checkNumber,
       payee: checks.payee,
-      amount: checks.amount
+      amount: checks.amount,
+      dueDate: checks.dueDate
     }).from(checks)
     .innerJoin(apPayments, eq(apPayments.checkId, checks.id))
     .innerJoin(accountsPayable, eq(accountsPayable.id, apPayments.apId))
@@ -140,7 +154,7 @@ export class DashboardRepository {
         ctx,
         eq(checks.isGuarantee, true),
         eq(checks.status, 'pending'),
-        lte(checks.dueDate, formattedToday),
+        lte(checks.dueDate, limiteCheques),
         isNull(checks.deletedAt),
         // El pago debe seguir pendiente de aplicar
         eq(apPayments.status, 'pending_guarantee'),
@@ -153,12 +167,18 @@ export class DashboardRepository {
     );
     const dueGuaranteeChecksCount = dueChecks.length;
     
-    for (const check of dueChecks) {
+    //  `due_date` es nullable en la tabla. Un cheque sin fecha de cobro no
+    //  entra por el filtro de SQL (una comparacion con NULL nunca es cierta) y
+    //  tampoco tendria de que avisar: se descarta aqui de forma explicita.
+    for (const check of dueChecks.filter((c): c is typeof c & { dueDate: string } => !!c.dueDate)) {
+      const urgencia = urgenciaDelCheque(check.dueDate, today);
       alertsDetails.push({
         id: check.id,
         type: 'check_due',
-        title: `Cheque en Garantía Vencido (#${check.checkNumber})`,
-        description: `Cheque a nombre de ${check.payee} por RD$ ${parseFloat(check.amount).toLocaleString('es-DO')} listo para cobro.`,
+        title: tituloDelCheque(check.checkNumber, check.dueDate, today),
+        description: urgencia === 'proximo'
+          ? `Cheque a nombre de ${check.payee} por RD$ ${parseFloat(check.amount).toLocaleString('es-DO')}. Tenga el fondo listo en el banco.`
+          : `Cheque a nombre de ${check.payee} por RD$ ${parseFloat(check.amount).toLocaleString('es-DO')} listo para cobro.`,
         actionText: 'Ir a Compras',
         actionLink: '/dashboard/purchases?tab=cheques'
       });
@@ -195,13 +215,40 @@ export class DashboardRepository {
       });
     }
 
+    //  Lote 158: la caja que no se cerro. Medido el 2026-09-18: una sesion
+    //  abierta desde el 06/08 (43 dias) en PRODUCCION y otra de 17 dias en
+    //  PRUEBA, y de la unica sesion cerrada en toda la historia, ninguna se
+    //  cerro el mismo dia. Mientras sigue abierta, el arqueo no cuadra contra
+    //  nada y los cobros en efectivo se siguen metiendo dentro.
+    //
+    //  No se cierra sola, a proposito: cerrar una caja es contar el efectivo.
+    //  Lo que faltaba era que alguien lo dijera.
+    const sesionesAbiertas = await db.select({
+      id: cashSessions.id,
+      openedAt: cashSessions.openedAt,
+    }).from(cashSessions)
+      .where(withTenantMode(cashSessions, ctx, eq(cashSessions.status, 'open')));
+
+    const cajasSinCerrar = sesionesAbiertas.filter((s) => cajaSinCerrar({ status: 'open', openedAt: s.openedAt }, today));
+    for (const sesion of cajasSinCerrar) {
+      const dias = diasAbierta(sesion.openedAt, today);
+      alertsDetails.push({
+        id: `caja-${sesion.id}`,
+        type: 'caja_sin_cerrar',
+        title: dias === 1 ? 'La caja de ayer sigue abierta' : `La caja lleva ${dias} días abierta`,
+        description: 'Mientras no se cierre, el arqueo no cuadra contra nada y los cobros en efectivo siguen entrando en esa sesión.',
+        actionText: 'Ir a Caja',
+        actionLink: '/dashboard/cash'
+      });
+    }
+
     return {
       invoicesToday,
       invoicesTodayAmount,
       invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
-      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos,
+      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos + cajasSinCerrar.length,
       totalInvoices,
       monthlyGoal: 2000000, // Fixed for now
       dueGuaranteeChecksCount,

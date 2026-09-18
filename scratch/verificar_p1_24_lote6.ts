@@ -107,7 +107,17 @@ console.log('\n=== dashboardRepository.ts ===\n');
   //  que el tipo exacto lo incluye. La propiedad es la misma: la interfaz dice
   //  justo lo que el metodo construye.
   ok('define DashboardAlert con los campos exactos que arma el metodo',
-    /interface DashboardAlert \{\s*\n\s*id: string;\s*\n\s*type: 'invoice_rejected' \| 'check_due' \| 'periodos_por_agotarse';\s*\n\s*title: string;\s*\n\s*description: string;\s*\n\s*actionText: string;\s*\n\s*actionLink: string;\s*\n\s*\}/.test(src));
+    //  Lote 158: el metodo arma ademas el aviso de caja sin cerrar. La
+    //  propiedad que se vigila es la de siempre -- la interfaz dice justo lo que
+    //  el metodo construye, y `type` es una union cerrada, no `string` -- asi
+    //  que se comprueba que cada tipo que se empuja este en la union, en vez de
+    //  copiar la lista.
+    /interface DashboardAlert \{\s*\n\s*id: string;\s*\n\s*type: ('[a-z_]+'(\s*\|\s*)?)+;\s*\n\s*title: string;\s*\n\s*description: string;\s*\n\s*actionText: string;\s*\n\s*actionLink: string;\s*\n\s*\}/.test(src)
+    && (() => {
+      const union = src.match(/interface DashboardAlert \{[\s\S]*?type: ([^;]+);/)?.[1] ?? '';
+      const empujados = [...src.matchAll(/type: '([a-z_]+)',/g)].map((x) => x[1]);
+      return empujados.length > 0 && empujados.every((t) => union.includes(`'${t}'`));
+    })());
 
   ok('alertsDetails tipado DashboardAlert[] (antes any[])',
     /let alertsDetails: DashboardAlert\[\] = \[\];/.test(src));
