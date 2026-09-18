@@ -293,11 +293,22 @@ No hay agujero que tapar.
 Además, fuera de la tabla:
 - **El cron SÍ tiene quien lo llame** (corregido en la revisión de los lotes
   114-118; este documento decía lo contrario): `.github/workflows/sincronizar-ecf.yml`
-  (`15e71ec`) llama a `/api/v1/cron/sincronizar-ecf` cada 5 minutos. Le falta
-  CONFIGURACIÓN: `CRON_SECRET` en Vercel, el secreto `CRON_SECRET` en GitHub
-  (mismo valor) y la variable `APP_URL` en GitHub. **Mientras falten, el
-  workflow falla a propósito cada 5 minutos** (GitHub puede estar enviando
-  avisos de fallo).
+  (`15e71ec`) llama a `/api/v1/cron/sincronizar-ecf`. **Y está CONFIGURADO y
+  funcionando desde el 09/09** (medido el 2026-09-18 con la CLI de GitHub: las
+  60 últimas ejecuciones, en verde; la ruta devuelve 200). Este documento decía
+  que faltaba configuración y que fallaba cada 5 minutos: era falso. Lo que sí
+  hay que saber:
+  - **No corre cada 5 minutos, aunque el `schedule` lo pida.** De las 57
+    ejecuciones programadas entre el 09/09 y el 18/09: mediana **204 minutos**
+    entre una y otra, mínimo 107, máximo **409** (casi 7 horas); 8 en 24 horas,
+    no 288. GitHub aplaza los `schedule` en repos con poca actividad. **Decidido
+    por el dueño el 2026-09-18: se deja así y se anota.** La factura se persigue
+    sola ~9 minutos al emitirse (lote 102); esto es solo la red de seguridad,
+    así que un veredicto tardío se ve horas después, no en minutos.
+  - `CRON_SECRET` se rotó el 2026-09-18 (nuevo valor en Vercel —Production y
+    Preview— y en el secreto de GitHub). `APP_URL` está como **variable** del
+    repo (`https://contfast.vercel.app`); existe además un secreto `APP_URL`
+    del mismo día que **no se usa** (el workflow lee `vars.APP_URL`).
 - **33 bancos en `deuda_bancos.txt`**, todos de integración con base de datos
   (ver sección 7). Necesitan una base desechable.
 - **Costo de venta 0 — MEDIDO el 2026-09-14** (solo lectura; scripts en
