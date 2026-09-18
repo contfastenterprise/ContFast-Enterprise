@@ -1,6 +1,7 @@
 import { Queue, Job } from 'bullmq';
 import { redis } from './redis';
 import { processDgiiSubmissionJob, sendEmailJob } from './jobRunners';
+import type { ContextoCorreo } from '@/services/correo/registroCorreo';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -48,9 +49,19 @@ export interface JobPayloads {
     text: string;
     html?: string;
     pdfPath?: string;
-    companyId?: string;
+    /**
+     * Lote 157: OBLIGATORIOS. Eran opcionales, y por eso los dos correos de
+     * factura se encolaban sin ellos y `system_email_logs` llevaba 0 filas: sin
+     * empresa no hay fila que insertar. Ver services/correo/registroCorreo.ts.
+     */
+    companyId: string;
+    modo: string;
+    /** De donde sale el correo: factura, orden_suplidor, sistema. */
+    context: ContextoCorreo;
+    /** El documento al que pertenece (id de la factura, de la orden...). */
     referenceId?: string;
-    modo?: string;
+    /** Quien lo pidio, cuando lo pidio una persona. */
+    userId?: string;
     fromName?: string;
   };
 }

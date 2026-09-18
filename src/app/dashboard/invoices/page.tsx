@@ -14,10 +14,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { estadoDelCorreo } from '@/services/correo/registroCorreo';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
-import { formatDateDisplay } from '@/utils/fechasLocales';
+import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -2924,8 +2925,16 @@ function InvoicesList() {
                                   <button
                                     onClick={() => handleResendEmail(inv.id)}
                                     disabled={resendingEmailId === inv.id}
-                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10 disabled:opacity-50"
-                                    title="Reenviar Correo"
+                                    /* Lote 157: el color dice como acabo el ULTIMO correo de esta
+                                       factura -- verde salio, rojo fallo, gris no consta -- y el
+                                       texto emergente da la fecha o el motivo. */
+                                    className={clsx(
+                                      'p-1.5 rounded-lg transition-colors flex items-center justify-center hover:bg-[#003366]/10 disabled:opacity-50',
+                                      inv.correoEstado === 'sent' && 'text-emerald-600 hover:text-emerald-700',
+                                      inv.correoEstado === 'failed' && 'text-red-600 hover:text-red-700',
+                                      !inv.correoEstado && 'text-slate-500 hover:text-[#003366]'
+                                    )}
+                                    title={estadoDelCorreo(inv, formatDateTimeDisplay)}
                                   >
                                     {resendingEmailId === inv.id ? (
                                       <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#C5A059]" />

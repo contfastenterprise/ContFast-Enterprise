@@ -1,5 +1,6 @@
 import { db, products, productCategories } from '@/db';
 import { qrDelComprobante } from '@/services/dgii/qrDelComprobante';
+import { CONTEXTOS_CORREO } from '@/services/correo/registroCorreo';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
@@ -77,7 +78,14 @@ export class InvoiceFileGenerator {
     xmlPath: string,
     signedXmlPath: string,
     pdfPath: string,
-    msellerXmlPath: string
+    msellerXmlPath: string,
+    /**
+     * Lote 157: la factura ya creada, para que el correo quede registrado
+     * contra ella (`system_email_logs.reference_id`). Opcional: los caminos
+     * que aun no la tengan siguen funcionando, y el registro se queda sin
+     * referencia en vez de no existir.
+     */
+    invoiceId?: string
   ): Promise<string[]> {
     const avisos: string[] = [];
 
@@ -299,6 +307,13 @@ export class InvoiceFileGenerator {
             const companyName = company.name;
 
             await addJob('emails-sending', 'send-email', {
+              // Lote 157: sin esto el envio no quedaba registrado (ver
+              // services/correo/registroCorreo.ts).
+              companyId: data.companyId,
+              modo: data.modo,
+              context: CONTEXTOS_CORREO.factura,
+              referenceId: invoiceId,
+              userId: data.userId,
               to: customer.email,
               subject,
               text: `Estimado(a) ${customer.name},\n\nLe notificamos la emisión de su ${docName.toLowerCase()}${typeStr} NCF: ${ncf} por un valor total de RD$ ${totals.total}.\n\nAtentamente,\n${companyName}`,

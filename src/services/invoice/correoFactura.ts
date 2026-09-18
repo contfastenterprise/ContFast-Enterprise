@@ -39,6 +39,7 @@ import { db, invoiceLines, invoiceTaxes, products, ecfSequences, invoices } from
 import { eq, and, isNull } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
 import { qrDelComprobante } from '@/services/dgii/qrDelComprobante';
+import { CONTEXTOS_CORREO } from '@/services/correo/registroCorreo';
 import { PdfGenerator } from '@/services/print/pdfGenerator';
 import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { registrarFalloSilencioso } from '@/services/auditoria/rastroDeFallo';
@@ -392,6 +393,12 @@ export async function enviarFacturaPorCorreo(opciones: {
 
   // Queue resending the email
   await addJob('emails-sending', 'send-email', {
+    // Lote 157: con empresa, modo, contexto y la factura a la que pertenece.
+    // Sin esto el envio no quedaba registrado en ninguna parte.
+    companyId,
+    modo,
+    context: CONTEXTOS_CORREO.factura,
+    referenceId: invoiceId,
     to: customer.email,
     subject,
     text: `Estimado(a) ${customer.name},\n\n${frase} ${docName.toLowerCase()}${typeStr} NCF: ${invoice.ncf} por un valor total de RD$ ${invoice.total}.\n\nAtentamente,\n${companyName}`,

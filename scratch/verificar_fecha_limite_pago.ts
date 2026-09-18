@@ -152,8 +152,10 @@ ok('y ninguno lo manda cuando no es a credito',
 ok('abrir una factura o un borrador lo restaura', (pg.match(/setPaymentDueDate\(/g) || []).length >= 3);
 ok('el repaso del paso 4 lo ensena',              tiene(pg, "'Fecha límite de pago'"));
 ok('y dice cuando no se ha pactado, en vez de callarlo', tiene(pg, '— sin pactar —'));
+//  Lote 157: el import gano `formatDateTimeDisplay` (el estado del correo en el
+//  listado). Se exige que el NOMBRE venga de ese modulo, no la linea entera.
 ok('la fecha se pinta con el formateador compartido, no con una copia',
-   tiene(pg, "import { formatDateDisplay } from '@/utils/fechasLocales'"));
+   /import \{[^}]*\bformatDateDisplay\b[^}]*\} from '@\/utils\/fechasLocales'/.test(pg));
 
 // ─────────────────────────────────────────────────────────────────────────
 console.log('\nD. DE LA PANTALLA A LA DGII Y A LA COLUMNA');

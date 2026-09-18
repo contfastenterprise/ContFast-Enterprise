@@ -506,29 +506,46 @@ export async function sendEmailJob(data: {
   try {
     const { db } = await import('@/db');
     const { systemEmailLogs } = await import('@/db/schema/system');
-    
-    // Attempt to extract companyId from data, assuming standard structure or defaulting to something
-    const companyId = data.companyId || (data.order && data.order.companyId) || (data.company && data.company.id) || null;
-    const referenceId = data.orderId || data.referenceId || null;
-    
-    if (companyId) {
-      await db.insert(systemEmailLogs).values({
-        companyId,
-        context: data.context || 'background_job',
-        referenceId,
-        toEmail: to,
+    const { filaDeRegistro } = await import('@/services/correo/registroCorreo');
+
+    // Lote 157: SIEMPRE se registra, salga o falle el correo. Antes esto vivia
+    // dentro de un `if (companyId)` y los dos correos de factura se encolaban
+    // sin empresa: la tabla llevaba 0 filas desde que existe. Que fila
+    // corresponde lo decide `filaDeRegistro` (ver ese fichero).
+    const fila = filaDeRegistro(
+      {
+        companyId: data.companyId || (data.order && data.order.companyId) || (data.company && data.company.id) || null,
+        modo: data.modo,
+        context: data.context,
+        referenceId: data.referenceId || data.orderId || null,
+        userId: data.userId || null,
+        to,
+        subject,
+      },
+      {
+        status,
+        errorMessage,
+        providerMessageId,
+        attachmentNames: attachments.map((a) => a.filename),
+      }
+    );
+
+    if (fila) {
+      // El `modo` se repite a proposito aunque ya venga en `fila`: la prueba
+      // `aislamientoModo` exige verlo en el propio INSERT, porque la columna
+      // tiene DEFAULT 'PRODUCCION' y olvidarlo guardaria la fila en el entorno
+      // equivocado sin avisar. Es el mismo valor, no una segunda decision.
+      await db.insert(systemEmailLogs).values({ ...fila, modo: fila.modo });
+    } else {
+      // Sin empresa no hay fila posible (la columna es obligatoria). Desde este
+      // lote el tipo del trabajo la exige, asi que esto solo puede venir de un
+      // trabajo que ya estuviera en la cola al desplegar. Es un ERROR, no un
+      // aviso: significa que ese correo no queda registrado en ninguna parte.
+      Logger.error('[JobRunner] Correo enviado SIN registrar: el trabajo no dice de que empresa es', {
+        to,
         subject,
         status,
-        attachmentNames: attachments.map(a => a.filename),
-        errorMessage: errorMessage || null,
-        providerMessageId: providerMessageId || null,
-        sentAt: status === 'sent' ? new Date() : null,
-        // Legitimo: El payload de los trabajos ya encolados no lo lleva, y
-        // anadirlo como obligatorio romperia los que esten en cola ahora mismo.
-        modo: data.modo || 'PRODUCCION'
       });
-    } else {
-       Logger.warn(`[JobRunner] Could not log email to systemEmailLogs because companyId was missing in job data.`);
     }
   } catch (dbError) {
     Logger.error(`[JobRunner] Failed to log background email to DB`, dbError);

@@ -8,6 +8,7 @@ import { db, companies, companySettings, purchaseOrderLogs } from '@/db';
 import { eq } from 'drizzle-orm';
 
 import { v4 as uuidv4 } from 'uuid';
+import { CONTEXTOS_CORREO } from '@/services/correo/registroCorreo';
 
 export async function POST(
   req: NextRequest,
@@ -92,6 +93,9 @@ export async function POST(
       companyId: auth.companyId,
       referenceId: id,
       modo: auth.modo,
+      // Lote 157: el contexto y quien lo pidio, para el registro de correos.
+      context: CONTEXTOS_CORREO.ordenSuplidor,
+      userId: auth.userId,
       to: order.supplierEmail,
       subject: `Orden de Pedido - ${order.orderNumber}`,
       text: `Estimado suplidor,\n\nAdjuntamos la orden de pedido ${order.orderNumber} correspondiente a las mercancías solicitadas.\n\nAtentamente,\n${company.name}`,

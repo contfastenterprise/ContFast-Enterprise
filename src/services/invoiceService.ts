@@ -159,7 +159,9 @@ export class InvoiceService {
         xmlPath,
         signedXmlPath,
         pdfPath,
-        msellerXmlPath
+        msellerXmlPath,
+        // Lote 157: para que el correo al cliente quede registrado contra su factura.
+        dbResult.invoice.id
       );
 
       // ── 8. Post-emission tasks (conduces, quotes) ──────────────────────────────

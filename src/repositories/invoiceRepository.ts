@@ -420,6 +420,25 @@ export class InvoiceRepository {
         deletedAt: invoices.deletedAt,
         customerName: customers.name,
         customerRnc: customers.rncCedula,
+        //  Lote 157: el ULTIMO correo de esta factura, para que la pantalla
+        //  diga si salio, cuando, o por que fallo. Antes no habia forma de
+        //  saberlo: `system_email_logs` llevaba 0 filas.
+        //
+        //  `reference_id` es texto (la tabla la comparten facturas y ordenes de
+        //  compra), de ahi el molde. Son tres subconsultas escalares sobre una
+        //  tabla pequeña; si algun dia pesa, un indice por `reference_id`.
+        correoEstado: sql<string | null>`(
+          select l.status from system_email_logs l
+          where l.reference_id = ${invoices.id}::text and l.company_id = ${invoices.companyId}
+          order by l.created_at desc limit 1)`,
+        correoFecha: sql<string | null>`(
+          select coalesce(l.sent_at, l.created_at)::text from system_email_logs l
+          where l.reference_id = ${invoices.id}::text and l.company_id = ${invoices.companyId}
+          order by l.created_at desc limit 1)`,
+        correoError: sql<string | null>`(
+          select l.error_message from system_email_logs l
+          where l.reference_id = ${invoices.id}::text and l.company_id = ${invoices.companyId}
+          order by l.created_at desc limit 1)`,
       })
       .from(invoices)
       .leftJoin(customers, eq(invoices.customerId, customers.id))

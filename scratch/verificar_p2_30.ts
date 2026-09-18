@@ -76,7 +76,10 @@ const contar = (s: string, sub: string): number => s.split(sub).length - 1;
 
   ok(
     'fileGenerator: generateFilesAndSendEmail declara que devuelve avisos',
-    src.includes('    msellerXmlPath: string\n  ): Promise<string[]> {\n    const avisos: string[] = [];')
+    //  Lote 157: la firma gano `invoiceId` (para registrar el correo contra su
+    //  factura). Se fija lo que este banco protege -- que devuelve avisos y que
+    //  los acumula -- y no la lista exacta de parametros.
+    /generateFilesAndSendEmail\([\s\S]{0,1500}?\): Promise<string\[\]> \{\s*const avisos: string\[\] = \[\];/.test(src)
   );
   ok(
     'fileGenerator: el fallo de correo deja traza',

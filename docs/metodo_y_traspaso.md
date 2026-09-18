@@ -447,6 +447,13 @@ Además, fuera de la tabla:
   la última inserción de asiento a mano): un cobro fechado en un período cerrado
   o sin período se niega entero. Julio de Latin Doors está cerrado desde el
   01/08; sus 8 cobros son anteriores al cierre.
+- **Lote 157: los correos quedan registrados** (`system_email_logs` llevaba CERO
+  filas con el SMTP puesto hacía 85 días: el registrador exigía empresa y los dos
+  correos de factura se encolaban sin ella). Ahora el trabajo de la cola exige
+  empresa, modo y contexto; se registra salga o falle; y en el listado de
+  facturas el botón del correo dice verde/rojo/gris con la fecha o el motivo
+  (`services/correo/registroCorreo.ts`). **Queda pendiente**: `notifications`
+  también está vacía, nadie escribe en ella.
 - **Lote 156: el QR impreso lo da mSeller.** Si falta, se le pide
   (`services/dgii/qrDelComprobante.ts`, plazo de 6 s) y se guarda en la factura;
   si tampoco lo tiene, el documento sale sin QR. Se retiró `urlConsultaDgii`,
