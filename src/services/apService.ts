@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { BankRepository } from '@/repositories/bankRepository';
 import { motivoParaNoCobrar } from '@/services/cxp/cobroDeGarantia';
+import { motivoParaNoRegistrarPago, motivoCuentaDelBanco } from '@/services/cxp/cuentaDelPago';
 
 export interface RegisterPaymentInput {
   companyId: string;
@@ -108,6 +109,35 @@ export class ApService {
             `La cuenta ${cuenta.code} ${cuenta.name} es una cuenta de agrupación y no admite movimientos. ` +
             `Elija una cuenta transaccional.`
           );
+        }
+      }
+
+      // Lote 163: lo que no es efectivo sale de un banco concreto, y el haber
+      // del asiento es la cuenta contable de ESE banco. Vale tambien para el
+      // cheque en garantia: cuando se cobre, el libro de banco usara el banco
+      // del cheque y el asiento esta cuenta de credito; si no coinciden, cada
+      // uno descontaria un banco distinto. Ver `services/cxp/cuentaDelPago.ts`.
+      const motivoBanco = motivoParaNoRegistrarPago(input.paymentMethod, input.bankAccountId);
+      if (motivoBanco) {
+        throw new Error(motivoBanco);
+      }
+      let banco: { id: string; chartAccountId: string | null; bankName: string; accountNumber: string } | undefined;
+      if (input.bankAccountId) {
+        [banco] = await tx
+          .select({
+            id: bankAccounts.id,
+            chartAccountId: bankAccounts.chartAccountId,
+            bankName: bankAccounts.bankName,
+            accountNumber: bankAccounts.accountNumber,
+          })
+          .from(bankAccounts)
+          .where(and(eq(bankAccounts.id, input.bankAccountId), eq(bankAccounts.companyId, input.companyId)));
+        if (!banco) {
+          throw new Error('La cuenta bancaria indicada no existe o no pertenece a la empresa.');
+        }
+        const motivoCuenta = motivoCuentaDelBanco(input.creditAccountId, banco);
+        if (motivoCuenta) {
+          throw new Error(motivoCuenta);
         }
       }
 
@@ -289,6 +319,33 @@ export class ApService {
           }
         ]
       });
+
+      // Lote 163: la transferencia y el cheque normal salen del banco. Antes el
+      // asiento se hacia y el banco no se enteraba: ni su saldo ni su libro.
+      // Igual que el cobro de un cheque en garantia: baja el saldo del banco en
+      // este entorno y deja el retiro PENDIENTE de conciliar (lo concilia una
+      // persona con el estado de cuenta, no nace conciliado: ARP-25).
+      if (banco) {
+        await BankRepository.ajustarSaldo(banco.id, input.companyId, input.modo, -input.amount, tx);
+        await tx.insert(bankTransactions).values({
+          id: uuidv4(),
+          companyId: input.companyId,
+          modo: input.modo,
+          bankAccountId: banco.id,
+          date: input.paymentDate.toISOString().split('T')[0],
+          type: 'withdrawal',
+          amount: input.amount.toString(),
+          // El numero del cheque, o el mismo que lleva el estado de cuenta del
+          // suplidor (`PAG-...`): asi se encuentran el uno al otro.
+          reference: input.checkNumber || `PAG-${payment.id.slice(0, 8)}`,
+          description: `Pago a proveedor ${proveedor?.name ?? 'sin identificar'} - ${
+            input.paymentMethod === 'check' ? `Cheque #${input.checkNumber}` : 'Transferencia'
+          }`,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
       return {
         payment,

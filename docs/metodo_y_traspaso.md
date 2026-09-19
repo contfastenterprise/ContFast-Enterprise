@@ -456,6 +456,15 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 163: un pago a suplidor por transferencia o cheque sale del banco**
+  (`services/cxp/cuentaDelPago.ts`, el criterio del lote 151 para los
+  cobros). Antes se asentaba y el banco no se enteraba: ni su saldo ni su
+  libro, y la transferencia ni mandaba la cuenta. Ahora exige el banco, el
+  haber del asiento tiene que ser la cuenta contable de ESE banco (también en
+  el cheque en garantía, para que su cobro descuente el mismo), y crea el
+  retiro pendiente de conciliar. El aviso de efectivo prometía un movimiento de
+  caja que no existe: ya no. **Para el contador**: 1 transferencia de Latin
+  Doors (RD$6.923,52, 06/08) quedó fuera del libro de banco; no se toca.
 - **Lote 162: un cheque en garantía ya no se cobra contra una factura que no
   debe su importe** (`services/cxp/cobroDeGarantia.ts`). Antes el cobro se
   asentaba ENTERO (banco, mayor, estado de cuenta) y el exceso solo se

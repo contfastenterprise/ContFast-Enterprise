@@ -16,6 +16,7 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import GarantiasDeLaFactura, { type EstadoGarantias } from './components/GarantiasDeLaFactura';
 import { pagariaDeMas } from '@/services/cxp/garantiasDeFactura';
+import { saleDelBanco, motivoParaNoRegistrarPago } from '@/services/cxp/cuentaDelPago';
 
 // -- Types --
 interface BillAP {
@@ -385,6 +386,22 @@ export default function AccountsPayablePage() {
       return;
     }
 
+    // Lote 163: el pago por banco dice de que banco sale, y ese banco tiene que
+    // tener su cuenta contable (es la que se acredita). Mensajes propios: el
+    // generico de abajo no decia que faltaba ni donde arreglarlo.
+    // Se valida lo que se ENVIA: el formulario conserva el banco preseleccionado
+    // aunque se cambie a efectivo, y en efectivo no viaja (ver el cuerpo abajo).
+    const bancoQueViaja = saleDelBanco(paymentForm.paymentMethod) ? (paymentForm.bankAccountId || null) : null;
+    const motivoBanco = motivoParaNoRegistrarPago(paymentForm.paymentMethod, bancoQueViaja);
+    if (motivoBanco) {
+      toast.error(motivoBanco);
+      return;
+    }
+    if (saleDelBanco(paymentForm.paymentMethod) && !paymentForm.creditAccountId) {
+      toast.error('La cuenta bancaria elegida no tiene cuenta contable asignada. Asígnesela en Bancos antes de pagar.');
+      return;
+    }
+
     if (!paymentForm.debitAccountId || !paymentForm.creditAccountId) {
       toast.error('Debe configurar las cuentas contables de débito y crédito.');
       return;
@@ -435,7 +452,9 @@ export default function AccountsPayablePage() {
           debitAccountId: paymentForm.debitAccountId,
           creditAccountId: paymentForm.creditAccountId,
           paymentDate: paymentForm.date,
-          bankAccountId: paymentForm.paymentMethod === 'check' ? paymentForm.bankAccountId : undefined,
+          // Lote 163: tambien en transferencias. Antes solo viajaba con el
+          // cheque, y el servidor no sabia de que banco salia el dinero.
+          bankAccountId: bancoQueViaja ?? undefined,
           checkNumber: paymentForm.paymentMethod === 'check' ? paymentForm.checkNumber : undefined,
           payee: paymentForm.paymentMethod === 'check' ? paymentForm.payee : undefined,
           isGuarantee: paymentForm.paymentMethod === 'check' ? paymentForm.isGuarantee : false,
@@ -1053,11 +1072,15 @@ export default function AccountsPayablePage() {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crédito (Activo - Banco/Caja)</label>
+                      {/* Lote 163: si el pago sale de un banco, la cuenta es la de
+                          ese banco y no se elige aparte: el servidor la exige igual,
+                          para que el libro de banco y el mayor descuenten el mismo. */}
                       <select
                         required
+                        disabled={saleDelBanco(paymentForm.paymentMethod)}
                         value={paymentForm.creditAccountId}
                         onChange={e => setPaymentForm({ ...paymentForm, creditAccountId: e.target.value })}
-                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                       >
                         <option value="">-- Seleccionar cuenta --</option>
                         {accounts
@@ -1104,7 +1127,32 @@ export default function AccountsPayablePage() {
                 {paymentForm.paymentMethod === 'cash' && (
                   <div className="text-xs text-amber-500 font-medium bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>Este pago se descontará de la caja chica y afectará el balance esperado de su sesión actual.</span>
+                    {/* Lote 163: decia que se descontaba de la caja chica y de la
+                        sesion abierta, y el pago no crea ningun movimiento de caja. */}
+                    <span>El pago se asienta contra la cuenta de caja elegida. No se registra en ninguna sesión de caja abierta.</span>
+                  </div>
+                )}
+
+                {/* Lote 163: la transferencia tambien sale de un banco concreto.
+                    Antes no se elegia (ni se enviaba) y el banco no se enteraba. */}
+                {paymentForm.paymentMethod === 'transfer' && (
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Bancaria de Origen</label>
+                    <select
+                      value={paymentForm.bankAccountId}
+                      onChange={e => setPaymentForm({
+                        ...paymentForm,
+                        bankAccountId: e.target.value,
+                        creditAccountId: cuentaDeSalida(paymentForm.paymentMethod, e.target.value),
+                      })}
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                    >
+                      <option value="">-- Seleccionar Banco --</option>
+                      {bankAccountsList.map(b => (
+                        <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber} ({fmt(parseFloat(b.balance))})</option>
+                      ))}
+                    </select>
+                    <span className="text-[10px] text-slate-500 block mt-1">El retiro queda en el libro de este banco, pendiente de conciliar.</span>
                   </div>
                 )}
 
