@@ -456,6 +456,11 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 168: la campana decía "3" y al abrirla salían 6** (reportado por el
+  dueño). No era un error de cuenta: el número rojo son los SIN LEER y la lista
+  todos los VIGENTES (leer no resuelve; el aviso sigue hasta que se atiende).
+  Ahora la cabecera dice "3 sin leer · 6 vigentes" y la lista separa "Sin leer"
+  de "Leídos — siguen pendientes", con el porqué.
 - **Lote 167: la pantalla del 606 se caía** con "(e.amount || 0).toFixed is not
   a function" en cuanto el mes tenía una compra (reportado por el dueño el
   2026-09-19). La ruta devolvía los importes de cada fila como texto (las
