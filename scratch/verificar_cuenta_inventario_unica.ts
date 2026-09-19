@@ -71,7 +71,11 @@ for (const f of [RES, SEM, ...COMPRAS, ...SALIDAS]) exige(crudo(f).length > 1000
 //  defecto inexistente FALLE en vez de fabricar una segunda cuenta.
 exige(!/\.insert\(/.test(codigo(RES)), 'resolverCuentas.ts ha empezado a insertar: el razonamiento cambia');
 //  La cuenta de inventario sembrada y mapeada es 1.1.03.01.
-exige(codigo(SEM).includes("{ key: 'inventory', code: '1.1.03.01' }"), 'el mapeo sembrado de inventory ya no es 1.1.03.01');
+// Desde el lote 165 el sembrador enlaza las claves desde UNA tabla
+// (`services/accounting/cuentasDelSistema.ts`): el mapeo de inventory se lee alli.
+exige(codigo('src/services/accounting/cuentasDelSistema.ts').includes("{ clave: 'inventory', codigo: '1.1.03.01'")
+  && /const defaultMappings = CUENTAS_DEL_SISTEMA\.map\(/.test(codigo(SEM)),
+  'el mapeo sembrado de inventory ya no es 1.1.03.01');
 exige(codigo(SEM).includes("{ code: '1.1.03.01', name: 'Inventario de Mercancía'"), 'el catalogo sembrado ya no trae 1.1.03.01');
 exige(!codigo(SEM).includes("code: '1.1.06'"), 'el catalogo sembrado trae 1.1.06: revisar cual es la cuenta de inventario');
 //  Las compras con productos siguen yendo a una cuenta de inventario y las sin

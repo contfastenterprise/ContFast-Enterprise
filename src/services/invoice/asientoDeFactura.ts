@@ -95,13 +95,13 @@ export async function resolverCuentasDeVenta(
     ventas: accVentas.id,
     itbis: accItbis.id,
     isrRetenido: hay('ISR')
-      ? (await resolverCuentaPorMapeo(tx, companyId, 'isr_retention_receivable', '1.1.03', 'Retención de ISR sobre venta')).id
+      ? (await resolverCuentaPorMapeo(tx, companyId, 'isr_retention_receivable', '1.1.04.02', 'Retención de ISR sobre venta')).id
       : null,
     itbisRetenido: hay('ITBIS')
-      ? (await resolverCuentaPorMapeo(tx, companyId, 'itbis_retention_receivable', '1.1.04', 'Retención de ITBIS sobre venta')).id
+      ? (await resolverCuentaPorMapeo(tx, companyId, 'itbis_retention_receivable', '1.1.04.03', 'Retención de ITBIS sobre venta')).id
       : null,
     otrasRetenciones: hayOtras
-      ? (await resolverCuentaPorMapeo(tx, companyId, 'other_retention_receivable', '1.1.05', 'Otra retención sobre venta')).id
+      ? (await resolverCuentaPorMapeo(tx, companyId, 'other_retention_receivable', '1.1.04.04', 'Otra retención sobre venta')).id
       : null,
   };
 }

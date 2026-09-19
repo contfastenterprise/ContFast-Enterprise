@@ -168,7 +168,7 @@ export async function createExpense(expenseData: {
 
       // Debit the ITBIS Pagado if any
       if (itbisAmount > 0) {
-        const accItbisPagado = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_itbis_paid', '1.1.08', 'Compra - ITBIS Pagado');
+        const accItbisPagado = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'purchase_itbis_paid', '1.1.04.01', 'Compra - ITBIS Pagado');
         journalLines.push({ accountId: accItbisPagado.id, debit: itbisAmount, credit: 0 });
       }
 
@@ -183,13 +183,13 @@ export async function createExpense(expenseData: {
 
       // Credit the Retained ISR if any
       if (isrRet > 0) {
-        const accIsrRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'isr_withholding_payable', '2.1.04', 'Compra - ISR Retenido por Pagar');
+        const accIsrRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'isr_withholding_payable', '2.1.02.03', 'Compra - ISR Retenido por Pagar');
         journalLines.push({ accountId: accIsrRet.id, debit: 0, credit: isrRet });
       }
 
       // Credit the Retained ITBIS if any
       if (itbisRet > 0) {
-        const accItbisRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'itbis_withholding_payable', '2.1.05', 'Compra - ITBIS Retenido por Pagar');
+        const accItbisRet = await resolverCuentaPorMapeo(tx, expenseData.companyId, 'itbis_withholding_payable', '2.1.02.02', 'Compra - ITBIS Retenido por Pagar');
         journalLines.push({ accountId: accItbisRet.id, debit: 0, credit: itbisRet });
       }
 

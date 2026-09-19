@@ -15,6 +15,7 @@ import type { DbTransaction } from '@/db';
 import { auditLogs } from '@/db';
 import { mesesQueFaltan, MESES_A_ABRIR, type PeriodoNuevo } from '@/services/accounting/coberturaPeriodos';
 import { armarEstadosFinancieros } from '@/services/accounting/estadosFinancieros';
+import { CUENTAS_DEL_SISTEMA, CODIGOS_ANTIGUOS, planParaCompletar, type PasoDelPlan } from '@/services/accounting/cuentasDelSistema';
 
 export interface NewAccount {
   companyId: string;
@@ -592,17 +593,14 @@ export class AccountingRepository {
     .innerJoin(chartOfAccounts, eq(accountingMappings.accountId, chartOfAccounts.id))
     .where(eq(accountingMappings.companyId, companyId));
 
-    const defaultMappings = [
-      { key: 'sales_revenue', code: '4.1.01' },
-      { key: 'accounts_receivable', code: '1.1.02.01' },
-      { key: 'cash', code: '1.1.01.01' },
-      { key: 'bank', code: '1.1.01.02' },
-      { key: 'itbis_sales', code: '2.1.02.01' },
-      { key: 'itbis_purchases', code: '1.1.04.01' },
-      { key: 'cost_of_goods_sold', code: '5.1.01' },
-      { key: 'inventory', code: '1.1.03.01' },
-      { key: 'supplier_payable', code: '2.1.01.01' }
-    ];
+    // Lote 165: la misma tabla que el sembrador. Aqui solo se enlaza lo que ya
+    // existe por codigo, y NUNCA una clave con cuenta antigua: esas las decide
+    // `completarCuentasDelSistema`, que mira cual tiene movimientos. Si no, abrir
+    // Ajustes > Contabilidad en Latin Doors enlazaba el ITBIS de compras a la
+    // 1.1.04.01 sin uso en vez de a la 1.1.08 que lleva sus 592.420,99.
+    const defaultMappings = CUENTAS_DEL_SISTEMA
+      .filter((c) => !(c.clave in CODIGOS_ANTIGUOS))
+      .map((c) => ({ key: c.clave, code: c.codigo }));
 
     // Auto-seed mappings if any are missing (for legacy companies)
     if (mappings.length < defaultMappings.length && chart.length > 0) {
@@ -824,6 +822,9 @@ export class AccountingRepository {
         { code: '1.1.04', name: 'Impuestos Anticipados', type: 'asset', nature: 'debit', isTransactional: false },
         { code: '1.1.04.01', name: 'ITBIS Pagado en Compras', type: 'asset', nature: 'debit', isTransactional: true },
         { code: '1.1.04.02', name: 'Anticipos de ISR', type: 'asset', nature: 'debit', isTransactional: true },
+        // Lote 165: las retenciones que hace el CLIENTE al pagar la factura.
+        { code: '1.1.04.03', name: 'ITBIS Retenido por Clientes', type: 'asset', nature: 'debit', isTransactional: true },
+        { code: '1.1.04.04', name: 'Otras Retenciones por Clientes', type: 'asset', nature: 'debit', isTransactional: true },
         { code: '1.2', name: 'Activos Fijos', type: 'asset', nature: 'debit', isTransactional: false },
         { code: '1.2.01', name: 'Propiedades, Planta y Equipo', type: 'asset', nature: 'debit', isTransactional: false },
         { code: '1.2.01.01', name: 'Equipos de Transporte', type: 'asset', nature: 'debit', isTransactional: true },
@@ -854,7 +855,9 @@ export class AccountingRepository {
         { code: '5', name: 'Costos', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '5.1', name: 'Costos de Ventas', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '5.1.01', name: 'Costo de Ventas Mercancías', type: 'expense', nature: 'debit', isTransactional: true },
-        
+        // Lote 165: los impuestos de una compra que no son ITBIS ni retencion.
+        { code: '5.1.02', name: 'Otros Impuestos y Tasas', type: 'expense', nature: 'debit', isTransactional: true },
+
         { code: '6', name: 'Gastos', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1', name: 'Gastos Operacionales', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1.01', name: 'Gastos de Personal', type: 'expense', nature: 'debit', isTransactional: false },
@@ -901,18 +904,10 @@ export class AccountingRepository {
         codeToIdMap.set(account.code, id);
       }
 
-      // Seed default bridge mappings
-      const defaultMappings = [
-        { key: 'sales_revenue', code: '4.1.01' },
-        { key: 'accounts_receivable', code: '1.1.02.01' },
-        { key: 'cash', code: '1.1.01.01' },
-        { key: 'bank', code: '1.1.01.02' },
-        { key: 'itbis_sales', code: '2.1.02.01' },
-        { key: 'itbis_purchases', code: '1.1.04.01' },
-        { key: 'cost_of_goods_sold', code: '5.1.01' },
-        { key: 'inventory', code: '1.1.03.01' },
-        { key: 'supplier_payable', code: '2.1.01.01' }
-      ];
+      // Las claves que el sistema busca, TODAS, de la tabla unica (lote 165).
+      // Antes esta lista tenia 9 y el codigo pedia 7 mas que ninguna empresa
+      // nueva tenia: no podia registrar una compra con ITBIS.
+      const defaultMappings = CUENTAS_DEL_SISTEMA.map((c) => ({ key: c.clave, code: c.codigo }));
 
       for (const mapping of defaultMappings) {
         const accountId = codeToIdMap.get(mapping.code);
@@ -932,6 +927,66 @@ export class AccountingRepository {
     } else {
       await db.transaction(execute);
     }
+  }
+
+  /**
+   * Lote 165: que cada clave del sistema tenga su cuenta en una empresa que ya
+   * existe, sin tocar lo que ya esta enlazado ni mover saldos. Lo que decide es
+   * `planParaCompletar` (services/accounting/cuentasDelSistema.ts): si una
+   * cuenta antigua creada sobre la marcha ya tiene movimientos, la clave se
+   * engancha a ella; si no, a la estandar, que se crea bajo su padre si falta.
+   * Devuelve el plan aplicado. Lanza, sin escribir nada, si algo no encaja.
+   */
+  public static async completarCuentasDelSistema(companyId: string, tx: DbTransaction): Promise<PasoDelPlan[]> {
+    const catalogo = await tx
+      .select({
+        id: chartOfAccounts.id,
+        code: chartOfAccounts.code,
+        type: chartOfAccounts.type,
+        isTransactional: chartOfAccounts.isTransactional,
+        status: chartOfAccounts.status,
+        // La columna va calificada A MANO: en un select de una sola tabla,
+        // Drizzle escribe `${chartOfAccounts.id}` como "id" a secas, que dentro
+        // de la subconsulta es el id de la LINEA -- y contaba 0 renglones
+        // siempre. Lo cazo el ensayo en Latin Doors (1.1.08 tiene 90).
+        renglones: sql<number>`(SELECT count(*)::int FROM journal_entry_lines jel WHERE jel.account_id = "chart_of_accounts"."id")`,
+      })
+      .from(chartOfAccounts)
+      .where(and(eq(chartOfAccounts.companyId, companyId), isNull(chartOfAccounts.deletedAt)));
+
+    const enlazadas = await tx
+      .select({ key: accountingMappings.mappingKey })
+      .from(accountingMappings)
+      .where(eq(accountingMappings.companyId, companyId));
+
+    const plan = planParaCompletar(
+      catalogo.map((c) => ({ ...c, renglones: Number(c.renglones) })),
+      new Set(enlazadas.map((m) => m.key)),
+    );
+
+    for (const paso of plan) {
+      if (paso.accion === 'enlazar') {
+        await tx.insert(accountingMappings).values({ id: uuidv4(), companyId, mappingKey: paso.clave, accountId: paso.accountId });
+      } else if (paso.accion === 'crear_y_enlazar') {
+        const id = uuidv4();
+        await tx.insert(chartOfAccounts).values({
+          id,
+          companyId,
+          code: paso.cuenta.codigo,
+          name: paso.cuenta.nombre,
+          type: paso.cuenta.tipo,
+          nature: paso.cuenta.naturaleza,
+          level: paso.cuenta.codigo.split('.').length,
+          isTransactional: true,
+          parentId: paso.padreId,
+          status: 'active',
+        });
+        for (const clave of paso.claves) {
+          await tx.insert(accountingMappings).values({ id: uuidv4(), companyId, mappingKey: clave, accountId: id });
+        }
+      }
+    }
+    return plan;
   }
 
   // ==========================================
