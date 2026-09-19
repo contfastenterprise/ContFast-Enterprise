@@ -1201,8 +1201,10 @@ export default function AccountingPage() {
                   <div className="space-y-4 max-w-2xl mx-auto divide-y divide-slate-100">
                     <div className="pt-2">
                       <h4 className="font-bold text-slate-800 uppercase text-xs mb-2">Ingresos Operacionales</h4>
+                      {/* Lote 164: cada grupo lleva la suma de sus hijas; sin
+                          sangria por nivel, grupo e hija parecerian contarse dos veces. */}
                       {financialsData.incomeStatement.rows.filter((r: any) => r.type === 'revenue').map((row: any) => (
-                        <div key={row.id} className="flex justify-between py-1 text-sm pl-4">
+                        <div key={row.id} className={clsx("flex justify-between py-1 text-sm", row.level === 1 && "font-bold", row.level === 2 && "pl-4", row.level === 3 && "pl-8", row.level >= 4 && "pl-12")}>
                           <span>{row.code} - {row.name}</span>
                           <span className="font-mono">{fmt(row.endingBalance)}</span>
                         </div>
@@ -1216,7 +1218,7 @@ export default function AccountingPage() {
                     <div className="pt-4">
                       <h4 className="font-bold text-slate-800 uppercase text-xs mb-2">Costos y Gastos</h4>
                       {financialsData.incomeStatement.rows.filter((r: any) => r.type === 'expense').map((row: any) => (
-                        <div key={row.id} className="flex justify-between py-1 text-sm pl-4">
+                        <div key={row.id} className={clsx("flex justify-between py-1 text-sm", row.level === 1 && "font-bold", row.level === 2 && "pl-4", row.level === 3 && "pl-8", row.level >= 4 && "pl-12")}>
                           <span>{row.code} - {row.name}</span>
                           <span className="font-mono text-rose-600">{fmt(row.endingBalance)}</span>
                         </div>
@@ -1238,6 +1240,13 @@ export default function AccountingPage() {
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
                   <h3 className="text-lg font-bold text-center text-[#003366] uppercase">Balance General</h3>
                   <p className="text-center text-xs text-slate-500">Al: {endDate || new Date().toISOString().split('T')[0]}</p>
+                  {/* Lote 164: si activo no es pasivo + capital + resultado, se
+                      dice, en vez de enseñar dos totales que no casan. */}
+                  {Math.abs(financialsData.balanceSheet.totals.diferencia ?? 0) >= 0.01 && (
+                    <p className="text-center text-xs font-semibold text-rose-600">
+                      El balance no cuadra: diferencia de {fmt(financialsData.balanceSheet.totals.diferencia)}. Revise el tipo de las cuentas con movimiento en la balanza.
+                    </p>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                     {/* Assets Side */}
@@ -1279,9 +1288,11 @@ export default function AccountingPage() {
                             <span className="font-mono">{fmt(row.endingBalance)}</span>
                           </div>
                         ))}
-                        {/* Net Income from Income Statement needs to be integrated into Equity */}
+                        {/* Lote 164: es el resultado ACUMULADO al cierre (no hay
+                            asientos de cierre de ejercicio), no el del rango: sin
+                            el, la ecuacion no cierra. Decia "del Periodo Actual". */}
                         <div className="flex justify-between py-1 text-xs text-emerald-600 font-semibold italic">
-                          <span className="pl-4">Utilidad del Periodo Actual</span>
+                          <span className="pl-4">Resultados Acumulados (sin cierre)</span>
                           <span className="font-mono">{fmt(financialsData.balanceSheet.totals.netIncome)}</span>
                         </div>
                         <div className="flex justify-between border-t-2 pt-2 font-bold text-slate-800 text-xs">

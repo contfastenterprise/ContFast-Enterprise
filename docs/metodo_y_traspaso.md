@@ -456,6 +456,30 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 164: los totales del balance general y del estado de resultados**
+  (`services/accounting/estadosFinancieros.ts`). Sumaban solo las cuentas de
+  NIVEL 1 y la balanza da cada cuenta con lo suyo: Latin Doors 2026 veía
+  "Total ingresos 0,00" con 3.521.728,32 asentados. Ahora: cada cuenta con el
+  signo de su TIPO (no de su naturaleza), cada grupo suma sus hijas, el estado
+  de resultados es el movimiento del rango y el balance lleva el resultado
+  acumulado; dice la diferencia si no cuadra. Latin Doors cuadra al centavo
+  (activos 1.211.409,01 = pasivos 944.644,20 + resultado 266.764,81).
+  **Para el contador (catálogo, no se tocó)**: 2.1.03 ITBIS por Pagar, 2.1.04
+  ISR Retenido y 2.1.05 ITBIS Retenido están como DEUDORAS y nivel 1, sin
+  padre; los estados ya salen bien, pero en la balanza y el mayor se ven en
+  negativo.
+- **Correcciones de datos del 2026-09-19, a petición del dueño** (guiones en
+  `scratch/_to_delete/`, con ensayo previo y lanzados por él):
+  la transferencia de RD$6.923,52 del 06/08 llevada al libro de Banreservas
+  (`corregir_transferencia_6923.ts`), y **Scotiabank conciliado al 19/09 con
+  el estado de cuenta (459.993,35)** (`conciliar_scotiabank.ts`): asiento de
+  reclasificación debe 1.1.01.04 / haber 1.1.01 por 1.957.738,24 (decisión del
+  contador; única excepción al "no se asienta en agrupación" del lote 136,
+  porque es la que la vacía) y depósito de conciliación de 778.089,61 en el
+  módulo. El módulo solo conocía las SALIDAS: hasta el lote 151 los cobros por
+  banco no creaban el depósito. **Quedan en 1.1.01 RD$797.457,11** (caja y otros
+  bancos: 1.1.01.01 Caja General está en −318.433,14): con los saldos reales,
+  se concilian igual.
 - **Lote 163: un pago a suplidor por transferencia o cheque sale del banco**
   (`services/cxp/cuentaDelPago.ts`, el criterio del lote 151 para los
   cobros). Antes se asentaba y el banco no se enteraba: ni su saldo ni su

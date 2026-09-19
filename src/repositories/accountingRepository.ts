@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { DbTransaction } from '@/db';
 import { auditLogs } from '@/db';
 import { mesesQueFaltan, MESES_A_ABRIR, type PeriodoNuevo } from '@/services/accounting/coberturaPeriodos';
+import { armarEstadosFinancieros } from '@/services/accounting/estadosFinancieros';
 
 export interface NewAccount {
   companyId: string;
@@ -1094,6 +1095,8 @@ export class AccountingRepository {
         nature: acc.nature,
         level: acc.level,
         isTransactional: acc.isTransactional,
+        // Lote 164: los estados financieros acumulan cada cuenta en su grupo.
+        parentId: acc.parentId,
         beginningBalance: begBal,
         debit: deb,
         credit: cred,
@@ -1112,45 +1115,12 @@ export class AccountingRepository {
     // balanza, asi que con acotarla alli quedan acotados los dos.
     const trialBalance = await this.getTrialBalance(companyId, modo, startDate, endDate);
 
-    // Filter and build Balance Sheet (Assets, Liabilities, Equity)
-    const balanceSheet = trialBalance.filter(row => ['asset', 'liability', 'equity'].includes(row.type));
-    
-    // Filter and build Income Statement (Revenue, Expense)
-    const incomeStatement = trialBalance.filter(row => ['revenue', 'expense'].includes(row.type));
-
-    // Calculate totals based on level 1 accounts (or aggregate sum ofTransactional level)
-    const calculateHierarchyTotal = (type: string) => {
-      return trialBalance.filter(row => row.type === type && row.level === 1)
-        .reduce((sum, row) => sum + row.endingBalance, 0);
-    };
-
-    const assets = calculateHierarchyTotal('asset');
-    const liabilities = calculateHierarchyTotal('liability');
-    const equity = calculateHierarchyTotal('equity');
-
-    const revenues = calculateHierarchyTotal('revenue');
-    const expenses = calculateHierarchyTotal('expense');
-    const netIncome = revenues - expenses;
-
-    return {
-      balanceSheet: {
-        rows: balanceSheet,
-        totals: {
-          assets,
-          liabilities,
-          equity,
-          netIncome
-        }
-      },
-      incomeStatement: {
-        rows: incomeStatement,
-        totals: {
-          revenues,
-          expenses,
-          netIncome
-        }
-      }
-    };
+    // Lote 164: los totales sumaban solo las cuentas de NIVEL 1 (y la balanza
+    // da cada cuenta con lo suyo, sin hijas): con los asientos en cuentas
+    // transaccionales salian en cero. Ademas el signo salia de la naturaleza
+    // de cada cuenta y el estado de resultados usaba el saldo acumulado. Ver
+    // `services/accounting/estadosFinancieros.ts`.
+    return armarEstadosFinancieros(trialBalance);
   }
 
   public static async seedDefaultExpenseTypes(companyId: string, externalTx?: DbTransaction) {
