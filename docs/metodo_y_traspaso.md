@@ -456,6 +456,14 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 162: un cheque en garantía ya no se cobra contra una factura que no
+  debe su importe** (`services/cxp/cobroDeGarantia.ts`). Antes el cobro se
+  asentaba ENTERO (banco, mayor, estado de cuenta) y el exceso solo se
+  devolvía como "descuadre": con el cheque 120 habría salido otra vez de
+  Scotiabank. Ahora se mira el saldo bajo bloqueo ANTES de marcar el cheque:
+  en lote va a `noAplicados` con su motivo; uno solo, error 409. Qué hacer
+  entonces (anular el otro pago, anticipo) es del contador: **no existe
+  anulación de pagos** (P3-48), y la corrección del cheque 120 se hizo en datos.
 - **Lote 161: al pagar una factura de suplidor se ven sus cheques en garantía
   pendientes** (número, banco, fecha de cobro, monto, total cubierto y saldo
   sin cubrir), el monto propuesto pasa a ser lo sin cubrir y pagar por encima

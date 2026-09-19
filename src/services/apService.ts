@@ -6,6 +6,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { BankRepository } from '@/repositories/bankRepository';
+import { motivoParaNoCobrar } from '@/services/cxp/cobroDeGarantia';
 
 export interface RegisterPaymentInput {
   companyId: string;
@@ -385,8 +386,10 @@ export class ApService {
       
       let appliedCount = 0;
       let totalAppliedAmount = 0;
-      // Cheques cuyo importe supera lo que quedaba por pagar. Antes se
-      // recortaban en silencio; ahora se devuelven para que se puedan revisar.
+      // Cheques cuyo importe supera lo que quedaba por pagar. Desde el lote 162
+      // esos ya no se cobran (van a `noAplicados` con su motivo), asi que esta
+      // lista sale siempre vacia; se conserva porque es parte de la respuesta
+      // de la ruta.
       const descuadres: { cheque: string; importeCheque: number; saldoDisponible: number }[] = [];
       // Cheques que se pidieron y no se pudieron aplicar. Antes se saltaban en
       // silencio y quien confirmaba el cobro no se enteraba.
@@ -408,6 +411,23 @@ export class ApService {
         const ap = item.ap;
 
         const amountNum = parseFloat(payment.amount);
+
+        // 0. Lote 162: la factura tiene que deber todavia el importe del cheque.
+        //
+        // Antes esto era el paso 3 y venia DESPUES de marcar el cheque cobrado:
+        // si la factura ya se habia pagado por otra via, se asentaba el cheque
+        // entero (banco, mayor, estado de cuenta) y el exceso solo se devolvia
+        // como "descuadre". Ahora se mira bajo bloqueo ANTES de escribir nada, y
+        // ese cheque se queda pendiente con su motivo; los demas siguen.
+        const apBloqueada = await ApRepository.bloquearAp(tx, ap.id, companyId, modo);
+        const saldoActual = apBloqueada ? parseFloat(apBloqueada.balance) : 0;
+        const motivo = apBloqueada
+          ? motivoParaNoCobrar(payment.amount, apBloqueada.balance)
+          : 'No se encontró la cuenta por pagar del cheque.';
+        if (motivo) {
+          noAplicados.push({ checkId: check.id, cheque: check.checkNumber, motivo });
+          continue;
+        }
 
         // 1. Update check status to cleared
         //
@@ -434,21 +454,10 @@ export class ApService {
 
         // 3. Update accounts payable balance
         //
-        // Auditoria ARP-13: el saldo venia de la lectura sin bloqueo de arriba y
-        // se recortaba con Math.max(0, ...), que ocultaba el descuadre cuando el
-        // cheque superaba lo que quedaba por pagar. Se relee bajo bloqueo y, si
-        // sobra importe, se registra en `descuadres` en vez de desaparecer.
-        const apBloqueada = await ApRepository.bloquearAp(tx, ap.id, companyId, modo);
-        const saldoActual = apBloqueada ? parseFloat(apBloqueada.balance) : 0;
-        const aplicado = Math.min(amountNum, saldoActual);
-        if (aplicado < amountNum) {
-          descuadres.push({
-            cheque: check.checkNumber,
-            importeCheque: amountNum,
-            saldoDisponible: saldoActual,
-          });
-        }
-        await ApRepository.updateApBalance(tx, ap.id, companyId, saldoActual - aplicado);
+        // Auditoria ARP-13: el saldo se lee bajo bloqueo (paso 0). Y desde el
+        // lote 162 el cheque cabe entero en el saldo, o no se llega aqui: ya no
+        // hay "descuadre" que recortar.
+        await ApRepository.updateApBalance(tx, ap.id, companyId, saldoActual - amountNum);
 
         // Financial movements registration (Suplidores - Aplicación de Cheque en lote)
         await FinancialMovementService.registerMovement(tx, {
@@ -605,13 +614,14 @@ export class ApService {
       const amountNum = parseFloat(payment.amount);
       const apBalance = parseFloat(ap.balance);
 
-      // El importe del cheque puede superar lo que queda por pagar. Antes se
-      // recortaba con Math.max(0, ...) y el descuadre desaparecia; ahora se
-      // devuelve para que quede a la vista de quien lo aplica.
-      const aplicado = Math.min(amountNum, apBalance);
-      const descuadre = aplicado < amountNum
-        ? { cheque: check.checkNumber, importeCheque: amountNum, saldoDisponible: apBalance }
-        : null;
+      // Lote 162: si la factura ya no debe el importe del cheque, se para aqui,
+      // antes de escribir nada. Antes se cobraba igual (banco, mayor y estado
+      // de cuenta por el importe entero) y el exceso solo se devolvia como
+      // "descuadre". Ver `services/cxp/cobroDeGarantia.ts`.
+      const motivo = motivoParaNoCobrar(payment.amount, ap.balance);
+      if (motivo) {
+        throw Object.assign(new Error(motivo), { status: 409, code: 'FACTURA_YA_PAGADA' });
+      }
 
       // 4. Update check status to cleared
       //
@@ -627,8 +637,8 @@ export class ApService {
       // 5. Update payment status to applied
       await ApRepository.marcarPagoAplicado(tx, payment.id, companyId);
 
-      // 6. Update accounts payable balance
-      await ApRepository.updateApBalance(tx, ap.id, companyId, apBalance - aplicado);
+      // 6. Update accounts payable balance (el cheque cabe entero: ver arriba)
+      await ApRepository.updateApBalance(tx, ap.id, companyId, apBalance - amountNum);
 
       // Financial movements registration (Suplidores - Aplicación de Cheque)
       await FinancialMovementService.registerMovement(tx, {
@@ -707,7 +717,9 @@ export class ApService {
       return {
         appliedCount: 1,
         totalAppliedAmount: amountNum,
-        descuadres: descuadre ? [descuadre] : [],
+        // Siempre vacia desde el lote 162 (un cheque que no cabe se detiene
+        // antes); se conserva por la forma de la respuesta.
+        descuadres: [] as { cheque: string; importeCheque: number; saldoDisponible: number }[],
       };
     });
   }

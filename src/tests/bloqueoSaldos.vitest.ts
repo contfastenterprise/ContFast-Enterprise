@@ -124,6 +124,21 @@ describe('ARP-06 y ARP-13 · cuentas por pagar', () => {
     ).toBe(false);
     expect(apService).toContain('descuadres');
   });
+
+  // Lote 162: mas que no ocultarlo, no asentarlo. El descuadre se devolvia
+  // DESPUES de cobrar el cheque entero (banco, mayor, estado de cuenta). Ahora
+  // el saldo se mira antes de marcar el cheque cobrado, en los dos caminos.
+  it('un cheque mayor que lo que debe la factura no se cobra', () => {
+    for (const marcador of ['static async confirmarCobroDeChequesEnGarantia(', 'static async applySingleGuaranteeCheck(']) {
+      const f = cuerpo(apService, marcador);
+      expect(f, `no se encontro ${marcador}`).not.toBe('');
+      const comprueba = f.indexOf('motivoParaNoCobrar(');
+      const marca = f.indexOf('marcarChequeCobrado(');
+      expect(comprueba, `${marcador} no comprueba el saldo`).toBeGreaterThan(-1);
+      expect(comprueba, `${marcador} comprueba DESPUES de marcar el cheque cobrado`).toBeLessThan(marca);
+      expect(f.includes('Math.min(amountNum'), `${marcador} sigue recortando lo aplicado`).toBe(false);
+    }
+  });
 });
 
 describe('INV-09 · existencia', () => {
