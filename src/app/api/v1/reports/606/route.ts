@@ -32,7 +32,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    const expenses = await getExpenses(companyId, period, auth.modo);
+    // Lote 167: las columnas `decimal` llegan de la base como TEXTO ("1500.00").
+    // Los totales ya se convertian; las filas no, y la pantalla -- que las
+    // declara `number` -- hacia `(e.amount || 0).toFixed(2)`: "toFixed is not a
+    // function" en cuanto el mes tenia una compra. Estaba escondido porque hasta
+    // el lote 134 esta ruta respondia 403 siempre y no llegaba a pintar filas.
+    const expenses = (await getExpenses(companyId, period, auth.modo)).map((e) => ({
+      ...e,
+      amount: Number(e.amount) || 0,
+      itbis: Number(e.itbis) || 0,
+      itbisRetained: Number(e.itbisRetained) || 0,
+    }));
     const totals = expenses.reduce(
       (acc, e) => {
         acc.amount += Number(e.amount);
