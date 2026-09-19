@@ -11,6 +11,7 @@ import { AccountRepository } from '@/repositories/accountRepository';
 import { v4 as uuidv4 } from 'uuid';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock, llevaInventario } from '@/services/inventoryService';
+import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
 import { claveDeNivel, entradasDeLineas, cantidadPorNivel, kardexSinCambios, existenciaTrasEditar, quedaEnRojo } from '@/services/inventario/entradasDeCompra';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
@@ -498,6 +499,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       // kardex y CxP incluidos -- no dejaba ningún rastro de que existió, ni
       // de quién la borró. Se lee todo ANTES de que el resto de esta función
       // empiece a mutar nada.
+      // Lote 169: el efecto de esta compra en la Caja General ANTES de
+      // revertirla. Lo que la reversion devuelva a la caja del mayor vuelve
+      // tambien a la sesion de caja (ver el final de esta transaccion).
+      const cajaAntes = await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id);
       const snapshotLineas = await tx.select().from(expenseLines).where(eq(expenseLines.expenseId, id));
       const snapshotAsientos = await tx
         .select()
@@ -651,6 +656,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
           session.userId
         );
       }
+
+      // Lote 169: si la compra se pago en efectivo, su reversion devolvio ese
+      // efectivo a la Caja General del mayor: vuelve tambien a la sesion. Solo
+      // el metodo '01': ver el comentario largo del alta.
+      if (expenseRow.paymentMethod === '01') await reflejarEnCaja(tx, {
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        referencia: id,
+        descripcion: `Eliminación de compra en efectivo NCF: ${expenseRow.ncf || 'N/A'}`,
+        cambioEnCaja: (await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id)) - cajaAntes,
+      });
 
       // 6. Delete expense lines explicitly (safety cascade)
       await tx
@@ -824,6 +841,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         .from(journalEntries)
         .where(and(eq(journalEntries.reference, id), eq(journalEntries.companyId, session.companyId)));
       const idsAsientosPut = snapshotAsientosPut.map((j) => j.id);
+      // Lote 169: el efecto de esta compra en la Caja General ANTES de
+      // editarla. Solo la DIFERENCIA que deje la edicion pasa a la sesion de
+      // caja: editar una compra antigua sin cambiar lo pagado no mueve nada.
+      const cajaAntesPut = await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id);
       const snapshotLineasAsientoPut = idsAsientosPut.length > 0
         ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosPut))
         : [];
@@ -1394,6 +1415,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           createdBy: session.userId,
         });
       }
+
+      // Lote 169: lo que la edicion cambio en la Caja General del mayor
+      // (pagar mas o menos en efectivo, pasar de efectivo a credito o al
+      // reves) se refleja igual en la sesion de caja abierta. Solo si el
+      // efectivo estaba en juego ANTES o DESPUES: ver el comentario largo del
+      // alta en `app/api/v1/expenses/route.ts`.
+      if (paymentMethod === '01' || existing[0].paymentMethod === '01') await reflejarEnCaja(tx, {
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        referencia: id,
+        descripcion: `Edición de compra en efectivo NCF: ${ncf || 'N/A'}`,
+        cambioEnCaja: (await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id)) - cajaAntesPut,
+      });
 
       return { id };
     });

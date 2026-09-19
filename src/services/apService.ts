@@ -8,6 +8,7 @@ import { FinancialMovementService } from '@/services/financialMovementService';
 import { BankRepository } from '@/repositories/bankRepository';
 import { motivoParaNoCobrar } from '@/services/cxp/cobroDeGarantia';
 import { motivoParaNoRegistrarPago, motivoCuentaDelBanco } from '@/services/cxp/cuentaDelPago';
+import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
 
 export interface RegisterPaymentInput {
   companyId: string;
@@ -346,6 +347,18 @@ export class ApService {
           updatedAt: new Date(),
         });
       }
+
+      // Lote 169: un pago en efectivo sale de la Caja General del mayor; sale
+      // tambien de la sesion de caja abierta. (Por banco, el efecto en caja es
+      // cero y no pasa nada.) Ver services/caja/efectivoDeCaja.ts.
+      await reflejarEnCaja(tx, {
+        companyId: input.companyId,
+        modo: input.modo,
+        userId: input.createdBy,
+        referencia: payment.id,
+        descripcion: `Pago a proveedor ${proveedor?.name ?? 'sin identificar'} en efectivo`,
+        cambioEnCaja: await efectoEnCajaDeDocumento(tx, input.companyId, input.modo, payment.id),
+      });
 
       return {
         payment,

@@ -10,6 +10,7 @@ import { AccountRepository } from '../repositories/accountRepository';
 import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from './accounting/resolverCuentas';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { ultimoDiaDelMes } from '@/utils/fechasLocales';
+import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -205,6 +206,18 @@ export async function createExpense(expenseData: {
         createdBy: expenseData.userId || null,
       });
     }
+
+    // Lote 169: lo que el asiento saco de la Caja General sale tambien de la
+    // sesion de caja abierta. SOLO el metodo '01' (efectivo): ver el comentario
+    // largo en `app/api/v1/expenses/route.ts`.
+    if (expenseData.paymentMethod === '01') await reflejarEnCaja(tx, {
+      companyId: expenseData.companyId,
+      modo: expenseData.modo,
+      userId: expenseData.userId,
+      referencia: expense.id,
+      descripcion: `Compra en efectivo NCF: ${expenseData.ncf || 'N/A'}`,
+      cambioEnCaja: await efectoEnCajaDeDocumento(tx, expenseData.companyId, expenseData.modo, expense.id),
+    });
 
     // Update inventory if goods purchase
     if (expenseData.warehouseId && expenseData.lines && expenseData.userId) {

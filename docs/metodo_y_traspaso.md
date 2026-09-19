@@ -456,6 +456,27 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 169: las salidas de efectivo pasan por la sesión de caja**
+  (`services/caja/efectivoDeCaja.ts`). Las ventas y los cobros en efectivo ya
+  pasaban; las salidas no. Medido el 2026-09-19 en Latin Doors: 86 compras en
+  efectivo (904.351,51) y 2 pagos a suplidores (30.679,84) bajaron la Caja
+  General del mayor sin tocar la sesión, y llevar efectivo al banco tampoco.
+  La sesión cerrada ese día "esperaba" 2.204.992,49 con 85.000,00 reales.
+  Ahora, lo que la operación cambia en el mayor de la caja se apunta igual en
+  la sesión (al editar o borrar una compra, solo la DIFERENCIA: una compra
+  antigua que se edita sin tocar lo pagado no mueve nada). Sin caja abierta, un
+  pago en efectivo se niega, como ya hacían las ventas. **La caja cuadra
+  contra dos cosas**: el conteo físico al cerrar la sesión, y 1.1.01.01 Caja
+  General en el mayor.
+  **Lo que NO entra, y es el siguiente hueco**: una compra "al contado" con
+  cheque, transferencia o tarjeta (métodos 02 y 03) **acredita Caja** igual que
+  el efectivo, porque la compra no sabe de qué banco sale (el pago a suplidor sí,
+  desde el lote 163). Medido: 6 compras con tarjeta, 42.715,67. Por eso el lote
+  refleja solo el método 01: si no, habría que abrir la caja para pagar por
+  transferencia. **Y el cierre de caja**: las dos sesiones cerradas de Latin
+  Doors tienen contado = esperado al centavo y diferencia 0,00; con 85.000
+  reales, eso es un cierre sin contar (el importe se puede escribir a mano en
+  el campo de monedas). El sistema no lo impide.
 - **Lote 168: la campana decía "3" y al abrirla salían 6** (reportado por el
   dueño). No era un error de cuenta: el número rojo son los SIN LEER y la lista
   todos los VIGENTES (leer no resuelve; el aviso sigue hasta que se atiende).

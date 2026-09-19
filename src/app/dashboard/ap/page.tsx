@@ -1127,9 +1127,10 @@ export default function AccountsPayablePage() {
                 {paymentForm.paymentMethod === 'cash' && (
                   <div className="text-xs text-amber-500 font-medium bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    {/* Lote 163: decia que se descontaba de la caja chica y de la
-                        sesion abierta, y el pago no crea ningun movimiento de caja. */}
-                    <span>El pago se asienta contra la cuenta de caja elegida. No se registra en ninguna sesión de caja abierta.</span>
+                    {/* Lote 163: decia que se descontaba de la sesion abierta, y no
+                        era verdad. Lote 169: ahora SI -- la salida se apunta en la
+                        caja abierta (services/caja/efectivoDeCaja.ts). */}
+                    <span>El pago sale de la caja: se registra como salida en la sesión de caja abierta. Sin una caja abierta no se puede pagar en efectivo.</span>
                   </div>
                 )}
 

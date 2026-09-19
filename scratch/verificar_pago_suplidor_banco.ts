@@ -115,8 +115,13 @@ async function main() {
     && /bankAccountsList\.map/.test(transfer));
   ok('la cuenta de credito la dicta el banco (bloqueada si el pago sale del banco)',
     /disabled=\{saleDelBanco\(paymentForm\.paymentMethod\)\}\s*value=\{paymentForm\.creditAccountId\}/.test(modal));
-  ok('el aviso de efectivo ya no promete un movimiento de caja',
-    !/afectará el balance esperado de su sesión actual/.test(PAG) && /No se registra en ninguna sesión de caja abierta/.test(PAG));
+  // Lote 163 corrigio un aviso que prometia un movimiento de caja que no se
+  // creaba. El lote 169 lo crea de verdad, y el aviso lo dice: lo que se vigila
+  // es que el aviso diga lo que pasa, no la frase de cada momento.
+  ok('el aviso de efectivo dice lo que pasa con la caja',
+    !/afectará el balance esperado de su sesión actual/.test(PAG)
+    && /se registra como salida en la sesión de caja abierta/.test(PAG)
+    && /reflejarEnCaja\(/.test(leer('src/services/apService.ts')));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

@@ -9,6 +9,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock } from '@/services/inventoryService';
+import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -382,6 +383,26 @@ export async function POST(req: NextRequest) {
           createdBy: session.userId,
         });
       }
+
+      // Lote 169: lo que el asiento saco de la Caja General sale tambien de la
+      // sesion de caja abierta (una compra en efectivo). Sin esto, la sesion
+      // "esperaba" un efectivo que ya se habia gastado.
+      //
+      // SOLO el metodo '01' (efectivo). Una compra "al contado" con cheque,
+      // transferencia o tarjeta (02, 03) acredita hoy la CAJA igualmente --
+      // eso es otro defecto, medido el 2026-09-19: 6 compras con tarjeta por
+      // 42.715,67 en Latin Doors. Reflejarlas aqui haria falta tener la caja
+      // abierta para pagar por transferencia, que es peor. Cuando la compra
+      // sepa de que banco sale (como el pago a suplidor desde el lote 163),
+      // esa condicion sobra.
+      if (paymentMethod === '01') await reflejarEnCaja(tx, {
+        companyId: session.companyId,
+        modo: session.modo,
+        userId: session.userId,
+        referencia: newExpenseId,
+        descripcion: `Compra en efectivo NCF: ${ncf || 'N/A'}`,
+        cambioEnCaja: await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, newExpenseId),
+      });
 
       return { id: newExpenseId };
     });

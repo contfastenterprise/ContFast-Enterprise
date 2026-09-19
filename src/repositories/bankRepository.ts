@@ -2,6 +2,7 @@ import { db, bankAccounts, bankAccountBalances, bankTransactions, chartOfAccount
 import { eq, and, sql, desc, inArray, count } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { AccountRepository } from '@/repositories/accountRepository';
+import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
 
 export interface CreateBankAccountInput {
   companyId: string;
@@ -403,6 +404,21 @@ export class BankRepository {
           ],
         });
       }
+
+      // Lote 169: si la contrapartida es la Caja General, el efectivo sale de
+      // la caja (deposito al banco) o entra en ella (retiro del banco): la
+      // sesion de caja abierta lo refleja igual. Con cualquier otra
+      // contrapartida el efecto en caja es cero y no pasa nada.
+      await reflejarEnCaja(tx, {
+        companyId: data.companyId,
+        modo: data.modo,
+        userId: data.createdBy,
+        referencia: txId,
+        descripcion: isIncoming
+          ? `Depósito de caja al banco ${account.bankName} ${account.accountNumber}`
+          : `Retiro del banco ${account.bankName} ${account.accountNumber} a caja`,
+        cambioEnCaja: await efectoEnCajaDeDocumento(tx, data.companyId, data.modo, txId),
+      });
 
       return transaction;
     });
