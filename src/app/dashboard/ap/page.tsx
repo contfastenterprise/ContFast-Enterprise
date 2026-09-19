@@ -14,6 +14,8 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import GarantiasDeLaFactura, { type EstadoGarantias } from './components/GarantiasDeLaFactura';
+import { pagariaDeMas } from '@/services/cxp/garantiasDeFactura';
 
 // -- Types --
 interface BillAP {
@@ -117,6 +119,9 @@ export default function AccountsPayablePage() {
   // Selected Payment State
   const [selectedSupplier, setSelectedSupplier] = useState<SupplierAP | null>(null);
   const [selectedBill, setSelectedBill] = useState<BillAP | null>(null);
+  // Lote 161: los cheques en garantia pendientes de la factura que se va a
+  // pagar. Mientras no se sepan, no se registra el pago a ciegas.
+  const [estadoGarantias, setEstadoGarantias] = useState<EstadoGarantias>({ estado: 'cargando' });
 
   // Form State
   const [paymentForm, setPaymentForm] = useState({
@@ -156,6 +161,18 @@ export default function AccountsPayablePage() {
     fetchSecondaryData();
     fetchPendingGuarantees();
   }, []);
+
+  // Lote 161: el dialogo proponia el saldo ENTERO como monto. Con un cheque en
+  // garantia pendiente eso es proponer pagar dos veces. Si la factura tiene
+  // cheques, se propone lo que queda sin cubrir -- solo mientras el monto siga
+  // siendo el propuesto: lo que la persona haya escrito no se toca.
+  useEffect(() => {
+    if (estadoGarantias.estado !== 'listo' || estadoGarantias.resumen.cantidad === 0 || !selectedBill) return;
+    const sinCubrir = estadoGarantias.resumen.saldoSinCubrir.toFixed(2);
+    setPaymentForm((prev) =>
+      prev.amount === selectedBill.balance.toString() ? { ...prev, amount: sinCubrir } : prev
+    );
+  }, [estadoGarantias, selectedBill]);
 
   useEffect(() => {
     fetchPaymentsData();
@@ -307,6 +324,9 @@ export default function AccountsPayablePage() {
   const handleOpenPayment = (supplier: SupplierAP, bill: BillAP) => {
     setSelectedSupplier(supplier);
     setSelectedBill(bill);
+    // Lo de la factura anterior no vale para esta: sin esto, el monto se
+    // proponia un instante con los cheques de la otra.
+    setEstadoGarantias({ estado: 'cargando' });
 
     // Cuenta de cuentas por pagar.
     //
@@ -375,6 +395,32 @@ export default function AccountsPayablePage() {
         toast.error('Por favor, complete todos los datos del cheque.');
         return;
       }
+    }
+
+    // Lote 161: antes de pagar, lo que ya cubren los cheques en garantia de
+    // esta factura. No se bloquea (un cheque puede devolverse o sustituirse),
+    // pero pagar por encima del saldo sin cubrir exige decirlo en voz alta.
+    if (estadoGarantias.estado === 'cargando') {
+      toast.info('Comprobando los cheques en garantía de la factura; inténtelo en un momento.');
+      return;
+    }
+    if (estadoGarantias.estado === 'error') {
+      const seguir = await confirm({
+        title: 'No se pudo comprobar la garantía',
+        description: 'No se pudo saber si esta factura tiene cheques en garantía pendientes. Si los tiene, este pago se sumaría a ellos. ¿Registrar el pago de todos modos?',
+        confirmText: 'Registrar de todos modos',
+        variant: 'destructive',
+      });
+      if (!seguir) return;
+    } else if (pagariaDeMas(estadoGarantias.resumen, amountVal)) {
+      const r = estadoGarantias.resumen;
+      const seguir = await confirm({
+        title: 'Esta factura ya tiene cheques en garantía',
+        description: `${r.cantidad === 1 ? 'Un cheque en garantía pendiente cubre' : `${r.cantidad} cheques en garantía pendientes cubren`} ${fmt(r.totalCheques)} de esta factura; sin cubrir quedan ${fmt(r.saldoSinCubrir)}. Con este pago de ${fmt(amountVal)}, cuando el banco cobre ${r.cantidad === 1 ? 'el cheque' : 'los cheques'} se habrá pagado de más. ¿Registrar el pago de todos modos?`,
+        confirmText: 'Registrar de todos modos',
+        variant: 'destructive',
+      });
+      if (!seguir) return;
     }
 
     setSubmitting(true);
@@ -946,6 +992,15 @@ export default function AccountsPayablePage() {
 
               {/* Form body */}
               <form onSubmit={handleSubmitPayment} className="p-4 space-y-5 overflow-y-auto flex-1">
+
+                {/* Lote 161: lo primero que se ve al ir a pagar, si la factura
+                    ya tiene cheques en garantia pendientes de cobro. */}
+                <GarantiasDeLaFactura
+                  apId={selectedBill.apId}
+                  saldoFactura={selectedBill.balance}
+                  bancos={bankAccountsList}
+                  onEstado={setEstadoGarantias}
+                />
 
                 {/* Basic fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

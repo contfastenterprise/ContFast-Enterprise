@@ -456,6 +456,18 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 161: al pagar una factura de suplidor se ven sus cheques en garantía
+  pendientes** (número, banco, fecha de cobro, monto, total cubierto y saldo
+  sin cubrir), el monto propuesto pasa a ser lo sin cubrir y pagar por encima
+  pide confirmación (`services/cxp/garantiasDeFactura.ts`,
+  `dashboard/ap/components/GarantiasDeLaFactura.tsx`). Un cheque en garantía no
+  rebaja el saldo hasta cobrarse: pagar la factura mientras tanto era pagarla
+  dos veces. **Pasó el 19/09** con el cheque 120 de EVERLAST DOORS: se
+  registró una transferencia estando el cheque pendiente, y el banco lo cobró
+  el 17/09. **Corregido en datos a petición del dueño**
+  (`scratch/_to_delete/corregir_cheque_120.ts`, con ensayo previo): asiento de
+  la transferencia dado de baja (no borrado), su movimiento de suplidor
+  anulado, y el cheque cobrado con fecha 17/09 por la función del sistema.
 - **Lote 159: el panel avisa del 606 y del 607 del mes cerrado** hasta que
   alguien los marca como presentados (`services/dgii/declaracionesPendientes.ts`,
   tabla `declaraciones_dgii`). **MIGRACIÓN `drizzle/0009_declaraciones_dgii.sql`:
