@@ -169,8 +169,8 @@ de CERTIFICACION, `6ae4d7f`).
 bancos que `verificar.ps1` salta sin ejecutar. Medido:
 - **33 necesitan base de datos**: se conectan al arrancar y ESCRIBEN (inserts
   y updates sin rollback). Son pruebas de integración y no se corren contra la
-  base real. Siguen en la lista; hacen falta una base desechable (Supabase
-  local o una rama) para volver a vigilarlos.
+  base real. **Desde el lote 166 corren contra la base desechable**
+  (`scratch/bancos_db/`, ver la sección 8): 33/33 en verde.
 - **28 eran de solo código** y fallaban. Revisada cada comprobación (siguiendo
   las llamadas, no solo buscando el texto): **ninguna regresión en lo que
   vigilaban**. Todo era deriva — código movido (`existencia.ts`,
@@ -456,6 +456,53 @@ Además, fuera de la tabla:
   2026-09-18). La ruta de la campana no pide permiso de módulo, a propósito (la
   ve cualquier usuario): va en `ABIERTAS_A_PROPOSITO` de
   `permisosRutas.vitest.ts`, no en `PENDIENTES`, que es deuda.
+- **Lote 167: la pantalla del 606 se caía** con "(e.amount || 0).toFixed is not
+  a function" en cuanto el mes tenía una compra (reportado por el dueño el
+  2026-09-19). La ruta devolvía los importes de cada fila como texto (las
+  columnas `decimal` llegan así) y solo convertía los totales. Escondido hasta
+  el lote 134, porque antes la ruta respondía 403 siempre. El 607 ya convertía.
+- **Lote 166: la base DESECHABLE para los 33 bancos de integración**
+  (`scratch/bancos_db/`). Estaban en `deuda_bancos.txt` sin correr porque
+  ESCRIBEN (hasta `TRUNCATE` de todo lo transaccional). Ahora: un cluster
+  propio de PostgreSQL 18 en 127.0.0.1:55432, fuera del repositorio
+  (`%LOCALAPPDATA%\contfast_bancos`), con **candado** (`candado.ts` +
+  `precarga.mts`: si `DATABASE_URL` no es esa base con su marca, el banco no
+  arranca; `_limpieza.ts` y la semilla también lo exigen). `base_desechable.ps1
+  -Accion correr` migra, completa el esquema (las migraciones NO lo reproducen:
+  `average_cost` y `unit_cost` se crearon a mano en P1-12 —
+  `complemento_esquema.sql`, y `deriva_esquema.ts` falla si aparece otra
+  columna así), siembra (la semilla original nunca se commiteó: reconstruida
+  en `semilla.sql` + `semilla_app.ts`, que usa los sembradores de la
+  aplicación) y corre los 33, resembrando antes de cada uno. **33/33 en verde.**
+  `verificar.ps1` los corre en su paso 3b si hay PostgreSQL 18. Destaparon dos
+  defectos reales (lotes 164 y 165) y mucha deriva, arreglada sobre la
+  PROPIEDAD, no la forma: rutas que delegan en servicios (`correoFactura.ts`,
+  `addStock`), `{ entries, total }`, `hayFirma` (la firma exige aceptación), el
+  esquema de productos en `schemas/producto.ts`, `npx` que en Windows no se
+  lanza con `execFileSync`… Y un hueco sin arreglar: **la factura de PRUEBA se
+  imprime igual que la real** (la marca de agua solo existía en la plantilla
+  del módulo retirado en el lote 100); está anotado en
+  `verificar_modo_obligatorio.ts`.
+- **Lote 165: las cuentas que el sistema busca existen en toda empresa**
+  (`services/accounting/cuentasDelSistema.ts`, una sola tabla para el
+  sembrador y para los códigos por defecto). Compras y facturas pedían 7
+  claves que el catálogo sembrado no traía (1.1.08, 2.1.04, 2.1.05, 1.1.05,
+  5.1.02 inexistentes; 1.1.03 y 1.1.04 de agrupación): **Artalum, D'JIMENEZ,
+  J'EDWARD y UltraElec no podían registrar una compra con ITBIS**, ni con
+  retenciones. `src/tests/cuentasDelSistema.vitest.ts` falla si vuelven a
+  separarse. `completarCuentasDelSistema` completa una empresa existente sin
+  mover saldos (decisión del dueño: si una cuenta antigua tiene movimientos,
+  la clave se engancha a ella — Latin Doors sigue en 1.1.08, 2.1.04, 2.1.05).
+  **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
+  lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
+  porque el código desplegado mira primero el enlace.
+- **Más correcciones de datos del 2026-09-19** (mismo método): caja (85.000,00)
+  y Banreservas (326.695,13) conciliados al 19/09 desde 1.1.01
+  (`conciliar_caja_banreservas.ts`); los 60.405,32 que quedaron en 1.1.01
+  "salieron sin registrarse" → 6.1.02.06 Gastos Diversos, **no deducible**
+  (`cerrar_1_1_01.ts`): **1.1.01 queda en cero**; y 2.1.03, 2.1.04, 2.1.05 del
+  catálogo de Latin Doors, acreedoras, nivel 3, hijas de 2.1
+  (`corregir_cuentas_2_1.ts`).
 - **Lote 164: los totales del balance general y del estado de resultados**
   (`services/accounting/estadosFinancieros.ts`). Sumaban solo las cuentas de
   NIVEL 1 y la balanza da cada cuenta con lo suyo: Latin Doors 2026 veía
@@ -464,10 +511,9 @@ Además, fuera de la tabla:
   de resultados es el movimiento del rango y el balance lleva el resultado
   acumulado; dice la diferencia si no cuadra. Latin Doors cuadra al centavo
   (activos 1.211.409,01 = pasivos 944.644,20 + resultado 266.764,81).
-  **Para el contador (catálogo, no se tocó)**: 2.1.03 ITBIS por Pagar, 2.1.04
-  ISR Retenido y 2.1.05 ITBIS Retenido están como DEUDORAS y nivel 1, sin
-  padre; los estados ya salen bien, pero en la balanza y el mayor se ven en
-  negativo.
+  2.1.03 ITBIS por Pagar, 2.1.04 ISR Retenido y 2.1.05 ITBIS Retenido estaban
+  como DEUDORAS y nivel 1, sin padre: corregidas en datos el mismo día (ver
+  abajo).
 - **Correcciones de datos del 2026-09-19, a petición del dueño** (guiones en
   `scratch/_to_delete/`, con ensayo previo y lanzados por él):
   la transferencia de RD$6.923,52 del 06/08 llevada al libro de Banreservas
@@ -477,9 +523,8 @@ Además, fuera de la tabla:
   contador; única excepción al "no se asienta en agrupación" del lote 136,
   porque es la que la vacía) y depósito de conciliación de 778.089,61 en el
   módulo. El módulo solo conocía las SALIDAS: hasta el lote 151 los cobros por
-  banco no creaban el depósito. **Quedan en 1.1.01 RD$797.457,11** (caja y otros
-  bancos: 1.1.01.01 Caja General está en −318.433,14): con los saldos reales,
-  se concilian igual.
+  banco no creaban el depósito. Lo que quedaba en 1.1.01 se concilió después
+  (caja, Banreservas y la salida no registrada): ver la entrada del lote 166.
 - **Lote 163: un pago a suplidor por transferencia o cheque sale del banco**
   (`services/cxp/cuentaDelPago.ts`, el criterio del lote 151 para los
   cobros). Antes se asentaba y el banco no se enteraba: ni su saldo ni su

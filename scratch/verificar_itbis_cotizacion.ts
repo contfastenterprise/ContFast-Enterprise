@@ -117,7 +117,10 @@ async function main() {
 
   const svc = fuente('src/services/quoteService.ts');
   ok('el servicio guarda la tasa al crear', /taxRate:\s*line\.taxRate/.test(svc));
-  ok('y la devuelve en el payload', /taxRate:\s*\(line as any\)\.taxRate/.test(svc));
+  // Era `(line as any).taxRate`; el lote 123 quito el `as any` (tope de any a
+  // 0). La propiedad es la misma: el payload de conversion lleva la tasa de la
+  // linea y solo la deduce cuando no consta.
+  ok('y la devuelve en el payload', /taxRate:\s*line\.taxRate\s*!=\s*null\s*\?\s*Number\(line\.taxRate\)\s*:\s*deducida/.test(svc));
   ok('el select de lineas la trae', /taxRate:\s*quoteLines\.taxRate/.test(svc));
 
   // La comprobacion se ACOTA al bloque de conversion. La primera version
@@ -131,10 +134,16 @@ async function main() {
   // N caracteres tras un bloque muy comentado es casi todo blanco y no llega
   // al codigo. Con el corte por caracteres esta comprobacion no veia nada y
   // fallaba sin que el codigo tuviera nada malo.
-  const lineasFact = fact.split('\n');
-  const iConv = lineasFact.findIndex(l => l.includes('/convert'));
-  const bloqueConversion = iConv >= 0 ? lineasFact.slice(iConv, iConv + 60).join('\n') : '';
-  ok('el bloque de conversion existe', iConv >= 0);
+  // Y tampoco basta una ventana de N LINEAS: la conversion crecio (el cliente
+  // se espera, se avisa de lineas sin nombre) y la tasa quedo en la linea 79
+  // desde `/convert`, fuera de las 60 que se miraban. Se acota por estructura:
+  // desde la llamada a `/convert` hasta el cierre del `setLines(quote.lines.map(`
+  // que reparte las lineas convertidas.
+  const iConv = fact.indexOf('/convert');
+  const iMap = iConv >= 0 ? fact.indexOf('setLines(quote.lines.map(', iConv) : -1;
+  const iFin = iMap >= 0 ? fact.indexOf('})));', iMap) : -1;
+  const bloqueConversion = iFin > 0 ? fact.slice(iConv, iFin) : '';
+  ok('el bloque de conversion existe', iConv >= 0 && iMap > iConv && iFin > iMap);
   ok('al convertir se usa la tasa de la cotizacion, no 0.18 fijo',
     /taxRate:\s*l\.taxRate\s*!=\s*null/.test(bloqueConversion) &&
     !/taxRate:\s*0\.18,/.test(bloqueConversion));

@@ -36,6 +36,10 @@ const ok = (t: string, c: boolean, d = '') => {
   console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`);
   if (!c) fallos++;
 };
+const exige = (t: string, c: boolean) => {
+  if (!c) throw new Error(`PRECONDICION ROTA: ${t}`);
+  console.log(`  pre   ${t}`);
+};
 
 async function sembrar() {
   // Orden de borrado derivado del esquema. Ver _limpieza.ts.
@@ -185,12 +189,44 @@ async function main() {
 
   console.log('\n7) Ninguna consulta se quedo sin filtro\n');
   const repo = fuente('src/repositories/biRepository.ts');
-  const conEmpresa = (repo.match(/eq\((\w+)\.companyId, companyId\)/g) || []);
-  const conModo = (repo.match(/eq\(\w+\.modo, modo\)/g) || []);
-  const catalogo = conEmpresa.filter((x) => /customers|products/.test(x)).length;
-  ok(`${conModo.length} filtros de entorno para ${conEmpresa.length - catalogo} de tablas transaccionales`,
-    conModo.length === conEmpresa.length - catalogo,
-    `${conModo.length} vs ${conEmpresa.length - catalogo}`);
+  // Antes esto CONTABA: tantos `eq(x.modo, modo)` como `eq(x.companyId, ...)`
+  // de tablas no-catalogo. Dejo de cuadrar sin que faltara nada cuando P1-17
+  // (2026-09-03) anadio el modo a dos consultas de clientes que anclan la
+  // empresa por `customers.companyId`: 26 contra 24. Y un recuento global no
+  // dice DONDE falta un filtro. Ahora se mira consulta por consulta.
+  //
+  // Cada `db.select` hasta su `;` es una consulta. Si filtra con `...lista`,
+  // se sigue esa lista hasta su declaracion (`movementsConds`, `invoiceConds`).
+  // Las lineas de factura y de gasto no tienen `modo`: lo heredan de su
+  // cabecera por el JOIN, y la cabecera si tiene que filtrarlo.
+  const TRANSACCIONALES = ['invoices', 'expenses', 'accountsPayable', 'accountsReceivable',
+    'inventoryLevels', 'inventoryMovements'];
+  const trozos = repo.split(/(?=\bdb\s*\.\s*select)/);
+  const consultas = trozos.slice(1).map((trozo, i) => {
+    const inicio = trozos.slice(0, i + 1).join('').length;
+    const fin = trozo.indexOf(';');
+    let q = fin > 0 ? trozo.slice(0, fin) : trozo;
+    // La lista del `where`: desde su declaracion hasta la consulta (asi entran
+    // tambien sus `push`). Sin declaracion, la consulta queda sin ella y, si
+    // era de ahi de donde salia el filtro, la comprobacion falla: bien.
+    for (const [, lista] of q.matchAll(/\.\.\.(\w+)/g)) {
+      const decl = repo.lastIndexOf(`const ${lista} =`, inicio);
+      if (decl >= 0) q += '\n' + repo.slice(decl, inicio);
+    }
+    return { n: i + 1, q };
+  });
+  const sinModo: string[] = [];
+  const sinEmpresa: string[] = [];
+  for (const { n, q } of consultas) {
+    const tablas = [...q.matchAll(/\.(?:from|innerJoin|leftJoin|rightJoin)\(\s*(\w+)/g)].map((m) => m[1]);
+    for (const t of tablas.filter((t) => TRANSACCIONALES.includes(t))) {
+      if (!new RegExp(`eq\\(${t}\\.modo, modo\\)`).test(q)) sinModo.push(`#${n} ${t}`);
+    }
+    if (!/eq\(\w+\.companyId, companyId\)/.test(q)) sinEmpresa.push(`#${n} ${tablas.join('+')}`);
+  }
+  exige(`el repositorio de BI sigue teniendo sus consultas (${consultas.length})`, consultas.length >= 25);
+  ok('toda consulta sobre una tabla transaccional filtra su entorno', sinModo.length === 0, sinModo.join(', '));
+  ok('y toda consulta filtra la empresa', sinEmpresa.length === 0, sinEmpresa.join(', '));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

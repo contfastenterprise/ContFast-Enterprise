@@ -135,17 +135,32 @@ async function main() {
 
 
 
+  // El nivel ya no se lee en la ruta con `levelResult`: la entrada de la compra
+  // pasa por `addStock`, que lee y bloquea el nivel filtrando empresa, modo,
+  // producto y almacen. Se vigila esa propiedad donde vive ahora: la ruta usa
+  // `addStock` y no lee niveles por su cuenta, y `addStock` filtra la empresa.
+  const inv = fuente('src/services/inventoryService.ts');
+  // Hasta la siguiente funcion exportada: `bloque()` tomaria las llaves del
+  // tipo de retorno (`Promise<{ averageCost: number }>`), no las del cuerpo.
+  const iAdd = inv.indexOf('export async function addStock');
+  const addStock = iAdd < 0 ? '' : inv.slice(iAdd, inv.indexOf('\nexport ', iAdd + 1) > 0 ? inv.indexOf('\nexport ', iAdd + 1) : undefined);
+  const addStockFiltra = /\.from\(inventoryLevels\)\.where\(\s*and\(\s*eq\(inventoryLevels\.companyId, companyId\)/.test(addStock);
   const post = fuente('src/app/api/v1/expenses/route.ts');
   ok('POST /expenses filtra la empresa al leer el nivel',
-    /levelResult = await tx\.select[^;]*inventoryLevels\.companyId/.test(post));
+    /import \{ addStock \} from '@\/services\/inventoryService'/.test(post) && /await addStock\(/.test(post)
+    && !/\.from\(inventoryLevels\)/.test(post) && addStockFiltra);
   ok('POST /expenses valida el almacen antes de la transaccion',
     /warehouses\.companyId, session\.companyId/.test(post));
   ok('POST /expenses valida los productos del body',
     /inArray\(products\.id, idsProducto\)[^;]*products\.companyId/.test(post));
 
   const put = fuente('src/app/api/v1/expenses/[id]/route.ts');
+  // En la edicion hay ademas una lectura directa (el freno de existencia del
+  // lote 150): CADA `.from(inventoryLevels)` tiene que filtrar la empresa.
+  const lecturasPut = put.split('.from(inventoryLevels)').slice(1).map((t) => t.slice(0, t.indexOf(';')));
   ok('PUT /expenses/[id] filtra la empresa al leer el nivel',
-    /levelResult = await tx[^;]*inventoryLevels\.companyId/.test(put));
+    /await addStock\(/.test(put) && addStockFiltra && lecturasPut.length > 0
+    && lecturasPut.every((t) => /eq\(inventoryLevels\.companyId, /.test(t)), `${lecturasPut.length} lectura(s) directa(s)`);
   ok('PUT /expenses/[id] valida el almacen antes de la transaccion',
     /warehouses\.companyId, session\.companyId/.test(put));
 

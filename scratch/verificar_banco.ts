@@ -59,11 +59,25 @@ const saldoEntorno = async (modo: 'PRODUCCION' | 'PRUEBA') => {
   return r[0] ? Number(r[0].balance) : null;
 };
 
+// Desde el lote 137 un movimiento de banco SIEMPRE se contabiliza: la cuenta
+// bancaria tiene que estar enlazada a su cuenta contable y el movimiento lleva
+// contrapartida. Este banco vigila el saldo por entorno, no el asiento, asi
+// que se le dan las dos cuentas del catalogo sembrado y se sigue a lo suyo.
+const cuentaContable = async (codigo: string) => {
+  const r = (await db.execute(sql`
+    SELECT id FROM chart_of_accounts WHERE company_id = ${A}::uuid AND code = ${codigo}`)) as unknown as { id: string }[];
+  if (!r[0]) throw new Error(`PRECONDICION ROTA: el catalogo sembrado no tiene ${codigo}`);
+  return r[0].id;
+};
+let CONTRAPARTIDA = '';
+
 async function sembrar() {
   await limpiarTodo(['bank_accounts', 'bank_account_balances']);
+  const cuentaDelBanco = await cuentaContable('1.1.01.02');
+  CONTRAPARTIDA = await cuentaContable('3.1.01');
   await db.execute(sql`
-    INSERT INTO bank_accounts (id, company_id, bank_name, account_number, balance)
-    VALUES (${CTA}::uuid, ${A}::uuid, 'Popular', '999-BANCO', 100000)`);
+    INSERT INTO bank_accounts (id, company_id, bank_name, account_number, balance, chart_account_id)
+    VALUES (${CTA}::uuid, ${A}::uuid, 'Popular', '999-BANCO', 100000, ${cuentaDelBanco}::uuid)`);
   // La migracion 0036 siembra los dos entornos. Aqui se hace igual.
   await db.execute(sql`
     INSERT INTO bank_account_balances (company_id, bank_account_id, modo, balance)
@@ -74,7 +88,7 @@ async function sembrar() {
 const mover = (modo: 'PRODUCCION' | 'PRUEBA', tipo: any, monto: number, desc: string) =>
   BankRepository.registerTransaction({
     companyId: A, modo, bankAccountId: CTA, date: '2026-08-28',
-    type: tipo, amount: monto, description: desc,
+    type: tipo, amount: monto, description: desc, contraAccountId: CONTRAPARTIDA,
   } as any);
 
 async function main() {
@@ -103,14 +117,22 @@ async function main() {
     String(await saldoCatalogo()));
 
   console.log('\n3) El libro de banco de cada entorno\n');
-  const real = await BankRepository.getBankTransactions(A, CTA, 'PRODUCCION');
-  const prueba = await BankRepository.getBankTransactions(A, CTA, 'PRUEBA');
+  // `getBankTransactions` devuelve `{ transactions, total }` desde que el libro
+  // de banco se pagina en el servidor; lo vigilado es la lista, y el total
+  // tiene que coincidir con ella.
+  const libroReal = await BankRepository.getBankTransactions(A, CTA, 'PRODUCCION');
+  const libroPrueba = await BankRepository.getBankTransactions(A, CTA, 'PRUEBA');
+  const real = libroReal.transactions;
+  const prueba = libroPrueba.transactions;
+  ok('el total del libro cuenta lo mismo que la lista, por entorno',
+    libroReal.total === real.length && libroPrueba.total === prueba.length,
+    `${libroReal.total}/${real.length} ${libroPrueba.total}/${prueba.length}`);
   ok('en PRODUCCION solo el deposito real', real.length === 1 &&
     real[0].description === 'Deposito real', `${real.length}: ${real.map(t => t.description).join(', ')}`);
   ok('en PRUEBA solo el retiro de practicas', prueba.length === 1 &&
     prueba[0].description === 'Retiro de PRACTICAS', `${prueba.length}`);
 
-  const todasReal = await BankRepository.getBankTransactions(A, 'all', 'PRODUCCION');
+  const todasReal = (await BankRepository.getBankTransactions(A, 'all', 'PRODUCCION')).transactions;
   ok('la rama "all" tambien filtra', todasReal.length === 1, String(todasReal.length));
 
   console.log('\n4) El listado de cuentas muestra el saldo de SU entorno\n');
@@ -192,7 +214,7 @@ async function main() {
     /getBankAccounts\(context\.tenantId, context\.modo\)/.test(
       fuente('src/ai/tools/GetBankBalancesTool.ts')));
   ok('la ruta de transacciones pasa el entorno',
-    /getBankTransactions\(session\.companyId, accountId, session\.modo\)/.test(
+    /getBankTransactions\(\s*session\.companyId,\s*accountId,\s*session\.modo\b/.test(
       fuente('src/app/api/v1/bank/transactions/route.ts')));
   ok('la de cuentas tambien',
     /getBankAccounts\(session\.companyId, session\.modo\)/.test(

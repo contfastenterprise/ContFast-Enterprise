@@ -161,7 +161,10 @@ async function main() {
   const comprobaciones: [string, string, RegExp][] = [
     ['secuencia e-CF del PDF', 'src/app/api/v1/invoices/[id]/pdf/route.ts', /eq\(ecfSequences\.modo, modo\)/],
     ['secuencia e-CF de la impresion', 'src/app/api/v1/invoices/[id]/print/route.ts', /eq\(ecfSequences\.modo, modo\)/],
-    ['secuencia e-CF del correo', 'src/app/api/v1/invoices/[id]/email/route.ts', /eq\(ecfSequences\.modo, auth\.modo\)/],
+    // El correo se mudo de la ruta a `correoFactura.ts` (lote 157; la ruta
+    // solo delega): la secuencia se lee alli, con el modo que le pasa la ruta.
+    ['secuencia e-CF del correo', 'src/services/invoice/correoFactura.ts', /eq\(ecfSequences\.modo, modo\)/],
+    ['  y la ruta del correo le pasa el modo de la sesion', 'src/app/api/v1/invoices/[id]/email/route.ts', /enviarFacturaPorCorreo\(\{[\s\S]*?modo: auth\.modo,/],
     ['listado de secuencias', 'src/app/api/v1/ecf/sequences/route.ts', /eq\(ecfSequences\.modo, auth\.modo\)/],
     ['consumo del rango autorizado', 'src/app/api/v1/ecf/sequences/route.ts', /eq\(invoices\.modo, auth\.modo\)/],
     ['sincronizacion en lote con la DGII', 'src/app/api/v1/ecf/dgii-status/batch/route.ts', /eq\(invoices\.modo, auth\.modo\)/],

@@ -140,10 +140,16 @@ async function main() {
     /!producto\.tracksInventory/.test(fuente('src/app/api/v1/products/[id]/inventory/route.ts')));
 
   console.log('\n8) El campo se puede fijar desde la ficha\n');
+  // El esquema se mudo de las rutas a `schemas/producto.ts` (con mensaje de
+  // error propio): alta con `esquemaProducto` (por defecto SI lleva
+  // existencia), edicion con `esquemaProductoParcial` (opcional).
+  const esquema = fuente('src/schemas/producto.ts');
   ok('la API de alta lo acepta',
-    /tracksInventory: z\.boolean\(\)/.test(fuente('src/app/api/v1/products/route.ts')));
+    /tracksInventory: z\.boolean\(\{[^}]*\}\)\.default\(true\)/.test(esquema)
+    && /import \{ esquemaProducto,/.test(fuente('src/app/api/v1/products/route.ts')));
   ok('la API de edicion lo acepta',
-    /tracksInventory: z\.boolean\(\)/.test(fuente('src/app/api/v1/products/[id]/route.ts')));
+    /tracksInventory: z\.boolean\(\{[^}]*\}\)\.optional\(\)/.test(esquema)
+    && /import \{ esquemaProductoParcial,/.test(fuente('src/app/api/v1/products/[id]/route.ts')));
   ok('la pantalla tiene la casilla',
     /tracksInventory: e\.target\.checked/.test(fuente('src/app/dashboard/products/page.tsx')));
 

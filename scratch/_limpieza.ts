@@ -63,7 +63,19 @@ export async function tablasTransaccionales(): Promise<string[]> {
  * accounting_periods, y los clientes o suplidores que cree para si mismo).
  */
 export async function limpiar(extra: string[] = []): Promise<void> {
-  const tablas = [...(await tablasTransaccionales()), ...extra];
+  // Esto vacia TODO lo transaccional de TODAS las empresas. Solo en la base
+  // desechable de `bancos_db/`; contra cualquier otra, lanza sin tocar nada.
+  const { exigirBaseDesechable } = await import('./bancos_db/candado');
+  await exigirBaseDesechable();
+  // `accounting_periods` lleva `modo` pero es configuracion, no movimiento: la
+  // siembra la base desechable (semilla_app.ts) y sin periodo abierto ningun
+  // asiento pasa. Se respeta salvo que el banco la pida en `extra`, que es lo
+  // que hacen los que prueban justo la falta de periodo.
+  const RESPETADAS = ['accounting_periods'];
+  const tablas = [
+    ...(await tablasTransaccionales()).filter((t) => !RESPETADAS.includes(t) || extra.includes(t)),
+    ...extra,
+  ];
   const lista = tablas.map((t) => `"${t}"`).join(', ');
   // CASCADE resuelve el orden de dependencias. RESTART IDENTITY no hace falta:
   // las claves son uuid.

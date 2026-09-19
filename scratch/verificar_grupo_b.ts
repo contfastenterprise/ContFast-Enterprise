@@ -47,14 +47,27 @@ async function lanza(fn: () => Promise<any>): Promise<string | null> {
   try { await fn(); return null; } catch (e: any) { return e.message; }
 }
 
+const cuentaContable = async (empresa: string, codigo: string): Promise<string> => {
+  const r: any = await uno(sql`SELECT id FROM chart_of_accounts WHERE company_id=${empresa}::uuid AND code=${codigo}`);
+  if (!r) throw new Error(`PRECONDICION ROTA: el catalogo sembrado de ${empresa} no tiene ${codigo}`);
+  return r.id;
+};
+let CONTRA_A = '';
+
 async function sembrar() {
   // Orden de borrado derivado del esquema. Ver _limpieza.ts.
   await limpiarTodo(['cash_registers', 'bank_accounts']);
   await db.execute(sql`DELETE FROM customers`);
 
-  await db.execute(sql`INSERT INTO bank_accounts (id,company_id,bank_name,account_number,balance) VALUES
-    (${CTA_A}::uuid,${A}::uuid,'Popular','A-1',1000),
-    (${CTA_B}::uuid,${B}::uuid,'BHD','B-1',5000)`);
+  // Desde el lote 137 cada cuenta bancaria va enlazada a su cuenta contable y
+  // cada movimiento lleva contrapartida. Las dos cuentas salen del catalogo
+  // sembrado de cada empresa.
+  const bancoA = await cuentaContable(A, '1.1.01.02');
+  const bancoB = await cuentaContable(B, '1.1.01.02');
+  CONTRA_A = await cuentaContable(A, '3.1.01');
+  await db.execute(sql`INSERT INTO bank_accounts (id,company_id,bank_name,account_number,balance,chart_account_id) VALUES
+    (${CTA_A}::uuid,${A}::uuid,'Popular','A-1',1000,${bancoA}::uuid),
+    (${CTA_B}::uuid,${B}::uuid,'BHD','B-1',5000,${bancoB}::uuid)`);
   await db.execute(sql`INSERT INTO cash_registers (id,company_id,name,code) VALUES
     (${CAJA_A}::uuid,${A}::uuid,'Caja A','CA'), (${CAJA_B}::uuid,${B}::uuid,'Caja B','CB')`);
   await db.execute(sql`INSERT INTO cash_sessions (id,company_id,cash_register_id,user_id,initial_balance,expected_balance) VALUES
@@ -77,14 +90,16 @@ async function main() {
   console.log('\n1) Saldo bancario: A intenta mover la cuenta de B\n');
   const err1 = await lanza(() => BankRepository.registerTransaction({
     companyId: A, modo: 'PRODUCCION', bankAccountId: CTA_B, date: '2026-06-15',
-    type: 'withdrawal', amount: 4000,
+    type: 'withdrawal', amount: 4000, contraAccountId: CONTRA_A,
   } as any));
-  ok('el intento se rechaza', err1 !== null, err1 || 'no lanzo');
+  // Con contrapartida valida de A, el rechazo tiene que venir de que la cuenta
+  // es de B. Sin ella, el lote 137 lo rechazaria antes, y este OK saldria gratis.
+  ok('el intento se rechaza', err1 !== null && !/contrapartida/i.test(err1), err1 || 'no lanzo');
   const ctaB: any = await uno(sql`SELECT balance FROM bank_accounts WHERE id=${CTA_B}::uuid`);
   ok('el saldo de B sigue en 5000', Number(ctaB.balance) === 5000, ctaB.balance);
   await BankRepository.registerTransaction({
     companyId: A, modo: 'PRODUCCION', bankAccountId: CTA_A, date: '2026-06-15',
-    type: 'deposit', amount: 250,
+    type: 'deposit', amount: 250, contraAccountId: CONTRA_A,
   } as any);
   const ctaA: any = await uno(sql`SELECT balance FROM bank_accounts WHERE id=${CTA_A}::uuid`);
   ok('sobre su propia cuenta A si funciona', Number(ctaA.balance) === 1250, ctaA.balance);

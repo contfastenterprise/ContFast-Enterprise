@@ -173,9 +173,15 @@ async function main() {
   console.log('\n7) El codigo ya no actualiza a bulto ni lee sin orden\n');
   const jr = fuente('src/infrastructure/jobRunners.ts');
   ok('jobRunners resuelve el intento concreto', /const submissionId = data\.submissionId/.test(jr));
-  ok('y todos sus UPDATE apuntan a esa fila',
-    (jr.match(/\.where\(esteEnvio\)/g) || []).length === 3,
-    String((jr.match(/\.where\(esteEnvio\)/g) || []).length));
+  // Antes contaba exactamente 3 `.where(esteEnvio)`; un cuarto UPDATE igual de
+  // bien dirigido lo rompia sin que faltara nada. La propiedad: CADA update de
+  // dgiiSubmissions termina en `.where(esteEnvio)`, y hay al menos los 3 de siempre.
+  {
+    const updates = [...jr.matchAll(/\.update\(dgiiSubmissions\)[\s\S]*?\.where\((\w+)\)/g)].map((m) => m[1]);
+    ok('y todos sus UPDATE apuntan a esa fila',
+      updates.length >= 3 && updates.every((w) => w === 'esteEnvio'),
+      updates.join(', '));
+  }
   ok('ya no queda ningun UPDATE por invoiceId+companyId',
     !/dgiiSubmissions\.invoiceId, invoiceId\), eq\(dgiiSubmissions\.companyId/.test(jr));
 
@@ -185,13 +191,21 @@ async function main() {
   for (const r of [
     'src/app/api/v1/invoices/[id]/pdf/route.ts',
     'src/app/api/v1/invoices/[id]/print/route.ts',
-    'src/app/api/v1/invoices/[id]/email/route.ts',
+    // El correo se mudo de la ruta a `correoFactura.ts` (la ruta solo delega):
+    // la lectura del envio vive ahora alli, y es ahi donde se vigila.
+    'src/services/invoice/correoFactura.ts',
     'src/app/api/v1/invoices/[id]/xml/route.ts',
     'src/app/api/v1/invoices/[id]/route.ts',
   ]) {
     const s = fuente(r);
     ok(`${r.replace('src/app/api/v1/invoices/[id]/', '')} usa envioVigente`,
       /envioVigente\(/.test(s) && !/from\(dgiiSubmissions\)/.test(s));
+  }
+  {
+    const correo = fuente('src/app/api/v1/invoices/[id]/email/route.ts');
+    ok('la ruta del correo delega en correoFactura y no lee envios por su cuenta',
+      /from '@\/services\/invoice\/correoFactura'/.test(correo) && /enviarFacturaPorCorreo\(/.test(correo)
+      && !/dgiiSubmissions/.test(correo));
   }
 
   console.log('\n8) Los tres sitios que encolan pasan su submissionId\n');

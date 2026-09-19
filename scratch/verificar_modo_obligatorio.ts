@@ -45,7 +45,7 @@ import { db } from '../src/db';
 import { sql } from 'drizzle-orm';
 import { ArRepository } from '../src/repositories/arRepository';
 import { createExpense } from '../src/services/expenseService';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { limpiar as limpiarTodo } from './_limpieza';
 import { fuente, crudo } from './_fuente';
@@ -172,12 +172,12 @@ async function main() {
     'src/services/invoice/types.ts',
     'src/services/financialMovementService.ts',
     'src/services/apService.ts',
-    'src/services/documents/documentService.ts',
-    'src/services/documents/emailService.ts',
+    // `documents/documentService.ts`, `documents/emailService.ts` y la plantilla
+    // `components/documents/templates/InvoiceTemplate.tsx` estaban aqui: el
+    // lote 100 retiro el modulo de documentos entero (ver el bloque 6).
     'src/repositories/accountingRepository.ts',
     'src/repositories/apRepository.ts',
     'src/repositories/invoiceRepository.ts',
-    'src/components/documents/templates/InvoiceTemplate.tsx',
   ];
   for (const r of raices) {
     ok(`sin \`modo?:\` en ${r.replace('src/', '')}`, !/modo\?: 'PRODUCCION' \| 'PRUEBA'/.test(fuente(r)));
@@ -194,33 +194,41 @@ async function main() {
     ['src/infrastructure/jobRunners.ts', 'El payload de los trabajos ya encolados no lo lleva'],
   ];
   for (const [f, motivo] of conMotivo) {
-    // `crudo`, no `fuente`: aqui lo que se comprueba ES el comentario. Son los
-    // tres sitios donde `modo` sigue siendo opcional a proposito, y la
-    // condicion para dejarlo asi fue que quedara escrito POR QUE. Si se leyera
-    // sin comentarios, esta comprobacion no podria existir.
-    const s = crudo(f);
-    ok(`${f.replace('src/', '')} explica por que`, s.includes(motivo), motivo);
+    // Estos tres eran los sitios donde `|| 'PRODUCCION'` sobrevivia a proposito,
+    // con su motivo escrito. Despues se retiraron tambien (lo que queda en el
+    // fichero es el comentario que cuenta por que ya no estan): sin cabecera,
+    // sin cookie o sin modo en el payload, ya no se supone PRODUCCION. La
+    // propiedad es ahora mas fuerte: NINGUN `|| 'PRODUCCION'` en el codigo
+    // (con `fuente`, sin comentarios: los que lo mencionan no cuentan).
+    void motivo; void crudo;
+    ok(`${f.replace('src/', '')} ya no supone PRODUCCION`, !/(\|\||\?\?)\s*'PRODUCCION'/.test(fuente(f)));
   }
   // Y el quinto ya no esta: la ruta del PDF no tiene ningun valor por defecto
   // porque no tiene ninguna rama que lo necesite.
   ok('la ruta del PDF ya no necesita ningun valor por defecto',
     !/\|\| 'PRODUCCION'/.test(fuente('src/app/api/v1/invoices/[id]/pdf/route.ts')));
 
-  console.log('\n6) El enlace publico de 30 dias\n');
-  const ds = fuente('src/services/documents/documentService.ts');
-  ok('createShareToken ya no sella \'PRODUCCION\' fijo',
-    !/modo: 'PRODUCCION' \/\/ Or dynamically passed/.test(ds));
-  ok('lo recibe como parametro obligatorio',
-    /modo: 'PRODUCCION' \| 'PRUEBA',\n    documentId: string,/.test(ds));
-  const acc = fuente('src/actions/documents.ts');
-  ok('y la factura se busca dentro del entorno', /eq\(invoices\.modo, modo\)/.test(acc));
-
-  console.log('\n7) La marca de agua de la factura de practicas\n');
-  const plantilla = fuente('src/components/documents/templates/InvoiceTemplate.tsx');
-  ok('el entorno es obligatorio en la plantilla',
-    /modo: 'PRODUCCION' \| 'PRUEBA';/.test(plantilla));
-  ok('y sigue siendo lo que decide la marca de agua',
-    /data\.modo === 'PRUEBA'/.test(plantilla));
+  // 6) y 7) vigilaban el enlace publico de 30 dias (`createShareToken`) y la
+  // marca de agua de la plantilla `InvoiceTemplate.tsx`. Las dos cosas eran del
+  // modulo de documentos, que el lote 100 retiro entero (la tabla
+  // `document_shares` tenia cero filas: no se llegaba a el). Lo que queda es
+  // una PRECONDICION -- el modulo sigue retirado --, cierta antes y despues.
+  //
+  // PENDIENTE, medido el 2026-09-19 al revisar este banco: la impresion ACTUAL
+  // (`utils/templates/documentTemplates.ts`, via `invoices/[id]/pdf` e
+  // `invoices/[id]/print`) recibe el modo y NO lo usa: una factura de PRUEBA se
+  // imprime igual que una real. La marca de agua solo existio en la plantilla
+  // retirada, que nadie usaba. No se regala aqui un OK: es trabajo aparte.
+  const retirados = [
+    'src/services/documents/documentService.ts',
+    'src/services/documents/emailService.ts',
+    'src/actions/documents.ts',
+    'src/components/documents/templates/InvoiceTemplate.tsx',
+  ].filter((f) => existsSync(join(__dirname, '..', f)));
+  if (retirados.length > 0) {
+    throw new Error(`PRECONDICION ROTA: volvio el modulo de documentos (${retirados.join(', ')}): revisar los bloques 6 y 7 de este banco`);
+  }
+  console.log('\n  pre   el modulo de documentos sigue retirado (lote 100)');
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

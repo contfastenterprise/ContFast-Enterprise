@@ -188,8 +188,11 @@ async function main() {
   ok('el ticket omite la linea del RNC si no hay', /company\.rnc\s*\?/.test(comp));
 
   // El correo al cliente: firmado por una empresa que no es la suya.
-  const correo = codigo('src/app/api/v1/invoices/[id]/email/route.ts');
-  ok('correo al cliente: guarda si no hay empresa', /if\s*\(!company\)/.test(correo));
+  // El correo se mudo de la ruta a `correoFactura.ts` (lote 157): la guarda
+  // vive alli. Se exige tambien que la ruta delegue, o la guarda no serviria.
+  const correo = codigo('src/services/invoice/correoFactura.ts');
+  ok('correo al cliente: guarda si no hay empresa', /if\s*\(!company\)/.test(correo)
+    && /enviarFacturaPorCorreo\(/.test(codigo('src/app/api/v1/invoices/[id]/email/route.ts')));
   const gen = codigo('src/services/invoice/invoiceFileGenerator.ts');
   ok('aviso de factura: no se manda sin nombre de empresa', /!company\?\.name/.test(gen));
   ok('aviso de factura: y la factura SI se genera igual', /La factura y el PDF si se generaron/.test(crudo('src/services/invoice/invoiceFileGenerator.ts')));

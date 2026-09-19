@@ -27,6 +27,7 @@ import { sql } from 'drizzle-orm';
 import { limpiar as limpiarTodo } from './_limpieza';
 import { execFileSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
 
 const A = '11111111-1111-1111-1111-111111111111';
 const B = '22222222-2222-2222-2222-222222222222';
@@ -52,7 +53,11 @@ const ok = (t: string, c: boolean, d = '') => {
 
 function correr(args: string[]): { salida: string; codigo: number } {
   try {
-    const salida = execFileSync('npx', ['tsx', 'scripts/inventario_negativo.ts', ...args], {
+    // Con el propio Node y la CLI de tsx, no con `npx`: en Windows `npx` es
+    // `npx.cmd` y `execFileSync` sin shell no lo encuentra (ENOENT), asi que
+    // TODAS las comprobaciones del guion fallaban sin que el guion corriera.
+    const salida = execFileSync(process.execPath, [join(__dirname, '..', 'node_modules', 'tsx', 'dist', 'cli.mjs'),
+      'scripts/inventario_negativo.ts', ...args], {
       encoding: 'utf8',
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],

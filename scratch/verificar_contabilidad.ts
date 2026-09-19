@@ -72,7 +72,9 @@ async function sembrar() {
     )) as unknown as { id: string }[];
     return e[0].id;
   };
-  CAJA = await cuenta('1.1.01', 'Efectivo en Caja y Bancos', 'asset', 'debit');
+  // 1.1.01 es de AGRUPACION en el catalogo que se siembra a cada empresa, y
+  // desde el lote 136 no admite asientos. Se usa su subcuenta transaccional.
+  CAJA = await cuenta('1.1.01.01', 'Caja General', 'asset', 'debit');
   VENTAS = await cuenta('4.1.01', 'Ingresos por Ventas', 'revenue', 'credit');
 }
 
@@ -113,8 +115,14 @@ async function main() {
   await asiento('PRUEBA', 777, 'Venta de practicas');
 
   console.log('\n1) Libro diario\n');
-  const diarioReal = await AccountingRepository.getJournalEntries(A, 'PRODUCCION', 100);
-  const diarioPrueba = await AccountingRepository.getJournalEntries(A, 'PRUEBA', 100);
+  // Devuelve `{ entries, total }` desde que el libro se pagina en el servidor.
+  const libroReal = await AccountingRepository.getJournalEntries(A, 'PRODUCCION', 100);
+  const libroPrueba = await AccountingRepository.getJournalEntries(A, 'PRUEBA', 100);
+  const diarioReal = libroReal.entries;
+  const diarioPrueba = libroPrueba.entries;
+  ok('el total del libro cuenta lo mismo que la lista, por entorno',
+    libroReal.total === diarioReal.length && libroPrueba.total === diarioPrueba.length,
+    `${libroReal.total}/${diarioReal.length} ${libroPrueba.total}/${diarioPrueba.length}`);
   ok('en PRODUCCION hay un solo asiento', diarioReal.length === 1, String(diarioReal.length));
   ok('y es el real', diarioReal[0]?.description === 'Venta real', String(diarioReal[0]?.description));
   ok('en PRUEBA hay uno, el de practicas', diarioPrueba.length === 1 &&
@@ -152,6 +160,13 @@ async function main() {
     `${suma(balPrueba, 'debit')} vs ${suma(balPrueba, 'credit')}`);
   ok('y suma 777', suma(balPrueba, 'debit') === 777, String(suma(balPrueba, 'debit')));
 
+  // Este bloque DESTAPO un defecto real el 2026-09-19, al correr por primera
+  // vez contra una base con el catalogo de verdad: los totales de
+  // `getFinancials` sumaban solo las cuentas de NIVEL 1, y con los asientos en
+  // cuentas transaccionales (nivel 3-4) salian en 0 (Latin Doors 2026: ingresos
+  // 0,00 con 3.521.728,32 asentados). Antes no lo veia porque creaba sus
+  // cuentas con level = 1. Lo arreglo el lote 164 (estadosFinancieros.ts); estas
+  // tres comprobaciones siguen pidiendo la cifra correcta.
   console.log('\n4) Estado de resultados\n');
   const finReal = await AccountingRepository.getFinancials(A, 'PRODUCCION', '2026-01-01', '2026-12-31');
   const finPrueba = await AccountingRepository.getFinancials(A, 'PRUEBA', '2026-01-01', '2026-12-31');
@@ -201,7 +216,7 @@ async function main() {
     !/modo: 'PRODUCCION' \| 'PRUEBA' = 'PRODUCCION'/.test(fr));
 
   for (const [nombre, r, re] of [
-    ['libro diario', 'src/app/api/v1/accounting/journals/route.ts', /getJournalEntries\(session\.companyId, session\.modo/],
+    ['libro diario', 'src/app/api/v1/accounting/journals/route.ts', /getJournalEntries\(\s*session\.companyId,\s*session\.modo/],
     ['balanza', 'src/app/api/v1/accounting/reports/trial-balance/route.ts', /getTrialBalance\(session\.companyId, session\.modo/],
     ['mayor', 'src/app/api/v1/accounting/reports/ledger/route.ts', /getLedger\(session\.companyId, session\.modo/],
     ['estados financieros', 'src/app/api/v1/accounting/reports/financials/route.ts', /getFinancials\(session\.companyId, session\.modo/],
