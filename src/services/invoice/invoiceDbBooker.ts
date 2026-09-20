@@ -27,6 +27,19 @@ export class InvoiceDbBooker {
     paymentType: string,
     providedCashSessionId?: string
   ): Promise<string | undefined> {
+    // Lote 172: una venta que NO es en efectivo no toca la caja, y punto.
+    //
+    // Aqui ponia `let activeCashSessionId = providedCashSessionId;` antes de
+    // mirar la forma de pago: una venta a credito o por transferencia que
+    // trajera `cashSessionId` en el cuerpo acababa con su movimiento de caja
+    // dentro de la sesion, subiendo el saldo esperado por un dinero que nunca
+    // entro al cajon. Medido el 2026-09-20: ninguna factura lo ha hecho todavia
+    // (las 61 a credito estan limpias), asi que esto cierra el hueco antes de
+    // que alguien lo pise, no repara nada. Una venta a credito no cuadra caja
+    // porque todavia no hay dinero; una por transferencia tampoco, porque el
+    // dinero esta en el banco -- y esa si consta en el cuadre, por su cobro.
+    if (paymentType !== 'cash') return undefined;
+
     let activeCashSessionId = providedCashSessionId;
 
     if (paymentType === 'cash') {

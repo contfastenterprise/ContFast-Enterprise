@@ -361,7 +361,7 @@ export default function ReceivablesPage() {
     }
 
     // Lote 151: la misma regla que aplica el servidor.
-    const motivoCuenta = motivoParaNoRegistrarCobro(paymentForm.paymentMethod, paymentForm.bankAccountId);
+    const motivoCuenta = motivoParaNoRegistrarCobro(paymentForm.paymentMethod, paymentForm.bankAccountId, paymentForm.reference);
     if (motivoCuenta) {
       toast.error(motivoCuenta);
       return;

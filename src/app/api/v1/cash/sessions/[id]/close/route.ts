@@ -4,8 +4,15 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { CashService } from '@/services/cashService';
 
+// Lote 172: el cuerpo trae el CONTEO, no el total. `actualBalance` ya no se
+// acepta: lo calcula el servidor a partir del desglose
+// (services/caja/conteoDeCaja.ts). Un total recibido es un numero que nadie
+// conto, y asi se cerraron las tres sesiones de Latin Doors al centavo.
 const closeSessionSchema = z.object({
-  actualBalance: z.number().nonnegative('El saldo real contado de caja no puede ser negativo'),
+  conteo: z.array(z.object({
+    denominacion: z.number().int().positive(),
+    cantidad: z.number().int().nonnegative('No se puede contar una cantidad negativa de billetes'),
+  })).min(1, 'Registre el conteo de la caja'),
   justification: z.string().optional(),
 });
 
@@ -44,7 +51,7 @@ export async function POST(
       auth.companyId,
       auth.modo,
       id,
-      result.data.actualBalance,
+      result.data.conteo,
       result.data.justification
     );
 

@@ -1,5 +1,7 @@
-import { db, cashRegisters, cashSessions, cashMovements, cashSessionSummary, type DbTransaction } from '@/db';
-import { eq, and, isNull, desc, count } from 'drizzle-orm';
+import { db, cashRegisters, cashSessions, cashMovements, cashSessionSummary, customerReceipts, type DbTransaction } from '@/db';
+import { eq, and, isNull, desc, count, ne, gte, lte, sql } from 'drizzle-orm';
+import type { LineaDeConteo, CobroNoEfectivo } from '@/services/caja/conteoDeCaja';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 export interface OpenSessionInput {
   companyId: string;
@@ -14,6 +16,11 @@ export interface CloseSessionInput {
   expectedBalance: number;
   difference: number;
   justification?: string;
+  /** Lote 172: el desglose del arqueo. De el sale `actualBalance`. */
+  conteo: readonly LineaDeConteo[];
+  /** Lote 172: lo cobrado en la sesion que no es efectivo, con su constancia. */
+  transferencias: readonly CobroNoEfectivo[];
+  totalTransferencias: number;
 }
 
 export class CashRepository {
@@ -113,6 +120,49 @@ export class CashRepository {
   }
 
   /**
+   * Lo cobrado durante una sesion que NO entro en la caja: transferencias,
+   * cheques, tarjeta (lote 172).
+   *
+   * QUE ES "DURANTE LA SESION". Los cobros no llevan sesion de caja -- solo la
+   * llevan los que son en efectivo, y por eso mismo --, asi que se acotan por
+   * la VENTANA de la sesion: de que se abrio a que se cierra, en su empresa y
+   * su entorno. Es la misma ventana con la que el cajero responde del efectivo.
+   */
+  static async cobrosNoEfectivoDeLaSesion(
+    tx: DbTransaction,
+    companyId: string,
+    // `ModoOperativo`, no la union a mano: el trinquete de
+    // `verificar_modo_certificacion.ts` cuenta las uniones escritas a pelo.
+    modo: ModoOperativo,
+    desde: Date,
+    hasta: Date,
+  ): Promise<CobroNoEfectivo[]> {
+    const filas = await tx
+      .select({
+        id: customerReceipts.id,
+        forma: customerReceipts.paymentMethod,
+        importe: customerReceipts.amount,
+        constancia: customerReceipts.reference,
+      })
+      .from(customerReceipts)
+      .where(and(
+        eq(customerReceipts.companyId, companyId),
+        eq(customerReceipts.modo, modo),
+        ne(customerReceipts.paymentMethod, 'cash'),
+        isNull(customerReceipts.deletedAt),
+        gte(customerReceipts.createdAt, desde),
+        lte(customerReceipts.createdAt, hasta),
+      ))
+      .orderBy(customerReceipts.createdAt);
+    return filas.map((f) => ({
+      id: f.id,
+      forma: f.forma,
+      importe: parseFloat(f.importe),
+      constancia: f.constancia,
+    }));
+  }
+
+  /**
    * Closes a session, writing the summary table.
    */
   static async closeSession(
@@ -131,6 +181,9 @@ export class CashRepository {
           status: 'closed',
           closedAt: new Date(),
           actualBalance: data.actualBalance.toString(),
+          // Lote 172: el desglose queda guardado. Antes solo se guardaba el
+          // total, asi que un cierre no dejaba nada que auditar.
+          conteo: data.conteo,
           difference: data.difference.toString(),
           justification: data.justification,
           updatedAt: new Date(),
@@ -187,6 +240,13 @@ export class CashRepository {
           totalCashOut: totalCashOut.toString(),
           expectedBalance: data.expectedBalance.toString(),
           actualBalance: data.actualBalance.toString(),
+          conteo: data.conteo,
+          // Lote 172: el cuadre no es solo el efectivo. Lo cobrado por
+          // transferencia o cheque en esta sesion va aqui, con su constancia:
+          // no cuenta para la diferencia -- ese dinero no esta en el cajon --
+          // pero es dinero de esta sesion del que hay que responder.
+          totalTransferencias: data.totalTransferencias.toString(),
+          transferencias: data.transferencias,
           difference: data.difference.toString(),
           justification: data.justification,
         })

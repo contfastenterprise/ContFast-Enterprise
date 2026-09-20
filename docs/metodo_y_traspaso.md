@@ -553,6 +553,45 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 172: cerrar la caja deja de ser una formalidad.** Medido el 2026-09-20:
+  las **tres** sesiones cerradas de Latin Doors cuadran **al centavo** y ninguna
+  lleva justificación (34 y 44 días abiertas; 1.200.825,01 y 2.204.992,49). Los
+  importes llevan céntimos y los billetes son enteros: el único campo con
+  decimales era **"Total Monedas"**, libre y sin tope. Se escribió ahí el
+  esperado, con 85.000,00 reales en la caja. Y el esperado ya venía inflado: de
+  esos 2.204.992,49, **2.200.052,48 son cobros marcados como efectivo** —uno de
+  602.000,00, otro de 550.000,00, dos de 400.000,00—, transferencias anotadas
+  como efectivo porque hasta el lote 151 el cobro no podía decir por qué banco
+  entró (18 cobros, 3.257.815,89).
+  Ahora: **las monedas se desglosan** y desaparece el campo libre; **el total lo
+  calcula el servidor** desde el desglose (la ruta ya no acepta `actualBalance`);
+  **el desglose se guarda** (antes no se guardaba en ningún sitio, así que un
+  cierre no dejaba nada que auditar); y el **arqueo es CIEGO** (decisión del
+  dueño): `/cash/sessions/active` no devuelve el esperado con la sesión abierta
+  —va en el servidor, ocultarlo solo en la pantalla lo deja en la respuesta de
+  red— y el resultado sale al cerrar.
+  **Consecuencia deliberada**: el cierre **ya no se niega por una diferencia**.
+  El freno viejo decía el importe en su mensaje de error, así que bastaba volver
+  atrás y ajustar el conteo. La diferencia se registra y la sesión queda
+  pendiente de aprobación (`approved_by`; la ruta `/approve` ya existe).
+  **Lo que no es efectivo consta sin cuadrar la caja** (pedido del dueño): el
+  cierre recoge los cobros no-efectivo de la ventana de la sesión con su
+  **constancia** y los guarda en el resumen; una transferencia o cheque **exige**
+  su número; y una venta que no es en efectivo ya no puede tocar la caja aunque
+  le manden `cashSessionId` (ninguna de las 61 a crédito lo ha hecho: cierra el
+  hueco antes de que se pise).
+  **MIGRACIÓN `drizzle/0012_arqueo_de_caja.sql`: aplicarla ANTES de desplegar.**
+  **Honestidad sobre el alcance**: el cajero sigue viendo sus movimientos y
+  sumarlos da el esperado; lo que se retira es la suma ya hecha al lado del
+  formulario, que era la que invitaba a copiar.
+  **Para el contador**: las tres sesiones cerradas y sus cobros no se tocan.
+  Repartir aquellos 3.257.815,89 entre efectivo y transferencia es suyo, y sin
+  la constancia de cada uno no hay con qué hacerlo.
+  Banco `verificar_arqueo_de_caja.ts` (40), contraprueba 40/40, seis mutantes
+  muertos. Dos apretaron el banco: la resta ingenua sobrevivía porque lo contado
+  es entero y hacía falta un esperado con céntimos (100 − 99,9 =
+  0,09999999999999432), y la constancia se comprobaba **leyendo el texto** del
+  mensaje, así que `if (false && …)` la dejaba intacta — ahora se ejecuta.
 - **Lote 171: nada de contabilidad escrito en el código.** Regla del dueño
   (2026-09-19): el plan de cuentas es del contador, así que **el catálogo se
   crea al crear la empresa**, **el enlace se elige en Configuración > Cuentas

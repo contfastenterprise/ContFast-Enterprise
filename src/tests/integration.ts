@@ -33,6 +33,8 @@ async function runTests() {
   const { db, companies, companySettings, roles, users, permissions, userPermissions, rolePermissions, cashRegisters, cashSessions, cashMovements, cashSessionSummary, auditLogs } = await import('../db');
   const { hasPermission } = await import('../middleware/permissions');
   const { CashService } = await import('../services/cashService');
+  // Lote 172: el cierre se hace con el desglose del arqueo, no con un total.
+  const { DENOMINACIONES } = await import('../services/caja/conteoDeCaja');
   const { eq, and, isNull, inArray, or } = await import('drizzle-orm');
 
   let testCompanyId1 = '';
@@ -314,26 +316,39 @@ async function runTests() {
     }
     console.log('E. Movement exceeding limit correctly flagged for approval.');
 
-    // F. Close session: With difference but NO justification (Should throw error)
+    // Lote 172: el cierre recibe el CONTEO, no el total. `contar` arma un
+    // desglose completo (todas las denominaciones, aunque sean cero) a partir
+    // de cuantos billetes de cada valor se quieren declarar.
+    const contar = (billetes: Record<number, number>) =>
+      DENOMINACIONES.map((d) => ({ denominacion: d.valor, cantidad: billetes[d.valor] || 0 }));
+
+    // F. Un conteo que no es un conteo se rechaza (lote 172).
     try {
-      // Expected balance: 1000 (initial) - 200 (normal cash_out) - 600 (exceeded cash_out) = 200
-      await CashService.closeSession(cashierUserId1, testCompanyId1, 'PRODUCCION', sessionId, 250); // Difference of +$50
-      throw new Error('Cashier Rules Failed: Allowed closing session with difference and no justification.');
+      await CashService.closeSession(cashierUserId1, testCompanyId1, 'PRODUCCION', sessionId, []);
+      throw new Error('Cashier Rules Failed: Allowed closing session without a cash count.');
     } catch (e: any) {
-      if (!e.message.includes('Debe proveer una justificación')) {
-        throw e;
-      }
-      console.log('F. Closing with difference and no justification correctly blocked.');
+      if (!e.message.includes('Registre el conteo')) throw e;
+      console.log('F. Closing without a cash count correctly blocked.');
+    }
+    try {
+      await CashService.closeSession(cashierUserId1, testCompanyId1, 'PRODUCCION', sessionId,
+        [{ denominacion: 3, cantidad: 1 }]);
+      throw new Error('Cashier Rules Failed: Allowed a denomination that does not exist.');
+    } catch (e: any) {
+      if (!e.message.includes('no es una denominación de curso legal')) throw e;
+      console.log('F-bis. Closing with a non-existent denomination correctly blocked.');
     }
 
-    // G. Close session: With difference AND justification (Should succeed)
-    // Expected balance: 1000 (initial) - 200 (normal cash_out) - 600 (exceeded cash_out) = 200
+    // G. Cierre con diferencia: AHORA SE CIERRA, y la diferencia queda anotada.
+    // Antes se negaba pidiendo justificacion, y el mensaje decia el importe --
+    // con el arqueo ciego eso era el agujero entero (ver cashService).
+    // Esperado: 1000 (inicial) - 200 - 600 = 200. Contado: 100 + 50 = 150.
     const closedSession = await CashService.closeSession(
       cashierUserId1,
       testCompanyId1,
       'PRODUCCION',
       sessionId,
-      150, // 150 actual balance vs 200 expected balance gives -50 difference
+      contar({ 100: 1, 50: 1 }),
       'Faltante de $50 por vueltas inexactas'
     );
     console.log('[DEBUG] closedSession status:', closedSession.session?.status);

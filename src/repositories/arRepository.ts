@@ -115,7 +115,7 @@ export class ArRepository {
       // escribe; y la cuenta (empresa, activa, con cuenta contable) se resuelve
       // ANTES de insertar nada, para que un banco mal configurado pare el cobro
       // entero en vez de dejar el recibo sin asiento.
-      const motivoCuenta = motivoParaNoRegistrarCobro(data.paymentMethod, data.bankAccountId);
+      const motivoCuenta = motivoParaNoRegistrarCobro(data.paymentMethod, data.bankAccountId, data.reference);
       if (motivoCuenta) throw new Error(motivoCuenta);
       const cuentaDelBanco = entraPorBanco(data.paymentMethod)
         ? await resolverCuentaDeBanco(tx, data.companyId, data.bankAccountId as string, 'Recibo de cobro')

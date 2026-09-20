@@ -2,6 +2,7 @@ import { db, cashSessions, cashMovements, companySettings, creditDebitNotes } fr
 import { eq, and, isNull } from 'drizzle-orm';
 import { CashRepository } from '@/repositories/cashRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
+import { arquear, motivoParaNoContar, resumirTransferencias, type LineaDeConteo } from '@/services/caja/conteoDeCaja';
 
 export class CashService {
   /**
@@ -128,7 +129,10 @@ export class CashService {
     companyId: string,
     modo: 'PRODUCCION' | 'PRUEBA',
     sessionId: string,
-    actualBalance: number,
+    // Lote 172: llega el CONTEO, no el total. Un total recibido es un numero
+    // que nadie conto: asi se cerraron las tres sesiones de Latin Doors, al
+    // centavo y sin justificacion, escribiendo el esperado en "Total Monedas".
+    conteo: readonly LineaDeConteo[],
     justification?: string
   ) {
     const session = await db
@@ -154,18 +158,39 @@ export class CashService {
       throw new Error('Solo el cajero propietario de la sesión puede realizar el cierre.');
     }
 
-    const expectedBalance = parseFloat(activeSession.expectedBalance);
-    const difference = actualBalance - expectedBalance;
-
-    if (difference !== 0 && !justification) {
-      throw new Error(`Existe una diferencia de $${difference.toFixed(2)} entre el saldo esperado y el saldo contado. Debe proveer una justificación.`);
+    const motivo = motivoParaNoContar(conteo);
+    if (motivo) {
+      const err: Error & { status?: number } = new Error(motivo);
+      err.status = 400;
+      throw err;
     }
 
+    const arqueo = arquear(conteo, parseFloat(activeSession.expectedBalance));
+
+    // EL CIERRE YA NO SE NIEGA POR UNA DIFERENCIA, y es a proposito.
+    //
+    // Antes: `if (difference !== 0 && !justification) throw`, y el mensaje del
+    // error DECIA el importe de la diferencia. Con el arqueo ciego del lote 172
+    // eso seria el agujero entero: contar, que el servidor conteste "te faltan
+    // 1.234,56", volver atras y ajustar el conteo hasta que cuadre. Cualquier
+    // freno que responda "no cuadra" filtra justo lo que el arqueo oculta.
+    //
+    // Asi que la diferencia se REGISTRA y la sesion queda cerrada, marcada como
+    // pendiente de aprobacion (`approved_by` sigue en NULL, y para eso esta
+    // `/api/v1/cash/sessions/[id]/approve`). Una diferencia es un hecho que hay
+    // que explicar, no un obstaculo que invite a retocar el conteo.
+    const cobros = await db.transaction(async (tx) =>
+      CashRepository.cobrosNoEfectivoDeLaSesion(tx, companyId, modo, activeSession.openedAt, new Date()));
+    const transferencias = resumirTransferencias(cobros);
+
     return await CashRepository.closeSession(sessionId, companyId, modo, {
-      actualBalance,
-      expectedBalance,
-      difference,
+      actualBalance: arqueo.contado,
+      expectedBalance: arqueo.esperado,
+      difference: arqueo.diferencia,
       justification,
+      conteo,
+      transferencias: cobros,
+      totalTransferencias: transferencias.total,
     });
   }
 

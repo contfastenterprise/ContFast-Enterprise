@@ -37,7 +37,15 @@ import { ArRepository } from '../src/repositories/arRepository';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { limpiar as limpiarTodo } from './_limpieza';
+// Lote 172: el cierre recibe el desglose del arqueo, no un total. `contar`
+// arma uno completo (todas las denominaciones, con sus ceros) que sume lo que
+// se quiera: aqui lo que se vigila es el ENTORNO, no el conteo.
+import { DENOMINACIONES } from '../src/services/caja/conteoDeCaja';
 import { fuente } from './_fuente';
+
+const contar = (billetes: Record<number, number>) =>
+  DENOMINACIONES.map((d) => ({ denominacion: d.valor, cantidad: billetes[d.valor] || 0 }));
+const CONTEO_VACIO = contar({});
 
 const A = '11111111-1111-1111-1111-111111111111';
 const CAJERO = 'bbbbbbbb-0000-0000-0000-000000000001';
@@ -166,7 +174,7 @@ async function main() {
   ok('la caja real subio a 1.050', (await saldo(real.id)) === 1050, String(await saldo(real.id)));
 
   console.log('\n5) El arqueo suma solo los movimientos de su entorno\n');
-  const cierre = await CashService.closeSession(CAJERO, A, 'PRODUCCION', real.id, 1050);
+  const cierre = await CashService.closeSession(CAJERO, A, 'PRODUCCION', real.id, contar({ 500: 2, 50: 1 }));
   ok('cierra sin diferencia', Number(cierre.session.difference) === 0,
     String(cierre.session.difference));
   ok('el resumen cuenta 50 de entradas, no 350',
@@ -175,7 +183,7 @@ async function main() {
 
   let cierreCruzado = '';
   try {
-    await CashService.closeSession(CAJERO, A, 'PRODUCCION', practicas!.id, 800);
+    await CashService.closeSession(CAJERO, A, 'PRODUCCION', practicas!.id, contar({ 500: 1, 200: 1, 100: 1 }));
   } catch (e: any) { cierreCruzado = e.message; }
   ok('no se puede cerrar la de practicas desde PRODUCCION', /no encontrada/i.test(cierreCruzado),
     cierreCruzado);
@@ -207,6 +215,7 @@ async function main() {
   try {
     await CashRepository.closeSession(practicas!.id, A, 'PRODUCCION', {
       actualBalance: 800, expectedBalance: 800, difference: 0,
+      conteo: CONTEO_VACIO, transferencias: [], totalTransferencias: 0,
     });
   } catch (e: any) { repoCruzado = e.message; }
   ok('closeSession no cierra una sesion de otro entorno', /No se encontró/.test(repoCruzado),
@@ -214,6 +223,7 @@ async function main() {
 
   const cierrePrueba = await CashRepository.closeSession(practicas!.id, A, 'PRUEBA', {
     actualBalance: 800, expectedBalance: 800, difference: 0,
+    conteo: CONTEO_VACIO, transferencias: [], totalTransferencias: 0,
   });
   ok('CONTROL: con su entorno correcto si cierra',
     cierrePrueba.session.status === 'closed', String(cierrePrueba.session.status));

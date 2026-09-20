@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // Lote 151: antes de abrir la transaccion, con el mismo mensaje que daria
     // el repositorio (que lo vuelve a comprobar porque es quien escribe).
-    const motivoCuenta = motivoParaNoRegistrarCobro(parsed.data.paymentMethod, parsed.data.bankAccountId);
+    const motivoCuenta = motivoParaNoRegistrarCobro(parsed.data.paymentMethod, parsed.data.bankAccountId, parsed.data.reference);
     if (motivoCuenta) {
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION_ERROR', message: motivoCuenta } },

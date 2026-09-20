@@ -54,7 +54,12 @@ async function main() {
 
   let m: typeof import('../src/services/cartera/cuentaDelCobro') | null = null;
   try { m = await import('../src/services/cartera/cuentaDelCobro'); } catch { m = null; }
-  const motivo = (metodo: string, cuenta: string | null) => m?.motivoParaNoRegistrarCobro(metodo, cuenta);
+  // Lote 172: la regla pide tambien la CONSTANCIA (el numero de la
+  // transferencia o del cheque). Aqui se le pasa una por defecto: lo que este
+  // banco vigila es la cuenta bancaria, no la constancia -- de esa se ocupa
+  // `verificar_arqueo_de_caja.ts`.
+  const motivo = (metodo: string, cuenta: string | null, constancia: string | null = 'TRF-1') =>
+    m?.motivoParaNoRegistrarCobro(metodo, cuenta, constancia);
 
   console.log('\n1) La regla\n');
   ok('cobro por banco sin cuenta: se niega', !!m && typeof motivo('bank', null) === 'string');
@@ -69,7 +74,10 @@ async function main() {
   console.log('\n2) El cobro en el repositorio\n');
   const iRecibo = cobro.indexOf('.insert(customerReceipts)');
   ok('niega antes de insertar el recibo',
-    /const motivoCuenta = motivoParaNoRegistrarCobro\(data\.paymentMethod, data\.bankAccountId\);\s*if \(motivoCuenta\) throw new Error\(motivoCuenta\);/.test(cobro)
+    // Tolerante a la lista de argumentos: el lote 172 le añadio la constancia
+    // y esta comprobacion, que copiaba la llamada entera, fallo sin que faltara
+    // nada. Lo que vigila es que la regla se aplique y se lance antes de escribir.
+    /const motivoCuenta = motivoParaNoRegistrarCobro\([^)]*data\.bankAccountId[^)]*\);\s*if \(motivoCuenta\) throw new Error\(motivoCuenta\);/.test(cobro)
     && cobro.indexOf('if (motivoCuenta) throw') > 0 && cobro.indexOf('if (motivoCuenta) throw') < iRecibo);
   ok('resuelve la cuenta del banco (empresa, activa, con cuenta contable) antes de insertar',
     /const cuentaDelBanco = entraPorBanco\(data\.paymentMethod\)\s*\?\s*await resolverCuentaDeBanco\(tx, data\.companyId, data\.bankAccountId as string, 'Recibo de cobro'\)\s*:\s*null;/.test(cobro)
@@ -94,7 +102,7 @@ async function main() {
   ok('la ruta acepta la cuenta bancaria y niega antes de abrir la transaccion',
     /bankAccountId: z\.string\(\)\.uuid\([^)]*\)\.optional\(\)\.nullable\(\),/.test(RUTA)
     && /paymentMethod: z\.enum\(METODOS_DE_COBRO\),/.test(RUTA)
-    && /const motivoCuenta = motivoParaNoRegistrarCobro\(parsed\.data\.paymentMethod, parsed\.data\.bankAccountId\);\s*if \(motivoCuenta\) \{\s*return NextResponse\.json\(\s*\{ success: false, error: \{ code: 'VALIDATION_ERROR', message: motivoCuenta \} \},\s*\{ status: 400 \}/.test(RUTA)
+    && /const motivoCuenta = motivoParaNoRegistrarCobro\([^)]*parsed\.data\.bankAccountId[^)]*\);\s*if \(motivoCuenta\) \{\s*return NextResponse\.json\(\s*\{ success: false, error: \{ code: 'VALIDATION_ERROR', message: motivoCuenta \} \},\s*\{ status: 400 \}/.test(RUTA)
     && RUTA.indexOf('if (motivoCuenta) {') < RUTA.indexOf('withIdempotency('));
   {
     const esquema = fuente('src/db/schema/accounting.ts');
@@ -129,8 +137,9 @@ async function main() {
     /\{entraPorBanco\(paymentForm\.paymentMethod\) && \(/.test(PANTALLA)
     && /bankAccountId: entraPorBanco\(paymentForm\.paymentMethod\) \? paymentForm\.bankAccountId : null,/.test(PANTALLA));
   ok('aplica la misma regla antes de enviar, y al pasar a efectivo quita la cuenta',
-    PANTALLA.indexOf('motivoParaNoRegistrarCobro(paymentForm.paymentMethod, paymentForm.bankAccountId)') > 0
-    && PANTALLA.indexOf('motivoParaNoRegistrarCobro(paymentForm.paymentMethod, paymentForm.bankAccountId)') < PANTALLA.indexOf("fetch('/api/v1/ar/receipts', {")
+    // Igual que arriba: la llamada lleva desde el lote 172 un argumento mas.
+    /motivoParaNoRegistrarCobro\([^)]*paymentForm\.bankAccountId[^)]*\)/.test(PANTALLA)
+    && PANTALLA.search(/motivoParaNoRegistrarCobro\([^)]*paymentForm\.bankAccountId[^)]*\)/) < PANTALLA.indexOf("fetch('/api/v1/ar/receipts', {")
     && /bankAccountId: entraPorBanco\(val\) \? paymentForm\.bankAccountId : '',/.test(PANTALLA));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);

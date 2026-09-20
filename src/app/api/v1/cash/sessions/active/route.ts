@@ -22,8 +22,23 @@ export async function GET(req: NextRequest) {
 
     const activeSession = await CashRepository.getActiveSession(auth.userId, auth.companyId, auth.modo);
 
+    // ARQUEO CIEGO (lote 172, decision del dueño 2026-09-20).
+    //
+    // El saldo esperado NO sale por aqui mientras la sesion esta abierta. Si
+    // sale, el conteo es copiable -- y se copio: las tres sesiones cerradas de
+    // Latin Doors cuadran al centavo, con los centimos del esperado escritos en
+    // el campo de monedas, y 85.000,00 reales en la caja.
+    //
+    // Va en el SERVIDOR y no en la pantalla a proposito: ocultarlo solo en la
+    // vista lo deja igual de disponible en la respuesta de red. Al cerrar, la
+    // respuesta del cierre si trae esperado, contado y diferencia; y el resumen
+    // de una sesion ya cerrada los trae enteros.
+    const sinEsperado = activeSession
+      ? { ...activeSession, expectedBalance: undefined }
+      : null;
+
     return NextResponse.json(
-      { success: true, data: activeSession },
+      { success: true, data: sinEsperado },
       { headers: resHeaders }
     );
   } catch (error: unknown) {

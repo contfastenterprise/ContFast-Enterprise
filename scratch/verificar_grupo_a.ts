@@ -10,6 +10,7 @@ import { QuoteService } from '../src/services/quoteService';
 import { AccountingRepository } from '../src/repositories/accountingRepository';
 import { CashRepository } from '../src/repositories/cashRepository';
 import { BankRepository } from '../src/repositories/bankRepository';
+import { DENOMINACIONES } from '../src/services/caja/conteoDeCaja';
 
 const A='11111111-1111-1111-1111-111111111111';
 const USER='bbbbbbbb-0000-0000-0000-000000000001';
@@ -61,7 +62,14 @@ async function main(){
   // 3. Sesion de caja y su resumen
   const ses:any = await CashRepository.openSession({companyId:A, modo:'PRUEBA', cashRegisterId:CAJA, userId:USER, initialBalance:1000} as any);
   ok('la sesion de caja se abre en PRUEBA', (await modosDe('cash_sessions'))==='PRUEBA:1', await modosDe('cash_sessions'));
-  await CashRepository.closeSession(ses.id, A, 'PRUEBA', {actualBalance:1000, expectedBalance:1000, difference:0} as any);
+  // Lote 172: el cierre guarda tambien el desglose del arqueo y lo cobrado por
+  // transferencia. El `as any` de esta llamada escondio el cambio de tipo hasta
+  // la ejecucion: aqui lo que se vigila es el `modo`, no el arqueo.
+  await CashRepository.closeSession(ses.id, A, 'PRUEBA', {
+    actualBalance: 1000, expectedBalance: 1000, difference: 0,
+    conteo: DENOMINACIONES.map((d) => ({ denominacion: d.valor, cantidad: d.valor === 1000 ? 1 : 0 })),
+    transferencias: [], totalTransferencias: 0,
+  } as any);
   ok('el resumen hereda el modo de su sesion', (await modosDe('cash_session_summary'))==='PRUEBA:1', await modosDe('cash_session_summary'));
 
   // 4. Transaccion bancaria

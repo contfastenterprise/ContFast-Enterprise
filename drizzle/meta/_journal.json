@@ -85,6 +85,13 @@
       "when": 1789855572805,
       "tag": "0011_origen_de_pago_compra",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789946000000,
+      "tag": "0012_arqueo_de_caja",
+      "breakpoints": true
     }
   ]
 }

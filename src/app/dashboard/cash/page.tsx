@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
+import { DENOMINACIONES } from '@/services/caja/conteoDeCaja';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -64,14 +65,24 @@ const fmt = (val: number | string) =>
   }).format(typeof val === 'string' ? parseFloat(val) : val);
 
 // ─── Denomination data ─────────────────────────────────────────────────────────
-const DENOMINATIONS = [
-  { value: 2000, color: 'bg-blue-100 border-blue-200 text-blue-800', label: 'RD$ 2,000' },
-  { value: 1000, color: 'bg-red-100 border-red-200 text-red-800', label: 'RD$ 1,000' },
-  { value: 500, color: 'bg-green-100 border-green-200 text-green-800', label: 'RD$ 500' },
-  { value: 200, color: 'bg-orange-100 border-orange-200 text-orange-800', label: 'RD$ 200' },
-  { value: 100, color: 'bg-amber-100 border-amber-200 text-amber-800', label: 'RD$ 100' },
-  { value: 50, color: 'bg-purple-100 border-purple-200 text-purple-800', label: 'RD$ 50' },
-];
+// Lote 172: la lista viene de `services/caja/conteoDeCaja.ts`, que es la misma
+// que valida el servidor, e incluye las MONEDAS. Aqui solo se le pone color:
+// si el color viviera en la lista compartida, el servidor arrastraria clases de
+// CSS. Una denominacion sin color entra igual, en gris.
+const COLOR_DENOM: Record<number, string> = {
+  2000: 'bg-blue-100 border-blue-200 text-blue-800',
+  1000: 'bg-red-100 border-red-200 text-red-800',
+  500: 'bg-green-100 border-green-200 text-green-800',
+  200: 'bg-orange-100 border-orange-200 text-orange-800',
+  100: 'bg-amber-100 border-amber-200 text-amber-800',
+  50: 'bg-purple-100 border-purple-200 text-purple-800',
+};
+const DENOMINATIONS = DENOMINACIONES.map((d) => ({
+  value: d.valor,
+  label: d.etiqueta,
+  tipo: d.tipo,
+  color: COLOR_DENOM[d.valor] || 'bg-slate-100 border-slate-200 text-slate-700',
+}));
 
 // ─── Movement type display helpers ────────────────────────────────────────────
 const movType = (type: string) => ({
@@ -113,7 +124,11 @@ export default function CashPage() {
 
   // Arqueo state
   const [denomQty, setDenomQty] = useState<Record<number, number>>({});
-  const [coinsTotal, setCoinsTotal] = useState('');
+  // Lote 172: el resultado del arqueo, tal como lo devuelve el cierre. Antes de
+  // cerrar no existe: es lo que el arqueo ciego no deja ver.
+  const [resultadoArqueo, setResultadoArqueo] = useState<{
+    expectedBalance: string; actualBalance: string; difference: string; totalTransferencias?: string;
+  } | null>(null);
   const [closeObservations, setCloseObservations] = useState('');
   const [closing, setClosing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -301,19 +316,19 @@ export default function CashPage() {
     for (const denom of DENOMINATIONS) {
       total += (denomQty[denom.value] || 0) * denom.value;
     }
-    total += parseFloat(coinsTotal || '0');
     return total;
   };
 
-  const getExpectedBalance = () => parseFloat(session?.expectedBalance || '0');
+  // Lote 172, arqueo ciego: el esperado y la diferencia YA NO se calculan aqui.
+  // El servidor no los manda mientras la sesion esta abierta, y salen en la
+  // respuesta del cierre. Lo unico que la pantalla sabe es lo que se ha contado.
   const getRealBalance = () => getCashTotal();
-  const getDifference = () => getRealBalance() - getExpectedBalance();
 
   const handleCloseSession = async () => {
     if (!session) return;
-    const real = getRealBalance();
-    const expected = getExpectedBalance();
-    const diff = real - expected;
+    // El desglose ENTERO, con los ceros: declarar que no hay billetes de 2.000
+    // es parte del arqueo, y el servidor lo exige (conteoDeCaja.ts).
+    const conteo = DENOMINATIONS.map((d) => ({ denominacion: d.value, cantidad: denomQty[d.value] || 0 }));
 
     setClosing(true);
     try {
@@ -321,12 +336,14 @@ export default function CashPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          actualBalance: real,
+          conteo,
           justification: closeObservations || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al cerrar sesión.');
+      // El resultado del arqueo: ahora si se puede ver.
+      setResultadoArqueo(data.data?.summary ?? null);
       setClosedSessionId(session.id);
       setShowSuccessModal(true);
     } catch (error: any) {
@@ -340,7 +357,7 @@ export default function CashPage() {
     setShowSuccessModal(false);
     setClosedSessionId(null);
     setDenomQty({});
-    setCoinsTotal('');
+    setResultadoArqueo(null);
     setCloseObservations('');
     await loadCashData();
   };
@@ -893,7 +910,7 @@ export default function CashPage() {
                       Desglose de Efectivo (DOP)
                     </h2>
                     <button
-                      onClick={() => { setDenomQty({}); setCoinsTotal(''); }}
+                      onClick={() => { setDenomQty({}); }}
                       className="text-[10px] font-bold text-amber-700 hover:underline underline-offset-4"
                     >
                       Limpiar Formulario
@@ -940,25 +957,11 @@ export default function CashPage() {
                       );
                     })}
 
-                    {/* Coins row */}
-                    <div className="grid grid-cols-12 gap-4 items-center px-4 py-1.5 hover:bg-slate-50 rounded-lg transition-colors">
-                      <div className="col-span-5 flex items-center gap-3">
-                        <div className="w-10 h-7 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-700">
-                          RD$
-                        </div>
-                        <span className="text-xs font-bold text-slate-700">Total Monedas</span>
-                      </div>
-                      <div className="col-span-7">
-                        <input
-                          type="number"
-                          min="0"
-                          value={coinsTotal}
-                          onChange={(e) => setCoinsTotal(e.target.value)}
-                          placeholder="Ingrese monto total en monedas"
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-right font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition text-slate-800"
-                        />
-                      </div>
-                    </div>
+                    {/* Lote 172: el campo libre "Total Monedas" ya no existe.
+                        Admitia cualquier importe y por ahi entraron los
+                        2.204.992,49 de la sesion de agosto. Las monedas se
+                        cuentan por denominacion, como los billetes: las filas
+                        de arriba las incluyen (DENOMINACIONES). */}
                   </div>
 
                   {/* Observations */}
@@ -988,69 +991,34 @@ export default function CashPage() {
                     <TrendingUp className="w-4 h-4 text-amber-600" />
                     Resumen de Auditoría
                   </h2>
+                  {/* Lote 172, ARQUEO CIEGO: aqui salia "Saldo Esperado en
+                      Sistema" y la diferencia en vivo, mientras se contaba. Con
+                      la cifra a la vista el conteo es copiable, y se copio: las
+                      tres sesiones cerradas cuadran al centavo. Ahora solo se
+                      ve lo contado; el esperado y la diferencia salen al
+                      cerrar. */}
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Esperado en Sistema</p>
-                      <p className="text-3xl font-mono font-extrabold tracking-tight text-[#001e40]">{fmt(getExpectedBalance())}</p>
-                    </div>
-                    <div className="h-px bg-slate-200" />
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Real (Contado)</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Total Contado</p>
                       <p className="text-3xl font-mono font-extrabold tracking-tight text-amber-600">{fmt(getRealBalance())}</p>
                     </div>
                   </div>
 
-                  {/* Difference indicator */}
-                  <div className={clsx(
-                    'mt-6 p-3 rounded-lg flex items-center justify-between border',
-                    getDifference() === 0 ? 'bg-emerald-50 border-emerald-100' :
-                      getDifference() > 0 ? 'bg-blue-50 border-blue-100' : 'bg-red-50 border-red-100'
-                  )}>
-                    <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-500">Diferencia</p>
-                      <p className="font-mono text-lg font-bold text-slate-800">{fmt(getDifference())}</p>
-                    </div>
-                    <span className={clsx(
-                      'px-3 py-1 rounded-lg text-xs font-bold uppercase',
-                      getDifference() === 0 ? 'bg-emerald-100 text-emerald-800' :
-                        getDifference() > 0 ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                    )}>
-                      {getDifference() === 0 ? 'Cuadrado' : getDifference() > 0 ? 'Sobrante' : 'Faltante'}
-                    </span>
+                  <div className="mt-6 p-3 rounded-lg border bg-slate-50 border-slate-200">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Arqueo a ciegas</p>
+                    <p className="text-[11px] text-slate-600 leading-snug">
+                      Cuente el efectivo y registre el desglose. El saldo esperado y la diferencia
+                      aparecen al cerrar la sesión, no antes.
+                    </p>
                   </div>
                 </div>
 
-                {/* Operations breakdown */}
-                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Detalle de Operaciones</h3>
-                  <div className="space-y-2">
-                    {[
-                      { label: 'Fondo Inicial de Caja', value: session?.initialBalance || '0', color: 'text-slate-700' },
-                      {
-                        label: 'Entradas / Ventas Efectivo (+)',
-                        value: movements.filter(m => m.type === 'sale' || m.type === 'cash_in')
-                          .reduce((s, m) => s + parseFloat(m.amount), 0).toString(),
-                        color: 'text-emerald-700',
-                      },
-                      {
-                        label: 'Salidas / Gastos (−)',
-                        value: movements.filter(m => m.type === 'refund' || m.type === 'cash_out')
-                          .reduce((s, m) => s + parseFloat(m.amount), 0).toString(),
-                        color: 'text-red-700',
-                      },
-                    ].map((row) => (
-                      <div key={row.label} className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500">{row.label}</span>
-                        <span className={clsx('font-mono font-bold', row.color)}>{fmt(row.value)}</span>
-                      </div>
-                    ))}
-                    <div className="h-px bg-slate-200 my-1.5" />
-                    <div className="flex justify-between items-center font-bold text-xs">
-                      <span>Total Esperado</span>
-                      <span className="font-mono">{fmt(getExpectedBalance())}</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Lote 172: este bloque sumaba fondo inicial + entradas −
+                    salidas y remataba con "Total Esperado". Eso ES el saldo
+                    esperado: dejarlo aqui haria del arqueo ciego un adorno.
+                    El detalle de movimientos sigue disponible en su pestaña,
+                    porque el cajero tiene derecho a ver lo que registro; lo que
+                    se retira es la SUMA ya hecha al lado del formulario. */}
 
                 {/* Close button */}
                 <div className="space-y-3">
@@ -1444,9 +1412,53 @@ export default function CashPage() {
             >
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
               <h2 className="text-xl font-bold text-[#001e40] mb-2">Cierre Exitoso</h2>
-              <p className="text-slate-500 text-xs mb-6">
+              <p className="text-slate-500 text-xs mb-4">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
+
+              {/* Lote 172: el resultado del arqueo. Es AQUI donde se ve el
+                  esperado y la diferencia -- ya no se puede retocar el conteo. */}
+              {resultadoArqueo && (
+                <div className="text-left border border-slate-200 rounded-lg p-3 mb-2 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">Esperado en sistema</span>
+                    <span className="font-mono font-bold">{fmt(resultadoArqueo.expectedBalance)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">Contado</span>
+                    <span className="font-mono font-bold">{fmt(resultadoArqueo.actualBalance)}</span>
+                  </div>
+                  <div className="h-px bg-slate-200" />
+                  <div className="flex justify-between text-xs">
+                    <span className="font-bold text-slate-700">Diferencia</span>
+                    <span className={clsx('font-mono font-bold',
+                      parseFloat(resultadoArqueo.difference) === 0 ? 'text-emerald-700'
+                        : parseFloat(resultadoArqueo.difference) > 0 ? 'text-blue-700' : 'text-red-700')}>
+                      {fmt(resultadoArqueo.difference)}
+                    </span>
+                  </div>
+                  {parseFloat(resultadoArqueo.difference) !== 0 && (
+                    <p className="text-[10px] text-amber-700 leading-snug pt-1">
+                      Hay diferencia: el cierre queda registrado y pendiente de aprobación de un supervisor.
+                    </p>
+                  )}
+                  {/* Lo cobrado por transferencia o cheque en esta sesion: no
+                      es efectivo y no cuadra la caja, pero es dinero de este
+                      turno del que hay que responder. */}
+                  {!!resultadoArqueo.totalTransferencias && parseFloat(resultadoArqueo.totalTransferencias) !== 0 && (
+                    <>
+                      <div className="h-px bg-slate-200" />
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Cobrado por transferencia / cheque</span>
+                        <span className="font-mono font-bold text-slate-700">{fmt(resultadoArqueo.totalTransferencias)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-snug">
+                        No entra en el conteo de efectivo: ese dinero no está en la caja. Queda en el arqueo con su constancia.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2 mt-6">
                 <button
                   onClick={() => window.open(`/api/v1/cash/sessions/${closedSessionId}/print`, '_blank')}

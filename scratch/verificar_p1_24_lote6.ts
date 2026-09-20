@@ -162,8 +162,12 @@ console.log('\n=== cashRepository.ts ===\n');
 
   ok("0 ocurrencias de ': any' (1 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
+  // Tolerante a los nombres que acompañen: el lote 172 añadio
+  // `customerReceipts` a este import y la comprobacion fallo sin que faltara
+  // nada. Es la trampa documentada en docs/metodo_y_traspaso.md (seccion 3).
+  // Lo que vigila es que `DbTransaction` venga TIPADO de '@/db', no la linea.
   ok("importa 'type DbTransaction' de @/db",
-    /import \{ db, cashRegisters, cashSessions, cashMovements, cashSessionSummary, type DbTransaction \} from '@\/db';/.test(src));
+    /import \{[^}]*\btype DbTransaction\b[^}]*\} from '@\/db';/.test(src));
 
   ok('addMovement: tx tipado DbTransaction (antes any, sin default)',
     /static async addMovement\(tx: DbTransaction, data: \{/.test(src));

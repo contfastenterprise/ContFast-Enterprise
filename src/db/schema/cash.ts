@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, decimal, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, decimal, jsonb, index, uniqueIndex, unique, foreignKey } from 'drizzle-orm/pg-core';
 import { companies } from './companies';
 import { users } from './auth';
 import { invoices } from './invoices';
@@ -32,6 +32,11 @@ export const cashSessions = pgTable('cash_sessions', {
   initialBalance: decimal('initial_balance', { precision: 15, scale: 2 }).notNull(),
   expectedBalance: decimal('expected_balance', { precision: 15, scale: 2 }).default('0.00').notNull(),
   actualBalance: decimal('actual_balance', { precision: 15, scale: 2 }),
+  // Lote 172: el DESGLOSE del arqueo -- [{ denominacion, cantidad }] --, que
+  // hasta ahora no se guardaba en ningun sitio: solo viajaba el total, asi que
+  // un cierre no dejaba nada que auditar. `actual_balance` se calcula de aqui
+  // (services/caja/conteoDeCaja.ts), nunca se recibe del cliente.
+  conteo: jsonb('conteo'),
   difference: decimal('difference', { precision: 15, scale: 2 }),
   justification: text('justification'),
   approvedBy: uuid('approved_by').references(() => users.id),
@@ -90,6 +95,15 @@ export const cashSessionSummary = pgTable('cash_session_summary', {
   totalCashOut: decimal('total_cash_out', { precision: 15, scale: 2 }).default('0.00').notNull(),
   expectedBalance: decimal('expected_balance', { precision: 15, scale: 2 }).notNull(),
   actualBalance: decimal('actual_balance', { precision: 15, scale: 2 }).notNull(),
+  // Lote 172: el mismo desglose que la sesion. Se repite aqui a proposito: el
+  // resumen es el documento del arqueo y tiene que poder leerse solo.
+  conteo: jsonb('conteo'),
+  // Lote 172: lo cobrado en la sesion que NO es efectivo (transferencias,
+  // cheques), con su constancia. No cuenta para la diferencia de caja -- ese
+  // dinero no esta en el cajon -- pero es dinero cobrado en esta sesion del que
+  // hay que responder, asi que forma parte del cuadre. Ver conteoDeCaja.ts.
+  totalTransferencias: decimal('total_transferencias', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  transferencias: jsonb('transferencias'),
   difference: decimal('difference', { precision: 15, scale: 2 }).notNull(),
   justification: text('justification'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
