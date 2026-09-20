@@ -553,6 +553,34 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **La deuda de la tarjeta de crédito — 2026-09-19, tras medir el lote 170.**
+  El mensaje del lote 170 decía "las 6 compras con tarjeta siguen acreditando
+  1.1.01": **estaba mal planteado**. Medido en producción: **1.1.01 está en
+  CERO**; esos 49.644,03 ya los había absorbido la conciliación del mismo día.
+  Lo que sí faltaba era el **pasivo**: confirmado por el dueño, las seis son de
+  tarjeta de **crédito** y la deuda sigue pendiente, así que ese dinero nunca
+  salió. Como los saldos reales de caja, Banreservas y Scotiabank están fijados
+  contra conteo y estados de cuenta, el efectivo "de más" no existe: la salida
+  sin registrar era **110.149,35**, no 60.505,32.
+  `scratch/_to_delete/deuda_tarjeta_credito.ts` (ensayo previo, lanzado por el
+  dueño) crea **2.1.01.03 Tarjetas de Crédito por Pagar** —que **no existía en
+  ninguna de las seis empresas**, y sin ella el selector del lote 170 solo
+  puede ofrecer bancos— y asienta `debe 6.1.02.06 / haber 2.1.01.03` por
+  49.644,03, **fechado el 19/09**. Comprobado después: 2.1.01.03 acreedora por
+  49.644,03, Gastos Diversos 110.149,35, 1.1.01 intacta en cero, el libro
+  cuadra (20.551.757,95).
+  **No se reabre julio** (3 de las 6 son de un período cerrado) y **el 606 no
+  cambia**: la forma de pago 03 es "tarjeta", que era lo correcto. Las compras
+  originales no se tocan y su costo sigue deducible con su NCF; el cargo a
+  Gastos Diversos **no es deducible** (sin comprobante).
+  **Queda abierto para el contador**: conciliar 2.1.01.03 contra el estado de
+  cuenta de la tarjeta. Se asentó por LIBROS porque es lo único justificable
+  comprobante a comprobante; el saldo real traerá intereses, otros consumos y
+  abonos, y esa diferencia es decisión suya (mismo ejercicio que Scotiabank).
+  **Lo que NO era un problema, y se midió de paso**: además de esas 6, otras
+  **64 compras en efectivo (605.344,90) también acreditaron 1.1.01**, la cuenta
+  de agrupación. Hoy la clave `cash` de las seis empresas apunta a **1.1.01.01
+  Caja General** y desde el lote 136 no se asienta en agrupación: no se repite.
 - **Más correcciones de datos del 2026-09-19** (mismo método): caja (85.000,00)
   y Banreservas (326.695,13) conciliados al 19/09 desde 1.1.01
   (`conciliar_caja_banreservas.ts`); los 60.405,32 que quedaron en 1.1.01
