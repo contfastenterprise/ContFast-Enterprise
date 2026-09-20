@@ -579,11 +579,23 @@ Además, fuera de la tabla:
   seis mutantes, cinco muertos y uno equivalente **anotado en el código**
   (agrupar por etiqueta en vez de por código da hoy lo mismo). Uno de los
   mutantes cazó una trampa de mera presencia en el propio banco.
-  **Error mío, corregido aquí**: el 19/09 creé 2.1.01.03 en Latin Doors con
+  **Error mío, corregido**: el 19/09 creé 2.1.01.03 en Latin Doors con
   `level = 3` a mano; sus hermanas son nivel 4 y el convenio es
   `codigo.split('.').length`. Sin efecto contable (los estados financieros
   acumulan por `parent_id` y el catálogo impreso recalcula el nivel), pero es
-  dato incorrecto: se corrige con `cuenta_tarjeta_empresas.ts`.
+  dato incorrecto. Arreglado el 2026-09-20 con
+  `scratch/_to_delete/corregir_nivel_tarjeta.ts`, que **no lleva el nivel a
+  mano**: lo compara con el de su hermana 2.1.01.01.
+  **DATOS — hecho el 2026-09-20**: `completar_cuentas_empresas.ts --aplicar`
+  (el guion del lote 165, no uno nuevo) creó 2.1.01.03 bajo 2.1.01 y enlazó
+  `credit_card_payable` en las otras cinco empresas. Comprobado: **las seis con
+  la cuenta, nivel 4 y la clave enlazada**, sin mover un saldo (652 renglones
+  de asiento intactos). Latin Doors sigue en 1.1.08, 2.1.04 y 2.1.05.
+  **Ojo con `AccountingRepository.getMappings`**: enlaza **sola** las claves que
+  falten cuando la cuenta ya existe con ese código (el enlace de Latin Doors
+  apareció así, al abrirse Contabilidad). Explica enlaces que salen "solos";
+  es benigno porque se niega a enganchar las claves de `CODIGOS_ANTIGUOS`, pero
+  **no crea cuentas**: por eso las cinco necesitaban el guion.
 - **La deuda de la tarjeta de crédito — 2026-09-19, tras medir el lote 170.**
   El mensaje del lote 170 decía "las 6 compras con tarjeta siguen acreditando
   1.1.01": **estaba mal planteado**. Medido en producción: **1.1.01 está en
