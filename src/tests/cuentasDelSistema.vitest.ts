@@ -65,12 +65,16 @@ describe('lote 165 · cuentas del sistema', () => {
       ['1.1.04.01', 'asset'], ['1.1.04.02', 'asset'], ['2.1.01.01', 'liability'], ['2.1.02.01', 'liability'],
       ['2.1.02.02', 'liability'], ['2.1.02.03', 'liability'], ['4.1.01', 'revenue'], ['5.1.01', 'expense'],
     ].map(([code, type]) => ({ id: `id-${code}`, code, type, isTransactional: true, status: 'active', renglones: 0 }));
-    const grupos: CuentaExistente[] = [['1.1.04', 'asset'], ['5.1', 'expense']]
+    // `2.1.01` esta desde el lote 171, que anade 2.1.01.03 y necesita su padre.
+    // No es un apaño para la prueba: el sembrador crea 2.1.01 desde siempre, y
+    // medido el 2026-09-19 las SEIS empresas la tienen (pasivo, acreedora, de
+    // agrupacion). El ejemplo estaba incompleto respecto a la realidad.
+    const grupos: CuentaExistente[] = [['1.1.04', 'asset'], ['2.1.01', 'liability'], ['5.1', 'expense']]
       .map(([code, type]) => ({ id: `id-${code}`, code, type, isTransactional: false, status: 'active', renglones: 0 }));
     const clavesViejas = new Set(['sales_revenue', 'accounts_receivable', 'cash', 'bank', 'itbis_sales',
       'itbis_purchases', 'cost_of_goods_sold', 'inventory', 'supplier_payable']);
 
-    it('empresa sin cuentas antiguas: enlaza las estandar y crea las tres que faltan', () => {
+    it('empresa sin cuentas antiguas: enlaza las estandar y crea las que faltan', () => {
       const plan = planParaCompletar([...base, ...grupos], clavesViejas);
       const enlaza = Object.fromEntries(plan.filter((p) => p.accion === 'enlazar').map((p) => [p.clave, (p as { codigo: string }).codigo]));
       expect(enlaza).toEqual({
@@ -78,7 +82,8 @@ describe('lote 165 · cuentas del sistema', () => {
         itbis_withholding_payable: '2.1.02.02', isr_withholding_payable: '2.1.02.03',
       });
       const crea = plan.filter((p) => p.accion === 'crear_y_enlazar').map((p) => (p as { cuenta: { codigo: string } }).cuenta.codigo).sort();
-      expect(crea).toEqual(['1.1.04.03', '1.1.04.04', '5.1.02']);
+      // 2.1.01.03 la anade el lote 171 (tarjeta de credito).
+      expect(crea).toEqual(['1.1.04.03', '1.1.04.04', '2.1.01.03', '5.1.02']);
     });
 
     it('como Latin Doors: una cuenta antigua CON movimientos se respeta; sin movimientos, no', () => {

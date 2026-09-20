@@ -118,6 +118,8 @@ export default function PurchasesPage() {
   // Lote 170: de donde sale el dinero. Un solo valor ('banco:<id>' o
   // 'cuenta:<id>') porque es un solo desplegable; se parte al mandarlo.
   const [origenDelPago, setOrigenDelPago] = useState('');
+  // Lote 171: las cuentas puente de Configuracion (clave -> id de cuenta).
+  const [mapeos, setMapeos] = useState<Record<string, string>>({});
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -304,8 +306,11 @@ export default function PurchasesPage() {
       fetch('/api/v1/warehouses').then(r => r.json()),
       fetch('/api/v1/accounting/accounts').then(r => r.json()),
       fetch('/api/v1/categories').then(r => r.json()),
-      fetch('/api/v1/expenses/types').then(r => r.json())
-    ]).then(([pr, sp, wh, ac, cat, et]) => {
+      fetch('/api/v1/expenses/types').then(r => r.json()),
+      // Lote 171: las cuentas puente. Que cuenta usa cada cosa lo decide el
+      // contador en Configuracion, no esta pantalla.
+      fetch('/api/v1/accounting/mappings').then(r => r.json())
+    ]).then(([pr, sp, wh, ac, cat, et, mp]) => {
       if (pr.success) setProducts(pr.data.items || pr.data || []);
       if (sp.success) setSuppliers(sp.data || []);
       if (wh.success || wh.data) {
@@ -313,12 +318,21 @@ export default function PurchasesPage() {
         setWarehouses(whList);
         if (whList.length > 0) setWarehouseId(whList[0].id);
       }
+      // Lote 171: el enlace clave -> cuenta, tal como lo dejo el contador.
+      const enlaces: Record<string, string> = mp?.success
+        ? Object.fromEntries((mp.data || []).map((m: { mappingKey: string; accountId: string }) => [m.mappingKey, m.accountId]))
+        : {};
+      setMapeos(enlaces);
       if (ac.success) {
         setAccountsList(ac.data || []);
-        const defaultAcc = (ac.data || []).find((a: any) => a.code.startsWith('5.1.01') || a.name.toLowerCase().includes('costo de ventas'));
-        if (defaultAcc) {
-          setDebitAccountId(defaultAcc.id);
-        }
+        // La cuenta de costo sale del puente `cost_of_goods_sold`. Antes se
+        // buscaba por el prefijo del codigo de la cuenta de costo de ventas, o
+        // porque el nombre dijera "costo de ventas": dos formas de fijar una
+        // cuenta en el codigo, y las dos fallan en cuanto una empresa numera o
+        // nombra distinto su catalogo. Habia DOS copias: esta y la del reinicio
+        // del formulario.
+        const porPuente = (ac.data || []).find((a: { id: string }) => a.id === enlaces['cost_of_goods_sold']);
+        if (porPuente) setDebitAccountId(porPuente.id);
       }
       if (cat.success) setCategories(cat.data || []);
       if (et.success) {
@@ -686,12 +700,9 @@ export default function PurchasesPage() {
     setGeneralItbis(0);
     setNoItbis(false);
 
-    const defaultAcc = accountsList.find((a: any) => a.code.startsWith('5.1.01') || a.name.toLowerCase().includes('costo de ventas'));
-    if (defaultAcc) {
-      setDebitAccountId(defaultAcc.id);
-    } else {
-      setDebitAccountId('');
-    }
+    // Lote 171: la del puente, como al cargar la pantalla. Esta era la segunda
+    // copia de la misma busqueda por codigo/nombre.
+    setDebitAccountId(accountsList.find((a: { id: string }) => a.id === mapeos['cost_of_goods_sold'])?.id ?? '');
 
     setLines([]);
     setGlobalIsc(0);
@@ -1430,7 +1441,11 @@ export default function PurchasesPage() {
               }
               // Lote 170: el origen elegido para un cheque no vale para una
               // tarjeta, y con efectivo o a credito no va ninguno.
-              setOrigenDelPago('');
+              // Lote 171: con tarjeta se propone la cuenta que el contador
+              // configuro en Cuentas Puente. Solo se PROPONE: si la empresa
+              // tiene varias tarjetas, se cambia en el mismo desplegable.
+              const conTarjeta = admiteTarjetaDeCredito(e.target.value) && mapeos['credit_card_payable'];
+              setOrigenDelPago(conTarjeta ? valorDeOrigen({ paymentAccountId: mapeos['credit_card_payable'] }) : '');
               quitarError('paymentAccountId');
             }}
             className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
@@ -1465,11 +1480,15 @@ export default function PurchasesPage() {
               </optgroup>
               {admiteTarjetaDeCredito(paymentMethod) && (
                 <optgroup label="Tarjeta de crédito (se le debe al banco)">
+                  {/* Lote 171: primero la configurada en Cuentas Puente. Las
+                      demas cuentas por pagar siguen ahi porque una empresa
+                      puede tener varias tarjetas, y el puente solo da UNA. */}
                   {accountsList
                     .filter(acc => acc.type === 'liability')
+                    .sort((a, b) => Number(b.id === mapeos['credit_card_payable']) - Number(a.id === mapeos['credit_card_payable']))
                     .map(acc => (
                       <option key={acc.id} value={valorDeOrigen({ paymentAccountId: acc.id })}>
-                        {acc.code} - {acc.name}
+                        {acc.code} - {acc.name}{acc.id === mapeos['credit_card_payable'] ? ' (configurada)' : ''}
                       </option>
                     ))}
                 </optgroup>

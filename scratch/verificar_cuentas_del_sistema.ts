@@ -38,7 +38,11 @@ type Cta = Parameters<Mod['planParaCompletar']>[0][number];
 const cta = (code: string, type: string, trans = true, renglones = 0): Cta =>
   ({ id: `id-${code}`, code, type, isTransactional: trans, status: 'active', renglones });
 const BASE: Cta[] = [
-  cta('1.1', 'asset', false), cta('1.1.04', 'asset', false), cta('2.1.02', 'liability', false), cta('5.1', 'expense', false),
+  // `2.1.01` esta desde el lote 171 (padre de la cuenta de tarjeta). No es un
+  // apaño: el sembrador la crea desde siempre y las SEIS empresas la tienen
+  // (medido el 2026-09-19). El ejemplo estaba incompleto respecto a la realidad.
+  cta('1.1', 'asset', false), cta('1.1.04', 'asset', false), cta('2.1.01', 'liability', false),
+  cta('2.1.02', 'liability', false), cta('5.1', 'expense', false),
   cta('1.1.01.01', 'asset'), cta('1.1.01.02', 'asset'), cta('1.1.02.01', 'asset'), cta('1.1.03.01', 'asset'),
   cta('1.1.04.01', 'asset'), cta('1.1.04.02', 'asset'), cta('2.1.01.01', 'liability'), cta('2.1.02.01', 'liability'),
   cta('2.1.02.02', 'liability'), cta('2.1.02.03', 'liability'), cta('4.1.01', 'revenue'), cta('5.1.01', 'expense'),

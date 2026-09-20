@@ -7,6 +7,7 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { PUENTES_DE_CUENTAS } from '@/services/accounting/cuentasDelSistema';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -309,7 +310,10 @@ export default function SettingsPage() {
     e.preventDefault();
     setMappingSubmitting(true);
     try {
-      const promises = Object.entries(draftMappings).map(([key, accountId]) => 
+      // Lote 171: una clave sin cuenta elegida no se manda. Antes se enviaba
+      // el `accountId` vacio, que no enlaza nada y solo genera una peticion
+      // fallida por cada puente que el contador no haya configurado todavia.
+      const promises = Object.entries(draftMappings).filter(([, accountId]) => !!accountId).map(([key, accountId]) =>
         fetch('/api/v1/accounting/mappings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1048,33 +1052,45 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-500 mt-1">Configura las cuentas por defecto que recibirán débitos/créditos de transacciones automatizadas en facturas, cobros y almacén.</p>
             </div>
 
+            {/* Lote 171: las filas salen de CUENTAS_DEL_SISTEMA, no de una
+                lista escrita aqui. Aqui habia 9 claves mientras la tabla tenia
+                16: las retenciones, los anticipos de ISR y los otros impuestos
+                los resolvia el codigo con un codigo de cuenta por defecto y no
+                habia donde cambiarlos. Ahora la proxima clave aparece sola. */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { key: 'sales_revenue', label: 'Ingresos por Ventas' },
-                { key: 'accounts_receivable', label: 'Cuentas por Cobrar (Clientes)' },
-                { key: 'cash', label: 'Caja General' },
-                { key: 'bank', label: 'Bancos' },
-                { key: 'itbis_sales', label: 'ITBIS Cobrado en Ventas' },
-                { key: 'itbis_purchases', label: 'ITBIS Pagado en Compras' },
-                { key: 'cost_of_goods_sold', label: 'Costo de Ventas' },
-                { key: 'inventory', label: 'Inventario' },
-                { key: 'supplier_payable', label: 'Cuentas por Pagar (Proveedores)' }
-              ].map((mapItem) => (
-                <div key={mapItem.key} className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">{mapItem.label}</label>
-                  <select 
-                    value={draftMappings[mapItem.key] || ''} 
-                    onChange={e => setDraftMappings(prev => ({ ...prev, [mapItem.key]: e.target.value }))}
-                    disabled={mappingSubmitting}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] outline-none"
-                  >
-                    <option value="" disabled>-- Seleccione cuenta puente --</option>
-                    {accounts.filter(acc => acc.isTransactional).map(acc => (
-                      <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+              {PUENTES_DE_CUENTAS.map((puente) => {
+                // Todas las claves de la fila apuntan a la misma cuenta; se lee
+                // de la primera que tenga valor para no perder lo ya guardado
+                // si una empresa antigua solo tiene enlazada una de las dos.
+                const valor = puente.claves.map(k => draftMappings[k]).find(Boolean) || '';
+                // Solo cuentas del tipo que el sistema espera: apuntar "Ingresos
+                // por Ventas" a un gasto descuadra el estado de resultados. La
+                // ya elegida se deja SIEMPRE, aunque no encaje: si la quitara de
+                // la lista, el desplegable se abriria en blanco y guardar
+                // borraria el enlace sin que nadie lo pidiera.
+                const elegibles = accounts.filter(acc =>
+                  (acc.isTransactional && acc.type === puente.tipo) || acc.id === valor);
+                return (
+                  <div key={puente.codigo} className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700 uppercase">{puente.etiqueta}</label>
+                    <select
+                      value={valor}
+                      onChange={e => setDraftMappings(prev => ({
+                        ...prev,
+                        ...Object.fromEntries(puente.claves.map(k => [k, e.target.value])),
+                      }))}
+                      disabled={mappingSubmitting}
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] outline-none"
+                    >
+                      <option value="" disabled>-- Seleccione cuenta puente --</option>
+                      {elegibles.map(acc => (
+                        <option key={acc.id} value={acc.id}>{acc.code} - {acc.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-slate-500 leading-tight">Sugerida: {puente.codigo}</p>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">

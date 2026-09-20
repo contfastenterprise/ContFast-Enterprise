@@ -836,6 +836,10 @@ export class AccountingRepository {
         { code: '2.1.01', name: 'Cuentas por Pagar', type: 'liability', nature: 'credit', isTransactional: false },
         { code: '2.1.01.01', name: 'Cuentas por Pagar Proveedores', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.01.02', name: 'Otras Cuentas por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
+        // Lote 171: una compra pagada con tarjeta de credito no sale de un
+        // banco, se le debe al emisor. Toda empresa nace con ella para que el
+        // selector de origen de la compra tenga donde apuntar.
+        { code: '2.1.01.03', name: 'Tarjetas de Crédito por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.02', name: 'Impuestos Retenidos y por Pagar', type: 'liability', nature: 'credit', isTransactional: false },
         { code: '2.1.02.01', name: 'ITBIS Cobrado en Ventas', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.02.02', name: 'ITBIS Retenido por Pagar', type: 'liability', nature: 'credit', isTransactional: true },

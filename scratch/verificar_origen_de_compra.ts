@@ -302,8 +302,13 @@ async function main() {
   ok('  y, solo en tarjeta, las cuentas por pagar',
     /admiteTarjetaDeCredito\(paymentMethod\) && \(/.test(ui) && /acc\.type === 'liability'/.test(ui));
   ok('lo manda partido en los dos campos', /partirOrigen\(necesitaOrigen\(paymentMethod\) \? origenDelPago : ''\)/.test(ui));
-  ok('cambiar la forma de pago limpia el origen (el de un cheque no vale para una tarjeta)',
-    /setPaymentMethod\(e\.target\.value\);[\s\S]{0,400}?setOrigenDelPago\(''\)/.test(ui));
+  // Lote 171: al cambiar de forma de pago, el origen deja de ser el anterior.
+  // Con tarjeta pasa a ser el configurado en Cuentas Puente y en lo demas se
+  // vacia -- las dos cosas en el mismo `setOrigenDelPago`, asi que lo que se
+  // vigila es que el cambio de metodo lo REEMPLACE, no que lo ponga a ''.
+  ok('cambiar la forma de pago reemplaza el origen (el de un cheque no vale para una tarjeta)',
+    /setPaymentMethod\(e\.target\.value\);[\s\S]{0,700}?setOrigenDelPago\(/.test(ui)
+    && /conTarjeta \? valorDeOrigen\([^)]*\) : ''/.test(ui));
   ok('al editar, el origen guardado vuelve al campo',
     /setOrigenDelPago\(valorDeOrigen\(\{ bankAccountId: expense\.bankAccountId/.test(ui));
 

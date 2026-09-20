@@ -553,6 +553,37 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 171: nada de contabilidad escrito en el código.** Regla del dueño
+  (2026-09-19): el plan de cuentas es del contador, así que **el catálogo se
+  crea al crear la empresa**, **el enlace se elige en Configuración > Cuentas
+  Puente**, y **ningún código de cuenta va fijado en el código**. El lote 170
+  dejó la cuenta de la tarjeta fuera de las tres.
+  Al mirarlo salió el hueco de verdad: `CUENTAS_DEL_SISTEMA` tenía 16 claves y
+  la pantalla de Cuentas Puente traía **nueve, escritas a mano**. Las otras
+  siete (retenciones de clientes, anticipos de ISR, ITBIS e ISR retenidos por
+  pagar, otros impuestos de compras) las resolvía el código con un código por
+  defecto y **el contador no tenía dónde cambiarlas**.
+  Ahora: `credit_card_payable` → 2.1.01.03 entra en la tabla **y en el
+  sembrador** (toda empresa nueva nace con ella; las existentes la reciben con
+  `completarCuentasDelSistema` del lote 165, que **deriva el nivel del código**
+  — no hace falta un guion de datos por empresa), y la pantalla se **deriva**
+  de la tabla (`PUENTES_DE_CUENTAS`): una fila por CUENTA y no por clave
+  (`itbis_purchases` y `purchase_itbis_paid` son la misma cuenta, y en dos
+  filas se podrían apuntar a sitios distintos), solo cuentas del tipo esperado
+  pero **sin esconder nunca la ya elegida** (si no, guardar borraría el enlace
+  sin pedirlo). La compra deja de fijar cuentas: la de costo sale del puente
+  `cost_of_goods_sold` (había **dos** copias buscándola por prefijo de código o
+  por nombre) y con tarjeta se **propone** la configurada.
+  Banco `verificar_cuentas_puente.ts` con **trinquete**: ningún código de
+  cuenta escrito en las pantallas de compras y ajustes. Contraprueba 29/29;
+  seis mutantes, cinco muertos y uno equivalente **anotado en el código**
+  (agrupar por etiqueta en vez de por código da hoy lo mismo). Uno de los
+  mutantes cazó una trampa de mera presencia en el propio banco.
+  **Error mío, corregido aquí**: el 19/09 creé 2.1.01.03 en Latin Doors con
+  `level = 3` a mano; sus hermanas son nivel 4 y el convenio es
+  `codigo.split('.').length`. Sin efecto contable (los estados financieros
+  acumulan por `parent_id` y el catálogo impreso recalcula el nivel), pero es
+  dato incorrecto: se corrige con `cuenta_tarjeta_empresas.ts`.
 - **La deuda de la tarjeta de crédito — 2026-09-19, tras medir el lote 170.**
   El mensaje del lote 170 decía "las 6 compras con tarjeta siguen acreditando
   1.1.01": **estaba mal planteado**. Medido en producción: **1.1.01 está en
