@@ -1,0 +1,4 @@
+ALTER TABLE "expenses" ADD COLUMN "payment_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "expenses" ADD COLUMN "bank_account_id" uuid;--> statement-breakpoint
+ALTER TABLE "expenses" ADD CONSTRAINT "expenses_payment_account_id_chart_of_accounts_id_fk" FOREIGN KEY ("payment_account_id") REFERENCES "public"."chart_of_accounts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "expenses" ADD CONSTRAINT "expenses_bank_account_id_bank_accounts_id_fk" FOREIGN KEY ("bank_account_id") REFERENCES "public"."bank_accounts"("id") ON DELETE no action ON UPDATE no action;

@@ -55,6 +55,10 @@ const USER = 'bbbbbbbb-0000-0000-0000-000000000001';
 const CAJA = 'eeeeeeee-0000-0000-0000-0000000000c2';
 const CLIENTE = 'ffffffff-0000-0000-0000-00000000cb01';
 const SUPLIDOR = 'ffffffff-0000-0000-0000-00000000cb02';
+// Lote 170: una compra con cheque/transferencia ('02') tiene que decir de que
+// banco sale, o se niega. No es lo que vigila este banco, pero sin cuenta
+// bancaria no hay compra que mirar.
+const BANCO = 'ffffffff-0000-0000-0000-00000000cb03';
 
 let fallos = 0;
 const ok = (t: string, c: boolean, d = '') => {
@@ -139,10 +143,16 @@ async function main() {
     String(enReal[0].n));
 
   console.log('\n2) Una compra entera en PRUEBA: nada se escapa a PRODUCCION\n');
+  const ctaBanco = (await db.execute(sql`
+    SELECT id FROM chart_of_accounts WHERE company_id = ${A}::uuid AND code = '1.1.01.02'`
+  )) as unknown as { id: string }[];
+  await db.execute(sql`
+    INSERT INTO bank_accounts (id, company_id, bank_name, account_number, balance, chart_account_id)
+    VALUES (${BANCO}::uuid, ${A}::uuid, 'Popular', '999', 0, ${ctaBanco[0].id}::uuid)`);
   await createExpense({
     companyId: A, modo: 'PRUEBA', supplierId: SUPLIDOR, expenseType: '01',
     ncf: 'B0100000001', issueDate: hoy, amount: 1000, itbis: 180,
-    paymentMethod: '02', userId: USER,
+    paymentMethod: '02', bankAccountId: BANCO, userId: USER,
   });
 
   ok('la compra', (await modos('expenses')) === 'PRUEBA:1', await modos('expenses'));
@@ -160,7 +170,7 @@ async function main() {
   await createExpense({
     companyId: A, modo: 'PRODUCCION', supplierId: SUPLIDOR, expenseType: '01',
     ncf: 'B0100000002', issueDate: hoy, amount: 500, itbis: 90,
-    paymentMethod: '02', userId: USER,
+    paymentMethod: '02', bankAccountId: BANCO, userId: USER,
   });
   ok('la compra real se separa de la de practicas',
     (await modos('expenses')) === 'PRODUCCION:1 PRUEBA:1', await modos('expenses'));

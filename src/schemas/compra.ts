@@ -21,6 +21,7 @@ import { z } from 'zod';
 // usarlo tambien. Se reexporta para no tocar a quien ya lo importaba de aqui.
 export { erroresPorCampo } from './errores';
 import { isValidNcfFormat, isElectronicNcf } from '@/utils/ncfValidator';
+import { motivoParaNoRegistrarCompra } from '@/services/cxp/origenDeLaCompra';
 
 const dinero = z.coerce.number();
 
@@ -56,11 +57,25 @@ export const esquemaCompra = z
     itbis: dinero.optional(),
     description: z.string().nullable().optional(),
     debitAccountId: z.string().nullable().optional(),
+    // Lote 170: de donde sale el dinero cuando no es efectivo ni a credito.
+    // Ver services/cxp/origenDeLaCompra.ts.
+    paymentAccountId: z.string().nullable().optional(),
+    bankAccountId: z.string().nullable().optional(),
     lines: z.array(esquemaLineaCompra).default([]),
     guaranteeCheck: esquemaChequeGarantia.nullable().optional(),
   })
   .superRefine((c, ctx) => {
     const ncf = (c.ncf ?? '').trim();
+
+    // Lote 170: la misma regla que aplica el servidor, para que el error salga
+    // en el campo y no como un fallo al guardar.
+    const motivoOrigen = motivoParaNoRegistrarCompra(c.paymentMethod, {
+      paymentAccountId: c.paymentAccountId,
+      bankAccountId: c.bankAccountId,
+    });
+    if (motivoOrigen) {
+      ctx.addIssue({ code: 'custom', path: ['paymentAccountId'], message: motivoOrigen });
+    }
 
     if (!c.isMinorExpense) {
       if (!c.supplierId) {

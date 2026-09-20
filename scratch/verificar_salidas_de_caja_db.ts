@@ -45,11 +45,11 @@ async function main() {
   ok('  con su salida en la sesion, referida a la compra', m1?.type === 'cash_out' && m1?.amount === '354.00', JSON.stringify(m1));
   await createExpense({ ...base, ncf: 'B0100000902', amount: 500, paymentMethod: '04' });
   ok('compra a credito: la caja no se mueve', (await esperado()) === 646, String(await esperado()));
-  // Una compra "al contado" con cheque o transferencia (02) acredita hoy la
-  // CAJA en el mayor -- eso es otro defecto, anotado en el lote 169 --, pero no
-  // es efectivo: no toca la sesion. Si tocara, habria que tener la caja abierta
-  // para pagar por transferencia.
-  await createExpense({ ...base, ncf: 'B0100000907', amount: 400, paymentMethod: '02' });
+  // Una compra "al contado" con cheque o transferencia (02) no es efectivo: no
+  // toca la sesion. Si tocara, habria que tener la caja abierta para pagar por
+  // transferencia. Desde el lote 170 sale del banco que se elija (antes
+  // acreditaba la CAJA en el mayor, que era el defecto que anoto el 169).
+  await createExpense({ ...base, ncf: 'B0100000907', amount: 400, paymentMethod: '02', bankAccountId: BANCO });
   ok('compra con cheque/transferencia (02): la caja tampoco se mueve', (await esperado()) === 646, String(await esperado()));
 
   console.log('\n2) Pagos a suplidor\n');

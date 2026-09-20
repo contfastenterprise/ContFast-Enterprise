@@ -11,6 +11,9 @@ import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from './accounting
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { ultimoDiaDelMes } from '@/utils/fechasLocales';
 import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
+import { efectoEnCuentaDeDocumento } from '@/services/contabilidad/efectoEnCuenta';
+import { resolverOrigenDeCompra } from '@/services/cxp/resolverOrigenDeCompra';
+import { reflejarEnBancoDeCompra } from '@/services/cxp/bancoDeLaCompra';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -49,8 +52,21 @@ export async function createExpense(expenseData: {
     unitPrice: number;
   }[];
   debitAccountId?: string;
+  // Lote 170: de donde sale el dinero cuando no es efectivo ni a credito.
+  // Ver services/cxp/origenDeLaCompra.ts.
+  paymentAccountId?: string | null;
+  bankAccountId?: string | null;
 }) {
   return await db.transaction(async (tx) => {
+    // Lote 170: se valida ANTES de escribir nada, igual que en
+    // `POST /api/v1/expenses`. Esta es la otra puerta a las compras (la usa el
+    // POST del 606) y tiene que aplicar la misma regla: una compra por cheque,
+    // transferencia o tarjeta no acredita la Caja General.
+    const origen = await resolverOrigenDeCompra(tx, expenseData.companyId, expenseData.paymentMethod, {
+      paymentAccountId: expenseData.paymentAccountId || null,
+      bankAccountId: expenseData.bankAccountId || null,
+    });
+
     // Insert expense
     const [expense] = await tx
       .insert(expenses)
@@ -74,6 +90,8 @@ export async function createExpense(expenseData: {
         otherTaxes: (expenseData.otherTaxes ?? 0).toString(),
         tip: (expenseData.tip ?? 0).toString(),
         paymentMethod: expenseData.paymentMethod,
+        paymentAccountId: origen.cuentaQueAcredita,
+        bankAccountId: origen.bankAccountId,
       })
       .returning();
 
@@ -158,9 +176,13 @@ export async function createExpense(expenseData: {
           ? await resolverCuentaDeInventario(tx, expenseData.companyId, 'Compra - Inventario de Mercancía')
           : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas'));
 
+      // Lote 170: al contado ya no es siempre la CAJA -- acredita la cuenta
+      // del origen elegido (el banco, o la cuenta por pagar de la tarjeta).
       const accCredit = isCredit
         ? await resolverCuentaPorMapeo(tx, expenseData.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
-        : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
+        : origen.cuentaQueAcredita
+          ? { id: origen.cuentaQueAcredita }
+          : await resolverCuentaPorMapeo(tx, expenseData.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
       const journalLines = [
         // Debit the subtotal/cost
@@ -218,6 +240,21 @@ export async function createExpense(expenseData: {
       descripcion: `Compra en efectivo NCF: ${expenseData.ncf || 'N/A'}`,
       cambioEnCaja: await efectoEnCajaDeDocumento(tx, expenseData.companyId, expenseData.modo, expense.id),
     });
+
+    // Lote 170: y si salio de un banco, el retiro queda en SU libro, pendiente
+    // de conciliar (mismo criterio que el pago a suplidor del lote 163).
+    if (origen.bankAccountId) {
+      const acredita = origen.cuentaQueAcredita!;
+      await reflejarEnBancoDeCompra(tx, {
+        companyId: expenseData.companyId,
+        modo: expenseData.modo,
+        bankAccountId: origen.bankAccountId,
+        referencia: expenseData.ncf ? `COM-${expenseData.ncf}` : `COM-${expense.id.slice(0, 8)}`,
+        descripcion: `Compra NCF: ${expenseData.ncf || 'N/A'}`,
+        fecha: expenseData.issueDate,
+        cambioEnCuenta: await efectoEnCuentaDeDocumento(tx, expenseData.companyId, expenseData.modo, expense.id, acredita),
+      });
+    }
 
     // Update inventory if goods purchase
     if (expenseData.warehouseId && expenseData.lines && expenseData.userId) {

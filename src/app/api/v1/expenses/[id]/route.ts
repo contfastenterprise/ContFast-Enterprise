@@ -12,6 +12,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock, llevaInventario } from '@/services/inventoryService';
 import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
+import { efectoEnCuentaDeDocumento } from '@/services/contabilidad/efectoEnCuenta';
+import { resolverOrigenDeCompra } from '@/services/cxp/resolverOrigenDeCompra';
+import { bancosAAjustar } from '@/services/cxp/origenDeLaCompra';
+import { reflejarEnBancoDeCompra } from '@/services/cxp/bancoDeLaCompra';
 import { claveDeNivel, entradasDeLineas, cantidadPorNivel, kardexSinCambios, existenciaTrasEditar, quedaEnRojo } from '@/services/inventario/entradasDeCompra';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
@@ -300,6 +304,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<any> }
         otherTaxes: expenses.otherTaxes,
         tip: expenses.tip,
         paymentMethod: expenses.paymentMethod,
+        // Lote 170: sin estas dos, al editar la compra el campo "de donde sale
+        // el pago" salia vacio y habia que volver a elegirlo cada vez.
+        paymentAccountId: expenses.paymentAccountId,
+        bankAccountId: expenses.bankAccountId,
         description: expenses.description,
         createdAt: expenses.createdAt,
         supplierName: suppliers.name,
@@ -503,6 +511,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
       // revertirla. Lo que la reversion devuelva a la caja del mayor vuelve
       // tambien a la sesion de caja (ver el final de esta transaccion).
       const cajaAntes = await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id);
+      // Lote 170: y lo mismo con el banco del que salio. Borrar la compra le
+      // devuelve el dinero a SU libro, no a la caja.
+      const bancosDel = bancosAAjustar(expenseRow, {});
+      const bancoAntesDel = new Map<string, number>();
+      for (const b of bancosDel) {
+        bancoAntesDel.set(b.bankAccountId, await efectoEnCuentaDeDocumento(tx, session.companyId, session.modo, id, b.cuenta));
+      }
       const snapshotLineas = await tx.select().from(expenseLines).where(eq(expenseLines.expenseId, id));
       const snapshotAsientos = await tx
         .select()
@@ -669,6 +684,27 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<any
         cambioEnCaja: (await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id)) - cajaAntes,
       });
 
+      // Lote 170: si salio de un banco, la reversion se lo devuelve al mayor
+      // de ese banco: entra igual en su libro, pendiente de conciliar.
+      for (const b of bancosDel) {
+        await reflejarEnBancoDeCompra(tx, {
+          companyId: session.companyId,
+          modo: session.modo,
+          bankAccountId: b.bankAccountId,
+          referencia: expenseRow.ncf ? `COM-${expenseRow.ncf}` : `COM-${id.slice(0, 8)}`,
+          descripcion: `Eliminación de compra NCF: ${expenseRow.ncf || 'N/A'}`,
+          // La fecha de la compra, no la de hoy: `revertirAsientoContable`
+          // fecha la reversion en el dia del asiento original, y el libro de
+          // banco tiene que poder cotejarse contra el mayor linea por linea.
+          // (De paso evita el desfase de UTC: `new Date()` en el servidor da el
+          // dia siguiente desde las 20:00 hora de RD.)
+          fecha: expenseRow.issueDate,
+          cambioEnCuenta:
+            (await efectoEnCuentaDeDocumento(tx, session.companyId, session.modo, id, b.cuenta)) -
+            (bancoAntesDel.get(b.bankAccountId) ?? 0),
+        });
+      }
+
       // 6. Delete expense lines explicitly (safety cascade)
       await tx
         .delete(expenseLines)
@@ -739,6 +775,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       warehouseId,
       lines, // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
       debitAccountId,
+      // Lote 170: de donde sale el dinero cuando no es efectivo ni a credito.
+      paymentAccountId,
+      bankAccountId,
       guaranteeCheck
     } = body;
 
@@ -845,6 +884,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
       // editarla. Solo la DIFERENCIA que deje la edicion pasa a la sesion de
       // caja: editar una compra antigua sin cambiar lo pagado no mueve nada.
       const cajaAntesPut = await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id);
+      // Lote 170: de donde sale el dinero DESPUES de esta edicion. Se valida
+      // antes de escribir nada, igual que en el alta.
+      const origenPut = await resolverOrigenDeCompra(tx, session.companyId, paymentMethod, {
+        paymentAccountId: paymentAccountId || null,
+        bankAccountId: bankAccountId || null,
+      });
+      // Los bancos que toca esta edicion (el de antes y el de ahora) y lo que
+      // cada uno tenia en el mayor ANTES. Al final se mueve la DIFERENCIA.
+      const bancosPut = bancosAAjustar(existing[0], origenPut);
+      const bancoAntesPut = new Map<string, number>();
+      for (const b of bancosPut) {
+        bancoAntesPut.set(b.bankAccountId, await efectoEnCuentaDeDocumento(tx, session.companyId, session.modo, id, b.cuenta));
+      }
       const snapshotLineasAsientoPut = idsAsientosPut.length > 0
         ? await tx.select().from(journalEntryLines).where(inArray(journalEntryLines.journalEntryId, idsAsientosPut))
         : [];
@@ -1008,6 +1060,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
           otherTaxes: (otherTaxes || 0).toString(),
           tip: (tip || 0).toString(),
           paymentMethod,
+          // Lote 170: el origen queda GUARDADO, no deducido. Si mañana se
+          // edita otra vez, se sabe de que banco hay que devolver el dinero.
+          paymentAccountId: origenPut.cuentaQueAcredita,
+          bankAccountId: origenPut.bankAccountId,
           description: description || null,
           updatedAt: new Date()
         })
@@ -1374,9 +1430,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
             : await resolverCuentaPorMapeo(tx, session.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas');
         }
 
+        // Lote 170: al contado ya no es siempre la CAJA. Con cheque,
+        // transferencia o tarjeta acredita la cuenta del origen elegido (el
+        // banco, o la cuenta por pagar de la tarjeta). Ver el alta.
         const accCredit = isCredit
           ? await resolverCuentaPorMapeo(tx, session.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
-          : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
+          : origenPut.cuentaQueAcredita
+            ? { id: origenPut.cuentaQueAcredita }
+            : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
         const journalLines = [
           { accountId: accDebit.id, debit: subtotalVal, credit: 0 },
@@ -1429,6 +1490,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<any> }
         descripcion: `Edición de compra en efectivo NCF: ${ncf || 'N/A'}`,
         cambioEnCaja: (await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, id)) - cajaAntesPut,
       });
+
+      // Lote 170: y lo mismo con los bancos. Uno solo si no cambio de banco
+      // (se mueve la diferencia); dos si cambio, y entonces al de antes le
+      // entra un deposito por lo que se le habia sacado.
+      for (const b of bancosPut) {
+        await reflejarEnBancoDeCompra(tx, {
+          companyId: session.companyId,
+          modo: session.modo,
+          bankAccountId: b.bankAccountId,
+          referencia: ncf ? `COM-${ncf}` : `COM-${id.slice(0, 8)}`,
+          descripcion: `Edición de compra NCF: ${ncf || 'N/A'}`,
+          fecha: new Date(issueDate).toISOString().split('T')[0],
+          cambioEnCuenta:
+            (await efectoEnCuentaDeDocumento(tx, session.companyId, session.modo, id, b.cuenta)) -
+            (bancoAntesPut.get(b.bankAccountId) ?? 0),
+        });
+      }
 
       return { id };
     });

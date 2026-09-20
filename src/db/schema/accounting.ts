@@ -364,6 +364,18 @@ export const expenses = pgTable('expenses', {
   otherTaxes: decimal('other_taxes', { precision: 15, scale: 2 }).default('0.00').notNull(),
   tip: decimal('tip', { precision: 15, scale: 2 }).default('0.00').notNull(),
   paymentMethod: varchar('payment_method', { length: 2 }).notNull(), // '01' to '07'
+  // Lote 170: DE DONDE sale el dinero de una compra que no es en efectivo ni a
+  // credito. Hasta ahora no se guardaba y toda compra "al contado" acreditaba
+  // la caja, aunque se pagara con cheque, transferencia o tarjeta (medido:
+  // 6 compras con tarjeta de Latin Doors acreditaron 1.1.01).
+  //   - Por banco: las dos, `bankAccountId` (para el libro de banco) y
+  //     `paymentAccountId` (la cuenta contable de ese banco, que es la que
+  //     acredita el asiento).
+  //   - Con tarjeta de credito: solo `paymentAccountId`, la cuenta por pagar
+  //     de la tarjeta. Decidido por el dueño el 2026-09-19: se elige en cada
+  //     compra, porque la tarjeta puede ser de debito (banco) o de credito.
+  paymentAccountId: uuid('payment_account_id').references(() => chartOfAccounts.id),
+  bankAccountId: uuid('bank_account_id').references(() => bankAccounts.id),
   description: text('description'), // Optional general description
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

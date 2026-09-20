@@ -17,6 +17,7 @@ import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
+import { FORMAS_DE_PAGO, necesitaOrigen, admiteTarjetaDeCredito, partirOrigen, valorDeOrigen } from '@/services/cxp/origenDeLaCompra';
 import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
 import GuaranteeChecksView from './components/GuaranteeChecksView';
@@ -44,6 +45,9 @@ interface Expense {
   otherTaxes: string;
   tip: string;
   paymentMethod: string;
+  // Lote 170: de donde salio el dinero.
+  paymentAccountId?: string | null;
+  bankAccountId?: string | null;
   description: string | null;
   createdAt: string;
   supplierName: string | null;
@@ -111,6 +115,9 @@ export default function PurchasesPage() {
   const [expenseTypesList, setExpenseTypesList] = useState<{ id: string; code: string; name: string; status?: string }[]>([]);
   const [issueDate, setIssueDate] = useState(getLocalDateString());
   const [paymentMethod, setPaymentMethod] = useState('01'); // Efectivo
+  // Lote 170: de donde sale el dinero. Un solo valor ('banco:<id>' o
+  // 'cuenta:<id>') porque es un solo desplegable; se parte al mandarlo.
+  const [origenDelPago, setOrigenDelPago] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [description, setDescription] = useState('');
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -560,6 +567,9 @@ export default function PurchasesPage() {
     setExpenseType(expense.expenseType || '02');
     setIssueDate(expense.issueDate);
     setPaymentMethod(expense.paymentMethod || '01');
+    // Lote 170: el origen guardado vuelve al mismo campo. Una compra anterior
+    // al lote no lo tiene: sale vacio y hay que elegirlo para poder guardar.
+    setOrigenDelPago(valorDeOrigen({ bankAccountId: expense.bankAccountId, paymentAccountId: expense.paymentAccountId }));
     setWarehouseId(expense.warehouseId || '');
     setDescription(expense.description || '');
 
@@ -626,6 +636,7 @@ export default function PurchasesPage() {
     setExpenseType('02');
     setIssueDate(getLocalDateString());
     setPaymentMethod('01');
+    setOrigenDelPago('');
     setWarehouseId('');
     setDescription('');
     setIsGeneralAmount(false);
@@ -660,6 +671,7 @@ export default function PurchasesPage() {
 
     setIssueDate(getLocalDateString());
     setPaymentMethod('01');
+    setOrigenDelPago('');
 
     if (warehouses.length > 0) {
       setWarehouseId(warehouses[0].id);
@@ -835,6 +847,9 @@ export default function PurchasesPage() {
         total: l.total
       })),
       debitAccountId: isGeneralAmount ? debitAccountId : null,
+      // Lote 170: solo va si la forma de pago lo pide; con efectivo o a
+      // credito el servidor lo rechaza, y con razon.
+      ...partirOrigen(necesitaOrigen(paymentMethod) ? origenDelPago : ''),
       guaranteeCheck: (paymentMethod === '04' && hasGuaranteeCheck) ? {
         bankAccountId: gcBankAccountId,
         checkNumber: gcCheckNumber,
@@ -1413,15 +1428,61 @@ export default function PurchasesPage() {
               if (e.target.value !== '04') {
                 setHasGuaranteeCheck(false);
               }
+              // Lote 170: el origen elegido para un cheque no vale para una
+              // tarjeta, y con efectivo o a credito no va ninguno.
+              setOrigenDelPago('');
+              quitarError('paymentAccountId');
             }}
             className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none"
           >
-            <option value="01">Efectivo</option>
-            <option value="02">Cheque</option>
-            <option value="03">Transferencia</option>
-            <option value="04">A Crédito (CXP)</option>
+            {/* Lote 170: los nombres del catalogo de la DGII. El 03 decia
+                "Transferencia" y es la TARJETA: el 606 la declaraba como tal. */}
+            {['01', '02', '03', '04'].map(m => (
+              <option key={m} value={m}>{FORMAS_DE_PAGO[m]}</option>
+            ))}
           </select>
         </div>
+
+        {/* Lote 170: de donde sale el dinero. Sin esto la compra acreditaba la
+            Caja General aunque se pagara con cheque, transferencia o tarjeta. */}
+        {necesitaOrigen(paymentMethod) && (
+          <div>
+            <label className="block text-xs font-bold text-slate-500 mb-2">
+              ¿De dónde sale el pago? <span className="text-red-500 font-bold">*</span>
+            </label>
+            <select
+              value={origenDelPago}
+              onChange={e => { setOrigenDelPago(e.target.value); quitarError('paymentAccountId'); }}
+              className={'w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#c5a059] outline-none' + conError('paymentAccountId')}
+            >
+              <option value="">-- Selecciona de dónde sale --</option>
+              <optgroup label="Cuentas bancarias">
+                {bankAccountsList.map(b => (
+                  <option key={b.id} value={valorDeOrigen({ bankAccountId: b.id })}>
+                    {b.bankName} - {b.accountNumber}
+                  </option>
+                ))}
+              </optgroup>
+              {admiteTarjetaDeCredito(paymentMethod) && (
+                <optgroup label="Tarjeta de crédito (se le debe al banco)">
+                  {accountsList
+                    .filter(acc => acc.type === 'liability')
+                    .map(acc => (
+                      <option key={acc.id} value={valorDeOrigen({ paymentAccountId: acc.id })}>
+                        {acc.code} - {acc.name}
+                      </option>
+                    ))}
+                </optgroup>
+              )}
+            </select>
+            {err('paymentAccountId')}
+            <p className="text-[10px] text-slate-600 mt-1 ml-1 leading-tight">
+              {admiteTarjetaDeCredito(paymentMethod)
+                ? 'Si la tarjeta es de débito, elija la cuenta bancaria. Si es de crédito, la cuenta por pagar de la tarjeta.'
+                : 'El retiro queda en el libro de esa cuenta, pendiente de conciliar.'}
+            </p>
+          </div>
+        )}
 
         {paymentMethod === '04' && (
           <div className="mt-4 border-t border-dashed border-slate-200/35 pt-4 space-y-4">
@@ -1620,9 +1681,20 @@ export default function PurchasesPage() {
     const suplidor = suppliers.find(s => s.id === supplierId);
     const almacen = warehouses.find(w => w.id === warehouseId);
     const tipo = expenseTypesList.find(t => t.code === expenseType);
-    const pagos: Record<string, string> = {
-      '01': 'Efectivo', '02': 'Cheque', '03': 'Transferencia', '04': 'A credito (CxP)',
-    };
+    // Lote 170: los mismos nombres que el desplegable, de FORMAS_DE_PAGO. Esta
+    // copia decia "Transferencia" en el 03, que es la tarjeta.
+    const origenElegido = partirOrigen(origenDelPago);
+    const nombreOrigen = origenElegido.bankAccountId
+      ? (() => {
+          const b = bankAccountsList.find(x => x.id === origenElegido.bankAccountId);
+          return b ? `${b.bankName} - ${b.accountNumber}` : '— sin elegir —';
+        })()
+      : origenElegido.paymentAccountId
+        ? (() => {
+            const c = accountsList.find(x => x.id === origenElegido.paymentAccountId);
+            return c ? `${c.code} - ${c.name}` : '— sin elegir —';
+          })()
+        : '— sin elegir —';
     const filas: [string, string, number][] = [
       [isMinorExpense ? 'Gasto menor' : 'Suplidor',
        isMinorExpense ? 'Caja chica, sin suplidor formal' : (suplidor?.name || '— sin elegir —'), 1],
@@ -1634,7 +1706,10 @@ export default function PurchasesPage() {
          ? 'Monto general, sin detalle de items'
          : `${lines.length} ${lines.length === 1 ? 'linea' : 'lineas'}`, 2],
       ['Almacen destino', isGeneralAmount ? 'No aplica' : (almacen?.name || 'No afecta inventario'), 2],
-      ['Forma de pago', pagos[paymentMethod] || paymentMethod, 3],
+      ['Forma de pago', FORMAS_DE_PAGO[paymentMethod] || paymentMethod, 3],
+      ...(necesitaOrigen(paymentMethod)
+        ? ([['Sale de', nombreOrigen, 3]] as [string, string, number][])
+        : []),
       ...(hasGuaranteeCheck && paymentMethod === '04'
         ? ([['Cheque en garantia', gcCheckNumber ? `No. ${gcCheckNumber}` : '— sin numero —', 3]] as [string, string, number][])
         : []),

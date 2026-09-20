@@ -26,11 +26,12 @@
  * Si no hay ninguna, o hay varias y ninguna es suya, se niega -- como ya
  * niegan las ventas y los cobros en efectivo: "abra caja primero".
  */
-import { and, eq, inArray, sql } from 'drizzle-orm';
-import { cashSessions, journalEntries, journalEntryLines } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { cashSessions } from '@/db/schema';
 import type { DbTransaction } from '@/db';
 import { CashRepository } from '@/repositories/cashRepository';
 import { resolverCuentaPorMapeo } from '@/services/accounting/resolverCuentas';
+import { efectoEnCuentaDeDocumento } from '@/services/contabilidad/efectoEnCuenta';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 const centavos = (v: number) => (Number.isFinite(v) ? Math.round(v * 100) : 0);
@@ -78,25 +79,10 @@ export async function efectoEnCajaDeDocumento(
   modo: ModoOperativo,
   documentoId: string,
 ): Promise<number> {
+  // El calculo general vive en `services/contabilidad/efectoEnCuenta.ts` desde
+  // el lote 170: el banco lo necesita igual.
   const caja = await resolverCuentaPorMapeo(tx, companyId, 'cash', '1.1.01.01', 'Caja General');
-  const propios = await tx
-    .select({ id: journalEntries.id })
-    .from(journalEntries)
-    .where(and(eq(journalEntries.companyId, companyId), eq(journalEntries.modo, modo), eq(journalEntries.reference, documentoId)));
-  const ids = propios.map((a) => a.id);
-  const referencias = [documentoId, ...ids];
-
-  const [fila] = await tx
-    .select({ neto: sql<string>`coalesce(sum(${journalEntryLines.debit} - ${journalEntryLines.credit}), 0)` })
-    .from(journalEntryLines)
-    .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.journalEntryId))
-    .where(and(
-      eq(journalEntries.companyId, companyId),
-      eq(journalEntries.modo, modo),
-      inArray(journalEntries.reference, referencias),
-      eq(journalEntryLines.accountId, caja.id),
-    ));
-  return Number(fila?.neto ?? 0);
+  return await efectoEnCuentaDeDocumento(tx, companyId, modo, documentoId, caja.id);
 }
 
 /**

@@ -477,6 +477,37 @@ Además, fuera de la tabla:
   Doors tienen contado = esperado al centavo y diferencia 0,00; con 85.000
   reales, eso es un cierre sin contar (el importe se puede escribir a mano en
   el campo de monedas). El sistema no lo impide.
+- **Lote 170: una compra con cheque, transferencia o tarjeta ya no sale de la
+  caja.** Era el hueco que dejó anotado el 169. El asiento era
+  `isCredit ? por pagar : CAJA`, y "al contado" para la DGII incluye el cheque
+  y la transferencia (02) y la tarjeta (03): una compra pagada por
+  transferencia acreditaba 1.1.01 —una cuenta de **agrupación**— y el banco no
+  se enteraba ni en su saldo ni en su libro. Medido: 6 compras con tarjeta de
+  Latin Doors, RD$49.644,03. **Decidido por el dueño (2026-09-19): el origen se
+  ELIGE en cada compra**, porque la tarjeta puede ser de débito (sale de un
+  banco) o de crédito (se le debe al banco). La regla vive en
+  `services/cxp/origenDeLaCompra.ts` (pura, la comparten ruta, servicio y
+  pantalla) y se valida contra la base en `resolverOrigenDeCompra.ts` **antes
+  de escribir nada**. El retiro queda en el libro de ese banco, pendiente de
+  conciliar (`bancoDeLaCompra.ts`, mismo criterio que el 151 y el 163). Las
+  **tres** puertas quedan cableadas: alta, edición/borrado y
+  `expenseService.createExpense` (la del POST del 606). Se mueve la
+  **DIFERENCIA**: editar sin tocar lo pagado no mueve nada, y cambiar de banco
+  le devuelve el dinero al anterior — por eso el origen se **guarda** en la
+  compra y no se deduce después. El cálculo "qué dejó este documento en el
+  mayor de esta cuenta" sube a `services/contabilidad/efectoEnCuenta.ts`, y
+  `efectivoDeCaja.ts` (169) delega en él. **MIGRACIÓN
+  `drizzle/0011_origen_de_pago_compra.sql`: aplicarla ANTES de desplegar**, o
+  ninguna compra se registra; solo añade columnas. **De paso**: la pantalla
+  llamaba "Transferencia" al método **03**, que en el catálogo de la DGII es la
+  **tarjeta** (el 02 lleva cheque/transferencia/depósito) — quien pagaba por
+  transferencia elegía 03 y el 606 lo declaraba como tarjeta, y el documento
+  impreso decía otra cosa. Nombres unificados en `FORMAS_DE_PAGO`. **Para el
+  contador**: las 6 compras con tarjeta ya asentadas siguen en 1.1.01; el lote
+  no toca lo ya registrado. El banco de integración
+  (`verificar_origen_de_compra_db.ts`) **ejecuta las rutas de verdad** con las
+  cabeceras internas firmadas (`INTERNAL_API_KEY`): es el único sitio donde se
+  puede demostrar que editar mueve solo la diferencia.
 - **Lote 168: la campana decía "3" y al abrirla salían 6** (reportado por el
   dueño). No era un error de cuenta: el número rojo son los SIN LEER y la lista
   todos los VIGENTES (leer no resuelve; el aviso sigue hasta que se atiende).

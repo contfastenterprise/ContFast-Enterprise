@@ -53,11 +53,18 @@ async function main() {
   console.log('\n2) Cada camino refleja su efecto en la caja\n');
   const EFE = leer('src/services/caja/efectivoDeCaja.ts');
   const efecto = bloque(EFE, 'export async function efectoEnCajaDeDocumento(');
+  // Lote 170: el CALCULO (asiento + sus reversiones, sobre una cuenta) subio a
+  // `services/contabilidad/efectoEnCuenta.ts`, porque el banco lo necesita
+  // igual. Aqui se comprueba la propiedad en los dos sitios: que la caja pide
+  // la cuenta por la clave `cash` y delega, y que el calculo comun sigue
+  // sumando el asiento Y sus reversiones sobre la cuenta pedida.
+  const CALC = bloque(leer('src/services/contabilidad/efectoEnCuenta.ts'), 'export async function efectoEnCuentaDeDocumento(');
   ok('el efecto se mide en la cuenta de efectivo (clave cash) sobre el asiento Y sus reversiones',
     /resolverCuentaPorMapeo\(tx, companyId, 'cash', '1\.1\.01\.01'/.test(efecto)
-    && /const referencias = \[documentoId, \.\.\.ids\];/.test(efecto)
-    && /inArray\(journalEntries\.reference, referencias\)/.test(efecto)
-    && /eq\(journalEntryLines\.accountId, caja\.id\)/.test(efecto));
+    && /efectoEnCuentaDeDocumento\(tx, companyId, modo, documentoId, caja\.id\)/.test(efecto)
+    && /const referencias = \[documentoId, \.\.\.\w+\.map\(/.test(CALC)
+    && /inArray\(journalEntries\.reference, referencias\)/.test(CALC)
+    && /eq\(journalEntryLines\.accountId, accountId\)/.test(CALC));
   // Hasta el final: `bloque()` tomaria las llaves del tipo del parametro.
   const reflejar = EFE.slice(EFE.indexOf('export async function reflejarEnCaja('));
   ok('reflejar: sin cambio no busca sesion; con cambio, apunta en la sesion',

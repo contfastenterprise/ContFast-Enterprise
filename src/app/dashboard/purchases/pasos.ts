@@ -34,7 +34,9 @@
 export const PASOS = [
   { n: 1, titulo: 'El comprobante', campos: ['supplierId', 'ncf', 'issueDate', 'expenseType', 'description'] },
   { n: 2, titulo: 'Que se compro', campos: ['amount', 'debitAccountId', 'lines'] },
-  { n: 3, titulo: 'Como se paga', campos: ['paymentMethod', 'guaranteeCheck'] },
+  // `paymentAccountId` (lote 170, de donde sale el dinero) es del paso 3: se
+  // elige al lado de la forma de pago, y el esquema cuelga ahi su motivo.
+  { n: 3, titulo: 'Como se paga', campos: ['paymentMethod', 'paymentAccountId', 'bankAccountId', 'guaranteeCheck'] },
   { n: 4, titulo: 'Revisar y guardar', campos: [] },
 ] as const;
 

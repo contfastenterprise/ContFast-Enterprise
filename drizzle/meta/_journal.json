@@ -78,6 +78,13 @@
       "when": 1789720550452,
       "tag": "0010_avisos_guardados",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789855572805,
+      "tag": "0011_origen_de_pago_compra",
+      "breakpoints": true
     }
   ]
 }

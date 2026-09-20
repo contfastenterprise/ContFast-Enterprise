@@ -10,6 +10,9 @@ import { resolverCuentaDeBanco, resolverCuentaPorPagar, resolverCuentaPorMapeo, 
 import { esquemaCompra, erroresPorCampo } from '@/schemas/compra';
 import { addStock } from '@/services/inventoryService';
 import { efectoEnCajaDeDocumento, reflejarEnCaja } from '@/services/caja/efectivoDeCaja';
+import { efectoEnCuentaDeDocumento } from '@/services/contabilidad/efectoEnCuenta';
+import { resolverOrigenDeCompra } from '@/services/cxp/resolverOrigenDeCompra';
+import { reflejarEnBancoDeCompra } from '@/services/cxp/bancoDeLaCompra';
 
 // Auditoria P0-05 (2026-09-03): `getOrCreateAccount` vivia aqui -- eliminado.
 // Creaba cuentas sobre la marcha sin `nature`/`level` correctos, y no
@@ -59,7 +62,10 @@ export async function POST(req: NextRequest) {
       warehouseId,
       lines, // Array of { productId, description, quantity, unitCost, subtotal, itbis, total }
       guaranteeCheck,
-      debitAccountId
+      debitAccountId,
+      // Lote 170: de donde sale el pago cuando no es efectivo ni a credito.
+      paymentAccountId,
+      bankAccountId
     } = body;
 
     // La validacion vive en src/schemas/compra.ts, el MISMO esquema que pasa
@@ -124,9 +130,17 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await db.transaction(async (tx) => {
+      // Lote 170: de donde sale el dinero. Se valida ANTES de escribir nada; si
+      // no encaja (banco de otra empresa, cuenta de agrupacion, tarjeta contra
+      // una cuenta que no es por pagar) lanza con el motivo.
+      const origen = await resolverOrigenDeCompra(tx, session.companyId, paymentMethod, {
+        paymentAccountId: paymentAccountId || null,
+        bankAccountId: bankAccountId || null,
+      });
+
       // 1. Insert Expense header
       const newExpenseId = uuidv4();
-      
+
       await tx.insert(expenses).values({
         id: newExpenseId,
         companyId: session.companyId,
@@ -148,6 +162,8 @@ export async function POST(req: NextRequest) {
         otherTaxes: (otherTaxes || 0).toString(),
         tip: (tip || 0).toString(),
         paymentMethod,
+        paymentAccountId: origen.cuentaQueAcredita,
+        bankAccountId: origen.bankAccountId,
         description: description || null
       });
 
@@ -342,9 +358,15 @@ export async function POST(req: NextRequest) {
             : await resolverCuentaPorMapeo(tx, session.companyId, 'cost_of_goods_sold', '5.1.01', 'Compra - Costo de Ventas');
         }
 
+        // Lote 170: al contado ya no es siempre la CAJA. Con cheque,
+        // transferencia o tarjeta acredita la cuenta del origen elegido (el
+        // banco, o la cuenta por pagar de la tarjeta). El efectivo sigue
+        // acreditando la caja.
         const accCredit = isCredit
           ? await resolverCuentaPorMapeo(tx, session.companyId, 'supplier_payable', '2.1.01.01', 'Compra - Cuentas por Pagar')
-          : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
+          : origen.cuentaQueAcredita
+            ? { id: origen.cuentaQueAcredita }
+            : await resolverCuentaPorMapeo(tx, session.companyId, 'cash', '1.1.01.01', 'Compra - Efectivo');
 
         const journalLines = [
           { accountId: accDebit.id, debit: subtotalVal, credit: 0 },
@@ -403,6 +425,21 @@ export async function POST(req: NextRequest) {
         descripcion: `Compra en efectivo NCF: ${ncf || 'N/A'}`,
         cambioEnCaja: await efectoEnCajaDeDocumento(tx, session.companyId, session.modo, newExpenseId),
       });
+
+      // Lote 170: y si salio de un banco, el retiro queda en SU libro,
+      // pendiente de conciliar (mismo criterio que el pago a suplidor).
+      if (origen.bankAccountId) {
+        const acredita = origen.cuentaQueAcredita!;
+        await reflejarEnBancoDeCompra(tx, {
+          companyId: session.companyId,
+          modo: session.modo,
+          bankAccountId: origen.bankAccountId,
+          referencia: ncf ? `COM-${ncf}` : `COM-${newExpenseId.slice(0, 8)}`,
+          descripcion: `Compra a ${supplierId ? 'suplidor' : 'gasto menor'} NCF: ${ncf || 'N/A'}`,
+          fecha: new Date(issueDate).toISOString().split('T')[0],
+          cambioEnCuenta: await efectoEnCuentaDeDocumento(tx, session.companyId, session.modo, newExpenseId, acredita),
+        });
+      }
 
       return { id: newExpenseId };
     });
