@@ -112,6 +112,57 @@ async function main() {
       PUENTES_DE_CUENTAS.some((p) => p.codigo === '2.1.01.03' && p.tipo === 'liability'));
   }
 
+  console.log('\n1-bis) Los bloques de la pantalla (lote 175)\n');
+  if (!T || !('GRUPOS_DE_PUENTES' in T)) {
+    for (const t of [
+      'las cuentas puente se reparten en bloques',
+      'el reparto es TOTAL: ninguna cuenta se queda fuera de un bloque',
+      '  y ninguna cae en dos',
+      'ningun bloque sale vacio',
+      'cada bloque dice que alimenta',
+      'no hay bloque de recursos humanos, porque la nomina no asienta',
+    ]) falta(t, 'cuentasDelSistema.ts no exporta GRUPOS_DE_PUENTES');
+  } else {
+    const { GRUPOS_DE_PUENTES, PUENTES_DE_CUENTAS, CUENTAS_DEL_SISTEMA } = T;
+
+    ok('las cuentas puente se reparten en bloques', GRUPOS_DE_PUENTES.length >= 2,
+      String(GRUPOS_DE_PUENTES.length));
+
+    // La propiedad que importa, la misma que en `purchases/pasos.ts`: si una
+    // cuenta no cayera en ningun bloque, DESAPARECERIA de la pantalla sin que
+    // nadie se entere -- que es exactamente el defecto que cerro el lote 171.
+    const enBloques = GRUPOS_DE_PUENTES.flatMap((g) => g.puentes.map((p) => p.codigo));
+    const fuera = PUENTES_DE_CUENTAS.filter((p) => !enBloques.includes(p.codigo)).map((p) => p.codigo);
+    ok('el reparto es TOTAL: ninguna cuenta se queda fuera de un bloque',
+      fuera.length === 0, fuera.join(' '));
+    ok('  y ninguna cae en dos', new Set(enBloques).size === enBloques.length,
+      enBloques.filter((c, i) => enBloques.indexOf(c) !== i).join(' '));
+    ok('  y no aparece ninguna que no sea del sistema',
+      enBloques.every((c) => PUENTES_DE_CUENTAS.some((p) => p.codigo === c)));
+
+    ok('ningun bloque sale vacio', GRUPOS_DE_PUENTES.every((g) => g.puentes.length > 0),
+      GRUPOS_DE_PUENTES.filter((g) => !g.puentes.length).map((g) => g.categoria).join(' '));
+    ok('cada bloque tiene titulo y dice que alimenta',
+      GRUPOS_DE_PUENTES.every((g) => !!g.titulo.trim() && !!g.descripcion.trim()));
+    ok('  y cada cuenta del bloque es de su categoria',
+      GRUPOS_DE_PUENTES.every((g) => g.puentes.every((p) => p.categoria === g.categoria)));
+
+    // No es un olvido: medido el 2026-09-20, `api/v1/hr/` no menciona asientos
+    // ni cuentas contables. Un bloque vacio sugeriria que hay algo que
+    // configurar. Si algun dia la nomina asienta, esta comprobacion cae y toca
+    // revisarla -- que es justo lo que se quiere.
+    ok('no hay bloque de recursos humanos, porque la nomina no asienta',
+      !GRUPOS_DE_PUENTES.some((g) => /recursos humanos|nomina|nómina/i.test(g.titulo)));
+    ok('  y ninguna clave del sistema es de nomina',
+      !CUENTAS_DEL_SISTEMA.some((c) => /payroll|salar|nomina/i.test(c.clave)));
+
+    ok('la tarjeta de credito va con caja y bancos (es de donde sale el dinero)',
+      GRUPOS_DE_PUENTES.find((g) => g.puentes.some((p) => p.codigo === '2.1.01.03'))?.categoria === 'caja_bancos');
+    ok('las retenciones van juntas, en impuestos',
+      ['1.1.04.02', '1.1.04.03', '1.1.04.04', '2.1.02.02', '2.1.02.03'].every((c) =>
+        GRUPOS_DE_PUENTES.find((g) => g.puentes.some((p) => p.codigo === c))?.categoria === 'impuestos'));
+  }
+
   console.log('\n2) El catalogo se crea al crear la empresa\n');
   const repo = leer(REPO);
   const iSembrador = repo.indexOf('public static async seedDefaultChartOfAccounts(');
@@ -171,12 +222,14 @@ async function main() {
   }
 
   console.log('\n4) La pantalla de Cuentas Puente sale de la tabla\n');
-  ok('la pantalla importa los puentes', /import \{ PUENTES_DE_CUENTAS \} from '@\/services\/accounting\/cuentasDelSistema'/.test(ajustes));
-  ok('  y pinta una fila por cada uno', /PUENTES_DE_CUENTAS\.map\(/.test(ajustes));
+  ok('la pantalla importa los bloques', /import \{ GRUPOS_DE_PUENTES \} from '@\/services\/accounting\/cuentasDelSistema'/.test(ajustes));
+  ok('  y pinta una tarjeta por bloque', /GRUPOS_DE_PUENTES\.map\(\(grupo\) => \(/.test(ajustes));
+  ok('  con su titulo y su descripcion', /\{grupo\.titulo\}/.test(ajustes) && /\{grupo\.descripcion\}/.test(ajustes));
+  ok('  y dentro, una fila por cuenta', /grupo\.puentes\.map\(\(puente\) => \{/.test(ajustes));
   // La negacion sola seria verdad de balde si la pantalla no existiera: va
-  // unida a que los puentes SI esten.
+  // unida a que los bloques SI esten.
   const claveAMano = /\{ key: '(sales_revenue|cash|bank|inventory|supplier_payable)', label:/.test(ajustes);
-  ok('ya no queda la lista de claves escrita a mano', !claveAMano && /PUENTES_DE_CUENTAS/.test(ajustes));
+  ok('ya no queda la lista de claves escrita a mano', !claveAMano && /GRUPOS_DE_PUENTES/.test(ajustes));
   ok('guardar escribe TODAS las claves de la fila (no solo la primera)',
     /Object\.fromEntries\(puente\.claves\.map\(k => \[k, e\.target\.value\]\)\)/.test(ajustes));
   ok('el desplegable solo ofrece cuentas del tipo que el sistema espera',
@@ -217,7 +270,10 @@ async function main() {
   // sino claves): va unida a que las filas salgan ya de la tabla.
   for (const [nombre, src, marca] of [
     ['compras', compras, /mapeos\['credit_card_payable'\]/],
-    ['ajustes', ajustes, /PUENTES_DE_CUENTAS\.map\(/],
+    // Lote 175: la marca era `PUENTES_DE_CUENTAS.map(`; ahora la pantalla
+    // recorre los BLOQUES. Se ancla en lo que no cambia de sitio: que las
+    // filas salgan de la tabla y no de una lista escrita aqui.
+    ['ajustes', ajustes, /GRUPOS_DE_PUENTES\.map\(/],
   ] as const) {
     const hallados = [...src.matchAll(codigoSuelto)].map((m) => m[0]);
     ok(`la pantalla de ${nombre} no lleva ningun codigo de cuenta escrito`,

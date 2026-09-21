@@ -44,32 +44,51 @@ export interface CuentaDelSistema {
    * 9 de las 16 claves. Las otras 7 no habia donde configurarlas.
    */
   etiqueta: string;
+  /**
+   * En que bloque de la pantalla aparece (lote 175). Es OBLIGATORIA a
+   * proposito: asi una clave nueva no puede quedarse sin sitio -- el
+   * compilador la reclama -- y nadie tiene que acordarse de añadirla a una
+   * lista aparte.
+   */
+  categoria: CategoriaDePuente;
 }
+
+/**
+ * Los bloques en que se agrupan las cuentas puente.
+ *
+ * Son CINCO y no seis: no hay categoria de recursos humanos porque, medido el
+ * 2026-09-20, la nomina NO ASIENTA -- `api/v1/hr/` no menciona ni asientos ni
+ * cuentas contables. Los sueldos, la TSS y el ISR retenido a empleados se
+ * calculan y se pagan, pero no entran al libro mayor. Crear un bloque vacio
+ * sugeriria que hay algo que configurar; cuando la nomina se contabilice,
+ * entrara con sus claves y su categoria.
+ */
+export type CategoriaDePuente = 'caja_bancos' | 'clientes' | 'inventario' | 'compras' | 'impuestos';
 
 /** La tabla. El sembrador la siembra entera y el codigo la usa por defecto. */
 export const CUENTAS_DEL_SISTEMA: readonly CuentaDelSistema[] = [
-  { clave: 'cash', codigo: '1.1.01.01', nombre: 'Caja General', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Caja General' },
-  { clave: 'bank', codigo: '1.1.01.02', nombre: 'Banco Popular', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Bancos' },
-  { clave: 'accounts_receivable', codigo: '1.1.02.01', nombre: 'Cuentas por Cobrar Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Cuentas por Cobrar (Clientes)' },
-  { clave: 'inventory', codigo: '1.1.03.01', nombre: 'Inventario de Mercancía', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Inventario' },
-  { clave: 'itbis_purchases', codigo: '1.1.04.01', nombre: 'ITBIS Pagado en Compras', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Pagado en Compras' },
+  { clave: 'cash', codigo: '1.1.01.01', nombre: 'Caja General', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Caja General', categoria: 'caja_bancos' },
+  { clave: 'bank', codigo: '1.1.01.02', nombre: 'Banco Popular', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Bancos', categoria: 'caja_bancos' },
+  { clave: 'accounts_receivable', codigo: '1.1.02.01', nombre: 'Cuentas por Cobrar Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Cuentas por Cobrar (Clientes)', categoria: 'clientes' },
+  { clave: 'inventory', codigo: '1.1.03.01', nombre: 'Inventario de Mercancía', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Inventario', categoria: 'inventario' },
+  { clave: 'itbis_purchases', codigo: '1.1.04.01', nombre: 'ITBIS Pagado en Compras', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Pagado en Compras', categoria: 'impuestos' },
   // Lote 165: la misma cuenta, con la clave que usan las compras. Comparten
   // etiqueta a proposito: en la pantalla son UNA fila (ver PUENTES_DE_CUENTAS).
-  { clave: 'purchase_itbis_paid', codigo: '1.1.04.01', nombre: 'ITBIS Pagado en Compras', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Pagado en Compras' },
+  { clave: 'purchase_itbis_paid', codigo: '1.1.04.01', nombre: 'ITBIS Pagado en Compras', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Pagado en Compras', categoria: 'impuestos' },
   // El ISR que retiene el cliente es un anticipo del ISR de la empresa.
-  { clave: 'isr_retention_receivable', codigo: '1.1.04.02', nombre: 'Anticipos de ISR', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Anticipos de ISR (retenido por clientes)' },
-  { clave: 'itbis_retention_receivable', codigo: '1.1.04.03', nombre: 'ITBIS Retenido por Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Retenido por Clientes' },
-  { clave: 'other_retention_receivable', codigo: '1.1.04.04', nombre: 'Otras Retenciones por Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Otras Retenciones por Clientes' },
-  { clave: 'supplier_payable', codigo: '2.1.01.01', nombre: 'Cuentas por Pagar Proveedores', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Cuentas por Pagar (Proveedores)' },
+  { clave: 'isr_retention_receivable', codigo: '1.1.04.02', nombre: 'Anticipos de ISR', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Anticipos de ISR (retenido por clientes)', categoria: 'impuestos' },
+  { clave: 'itbis_retention_receivable', codigo: '1.1.04.03', nombre: 'ITBIS Retenido por Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'ITBIS Retenido por Clientes', categoria: 'impuestos' },
+  { clave: 'other_retention_receivable', codigo: '1.1.04.04', nombre: 'Otras Retenciones por Clientes', tipo: 'asset', naturaleza: 'debit', etiqueta: 'Otras Retenciones por Clientes', categoria: 'impuestos' },
+  { clave: 'supplier_payable', codigo: '2.1.01.01', nombre: 'Cuentas por Pagar Proveedores', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Cuentas por Pagar (Proveedores)', categoria: 'compras' },
   // Lote 171: la compra pagada con tarjeta de credito no sale de un banco --
   // la paga el emisor y la empresa se lo debe. Ver services/cxp/origenDeLaCompra.ts.
-  { clave: 'credit_card_payable', codigo: '2.1.01.03', nombre: 'Tarjetas de Crédito por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Tarjetas de Crédito por Pagar' },
-  { clave: 'itbis_sales', codigo: '2.1.02.01', nombre: 'ITBIS Cobrado en Ventas', tipo: 'liability', naturaleza: 'credit', etiqueta: 'ITBIS Cobrado en Ventas' },
-  { clave: 'itbis_withholding_payable', codigo: '2.1.02.02', nombre: 'ITBIS Retenido por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'ITBIS Retenido por Pagar' },
-  { clave: 'isr_withholding_payable', codigo: '2.1.02.03', nombre: 'Retenciones de ISR por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Retenciones de ISR por Pagar' },
-  { clave: 'sales_revenue', codigo: '4.1.01', nombre: 'Ventas de Mercancías', tipo: 'revenue', naturaleza: 'credit', etiqueta: 'Ingresos por Ventas' },
-  { clave: 'cost_of_goods_sold', codigo: '5.1.01', nombre: 'Costo de Ventas Mercancías', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Costo de Ventas' },
-  { clave: 'purchase_other_taxes', codigo: '5.1.02', nombre: 'Otros Impuestos y Tasas', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Otros Impuestos y Tasas (compras)' },
+  { clave: 'credit_card_payable', codigo: '2.1.01.03', nombre: 'Tarjetas de Crédito por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Tarjetas de Crédito por Pagar', categoria: 'caja_bancos' },
+  { clave: 'itbis_sales', codigo: '2.1.02.01', nombre: 'ITBIS Cobrado en Ventas', tipo: 'liability', naturaleza: 'credit', etiqueta: 'ITBIS Cobrado en Ventas', categoria: 'impuestos' },
+  { clave: 'itbis_withholding_payable', codigo: '2.1.02.02', nombre: 'ITBIS Retenido por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'ITBIS Retenido por Pagar', categoria: 'impuestos' },
+  { clave: 'isr_withholding_payable', codigo: '2.1.02.03', nombre: 'Retenciones de ISR por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Retenciones de ISR por Pagar', categoria: 'impuestos' },
+  { clave: 'sales_revenue', codigo: '4.1.01', nombre: 'Ventas de Mercancías', tipo: 'revenue', naturaleza: 'credit', etiqueta: 'Ingresos por Ventas', categoria: 'clientes' },
+  { clave: 'cost_of_goods_sold', codigo: '5.1.01', nombre: 'Costo de Ventas Mercancías', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Costo de Ventas', categoria: 'inventario' },
+  { clave: 'purchase_other_taxes', codigo: '5.1.02', nombre: 'Otros Impuestos y Tasas', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Otros Impuestos y Tasas (compras)', categoria: 'compras' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -82,6 +101,7 @@ export interface PuenteDeCuenta {
   etiqueta: string;
   codigo: string;
   tipo: TipoCuenta;
+  categoria: CategoriaDePuente;
 }
 
 /**
@@ -111,9 +131,55 @@ export interface PuenteDeCuenta {
 export const PUENTES_DE_CUENTAS: readonly PuenteDeCuenta[] = CUENTAS_DEL_SISTEMA.reduce<PuenteDeCuenta[]>((acc, c) => {
   const ya = acc.find((p) => p.codigo === c.codigo);
   if (ya) { ya.claves.push(c.clave); return acc; }
-  acc.push({ claves: [c.clave], etiqueta: c.etiqueta, codigo: c.codigo, tipo: c.tipo });
+  acc.push({ claves: [c.clave], etiqueta: c.etiqueta, codigo: c.codigo, tipo: c.tipo, categoria: c.categoria });
   return acc;
 }, []);
+
+// ---------------------------------------------------------------------------
+// Los bloques de la pantalla (lote 175)
+// ---------------------------------------------------------------------------
+
+export interface GrupoDePuentes {
+  categoria: CategoriaDePuente;
+  titulo: string;
+  /** Una linea que diga QUE alimenta este bloque, para no tener que adivinarlo. */
+  descripcion: string;
+  puentes: PuenteDeCuenta[];
+}
+
+/**
+ * El orden y el nombre de cada bloque. Es lo unico escrito a mano; QUE cuenta
+ * cae en cada uno sale de la tabla, asi que una clave nueva aparece en su
+ * bloque sin tocar esto.
+ */
+const BLOQUES: readonly { categoria: CategoriaDePuente; titulo: string; descripcion: string }[] = [
+  { categoria: 'caja_bancos', titulo: 'Caja, bancos y tarjetas',
+    descripcion: 'De dónde sale y a dónde entra el dinero: ventas y cobros en efectivo, depósitos, y las compras pagadas con tarjeta de crédito.' },
+  { categoria: 'clientes', titulo: 'Clientes y ventas',
+    descripcion: 'Lo que se factura y lo que queda por cobrar.' },
+  { categoria: 'inventario', titulo: 'Inventario y costo',
+    descripcion: 'La mercancía en almacén y lo que cuesta cuando se vende.' },
+  { categoria: 'compras', titulo: 'Compras y proveedores',
+    descripcion: 'Lo que se le debe a los suplidores y los impuestos que van al costo de la compra.' },
+  { categoria: 'impuestos', titulo: 'Impuestos y retenciones',
+    descripcion: 'ITBIS cobrado y pagado, y las retenciones — las que hace la empresa y las que le hacen a ella.' },
+];
+
+/**
+ * Las cuentas puente repartidas en bloques.
+ *
+ * EL REPARTO TIENE QUE SER TOTAL, igual que el de los pasos de la compra
+ * (`dashboard/purchases/pasos.ts`): toda cuenta cae en EXACTAMENTE un bloque.
+ * Si alguna no cayera, desapareceria de la pantalla sin que nadie se entere --
+ * que es justo el defecto que cerro el lote 171, con nueve de dieciseis claves
+ * fuera. Aqui no puede pasar por construccion: `categoria` es obligatoria en el
+ * tipo y los bloques se derivan de ella, asi que el compilador reclama la
+ * categoria de cualquier clave nueva. Un bloque vacio se descarta: no tiene
+ * sentido enseñar una tarjeta sin nada dentro.
+ */
+export const GRUPOS_DE_PUENTES: readonly GrupoDePuentes[] = BLOQUES
+  .map((b) => ({ ...b, puentes: PUENTES_DE_CUENTAS.filter((p) => p.categoria === b.categoria) }))
+  .filter((g) => g.puentes.length > 0);
 
 /**
  * Los codigos que el codigo usaba por defecto antes del lote 165 y que, en las

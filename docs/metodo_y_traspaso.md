@@ -553,6 +553,25 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 175: las cuentas puente, en bloques.** Desde el lote 171 la pantalla
+  enseña las **dieciséis** en el orden del catálogo (1.1.01.01, 1.1.01.02,
+  1.1.02.01…), que para quien las configura no es un orden. Ahora van en cinco
+  tarjetas —caja/bancos/tarjetas, clientes y ventas, inventario y costo,
+  compras y proveedores, impuestos y retenciones— con una línea que dice qué
+  alimenta cada una. La **categoría es campo obligatorio** de
+  `CUENTAS_DEL_SISTEMA` y los bloques se derivan de ella: una clave nueva no
+  puede quedarse sin sitio, porque el compilador la reclama. El reparto es
+  **total** (toda cuenta en exactamente un bloque), la misma propiedad que
+  `purchases/pasos.ts`, y por el mismo motivo: si una no cayera, desaparecería
+  de la pantalla — que es el defecto del lote 171.
+  **No hay bloque de recursos humanos, y no es un olvido**: el dueño lo pidió y
+  al ir a hacerlo salió que **la nómina NO ASIENTA** — `api/v1/hr/` no menciona
+  ni asientos ni cuentas contables. Sueldos, TSS e ISR retenido a empleados se
+  calculan y se pagan pero **no entran al libro mayor**. Queda como frente
+  aparte, con decisiones contables del dueño; el banco lleva dos comprobaciones
+  que **caerán el día que la nómina asiente**, que es cuando hay que mirarlo.
+  **De paso**: el trinquete del 171 ("ningún código de cuenta escrito en la
+  pantalla") se cazó a sí mismo — su marca anclaba `PUENTES_DE_CUENTAS.map(`.
 - **Lote 174: "Ventas de hoy" se vaciaba a las 8 de la noche.**
   `biRepository.getGeneralStats` calculaba el día con
   `new Date().toISOString().split('T')[0]` —el día **UTC**— y Vercel corre en

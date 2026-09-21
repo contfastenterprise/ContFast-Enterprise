@@ -7,7 +7,7 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { PUENTES_DE_CUENTAS } from '@/services/accounting/cuentasDelSistema';
+import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -1057,8 +1057,20 @@ export default function SettingsPage() {
                 16: las retenciones, los anticipos de ISR y los otros impuestos
                 los resolvia el codigo con un codigo de cuenta por defecto y no
                 habia donde cambiarlos. Ahora la proxima clave aparece sola. */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {PUENTES_DE_CUENTAS.map((puente) => {
+            {/* Lote 175: una tarjeta por bloque. Dieciseis desplegables
+                seguidos no se leen: hay que saber cual es cual, y el orden
+                1.1.01.01, 1.1.01.02, 1.1.02.01... es el del catalogo, no el de
+                la cabeza de quien lo configura. Los bloques salen de la tabla
+                (GRUPOS_DE_PUENTES), no de una lista aqui. */}
+            <div className="space-y-4">
+            {GRUPOS_DE_PUENTES.map((grupo) => (
+            <div key={grupo.categoria} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+              <div className="mb-3">
+                <h4 className="text-sm font-bold text-[#001e40]">{grupo.titulo}</h4>
+                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{grupo.descripcion}</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {grupo.puentes.map((puente) => {
                 // Todas las claves de la fila apuntan a la misma cuenta; se lee
                 // de la primera que tenga valor para no perder lo ya guardado
                 // si una empresa antigua solo tiene enlazada una de las dos.
@@ -1091,6 +1103,9 @@ export default function SettingsPage() {
                   </div>
                 );
               })}
+              </div>
+            </div>
+            ))}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
