@@ -553,6 +553,29 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 174: "Ventas de hoy" se vaciaba a las 8 de la noche.**
+  `biRepository.getGeneralStats` calculaba el día con
+  `new Date().toISOString().split('T')[0]` —el día **UTC**— y Vercel corre en
+  UTC. RD es UTC−4 todo el año: **a partir de las 20:00 hora de RD el día UTC ya
+  es el siguiente**, así que el panel perdía la jornada entera y solo contaba lo
+  vendido después de esa hora. Misma trampa del lote 158, en otro sitio.
+  **Salió por casualidad**: la verificación del lote 173 se corrió a las 20:22 y
+  `verificar_bi.ts` se puso en rojo. A cualquier otra hora habría pasado.
+  `diaRD`/`diaRDMas` suben de `services/avisos/vencimientos.ts` a
+  `utils/fechasLocales.ts` (con `primerDiaDelMesRD`/`primerDiaDelAnoRD`), y el
+  SQL convierte la columna:
+  `((created_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Santo_Domingo')::date`.
+  El primer `AT TIME ZONE` **no sobra**: sin él Postgres interpreta el
+  `timestamp sin zona` en la zona de la SESIÓN y el panel daría cifras distintas
+  según quién lo abra (hay una comprobación que lo ejerce en Asia/Tokyo).
+  **El entorno de pruebas no se parecía a producción**: Supabase corre en UTC y
+  el cluster desechable heredaba la zona de Windows (America/La_Paz, UTC−4), así
+  que guardaba hora local. `base_desechable.ps1` lo crea con `timezone=UTC`.
+  **`verificar_bi.ts` no basta como guarda**: sus facturas usan `now()`, así que
+  las dos lógicas coinciden casi siempre. `verificar_dia_de_rd.ts` fija el
+  `created_at` a las 23:30 de RD —donde discrepan— y lo comprueba con una
+  precondición que se niega si la factura no quedó guardada en el día UTC
+  siguiente. Contraprueba 9/9, tres mutantes muertos.
 - **Lote 172: cerrar la caja deja de ser una formalidad.** Medido el 2026-09-20:
   las **tres** sesiones cerradas de Latin Doors cuadran **al centavo** y ninguna
   lleva justificación (34 y 44 días abiertas; 1.200.825,01 y 2.204.992,49). Los

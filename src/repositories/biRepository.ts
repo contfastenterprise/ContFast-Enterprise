@@ -6,7 +6,22 @@ import {
   accountsReceivable, accountsPayable, quotes, deliveryNotes,
   retentions, invoiceRetentions, payrolls, payrollDetails
 } from '@/db/schema';
-import { eq, and, gte, lte, sql, desc, asc, isNull, inArray, notInArray } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, desc, asc, isNull, inArray, notInArray, type SQLWrapper } from 'drizzle-orm';
+import { diaRD, primerDiaDelMesRD, primerDiaDelAnoRD } from '@/utils/fechasLocales';
+
+/**
+ * El dia de RD de una columna de fecha-hora, en SQL (lote 174).
+ *
+ * `created_at` es `timestamp sin zona` y guarda UTC -- Supabase corre en UTC.
+ * Primero se le dice que lo que tiene es UTC y luego se lleva a la hora de
+ * Republica Dominicana; sin lo primero, Postgres lo interpretaria en la zona
+ * de la sesion y el resultado cambiaria segun quien pregunte.
+ *
+ * `America/Santo_Domingo` y no "-4 horas" a mano: si algun dia el pais adopta
+ * horario de verano, lo sabe la base de datos, no este fichero.
+ */
+const diaRDdeColumna = (columna: SQLWrapper) =>
+  sql`((${columna} AT TIME ZONE 'UTC') AT TIME ZONE 'America/Santo_Domingo')::date`;
 
 /** PRODUCCION o PRUEBA. Obligatorio: ver la nota de cabecera de la clase. */
 export type Modo = 'PRODUCCION' | 'PRUEBA';
@@ -63,16 +78,26 @@ export class BIRepository {
 
   // ─── 1. GENERAL EXECUTIVE DASHBOARD ─────────────────────────────────────────
   static async getGeneralStats(companyId: string, modo: Modo, filters: BIFilters) {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const startOfMonthStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    const startOfYearStr = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
+    // EL DIA ES EL DE REPUBLICA DOMINICANA, NO EL DEL SERVIDOR (lote 174).
+    //
+    // Aqui ponia `new Date().toISOString().split('T')[0]`, que es el dia UTC, y
+    // Vercel corre en UTC. A partir de las 20:00 hora de RD el dia UTC ya es el
+    // siguiente: "Ventas de hoy" perdia la jornada entera y solo contaba lo
+    // vendido despues de esa hora. Cuatro horas cada dia, que es por lo que
+    // llevaba escondido. Misma trampa que cerro el lote 158 en los avisos.
+    const todayStr = diaRD();
+    const startOfMonthStr = primerDiaDelMesRD();
+    const startOfYearStr = primerDiaDelAnoRD();
 
     // Sales Aggregations
     const invoiceConds = this.applyInvoiceFilters(filters);
     const [salesAgg] = await db.select({
-      todaySales: sql<number>`SUM(CASE WHEN DATE(${invoices.createdAt}) = ${todayStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
-      monthSales: sql<number>`SUM(CASE WHEN DATE(${invoices.createdAt}) >= ${startOfMonthStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
-      yearSales: sql<number>`SUM(CASE WHEN DATE(${invoices.createdAt}) >= ${startOfYearStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
+      // `created_at` es `timestamp sin zona` y guarda UTC (Supabase corre en
+      // UTC). Para comparar contra un dia de RD hay que convertirlo, o se
+      // compara una hora UTC con una fecha dominicana.
+      todaySales: sql<number>`SUM(CASE WHEN ${diaRDdeColumna(invoices.createdAt)} = ${todayStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
+      monthSales: sql<number>`SUM(CASE WHEN ${diaRDdeColumna(invoices.createdAt)} >= ${startOfMonthStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
+      yearSales: sql<number>`SUM(CASE WHEN ${diaRDdeColumna(invoices.createdAt)} >= ${startOfYearStr} THEN CAST(${invoices.total} AS numeric) ELSE 0 END)`,
       totalInvoices: sql<number>`COUNT(${invoices.id})`
     }).from(invoices)
     .where(and(

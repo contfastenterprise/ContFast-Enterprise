@@ -26,24 +26,11 @@
 /** Dias de antelacion con que se avisa de un cheque en garantia. */
 export const DIAS_AVISO_CHEQUE = 3;
 
-/** Republica Dominicana no cambia la hora en todo el año: siempre UTC-4. */
-const DESFASE_RD_MS = 4 * 60 * 60 * 1000;
-
-/** El dia (aaaa-mm-dd) en hora de RD que corresponde a un instante. */
-export function diaRD(instante: Date | string): string {
-  const d = instante instanceof Date ? instante : new Date(instante);
-  if (Number.isNaN(d.getTime())) return '';
-  return new Date(d.getTime() - DESFASE_RD_MS).toISOString().slice(0, 10);
-}
-
-/** El dia de RD sumandole dias enteros. */
-export function diaRDMas(instante: Date | string, dias: number): string {
-  const base = diaRD(instante);
-  if (!base) return '';
-  const d = new Date(`${base}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
+// `diaRD` y `diaRDMas` nacieron aqui (lote 158) y subieron a
+// `utils/fechasLocales.ts` en el lote 174, cuando el panel necesito el mismo
+// dia de RD. Se reexportan para no tocar a quien ya los importaba de aqui.
+export { diaRD, diaRDMas, DESFASE_RD_MS } from '@/utils/fechasLocales';
+import { diaRD, diaRDMas } from '@/utils/fechasLocales';
 
 /**
  * Hasta que fecha de cobro hay que avisar. Incluye los ya vencidos: quien mira

@@ -43,9 +43,21 @@ function Psql([string]$base, [string[]]$resto) {
 function Arrancar {
   if (-not (Test-Path -LiteralPath (Join-Path $DATOS 'PG_VERSION'))) {
     New-Item -ItemType Directory -Force $RAIZ | Out-Null
+    # `timezone=UTC` NO es un detalle (lote 174): Supabase corre en UTC, asi que
+    # `created_at` guarda UTC. Este cluster heredaba la zona de Windows
+    # (America/La_Paz, UTC-4) y guardaba hora local, con lo que un banco que
+    # convierta de UTC a hora de RD pasaba aqui y fallaba en produccion -- o al
+    # reves. El entorno de pruebas se parece a produccion o no sirve.
     & "$BIN\initdb.exe" -D $DATOS -U postgres --auth=trust --encoding=UTF8 --locale=C `
-      -c listen_addresses=127.0.0.1 -c port=$PUERTO | Out-Null
+      -c listen_addresses=127.0.0.1 -c port=$PUERTO -c timezone=UTC -c log_timezone=UTC | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'initdb fallo' }
+  }
+  # Tambien para un cluster que ya existiera antes del lote 174.
+  if (Test-Path -LiteralPath (Join-Path $DATOS 'postgresql.conf')) {
+    $conf = Get-Content -LiteralPath (Join-Path $DATOS 'postgresql.conf') -Raw
+    if ($conf -notmatch "(?m)^timezone = 'UTC'") {
+      Add-Content -LiteralPath (Join-Path $DATOS 'postgresql.conf') -Value "`ntimezone = 'UTC'`nlog_timezone = 'UTC'"
+    }
   }
   & "$BIN\pg_isready.exe" -h 127.0.0.1 -p $PUERTO -q
   if ($LASTEXITCODE -eq 0) { return }

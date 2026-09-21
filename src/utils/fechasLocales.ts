@@ -33,6 +33,48 @@
  * correcto. Para eso esta `diaDe`, que acepta las dos formas.
  */
 
+// ---------------------------------------------------------------------------
+// El dia de REPUBLICA DOMINICANA
+// ---------------------------------------------------------------------------
+//
+// Vivia en `services/avisos/vencimientos.ts` (lote 158). Subio aqui en el lote
+// 174 porque el panel lo necesita igual: `biRepository` calculaba "hoy" con
+// `new Date().toISOString()`, que es el dia UTC, y el servidor de Vercel corre
+// en UTC. Resultado: a partir de las 20:00 hora de RD el dia UTC ya es el
+// siguiente, y "Ventas de hoy" perdia la jornada entera y solo contaba lo
+// vendido despues de esa hora.
+//
+// `getLocalDateString` no sirve para esto: usa los captadores locales del
+// proceso, que en Vercel son UTC. El dia de un negocio dominicano no depende
+// de donde este el servidor.
+
+/** Republica Dominicana no cambia la hora en todo el año: siempre UTC-4. */
+export const DESFASE_RD_MS = 4 * 60 * 60 * 1000;
+
+/** El dia (aaaa-mm-dd) en hora de RD que corresponde a un instante. */
+export function diaRD(instante: Date | string = new Date()): string {
+  const d = instante instanceof Date ? instante : new Date(instante);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Date(d.getTime() - DESFASE_RD_MS).toISOString().slice(0, 10);
+}
+
+/** El dia de RD sumandole dias enteros. */
+export function diaRDMas(instante: Date | string, dias: number): string {
+  const base = diaRD(instante);
+  if (!base) return '';
+  const d = new Date(`${base}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** El primer dia del mes de RD al que pertenece un instante. */
+export const primerDiaDelMesRD = (instante: Date | string = new Date()): string =>
+  `${diaRD(instante).slice(0, 7)}-01`;
+
+/** El primer dia del año de RD al que pertenece un instante. */
+export const primerDiaDelAnoRD = (instante: Date | string = new Date()): string =>
+  `${diaRD(instante).slice(0, 4)}-01-01`;
+
 export function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
