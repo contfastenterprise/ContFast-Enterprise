@@ -553,6 +553,35 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 179: el aviso encaja en la plantilla aprobada.** El 178 mandaba el
+  aviso como **un** parámetro suelto (no había plantilla cuando se escribió). La
+  que creó el dueño el 2026-09-21 en el panel de Kapso, `aviso_administrativo`
+  (**es_MX**), tiene **cinco huecos y con nombre**: `administrador`,
+  `tipo_aviso`, `cantidad`, `fecha`, `app_name`. Meta rechaza el mensaje
+  **entero** si el número de parámetros no coincide (132000), así que **en
+  cuanto se pusiera `KAPSO_PLANTILLA_AVISO` no habría salido ni un aviso**, y
+  como nada lanza solo se habría visto en el registro.
+  `services/avisos/plantillaDeAviso.ts` (puro) rellena los cinco: la **empresa**
+  en el saludo (el destino es por empresa y quien administra varias las recibe
+  todas en el mismo teléfono), título + descripción sin el punto final que ya
+  pone la plantilla, el **importe leído del texto** del aviso — o "No aplica",
+  porque inventarle un cero a un 606 que vence se lee como una cantidad — y el
+  **día de RD**, no el del servidor (el defecto del 174 otra vez: en UTC, a
+  partir de las 20:00 de RD ya es mañana). **Reglas de Meta para un parámetro de
+  cuerpo**: ni vacío, ni salto de línea, ni tabulador, ni cuatro espacios
+  seguidos, y con tope; el texto de un aviso está escrito para una pantalla, así
+  que pasa por `limpiarParametro`.
+  **Lo que no se puede comprobar desde aquí, y hay que saberlo**: que la
+  plantilla exista en la cuenta de Meta. El 2026-09-21
+  `GET /meta/whatsapp/v24.0/1111045594943789/message_templates` devolvía
+  `{"data":[]}` — creada en el panel de Kapso, aún no en la cuenta del número
+  (hay además una configuración de **sandbox**, `2102230076919824`, que ni
+  admite ese endpoint). Hasta que aparezca, poner `KAPSO_PLANTILLA_AVISO` hace
+  que Meta responda **132001** y no salga ningún aviso. Por eso el idioma por
+  defecto es `es_MX`: uno que no case da el mismo 132001 en silencio.
+  **De paso**: `tsc -p scratch` cazó las cinco llamadas del banco del 178 a
+  `avisosQueSeMandan`, que ganó un argumento. El banco no sustituye al
+  compilador (lección del 103, otra vez).
 - **Lote 178: los avisos del panel salen por WhatsApp.** Existen desde el 158 y
   se guardan desde el 160, pero solo los ve quien ENTRA al panel; un cheque que
   se cobra mañana no espera a eso. **El destino es de la EMPRESA** (campo en

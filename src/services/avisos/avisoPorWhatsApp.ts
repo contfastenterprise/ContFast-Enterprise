@@ -28,6 +28,7 @@
 // De `avisoDelPanel`, no de `sincronizarAvisos`: ese abre la conexion a la
 // base al importarse, y aqui no se toca la base a proposito.
 import { severidadDeAviso, type AvisoDelPanel } from '@/services/avisos/avisoDelPanel';
+import { parametrosDelAviso } from '@/services/avisos/plantillaDeAviso';
 
 /** Las severidades que llegan al telefono (decision del dueño, 2026-09-21). */
 export const SEVERIDADES_POR_WHATSAPP: readonly string[] = ['error', 'warning'];
@@ -78,6 +79,14 @@ export interface EnvioDeAviso {
   numero: string;
   texto: string;
   clave: string;
+  /**
+   * Los huecos de la plantilla aprobada (lote 179). Van junto al texto y no en
+   * su lugar porque el camino depende de la configuracion: con plantilla
+   * puesta se manda la plantilla, y sin ella texto libre, que solo vale dentro
+   * de la ventana de 24 h de Meta. Decidirlo aqui obligaria a este modulo a
+   * leer variables de entorno, que es justo lo que lo haria no comprobable.
+   */
+  parametros: Record<string, string>;
 }
 
 /**
@@ -92,10 +101,16 @@ export function avisosQueSeMandan(
   empresa: string,
   numeroConfigurado: string | null | undefined,
   yaMandados: ReadonlySet<string>,
+  fecha: string,
 ): EnvioDeAviso[] {
   const numero = normalizarNumero(numeroConfigurado);
   if (!numero) return [];
   return avisos
     .filter((a) => seMandaPorWhatsApp(a.type) && !yaMandados.has(a.id))
-    .map((a) => ({ numero, texto: textoDelAviso(a, empresa), clave: a.id }));
+    .map((a) => ({
+      numero,
+      texto: textoDelAviso(a, empresa),
+      clave: a.id,
+      parametros: parametrosDelAviso(a, empresa, fecha),
+    }));
 }

@@ -99,21 +99,24 @@ async function main() {
 
     const info = { id: 'periodos-PRODUCCION', type: 'periodos_por_agotarse', title: 'p', description: 'd', actionText: 'x', actionLink: '/y' };
     const todos = [aviso, info];
+    // Lote 179: la fecha que va en la plantilla se le pasa, no se lee del
+    // reloj. Asi este banco no depende de que dia se corra.
+    const HOY = '21/09/2026';
 
     ok('sin numero configurado no sale nada',
-      avisosQueSeMandan(todos, 'X', null, new Set()).length === 0
-      && avisosQueSeMandan(todos, 'X', '', new Set()).length === 0);
+      avisosQueSeMandan(todos, 'X', null, new Set(), HOY).length === 0
+      && avisosQueSeMandan(todos, 'X', '', new Set(), HOY).length === 0);
     ok('  ni con un numero que no se puede dar por bueno',
-      avisosQueSeMandan(todos, 'X', '555', new Set()).length === 0);
+      avisosQueSeMandan(todos, 'X', '555', new Set(), HOY).length === 0);
 
-    const salen = avisosQueSeMandan(todos, 'Latin Doors', '8292144128', new Set());
+    const salen = avisosQueSeMandan(todos, 'Latin Doors', '8292144128', new Set(), HOY);
     ok('sale el grave y no el informativo', salen.length === 1 && salen[0].clave === 'caja-diferencia-1',
       JSON.stringify(salen.map((s) => s.clave)));
     ok('  ya normalizado', salen[0]?.numero === '18292144128', salen[0]?.numero);
 
     // LA regla: el panel se recalcula en cada carga.
     ok('un aviso ya mandado no se repite',
-      avisosQueSeMandan(todos, 'Latin Doors', '8292144128', new Set(['caja-diferencia-1'])).length === 0);
+      avisosQueSeMandan(todos, 'Latin Doors', '8292144128', new Set(['caja-diferencia-1']), HOY).length === 0);
   }
 
   console.log('\n2) El cliente de Kapso\n');

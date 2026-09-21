@@ -25,6 +25,15 @@
  * Por eso `KAPSO_PLANTILLA_AVISO` manda: si esta puesta se envia como
  * plantilla, y si no, como texto. Sin plantilla aprobada los avisos fuera de la
  * ventana los rechaza Meta, y eso se REGISTRA en vez de tumbar el panel.
+ *
+ * LOS PARAMETROS VAN CON NOMBRE (lote 179)
+ * ----------------------------------------
+ * La plantilla `aviso_administrativo` que creo el dueño el 2026-09-21 usa
+ * parametros CON NOMBRE (`{{administrador}}`, `{{tipo_aviso}}`...), no
+ * posicionales. Meta los quiere como `{ type: 'text', parameter_name: '...',
+ * text: '...' }`, y si el numero de parametros no coincide rechaza el mensaje
+ * entero (error 132000). El lote 178 mandaba UNO suelto: no habria salido ni
+ * un aviso, y como nada lanza solo se habria visto en el registro.
  */
 import { Logger } from '@/utils/logger';
 
@@ -48,11 +57,21 @@ export function motivoParaNoMandar(): string | null {
  * Manda un mensaje. NUNCA LANZA: avisar de un problema no puede convertirse en
  * un problema, y esto corre detras de la carga del panel.
  */
-export async function mandarWhatsApp(numero: string, texto: string): Promise<ResultadoEnvio> {
+export async function mandarWhatsApp(
+  numero: string,
+  texto: string,
+  parametros?: Record<string, string>,
+): Promise<ResultadoEnvio> {
   const falta = motivoParaNoMandar();
   if (falta) return { enviado: false, motivo: falta };
 
   const plantilla = process.env.KAPSO_PLANTILLA_AVISO;
+  // Con plantilla configurada pero sin huecos que rellenar no se manda nada: un
+  // envio que Meta va a rechazar seguro gasta el aviso y no avisa a nadie.
+  if (plantilla && (!parametros || Object.keys(parametros).length === 0)) {
+    return { enviado: false, motivo: 'hay plantilla configurada pero el aviso no trae sus parametros' };
+  }
+
   const cuerpo = plantilla
     ? {
         messaging_product: 'whatsapp',
@@ -60,8 +79,15 @@ export async function mandarWhatsApp(numero: string, texto: string): Promise<Res
         type: 'template',
         template: {
           name: plantilla,
-          language: { code: process.env.KAPSO_PLANTILLA_IDIOMA || 'es' },
-          components: [{ type: 'body', parameters: [{ type: 'text', text: texto }] }],
+          // La plantilla del dueño es es_MX. Se puede cambiar sin tocar codigo,
+          // pero el valor por defecto es el de la plantilla que existe: un
+          // idioma que no case da 132001 y no sale ningun aviso.
+          language: { code: process.env.KAPSO_PLANTILLA_IDIOMA || 'es_MX' },
+          components: [{
+            type: 'body',
+            parameters: Object.entries(parametros as Record<string, string>)
+              .map(([parameter_name, text]) => ({ type: 'text', parameter_name, text })),
+          }],
         },
       }
     : { messaging_product: 'whatsapp', to: numero, type: 'text', text: { body: texto } };

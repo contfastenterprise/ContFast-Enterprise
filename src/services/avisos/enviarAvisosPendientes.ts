@@ -17,6 +17,7 @@ import { db, companySettings, companies } from '@/db';
 import { Logger } from '@/utils/logger';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { avisosQueSeMandan } from '@/services/avisos/avisoPorWhatsApp';
+import { formatDateDisplay, diaRD } from '@/utils/fechasLocales';
 import { clavesYaMandadasPorWhatsApp, marcarMandadasPorWhatsApp, type AvisoDelPanel } from '@/services/avisos/sincronizarAvisos';
 import { mandarWhatsApp, motivoParaNoMandar } from '@/services/avisos/whatsappKapso';
 
@@ -43,12 +44,15 @@ export async function enviarAvisosPendientes(
     if (!ajustes?.numero) return 0;
 
     const yaMandados = await clavesYaMandadasPorWhatsApp(companyId, modo);
-    const pendientes = avisosQueSeMandan(avisos, ajustes.empresa, ajustes.numero, yaMandados);
+    // La fecha del aviso es la de REPUBLICA DOMINICANA, no la del servidor:
+    // Vercel corre en UTC y a partir de las 20:00 de RD ya es el dia siguiente
+    // (el defecto del lote 174). Un aviso fechado mañana no se cree.
+    const pendientes = avisosQueSeMandan(avisos, ajustes.empresa, ajustes.numero, yaMandados, formatDateDisplay(diaRD()));
     if (pendientes.length === 0) return 0;
 
     const salieron: string[] = [];
     for (const envio of pendientes) {
-      const r = await mandarWhatsApp(envio.numero, envio.texto);
+      const r = await mandarWhatsApp(envio.numero, envio.texto, envio.parametros);
       if (r.enviado) salieron.push(envio.clave);
       else Logger.warn('[avisos-whatsapp] no salio un aviso', { companyId, clave: envio.clave, motivo: r.motivo });
     }
