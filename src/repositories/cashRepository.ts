@@ -330,7 +330,7 @@ export class CashRepository {
   /**
    * Approves a cash session closure or supervisor pending action.
    */
-  static async approveSession(sessionId: string, companyId: string, approvedBy: string) {
+  static async approveSession(sessionId: string, companyId: string, modo: ModoOperativo, approvedBy: string) {
     const [session] = await db
       .update(cashSessions)
       .set({
@@ -338,8 +338,17 @@ export class CashRepository {
         approvedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(and(eq(cashSessions.id, sessionId), eq(cashSessions.companyId, companyId)))
+      // Lote 176: `modo`. Sin el, aprobar desde PRODUCCION podia dar por
+      // revisada la diferencia de una sesion de PRACTICAS -- y al reves, que es
+      // peor: un descuadre real apagado desde el entorno de pruebas. Mismo
+      // criterio que el resto del modulo (ver `closeSession`).
+      .where(and(
+        eq(cashSessions.id, sessionId),
+        eq(cashSessions.companyId, companyId),
+        eq(cashSessions.modo, modo),
+      ))
       .returning();
+    if (!session) throw new Error('No se encontró la sesión de caja a aprobar.');
     return session;
   }
 
@@ -372,6 +381,9 @@ export class CashRepository {
         actualBalance: cashSessions.actualBalance,
         difference: cashSessions.difference,
         justification: cashSessions.justification,
+        // Lote 176: sin esto la pantalla no puede saber si la diferencia ya se
+        // reviso, y el boton de revisarla no desapareceria nunca.
+        approvedAt: cashSessions.approvedAt,
         createdAt: cashSessions.createdAt,
         closedAt: cashSessions.closedAt,
         userId: cashSessions.userId,

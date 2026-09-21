@@ -3,6 +3,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 import { CashRepository } from '@/repositories/cashRepository';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { arquear, motivoParaNoContar, resumirTransferencias, type LineaDeConteo } from '@/services/caja/conteoDeCaja';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
 export class CashService {
   /**
@@ -197,8 +198,9 @@ export class CashService {
   /**
    * Supervisor approval for a cashier session or special transaction.
    */
-  static async approveSession(supervisorId: string, companyId: string, sessionId: string) {
-    // In production, verify supervisor has 'administracion' or 'sistemas' permissions
-    return await CashRepository.approveSession(sessionId, companyId, supervisorId);
+  static async approveSession(supervisorId: string, companyId: string, modo: ModoOperativo, sessionId: string) {
+    // El permiso lo exige la ruta (`administracion:write`). Aqui va el entorno,
+    // que hasta el lote 176 no viajaba: ver `CashRepository.approveSession`.
+    return await CashRepository.approveSession(sessionId, companyId, modo, supervisorId);
   }
 }

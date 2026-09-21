@@ -553,6 +553,32 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 176: una caja que no cuadró deja de pasar desapercibida.** Pregunta del
+  dueño: *¿el cierre de caja hace asiento, o lo hace el contador a mano?*
+  Medido: **no hace ninguno**, y para un arqueo que cuadra está bien —la caja ya
+  se asienta operación por operación—. Pero si **no** cuadra, la diferencia se
+  quedaba solo en el resumen de la sesión: el mayor seguía contando un dinero
+  que no está en la caja y nada lo decía.
+  Se propuso asentarla sola contra una cuenta por cobrar al cajero. **El dueño
+  dijo que no** (2026-09-21): a qué cuenta va un faltante es contable y cambia
+  según el caso. Lo que sí se hace es que **no se olvide** — un aviso del panel
+  que se queda hasta que alguien lo resuelve, con severidad **error** (un
+  descuadre no es un recordatorio) y clave estable, así que se cierra solo
+  (lote 160). La comparación va en **centavos**: 0,004 no es dinero que falte.
+  **Para que el aviso pudiera apagarse hubo que enchufar algo desconectado**: la
+  ruta `/approve` existía y **nadie la llamaba** —`approved_by` está vacío en
+  todas las sesiones—. Un aviso que no se puede resolver acaba siendo ruido.
+  Botón en el historial de caja con la MISMA regla que el panel, `listSessions`
+  devuelve `approved_at` (sin eso el botón no desaparecería nunca), y
+  **`approveSession` no llevaba `modo`**: aprobar desde PRODUCCIÓN podía apagar
+  la diferencia de una sesión de PRÁCTICAS, y al revés, que es peor.
+  El banco lleva una sección *"lo que NO hace, a propósito"*: que cerrar una
+  caja siga sin asentar. Si alguien lo "mejora", tendrá que decidirlo.
+  **De paso**: `verificar_avisos_cheques_caja.ts` (158) comprobaba que
+  `vencimientos.ts` no contuviera la palabra `'closed'` como proxy de "no cierra
+  sesiones". Este lote compara `status !== 'closed'` y la rompió sin que faltara
+  nada; ahora ancla la propiedad (el módulo de avisos es puro, no conoce la
+  base).
 - **Lote 175: las cuentas puente, en bloques.** Desde el lote 171 la pantalla
   enseña las **dieciséis** en el orden del catálogo (1.1.01.01, 1.1.01.02,
   1.1.02.01…), que para quien las configura no es un orden. Ahora van en cinco

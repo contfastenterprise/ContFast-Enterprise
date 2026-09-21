@@ -8,6 +8,8 @@ import {
   tituloDelCheque,
   cajaSinCerrar,
   diasAbierta,
+  diferenciaSinResolver,
+  claseDeDiferencia,
 } from '@/services/avisos/vencimientos';
 import {
   periodosCerrados,
@@ -20,7 +22,8 @@ import { declaracionesDgii } from '@/db';
 
 interface DashboardAlert {
   id: string;
-  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar' | 'declaracion_pendiente';
+  type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar'
+      | 'caja_con_diferencia' | 'declaracion_pendiente';
   title: string;
   description: string;
   actionText: string;
@@ -246,6 +249,42 @@ export class DashboardRepository {
         title: dias === 1 ? 'La caja de ayer sigue abierta' : `La caja lleva ${dias} días abierta`,
         description: 'Mientras no se cierre, el arqueo no cuadra contra nada y los cobros en efectivo siguen entrando en esa sesión.',
         actionText: 'Ir a Caja',
+        actionLink: '/dashboard/cash'
+      });
+    }
+
+    //  Lote 176: un arqueo que no cuadro y que nadie ha resuelto.
+    //
+    //  La caja ya esta asentada operacion por operacion, asi que un arqueo que
+    //  cuadra no necesita nada. Pero una diferencia se quedaba SOLO en el
+    //  resumen de la sesion: el mayor seguia diciendo que hay un dinero que no
+    //  esta, y nada lo decia. No se asienta sola a proposito (decision del
+    //  dueño, 2026-09-21): a que cuenta va un faltante es contable y cambia
+    //  segun el caso. El aviso se queda hasta que un responsable lo aprueba,
+    //  y entonces se apaga solo -- nadie tiene que descartarlo a mano.
+    const cerradasConDiferencia = await db.select({
+      id: cashSessions.id,
+      status: cashSessions.status,
+      difference: cashSessions.difference,
+      approvedAt: cashSessions.approvedAt,
+      closedAt: cashSessions.closedAt,
+    }).from(cashSessions)
+      .where(withTenantMode(cashSessions, ctx, eq(cashSessions.status, 'closed')));
+
+    for (const sesion of cerradasConDiferencia.filter(diferenciaSinResolver)) {
+      const clase = claseDeDiferencia(sesion.difference);
+      const importe = Math.abs(parseFloat(sesion.difference || '0'));
+      const dinero = importe.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      alertsDetails.push({
+        id: `caja-diferencia-${sesion.id}`,
+        type: 'caja_con_diferencia',
+        title: clase === 'faltante'
+          ? `Faltan RD$ ${dinero} en el arqueo de caja`
+          : `Sobran RD$ ${dinero} en el arqueo de caja`,
+        description: clase === 'faltante'
+          ? 'Se contó menos efectivo del que el sistema esperaba. Mientras no se revise, el mayor sigue contando ese dinero como si estuviera en la caja.'
+          : 'Se contó más efectivo del que el sistema esperaba. Hay una entrada que no quedó registrada.',
+        actionText: 'Revisar el arqueo',
         actionLink: '/dashboard/cash'
       });
     }

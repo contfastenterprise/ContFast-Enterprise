@@ -114,9 +114,18 @@ async function main() {
   //  Esta es una NEGACION, y sola seria cierta de balde: sin aviso ninguno
   //  tampoco hay cierre automatico. Va unida a la marca del estado posterior
   //  -que el aviso exista- para que la contraprueba la vea fallar.
+  //  Lote 176: esto miraba que `vencimientos.ts` no contuviera la palabra
+  //  `'closed'`, como proxy de "no cierra sesiones". Era un proxy fragil: ese
+  //  lote añadio `diferenciaSinResolver`, que compara `status !== 'closed'`
+  //  para distinguir las sesiones ya cerradas, y la comprobacion fallo sin que
+  //  faltara nada. Ahora se ancla la PROPIEDAD: el modulo de avisos es puro --
+  //  no conoce la base de datos-- asi que no puede cerrar nada, y el panel no
+  //  actualiza sesiones.
+  const avisos = leer('src/services/avisos/vencimientos.ts');
   ok('se avisa de la caja, pero NO se cierra sola',
     /type: 'caja_sin_cerrar',/.test(PANEL) && !!m
-    && !/update\(cashSessions\)/.test(PANEL) && !/'closed'/.test(leer('src/services/avisos/vencimientos.ts')));
+    && !/update\(cashSessions\)/.test(PANEL)
+    && !/from '@\/db'/.test(avisos) && !/\.update\(/.test(avisos));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

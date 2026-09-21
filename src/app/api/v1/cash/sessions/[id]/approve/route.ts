@@ -23,7 +23,7 @@ export async function POST(
     // Enforce "administracion:write" or equivalent supervisor permissions
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
 
-    const session = await CashService.approveSession(auth.userId, auth.companyId, id);
+    const session = await CashService.approveSession(auth.userId, auth.companyId, auth.modo, id);
 
     return NextResponse.json(
       { success: true, message: 'Sesión de caja aprobada con éxito por el supervisor.', data: session },

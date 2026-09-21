@@ -85,3 +85,54 @@ export function cajaSinCerrar(sesion: { status?: string | null; openedAt?: Date 
 export function diasAbierta(openedAt: Date | string, ahora: Date): number {
   return -diasHastaElCobro(diaRD(openedAt), ahora);
 }
+
+// ---------------------------------------------------------------------------
+// La diferencia de un arqueo que nadie ha resuelto (lote 176)
+// ---------------------------------------------------------------------------
+
+/**
+ * POR QUE AVISAR Y NO ASENTAR (decision del dueño, 2026-09-21)
+ * ------------------------------------------------------------
+ * La caja ya esta asentada operacion por operacion, asi que un arqueo que
+ * cuadra no necesita asiento. Pero si NO cuadra, hasta ahora no pasaba nada:
+ * la sesion se cerraba con `difference = -500` guardada en su resumen y el
+ * mayor seguia diciendo que en la caja hay 500 mas de los que hay.
+ *
+ * Se penso en asentarlo solo. El dueño decidio que no: que cuenta recibe un
+ * faltante -- gasto, o cuenta por cobrar al cajero -- es una decision contable
+ * que cambia segun el caso, y el sistema no la puede tomar por su cuenta. Lo
+ * que si puede es que **no se olvide**: el aviso se queda hasta que un
+ * responsable lo da por revisado.
+ *
+ * Con el arqueo ciego del lote 172 esto deja de ser teorico: las tres sesiones
+ * cerradas de Latin Doors tienen diferencia 0,00 al centavo justamente porque
+ * nadie contaba.
+ */
+
+/** Un faltante (falta dinero) o un sobrante (hay de mas). Null si cuadro. */
+export function claseDeDiferencia(diferencia: number | string | null | undefined): 'faltante' | 'sobrante' | null {
+  const n = typeof diferencia === 'string' ? parseFloat(diferencia) : diferencia;
+  if (n === null || n === undefined || !Number.isFinite(n)) return null;
+  // En centavos: 0.004 no es un sobrante, es ruido de redondeo.
+  const c = Math.round(n * 100);
+  if (c === 0) return null;
+  return c < 0 ? 'faltante' : 'sobrante';
+}
+
+/**
+ * ¿Hay que avisar de esta sesion?
+ *
+ * Solo de las CERRADAS con diferencia y sin aprobar. Una sesion abierta todavia
+ * no tiene arqueo (y de esa ya avisa `cajaSinCerrar`), y una aprobada es una
+ * que un responsable miro: ahi el aviso se apaga solo, sin que nadie lo
+ * descarte a mano.
+ */
+export function diferenciaSinResolver(sesion: {
+  status?: string | null;
+  difference?: string | number | null;
+  approvedAt?: Date | string | null;
+}): boolean {
+  if ((sesion.status || '') !== 'closed') return false;
+  if (sesion.approvedAt) return false;
+  return claseDeDiferencia(sesion.difference) !== null;
+}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Wallet, Plus, Minus, Scale, History, Lock, RefreshCw,
   TrendingUp, AlertTriangle, CheckCircle2, XCircle, ChevronRight,
-  Download, Filter, Printer, Eye, Search, ClipboardList, X, Loader2, ShoppingCart
+  Download, Filter, Printer, Eye, Search, ClipboardList, X, Loader2, ShoppingCart, ShieldCheck
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +14,9 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 import { DENOMINACIONES } from '@/services/caja/conteoDeCaja';
+// La MISMA regla que decide si el panel avisa: si la pantalla usara otra, el
+// botón de revisar y el aviso podrían no hablar de lo mismo.
+import { diferenciaSinResolver } from '@/services/avisos/vencimientos';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -50,6 +53,9 @@ interface HistorySession {
   expectedBalance: string;
   actualBalance: string | null;
   difference: string | null;
+  // Lote 176: cuando un responsable dio la diferencia por revisada. Mientras
+  // esté vacío, el panel avisa.
+  approvedAt: string | null;
   createdAt: string;
   closedAt: string | null;
   userId: string;
@@ -126,6 +132,26 @@ export default function CashPage() {
   const [denomQty, setDenomQty] = useState<Record<number, number>>({});
   // Lote 172: el resultado del arqueo, tal como lo devuelve el cierre. Antes de
   // cerrar no existe: es lo que el arqueo ciego no deja ver.
+  // Lote 176: la sesion cuya diferencia se esta dando por revisada.
+  const [aprobando, setAprobando] = useState<string | null>(null);
+
+  const aprobarDiferencia = async (id: string) => {
+    setAprobando(id);
+    try {
+      const res = await fetch(`/api/v1/cash/sessions/${id}/approve`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error?.message || 'No se pudo aprobar.');
+      toast.success('Diferencia dada por revisada', {
+        description: 'El aviso del panel se apaga solo la próxima vez que se actualice.',
+      });
+      await loadCashData();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo aprobar.');
+    } finally {
+      setAprobando(null);
+    }
+  };
+
   const [resultadoArqueo, setResultadoArqueo] = useState<{
     expectedBalance: string; actualBalance: string; difference: string; totalTransferencias?: string;
   } | null>(null);
@@ -1208,15 +1234,39 @@ export default function CashPage() {
                                   <button onClick={() => { setSelectedSession(s); setShowViewModal(true); }} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Detalle">
                                     <Eye className="w-4 h-4" />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => {
                                       window.open(`/api/v1/cash/sessions/${s.id}/print`, '_blank');
-                                    }} 
-                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" 
+                                    }}
+                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                     title="Reimprimir"
                                   >
                                     <Printer className="w-4 h-4" />
                                   </button>
+                                  {/* Lote 176: dar por revisada la diferencia.
+                                      La ruta `/approve` existia desde siempre y
+                                      NADIE la llamaba, asi que `approved_by`
+                                      estaba vacio en todas las sesiones. Sin
+                                      esto, el aviso del panel no tendria como
+                                      apagarse y acabaria siendo ruido. */}
+                                  {diferenciaSinResolver(s) && (
+                                    <button
+                                      onClick={() => aprobarDiferencia(s.id)}
+                                      disabled={aprobando === s.id}
+                                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-amber-600 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                                      title="Dar por revisada la diferencia"
+                                      aria-label="Dar por revisada la diferencia del arqueo"
+                                    >
+                                      {aprobando === s.id
+                                        ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        : <ShieldCheck className="w-4 h-4" />}
+                                    </button>
+                                  )}
+                                  {s.approvedAt && (
+                                    <span className="p-1.5 flex items-center justify-center text-emerald-600" title="Diferencia revisada">
+                                      <ShieldCheck className="w-4 h-4" />
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             </tr>
