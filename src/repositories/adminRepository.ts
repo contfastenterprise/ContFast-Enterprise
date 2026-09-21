@@ -1,5 +1,5 @@
-import { db, users, roles, subscriptions, plans } from '@/db';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { db, users, roles, sessions, auditLogs, subscriptions, plans } from '@/db';
+import { eq, and, desc, count, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { esSistemas } from '@/utils/rolMatch';
@@ -108,7 +108,9 @@ export class AdminRepository {
       roleId: string;
       avatarUrl?: string | null;
       avatarPath?: string | null;
-    }
+    },
+    /** Quien lo hace, para el registro. Lote 177. */
+    actorId?: string,
   ) {
     return await db.transaction(async (tx) => {
       const [existing] = await tx.select().from(users).where(and(eq(users.id, userId), eq(users.companyId, companyId)));
@@ -130,9 +132,10 @@ export class AdminRepository {
         updatedAt: new Date()
       };
 
-      if (data.passwordRaw && data.passwordRaw.trim().length >= 6) {
+      const cambiaLaClave = !!(data.passwordRaw && data.passwordRaw.trim().length >= 6);
+      if (cambiaLaClave) {
         const salt = await bcrypt.genSalt(10);
-        updateData.passwordHash = await bcrypt.hash(data.passwordRaw, salt);
+        updateData.passwordHash = await bcrypt.hash(data.passwordRaw!, salt);
       }
 
       // Auditoria P1-16 (2026-09-03): el SELECT de arriba si valida
@@ -147,6 +150,32 @@ export class AdminRepository {
         .set(updateData)
         .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
         .returning();
+
+      // Lote 177: cambiarle la contraseña a alguien CIERRA SUS SESIONES.
+      //
+      // Hasta ahora se le cambiaba la clave y quien tuviera su sesion abierta
+      // seguia dentro -- incluido el motivo por el que se le cambia. Decidido
+      // por el dueño el 2026-09-21: el mismo criterio que la recuperacion por
+      // correo. Va DENTRO de la transaccion: cambiar la clave y no cerrar la
+      // sesion es justo el estado que no debe existir ni un instante.
+      if (cambiaLaClave) {
+        await tx.update(sessions)
+          .set({ invalidatedAt: new Date() })
+          .where(and(eq(sessions.userId, userId), isNull(sessions.invalidatedAt)));
+
+        await tx.insert(auditLogs).values({
+          // Evento de cuenta: no pertenece a PRUEBA ni a PRODUCCION. Mismo
+          // criterio que el acceso y que la recuperacion.
+          modo: 'PRODUCCION',
+          companyId,
+          userId: actorId ?? userId,
+          action: 'password_reset_admin',
+          entityType: 'users',
+          entityId: userId,
+          oldValues: {},
+          newValues: { motivo: 'Contraseña asignada por administración; se cerraron las sesiones del usuario.' },
+        });
+      }
 
       return {
         id: updated.id,

@@ -553,6 +553,34 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 177: recuperar la contraseña.** No existía: quien la olvidaba tenía que
+  pedir que se la cambiaran en la base. Y sin embargo `password_resets` estaba
+  en el esquema **desde el principio** y con la forma correcta (`token_hash`,
+  `expires_at`, `used_at`), con **cero referencias** en `src/` y 0 filas en
+  PRODUCCIÓN — mismo caso que `notifications` antes del 160, y por eso **no
+  lleva migración**.
+  **Decisión del dueño (2026-09-21)**: **administración y sistemas** se
+  recuperan solos por correo; **al resto le cambia la contraseña un
+  administrador** desde Usuarios. El motivo es de control: en una empresa
+  pequeña el correo de un cajero está tan a mano como su puesto.
+  Seguridad: la respuesta es **la misma siempre** (exista o no la cuenta, sea o
+  no administración, salga o falle el SMTP) — si cambiara, el formulario diría
+  quién tiene cuenta y además **quién es administrador**; el token se guarda
+  **hasheado** (SHA-256, no bcrypt: son 32 bytes al azar, lo que protege es la
+  entropía); **caduca en 1 h y se usa una vez**, y pedir uno nuevo invalida el
+  anterior; y **al cambiarla se cierran las sesiones**, en la misma transacción
+  que gasta el enlace.
+  **Lo que ya existía y le faltaba una cosa**: `PUT /api/v1/admin/users/[id]` ya
+  aceptaba `passwordRaw`, pero **no cerraba las sesiones** del usuario — se le
+  cambiaba la clave y quien tuviera su sesión abierta seguía dentro. Ahora sí, y
+  queda registrado (`password_reset_admin`).
+  Banco de 52 comprobaciones con la parte que protege **ejecutada** (200 tokens
+  generados). Contraprueba 52/52. **Cuatro mutantes, cuatro muertos, y uno
+  obligó a apretar el banco**: `if (false)` en la guarda que cierra las sesiones
+  dejaba todo el código intacto y las comprobaciones lo daban por bueno —
+  miraban que existiera, no que se ejecutara.
+  **Para que funcione en producción hace falta `APP_URL`** (para armar el
+  enlace); sin ella no se manda nada, queda registrado y la respuesta no cambia.
 - **Lote 176: una caja que no cuadró deja de pasar desapercibida.** Pregunta del
   dueño: *¿el cierre de caja hace asiento, o lo hace el contador a mano?*
   Medido: **no hace ninguno**, y para un arqueo que cuadra está bien —la caja ya

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -278,6 +279,16 @@ export default function LoginPage() {
               {errors.password && (
                 <p id="error-password" className="text-xs text-red-600 mt-1">{errors.password.message}</p>
               )}
+              {/* Lote 177: el enlace que el 173 dejo fuera a proposito, porque
+                  entonces no habia a donde llevar. Ahora si. */}
+              <div className="flex justify-end pt-1">
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs font-semibold text-on-surface-variant hover:text-[#c5a059] transition-colors rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c5a059]"
+                >
+                  ¿Olvidó su contraseña?
+                </Link>
+              </div>
             </div>
 
             {/* Action Button */}
