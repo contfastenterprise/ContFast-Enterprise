@@ -3,6 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
 import { sincronizarAvisos } from '@/services/avisos/sincronizarAvisos';
+import { enviarAvisosPendientes } from '@/services/avisos/enviarAvisosPendientes';
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,6 +39,12 @@ export async function GET(req: NextRequest) {
     // solos los que ya no aparecen y NUNCA lanza: guardar el aviso no puede
     // tumbar el panel que lo produjo.
     await sincronizarAvisos(session.companyId, session.modo, stats.alertsDetails ?? []);
+
+    // Lote 178: y los que todavia no han salido, al WhatsApp de la empresa.
+    // DESPUES de sincronizar, que es cuando se sabe cual es nuevo de verdad.
+    // Tampoco lanza, y no se espera a que termine para responder: el panel no
+    // se queda colgado porque WhatsApp tarde.
+    void enviarAvisosPendientes(session.companyId, session.modo, stats.alertsDetails ?? []);
 
     return NextResponse.json({
       success: true,

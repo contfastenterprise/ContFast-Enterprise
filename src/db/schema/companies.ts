@@ -44,6 +44,12 @@ export const companySettings = pgTable('company_settings', {
   barcodeDefaultType: varchar('barcode_default_type', { length: 30 }).default('code128').notNull(),
   barcodePrefix: varchar('barcode_prefix', { length: 20 }).default('COD').notNull(),
   barcodeLength: integer('barcode_length').default(9).notNull(),
+  // Lote 178: a que numero de WhatsApp llegan los avisos del panel. Vacio =
+  // no se manda nada, que es el estado de todas las empresas hasta que alguien
+  // lo configure. Va por EMPRESA y no en una variable de entorno porque el
+  // sistema es multiempresa: los avisos de D'JIMENEZ no son asunto de quien
+  // administra Latin Doors.
+  whatsappAvisos: varchar('whatsapp_avisos', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

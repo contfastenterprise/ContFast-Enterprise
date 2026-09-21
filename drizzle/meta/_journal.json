@@ -92,6 +92,13 @@
       "when": 1789946000000,
       "tag": "0012_arqueo_de_caja",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790030000000,
+      "tag": "0013_avisos_por_whatsapp",
+      "breakpoints": true
     }
   ]
 }

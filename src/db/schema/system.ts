@@ -62,6 +62,11 @@ export const notifications = pgTable('notifications', {
   readAt: timestamp('read_at'),
   /** Cuando el aviso dejo de aplicar (el cheque se cobro, la caja se cerro...). */
   resolvedAt: timestamp('resolved_at'),
+  // Lote 178: cuando se mando por WhatsApp. Es lo que impide repetirlo: el
+  // panel recalcula sus avisos en CADA carga, asi que sin esta marca el mismo
+  // cheque se anunciaria cada vez que alguien abre el inicio. Se pone a null
+  // si el aviso se cierra y vuelve a aparecer, porque eso si es noticia nueva.
+  whatsappEnviadoAt: timestamp('whatsapp_enviado_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

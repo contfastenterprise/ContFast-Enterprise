@@ -553,6 +553,46 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 178: los avisos del panel salen por WhatsApp.** Existen desde el 158 y
+  se guardan desde el 160, pero solo los ve quien ENTRA al panel; un cheque que
+  se cobra mañana no espera a eso. **El destino es de la EMPRESA** (campo en
+  Configuración; vacío = no se manda nada, que es como quedan las seis), y solo
+  van los **graves y los de advertencia** — las dos, decisión del dueño. **Cada
+  aviso se manda una vez**: el panel recalcula sus avisos en cada carga, así que
+  la marca `notifications.whatsapp_enviado_at` es lo que impide que el mismo
+  cheque se anuncie cada vez que alguien abre el inicio; se borra si el aviso se
+  cierra y vuelve a aparecer. **Nunca lanza** (plazo 8 s; el panel se carga
+  igual), **marca lo que SALIÓ, no lo que se intentó** (un fallo de red se
+  reintenta en la siguiente carga en vez de perderse para siempre), y sin número
+  configurado **no consulta nada**. **MIGRACIÓN
+  `drizzle/0013_avisos_por_whatsapp.sql`: aplicarla ANTES de desplegar.**
+  **Variables en Vercel**: `KAPSO_API_KEY` y `KAPSO_PHONE_NUMBER_ID`
+  (1405968992591205); sin ellas no manda y lo dice en el registro, no falla.
+  **Kapso tiene DOS direcciones** y eso costó cuatro 404: administración en
+  `api.kapso.ai/platform/v1/...` y **envío** en
+  `api.kapso.ai/meta/whatsapp/v24.0/{phone_number_id}/messages`, con el cuerpo
+  de la Cloud API de Meta. **La ventana de 24 horas de Meta**: texto libre solo
+  dentro de las 24 h desde que el usuario escribió a la empresa; fuera de eso
+  hace falta **plantilla aprobada**. Hoy no hay ninguna, así que **hasta que se
+  apruebe una y se ponga `KAPSO_PLANTILLA_AVISO`, los avisos solo llegan a quien
+  haya escrito al número en las últimas 24 horas**. Verificado el 2026-09-21: el
+  número de LATIN DOORS está CONNECTED, en producción, y un mensaje de prueba
+  llegó. **El parámetro sordo del lote 135 volvió a aparecer, dentro de este
+  mismo lote**: el campo estaba en el esquema de validación y en el GET, la
+  pantalla lo mandaba en el cuerpo, y el PATCH no lo escribía en la columna —
+  nada falla, el número se pierde al guardar y los avisos no llegan nunca. Se
+  cazó revisando el diff antes de commitear, no por el banco; ahora hay tres
+  comprobaciones que lo vigilan. **Al añadir un ajuste a esa ruta, comprobar
+  siempre que llega a `settingsUpdate`**: el esquema de Zod lo acepta igual.
+  **Y una trampa nueva: lo que DECIDE no puede arrastrar `@/db`.**
+  `avisoPorWhatsApp.ts` importaba de `sincronizarAvisos.ts`, que abre la
+  conexión al cargarse, así que el módulo cuyo valor es probarse sin red ni base
+  no se podía cargar sin `DATABASE_URL` — y eso **no se vio al escribirlo, se
+  vio corriendo `verificar.ps1` entero**, que es donde no hay `.env`. La forma
+  del aviso y su severidad bajan a `src/services/avisos/avisoDelPanel.ts`, sin
+  `@/db`, y `sincronizarAvisos` las reexporta. De paso,
+  `verificar_diferencia_de_arqueo.ts` (176) anclaba el **fichero** donde vivía
+  la severidad y no la regla: la séptima repetición de la trampa de la sección 7.
 - **Lote 177: recuperar la contraseña.** No existía: quien la olvidaba tenía que
   pedir que se la cambiaran en la base. Y sin embargo `password_resets` estaba
   en el esquema **desde el principio** y con la forma correcta (`token_hash`,

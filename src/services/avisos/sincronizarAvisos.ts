@@ -23,33 +23,17 @@
  *
  * NUNCA LANZA: guardar el aviso no puede tumbar el panel que lo produjo.
  */
-import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, isNotNull, notInArray, sql } from 'drizzle-orm';
 import { db, notifications } from '@/db';
 import { Logger } from '@/utils/logger';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 
-/** Lo que trae cada aviso del panel (ver repositories/dashboardRepository.ts). */
-export interface AvisoDelPanel {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  actionText: string;
-  actionLink: string;
-}
-
-/**
- * Como de grave es cada aviso. Solo cambia el color y el orden con que se
- * enseñan: un comprobante rechazado no es lo mismo que un periodo que se acaba
- * dentro de un mes.
- */
-export function severidadDeAviso(tipo: string): 'error' | 'warning' | 'info' {
-  // Lote 176: una diferencia de arqueo es dinero que falta o que sobra y que
-  // el mayor no refleja. No es un recordatorio: es un descuadre.
-  if (tipo === 'invoice_rejected' || tipo === 'caja_con_diferencia') return 'error';
-  if (tipo === 'check_due' || tipo === 'caja_sin_cerrar' || tipo === 'declaracion_pendiente') return 'warning';
-  return 'info';
-}
+// La FORMA del aviso y su severidad viven aparte desde el lote 178, en un
+// fichero que no importa `@/db`: `avisoPorWhatsApp.ts` decide sin base ni red,
+// y por aqui se le colaba la conexion entera. Se reexportan para que quien ya
+// los importaba de aqui no cambie.
+import { severidadDeAviso, type AvisoDelPanel } from '@/services/avisos/avisoDelPanel';
+export { severidadDeAviso, type AvisoDelPanel };
 
 /**
  * Deja la tabla igual a lo que dice el panel AHORA: lo que hay se actualiza, lo
@@ -89,6 +73,10 @@ export async function sincronizarAvisos(
             actionText: sql`excluded.action_text`,
             actionLink: sql`excluded.action_link`,
             resolvedAt: null,
+            //  Lote 178: un aviso que estaba CERRADO y vuelve a aparecer es
+            //  noticia otra vez, asi que se puede volver a mandar. Uno que
+            //  sigue vivo conserva su marca y no se repite.
+            whatsappEnviadoAt: sql`case when ${notifications.resolvedAt} is null then ${notifications.whatsappEnviadoAt} else null end`,
             updatedAt: new Date(),
           },
         });
@@ -141,6 +129,39 @@ export async function avisosVivos(companyId: string, modo: ModoOperativo) {
       isNull(notifications.resolvedAt)
     ))
     .orderBy(sql`${notifications.readAt} nulls first`, sql`${notifications.createdAt} desc`);
+}
+
+/**
+ * Las claves de esta empresa que YA se mandaron por WhatsApp (lote 178).
+ *
+ * Es lo que impide repetir: el panel recalcula sus avisos en cada carga, asi
+ * que sin esto el mismo cheque se anunciaria cada vez que alguien abre el
+ * inicio. Se lee de la base y no de la memoria del proceso porque en Vercel
+ * cada peticion puede caer en una instancia distinta.
+ */
+export async function clavesYaMandadasPorWhatsApp(companyId: string, modo: ModoOperativo): Promise<Set<string>> {
+  const filas = await db
+    .select({ clave: notifications.clave })
+    .from(notifications)
+    .where(and(
+      eq(notifications.companyId, companyId),
+      eq(notifications.modo, modo),
+      isNotNull(notifications.whatsappEnviadoAt),
+    ));
+  return new Set(filas.map((f) => f.clave));
+}
+
+/** Deja constancia de que estas claves ya salieron por WhatsApp. */
+export async function marcarMandadasPorWhatsApp(companyId: string, modo: ModoOperativo, claves: string[]) {
+  if (claves.length === 0) return;
+  await db
+    .update(notifications)
+    .set({ whatsappEnviadoAt: new Date(), updatedAt: new Date() })
+    .where(and(
+      eq(notifications.companyId, companyId),
+      eq(notifications.modo, modo),
+      inArray(notifications.clave, claves),
+    ));
 }
 
 /** Marca como leidos unos avisos (o todos los vivos, si no se dice cuales). */

@@ -77,7 +77,8 @@ export default function SettingsPage() {
     msellerPassword: '',
     barcodeDefaultType: 'code128',
     barcodePrefix: 'COD',
-    barcodeLength: 9
+    barcodeLength: 9,
+    whatsappAvisos: ''
   });
 
   const isSistemas = esSistemas(userRole);
@@ -223,7 +224,8 @@ export default function SettingsPage() {
           msellerPassword: '',
           barcodeDefaultType: data.data.settings.barcodeDefaultType || 'code128',
           barcodePrefix: data.data.settings.barcodePrefix || 'COD',
-          barcodeLength: data.data.settings.barcodeLength ?? 9
+          barcodeLength: data.data.settings.barcodeLength ?? 9,
+          whatsappAvisos: data.data.settings.whatsappAvisos ?? ''
         });
         setEntornosMseller(data.data.settings.entornosMseller || []);
         setHasMsellerPassword(!!data.data.settings.hasMsellerPassword);
@@ -888,6 +890,21 @@ export default function SettingsPage() {
                     onChange={e => setFormData({ ...formData, barcodeLength: parseInt(e.target.value) || 9 })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-mono"
                   />
+                </div>
+                {/* Lote 178: va por EMPRESA, no en una variable de entorno: los
+                    avisos de una empresa no son asunto de quien administra otra. */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">WhatsApp para avisos</label>
+                  <input
+                    type="tel"
+                    value={formData.whatsappAvisos || ''}
+                    onChange={e => setFormData({ ...formData, whatsappAvisos: e.target.value })}
+                    placeholder="809 555 1234"
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-mono"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    Los avisos graves y de advertencia llegan aquí. Déjelo vacío para no recibir ninguno.
+                  </p>
                 </div>
               </div>
             </div>

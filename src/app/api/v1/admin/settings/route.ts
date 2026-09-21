@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
 import { CompanyRepository } from '@/repositories/companyRepository';
+import { normalizarNumero } from '@/services/avisos/avisoPorWhatsApp';
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -42,7 +43,9 @@ const settingsSchema = z.object({
   msellerPassword: z.string().optional(),
   barcodeDefaultType: z.string().default('code128').optional(),
   barcodePrefix: z.string().default('COD').optional(),
-  barcodeLength: z.number().int().min(1).default(9).optional()
+  barcodeLength: z.number().int().min(1).default(9).optional(),
+  // Lote 178: a que WhatsApp llegan los avisos del panel. Vacio = no se manda.
+  whatsappAvisos: z.string().max(20).optional().nullable()
 });
 
 export async function GET(req: NextRequest) {
@@ -75,7 +78,8 @@ export async function GET(req: NextRequest) {
       hasMsellerPassword: companySettings.msellerPasswordEncrypted,
       barcodeDefaultType: companySettings.barcodeDefaultType,
       barcodePrefix: companySettings.barcodePrefix,
-      barcodeLength: companySettings.barcodeLength
+      barcodeLength: companySettings.barcodeLength,
+      whatsappAvisos: companySettings.whatsappAvisos
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
 
     // Auditoria ISO-16: que ambientes tienen credenciales, para que la pantalla
@@ -167,8 +171,20 @@ export async function PATCH(req: NextRequest) {
       msellerPassword,
       barcodeDefaultType,
       barcodePrefix,
-      barcodeLength
+      barcodeLength,
+      whatsappAvisos
     } = parsed.data;
+
+    // Lote 178: un numero que no se puede marcar se RECHAZA aqui, no se guarda
+    // a la espera. Es la forma del defecto del lote 135: un valor que nadie
+    // puede usar no falla, se queda escrito y los avisos sencillamente no
+    // llegan nunca, sin nada donde mirar.
+    if (whatsappAvisos !== undefined && whatsappAvisos !== null && whatsappAvisos.trim() !== '' && !normalizarNumero(whatsappAvisos)) {
+      return NextResponse.json(
+        { success: false, error: 'El WhatsApp para avisos no es un numero valido. Use 809 555 1234, o con codigo de pais para el extranjero.' },
+        { status: 400 },
+      );
+    }
 
     // Obtener estado actual
     const [currentCompany] = await db
@@ -275,6 +291,13 @@ export async function PATCH(req: NextRequest) {
         barcodeLength,
         updatedAt: new Date()
       };
+
+      // Vacio es un valor: significa "esta empresa no recibe avisos". Por eso
+      // se guarda null y no se deja como estaba -- si no, no habria forma de
+      // desactivarlos desde la pantalla.
+      if (whatsappAvisos !== undefined) {
+        settingsUpdate.whatsappAvisos = whatsappAvisos && whatsappAvisos.trim() !== '' ? whatsappAvisos.trim() : null;
+      }
 
       if (msellerUrl !== undefined) settingsUpdate.msellerUrl = msellerUrl;
 

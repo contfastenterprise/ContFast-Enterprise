@@ -108,9 +108,13 @@ async function main() {
   ok('solo mira las sesiones CERRADAS', /eq\(cashSessions\.status, 'closed'\)/.test(panel));
   ok('  acotadas a la empresa y el entorno', /withTenantMode\(cashSessions, ctx, eq\(cashSessions\.status, 'closed'\)\)/.test(panel));
 
-  const sinc = leer('src/services/avisos/sincronizarAvisos.ts');
+  // La severidad se clasifica en `avisoDelPanel.ts` desde el lote 178 (antes
+  // en `sincronizarAvisos.ts`, que arrastraba `@/db`). Se miran los dos: lo
+  // que este banco vigila es la REGLA, no en que fichero vive.
+  const clasifica = ['src/services/avisos/avisoDelPanel.ts', 'src/services/avisos/sincronizarAvisos.ts']
+    .map(leer).join('\n');
   ok('un descuadre de caja se marca como ERROR, no como recordatorio',
-    /tipo === 'invoice_rejected' \|\| tipo === 'caja_con_diferencia'/.test(sinc));
+    /tipo === 'invoice_rejected' \|\| tipo === 'caja_con_diferencia'/.test(clasifica));
 
   console.log('\n3) Se puede resolver (si no, el aviso seria eterno)\n');
   const pantalla = leer(PANTALLA);
